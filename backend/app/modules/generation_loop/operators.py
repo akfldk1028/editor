@@ -210,8 +210,11 @@ def _corridor_proposals(
                 CandidateProposal(
                     layout=replace(layout, candidate_id=f"{layout.candidate_id}-i{iteration}"),
                     parent_id=parent.candidate_id,
-                    operator="role-driven",
-                    operator_params={"topology": "spine-branch"},
+                    operator="corridor-role-driven",
+                    operator_params={
+                        "order": "role-driven",
+                        "topology": "spine-branch",
+                    },
                 )
             ]
     scale = _room_scale(program)

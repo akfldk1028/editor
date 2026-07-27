@@ -95,3 +95,11 @@ visual-review assertions that require the former single rectangular corridor,
 legacy `corridor-*` operator label, and legacy corridor render measurements.
 They are outside the two compatibility regressions and conflict with the new
 connected-circulation contract.
+
+### Lineage Compatibility Follow-up
+
+- Renamed the role-driven proposal operator to `corridor-role-driven` so
+  structured proposal lineage retains the established `corridor-*` contract.
+- The compact 20x10 commercial program remains a truthful rejected candidate:
+  its sales aspect and checkout/staff minimum dimensions cannot satisfy the
+  profile simultaneously. It must not be forced into acceptance.
