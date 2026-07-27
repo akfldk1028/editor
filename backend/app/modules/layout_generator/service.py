@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from backend.app.schemas.layout import LayoutCandidate, RoomPolygon
+import math
+
+from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 from backend.app.schemas.mass import MassAnalysis
 from backend.app.schemas.program import ProgramGraph
+from engine.geometry import shared_boundary_segments
 
 
 def generate_baseline_layout(
@@ -121,6 +124,7 @@ def generate_core_aligned_layout(
     core_polygon: list[tuple[float, float]],
     service_band_width: float,
     room_scale: float = 0.9,
+    min_circulation_width: float = 1.2,
 ) -> LayoutCandidate:
     if not 0.85 <= room_scale < 1:
         raise ValueError("room_scale must leave circulation and respect program minima")
@@ -150,8 +154,13 @@ def generate_core_aligned_layout(
     ]
     service_x = max_x - service_band_width
     primary_end = _aligned_number(
-        min_x + room_scale * float(primary.target_area) / height
+        min(
+            min_x + room_scale * float(primary.target_area) / height,
+            service_x - min_circulation_width,
+        )
     )
+    if (float(primary_end) - min_x) * height < float(primary.min_area or 0):
+        raise ValueError("minimum circulation width violates primary room minimum area")
     if primary_end >= service_x:
         raise ValueError("program leaves no connected circulation spine")
 
@@ -172,10 +181,13 @@ def generate_core_aligned_layout(
         RoomPolygon(core.node_id, core.space_type, list(core_polygon)),
     ]
     cursor = core_max_y
+    service_boundaries: list[tuple[float, float, float]] = []
     for node in service_nodes:
-        next_y = _aligned_number(
-            cursor + room_scale * float(node.target_area) / service_band_width
-        )
+        scaled_area = room_scale * float(node.target_area)
+        room_height = max(scaled_area / service_band_width, 0.9)
+        room_width = scaled_area / room_height
+        room_min_x = _aligned_number(max_x - room_width)
+        next_y = _aligned_number(cursor + room_height)
         if next_y > max_y + 1e-6:
             raise ValueError("service program exceeds the shared service band")
         next_y = min(next_y, max_y)
@@ -183,41 +195,96 @@ def generate_core_aligned_layout(
             RoomPolygon(
                 node.node_id,
                 node.space_type,
-                _aligned_rectangle(service_x, cursor, max_x, next_y),
+                _aligned_rectangle(room_min_x, cursor, max_x, next_y),
             )
         )
+        service_boundaries.append((float(room_min_x), float(cursor), float(next_y)))
         cursor = next_y
 
-    if cursor < max_y - 1e-6:
-        circulation_polygon = [
-            (_aligned_number(primary_end), _aligned_number(min_y)),
-            (_aligned_number(service_x), _aligned_number(min_y)),
-            (_aligned_number(service_x), _aligned_number(cursor)),
-            (_aligned_number(max_x), _aligned_number(cursor)),
-            (_aligned_number(max_x), _aligned_number(max_y)),
-            (_aligned_number(primary_end), _aligned_number(max_y)),
-        ]
-    else:
-        circulation_polygon = _aligned_rectangle(
-            primary_end,
-            min_y,
-            service_x,
-            max_y,
+    circulation_polygon = [
+        (_aligned_number(primary_end), _aligned_number(min_y)),
+        (_aligned_number(service_x), _aligned_number(min_y)),
+        (_aligned_number(service_x), _aligned_number(core_max_y)),
+    ]
+    for index, (room_min_x, room_min_y, room_max_y) in enumerate(service_boundaries):
+        if circulation_polygon[-1][0] != _aligned_number(room_min_x):
+            circulation_polygon.append(
+                (_aligned_number(room_min_x), _aligned_number(room_min_y))
+            )
+        circulation_polygon.append(
+            (_aligned_number(room_min_x), _aligned_number(room_max_y))
         )
+        if index + 1 < len(service_boundaries):
+            next_min_x = service_boundaries[index + 1][0]
+            if room_min_x != next_min_x:
+                circulation_polygon.append(
+                    (_aligned_number(next_min_x), _aligned_number(room_max_y))
+                )
+    if cursor < max_y - 1e-6:
+        circulation_polygon.extend(
+            [
+                (_aligned_number(max_x), _aligned_number(cursor)),
+                (_aligned_number(max_x), _aligned_number(max_y)),
+            ]
+        )
+    circulation_polygon.append(
+        (_aligned_number(primary_end), _aligned_number(max_y))
+    )
 
+    circulation = RoomPolygon(
+        room_id="corridor",
+        space_type="circulation",
+        polygon=circulation_polygon,
+    )
+    openings = [
+        _centered_door(room, circulation)
+        for room in rooms
+    ]
     return LayoutCandidate(
         candidate_id=f"{program.project_id}-f{program.floor_index}-core-aligned",
         project_id=program.project_id,
         floor_index=program.floor_index,
         rooms=rooms,
-        circulation=[
-            RoomPolygon(
-                room_id="corridor",
-                space_type="circulation",
-                polygon=circulation_polygon,
-            )
-        ],
+        circulation=[circulation],
         score=0.0,
+        openings=openings,
+    )
+
+
+def _centered_door(
+    room: RoomPolygon,
+    circulation: RoomPolygon,
+) -> OpeningSegment:
+    segments = shared_boundary_segments(room.polygon, circulation.polygon)
+    if not segments:
+        raise ValueError(f"room '{room.room_id}' has no shared circulation boundary")
+    start, end = max(
+        segments,
+        key=lambda segment: (
+            math.dist(*segment),
+            segment,
+        ),
+    )
+    length = math.dist(start, end)
+    width = 0.9
+    if length + 1e-9 < width:
+        raise ValueError(f"room '{room.room_id}' shared boundary is shorter than door")
+    offset = (length - width) / (2 * length)
+    door_start = tuple(
+        start[index] + (end[index] - start[index]) * offset
+        for index in range(2)
+    )
+    door_end = tuple(
+        end[index] - (end[index] - start[index]) * offset
+        for index in range(2)
+    )
+    return OpeningSegment(
+        opening_id=f"{room.room_id}-door",
+        kind="door",
+        connects=(room.room_id, circulation.room_id),
+        start=door_start,
+        end=door_end,
+        clear_width=width,
     )
 
 

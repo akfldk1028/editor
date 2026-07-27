@@ -6,7 +6,7 @@ from backend.app.modules.layout_generator.service import generate_baseline_layou
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
-from backend.app.schemas.layout import LayoutCandidate, RoomPolygon
+from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.program import ProgramEdge, ProgramGraph, ProgramNode
 
@@ -45,6 +45,127 @@ def _room(room_id: str, polygon, space_type: str = "office_area") -> RoomPolygon
 
 def _violation_subjects(report, code: str) -> set[str]:
     return {violation.subject for violation in report.violations if violation.code == code}
+
+
+def _door_layout(openings: list[OpeningSegment]) -> LayoutCandidate:
+    return LayoutCandidate(
+        candidate_id="door-candidate",
+        project_id="test",
+        floor_index=1,
+        rooms=[_room("office", [(0, 0), (8, 0), (8, 10), (0, 10)])],
+        circulation=[
+            _room("hall", [(0, 10), (8, 10), (8, 12), (0, 12)], "circulation")
+        ],
+        score=0,
+        openings=openings,
+    )
+
+
+def _door(
+    *,
+    start=(3.55, 10),
+    end=(4.45, 10),
+    clear_width=0.9,
+) -> OpeningSegment:
+    return OpeningSegment(
+        opening_id="office-door",
+        kind="door",
+        connects=("office", "hall"),
+        start=start,
+        end=end,
+        clear_width=clear_width,
+    )
+
+
+def test_required_openings_rejects_missing_room_door():
+    program = _program(
+        ProgramNode(node_id="office", space_type="office_area", target_area=80)
+    )
+
+    report = validate_layout(
+        _door_layout([]),
+        program,
+        boundary=BOUNDARY,
+        require_openings=True,
+    )
+
+    assert _violation_subjects(report, "door_missing") == {"office"}
+
+
+def test_required_openings_rejects_door_below_minimum_width():
+    program = _program(
+        ProgramNode(node_id="office", space_type="office_area", target_area=80)
+    )
+
+    report = validate_layout(
+        _door_layout([_door(start=(3.7, 10), end=(4.3, 10), clear_width=0.6)]),
+        program,
+        boundary=BOUNDARY,
+        require_openings=True,
+        min_door_width=0.8,
+    )
+
+    assert _violation_subjects(report, "door_width") == {"office-door"}
+
+
+def test_required_openings_rejects_door_off_shared_boundary():
+    program = _program(
+        ProgramNode(node_id="office", space_type="office_area", target_area=80)
+    )
+
+    report = validate_layout(
+        _door_layout([_door(start=(3.55, 9), end=(4.45, 9))]),
+        program,
+        boundary=BOUNDARY,
+        require_openings=True,
+    )
+
+    assert _violation_subjects(report, "door_geometry") == {"office-door"}
+
+
+def test_required_openings_accepts_centered_shared_boundary_door():
+    program = _program(
+        ProgramNode(node_id="office", space_type="office_area", target_area=80)
+    )
+
+    report = validate_layout(
+        _door_layout([_door()]),
+        program,
+        boundary=BOUNDARY,
+        require_openings=True,
+        min_door_width=0.8,
+        min_circulation_width=1.2,
+    )
+
+    assert report.accepted
+    assert report.hard_violation_count == 0
+
+
+def test_minimum_circulation_width_rejects_narrow_corridor():
+    program = _program(
+        ProgramNode(node_id="office", space_type="office_area", target_area=80)
+    )
+    layout = _door_layout([_door()])
+    layout = LayoutCandidate(
+        candidate_id=layout.candidate_id,
+        project_id=layout.project_id,
+        floor_index=layout.floor_index,
+        rooms=layout.rooms,
+        circulation=[
+            _room("hall", [(0, 10), (8, 10), (8, 10.7), (0, 10.7)], "circulation")
+        ],
+        score=layout.score,
+        openings=layout.openings,
+    )
+
+    report = validate_layout(
+        layout,
+        program,
+        boundary=BOUNDARY,
+        min_circulation_width=1.2,
+    )
+
+    assert _violation_subjects(report, "circulation_too_narrow") == {"hall"}
 
 
 def test_validate_layout_scores_candidate_with_shared_wall_access():

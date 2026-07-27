@@ -17,10 +17,29 @@ from backend.app.schemas.program import ProgramGraph
 
 
 def layout_fingerprint(layout: LayoutCandidate) -> str:
-    payload = {
+    payload: dict[str, object] = {
         "rooms": _canonical_shapes(layout.rooms),
         "circulation": _canonical_shapes(layout.circulation),
     }
+    if layout.openings:
+        payload["openings"] = sorted(
+            (
+                {
+                    "opening_id": opening.opening_id,
+                    "kind": opening.kind,
+                    "connects": sorted(opening.connects),
+                    "endpoints": sorted(
+                        [
+                            list(_canonical_point(opening.start)),
+                            list(_canonical_point(opening.end)),
+                        ]
+                    ),
+                    "clear_width": _exact_coordinate(opening.clear_width),
+                }
+                for opening in layout.openings
+            ),
+            key=lambda opening: json.dumps(opening, sort_keys=True),
+        )
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 

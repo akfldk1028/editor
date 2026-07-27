@@ -14,7 +14,7 @@ from backend.app.modules.generation_loop.selector import rank_candidate
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
-from backend.app.schemas.layout import LayoutCandidate, RoomPolygon
+from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 from backend.app.schemas.loop import CandidateRecord
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.metrics import ValidationReport, ValidationViolation
@@ -122,6 +122,40 @@ def test_layout_fingerprint_is_canonical_and_geometry_sensitive():
     assert layout_fingerprint(original) == layout_fingerprint(reordered)
     assert layout_fingerprint(original) == layout_fingerprint(negative_zero)
     assert len(layout_fingerprint(original)) == 64
+    assert layout_fingerprint(original) != layout_fingerprint(changed)
+
+
+def test_layout_fingerprint_canonicalizes_opening_order_and_endpoint_direction():
+    first = OpeningSegment(
+        "door-a",
+        "door",
+        ("a", "corridor"),
+        (1, 10),
+        (1.9, 10),
+        0.9,
+    )
+    second = OpeningSegment(
+        "door-b",
+        "door",
+        ("b", "corridor"),
+        (8.1, 10),
+        (9, 10),
+        0.9,
+    )
+    original = replace(_layout("original"), openings=[first, second])
+    reordered = replace(
+        original,
+        openings=[
+            replace(second, start=second.end, end=second.start),
+            replace(first, start=first.end, end=first.start),
+        ],
+    )
+    changed = replace(
+        original,
+        openings=[replace(first, clear_width=0.8), second],
+    )
+
+    assert layout_fingerprint(original) == layout_fingerprint(reordered)
     assert layout_fingerprint(original) != layout_fingerprint(changed)
 
 

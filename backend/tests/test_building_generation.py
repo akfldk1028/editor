@@ -56,6 +56,23 @@ def test_building_generation_assigns_all_floors_and_aligns_vertical_core():
     }
     assert result.accepted
     assert all(floor.validation.accepted for floor in result.floor_results)
+    assert all(
+        len(floor.layout.openings) == len(floor.layout.rooms)
+        for floor in result.floor_results
+    )
+    for floor in result.floor_results:
+        room_ids = {room.room_id for room in floor.layout.rooms}
+        circulation_ids = {path.room_id for path in floor.layout.circulation}
+        assert {
+            opening.connects[0]
+            for opening in floor.layout.openings
+        } == room_ids
+        assert all(
+            opening.kind == "door"
+            and opening.clear_width == pytest.approx(0.9)
+            and opening.connects[1] in circulation_ids
+            for opening in floor.layout.openings
+        )
 
 
 def test_building_generation_accepts_complete_structured_floor_assignments():

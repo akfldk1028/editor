@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 Point = tuple[float, float]
 
@@ -30,3 +30,4 @@ class LayoutCandidate:
     rooms: list[RoomPolygon]
     circulation: list[RoomPolygon]
     score: float
+    openings: list[OpeningSegment] = field(default_factory=list)

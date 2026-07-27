@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from backend.app.schemas.layout import LayoutCandidate, RoomPolygon
 from backend.app.schemas.metrics import RoomAreaMetric, ValidationReport, ValidationViolation
 from backend.app.schemas.program import ProgramGraph
+from engine.geometry import orthogonal_min_width, shared_boundary_segments
 from engine.geometry.polygon import (
     Segment,
     contains_polygon,
@@ -30,6 +31,12 @@ _HARD_VIOLATION_CODES = (
     "circulation_missing",
     "circulation_disconnected",
     "room_inaccessible",
+    "opening_identity",
+    "opening_reference",
+    "door_geometry",
+    "door_width",
+    "door_missing",
+    "circulation_too_narrow",
 )
 _EXTERNAL_PROGRAM_ENDPOINTS = {"street"}
 
@@ -40,7 +47,16 @@ def validate_layout(
     boundary: list[tuple[float, float]],
     *,
     street_segments: list[Segment] | None = None,
+    require_openings: bool = False,
+    min_door_width: float = 0.8,
+    min_circulation_width: float | None = None,
 ) -> ValidationReport:
+    if not math.isfinite(min_door_width) or min_door_width <= 0:
+        raise ValueError("min_door_width must be finite and positive")
+    if min_circulation_width is not None and (
+        not math.isfinite(min_circulation_width) or min_circulation_width <= 0
+    ):
+        raise ValueError("min_circulation_width must be finite and positive")
     _validate_program(program)
     validate_polygon(boundary, label="boundary")
     streets = street_segments or []
@@ -129,6 +145,33 @@ def validate_layout(
                     f"room '{room.room_id}' has no shared wall with circulation",
                 )
 
+    if require_openings:
+        _validate_openings(
+            layout,
+            valid_rooms,
+            valid_circulation,
+            expected_set,
+            min_door_width,
+            add_violation,
+        )
+
+    if min_circulation_width is not None:
+        for path in valid_circulation:
+            try:
+                measured_width = orthogonal_min_width(path.polygon)
+            except ValueError as error:
+                add_violation("circulation_too_narrow", path.room_id, str(error))
+            else:
+                if measured_width + _EPSILON < min_circulation_width:
+                    add_violation(
+                        "circulation_too_narrow",
+                        path.room_id,
+                        (
+                            f"circulation '{path.room_id}' width {measured_width:.3f} "
+                            f"is below {min_circulation_width:.3f}"
+                        ),
+                    )
+
     circulation_score = _circulation_score(
         circulation_exists,
         circulation_connected,
@@ -182,6 +225,99 @@ def validate_layout(
         total_score=total_score,
         messages=[violation.message for violation in violations],
         policy_version=_POLICY_VERSION,
+    )
+
+
+def _validate_openings(
+    layout: LayoutCandidate,
+    valid_rooms: list[RoomPolygon],
+    valid_circulation: list[RoomPolygon],
+    expected_room_ids: set[str],
+    min_door_width: float,
+    add_violation,
+) -> None:
+    opening_counts = Counter(opening.opening_id for opening in layout.openings)
+    rooms = {room.room_id: room for room in valid_rooms}
+    circulation = {path.room_id: path for path in valid_circulation}
+    valid_door_rooms: set[str] = set()
+
+    for opening in layout.openings:
+        if (
+            not opening.opening_id
+            or opening_counts[opening.opening_id] > 1
+        ):
+            add_violation(
+                "opening_identity",
+                opening.opening_id or "opening",
+                "opening IDs must be non-empty and unique",
+            )
+            continue
+        connected_rooms = [item for item in opening.connects if item in rooms]
+        connected_paths = [item for item in opening.connects if item in circulation]
+        if (
+            opening.kind != "door"
+            or len(set(opening.connects)) != 2
+            or len(connected_rooms) != 1
+            or len(connected_paths) != 1
+        ):
+            add_violation(
+                "opening_reference",
+                opening.opening_id,
+                "door must connect one room and one circulation polygon",
+            )
+            continue
+
+        room_id = connected_rooms[0]
+        path_id = connected_paths[0]
+        values = (*opening.start, *opening.end, opening.clear_width)
+        actual_width = math.dist(opening.start, opening.end)
+        geometry_ok = (
+            all(math.isfinite(float(value)) for value in values)
+            and actual_width > _EPSILON
+            and abs(actual_width - float(opening.clear_width)) <= 1e-7
+            and any(
+                _segment_contains(segment, (opening.start, opening.end))
+                for segment in shared_boundary_segments(
+                    rooms[room_id].polygon,
+                    circulation[path_id].polygon,
+                )
+            )
+        )
+        if not geometry_ok:
+            add_violation(
+                "door_geometry",
+                opening.opening_id,
+                "door geometry must match and lie within the connected shared boundary",
+            )
+            continue
+        if opening.clear_width + _EPSILON < min_door_width:
+            add_violation(
+                "door_width",
+                opening.opening_id,
+                (
+                    f"door '{opening.opening_id}' width {opening.clear_width:.3f} "
+                    f"is below {min_door_width:.3f}"
+                ),
+            )
+            continue
+        valid_door_rooms.add(room_id)
+
+    for room_id in sorted(expected_room_ids - valid_door_rooms):
+        add_violation(
+            "door_missing",
+            room_id,
+            f"room '{room_id}' has no valid circulation door",
+        )
+
+
+def _segment_contains(container: Segment, candidate: Segment) -> bool:
+    (ax, ay), (bx, by) = container
+    return all(
+        abs((bx - ax) * (point[1] - ay) - (by - ay) * (point[0] - ax))
+        <= _EPSILON
+        and min(ax, bx) - _EPSILON <= point[0] <= max(ax, bx) + _EPSILON
+        and min(ay, by) - _EPSILON <= point[1] <= max(ay, by) + _EPSILON
+        for point in candidate
     )
 
 

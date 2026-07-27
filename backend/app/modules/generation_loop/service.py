@@ -122,6 +122,9 @@ def run_building_generation(
             program,
             boundary=mass.footprint_polygon,
             street_segments=_street_segments(mass),
+            require_openings=True,
+            min_door_width=0.8,
+            min_circulation_width=1.2,
         )
         floor_results.append(
             GenerationResult(
