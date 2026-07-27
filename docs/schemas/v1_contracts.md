@@ -30,11 +30,14 @@ rules used for the result.
 
 ## VisualReviewArtifacts
 
-Every reviewed candidate writes SVG, PNG, HTML, and canonical review JSON files.
+Each search iteration renders only its `best_so_far` candidate as SVG, PNG,
+HTML, and canonical review JSON.
 Review JSON records the candidate fingerprint, lineage (`parent_id`, operator,
 operator parameters), hard failure count, structured violations, scores,
-deltas from the prior iteration, hard checks, acceptance, and relative artifact
-links. `needs_iteration` is exactly `not accepted`.
+deltas from the prior rendered iteration, hard checks, acceptance, and relative
+artifact links. `needs_iteration` is exactly `not accepted`; non-rendered
+evaluated candidates are represented only by aggregate search state, not by
+per-candidate artifacts.
 
 ## VisualReviewLoopResult
 
@@ -45,10 +48,17 @@ iterations, score and hard-failure trends, lineage, and relative links.
 
 ## Deterministic Search
 
-Geometry is canonicalized with normalized room IDs and rounded coordinates
-before SHA-256 fingerprinting. Ranking is accepted-first, then fewer hard
-failures, lower violation score, higher total score, and fingerprint. Each
-candidate retains iteration and operator lineage; duplicate fingerprints are
-evaluated once. Valid termination reasons are `accepted`, `search_exhausted`,
-`stagnated`, `evaluation_budget_exhausted`, `iteration_budget_exhausted`, and
-`failed`. Any non-`accepted` termination keeps `accepted=false`.
+For SHA-256 fingerprinting, shapes are sorted by their raw `room_id`,
+`space_type`, and canonical polygon representation. Polygon rotations and
+winding direction are canonicalized, while each coordinate is serialized with
+exact `float.hex()` IEEE-754 text (with signed zero normalized to `0.0`). Room
+IDs and space types are not normalized, and coordinates are not rounded; near
+equal floating-point inputs can therefore have different fingerprints. Ranking
+is accepted-first, then fewer hard failures, lower violation score, higher
+total score, and fingerprint. Each candidate retains iteration and operator
+lineage; duplicate fingerprints are evaluated once. `evaluation_count` and
+deduplication cover the broader search, while the review history contains only
+per-iteration `best_so_far` candidates. Valid termination reasons are
+`accepted`, `search_exhausted`, `stagnated`, `evaluation_budget_exhausted`,
+`iteration_budget_exhausted`, and `failed`. Any non-`accepted` termination
+keeps `accepted=false`.

@@ -34,7 +34,11 @@ Do not hardcode final office/commercial ratios as product truth. Use the baselin
 
 ## Visual Acceptance
 
-Numerical validation is not enough for practical floor planning. Every candidate should be reviewed through the visual artifact loop before it is treated as useful output.
+Numerical validation is not enough for practical floor planning. The visual
+artifact loop renders each iteration's `best_so_far` candidate before that
+candidate is treated as useful output. The search may evaluate and deduplicate
+additional candidates; `evaluation_count` records that broader work, while
+review artifacts do not claim a per-candidate audit trail.
 
 ## Evaluation Baseline
 

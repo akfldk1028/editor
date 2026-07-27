@@ -50,6 +50,47 @@ def _assert_index_artifacts_resolve(output_dir: Path, index: dict) -> None:
             assert path.resolve().is_relative_to(output_dir.resolve())
 
 
+def _rendered_boundary_points(svg_path: Path) -> list[tuple[float, float]]:
+    root = ElementTree.fromstring(svg_path.read_text(encoding="utf-8"))
+    polygons = root.findall("{http://www.w3.org/2000/svg}polygon")
+    return [
+        tuple(float(coordinate) for coordinate in point.split(","))
+        for point in polygons[-1].attrib["points"].split()
+    ]
+
+
+def _expected_svg_points(
+    points: list[list[float]],
+    *,
+    width: int = 960,
+    height: int = 540,
+) -> list[tuple[float, float]]:
+    min_x = min(point[0] for point in points)
+    min_y = min(point[1] for point in points)
+    max_x = max(point[0] for point in points)
+    max_y = max(point[1] for point in points)
+    scale = min((width * 0.86) / (max_x - min_x), (height * 0.82) / (max_y - min_y))
+    pad_x = (width - (max_x - min_x) * scale) / 2
+    pad_y = (height - (max_y - min_y) * scale) / 2
+    return [
+        (
+            round((x - min_x) * scale + pad_x, 2),
+            round(height - ((y - min_y) * scale + pad_y), 2),
+        )
+        for x, y in points
+    ]
+
+
+def _turn_signs(points: list[tuple[float, float]]) -> list[float]:
+    return [
+        (points[(index + 1) % len(points)][0] - point[0])
+        * (points[(index + 2) % len(points)][1] - points[(index + 1) % len(points)][1])
+        - (points[(index + 1) % len(points)][1] - point[1])
+        * (points[(index + 2) % len(points)][0] - points[(index + 1) % len(points)][0])
+        for index, point in enumerate(points)
+    ]
+
+
 def test_cli_generate_reads_mass_json_and_prints_generation_result(tmp_path):
     input_path = tmp_path / "mass.json"
     input_path.write_text(
@@ -177,8 +218,13 @@ def test_cli_concave_sample_reports_truthful_non_acceptance_and_polygon_boundary
     assert any(count > 0 for count in index["hard_failure_trend"])
     _assert_index_artifacts_resolve(output_dir, index)
 
+    manifest = json.loads(
+        (REPOSITORY_ROOT / "datasets" / "manifests" / "sample_mass_concave.json").read_text(
+            encoding="utf-8"
+        )
+    )
     final_svg = output_dir / index["iterations"][-1]["artifacts"]["svg"]
-    root = ElementTree.fromstring(final_svg.read_text(encoding="utf-8"))
-    polygons = root.findall("{http://www.w3.org/2000/svg}polygon")
-    boundary_points = polygons[-1].attrib["points"].split()
-    assert len(boundary_points) == 6
+    boundary_points = _rendered_boundary_points(final_svg)
+    assert boundary_points == _expected_svg_points(manifest["footprint_polygon"])
+    turns = _turn_signs(boundary_points)
+    assert min(turns) < 0 < max(turns)

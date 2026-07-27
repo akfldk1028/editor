@@ -33,7 +33,7 @@ the geometry, validation, search, or artifact schemas.
 
 Use `python -m backend.app.cli loop-review --input datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial --output-dir logs/runs/sample_review --max-iterations 5`.
 
-Each iteration writes:
+Each iteration writes artifacts for the search `best_so_far` candidate:
 
 - `*.svg`: browser-readable vector floor plan.
 - `*.png`: raster snapshot for quick inspection.
@@ -42,6 +42,10 @@ Each iteration writes:
 - `review.index.json`: deterministic run summary, per-iteration fingerprints,
   lineage, score and hard-failure trends, termination, and relative artifact links.
 - `index.html`: accessible history table backed by the same run index.
+
+The run index records aggregate `evaluation_count` and deduplication-aware
+search history separately. It does not create visual artifacts for every
+evaluated candidate.
 
 Hard validity is separate from soft quality. A candidate is accepted only when
 all hard gates pass: room identity and per-room area, valid contained geometry,
