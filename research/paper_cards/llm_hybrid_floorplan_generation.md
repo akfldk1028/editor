@@ -2,10 +2,12 @@
 
 ## Decision
 
-PLAN uses the LLM as a constrained program planner, not as the geometry
-authority. The model proposes strict JSON floor assignments and, later, program
-graphs. Deterministic geometry code produces polygons, and the exact validator
-rejects boundary, overlap, area, and circulation failures.
+OpenAI supplies structured floor-use assignments only. Deterministic profiles,
+geometry, and validators own room creation and acceptance. PLAN uses the LLM
+as a constrained program planner, not as the geometry authority. The model
+proposes strict JSON floor assignments and, later, program graphs.
+Deterministic geometry code produces polygons, and the exact validator rejects
+boundary, overlap, area, circulation, and room-form failures.
 
 This division keeps natural-language and use-mix reasoning flexible while
 making geometric acceptance reproducible.

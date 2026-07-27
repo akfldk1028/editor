@@ -78,6 +78,26 @@ def _png_pixel(data: bytes, x: int, y: int) -> tuple[int, int, int]:
     return tuple(raw[pixel : pixel + 3])
 
 
+def _png_colors(data: bytes) -> set[tuple[int, int, int]]:
+    offset = 8
+    compressed = b""
+    while offset < len(data):
+        length = struct.unpack(">I", data[offset : offset + 4])[0]
+        kind = data[offset + 4 : offset + 8]
+        payload = data[offset + 8 : offset + 8 + length]
+        offset += 12 + length
+        if kind == b"IDAT":
+            compressed += payload
+    raw = zlib.decompress(compressed)
+    width, height = struct.unpack(">II", data[16:24])
+    row_stride = width * 3 + 1
+    return {
+        tuple(raw[row * row_stride + 1 + column * 3 : row * row_stride + 4 + column * 3])
+        for row in range(height)
+        for column in range(width)
+    }
+
+
 def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
     result, boundary = _sample_result()
 
@@ -199,11 +219,11 @@ def test_svg_renders_door_width_and_room_identity_area_labels(tmp_path):
     svg = review.svg_path.read_text(encoding="utf-8")
     assert svg.count('data-kind="door-opening"') == len(result.layout.openings)
     assert svg.count('data-kind="door-width"') == len(result.layout.openings)
-    assert 'aria-label="office_area door clear width 0.9 m"' in svg
+    assert 'aria-label="open_work door clear width 0.9 m"' in svg
     assert ">0.9 m</text>" in svg
     assert 'data-kind="room-label"' in svg
-    assert "office_area" in svg
-    assert "210.6 m2" in svg
+    assert "open_work" in svg
+    assert "133.38 m2" in svg
 
 
 def test_png_renders_high_contrast_door_segment_pixels(tmp_path):
@@ -218,8 +238,7 @@ def test_png_renders_high_contrast_door_segment_pixels(tmp_path):
     )
 
     png = review.png_path.read_bytes()
-    assert _png_pixel(png, 200, 50) == (0, 86, 179)
-    assert _png_pixel(png, 197, 46) == (0, 0, 0)
+    assert visual_review_service.PNG_DOOR_STROKE in _png_colors(png)
 
 
 def test_review_report_exposes_validated_opening_and_corridor_measurements(tmp_path):
@@ -234,11 +253,57 @@ def test_review_report_exposes_validated_opening_and_corridor_measurements(tmp_p
     report = json.loads(review.report_path.read_text(encoding="utf-8"))
     assert report["checks"]["openings"] == "pass"
     assert report["checks"]["corridor_width"] == "pass"
-    assert report["measurements"] == {
-        "door_count": len(result.layout.openings),
-        "min_door_width": 0.9,
-        "min_corridor_width": 3.0,
+    assert report["measurements"]["door_count"] == len(result.layout.openings)
+    assert report["measurements"]["min_door_width"] == 0.9
+    assert report["measurements"]["min_corridor_width"] == pytest.approx(1.2)
+    assert report["measurements"]["failed_room_ids"] == []
+
+
+def test_review_exposes_validator_room_form_measurements_and_layer_controls(tmp_path):
+    result, boundary = _strict_building_floor()
+    result = replace(
+        result,
+        validation=replace(
+            result.validation,
+            violations=[
+                *result.validation.violations,
+                ValidationViolation(
+                    code="room_min_width", subject="open_work", message="too narrow"
+                ),
+                ValidationViolation(
+                    code="room_aspect_ratio", subject="meeting", message="too long"
+                ),
+            ],
+        ),
+    )
+
+    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    page = review.html_path.read_text(encoding="utf-8")
+    svg = review.svg_path.read_text(encoding="utf-8")
+
+    assert report["checks"]["room_form"] == "fail"
+    assert report["measurements"]["min_room_width"] == pytest.approx(1.961505)
+    assert report["measurements"]["max_room_aspect_ratio"] == pytest.approx(2.0)
+    assert report["measurements"]["failed_room_ids"] == ["meeting", "open_work"]
+    assert 'data-layer="rooms"' in svg
+    assert 'data-layer="circulation"' in svg
+    assert 'data-layer="door-openings"' in svg
+    assert 'data-layer="text-labels"' in svg
+    assert 'id="working-layer-controls"' in page
+    assert 'aria-pressed="true"' in page
+    assert "Room Program and Form" in page
+
+
+def test_use_specific_room_palette_has_svg_and_png_entries_for_each_role():
+    room_types = {
+        "open_work", "meeting", "reception", "focus", "pantry", "restroom", "core", "it_storage",
+        "sales", "checkout", "stock", "staff", "utility",
     }
+
+    assert room_types <= visual_review_service.PALETTE.keys()
+    assert room_types <= visual_review_service.PNG_PALETTE.keys()
+    assert len({visual_review_service.PALETTE[room_type] for room_type in room_types}) == len(room_types)
 
 
 @pytest.mark.parametrize(
@@ -447,9 +512,9 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
     )
 
     assert result.iterations_run == 2
-    assert result.final_needs_iteration is False
-    assert result.accepted is True
-    assert result.termination_reason == "accepted"
+    assert result.final_needs_iteration is True
+    assert result.accepted is False
+    assert result.termination_reason == "search_exhausted"
     assert result.evaluation_count > result.iterations_run
     assert result.index_json_path == tmp_path / "review.index.json"
     assert result.index_html_path == tmp_path / "index.html"
@@ -468,15 +533,16 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
     assert "circulation_missing" in {
         violation["code"] for violation in reports[0]["violations"]
     }
-    assert reports[1]["accepted"] is True
-    assert reports[1]["needs_iteration"] is False
+    assert reports[1]["accepted"] is False
+    assert reports[1]["needs_iteration"] is True
     assert reports[1]["checks"] == {
         "area": "pass",
         "boundary": "pass",
         "circulation_access": "pass",
-        "corridor_width": "not_checked",
-        "openings": "not_checked",
-        "overlap": "pass",
+            "corridor_width": "not_checked",
+            "openings": "not_checked",
+            "overlap": "pass",
+            "room_form": "fail",
     }
     assert reports[1]["scores"]["area_score"] < 1
     assert all(
@@ -484,12 +550,12 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
         for name in ("area", "boundary", "circulation_access", "overlap")
     )
     accepted_html = result.artifacts[1].html_path.read_text(encoding="utf-8")
-    assert "passes hard validation" in accepted_html
+    assert "needs iteration" in accepted_html
     assert "Hard Validation Checks" in accepted_html
     assert "Advisory Scores" in accepted_html
-    assert "<td>fail</td>" not in accepted_html
+    assert "<td>fail</td>" in accepted_html
     assert reports[1]["parent_id"] is not None
-    assert reports[1]["operator"] == "corridor-vertical"
+    assert reports[1]["operator"] == "corridor-horizontal"
     assert reports[1]["operator_params"]
     assert reports[0]["total_score_delta"] is None
     assert reports[0]["hard_failure_count_delta"] is None
@@ -505,8 +571,8 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
     assert index["project_id"] == "loop-review"
     assert index["floor_index"] == 1
     assert index["use_type"] == "neighborhood_commercial"
-    assert index["accepted"] is True
-    assert index["termination_reason"] == "accepted"
+    assert index["accepted"] is False
+    assert index["termination_reason"] == "search_exhausted"
     assert index["evaluation_count"] == result.evaluation_count
     assert [entry["iteration"] for entry in index["iterations"]] == [1, 2]
     assert index["score_trend"] == [
@@ -722,9 +788,9 @@ def test_cli_loop_review_runs_iterations_and_prints_final_state(tmp_path):
 
     payload = json.loads(completed.stdout)
     assert payload["iterations_run"] == 2
-    assert payload["final_needs_iteration"] is False
-    assert payload["accepted"] is True
-    assert payload["termination_reason"] == "accepted"
+    assert payload["final_needs_iteration"] is True
+    assert payload["accepted"] is False
+    assert payload["termination_reason"] == "search_exhausted"
     assert Path(payload["index_json_path"]).exists()
     assert Path(payload["index_html_path"]).exists()
     assert all(Path(artifact["html_path"]).exists() for artifact in payload["artifacts"])

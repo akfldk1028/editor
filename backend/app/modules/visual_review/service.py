@@ -35,6 +35,15 @@ PALETTE = {
     "utility": "#ead1dc",
     "pantry": "#d0e0e3",
     "ps_eps": "#fce5cd",
+    "open_work": "#b8d8f0",
+    "meeting": "#f6c6a8",
+    "reception": "#f9df8a",
+    "focus": "#c7dfb1",
+    "it_storage": "#d7c4e8",
+    "sales": "#f3b6b8",
+    "checkout": "#f6d5a6",
+    "stock": "#c6d9b8",
+    "staff": "#b9d7cf",
 }
 
 PNG_PALETTE = {
@@ -46,6 +55,15 @@ PNG_PALETTE = {
     "utility": (234, 209, 220),
     "pantry": (208, 224, 227),
     "ps_eps": (252, 229, 205),
+    "open_work": (184, 216, 240),
+    "meeting": (246, 198, 168),
+    "reception": (249, 223, 138),
+    "focus": (199, 223, 177),
+    "it_storage": (215, 196, 232),
+    "sales": (243, 182, 184),
+    "checkout": (246, 213, 166),
+    "stock": (198, 217, 184),
+    "staff": (185, 215, 207),
 }
 
 CIRCULATION_FILL = "#d9d9d9"
@@ -83,6 +101,7 @@ def create_building_visual_review_artifacts(
                 "floor_index": floor.program.floor_index,
                 "use_type": floor.program.use_type,
                 "accepted": floor.validation.accepted,
+                "room_count": len(floor.layout.rooms),
                 "artifacts": artifacts.artifact_links,
             }
         )
@@ -156,6 +175,7 @@ def create_visual_review_artifacts(
         result.validation,
     )
     measurements = _layout_measurements(result)
+    room_shapes = to_jsonable(result.validation.room_shapes)
     needs_iteration = not result.validation.accepted
     scores = _validation_scores(result.validation)
     previous_total_score = (
@@ -200,6 +220,7 @@ def create_visual_review_artifacts(
         ),
         "checks": checks,
         "measurements": measurements,
+        "room_shapes": room_shapes,
         "validation": to_jsonable(result.validation),
         "artifacts": artifact_links,
     }
@@ -245,7 +266,7 @@ def _render_building_index(
         floor_sections.append(
             f"""
             <section>
-              <header><h2>{title}</h2><span>{status}</span></header>
+              <header><h2>{title}</h2><span>{status} | {floor['room_count']} rooms</span></header>
               <a href="{review}"><img src="{png}" alt="{title} floor plan"></a>
             </section>
             """
@@ -486,15 +507,19 @@ def _render_svg(
     min_x, min_y, max_x, max_y = bounds(boundary)
     scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
     parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="white"/>',
     ]
+    parts.append('<g data-layer="rooms">')
     for room in result.layout.rooms:
         points = " ".join(
             f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}" for x, y in room.polygon
         )
         fill = PALETTE.get(room.space_type, "#eeeeee")
         parts.append(f'<polygon points="{points}" fill="{fill}" stroke="#111111" stroke-width="2"/>')
+    parts.append("</g>")
+    parts.append('<g data-layer="text-labels">')
+    for room in result.layout.rooms:
         cx, cy = _centroid(room.polygon)
         label_x = _sx(cx, min_x, scale, pad_x)
         label_y = _sy(cy, min_y, scale, pad_y, height)
@@ -506,6 +531,8 @@ def _render_svg(
             f'<tspan x="{label_x}" dy="1.2em">{html.escape(room.space_type)}</tspan>'
             f'<tspan x="{label_x}" dy="1.2em">{area} m2</tspan></text>'
         )
+    parts.append("</g>")
+    parts.append('<g data-layer="circulation">')
     for path in result.layout.circulation:
         points = " ".join(
             f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}"
@@ -521,10 +548,12 @@ def _render_svg(
             f'y="{_sy(cy, min_y, scale, pad_y, height)}" font-family="Arial" '
             f'font-size="14" text-anchor="middle">{html.escape(path.space_type)}</text>'
         )
+    parts.append("</g>")
     boundary_points = " ".join(
         f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}" for x, y in boundary
     )
     parts.append(f'<polygon points="{boundary_points}" fill="none" stroke="#000000" stroke-width="4"/>')
+    parts.append('<g data-layer="door-openings">')
     for opening in result.layout.openings:
         if not _is_renderable_opening(opening):
             continue
@@ -552,6 +581,7 @@ def _render_svg(
             f'<text data-kind="door-width" x="{midpoint_x + 7}" y="{midpoint_y - 4}" '
             f'font-family="Arial" font-size="11">{clear_width} m</text>'
         )
+    parts.append("</g>")
     parts.append("</svg>")
     return "\n".join(parts)
 
@@ -616,6 +646,16 @@ def _render_html(
         f'<tr><th scope="row">{html.escape(name)}</th><td>{value}</td></tr>'
         for name, value in report["scores"].items()
     )
+    room_form_rows = "".join(
+        "<tr>"
+        f'<th scope="row">{html.escape(shape["room_id"])}</th>'
+        f"<td>{_display_measurement(shape['measured_min_width'])}</td>"
+        f"<td>{_display_measurement(shape['measured_aspect_ratio'])}</td>"
+        f"<td>{_display_measurement(shape['required_min_width'])}</td>"
+        f"<td>{_display_measurement(shape['maximum_aspect_ratio'])}</td>"
+        "</tr>"
+        for shape in report["room_shapes"]
+    )
     project_id = html.escape(result.mass.project_id)
     return f"""<!doctype html>
 <html lang="en">
@@ -628,11 +668,15 @@ def _render_html(
     main {{ max-width: 1180px; margin: 0 auto; }}
     h1 {{ font-size: 22px; margin: 0 0 12px; }}
     .status {{ margin-bottom: 18px; font-weight: 700; }}
-    .grid {{ display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; }}
-    iframe {{ width: 100%; height: 620px; border: 1px solid #ccc; }}
+    .grid {{ display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 20px; align-items: start; }}
+    .plan {{ min-width: 0; }}
+    iframe {{ width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }}
+    #working-layer-controls {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }}
+    #working-layer-controls button {{ min-width: 78px; min-height: 32px; }}
     table {{ border-collapse: collapse; width: 100%; }}
     td {{ border-bottom: 1px solid #ddd; padding: 8px 6px; }}
     a {{ color: #0645ad; }}
+    @media (max-width: 680px) {{ body {{ margin: 14px; }} .grid {{ grid-template-columns: 1fr; }} }}
   </style>
 </head>
 <body>
@@ -640,7 +684,15 @@ def _render_html(
     <h1>Visual Review: {project_id} F{result.program.floor_index}</h1>
     <div class="status">{html.escape(status)}</div>
     <div class="grid">
-      <iframe src="{html.escape(svg_name, quote=True)}" title="floor plan svg"></iframe>
+      <section class="plan">
+        <div id="working-layer-controls" aria-label="Working layers">
+          <button type="button" data-layer="rooms" aria-pressed="true">Rooms</button>
+          <button type="button" data-layer="circulation" aria-pressed="true">Circulation</button>
+          <button type="button" data-layer="door-openings" aria-pressed="true">Doors</button>
+          <button type="button" data-layer="text-labels" aria-pressed="true">Labels</button>
+        </div>
+        <iframe id="floor-plan" src="{html.escape(svg_name, quote=True)}" title="floor plan svg"></iframe>
+      </section>
       <section>
         <h2>Hard Validation Checks</h2>
         <table>
@@ -652,11 +704,26 @@ def _render_html(
           <thead><tr><th scope="col">Metric</th><th scope="col">Score</th></tr></thead>
           <tbody>{advisory_scores}</tbody>
         </table>
+        <h2>Room Program and Form</h2>
+        <table id="room-form-report">
+          <thead><tr><th scope="col">Room</th><th scope="col">Width m</th><th scope="col">Aspect</th><th scope="col">Min width</th><th scope="col">Max aspect</th></tr></thead>
+          <tbody>{room_form_rows}</tbody>
+        </table>
         <p><a href="{html.escape(png_name, quote=True)}">PNG</a></p>
         <p><a href="{html.escape(report_name, quote=True)}">Review JSON</a></p>
       </section>
     </div>
   </main>
+  <script>
+    const frame = document.getElementById("floor-plan");
+    document.querySelectorAll("#working-layer-controls button").forEach((button) => {{
+      button.addEventListener("click", () => {{
+        const pressed = button.getAttribute("aria-pressed") === "true";
+        frame.contentDocument?.querySelectorAll(`[data-layer="${{button.dataset.layer}}"]`).forEach((node) => {{ node.style.display = pressed ? "none" : ""; }});
+        button.setAttribute("aria-pressed", String(!pressed));
+      }});
+    }});
+  </script>
 </body>
 </html>
 """
@@ -743,6 +810,7 @@ def _hard_validation_checks(
             "door_missing",
         },
         "corridor_width": {"circulation_too_narrow"},
+        "room_form": {"room_min_width", "room_aspect_ratio"},
     }
     checks = {
         name: "fail" if violation_codes & codes else "pass"
@@ -755,7 +823,7 @@ def _hard_validation_checks(
     return checks
 
 
-def _layout_measurements(result: GenerationResult) -> dict[str, int | float | None]:
+def _layout_measurements(result: GenerationResult) -> dict[str, int | float | list[str] | None]:
     door_widths = [
         float(opening.clear_width)
         for opening in result.layout.openings
@@ -765,6 +833,23 @@ def _layout_measurements(result: GenerationResult) -> dict[str, int | float | No
             and math.isfinite(opening.clear_width)
         )
     ]
+    room_widths = [
+        shape.measured_min_width
+        for shape in result.validation.room_shapes
+        if shape.measured_min_width is not None
+    ]
+    room_aspects = [
+        shape.measured_aspect_ratio
+        for shape in result.validation.room_shapes
+        if shape.measured_aspect_ratio is not None
+    ]
+    failed_room_ids = sorted(
+        {
+            violation.subject
+            for violation in result.validation.violations
+            if violation.code in {"room_min_width", "room_aspect_ratio"}
+        }
+    )
     corridor_widths = []
     for path in result.layout.circulation:
         try:
@@ -775,6 +860,9 @@ def _layout_measurements(result: GenerationResult) -> dict[str, int | float | No
         "door_count": len(result.layout.openings),
         "min_door_width": min(door_widths) if door_widths else None,
         "min_corridor_width": min(corridor_widths) if corridor_widths else None,
+        "min_room_width": min(room_widths) if room_widths else None,
+        "max_room_aspect_ratio": max(room_aspects) if room_aspects else None,
+        "failed_room_ids": failed_room_ids,
     }
 
 
@@ -785,6 +873,10 @@ def _is_renderable_opening(opening: OpeningSegment) -> bool:
 
 def _format_measurement(value: float) -> str:
     return f"{round(value, 3):g}"
+
+
+def _display_measurement(value: float | None) -> str:
+    return "-" if value is None else _format_measurement(value)
 
 
 def _draw_door_jambs(
