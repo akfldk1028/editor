@@ -43,9 +43,9 @@ Each iteration writes artifacts for the search `best_so_far` candidate:
   lineage, score and hard-failure trends, termination, and relative artifact links.
 - `index.html`: accessible history table backed by the same run index.
 
-The run index records aggregate `evaluation_count` and deduplication-aware
-search history separately. It does not create visual artifacts for every
-evaluated candidate.
+The run index records aggregate `evaluation_count` plus the rendered
+per-iteration `best_so_far` history. It does not create visual artifacts or
+per-candidate search history for every evaluated candidate.
 
 Hard validity is separate from soft quality. A candidate is accepted only when
 all hard gates pass: room identity and per-room area, valid contained geometry,
