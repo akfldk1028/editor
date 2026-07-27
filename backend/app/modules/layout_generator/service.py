@@ -6,6 +6,7 @@ from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPoly
 from backend.app.schemas.mass import MassAnalysis
 from backend.app.schemas.program import ProgramGraph
 from engine.geometry import shared_boundary_segments
+from engine.geometry.polygon import polygon_area
 
 
 def generate_baseline_layout(
@@ -126,16 +127,27 @@ def generate_core_aligned_layout(
     room_scale: float = 0.9,
     min_circulation_width: float = 1.2,
 ) -> LayoutCandidate:
-    roles = {node.space_type for node in program.nodes}
-    if frozenset(roles) in {
-        frozenset({
+    expected_roles = {
+        "neighborhood_commercial": {
             "sales", "checkout", "stock", "staff", "restroom", "core", "utility"
-        }),
-        frozenset({
+        },
+        "office": {
             "open_work", "meeting", "reception", "focus", "pantry", "restroom",
             "core", "it_storage",
-        }),
-    }:
+        },
+    }
+    if program.use_type in expected_roles:
+        roles = [node.space_type for node in program.nodes]
+        expected = expected_roles[program.use_type]
+        missing = sorted(expected - set(roles))
+        extra = sorted(set(roles) - expected)
+        duplicate = sorted(role for role in set(roles) if roles.count(role) > 1)
+        if missing or extra or duplicate:
+            raise ValueError(
+                "role-driven program roles must match the use-specific profile: "
+                f"missing={missing}, extra={extra}, duplicate={duplicate}"
+            )
+        _validate_role_driven_core(core_polygon, program, analysis.bounds)
         return _generate_role_driven_layout(analysis, program, core_polygon)
     if not 0.85 <= room_scale < 1:
         raise ValueError("room_scale must leave circulation and respect program minima")
@@ -413,6 +425,26 @@ def _generate_role_driven_layout(
         score=0.0,
         openings=openings,
     )
+
+
+def _validate_role_driven_core(core_polygon, program: ProgramGraph, bounds) -> None:
+    min_x, min_y, max_x, _ = bounds
+    if len(core_polygon) != 4:
+        raise ValueError("role-driven shared core must be an axis-aligned rectangle")
+    core_min_x, core_min_y, core_max_x, core_max_y = _polygon_bounds(core_polygon)
+    expected = {
+        (core_min_x, core_min_y),
+        (core_max_x, core_min_y),
+        (core_max_x, core_max_y),
+        (core_min_x, core_max_y),
+    }
+    if set(core_polygon) != expected or core_min_x <= min_x or core_max_x != max_x or core_min_y != min_y or core_max_y <= min_y:
+        raise ValueError("role-driven shared core must be a rear-bottom axis-aligned rectangle")
+    core = next(node for node in program.nodes if node.space_type == "core")
+    area = polygon_area(core_polygon)
+    target = float(core.target_area)
+    if not target * 0.85 <= area <= target * 1.15:
+        raise ValueError("role-driven shared core area must satisfy the core program tolerance")
 
 
 def _layout_area(node) -> float:

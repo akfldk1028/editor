@@ -98,6 +98,16 @@ def test_building_generation_accepts_complete_structured_floor_assignments():
     assert [item.floor_index for item in result.floor_assignments] == [1, 2, 3]
     assert result.assignment_source == "structured"
     assert result.accepted
+    commercial = result.floor_results[0]
+    rooms = {room.room_id: room for room in commercial.layout.rooms}
+    assert set(rooms) == {"sales", "checkout", "stock", "staff", "restroom", "core", "utility"}
+    assert all(metric.within_range for metric in commercial.validation.room_areas)
+    assert all(metric.minimum_width_passed and metric.aspect_ratio_passed for metric in commercial.validation.room_shapes)
+    assert shared_boundary_with_segments_length(rooms["sales"].polygon, [((0, 0), (24, 0))]) > 0
+    assert shared_boundary_with_segments_length(rooms["stock"].polygon, [((0, 0), (24, 0))]) == 0
+    assert shared_boundary_with_segments_length(rooms["staff"].polygon, [((0, 0), (24, 0))]) == 0
+    assert len(commercial.layout.openings) == len(rooms)
+    assert len(commercial.layout.circulation) == 2
 
 
 @pytest.mark.parametrize(
@@ -206,4 +216,18 @@ def test_role_driven_generation_rejects_missing_street_frontage():
     )
 
     with pytest.raises(ValueError, match="street"):
+        generation_service.run_building_generation(mass)
+
+
+def test_role_driven_generation_rejects_non_bottom_street_frontage():
+    mass = MassInput(
+        project_id="side-street",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 1, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+
+    with pytest.raises(ValueError, match="y=min_y"):
         generation_service.run_building_generation(mass)

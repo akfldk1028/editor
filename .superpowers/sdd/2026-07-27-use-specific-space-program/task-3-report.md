@@ -103,3 +103,16 @@ connected-circulation contract.
 - The compact 20x10 commercial program remains a truthful rejected candidate:
   its sales aspect and checkout/staff minimum dimensions cannot satisfy the
   profile simultaneously. It must not be forced into acceptance.
+
+### Review Fix Round
+
+- Commercial generation now requires its sole street segment to be the complete
+  y=min_y footprint boundary consumed by the role-driven sales frontage.
+- Use-specific program intent rejects missing, extra, or duplicate profile
+  roles before any generic-layout fallback. Shared cores must be rear-bottom,
+  axis-aligned rectangles within the core area tolerance.
+- 24x12 structured acceptance verifies exact commercial roles, area/form
+  metrics, frontage/rear-service placement, doors, and the two-polygon network.
+- Focused command: `28 passed` for building, generation-loop, and operator
+  suites. Full pytest: `151 passed, 6 failed`; only Task 4 legacy visual-review
+  expectations remain, including the known 20x10 truthful needs-iteration case.

@@ -96,6 +96,12 @@ def run_building_generation(
         streets = _street_segments(mass)
         if any(program.use_type == "neighborhood_commercial" for program in programs) and len(streets) != 1:
             raise ValueError("neighborhood commercial generation requires exactly one street edge")
+        if any(program.use_type == "neighborhood_commercial" for program in programs):
+            street_start, street_end = streets[0]
+            if {street_start, street_end} != {(min_x, min_y), (max_x, min_y)}:
+                raise ValueError(
+                    "neighborhood commercial street edge must be the y=min_y floor boundary"
+                )
         core_height = min(height * (0.47333333333333333 if height >= 12 else 0.46), height - 1.2)
         service_band_width = shared_core_target / core_height
         service_x = float(_clean_area(max_x - service_band_width))
