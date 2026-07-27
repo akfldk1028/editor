@@ -5,9 +5,18 @@ from collections import Counter
 from collections.abc import Iterable
 
 from backend.app.schemas.layout import LayoutCandidate, RoomPolygon
-from backend.app.schemas.metrics import RoomAreaMetric, ValidationReport, ValidationViolation
+from backend.app.schemas.metrics import (
+    RoomAreaMetric,
+    RoomShapeMetric,
+    ValidationReport,
+    ValidationViolation,
+)
 from backend.app.schemas.program import ProgramGraph
-from engine.geometry import orthogonal_min_width, shared_boundary_segments
+from engine.geometry import (
+    bounding_box_aspect_ratio,
+    orthogonal_min_width,
+    shared_boundary_segments,
+)
 from engine.geometry.polygon import (
     Segment,
     contains_polygon,
@@ -26,6 +35,8 @@ _HARD_VIOLATION_CODES = (
     "invalid_geometry",
     "room_identity",
     "room_area",
+    "room_min_width",
+    "room_aspect_ratio",
     "boundary",
     "overlap",
     "circulation_missing",
@@ -96,6 +107,12 @@ def validate_layout(
     valid_room_ids = {id(room) for room in valid_rooms}
 
     room_areas, area_scores = _room_area_metrics(
+        layout.rooms,
+        valid_room_ids,
+        program,
+        add_violation,
+    )
+    room_shapes = _room_shape_metrics(
         layout.rooms,
         valid_room_ids,
         program,
@@ -237,6 +254,7 @@ def validate_layout(
         violation_score=violation_score,
         violations=violations,
         room_areas=room_areas,
+        room_shapes=room_shapes,
         area_score=area_score,
         overlap_score=overlap_score,
         boundary_score=boundary_score,
@@ -377,6 +395,18 @@ def _is_finite_number(value) -> bool:
     )
 
 
+def _is_finite_limit(value, *, minimum: float) -> bool:
+    if isinstance(value, bool):
+        return False
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return False
+    return math.isfinite(numeric) and numeric >= minimum and (
+        minimum != 0 or numeric > 0
+    )
+
+
 def _is_finite_point(value) -> bool:
     return (
         isinstance(value, (tuple, list))
@@ -407,6 +437,17 @@ def _validate_program(program: ProgramGraph) -> None:
             raise ValueError(f"program room '{node.node_id}' maximum area is below target")
         if minimum is not None and maximum is not None and minimum > maximum:
             raise ValueError(f"program room '{node.node_id}' area range is inverted")
+        if node.min_width is not None and not _is_finite_limit(node.min_width, minimum=0):
+            raise ValueError(
+                f"program room '{node.node_id}' minimum width must be finite and positive"
+            )
+        if node.max_aspect_ratio is not None and not _is_finite_limit(
+            node.max_aspect_ratio,
+            minimum=1,
+        ):
+            raise ValueError(
+                f"program room '{node.node_id}' maximum aspect ratio must be finite and at least 1"
+            )
 
     allowed_endpoints = set(node_ids) | _EXTERNAL_PROGRAM_ENDPOINTS
     for edge in program.edges:
@@ -482,6 +523,78 @@ def _room_area_metrics(
                 abs(actual_area - nearest) / target,
             )
     return metrics, scores
+
+
+def _room_shape_metrics(
+    rooms: list[RoomPolygon],
+    valid_room_ids: set[int],
+    program: ProgramGraph,
+    add_violation,
+) -> list[RoomShapeMetric]:
+    metrics: list[RoomShapeMetric] = []
+    for node in program.nodes:
+        matching = [room for room in rooms if room.room_id == node.node_id]
+        valid_matching = [room for room in matching if id(room) in valid_room_ids]
+        required_width = float(node.min_width) if node.min_width is not None else None
+        maximum_aspect = (
+            float(node.max_aspect_ratio)
+            if node.max_aspect_ratio is not None
+            else None
+        )
+        measured_width: float | None = None
+        measured_aspect: float | None = None
+        width_passed = required_width is None
+        aspect_passed = maximum_aspect is None
+
+        if len(matching) == 1 and len(valid_matching) == 1:
+            room = valid_matching[0]
+            try:
+                measured_width = orthogonal_min_width(room.polygon)
+            except ValueError as error:
+                if required_width is not None:
+                    add_violation(
+                        "room_min_width",
+                        node.node_id,
+                        f"room '{node.node_id}' minimum width cannot be measured: {error}",
+                    )
+            else:
+                if required_width is not None:
+                    width_passed = measured_width + _EPSILON >= required_width
+                    if not width_passed:
+                        add_violation(
+                            "room_min_width",
+                            node.node_id,
+                            (
+                                f"room '{node.node_id}' minimum width {measured_width:.3f} "
+                                f"is below {required_width:.3f}"
+                            ),
+                        )
+
+            measured_aspect = bounding_box_aspect_ratio(room.polygon)
+            if maximum_aspect is not None:
+                aspect_passed = measured_aspect <= maximum_aspect + _EPSILON
+                if not aspect_passed:
+                    add_violation(
+                        "room_aspect_ratio",
+                        node.node_id,
+                        (
+                            f"room '{node.node_id}' aspect ratio {measured_aspect:.3f} "
+                            f"exceeds {maximum_aspect:.3f}"
+                        ),
+                    )
+
+        metrics.append(
+            RoomShapeMetric(
+                room_id=node.node_id,
+                measured_min_width=measured_width,
+                required_min_width=required_width,
+                measured_aspect_ratio=measured_aspect,
+                maximum_aspect_ratio=maximum_aspect,
+                minimum_width_passed=width_passed,
+                aspect_ratio_passed=aspect_passed,
+            )
+        )
+    return metrics
 
 
 def _check_overlaps(
@@ -676,7 +789,15 @@ def _compactness_score(rooms: list[RoomPolygon]) -> float:
 
 
 def _efficiency_score(rooms: list[RoomPolygon], program: ProgramGraph) -> float:
-    rentable_types = {"shop_unit", "office_area"}
+    if program.use_type == "office":
+        rentable_types = {"open_work", "meeting", "reception", "focus"}
+        target = 0.73
+    elif program.use_type == "neighborhood_commercial":
+        rentable_types = {"sales", "checkout"}
+        target = 0.61
+    else:
+        rentable_types = {"shop_unit", "office_area"}
+        target = 0.72
     total = sum(polygon_area(room.polygon) for room in rooms)
     rentable = sum(
         polygon_area(room.polygon)
@@ -686,7 +807,6 @@ def _efficiency_score(rooms: list[RoomPolygon], program: ProgramGraph) -> float:
     if total <= 0:
         return 0.0
     ratio = rentable / total
-    target = 0.72 if program.use_type == "neighborhood_commercial" else 0.78
     return round(max(0.0, 1.0 - abs(target - ratio)), 4)
 
 

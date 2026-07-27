@@ -29,11 +29,11 @@ def shared_boundary_segments(
 
 
 def orthogonal_min_width(polygon: list[Point]) -> float:
-    validate_polygon(polygon, label="circulation polygon")
+    validate_polygon(polygon, label="polygon")
     points = polygon[:-1] if polygon[:1] == polygon[-1:] else polygon
     for start, end in zip(points, [*points[1:], points[0]]):
         if start[0] != end[0] and start[1] != end[1]:
-            raise ValueError("circulation polygon edges must be axis-aligned")
+            raise ValueError("polygon edges must be axis-aligned")
 
     shape = Polygon(points)
     min_x, min_y, max_x, max_y = shape.bounds
@@ -65,8 +65,21 @@ def orthogonal_min_width(polygon: list[Point]) -> float:
             if line.length > 1e-9
         )
     if not widths:
-        raise ValueError("circulation polygon has no measurable width")
+        raise ValueError("polygon has no measurable width")
     return float(min(widths))
+
+
+def bounding_box_aspect_ratio(polygon: list[Point]) -> float:
+    validate_polygon(polygon, label="polygon")
+    points = polygon[:-1] if polygon[:1] == polygon[-1:] else polygon
+    x_values = [float(point[0]) for point in points]
+    y_values = [float(point[1]) for point in points]
+    width = max(x_values) - min(x_values)
+    height = max(y_values) - min(y_values)
+    short_side = min(width, height)
+    if short_side <= 1e-9:
+        raise ValueError("polygon bounding box has no measurable short side")
+    return max(width, height) / short_side
 
 
 def _line_parts(geometry):

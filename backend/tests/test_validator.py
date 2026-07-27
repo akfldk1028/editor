@@ -1,4 +1,5 @@
 import math
+from dataclasses import asdict
 
 import pytest
 
@@ -695,3 +696,192 @@ def test_square_room_is_more_compact_than_thin_room():
     thin_score = validate_layout(thin, square_program, boundary=BOUNDARY).compactness_score
 
     assert square_score > thin_score
+
+
+def test_room_form_metrics_pass_for_orthogonal_room_within_limits():
+    program = _program(
+        ProgramNode(
+            node_id="office",
+            space_type="office_area",
+            target_area=80,
+            min_width=6,
+            max_aspect_ratio=2,
+        )
+    )
+    layout = _layout(
+        rooms=[_room("office", [(0, 0), (8, 0), (8, 10), (0, 10)])],
+        circulation=[
+            _room("hall", [(0, 10), (8, 10), (8, 12), (0, 12)], "circulation")
+        ],
+    )
+
+    report = validate_layout(layout, program, boundary=BOUNDARY)
+
+    assert _violation_subjects(report, "room_min_width") == set()
+    assert _violation_subjects(report, "room_aspect_ratio") == set()
+    assert [asdict(metric) for metric in report.room_shapes] == [
+        {
+            "room_id": "office",
+            "measured_min_width": 8.0,
+            "required_min_width": 6.0,
+            "measured_aspect_ratio": 1.25,
+            "maximum_aspect_ratio": 2.0,
+            "minimum_width_passed": True,
+            "aspect_ratio_passed": True,
+        }
+    ]
+
+
+def test_room_form_validation_reports_width_and_aspect_limits():
+    program = _program(
+        ProgramNode(
+            node_id="office",
+            space_type="office_area",
+            target_area=20,
+            min_width=3,
+            max_aspect_ratio=2,
+        )
+    )
+    layout = _layout(
+        rooms=[_room("office", [(0, 0), (2, 0), (2, 10), (0, 10)])],
+        circulation=[
+            _room("hall", [(0, 10), (2, 10), (2, 12), (0, 12)], "circulation")
+        ],
+    )
+
+    report = validate_layout(layout, program, boundary=BOUNDARY)
+
+    assert _violation_subjects(report, "room_min_width") == {"office"}
+    assert _violation_subjects(report, "room_aspect_ratio") == {"office"}
+    assert {
+        violation.code: violation.message
+        for violation in report.violations
+        if violation.code in {"room_min_width", "room_aspect_ratio"}
+    } == {
+        "room_min_width": "room 'office' minimum width 2.000 is below 3.000",
+        "room_aspect_ratio": "room 'office' aspect ratio 5.000 exceeds 2.000",
+    }
+
+
+def test_room_form_validation_accepts_exact_width_and_aspect_boundaries():
+    program = _program(
+        ProgramNode(
+            node_id="office",
+            space_type="office_area",
+            target_area=8,
+            min_width=2,
+            max_aspect_ratio=2,
+        )
+    )
+    layout = _layout(
+        rooms=[_room("office", [(0, 0), (2, 0), (2, 4), (0, 4)])],
+        circulation=[
+            _room("hall", [(0, 4), (2, 4), (2, 5), (0, 5)], "circulation")
+        ],
+    )
+
+    report = validate_layout(layout, program, boundary=BOUNDARY)
+
+    assert report.accepted
+    assert report.room_shapes[0].minimum_width_passed is True
+    assert report.room_shapes[0].aspect_ratio_passed is True
+
+
+@pytest.mark.parametrize(
+    "node",
+    [
+        ProgramNode("office", "office_area", 8, min_width=0),
+        ProgramNode("office", "office_area", 8, min_width=math.nan),
+        ProgramNode("office", "office_area", 8, min_width=math.inf),
+        ProgramNode("office", "office_area", 8, max_aspect_ratio=0.99),
+        ProgramNode("office", "office_area", 8, max_aspect_ratio=math.nan),
+        ProgramNode("office", "office_area", 8, max_aspect_ratio=math.inf),
+    ],
+)
+def test_room_form_validation_rejects_invalid_program_limits(node):
+    layout = _layout(
+        rooms=[_room("office", [(0, 0), (2, 0), (2, 4), (0, 4)])],
+        circulation=[],
+    )
+
+    with pytest.raises(ValueError, match="minimum width|aspect ratio"):
+        validate_layout(layout, _program(node), boundary=BOUNDARY)
+
+
+def test_non_orthogonal_or_invalid_room_geometry_does_not_crash_form_validation():
+    program = _program(
+        ProgramNode("office", "office_area", 4, min_width=1, max_aspect_ratio=2)
+    )
+    non_orthogonal = _layout(
+        rooms=[_room("office", [(0, 0), (3, 0), (2, 2), (0, 2)])],
+        circulation=[],
+    )
+    invalid = _layout(
+        rooms=[_room("office", [(0, 0), (2, 2), (0, 2), (2, 0)])],
+        circulation=[],
+    )
+
+    non_orthogonal_report = validate_layout(non_orthogonal, program, boundary=BOUNDARY)
+    invalid_report = validate_layout(invalid, program, boundary=BOUNDARY)
+
+    assert _violation_subjects(non_orthogonal_report, "room_min_width") == {"office"}
+    assert non_orthogonal_report.room_shapes[0].measured_min_width is None
+    assert _violation_subjects(invalid_report, "invalid_geometry") == {"office"}
+    assert invalid_report.room_shapes[0].measured_min_width is None
+
+
+@pytest.mark.parametrize(
+    ("program", "rooms"),
+    [
+        (
+            ProgramGraph(
+                project_id="test",
+                floor_index=1,
+                use_type="office",
+                nodes=[
+                    ProgramNode("open_work", "open_work", 52),
+                    ProgramNode("meeting", "meeting", 10),
+                    ProgramNode("reception", "reception", 5),
+                    ProgramNode("focus", "focus", 6),
+                    ProgramNode("core", "core", 27),
+                ],
+                edges=[],
+                source="test",
+            ),
+            [
+                _room("open_work", [(0, 0), (52, 0), (52, 1), (0, 1)], "open_work"),
+                _room("meeting", [(0, 1), (10, 1), (10, 2), (0, 2)], "meeting"),
+                _room("reception", [(0, 2), (5, 2), (5, 3), (0, 3)], "reception"),
+                _room("focus", [(0, 3), (6, 3), (6, 4), (0, 4)], "focus"),
+                _room("core", [(0, 4), (27, 4), (27, 5), (0, 5)], "core"),
+            ],
+        ),
+        (
+            ProgramGraph(
+                project_id="test",
+                floor_index=1,
+                use_type="neighborhood_commercial",
+                nodes=[
+                    ProgramNode("sales", "sales", 57),
+                    ProgramNode("checkout", "checkout", 4),
+                    ProgramNode("core", "core", 39),
+                ],
+                edges=[],
+                source="test",
+            ),
+            [
+                _room("sales", [(0, 0), (57, 0), (57, 1), (0, 1)], "sales"),
+                _room("checkout", [(0, 1), (4, 1), (4, 2), (0, 2)], "checkout"),
+                _room("core", [(0, 2), (39, 2), (39, 3), (0, 3)], "core"),
+            ],
+        ),
+    ],
+)
+def test_use_specific_efficiency_scores_use_profile_rentable_types(program, rooms):
+    report = validate_layout(
+        _layout(rooms, []),
+        program,
+        boundary=[(0, 0), (60, 0), (60, 6), (0, 6)],
+    )
+
+    assert report.efficiency_score == 1

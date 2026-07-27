@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -18,6 +18,17 @@ class RoomAreaMetric:
     min_area: float
     max_area: float
     within_range: bool
+
+
+@dataclass(frozen=True)
+class RoomShapeMetric:
+    room_id: str
+    measured_min_width: float | None
+    required_min_width: float | None
+    measured_aspect_ratio: float | None
+    maximum_aspect_ratio: float | None
+    minimum_width_passed: bool
+    aspect_ratio_passed: bool
 
 
 @dataclass(frozen=True)
@@ -42,3 +53,4 @@ class ValidationReport:
     policy_version: str
     openings_checked: bool = False
     corridor_width_checked: bool = False
+    room_shapes: list[RoomShapeMetric] = field(default_factory=list)
