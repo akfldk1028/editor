@@ -19,9 +19,10 @@ from backend.app.modules.visual_review.service import (
     create_visual_review_artifacts,
     run_visual_review_loop,
 )
-from backend.app.schemas.layout import RoomPolygon
+from backend.app.schemas.layout import OpeningSegment, RoomPolygon
 from backend.app.schemas.loop import CandidateRecord, IterationRecord, LoopResult
 from backend.app.schemas.mass import MassInput
+from backend.app.schemas.metrics import ValidationViolation
 
 
 def _sample_result():
@@ -93,6 +94,8 @@ def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
     assert report["project_id"] == "visual"
     assert report["needs_iteration"] is True
     assert report["checks"]["boundary"] == "pass"
+    assert report["checks"]["openings"] == "not_checked"
+    assert report["checks"]["corridor_width"] == "not_checked"
 
 
 def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
@@ -236,6 +239,64 @@ def test_review_report_exposes_validated_opening_and_corridor_measurements(tmp_p
         "min_door_width": 0.9,
         "min_corridor_width": 3.0,
     }
+
+
+@pytest.mark.parametrize("invalid_x", [float("nan"), "not-a-coordinate"])
+def test_invalid_opening_coordinate_is_skipped_without_blocking_review_artifacts(
+    tmp_path,
+    invalid_x,
+):
+    result, boundary = _strict_building_floor()
+    invalid = OpeningSegment(
+        opening_id="invalid-door",
+        kind="door",
+        connects=("office_area", "corridor"),
+        start=(invalid_x, 4.0),
+        end=(21.06, 4.9),
+        clear_width=0.9,
+    )
+    validation = replace(
+        result.validation,
+        accepted=False,
+        is_valid=False,
+        hard_violation_count=1,
+        violations=[
+            *result.validation.violations,
+            ValidationViolation(
+                code="door_geometry",
+                subject=invalid.opening_id,
+                message="door coordinates must be finite",
+            ),
+        ],
+    )
+    result = replace(
+        result,
+        layout=replace(result.layout, openings=[*result.layout.openings, invalid]),
+        validation=validation,
+    )
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    assert all(
+        path.is_file()
+        for path in (
+            review.svg_path,
+            review.png_path,
+            review.html_path,
+            review.report_path,
+        )
+    )
+    svg = review.svg_path.read_text(encoding="utf-8")
+    assert "invalid-door" not in svg
+    assert "nan" not in svg.lower()
+    assert svg.count('data-kind="door-opening"') == len(result.layout.openings) - 1
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    assert report["checks"]["openings"] == "fail"
+    assert report["measurements"]["door_count"] == len(result.layout.openings)
 
 
 def test_artifacts_escape_text_use_safe_stems_and_keep_links_under_output_root(tmp_path):
@@ -383,12 +444,15 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
         "area": "pass",
         "boundary": "pass",
         "circulation_access": "pass",
-        "corridor_width": "pass",
-        "openings": "pass",
+        "corridor_width": "not_checked",
+        "openings": "not_checked",
         "overlap": "pass",
     }
     assert reports[1]["scores"]["area_score"] < 1
-    assert all(value == "pass" for value in reports[1]["checks"].values())
+    assert all(
+        reports[1]["checks"][name] == "pass"
+        for name in ("area", "boundary", "circulation_access", "overlap")
+    )
     accepted_html = result.artifacts[1].html_path.read_text(encoding="utf-8")
     assert "passes hard validation" in accepted_html
     assert "Hard Validation Checks" in accepted_html

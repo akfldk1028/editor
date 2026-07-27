@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import math
 import re
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from backend.app.modules.generation_loop.service import (
     run_candidate_search,
 )
 from backend.app.schemas.loop import CandidateRecord, LoopConfig
+from backend.app.schemas.layout import OpeningSegment
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.metrics import ValidationReport
 from backend.app.schemas.result import BuildingGenerationResult, GenerationResult
@@ -150,7 +152,10 @@ def create_visual_review_artifacts(
     svg_path.write_text(_render_svg(result, boundary, width, height), encoding="utf-8")
     png_path.write_bytes(_render_png(result, boundary, width, height))
 
-    checks = _hard_validation_checks(result.validation)
+    checks = _hard_validation_checks(
+        result.validation,
+        width_policy_checked=_width_policy_checked(result),
+    )
     measurements = _layout_measurements(result)
     needs_iteration = not result.validation.accepted
     scores = _validation_scores(result.validation)
@@ -522,6 +527,8 @@ def _render_svg(
     )
     parts.append(f'<polygon points="{boundary_points}" fill="none" stroke="#000000" stroke-width="4"/>')
     for opening in result.layout.openings:
+        if not _is_renderable_opening(opening):
+            continue
         start_x = _sx(opening.start[0], min_x, scale, pad_x)
         start_y = _sy(opening.start[1], min_y, scale, pad_y, height)
         end_x = _sx(opening.end[0], min_x, scale, pad_x)
@@ -572,6 +579,8 @@ def _render_png(
         _raster_points(boundary, min_x, min_y, scale, pad_x, pad_y, height), (0, 0, 0), thickness=4
     )
     for opening in result.layout.openings:
+        if not _is_renderable_opening(opening):
+            continue
         start, end = _raster_points(
             [opening.start, opening.end],
             min_x,
@@ -714,7 +723,11 @@ def _validation_scores(validation: ValidationReport) -> dict[str, float]:
     }
 
 
-def _hard_validation_checks(validation: ValidationReport) -> dict[str, str]:
+def _hard_validation_checks(
+    validation: ValidationReport,
+    *,
+    width_policy_checked: bool,
+) -> dict[str, str]:
     violation_codes = {violation.code for violation in validation.violations}
     hard_gate_codes = {
         "boundary": {"invalid_geometry", "boundary"},
@@ -734,17 +747,21 @@ def _hard_validation_checks(validation: ValidationReport) -> dict[str, str]:
         },
         "corridor_width": {"circulation_too_narrow"},
     }
-    return {
+    checks = {
         name: "fail" if violation_codes & codes else "pass"
         for name, codes in hard_gate_codes.items()
     }
+    if not width_policy_checked:
+        checks["openings"] = "not_checked"
+        checks["corridor_width"] = "not_checked"
+    return checks
 
 
 def _layout_measurements(result: GenerationResult) -> dict[str, int | float | None]:
     door_widths = [
         float(opening.clear_width)
         for opening in result.layout.openings
-        if opening.kind == "door"
+        if opening.kind == "door" and math.isfinite(opening.clear_width)
     ]
     corridor_widths = []
     for path in result.layout.circulation:
@@ -757,6 +774,26 @@ def _layout_measurements(result: GenerationResult) -> dict[str, int | float | No
         "min_door_width": min(door_widths) if door_widths else None,
         "min_corridor_width": min(corridor_widths) if corridor_widths else None,
     }
+
+
+def _width_policy_checked(result: GenerationResult) -> bool:
+    width_policy_codes = {
+        "opening_identity",
+        "opening_reference",
+        "door_geometry",
+        "door_width",
+        "door_missing",
+        "circulation_too_narrow",
+    }
+    return bool(result.layout.openings) or any(
+        violation.code in width_policy_codes
+        for violation in result.validation.violations
+    )
+
+
+def _is_renderable_opening(opening: OpeningSegment) -> bool:
+    values = (*opening.start, *opening.end, opening.clear_width)
+    return all(isinstance(value, (int, float)) and math.isfinite(value) for value in values)
 
 
 def _format_measurement(value: float) -> str:
