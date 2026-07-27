@@ -1,5 +1,6 @@
 import backend.app.modules.generation_loop.service as generation_service
 from dataclasses import replace
+import math
 
 import pytest
 
@@ -8,7 +9,12 @@ from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import MassInput
-from engine.geometry.polygon import polygon_area, shared_boundary_with_segments_length
+from engine.geometry import orthogonal_min_width, shared_boundary_segments
+from engine.geometry.polygon import (
+    polygon_area,
+    shared_boundary_length,
+    shared_boundary_with_segments_length,
+)
 
 
 def test_building_generation_assigns_all_floors_and_aligns_vertical_core():
@@ -113,6 +119,22 @@ def test_building_generation_accepts_complete_structured_floor_assignments():
     assert shared_boundary_with_segments_length(rooms["staff"].polygon, [((0, 0), (24, 0))]) == 0
     assert len(commercial.layout.openings) == len(rooms)
     assert len(commercial.layout.circulation) == 2
+    circulation = {path.room_id: path for path in commercial.layout.circulation}
+    assert shared_boundary_length(*[path.polygon for path in circulation.values()]) >= 1.2
+    assert all(orthogonal_min_width(path.polygon) >= 1.2 for path in circulation.values())
+    for opening in commercial.layout.openings:
+        assert opening.clear_width == pytest.approx(0.9)
+        room = rooms[opening.connects[0]]
+        path = circulation[opening.connects[1]]
+        segments = shared_boundary_segments(room.polygon, path.polygon)
+        start, end = max(segments, key=lambda segment: (math.dist(*segment), segment))
+        midpoint = tuple((start[index] + end[index]) / 2 for index in range(2))
+        door_midpoint = tuple((opening.start[index] + opening.end[index]) / 2 for index in range(2))
+        assert door_midpoint == pytest.approx(midpoint)
+        assert math.dist(opening.start, opening.end) == pytest.approx(0.9)
+        assert math.dist(start, opening.start) == pytest.approx(
+            (math.dist(start, end) - 0.9) / 2
+        )
 
 
 @pytest.mark.parametrize(

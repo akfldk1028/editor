@@ -127,3 +127,11 @@ connected-circulation contract.
   `2.326 < 2.400`. These measurements document this sample only, not a
   universal infeasibility proof.
 - Focused building, generation-loop, and operator suites: `34 passed`.
+
+### 24x12 Door And Junction Evidence
+
+- The structured 24x12 test now verifies each 0.9 m door connects its room to
+  an actual circulation polygon, is centered on its longest shared boundary,
+  and retains equal endpoint margins. It also verifies the branch/spine
+  junction shares at least 1.2 m and each circulation polygon has at least
+  1.2 m orthogonal minimum width.
