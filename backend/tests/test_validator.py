@@ -196,6 +196,35 @@ def test_minimum_circulation_width_rejects_narrow_shared_junction():
     }
 
 
+def test_duplicate_circulation_ids_and_ambiguous_door_reference_are_rejected():
+    program = _program(
+        ProgramNode(node_id="office", space_type="office_area", target_area=80)
+    )
+    layout = LayoutCandidate(
+        candidate_id="duplicate-circulation",
+        project_id="test",
+        floor_index=1,
+        rooms=[_room("office", [(0, 0), (8, 0), (8, 10), (0, 10)])],
+        circulation=[
+            _room("hall", [(0, 10), (4, 10), (4, 12), (0, 12)], "circulation"),
+            _room("hall", [(4, 10), (8, 10), (8, 12), (4, 12)], "circulation"),
+        ],
+        score=0,
+        openings=[_door(start=(1.55, 10), end=(2.45, 10))],
+    )
+
+    report = validate_layout(
+        layout,
+        program,
+        boundary=BOUNDARY,
+        require_openings=True,
+    )
+
+    assert not report.accepted
+    assert _violation_subjects(report, "circulation_identity") == {"hall"}
+    assert _violation_subjects(report, "opening_reference") == {"office-door"}
+
+
 @pytest.mark.parametrize(
     "door",
     [

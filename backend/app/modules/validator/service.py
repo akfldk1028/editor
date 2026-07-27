@@ -29,6 +29,7 @@ _HARD_VIOLATION_CODES = (
     "boundary",
     "overlap",
     "circulation_missing",
+    "circulation_identity",
     "circulation_disconnected",
     "room_inaccessible",
     "opening_identity",
@@ -81,6 +82,14 @@ def validate_layout(
             add_violation("room_identity", room_id, f"room '{room_id}' appears {count} times")
     for room_id in sorted(room_counts.keys() - expected_set):
         add_violation("room_identity", room_id, f"unexpected room '{room_id}' is present")
+    circulation_counts = Counter(path.room_id for path in layout.circulation)
+    for path_id, count in circulation_counts.items():
+        if not path_id or count > 1:
+            add_violation(
+                "circulation_identity",
+                path_id or "circulation",
+                "circulation IDs must be non-empty and unique",
+            )
 
     valid_rooms = _valid_shapes(layout.rooms, "room", add_violation)
     valid_circulation = _valid_shapes(layout.circulation, "circulation", add_violation)
@@ -252,8 +261,12 @@ def _validate_openings(
     add_violation,
 ) -> None:
     opening_counts = Counter(opening.opening_id for opening in layout.openings)
-    rooms = {room.room_id: room for room in valid_rooms}
-    circulation = {path.room_id: path for path in valid_circulation}
+    rooms: dict[str, list[RoomPolygon]] = {}
+    circulation: dict[str, list[RoomPolygon]] = {}
+    for room in valid_rooms:
+        rooms.setdefault(room.room_id, []).append(room)
+    for path in valid_circulation:
+        circulation.setdefault(path.room_id, []).append(path)
     valid_door_rooms: set[str] = set()
 
     for opening in layout.openings:
@@ -267,8 +280,16 @@ def _validate_openings(
                 "opening IDs must be non-empty and unique",
             )
             continue
-        connected_rooms = [item for item in opening.connects if item in rooms]
-        connected_paths = [item for item in opening.connects if item in circulation]
+        connected_rooms = [
+            item
+            for item in opening.connects
+            if len(rooms.get(item, [])) == 1
+        ]
+        connected_paths = [
+            item
+            for item in opening.connects
+            if len(circulation.get(item, [])) == 1
+        ]
         if (
             opening.kind != "door"
             or len(set(opening.connects)) != 2
@@ -303,8 +324,8 @@ def _validate_openings(
             and any(
                 _segment_contains(segment, (opening.start, opening.end))
                 for segment in shared_boundary_segments(
-                    rooms[room_id].polygon,
-                    circulation[path_id].polygon,
+                    rooms[room_id][0].polygon,
+                    circulation[path_id][0].polygon,
                 )
             )
         )
