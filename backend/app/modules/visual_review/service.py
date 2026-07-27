@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import re
@@ -279,8 +280,9 @@ def _raster_points(
 
 
 def _slug(value: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
-    return slug[:80] or "project"
+    readable = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "project"
+    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
+    return f"{readable[:63]}-{digest}"
 
 
 def _ensure_within_target(target: Path, *paths: Path) -> None:

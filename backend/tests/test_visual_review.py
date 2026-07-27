@@ -110,7 +110,8 @@ def test_artifacts_escape_text_use_safe_stems_and_keep_links_under_output_root(t
         assert path.resolve().is_relative_to(tmp_path.resolve())
         assert "/" not in path.name
         assert "<" not in path.name
-    assert review.svg_path.stem.startswith("project-script-alert-1-script-f1")
+    assert review.svg_path.stem.startswith("project-script-alert-1-script-")
+    assert review.svg_path.stem.endswith("-f1")
     assert '<svg onload="alert(1)">' not in review.svg_path.read_text(encoding="utf-8")
     assert "&lt;svg onload=&quot;alert(1)&quot;&gt;" in review.svg_path.read_text(encoding="utf-8")
     html = review.html_path.read_text(encoding="utf-8")
@@ -119,6 +120,29 @@ def test_artifacts_escape_text_use_safe_stems_and_keep_links_under_output_root(t
     for artifact in report["artifacts"].values():
         assert not Path(artifact).is_absolute()
         assert ".." not in Path(artifact).parts
+
+
+@pytest.mark.parametrize(
+    ("first_project_id", "second_project_id"),
+    [
+        ("!!!", "@@@"),
+        ("a" * 80 + "-first", "a" * 80 + "-second"),
+    ],
+)
+def test_distinct_project_ids_have_distinct_deterministic_artifact_stems(
+    tmp_path, first_project_id, second_project_id
+):
+    first_result, boundary = _l_shaped_result(project_id=first_project_id)
+    second_result, _ = _l_shaped_result(project_id=second_project_id)
+
+    first_review = create_visual_review_artifacts(first_result, boundary=boundary, output_dir=tmp_path)
+    repeated_review = create_visual_review_artifacts(first_result, boundary=boundary, output_dir=tmp_path)
+    second_review = create_visual_review_artifacts(second_result, boundary=boundary, output_dir=tmp_path)
+
+    assert first_review.svg_path == repeated_review.svg_path
+    assert first_review.svg_path != second_review.svg_path
+    assert len(first_review.svg_path.stem) <= 96
+    assert len(second_review.svg_path.stem) <= 96
 
 
 @pytest.mark.parametrize(("width", "height"), [(0, 100), (100, 0), (-1, 100), (100, -1)])
@@ -168,10 +192,10 @@ def test_cli_review_generates_visual_artifacts(tmp_path):
 
     payload = json.loads(completed.stdout)
     assert payload["needs_iteration"] is False
-    assert (output_dir / "cli-review-f1.svg").exists()
-    assert (output_dir / "cli-review-f1.png").exists()
-    assert (output_dir / "cli-review-f1.html").exists()
-    assert (output_dir / "cli-review-f1.review.json").exists()
+    for key in ("svg_path", "png_path", "html_path", "report_path"):
+        artifact_path = Path(payload[key])
+        assert artifact_path.exists()
+        assert artifact_path.is_relative_to(output_dir)
 
 
 def test_run_visual_review_loop_stops_after_first_passing_iteration(tmp_path):
@@ -195,7 +219,7 @@ def test_run_visual_review_loop_stops_after_first_passing_iteration(tmp_path):
     assert result.iterations_run == 1
     assert result.final_needs_iteration is False
     assert result.artifacts[0].html_path.exists()
-    assert (tmp_path / "iteration_001" / "loop-review-f1.review.json").exists()
+    assert result.artifacts[0].report_path.exists()
 
 
 def test_cli_loop_review_runs_iterations_and_prints_final_state(tmp_path):
@@ -240,4 +264,4 @@ def test_cli_loop_review_runs_iterations_and_prints_final_state(tmp_path):
     payload = json.loads(completed.stdout)
     assert payload["iterations_run"] == 1
     assert payload["final_needs_iteration"] is False
-    assert (output_dir / "iteration_001" / "cli-loop-f1.html").exists()
+    assert Path(payload["artifacts"][0]["html_path"]).exists()
