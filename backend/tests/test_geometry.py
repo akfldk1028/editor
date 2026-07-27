@@ -48,6 +48,13 @@ def test_closed_clockwise_ring_is_valid():
     assert contains_polygon(polygon, [(0, 0), (1, 0), (1, 1), (0, 1)])
 
 
+def test_finite_coordinates_with_non_finite_derived_area_are_rejected():
+    huge = 1e200
+
+    with pytest.raises(ValueError, match="finite area and perimeter"):
+        validate_polygon([(0, 0), (huge, 0), (huge, huge), (0, huge)])
+
+
 @pytest.mark.parametrize(
     ("polygon", "message"),
     [

@@ -4,9 +4,10 @@ import math
 from typing import Iterable
 
 from shapely import union_all
-from shapely.geometry import LinearRing, Polygon
+from shapely.geometry import LineString, LinearRing, Polygon
 
 Point = tuple[float, float]
+Segment = tuple[Point, Point]
 
 
 def validate_polygon(points: Iterable[Point], *, label: str = "polygon") -> None:
@@ -36,6 +37,43 @@ def union_area(polygons: Iterable[Iterable[Point]]) -> float:
     if not shapes:
         return 0.0
     return float(union_all(shapes).area)
+
+
+def union_intersection_area(
+    container: Iterable[Point],
+    polygons: Iterable[Iterable[Point]],
+) -> float:
+    container_polygon = _as_polygon(container, label="container")
+    shapes = [_as_polygon(points, label=f"polygon {index}") for index, points in enumerate(polygons)]
+    if not shapes:
+        return 0.0
+    return float(union_all(shapes).intersection(container_polygon).area)
+
+
+def validate_boundary_segments(
+    boundary: Iterable[Point],
+    segments: Iterable[Segment],
+    *,
+    label: str = "boundary segments",
+) -> None:
+    boundary_polygon = _as_polygon(boundary, label="boundary")
+    for index, line in enumerate(_as_lines(segments, label=label)):
+        if not boundary_polygon.boundary.covers(line):
+            raise ValueError(f"{label} segment {index} must lie on the boundary")
+
+
+def shared_boundary_with_segments_length(
+    polygon: Iterable[Point],
+    segments: Iterable[Segment],
+) -> float:
+    shape = _as_polygon(polygon)
+    lines = _as_lines(segments, label="segments")
+    if not lines:
+        return 0.0
+    length = shape.boundary.intersection(union_all(lines)).length
+    if not math.isfinite(length):
+        raise ValueError("shared boundary length must be finite")
+    return float(length)
 
 
 def polygon_area(points: Iterable[Point]) -> float:
@@ -78,6 +116,8 @@ def _as_polygon(points: Iterable[Point], *, label: str = "polygon") -> Polygon:
         raise ValueError(f"{label} needs at least 3 distinct points")
     if not all(math.isfinite(coordinate) for point in vertices for coordinate in point):
         raise ValueError(f"{label} coordinates must be finite")
+    if not _derived_metrics_are_finite(vertices):
+        raise ValueError(f"{label} must have finite area and perimeter")
 
     ring = LinearRing(vertices)
     polygon = Polygon(ring)
@@ -87,6 +127,8 @@ def _as_polygon(points: Iterable[Point], *, label: str = "polygon") -> Polygon:
         raise ValueError(f"{label} must have positive area")
     if polygon.area <= 0:
         raise ValueError(f"{label} must have positive area")
+    if not math.isfinite(polygon.area) or not math.isfinite(polygon.length):
+        raise ValueError(f"{label} must have finite area and perimeter")
     if not polygon.is_valid:
         raise ValueError(f"{label} is invalid")
     return polygon
@@ -104,3 +146,46 @@ def _has_non_collinear_vertices(vertices: list[Point]) -> bool:
             if cross_product != 0:
                 return True
     return False
+
+
+def _derived_metrics_are_finite(vertices: list[Point]) -> bool:
+    twice_area = 0.0
+    perimeter = 0.0
+    for index, current in enumerate(vertices):
+        following = vertices[(index + 1) % len(vertices)]
+        cross_product = current[0] * following[1] - following[0] * current[1]
+        edge_length = math.hypot(
+            following[0] - current[0],
+            following[1] - current[1],
+        )
+        if not math.isfinite(cross_product) or not math.isfinite(edge_length):
+            return False
+        twice_area += cross_product
+        perimeter += edge_length
+        if not math.isfinite(twice_area) or not math.isfinite(perimeter):
+            return False
+    return True
+
+
+def _as_lines(segments: Iterable[Segment], *, label: str) -> list[LineString]:
+    lines: list[LineString] = []
+    try:
+        raw_segments = list(segments)
+    except TypeError:
+        raise ValueError(f"{label} must be an iterable of point pairs") from None
+    for index, segment in enumerate(raw_segments):
+        try:
+            start, end = segment
+            start_point = (float(start[0]), float(start[1]))
+            end_point = (float(end[0]), float(end[1]))
+        except (TypeError, ValueError, IndexError):
+            raise ValueError(f"{label} segment {index} must contain two coordinate pairs") from None
+        if not all(math.isfinite(value) for point in (start_point, end_point) for value in point):
+            raise ValueError(f"{label} segment {index} coordinates must be finite")
+        if start_point == end_point:
+            raise ValueError(f"{label} segment {index} must have positive length")
+        line = LineString([start_point, end_point])
+        if not math.isfinite(line.length):
+            raise ValueError(f"{label} segment {index} length must be finite")
+        lines.append(line)
+    return lines

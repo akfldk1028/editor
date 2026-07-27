@@ -8,36 +8,53 @@ from backend.app.schemas.layout import LayoutCandidate, RoomPolygon
 from backend.app.schemas.metrics import RoomAreaMetric, ValidationReport, ValidationViolation
 from backend.app.schemas.program import ProgramGraph
 from engine.geometry.polygon import (
+    Segment,
     contains_polygon,
     polygon_area,
     polygon_overlap_area,
     shared_boundary_length,
-    union_area,
+    shared_boundary_with_segments_length,
+    union_intersection_area,
+    validate_boundary_segments,
     validate_polygon,
 )
 
 _EPSILON = 1e-9
 _POLICY_VERSION = "exact-v1"
+_HARD_VIOLATION_CODES = (
+    "invalid_geometry",
+    "room_identity",
+    "room_area",
+    "boundary",
+    "overlap",
+    "circulation_missing",
+    "circulation_disconnected",
+    "room_inaccessible",
+)
+_EXTERNAL_PROGRAM_ENDPOINTS = {"street"}
 
 
 def validate_layout(
     layout: LayoutCandidate,
     program: ProgramGraph,
     boundary: list[tuple[float, float]],
+    *,
+    street_segments: list[Segment] | None = None,
 ) -> ValidationReport:
+    _validate_program(program)
     validate_polygon(boundary, label="boundary")
+    streets = street_segments or []
+    validate_boundary_segments(boundary, streets, label="street segments")
 
     violations: list[ValidationViolation] = []
-    penalties: list[float] = []
+    penalties: dict[tuple[str, str], float] = {}
 
     def add_violation(code: str, subject: str, message: str, penalty: float = 1.0) -> None:
         violations.append(ValidationViolation(code=code, subject=subject, message=message))
-        penalties.append(max(0.0, penalty))
+        key = (code, subject)
+        penalties[key] = max(penalties.get(key, 0.0), max(0.0, penalty))
 
     expected_ids = [node.node_id for node in program.nodes]
-    if len(expected_ids) != len(set(expected_ids)):
-        raise ValueError("program node IDs must be unique")
-
     room_counts = Counter(room.room_id for room in layout.rooms)
     expected_set = set(expected_ids)
     for room_id in expected_ids:
@@ -118,8 +135,8 @@ def validate_layout(
         accessible_count,
         accessible_room_count,
     )
-    adjacency_score = _adjacency_score(valid_rooms, room_counts, program, boundary)
-    frontage_score = _frontage_score(valid_rooms, room_counts, program, boundary)
+    adjacency_score = _adjacency_score(valid_rooms, room_counts, program, streets)
+    frontage_score = _frontage_score(valid_rooms, room_counts, program, streets)
     coverage_score = _coverage_score(valid_rooms, valid_circulation, boundary)
     compactness_score = _compactness_score(valid_rooms)
     efficiency_score = _efficiency_score(valid_rooms, program)
@@ -139,16 +156,17 @@ def validate_layout(
     ]
     total_score = round(_mean(scores), 4)
     accepted = not violations
-    violation_denominator = max(
-        1,
-        len(program.nodes) * 3 + len(layout.rooms) + len(layout.circulation) + 3,
+    hard_violation_count = len({violation.code for violation in violations})
+    violation_score = _normalized_violation_score(
+        violations,
+        penalties,
+        expected_room_count=len(program.nodes),
     )
-    violation_score = round(min(1.0, sum(penalties) / violation_denominator), 4)
 
     return ValidationReport(
         is_valid=accepted,
         accepted=accepted,
-        hard_violation_count=len(violations),
+        hard_violation_count=hard_violation_count,
         violation_score=violation_score,
         violations=violations,
         room_areas=room_areas,
@@ -165,6 +183,44 @@ def validate_layout(
         messages=[violation.message for violation in violations],
         policy_version=_POLICY_VERSION,
     )
+
+
+def _validate_program(program: ProgramGraph) -> None:
+    node_ids = [node.node_id for node in program.nodes]
+    if not node_ids:
+        raise ValueError("program must contain at least one node")
+    if any(not node_id for node_id in node_ids):
+        raise ValueError("program node IDs must be non-empty")
+    if len(node_ids) != len(set(node_ids)):
+        raise ValueError("program node IDs must be unique")
+
+    for node in program.nodes:
+        target = float(node.target_area)
+        minimum = float(node.min_area) if node.min_area is not None else None
+        maximum = float(node.max_area) if node.max_area is not None else None
+        values = [value for value in (target, minimum, maximum) if value is not None]
+        if not all(math.isfinite(value) and value > 0 for value in values):
+            raise ValueError(f"program room '{node.node_id}' areas must be finite and positive")
+        if minimum is not None and minimum > target:
+            raise ValueError(f"program room '{node.node_id}' minimum area exceeds target")
+        if maximum is not None and maximum < target:
+            raise ValueError(f"program room '{node.node_id}' maximum area is below target")
+        if minimum is not None and maximum is not None and minimum > maximum:
+            raise ValueError(f"program room '{node.node_id}' area range is inverted")
+
+    allowed_endpoints = set(node_ids) | _EXTERNAL_PROGRAM_ENDPOINTS
+    for edge in program.edges:
+        if edge.source not in allowed_endpoints or edge.target not in allowed_endpoints:
+            raise ValueError(
+                f"program edge '{edge.source}->{edge.target}' has an unknown endpoint"
+            )
+        if edge.source == edge.target:
+            raise ValueError(f"program edge '{edge.source}->{edge.target}' is a self-edge")
+        weight = float(edge.weight)
+        if not math.isfinite(weight) or weight <= 0:
+            raise ValueError(
+                f"program edge '{edge.source}->{edge.target}' weight must be finite and positive"
+            )
 
 
 def _valid_shapes(
@@ -294,7 +350,7 @@ def _adjacency_score(
     rooms: list[RoomPolygon],
     room_counts: Counter,
     program: ProgramGraph,
-    boundary: list[tuple[float, float]],
+    street_segments: list[Segment],
 ) -> float:
     room_by_id = {
         room.room_id: room
@@ -315,10 +371,22 @@ def _adjacency_score(
             )
             weighted_checks.append((weight, satisfied))
         elif edge.source in room_by_id and edge.target == "street":
-            satisfied = shared_boundary_length(room_by_id[edge.source].polygon, boundary) > _EPSILON
+            satisfied = (
+                shared_boundary_with_segments_length(
+                    room_by_id[edge.source].polygon,
+                    street_segments,
+                )
+                > _EPSILON
+            )
             weighted_checks.append((weight, satisfied))
         elif edge.target in room_by_id and edge.source == "street":
-            satisfied = shared_boundary_length(room_by_id[edge.target].polygon, boundary) > _EPSILON
+            satisfied = (
+                shared_boundary_with_segments_length(
+                    room_by_id[edge.target].polygon,
+                    street_segments,
+                )
+                > _EPSILON
+            )
             weighted_checks.append((weight, satisfied))
         elif edge.source in program_ids and edge.target in program_ids:
             weighted_checks.append((weight, False))
@@ -329,7 +397,7 @@ def _frontage_score(
     rooms: list[RoomPolygon],
     room_counts: Counter,
     program: ProgramGraph,
-    boundary: list[tuple[float, float]],
+    street_segments: list[Segment],
 ) -> float:
     rooms_by_id = {
         room.room_id: room
@@ -343,7 +411,11 @@ def _frontage_score(
         1
         for node in required
         if node.node_id in rooms_by_id
-        and shared_boundary_length(rooms_by_id[node.node_id].polygon, boundary) > _EPSILON
+        and shared_boundary_with_segments_length(
+            rooms_by_id[node.node_id].polygon,
+            street_segments,
+        )
+        > _EPSILON
     )
     return round(satisfied / len(required), 4)
 
@@ -356,7 +428,10 @@ def _coverage_score(
     boundary_area = polygon_area(boundary)
     if boundary_area <= 0:
         return 0.0
-    covered_area = union_area([shape.polygon for shape in [*rooms, *circulation]])
+    covered_area = union_intersection_area(
+        boundary,
+        [shape.polygon for shape in [*rooms, *circulation]],
+    )
     return round(min(1.0, covered_area / boundary_area), 4)
 
 
@@ -401,3 +476,33 @@ def _weighted_score(checks: list[tuple[float, bool]]) -> float:
 
 def _mean(values: list[float]) -> float:
     return round(sum(values) / len(values), 4) if values else 0.0
+
+
+def _normalized_violation_score(
+    violations: list[ValidationViolation],
+    penalties: dict[tuple[str, str], float],
+    *,
+    expected_room_count: int,
+) -> float:
+    subjects_by_code: dict[str, set[str]] = {
+        code: {
+            violation.subject
+            for violation in violations
+            if violation.code == code
+        }
+        for code in _HARD_VIOLATION_CODES
+    }
+    room_denominator = max(1, expected_room_count)
+    gate_penalties: list[float] = []
+    for code in _HARD_VIOLATION_CODES:
+        subjects = subjects_by_code[code]
+        if not subjects:
+            gate_penalties.append(0.0)
+        elif code in {"room_identity", "room_inaccessible"}:
+            gate_penalties.append(min(1.0, len(subjects) / room_denominator))
+        elif code == "room_area":
+            penalty = sum(penalties[(code, subject)] for subject in subjects)
+            gate_penalties.append(min(1.0, penalty / room_denominator))
+        else:
+            gate_penalties.append(1.0)
+    return round(sum(gate_penalties) / len(_HARD_VIOLATION_CODES), 4)
