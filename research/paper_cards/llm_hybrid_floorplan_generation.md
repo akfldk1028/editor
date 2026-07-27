@@ -67,7 +67,9 @@ Set `PLAN_LLM_MODEL` or pass `--llm-model` to override the default model.
 - Whole-building generation currently accepts only axis-aligned rectangular
   floor plates.
 - LLM output currently controls floor use assignment, not room polygons.
-- The output is schematic zoning. Doors, dimensions, code-compliant corridor
-  widths, egress, structure, MEP, and detailed room subdivision remain pending.
+- The output is a connected schematic plan with explicit room-to-corridor
+  doors and a configurable research minimum corridor width. Dimensions,
+  jurisdiction-specific corridor rules, egress, structure, MEP, and detailed
+  room subdivision remain pending.
 - Passing hard validation means geometrically consistent under the current
   contract; it does not mean permit-ready or architect-quality.

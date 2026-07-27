@@ -24,10 +24,11 @@ doors and corridor width explicit, validated geometry.
 `clear_width`. `LayoutCandidate.openings` defaults to an empty list so existing
 generators remain compatible.
 
-`ValidationPolicy` contains `min_door_width` and `min_corridor_width`. Defaults
-are research baselines, not jurisdiction-specific code claims. The validator
-emits structured `door_missing`, `door_geometry`, `door_width`, and
-`corridor_width` violations.
+`validate_layout` accepts opt-in `require_openings`, `min_door_width`, and
+`min_circulation_width` keyword policy values. Defaults are research baselines,
+not jurisdiction-specific code claims. The validator emits structured
+`door_missing`, `door_geometry`, `door_width`, and
+`circulation_too_narrow` violations.
 
 ## Geometry
 
