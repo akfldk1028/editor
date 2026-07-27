@@ -137,6 +137,165 @@ def test_cli_generate_reads_mass_json_and_prints_generation_result(tmp_path):
     assert "total_score" in payload["validation"]
 
 
+def test_cli_building_review_generates_all_floors(tmp_path):
+    input_path = tmp_path / "mass.json"
+    output_dir = tmp_path / "building-review"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-building",
+                "floors": 5,
+                "footprint_polygon": [[0, 0], [30, 0], [30, 10], [0, 10]],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [{"edge_index": 0, "position": 0.5}],
+                "use_mix": {"neighborhood_commercial": 0.2, "office": 0.8},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "backend.app.cli",
+            "building-review",
+            "--input",
+            str(input_path),
+            "--output-dir",
+            str(output_dir),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads(completed.stdout)
+    assert payload["accepted"] is True
+    assert len(payload["floor_artifacts"]) == 5
+    assert (output_dir / "index.html").is_file()
+    assert (output_dir / "building.review.json").is_file()
+
+
+def test_cli_building_review_can_use_openai_planner(
+    tmp_path, monkeypatch, capsys
+):
+    input_path = tmp_path / "mass.json"
+    output_dir = tmp_path / "llm-building-review"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-llm-building",
+                "floors": 2,
+                "footprint_polygon": [[0, 0], [24, 0], [24, 12], [0, 12]],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [{"edge_index": 0, "position": 0.5}],
+                "use_mix": {"neighborhood_commercial": 0.5, "office": 0.5},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakePlanner:
+        def complete_json(self, *, system_prompt, user_payload):
+            return json.dumps(
+                {
+                    "project_id": user_payload["project_id"],
+                    "assignments": [
+                        {
+                            "floor_index": 1,
+                            "use_type": "neighborhood_commercial",
+                        },
+                        {"floor_index": 2, "use_type": "office"},
+                    ],
+                }
+            )
+
+    monkeypatch.setattr(
+        cli_module,
+        "OpenAIResponsesPlannerClient",
+        FakePlanner,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "plan",
+            "building-review",
+            "--input",
+            str(input_path),
+            "--output-dir",
+            str(output_dir),
+            "--planner",
+            "openai",
+        ],
+    )
+
+    cli_module.main()
+
+    payload = json.loads(capsys.readouterr().out)
+    report = json.loads(
+        (output_dir / "building.review.json").read_text(encoding="utf-8")
+    )
+    assert payload["accepted"] is True
+    assert report["assignment_source"] == "structured"
+
+
+def test_cli_openai_planner_failure_returns_diagnostic_json(
+    tmp_path, monkeypatch, capsys
+):
+    input_path = tmp_path / "mass.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-llm-failure",
+                "floors": 1,
+                "footprint_polygon": [[0, 0], [10, 0], [10, 10], [0, 10]],
+                "site_edges": [],
+                "access_candidates": [],
+                "use_mix": {"office": 1.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FailingPlanner:
+        def complete_json(self, **kwargs):
+            raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(
+        cli_module,
+        "OpenAIResponsesPlannerClient",
+        FailingPlanner,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "plan",
+            "building-review",
+            "--input",
+            str(input_path),
+            "--output-dir",
+            str(tmp_path / "unused"),
+            "--planner",
+            "openai",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exit_info:
+        cli_module.main()
+
+    assert exit_info.value.code == 1
+    assert json.loads(capsys.readouterr().out) == {
+        "accepted": False,
+        "planner": "openai",
+        "error": "RuntimeError: provider unavailable",
+    }
+
+
 def test_cli_loop_review_honors_max_iterations_and_writes_index(tmp_path):
     input_path = tmp_path / "mass.json"
     output_dir = tmp_path / "review-loop"

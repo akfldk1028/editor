@@ -1,23 +1,31 @@
 from __future__ import annotations
 
+import math
+from collections.abc import Iterable
+from dataclasses import replace
+
 from backend.app.modules.generation_loop.operators import (
     generate_initial_proposals,
     layout_fingerprint,
     refine_proposals,
 )
 from backend.app.modules.generation_loop.selector import rank_candidate, select_frontier
-from backend.app.modules.layout_generator.service import generate_baseline_layout
+from backend.app.modules.layout_generator.service import (
+    generate_baseline_layout,
+    generate_core_aligned_layout,
+)
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.llm import SUPPORTED_USE_TYPES, FloorAssignment
+from backend.app.schemas.mass import MassAnalysis, MassInput
 from backend.app.schemas.loop import (
     CandidateRecord,
     IterationRecord,
     LoopConfig,
     LoopResult,
 )
-from backend.app.schemas.result import GenerationResult
+from backend.app.schemas.result import BuildingGenerationResult, GenerationResult
 
 
 def run_generation_loop(
@@ -40,6 +48,248 @@ def run_generation_loop(
         layout=layout,
         validation=validation,
     )
+
+
+def run_building_generation(
+    mass: MassInput,
+    *,
+    floor_assignments: Iterable[FloorAssignment] | None = None,
+) -> BuildingGenerationResult:
+    analysis = analyze_mass(mass)
+    _require_rectangular_floor_plate(mass, analysis)
+    if floor_assignments is None:
+        assignments = assign_floors_from_use_mix(mass)
+        assignment_source = "use_mix"
+    else:
+        assignments = _validate_floor_assignments(
+            floor_assignments,
+            floors=mass.floors,
+        )
+        assignment_source = "structured"
+
+    programs = [
+        generate_program_graph(
+            analysis,
+            floor_index=assignment.floor_index,
+            use_type=assignment.use_type,
+        )
+        for assignment in assignments
+    ]
+    shared_core_target = max(
+        float(next(node.target_area for node in program.nodes if node.space_type == "core"))
+        for program in programs
+    )
+    programs = [
+        _normalize_program_core(program, shared_core_target)
+        for program in programs
+    ]
+
+    room_scale = 0.9
+    height = analysis.bounds[3] - analysis.bounds[1]
+    service_band_width = max(
+        room_scale
+        * sum(
+            float(node.target_area)
+            for node in program.nodes
+            if node.space_type not in {"shop_unit", "office_area"}
+        )
+        / height
+        for program in programs
+    )
+    _, min_y, max_x, _ = analysis.bounds
+    service_x = float(_clean_area(max_x - service_band_width))
+    service_band_width = max_x - service_x
+    core_height = room_scale * shared_core_target / service_band_width
+    core_top = float(_clean_area(min_y + core_height))
+    shared_core = [
+        (service_x, min_y),
+        (max_x, min_y),
+        (max_x, core_top),
+        (service_x, core_top),
+    ]
+
+    floor_results = []
+    for program in programs:
+        layout = generate_core_aligned_layout(
+            analysis,
+            program,
+            core_polygon=shared_core,
+            service_band_width=service_band_width,
+            room_scale=room_scale,
+        )
+        validation = validate_layout(
+            layout,
+            program,
+            boundary=mass.footprint_polygon,
+            street_segments=_street_segments(mass),
+        )
+        floor_results.append(
+            GenerationResult(
+                mass=analysis,
+                program=program,
+                layout=layout,
+                validation=validation,
+            )
+        )
+
+    use_type_areas: dict[str, float] = {}
+    for assignment in assignments:
+        use_type_areas[assignment.use_type] = (
+            use_type_areas.get(assignment.use_type, 0.0) + float(analysis.area)
+        )
+    core_polygons = [
+        next(room.polygon for room in floor.layout.rooms if room.space_type == "core")
+        for floor in floor_results
+    ]
+    vertical_core_aligned = all(
+        polygon == core_polygons[0]
+        for polygon in core_polygons[1:]
+    )
+    return BuildingGenerationResult(
+        mass=analysis,
+        floor_assignments=assignments,
+        floor_results=tuple(floor_results),
+        total_area=float(analysis.floor_area),
+        use_type_areas={
+            use_type: _clean_area(area)
+            for use_type, area in sorted(use_type_areas.items())
+        },
+        assignment_source=assignment_source,
+        vertical_core_aligned=vertical_core_aligned,
+    )
+
+
+def assign_floors_from_use_mix(mass: MassInput) -> tuple[FloorAssignment, ...]:
+    if not mass.use_mix:
+        raise ValueError("use_mix must contain at least one supported use type")
+    unsupported = sorted(set(mass.use_mix) - SUPPORTED_USE_TYPES)
+    if unsupported:
+        raise ValueError(f"unsupported use_mix types: {', '.join(unsupported)}")
+    if any(
+        not math.isfinite(float(weight)) or float(weight) < 0
+        for weight in mass.use_mix.values()
+    ):
+        raise ValueError("use_mix weights must be finite and non-negative")
+    positive = {
+        use_type: float(weight)
+        for use_type, weight in mass.use_mix.items()
+        if float(weight) > 0
+    }
+    total_weight = sum(positive.values())
+    if total_weight <= 0:
+        raise ValueError("use_mix must contain a positive weight")
+
+    use_order = sorted(
+        positive,
+        key=lambda use_type: (
+            use_type != "neighborhood_commercial",
+            use_type,
+        ),
+    )
+    raw_counts = {
+        use_type: mass.floors * positive[use_type] / total_weight
+        for use_type in use_order
+    }
+    counts = {
+        use_type: math.floor(raw_counts[use_type])
+        for use_type in use_order
+    }
+    remaining = mass.floors - sum(counts.values())
+    remainder_order = sorted(
+        use_order,
+        key=lambda use_type: (
+            -(raw_counts[use_type] - counts[use_type]),
+            use_type != "neighborhood_commercial",
+            use_type,
+        ),
+    )
+    for use_type in remainder_order[:remaining]:
+        counts[use_type] += 1
+
+    assignments = []
+    floor_index = 1
+    for use_type in use_order:
+        for _ in range(counts[use_type]):
+            assignments.append(FloorAssignment(floor_index, use_type))
+            floor_index += 1
+    return tuple(assignments)
+
+
+def _validate_floor_assignments(
+    assignments: Iterable[FloorAssignment],
+    *,
+    floors: int,
+) -> tuple[FloorAssignment, ...]:
+    values = tuple(assignments)
+    if not all(isinstance(item, FloorAssignment) for item in values):
+        raise ValueError("floor assignments must use FloorAssignment records")
+    if any(item.use_type not in SUPPORTED_USE_TYPES for item in values):
+        raise ValueError("floor assignments contain an unsupported use type")
+    indices = [item.floor_index for item in values]
+    if sorted(indices) != list(range(1, floors + 1)):
+        raise ValueError(
+            "floor assignments must contain every floor exactly once"
+        )
+    return tuple(sorted(values, key=lambda item: item.floor_index))
+
+
+def _normalize_program_core(program, shared_core_target: float):
+    core = next(node for node in program.nodes if node.space_type == "core")
+    primary = next(
+        node
+        for node in program.nodes
+        if node.space_type in {"shop_unit", "office_area"}
+    )
+    delta = shared_core_target - float(core.target_area)
+    primary_target = float(primary.target_area) - delta
+    if primary_target <= 0:
+        raise ValueError("shared core leaves no primary usable area")
+    nodes = []
+    for node in program.nodes:
+        if node.node_id == core.node_id:
+            target = shared_core_target
+            nodes.append(
+                replace(
+                    node,
+                    target_area=_clean_area(target),
+                    min_area=_clean_area(target * 0.85),
+                    max_area=_clean_area(target * 1.15),
+                )
+            )
+        elif node.node_id == primary.node_id:
+            nodes.append(
+                replace(
+                    node,
+                    target_area=_clean_area(primary_target),
+                    min_area=_clean_area(primary_target * 0.85),
+                    max_area=_clean_area(primary_target * 1.15),
+                )
+            )
+        else:
+            nodes.append(node)
+    return replace(program, nodes=nodes, source="building_aligned_prior")
+
+
+def _require_rectangular_floor_plate(
+    mass: MassInput,
+    analysis: MassAnalysis,
+) -> None:
+    min_x, min_y, max_x, max_y = analysis.bounds
+    expected = {
+        (float(min_x), float(min_y)),
+        (float(max_x), float(min_y)),
+        (float(max_x), float(max_y)),
+        (float(min_x), float(max_y)),
+    }
+    actual = {(float(x), float(y)) for x, y in mass.footprint_polygon}
+    if len(mass.footprint_polygon) != 4 or actual != expected:
+        raise ValueError(
+            "building generation currently requires an axis-aligned rectangular floor plate"
+        )
+
+
+def _clean_area(value: float) -> float | int:
+    return int(value) if float(value).is_integer() else round(value, 6)
 
 
 def run_candidate_search(

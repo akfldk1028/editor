@@ -10,6 +10,8 @@ PLAN is organized around a replaceable `Mass -> Program -> Precedent -> Layout -
 - `backend/app/api`: thin route wrappers. V1 keeps them framework-neutral.
 - `backend/app/cli.py`: CLI entrypoint for running the V1 loop.
 - `backend/app/modules/generation_loop`: deterministic candidate operators, canonical geometry fingerprints, lexicographic ranking, lineage, and budget-aware termination.
+- `backend/app/modules/llm_planner`: strict LLM JSON contracts, building-level
+  floor assignment orchestration, and an OpenAI Responses API adapter.
 - `backend/app/modules/visual_review`: writes SVG, PNG, HTML, per-iteration review JSON, and a run-level index for human-in-the-loop checking.
 - `engine/geometry`: the sole Shapely boundary. Application code passes Python point lists and scalar measurements, never Shapely objects.
 
@@ -57,3 +59,21 @@ fingerprints are not evaluated twice. Termination is one of `accepted`,
 `search_exhausted`, `stagnated`, `evaluation_budget_exhausted`,
 `iteration_budget_exhausted`, or `failed`; budget outcomes never imply
 acceptance.
+
+## Whole-Building Review
+
+Use the deterministic use-mix allocator:
+
+`python -m backend.app.cli building-review --input datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review`
+
+Use the OpenAI structured planner:
+
+`python -m backend.app.cli building-review --input datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review_llm --planner openai`
+
+The LLM assigns one supported use type to every floor through strict JSON.
+PLAN independently validates the response, generates all floors, aligns one
+core polygon vertically, validates each floor, and writes a building index plus
+per-floor SVG, PNG, HTML, and review JSON. LLM failure is not silently replaced
+with deterministic output. See
+`research/paper_cards/llm_hybrid_floorplan_generation.md` for the paper-code
+evidence and current limits.

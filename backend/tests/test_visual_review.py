@@ -10,8 +10,15 @@ import pytest
 
 import backend.app.modules.visual_review.service as visual_review_service
 from backend.app.modules.generation_loop.operators import layout_fingerprint
-from backend.app.modules.generation_loop.service import run_generation_loop
-from backend.app.modules.visual_review.service import create_visual_review_artifacts, run_visual_review_loop
+from backend.app.modules.generation_loop.service import (
+    run_building_generation,
+    run_generation_loop,
+)
+from backend.app.modules.visual_review.service import (
+    create_building_visual_review_artifacts,
+    create_visual_review_artifacts,
+    run_visual_review_loop,
+)
 from backend.app.schemas.layout import RoomPolygon
 from backend.app.schemas.loop import CandidateRecord, IterationRecord, LoopResult
 from backend.app.schemas.mass import MassInput
@@ -73,6 +80,38 @@ def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
     assert report["project_id"] == "visual"
     assert report["needs_iteration"] is True
     assert report["checks"]["boundary"] == "pass"
+
+
+def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
+    mass = MassInput(
+        project_id="five-floor-review",
+        floors=5,
+        footprint_polygon=[(0, 0), (30, 0), (30, 10), (0, 10)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.2, "office": 0.8},
+    )
+    result = run_building_generation(mass)
+
+    artifacts = create_building_visual_review_artifacts(
+        result,
+        boundary=mass.footprint_polygon,
+        output_dir=tmp_path,
+    )
+
+    assert artifacts.index_html_path.is_file()
+    assert artifacts.report_path.is_file()
+    assert len(artifacts.floor_artifacts) == 5
+    assert all(review.png_path.is_file() for review in artifacts.floor_artifacts)
+    assert all(review.svg_path.is_file() for review in artifacts.floor_artifacts)
+    index = artifacts.index_html_path.read_text(encoding="utf-8")
+    assert '<link rel="icon" href="data:,"' in index
+    assert "F1 · neighborhood_commercial" in index
+    assert "F5 · office" in index
+    report = json.loads(artifacts.report_path.read_text(encoding="utf-8"))
+    assert report["accepted"] is True
+    assert report["vertical_core_aligned"] is True
+    assert [floor["floor_index"] for floor in report["floors"]] == [1, 2, 3, 4, 5]
 
 
 def test_png_artifact_has_requested_pixel_size(tmp_path):

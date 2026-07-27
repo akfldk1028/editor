@@ -5,8 +5,19 @@ import json
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
-from backend.app.modules.generation_loop.service import run_generation_loop
-from backend.app.modules.visual_review.service import create_visual_review_artifacts, run_visual_review_loop
+from backend.app.modules.generation_loop.service import (
+    run_building_generation,
+    run_generation_loop,
+)
+from backend.app.modules.llm_planner.openai_client import (
+    OpenAIResponsesPlannerClient,
+)
+from backend.app.modules.llm_planner.service import run_llm_building_generation
+from backend.app.modules.visual_review.service import (
+    create_building_visual_review_artifacts,
+    create_visual_review_artifacts,
+    run_visual_review_loop,
+)
 from backend.app.schemas.mass import MassInput
 
 
@@ -31,6 +42,16 @@ def main() -> None:
     loop_review.add_argument("--use-type", required=True)
     loop_review.add_argument("--output-dir", required=True)
     loop_review.add_argument("--max-iterations", type=int, default=3)
+
+    building_review = subparsers.add_parser("building-review")
+    building_review.add_argument("--input", required=True)
+    building_review.add_argument("--output-dir", required=True)
+    building_review.add_argument(
+        "--planner",
+        choices=("deterministic", "openai"),
+        default="deterministic",
+    )
+    building_review.add_argument("--llm-model")
 
     args = parser.parse_args()
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
@@ -63,6 +84,37 @@ def main() -> None:
         )
         print(json.dumps(to_jsonable(result), ensure_ascii=False))
         if result.termination_reason == "failed":
+            raise SystemExit(1)
+    elif args.command == "building-review":
+        if args.planner == "openai":
+            planner = (
+                OpenAIResponsesPlannerClient(model=args.llm_model)
+                if args.llm_model
+                else OpenAIResponsesPlannerClient()
+            )
+            try:
+                result = run_llm_building_generation(mass, planner)
+            except Exception as error:
+                print(
+                    json.dumps(
+                        {
+                            "accepted": False,
+                            "planner": "openai",
+                            "error": f"{type(error).__name__}: {error}",
+                        },
+                        ensure_ascii=False,
+                    )
+                )
+                raise SystemExit(1) from error
+        else:
+            result = run_building_generation(mass)
+        artifacts = create_building_visual_review_artifacts(
+            result,
+            boundary=mass.footprint_polygon,
+            output_dir=args.output_dir,
+        )
+        print(json.dumps(to_jsonable(artifacts), ensure_ascii=False))
+        if not result.accepted:
             raise SystemExit(1)
 
 

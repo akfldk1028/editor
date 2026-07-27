@@ -9,13 +9,16 @@ from pathlib import Path
 from backend.app.core.serialization import to_jsonable
 from backend.app.modules.generation_loop.service import (
     run_candidate_search,
-    run_generation_loop,
 )
 from backend.app.schemas.loop import CandidateRecord, LoopConfig
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.metrics import ValidationReport
-from backend.app.schemas.result import GenerationResult
-from backend.app.schemas.visual import VisualReviewArtifacts, VisualReviewLoopResult
+from backend.app.schemas.result import BuildingGenerationResult, GenerationResult
+from backend.app.schemas.visual import (
+    BuildingVisualReviewArtifacts,
+    VisualReviewArtifacts,
+    VisualReviewLoopResult,
+)
 from engine.geometry.polygon import bounds
 from engine.io.png import SimplePngCanvas
 
@@ -45,6 +48,65 @@ CIRCULATION_FILL = "#d9d9d9"
 CIRCULATION_STROKE = "#38761d"
 PNG_CIRCULATION_FILL = (217, 217, 217)
 PNG_CIRCULATION_STROKE = (56, 118, 29)
+
+
+def create_building_visual_review_artifacts(
+    result: BuildingGenerationResult,
+    boundary: list[tuple[float, float]],
+    output_dir: str | Path,
+    width: int = 960,
+    height: int = 540,
+) -> BuildingVisualReviewArtifacts:
+    target = Path(output_dir).resolve()
+    target.mkdir(parents=True, exist_ok=True)
+    floor_artifacts = []
+    floor_reports = []
+    for floor in result.floor_results:
+        floor_dir = target / f"floor_{floor.program.floor_index:03d}"
+        artifacts = create_visual_review_artifacts(
+            floor,
+            boundary=boundary,
+            output_dir=floor_dir,
+            width=width,
+            height=height,
+            run_root=target,
+        )
+        floor_artifacts.append(artifacts)
+        floor_reports.append(
+            {
+                "floor_index": floor.program.floor_index,
+                "use_type": floor.program.use_type,
+                "accepted": floor.validation.accepted,
+                "artifacts": artifacts.artifact_links,
+            }
+        )
+
+    report_path = target / "building.review.json"
+    index_html_path = target / "index.html"
+    report = {
+        "schema_version": 1,
+        "project_id": result.mass.project_id,
+        "accepted": result.accepted,
+        "assignment_source": result.assignment_source,
+        "vertical_core_aligned": result.vertical_core_aligned,
+        "total_area": result.total_area,
+        "use_type_areas": result.use_type_areas,
+        "floors": floor_reports,
+    }
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    index_html_path.write_text(
+        _render_building_index(result, floor_reports),
+        encoding="utf-8",
+    )
+    return BuildingVisualReviewArtifacts(
+        index_html_path=index_html_path,
+        report_path=report_path,
+        floor_artifacts=tuple(floor_artifacts),
+        accepted=result.accepted,
+    )
 
 
 def create_visual_review_artifacts(
@@ -155,6 +217,64 @@ def create_visual_review_artifacts(
         needs_iteration=needs_iteration,
         checks=checks,
     )
+
+
+def _render_building_index(
+    result: BuildingGenerationResult,
+    floors: list[dict],
+) -> str:
+    floor_sections = []
+    for floor in floors:
+        title = (
+            f"F{floor['floor_index']} · "
+            f"{html.escape(str(floor['use_type']))}"
+        )
+        png = html.escape(floor["artifacts"]["png"], quote=True)
+        review = html.escape(floor["artifacts"]["html"], quote=True)
+        status = "accepted" if floor["accepted"] else "needs review"
+        floor_sections.append(
+            f"""
+            <section>
+              <header><h2>{title}</h2><span>{status}</span></header>
+              <a href="{review}"><img src="{png}" alt="{title} floor plan"></a>
+            </section>
+            """
+        )
+    status = "accepted" if result.accepted else "needs review"
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>{html.escape(result.mass.project_id)} building review</title>
+  <style>
+    :root {{ font-family: Inter, Segoe UI, sans-serif; color: #17232f; background: #f4f6f8; }}
+    * {{ box-sizing: border-box; }}
+    body {{ margin: 0; }}
+    main {{ width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 48px; }}
+    .summary {{ display: flex; align-items: baseline; justify-content: space-between; gap: 20px; border-bottom: 1px solid #ccd5dc; }}
+    h1 {{ margin: 0 0 8px; font-size: 24px; }}
+    p {{ margin: 0 0 20px; color: #63717e; }}
+    .status {{ color: #217a55; font-weight: 700; }}
+    section {{ margin-top: 22px; padding-bottom: 22px; border-bottom: 1px solid #d8dfe5; }}
+    section header {{ display: flex; align-items: center; justify-content: space-between; }}
+    h2 {{ margin: 0 0 10px; font-size: 15px; }}
+    section span {{ color: #217a55; font-size: 12px; }}
+    img {{ display: block; width: 100%; height: auto; border: 1px solid #cad3da; background: white; }}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="summary">
+      <div><h1>{html.escape(result.mass.project_id)}</h1><p>{len(floors)} floors · {result.total_area:g} total area</p></div>
+      <span class="status">{status}</span>
+    </div>
+    {''.join(floor_sections)}
+  </main>
+</body>
+</html>
+"""
 
 
 def run_visual_review_loop(
@@ -309,6 +429,7 @@ def _render_index_html(index: dict) -> str:
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <link rel="icon" href="data:,">
   <title>{project_id} review history</title>
   <style>
     body {{ margin: 24px; font-family: Arial, sans-serif; background: white; color: #111; }}
@@ -442,6 +563,7 @@ def _render_html(
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <link rel="icon" href="data:,">
   <title>{project_id} floor visual review</title>
   <style>
     body {{ margin: 24px; font-family: Arial, sans-serif; background: white; color: #111; }}

@@ -26,3 +26,11 @@ class VisualReviewLoopResult:
     evaluation_count: int = 0
     accepted: bool = False
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class BuildingVisualReviewArtifacts:
+    index_html_path: Path
+    report_path: Path
+    floor_artifacts: tuple[VisualReviewArtifacts, ...]
+    accepted: bool
