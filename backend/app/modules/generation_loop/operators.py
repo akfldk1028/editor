@@ -190,25 +190,30 @@ def _corridor_proposals(
     if frozenset(node.space_type for node in program.nodes) in role_sets:
         min_x, min_y, max_x, max_y = analysis.bounds
         core = next(node for node in program.nodes if node.space_type == "core")
-        core_height = (max_y - min_y) * 0.46
+        height = max_y - min_y
+        core_height = min(height * (0.47333333333333333 if height >= 12 else 0.46), height - 1.2)
         core_width = float(core.target_area) / core_height
         core = _rectangle(
             round(max_x - core_width, 6), min_y, max_x, round(min_y + core_height, 6)
         )
-        layout = generate_core_aligned_layout(
-            analysis,
-            program,
-            core_polygon=core,
-            service_band_width=core_width,
-        )
-        return [
-            CandidateProposal(
-                layout=replace(layout, candidate_id=f"{layout.candidate_id}-i{iteration}"),
-                parent_id=parent.candidate_id,
-                operator="role-driven",
-                operator_params={"topology": "spine-branch"},
+        try:
+            layout = generate_core_aligned_layout(
+                analysis,
+                program,
+                core_polygon=core,
+                service_band_width=core_width,
             )
-        ]
+        except ValueError:
+            pass
+        else:
+            return [
+                CandidateProposal(
+                    layout=replace(layout, candidate_id=f"{layout.candidate_id}-i{iteration}"),
+                    parent_id=parent.candidate_id,
+                    operator="role-driven",
+                    operator_params={"topology": "spine-branch"},
+                )
+            ]
     scale = _room_scale(program)
     if scale >= 1:
         return []

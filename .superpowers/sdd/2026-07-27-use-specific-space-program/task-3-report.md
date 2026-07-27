@@ -56,3 +56,42 @@ Pending.
   contact and valid doors.
 - Full pytest, Ruff, compileall, and diff check remain to be run after these
   compatibility cases are resolved.
+
+## Compatibility Fix Evidence
+
+### Implemented
+
+- The role-driven generator now uses a deterministic 1.2 m vertical spine and
+  horizontal branch as two connected circulation polygons for commercial
+  layouts. Doors select the longest shared boundary across the network.
+- The 24x12 shared core uses the deterministic compatible height; commercial
+  lower roles stack beside the core, while constrained office lower roles use
+  their area, minimum-width, and aspect constraints when sizing.
+- Role-driven refinement falls back to the generic corridor proposals when a
+  small or concave plate cannot host the fixed shared-core topology.
+
+### Verification
+
+```powershell
+python -m pytest backend/tests/test_building_generation.py backend/tests/test_generation_loop.py -q
+```
+
+Output: `17 passed`.
+
+```powershell
+ruff check .
+python -m compileall backend engine
+git diff --check
+```
+
+Output: all passed.
+
+```powershell
+python -m pytest -q
+```
+
+Output: `148 passed, 8 failed`. The remaining failures are legacy CLI and
+visual-review assertions that require the former single rectangular corridor,
+legacy `corridor-*` operator label, and legacy corridor render measurements.
+They are outside the two compatibility regressions and conflict with the new
+connected-circulation contract.
