@@ -249,6 +249,8 @@ def validate_layout(
         total_score=total_score,
         messages=[violation.message for violation in violations],
         policy_version=_POLICY_VERSION,
+        openings_checked=require_openings,
+        corridor_width_checked=min_circulation_width is not None,
     )
 
 

@@ -154,7 +154,6 @@ def create_visual_review_artifacts(
 
     checks = _hard_validation_checks(
         result.validation,
-        width_policy_checked=_width_policy_checked(result),
     )
     measurements = _layout_measurements(result)
     needs_iteration = not result.validation.accepted
@@ -725,8 +724,6 @@ def _validation_scores(validation: ValidationReport) -> dict[str, float]:
 
 def _hard_validation_checks(
     validation: ValidationReport,
-    *,
-    width_policy_checked: bool,
 ) -> dict[str, str]:
     violation_codes = {violation.code for violation in validation.violations}
     hard_gate_codes = {
@@ -751,8 +748,9 @@ def _hard_validation_checks(
         name: "fail" if violation_codes & codes else "pass"
         for name, codes in hard_gate_codes.items()
     }
-    if not width_policy_checked:
+    if not validation.openings_checked:
         checks["openings"] = "not_checked"
+    if not validation.corridor_width_checked:
         checks["corridor_width"] = "not_checked"
     return checks
 
@@ -761,7 +759,11 @@ def _layout_measurements(result: GenerationResult) -> dict[str, int | float | No
     door_widths = [
         float(opening.clear_width)
         for opening in result.layout.openings
-        if opening.kind == "door" and math.isfinite(opening.clear_width)
+        if (
+            opening.kind == "door"
+            and isinstance(opening.clear_width, (int, float))
+            and math.isfinite(opening.clear_width)
+        )
     ]
     corridor_widths = []
     for path in result.layout.circulation:
@@ -774,21 +776,6 @@ def _layout_measurements(result: GenerationResult) -> dict[str, int | float | No
         "min_door_width": min(door_widths) if door_widths else None,
         "min_corridor_width": min(corridor_widths) if corridor_widths else None,
     }
-
-
-def _width_policy_checked(result: GenerationResult) -> bool:
-    width_policy_codes = {
-        "opening_identity",
-        "opening_reference",
-        "door_geometry",
-        "door_width",
-        "door_missing",
-        "circulation_too_narrow",
-    }
-    return bool(result.layout.openings) or any(
-        violation.code in width_policy_codes
-        for violation in result.validation.violations
-    )
 
 
 def _is_renderable_opening(opening: OpeningSegment) -> bool:

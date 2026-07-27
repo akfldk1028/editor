@@ -241,10 +241,18 @@ def test_review_report_exposes_validated_opening_and_corridor_measurements(tmp_p
     }
 
 
-@pytest.mark.parametrize("invalid_x", [float("nan"), "not-a-coordinate"])
+@pytest.mark.parametrize(
+    ("invalid_x", "clear_width"),
+    [
+        (float("nan"), 0.9),
+        ("not-a-coordinate", 0.9),
+        (21.06, "0.9"),
+    ],
+)
 def test_invalid_opening_coordinate_is_skipped_without_blocking_review_artifacts(
     tmp_path,
     invalid_x,
+    clear_width,
 ):
     result, boundary = _strict_building_floor()
     invalid = OpeningSegment(
@@ -253,7 +261,7 @@ def test_invalid_opening_coordinate_is_skipped_without_blocking_review_artifacts
         connects=("office_area", "corridor"),
         start=(invalid_x, 4.0),
         end=(21.06, 4.9),
-        clear_width=0.9,
+        clear_width=clear_width,
     )
     validation = replace(
         result.validation,
@@ -297,6 +305,28 @@ def test_invalid_opening_coordinate_is_skipped_without_blocking_review_artifacts
     report = json.loads(review.report_path.read_text(encoding="utf-8"))
     assert report["checks"]["openings"] == "fail"
     assert report["measurements"]["door_count"] == len(result.layout.openings)
+
+
+def test_present_but_unchecked_openings_are_not_reported_as_pass(tmp_path):
+    result, boundary = _strict_building_floor()
+    result = replace(
+        result,
+        validation=replace(
+            result.validation,
+            openings_checked=False,
+            corridor_width_checked=False,
+        ),
+    )
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    assert report["checks"]["openings"] == "not_checked"
+    assert report["checks"]["corridor_width"] == "not_checked"
 
 
 def test_artifacts_escape_text_use_safe_stems_and_keep_links_under_output_root(tmp_path):

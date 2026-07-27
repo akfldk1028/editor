@@ -40,3 +40,5 @@ class ValidationReport:
     total_score: float
     messages: list[str]
     policy_version: str
+    openings_checked: bool = False
+    corridor_width_checked: bool = False
