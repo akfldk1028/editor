@@ -168,6 +168,56 @@ def test_minimum_circulation_width_rejects_narrow_corridor():
     assert _violation_subjects(report, "circulation_too_narrow") == {"hall"}
 
 
+def test_minimum_circulation_width_rejects_narrow_shared_junction():
+    program = _program(
+        ProgramNode(node_id="office", space_type="office_area", target_area=80)
+    )
+    layout = _layout(
+        rooms=[_room("office", [(0, 0), (10, 0), (10, 8), (0, 8)])],
+        circulation=[
+            _room("hall-a", [(0, 8), (5, 8), (5, 10), (0, 10)], "circulation"),
+            _room(
+                "hall-b",
+                [(5, 9.9), (10, 9.9), (10, 11.9), (5, 11.9)],
+                "circulation",
+            ),
+        ],
+    )
+
+    report = validate_layout(
+        layout,
+        program,
+        boundary=BOUNDARY,
+        min_circulation_width=1.2,
+    )
+
+    assert _violation_subjects(report, "circulation_too_narrow") == {
+        "circulation"
+    }
+
+
+@pytest.mark.parametrize(
+    "door",
+    [
+        _door(start=(3.55, 10, 0)),
+        _door(clear_width="0.9"),
+    ],
+)
+def test_required_openings_reports_malformed_numeric_geometry(door):
+    program = _program(
+        ProgramNode(node_id="office", space_type="office_area", target_area=80)
+    )
+
+    report = validate_layout(
+        _door_layout([door]),
+        program,
+        boundary=BOUNDARY,
+        require_openings=True,
+    )
+
+    assert _violation_subjects(report, "door_geometry") == {"office-door"}
+
+
 def test_validate_layout_scores_candidate_with_shared_wall_access():
     program = _program(
         ProgramNode(node_id="office", space_type="office_area", target_area=70),

@@ -171,6 +171,21 @@ def validate_layout(
                             f"is below {min_circulation_width:.3f}"
                         ),
                     )
+        if (
+            len(valid_circulation) > 1
+            and not _is_connected_with_minimum_junction(
+                valid_circulation,
+                min_circulation_width,
+            )
+        ):
+            add_violation(
+                "circulation_too_narrow",
+                "circulation",
+                (
+                    "circulation polygons are not connected by junctions "
+                    f"at least {min_circulation_width:.3f} wide"
+                ),
+            )
 
     circulation_score = _circulation_score(
         circulation_exists,
@@ -269,12 +284,22 @@ def _validate_openings(
 
         room_id = connected_rooms[0]
         path_id = connected_paths[0]
-        values = (*opening.start, *opening.end, opening.clear_width)
+        numeric_geometry = (
+            _is_finite_point(opening.start)
+            and _is_finite_point(opening.end)
+            and _is_finite_number(opening.clear_width)
+        )
+        if not numeric_geometry:
+            add_violation(
+                "door_geometry",
+                opening.opening_id,
+                "door endpoints and clear width must be finite numeric values",
+            )
+            continue
         actual_width = math.dist(opening.start, opening.end)
         geometry_ok = (
-            all(math.isfinite(float(value)) for value in values)
-            and actual_width > _EPSILON
-            and abs(actual_width - float(opening.clear_width)) <= 1e-7
+            actual_width > _EPSILON
+            and abs(actual_width - opening.clear_width) <= 1e-7
             and any(
                 _segment_contains(segment, (opening.start, opening.end))
                 for segment in shared_boundary_segments(
@@ -318,6 +343,22 @@ def _segment_contains(container: Segment, candidate: Segment) -> bool:
         and min(ax, bx) - _EPSILON <= point[0] <= max(ax, bx) + _EPSILON
         and min(ay, by) - _EPSILON <= point[1] <= max(ay, by) + _EPSILON
         for point in candidate
+    )
+
+
+def _is_finite_number(value) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _is_finite_point(value) -> bool:
+    return (
+        isinstance(value, (tuple, list))
+        and len(value) == 2
+        and all(_is_finite_number(coordinate) for coordinate in value)
     )
 
 
@@ -464,6 +505,30 @@ def _is_connected(shapes: list[RoomPolygon]) -> bool:
             if (
                 shared_boundary_length(shapes[current].polygon, candidate.polygon) > _EPSILON
                 or polygon_overlap_area(shapes[current].polygon, candidate.polygon) > _EPSILON
+            ):
+                reached.add(index)
+                pending.append(index)
+    return len(reached) == len(shapes)
+
+
+def _is_connected_with_minimum_junction(
+    shapes: list[RoomPolygon],
+    minimum_width: float,
+) -> bool:
+    reached = {0}
+    pending = [0]
+    while pending:
+        current = pending.pop()
+        for index, candidate in enumerate(shapes):
+            if index in reached:
+                continue
+            if (
+                shared_boundary_length(
+                    shapes[current].polygon,
+                    candidate.polygon,
+                )
+                + _EPSILON
+                >= minimum_width
             ):
                 reached.add(index)
                 pending.append(index)
