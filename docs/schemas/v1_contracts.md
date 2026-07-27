@@ -15,3 +15,11 @@ Rooms are vector polygons. V1 stores circulation separately and keeps walls/door
 ## ValidationReport
 
 Every generated candidate receives scores for area, overlap, boundary adherence, circulation, efficiency, and a total score.
+
+## VisualReviewArtifacts
+
+Every reviewed candidate writes SVG, PNG, HTML, and review JSON files. `needs_iteration` is true when any baseline check fails.
+
+## VisualReviewLoopResult
+
+Stores the number of iterations run, final iteration state, and all visual artifact paths.
