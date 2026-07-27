@@ -7,8 +7,13 @@ import re
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
-from backend.app.modules.generation_loop.service import run_generation_loop
+from backend.app.modules.generation_loop.service import (
+    run_candidate_search,
+    run_generation_loop,
+)
+from backend.app.schemas.loop import CandidateRecord, LoopConfig
 from backend.app.schemas.mass import MassInput
+from backend.app.schemas.metrics import ValidationReport
 from backend.app.schemas.result import GenerationResult
 from backend.app.schemas.visual import VisualReviewArtifacts, VisualReviewLoopResult
 from engine.geometry.polygon import bounds
@@ -43,6 +48,11 @@ def create_visual_review_artifacts(
     output_dir: str | Path,
     width: int = 960,
     height: int = 540,
+    *,
+    candidate: CandidateRecord | None = None,
+    iteration_number: int | None = None,
+    previous_validation: ValidationReport | None = None,
+    run_root: str | Path | None = None,
 ) -> VisualReviewArtifacts:
     if width <= 0 or height <= 0:
         raise ValueError("viewport width and height must be positive")
@@ -55,10 +65,14 @@ def create_visual_review_artifacts(
     png_path = target / f"{stem}.png"
     html_path = target / f"{stem}.html"
     report_path = target / f"{stem}.review.json"
+    artifact_root = Path(run_root).resolve() if run_root is not None else target
+    if not target.is_relative_to(artifact_root):
+        raise ValueError("artifact output directory escapes run root")
     artifact_links = {
-        "svg": svg_path.name,
-        "png": png_path.name,
-        "html": html_path.name,
+        "svg": _relative_link(artifact_root, svg_path),
+        "png": _relative_link(artifact_root, png_path),
+        "html": _relative_link(artifact_root, html_path),
+        "review_json": _relative_link(artifact_root, report_path),
     }
     _ensure_within_target(target, svg_path, png_path, html_path, report_path)
 
@@ -71,22 +85,59 @@ def create_visual_review_artifacts(
         "area": "pass" if result.validation.area_score == 1 else "fail",
         "efficiency": "pass" if result.validation.efficiency_score >= 0.85 else "fail",
     }
-    needs_iteration = any(value == "fail" for value in checks.values())
+    needs_iteration = not result.validation.accepted
+    scores = _validation_scores(result.validation)
+    previous_total_score = (
+        previous_validation.total_score if previous_validation is not None else None
+    )
+    previous_hard_failures = (
+        previous_validation.hard_violation_count
+        if previous_validation is not None
+        else None
+    )
     report = {
+        "schema_version": 1,
         "project_id": result.mass.project_id,
         "floor_index": result.program.floor_index,
         "use_type": result.program.use_type,
+        "iteration": (
+            iteration_number
+            if iteration_number is not None
+            else candidate.iteration if candidate is not None else None
+        ),
+        "candidate_id": result.layout.candidate_id,
+        "fingerprint": candidate.fingerprint if candidate is not None else None,
+        "parent_id": candidate.parent_id if candidate is not None else None,
+        "operator": candidate.operator if candidate is not None else None,
+        "operator_params": candidate.operator_params if candidate is not None else {},
+        "accepted": result.validation.accepted,
         "needs_iteration": needs_iteration,
+        "hard_failure_count": result.validation.hard_violation_count,
+        "violations": to_jsonable(result.validation.violations),
+        "scores": scores,
+        "total_score_delta": (
+            None
+            if previous_total_score is None
+            else round(result.validation.total_score - previous_total_score, 10)
+        ),
+        "hard_failure_count_delta": (
+            None
+            if previous_hard_failures is None
+            else result.validation.hard_violation_count - previous_hard_failures
+        ),
         "checks": checks,
         "validation": to_jsonable(result.validation),
         "artifacts": artifact_links,
     }
-    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
     html_path.write_text(
         _render_html(
             result,
-            svg_name=artifact_links["svg"],
-            png_name=artifact_links["png"],
+            svg_name=svg_path.name,
+            png_name=png_path.name,
             report_name=report_path.name,
             report=report,
         ),
@@ -114,26 +165,174 @@ def run_visual_review_loop(
     if max_iterations < 1:
         raise ValueError("max_iterations must be at least 1")
 
+    target = Path(output_dir).resolve()
+    target.mkdir(parents=True, exist_ok=True)
+    search = run_candidate_search(
+        mass,
+        floor_index=floor_index,
+        use_type=use_type,
+        config=LoopConfig(max_iterations=max_iterations),
+    )
     artifacts: list[VisualReviewArtifacts] = []
-    final_needs_iteration = True
-    for index in range(1, max_iterations + 1):
-        result = run_generation_loop(mass, floor_index=floor_index, use_type=use_type)
-        iteration_dir = Path(output_dir) / f"iteration_{index:03d}"
+    previous_validation: ValidationReport | None = None
+    reports: list[dict] = []
+    for iteration in search.iterations:
+        candidate = iteration.best_so_far
+        result = GenerationResult(
+            mass=search.mass,
+            program=search.program,
+            layout=candidate.layout,
+            validation=candidate.validation,
+        )
+        iteration_dir = target / f"iteration_{iteration.iteration:03d}"
         review = create_visual_review_artifacts(
             result,
             boundary=mass.footprint_polygon,
             output_dir=iteration_dir,
+            candidate=candidate,
+            iteration_number=iteration.iteration,
+            previous_validation=previous_validation,
+            run_root=target,
         )
         artifacts.append(review)
-        final_needs_iteration = review.needs_iteration
-        if not review.needs_iteration:
-            break
+        reports.append(
+            json.loads(review.report_path.read_text(encoding="utf-8"))
+        )
+        previous_validation = candidate.validation
+
+    index = _review_index(search, reports)
+    index_json_path = target / "review.index.json"
+    index_html_path = target / "index.html"
+    _ensure_within_target(target, index_json_path, index_html_path)
+    index_json_path.write_text(
+        json.dumps(
+            index,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    index_html_path.write_text(_render_index_html(index), encoding="utf-8")
 
     return VisualReviewLoopResult(
         iterations_run=len(artifacts),
-        final_needs_iteration=final_needs_iteration,
+        final_needs_iteration=not search.accepted,
         artifacts=artifacts,
+        index_json_path=index_json_path,
+        index_html_path=index_html_path,
+        termination_reason=search.termination_reason,
+        evaluation_count=search.evaluation_count,
+        accepted=search.accepted,
     )
+
+
+def _review_index(search, reports: list[dict]) -> dict:
+    iterations = [
+        {
+            "iteration": report["iteration"],
+            "candidate_id": report["candidate_id"],
+            "fingerprint": report["fingerprint"],
+            "parent_id": report["parent_id"],
+            "operator": report["operator"],
+            "operator_params": report["operator_params"],
+            "accepted": report["accepted"],
+            "needs_iteration": report["needs_iteration"],
+            "hard_failure_count": report["hard_failure_count"],
+            "violations": report["violations"],
+            "scores": report["scores"],
+            "total_score_delta": report["total_score_delta"],
+            "hard_failure_count_delta": report["hard_failure_count_delta"],
+            "artifacts": report["artifacts"],
+        }
+        for report in reports
+    ]
+    return {
+        "schema_version": 1,
+        "project_id": search.mass.project_id,
+        "floor_index": search.program.floor_index,
+        "use_type": search.program.use_type,
+        "accepted": search.accepted,
+        "needs_iteration": not search.accepted,
+        "termination_reason": search.termination_reason,
+        "evaluation_count": search.evaluation_count,
+        "iterations": iterations,
+        "score_trend": [entry["scores"]["total_score"] for entry in iterations],
+        "hard_failure_trend": [
+            entry["hard_failure_count"] for entry in iterations
+        ],
+        "lineage": [
+            {
+                "candidate_id": entry["candidate_id"],
+                "parent_id": entry["parent_id"],
+                "operator": entry["operator"],
+                "operator_params": entry["operator_params"],
+            }
+            for entry in iterations
+        ],
+    }
+
+
+def _render_index_html(index: dict) -> str:
+    rows = []
+    for entry in index["iterations"]:
+        artifact_links = " ".join(
+            f'<a href="{html.escape(path, quote=True)}">{html.escape(kind)}</a>'
+            for kind, path in entry["artifacts"].items()
+        )
+        rows.append(
+            "<tr>"
+            f'<th scope="row">{entry["iteration"]}</th>'
+            f"<td>{html.escape(entry['candidate_id'])}</td>"
+            f"<td>{html.escape(entry['fingerprint'])}</td>"
+            f"<td>{html.escape(entry['parent_id'] or '')}</td>"
+            f"<td>{html.escape(entry['operator'])}</td>"
+            f"<td>{entry['hard_failure_count']}</td>"
+            f"<td>{entry['scores']['total_score']}</td>"
+            f"<td>{html.escape('accepted' if entry['accepted'] else 'rejected')}</td>"
+            f"<td>{artifact_links}</td>"
+            "</tr>"
+        )
+    status = "accepted" if index["accepted"] else "needs iteration"
+    project_id = html.escape(index["project_id"])
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{project_id} review history</title>
+  <style>
+    body {{ margin: 24px; font-family: Arial, sans-serif; background: white; color: #111; }}
+    main {{ max-width: 1280px; margin: 0 auto; }}
+    h1 {{ font-size: 24px; }}
+    table {{ border-collapse: collapse; width: 100%; }}
+    th, td {{ border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }}
+    thead th {{ background: #f4f4f4; }}
+    a {{ color: #0645ad; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Review History: {project_id} F{index["floor_index"]}</h1>
+    <section aria-labelledby="run-summary">
+      <h2 id="run-summary">Run Summary</h2>
+      <p>Status: {html.escape(status)}. Termination: {html.escape(index["termination_reason"])}.
+      Evaluations: {index["evaluation_count"]}.</p>
+    </section>
+    <section aria-labelledby="iteration-history">
+      <h2 id="iteration-history">Iteration History</h2>
+      <table>
+        <thead><tr><th scope="col">Iteration</th><th scope="col">Candidate</th>
+        <th scope="col">Fingerprint</th><th scope="col">Parent</th>
+        <th scope="col">Operator</th><th scope="col">Hard failures</th>
+        <th scope="col">Total score</th><th scope="col">Status</th>
+        <th scope="col">Artifacts</th></tr></thead>
+        <tbody>{''.join(rows)}</tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
+"""
 
 
 def _render_svg(
@@ -283,6 +482,22 @@ def _slug(value: str) -> str:
     readable = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "project"
     digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
     return f"{readable[:63]}-{digest}"
+
+
+def _validation_scores(validation: ValidationReport) -> dict[str, float]:
+    payload = to_jsonable(validation)
+    return {
+        name: value
+        for name, value in payload.items()
+        if name.endswith("_score")
+    }
+
+
+def _relative_link(root: Path, path: Path) -> str:
+    resolved = path.resolve()
+    if not resolved.is_relative_to(root):
+        raise ValueError("artifact path escapes output root")
+    return resolved.relative_to(root).as_posix()
 
 
 def _ensure_within_target(target: Path, *paths: Path) -> None:

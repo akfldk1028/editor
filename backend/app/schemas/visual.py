@@ -20,3 +20,8 @@ class VisualReviewLoopResult:
     iterations_run: int
     final_needs_iteration: bool
     artifacts: list[VisualReviewArtifacts]
+    index_json_path: Path | None = None
+    index_html_path: Path | None = None
+    termination_reason: str | None = None
+    evaluation_count: int = 0
+    accepted: bool = False
