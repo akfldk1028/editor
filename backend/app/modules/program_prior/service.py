@@ -45,7 +45,12 @@ def generate_program_graph(
         floor_index=floor_index,
         use_type=use_type,
         nodes=nodes,
-        edges=[edge for edge in edges if _node_exists(edge.source, nodes) or edge.source == "shop_unit"],
+        edges=[
+            edge
+            for edge in edges
+            if _node_exists(edge.source, nodes)
+            and (_node_exists(edge.target, nodes) or edge.target == "street")
+        ],
         source="baseline_prior",
     )
 

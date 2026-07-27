@@ -42,6 +42,12 @@ def test_generate_program_graph_for_typical_office_floor():
     graph = generate_program_graph(analysis, floor_index=3, use_type="office")
 
     areas = {node.space_type: node.target_area for node in graph.nodes}
+    node_ids = {node.node_id for node in graph.nodes}
     assert areas["office_area"] > areas["core"]
     assert sum(areas.values()) == 400
     assert any(edge.relation == "service_adjacent" for edge in graph.edges)
+    assert all(
+        edge.source in node_ids
+        and (edge.target in node_ids or edge.target == "street")
+        for edge in graph.edges
+    )
