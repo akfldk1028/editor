@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 from backend.app.modules.generation_loop.service import run_generation_loop
-from backend.app.modules.visual_review.service import create_visual_review_artifacts
+from backend.app.modules.visual_review.service import create_visual_review_artifacts, run_visual_review_loop
 from backend.app.schemas.mass import MassInput
 
 
@@ -97,3 +97,72 @@ def test_cli_review_generates_visual_artifacts(tmp_path):
     assert (output_dir / "cli-review-f1.png").exists()
     assert (output_dir / "cli-review-f1.html").exists()
     assert (output_dir / "cli-review-f1.review.json").exists()
+
+
+def test_run_visual_review_loop_stops_after_first_passing_iteration(tmp_path):
+    mass = MassInput(
+        project_id="loop-review",
+        floors=2,
+        footprint_polygon=[(0, 0), (20, 0), (20, 10), (0, 10)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        floor_index=1,
+        use_type="neighborhood_commercial",
+        output_dir=tmp_path,
+        max_iterations=3,
+    )
+
+    assert result.iterations_run == 1
+    assert result.final_needs_iteration is False
+    assert result.artifacts[0].html_path.exists()
+    assert (tmp_path / "iteration_001" / "loop-review-f1.review.json").exists()
+
+
+def test_cli_loop_review_runs_iterations_and_prints_final_state(tmp_path):
+    input_path = tmp_path / "mass.json"
+    output_dir = tmp_path / "loop"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-loop",
+                "floors": 2,
+                "footprint_polygon": [[0, 0], [20, 0], [20, 10], [0, 10]],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [{"edge_index": 0, "position": 0.5}],
+                "use_mix": {"neighborhood_commercial": 0.5, "office": 0.5},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "backend.app.cli",
+            "loop-review",
+            "--input",
+            str(input_path),
+            "--floor",
+            "1",
+            "--use-type",
+            "neighborhood_commercial",
+            "--output-dir",
+            str(output_dir),
+            "--max-iterations",
+            "3",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads(completed.stdout)
+    assert payload["iterations_run"] == 1
+    assert payload["final_needs_iteration"] is False
+    assert (output_dir / "iteration_001" / "cli-loop-f1.html").exists()

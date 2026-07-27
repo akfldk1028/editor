@@ -12,3 +12,10 @@ class VisualReviewArtifacts:
     report_path: Path
     needs_iteration: bool
     checks: dict[str, str]
+
+
+@dataclass(frozen=True)
+class VisualReviewLoopResult:
+    iterations_run: int
+    final_needs_iteration: bool
+    artifacts: list[VisualReviewArtifacts]

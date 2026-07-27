@@ -4,8 +4,10 @@ import json
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
+from backend.app.modules.generation_loop.service import run_generation_loop
+from backend.app.schemas.mass import MassInput
 from backend.app.schemas.result import GenerationResult
-from backend.app.schemas.visual import VisualReviewArtifacts
+from backend.app.schemas.visual import VisualReviewArtifacts, VisualReviewLoopResult
 from engine.geometry.polygon import bounds
 from engine.io.png import SimplePngCanvas
 
@@ -81,6 +83,38 @@ def create_visual_review_artifacts(
         report_path=report_path,
         needs_iteration=needs_iteration,
         checks=checks,
+    )
+
+
+def run_visual_review_loop(
+    mass: MassInput,
+    floor_index: int,
+    use_type: str,
+    output_dir: str | Path,
+    max_iterations: int = 3,
+) -> VisualReviewLoopResult:
+    if max_iterations < 1:
+        raise ValueError("max_iterations must be at least 1")
+
+    artifacts: list[VisualReviewArtifacts] = []
+    final_needs_iteration = True
+    for index in range(1, max_iterations + 1):
+        result = run_generation_loop(mass, floor_index=floor_index, use_type=use_type)
+        iteration_dir = Path(output_dir) / f"iteration_{index:03d}"
+        review = create_visual_review_artifacts(
+            result,
+            boundary=mass.footprint_polygon,
+            output_dir=iteration_dir,
+        )
+        artifacts.append(review)
+        final_needs_iteration = review.needs_iteration
+        if not review.needs_iteration:
+            break
+
+    return VisualReviewLoopResult(
+        iterations_run=len(artifacts),
+        final_needs_iteration=final_needs_iteration,
+        artifacts=artifacts,
     )
 
 
