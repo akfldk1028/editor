@@ -27,8 +27,10 @@ def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
 
     assert review.svg_path.exists()
     assert review.png_path.exists()
+    assert review.html_path.exists()
     assert review.report_path.exists()
     assert "<svg" in review.svg_path.read_text(encoding="utf-8")
+    assert "visual review" in review.html_path.read_text(encoding="utf-8").lower()
     assert review.png_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     report = json.loads(review.report_path.read_text(encoding="utf-8"))
     assert report["project_id"] == "visual"
@@ -93,4 +95,5 @@ def test_cli_review_generates_visual_artifacts(tmp_path):
     assert payload["needs_iteration"] is False
     assert (output_dir / "cli-review-f1.svg").exists()
     assert (output_dir / "cli-review-f1.png").exists()
+    assert (output_dir / "cli-review-f1.html").exists()
     assert (output_dir / "cli-review-f1.review.json").exists()

@@ -8,6 +8,7 @@ from pathlib import Path
 class VisualReviewArtifacts:
     svg_path: Path
     png_path: Path
+    html_path: Path
     report_path: Path
     needs_iteration: bool
     checks: dict[str, str]
