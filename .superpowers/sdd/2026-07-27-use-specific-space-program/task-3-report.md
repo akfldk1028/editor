@@ -116,3 +116,14 @@ connected-circulation contract.
 - Focused command: `28 passed` for building, generation-loop, and operator
   suites. Full pytest: `151 passed, 6 failed`; only Task 4 legacy visual-review
   expectations remain, including the known 20x10 truthful needs-iteration case.
+
+### Direct Contract Tests
+
+- Direct generator tests reject missing, extra, and duplicate commercial roles,
+  and reject concave or non-rectangular shared cores with identical outer bounds.
+- The 20x10 compact-commercial search test records `search_exhausted` and the
+  final horizontal-corridor evidence: sales aspect ratio `3.899 > 3.000`,
+  checkout minimum width `1.860 < 2.400`, and staff minimum width
+  `2.326 < 2.400`. These measurements document this sample only, not a
+  universal infeasibility proof.
+- Focused building, generation-loop, and operator suites: `34 passed`.

@@ -178,6 +178,29 @@ def test_search_exhausts_feedback_operators_for_rejected_concave_layouts():
     assert not result.accepted
 
 
+def test_candidate_search_reports_compact_commercial_infeasibility():
+    mass = MassInput(
+        project_id="compact-commercial",
+        floors=1,
+        footprint_polygon=[(0, 0), (20, 0), (20, 10), (0, 10)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+
+    result = run_candidate_search(mass, 1, "neighborhood_commercial")
+
+    assert not result.accepted
+    assert result.termination_reason == "search_exhausted"
+    corridor = next(record for record in result.history if record.operator == "corridor-horizontal")
+    violations = {(item.code, item.subject) for item in corridor.validation.violations}
+    assert {
+        ("room_aspect_ratio", "sales"),
+        ("room_min_width", "checkout"),
+        ("room_min_width", "staff"),
+    } <= violations
+
+
 def test_search_stagnates_when_novel_refinement_does_not_improve(monkeypatch):
     calls = 0
 

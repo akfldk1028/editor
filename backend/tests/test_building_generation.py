@@ -1,6 +1,11 @@
 import backend.app.modules.generation_loop.service as generation_service
+from dataclasses import replace
+
 import pytest
 
+from backend.app.modules.layout_generator.service import generate_core_aligned_layout
+from backend.app.modules.mass_analyzer.service import analyze_mass
+from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import MassInput
 from engine.geometry.polygon import polygon_area, shared_boundary_with_segments_length
@@ -231,3 +236,64 @@ def test_role_driven_generation_rejects_non_bottom_street_frontage():
 
     with pytest.raises(ValueError, match="y=min_y"):
         generation_service.run_building_generation(mass)
+
+
+@pytest.mark.parametrize(
+    ("nodes", "match"),
+    [
+        (lambda nodes: nodes[1:], "missing="),
+        (lambda nodes: [*nodes, nodes[0]], "duplicate="),
+        (
+            lambda nodes: [replace(nodes[0], space_type="unexpected") , *nodes[1:]],
+            "extra=",
+        ),
+    ],
+)
+def test_role_driven_layout_rejects_invalid_profile_roles(nodes, match):
+    mass = MassInput(
+        project_id="role-contract",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+    analysis = analyze_mass(mass)
+    program = generate_program_graph(analysis, 1, "neighborhood_commercial")
+    invalid = replace(program, nodes=nodes(program.nodes))
+
+    with pytest.raises(ValueError, match=match):
+        generate_core_aligned_layout(
+            analysis,
+            invalid,
+            core_polygon=[(24, 0), (30, 0), (30, 7.2), (24, 7.2)],
+            service_band_width=6,
+        )
+
+
+@pytest.mark.parametrize(
+    "core_polygon",
+    [
+        [(24, 0), (30, 0), (30, 7.2), (27, 3.6)],
+        [(24, 0), (30, 0), (30, 7.2), (24, 7.2), (24, 3.6)],
+    ],
+)
+def test_role_driven_layout_rejects_malformed_shared_core(core_polygon):
+    mass = MassInput(
+        project_id="core-contract",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+    analysis = analyze_mass(mass)
+    program = generate_program_graph(analysis, 1, "neighborhood_commercial")
+
+    with pytest.raises(ValueError, match="shared core"):
+        generate_core_aligned_layout(
+            analysis,
+            program,
+            core_polygon=core_polygon,
+            service_band_width=6,
+        )
