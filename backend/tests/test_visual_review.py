@@ -295,6 +295,29 @@ def test_review_exposes_validator_room_form_measurements_and_layer_controls(tmp_
     assert "Room Program and Form" in page
 
 
+def test_room_form_table_joins_validator_area_metric_by_room_id(tmp_path):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    page = review.html_path.read_text(encoding="utf-8")
+    open_work_area = next(
+        metric.actual_area for metric in result.validation.room_areas if metric.room_id == "open_work"
+    )
+
+    assert '<th scope="col">Area m2</th>' in page
+    assert f"<td>{open_work_area:g}</td>" in page
+
+
+def test_layer_control_script_resynchronizes_after_iframe_load(tmp_path):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    page = review.html_path.read_text(encoding="utf-8")
+
+    assert "function synchronizeLayers()" in page
+    assert 'frame.addEventListener("load", synchronizeLayers)' in page
+
+
 def test_use_specific_room_palette_has_svg_and_png_entries_for_each_role():
     room_types = {
         "open_work", "meeting", "reception", "focus", "pantry", "restroom", "core", "it_storage",

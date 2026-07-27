@@ -176,6 +176,7 @@ def create_visual_review_artifacts(
     )
     measurements = _layout_measurements(result)
     room_shapes = to_jsonable(result.validation.room_shapes)
+    room_areas = to_jsonable(result.validation.room_areas)
     needs_iteration = not result.validation.accepted
     scores = _validation_scores(result.validation)
     previous_total_score = (
@@ -221,6 +222,7 @@ def create_visual_review_artifacts(
         "checks": checks,
         "measurements": measurements,
         "room_shapes": room_shapes,
+        "room_areas": room_areas,
         "validation": to_jsonable(result.validation),
         "artifacts": artifact_links,
     }
@@ -646,9 +648,13 @@ def _render_html(
         f'<tr><th scope="row">{html.escape(name)}</th><td>{value}</td></tr>'
         for name, value in report["scores"].items()
     )
+    area_by_room_id = {
+        metric["room_id"]: metric["actual_area"] for metric in report["room_areas"]
+    }
     room_form_rows = "".join(
         "<tr>"
         f'<th scope="row">{html.escape(shape["room_id"])}</th>'
+        f"<td>{_display_measurement(area_by_room_id.get(shape['room_id']))}</td>"
         f"<td>{_display_measurement(shape['measured_min_width'])}</td>"
         f"<td>{_display_measurement(shape['measured_aspect_ratio'])}</td>"
         f"<td>{_display_measurement(shape['required_min_width'])}</td>"
@@ -706,7 +712,7 @@ def _render_html(
         </table>
         <h2>Room Program and Form</h2>
         <table id="room-form-report">
-          <thead><tr><th scope="col">Room</th><th scope="col">Width m</th><th scope="col">Aspect</th><th scope="col">Min width</th><th scope="col">Max aspect</th></tr></thead>
+          <thead><tr><th scope="col">Room</th><th scope="col">Area m2</th><th scope="col">Width m</th><th scope="col">Aspect</th><th scope="col">Min width</th><th scope="col">Max aspect</th></tr></thead>
           <tbody>{room_form_rows}</tbody>
         </table>
         <p><a href="{html.escape(png_name, quote=True)}">PNG</a></p>
@@ -716,11 +722,23 @@ def _render_html(
   </main>
   <script>
     const frame = document.getElementById("floor-plan");
-    document.querySelectorAll("#working-layer-controls button").forEach((button) => {{
+    const controls = document.querySelectorAll("#working-layer-controls button");
+    function synchronizeLayers() {{
+      const documentRoot = frame.contentDocument;
+      if (!documentRoot) return;
+      controls.forEach((button) => {{
+        const visible = button.getAttribute("aria-pressed") === "true";
+        documentRoot.querySelectorAll(`[data-layer="${{button.dataset.layer}}"]`).forEach((node) => {{
+          node.style.display = visible ? "" : "none";
+        }});
+      }});
+    }}
+    frame.addEventListener("load", synchronizeLayers);
+    controls.forEach((button) => {{
       button.addEventListener("click", () => {{
         const pressed = button.getAttribute("aria-pressed") === "true";
-        frame.contentDocument?.querySelectorAll(`[data-layer="${{button.dataset.layer}}"]`).forEach((node) => {{ node.style.display = pressed ? "none" : ""; }});
         button.setAttribute("aria-pressed", String(!pressed));
+        synchronizeLayers();
       }});
     }});
   </script>

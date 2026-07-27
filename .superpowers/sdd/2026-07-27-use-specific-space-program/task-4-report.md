@@ -82,3 +82,32 @@ Result: `164 passed`; Ruff passed; compileall passed; diff check passed.
 ## Commit
 
 `feat(review): expose room form evidence`
+
+## Review Fix Round
+
+### RED
+
+```powershell
+python -m pytest backend/tests/test_visual_review.py -q -k "room_form_table or resynchronizes"
+```
+
+Result: `2 failed`; the compact table did not contain validated actual area and
+the page had no iframe-load synchronization function.
+
+### GREEN
+
+- Review JSON now serializes `ValidationReport.room_areas`; the table joins its
+  `actual_area` values to `room_shapes` by `room_id`, without geometry work in
+  the visual layer.
+- Layer visibility derives from `aria-pressed` in `synchronizeLayers()`, which
+  runs after every click and iframe `load`, preserving an early-click state.
+- Added tracked Playwright configuration and
+  `browser_tests/visual_review.spec.js`. It delays the SVG response, clicks
+  Rooms before iframe load, verifies the post-load SVG group is hidden, then
+  toggles all four layers off/on with no console or page errors.
+
+```powershell
+npm run test:browser
+```
+
+Result: `1 passed`.
