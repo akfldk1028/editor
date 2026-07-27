@@ -3,6 +3,7 @@ import pytest
 
 from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import MassInput
+from engine.geometry.polygon import polygon_area, shared_boundary_with_segments_length
 
 
 def test_building_generation_assigns_all_floors_and_aligns_vertical_core():
@@ -149,3 +150,60 @@ def test_building_generation_rejects_unsupported_or_empty_use_mix():
         generation_service.run_building_generation(
             MassInput(**base, use_mix={"hotel": 1.0})
         )
+
+
+def test_role_driven_profiles_generate_exact_rooms_and_valid_30x12_layouts():
+    mass = MassInput(
+        project_id="role-driven-30x12",
+        floors=5,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.2, "office": 0.8},
+    )
+
+    result = generation_service.run_building_generation(mass)
+
+    expected = {
+        "neighborhood_commercial": {
+            "sales", "checkout", "stock", "staff", "restroom", "core", "utility"
+        },
+        "office": {
+            "open_work", "meeting", "reception", "focus", "pantry", "restroom",
+            "core", "it_storage",
+        },
+    }
+    street = [((0, 0), (30, 0))]
+    for floor in result.floor_results:
+        rooms = {room.room_id: room for room in floor.layout.rooms}
+        assert set(rooms) == expected[floor.program.use_type]
+        assert floor.validation.accepted
+        assert len(floor.layout.openings) == len(rooms)
+        assert all(opening.clear_width == pytest.approx(0.9) for opening in floor.layout.openings)
+        assert all(metric.within_range for metric in floor.validation.room_areas)
+        assert all(
+            metric.minimum_width_passed and metric.aspect_ratio_passed
+            for metric in floor.validation.room_shapes
+        )
+
+        if floor.program.use_type == "neighborhood_commercial":
+            assert shared_boundary_with_segments_length(rooms["sales"].polygon, street) > 0
+            assert shared_boundary_with_segments_length(rooms["stock"].polygon, street) == 0
+            assert shared_boundary_with_segments_length(rooms["staff"].polygon, street) == 0
+        else:
+            areas = {room_id: polygon_area(room.polygon) for room_id, room in rooms.items()}
+            assert areas["open_work"] == max(areas.values())
+
+
+def test_role_driven_generation_rejects_missing_street_frontage():
+    mass = MassInput(
+        project_id="missing-street",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+
+    with pytest.raises(ValueError, match="street"):
+        generation_service.run_building_generation(mass)

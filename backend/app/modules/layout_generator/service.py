@@ -126,6 +126,17 @@ def generate_core_aligned_layout(
     room_scale: float = 0.9,
     min_circulation_width: float = 1.2,
 ) -> LayoutCandidate:
+    roles = {node.space_type for node in program.nodes}
+    if frozenset(roles) in {
+        frozenset({
+            "sales", "checkout", "stock", "staff", "restroom", "core", "utility"
+        }),
+        frozenset({
+            "open_work", "meeting", "reception", "focus", "pantry", "restroom",
+            "core", "it_storage",
+        }),
+    }:
+        return _generate_role_driven_layout(analysis, program, core_polygon)
     if not 0.85 <= room_scale < 1:
         raise ValueError("room_scale must leave circulation and respect program minima")
     min_x, min_y, max_x, max_y = analysis.bounds
@@ -249,6 +260,110 @@ def generate_core_aligned_layout(
         score=0.0,
         openings=openings,
     )
+
+
+def _generate_role_driven_layout(
+    analysis: MassAnalysis,
+    program: ProgramGraph,
+    core_polygon: list[tuple[float, float]],
+) -> LayoutCandidate:
+    """Place the two supported profiles around one connected spine and branch."""
+    min_x, min_y, max_x, max_y = analysis.bounds
+    height = max_y - min_y
+    nodes = {node.space_type: node for node in program.nodes}
+    if len(nodes) != len(program.nodes):
+        raise ValueError("role-driven layout requires unique room roles")
+    primary_role = "sales" if program.use_type == "neighborhood_commercial" else "open_work"
+    if primary_role not in nodes or "core" not in nodes:
+        raise ValueError("role-driven layout is missing its required primary or core role")
+    core_min_x, core_min_y, core_max_x, core_max_y = _polygon_bounds(core_polygon)
+    if core_max_x != max_x or core_min_y != min_y:
+        raise ValueError("shared core must anchor at the rear-bottom corner")
+
+    primary = nodes[primary_role]
+    primary_width = _layout_area(primary) / height
+    spine_right = primary_width + min_x + 1.2
+    spine_left = float(_aligned_number(spine_right - 1.2))
+    spine_right = float(_aligned_number(spine_right))
+    if spine_right >= core_min_x:
+        raise ValueError("program leaves no space for a connected circulation spine")
+    branch_bottom = core_max_y
+    branch_top = branch_bottom + 1.2
+    if branch_top >= max_y:
+        raise ValueError("shared core leaves no space for circulation branch")
+    lower_width = core_min_x - spine_right
+    upper_height = max_y - branch_top
+    if lower_width <= 0 or upper_height <= 0:
+        raise ValueError("program leaves no room for service roles")
+
+    rooms = [
+        RoomPolygon(primary.node_id, primary.space_type, _aligned_rectangle(min_x, min_y, spine_left, max_y)),
+        RoomPolygon(nodes["core"].node_id, nodes["core"].space_type, list(core_polygon)),
+    ]
+    lower_roles, upper_roles = (
+        (("checkout", "staff"), ("stock", "restroom", "utility"))
+        if primary_role == "sales"
+        else (("focus", "pantry"), ("meeting", "reception", "restroom", "it_storage"))
+    )
+    lower_cursor = spine_right
+    for role in lower_roles:
+        node = nodes[role]
+        room_height = branch_bottom - min_y
+        target_area = _layout_area(node)
+        room_width = target_area / room_height
+        if role in {"pantry", "checkout"}:
+            room_width = max(
+                room_width,
+                float(node.min_width or 0),
+                math.sqrt(target_area / float(node.max_aspect_ratio or math.inf)),
+            )
+            room_height = target_area / room_width
+        if role == "staff":
+            room_height = branch_bottom - min_y - 0.1
+            room_width = target_area / room_height
+        if lower_cursor + room_width > core_min_x + 1e-7:
+            raise ValueError(f"role '{role}' cannot fit beside the shared core")
+        room_min_y = branch_bottom - room_height
+        rooms.append(RoomPolygon(node.node_id, node.space_type, _aligned_rectangle(lower_cursor, room_min_y, lower_cursor + room_width, branch_bottom)))
+        lower_cursor += room_width
+    upper_cursor = spine_right
+    for role in upper_roles:
+        node = nodes[role]
+        room_width = _layout_area(node) / upper_height
+        if upper_cursor + room_width > max_x + 1e-7:
+            raise ValueError(f"role '{role}' cannot fit above the circulation branch")
+        rooms.append(RoomPolygon(node.node_id, node.space_type, _aligned_rectangle(upper_cursor, branch_top, upper_cursor + room_width, max_y)))
+        upper_cursor += room_width
+
+    corridor = RoomPolygon(
+        room_id="corridor",
+        space_type="circulation",
+        polygon=[
+            (_aligned_number(spine_left), _aligned_number(min_y)),
+            (_aligned_number(spine_right), _aligned_number(min_y)),
+            (_aligned_number(spine_right), _aligned_number(branch_bottom)),
+            (_aligned_number(max_x), _aligned_number(branch_bottom)),
+            (_aligned_number(max_x), _aligned_number(branch_top)),
+            (_aligned_number(spine_right), _aligned_number(branch_top)),
+            (_aligned_number(spine_right), _aligned_number(max_y)),
+            (_aligned_number(spine_left), _aligned_number(max_y)),
+        ],
+    )
+    openings = [_centered_door(room, corridor) for room in rooms]
+    return LayoutCandidate(
+        candidate_id=f"{program.project_id}-f{program.floor_index}-role-driven",
+        project_id=program.project_id,
+        floor_index=program.floor_index,
+        rooms=rooms,
+        circulation=[corridor],
+        score=0.0,
+        openings=openings,
+    )
+
+
+def _layout_area(node) -> float:
+    """Stay strictly inside the inclusive 15 percent target tolerance after rounding."""
+    return float(node.target_area) * 0.86
 
 
 def _centered_door(

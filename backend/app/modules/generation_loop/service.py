@@ -85,21 +85,36 @@ def run_building_generation(
     ]
 
     room_scale = 0.9
-    height = analysis.bounds[3] - analysis.bounds[1]
-    service_band_width = max(
-        room_scale
-        * sum(
-            float(node.target_area)
-            for node in program.nodes
-            if node.space_type not in {"shop_unit", "office_area"}
-        )
-        / height
+    min_x, min_y, max_x, max_y = analysis.bounds
+    height = max_y - min_y
+    use_role_layout = all(
+        program.use_type in {"office", "neighborhood_commercial"}
+        and any(node.space_type in {"sales", "open_work"} for node in program.nodes)
         for program in programs
     )
-    _, min_y, max_x, _ = analysis.bounds
-    service_x = float(_clean_area(max_x - service_band_width))
-    service_band_width = max_x - service_x
-    core_height = room_scale * shared_core_target / service_band_width
+    if use_role_layout:
+        streets = _street_segments(mass)
+        if any(program.use_type == "neighborhood_commercial" for program in programs) and len(streets) != 1:
+            raise ValueError("neighborhood commercial generation requires exactly one street edge")
+        core_height = height * 0.46
+        service_band_width = shared_core_target / core_height
+        service_x = float(_clean_area(max_x - service_band_width))
+        service_band_width = max_x - service_x
+        core_height = shared_core_target / service_band_width
+    else:
+        service_band_width = max(
+            room_scale
+            * sum(
+                float(node.target_area)
+                for node in program.nodes
+                if node.space_type not in {"shop_unit", "office_area"}
+            )
+            / height
+            for program in programs
+        )
+        service_x = float(_clean_area(max_x - service_band_width))
+        service_band_width = max_x - service_x
+        core_height = room_scale * shared_core_target / service_band_width
     core_top = float(_clean_area(min_y + core_height))
     shared_core = [
         (service_x, min_y),
@@ -237,12 +252,30 @@ def _validate_floor_assignments(
 
 
 def _normalize_program_core(program, shared_core_target: float):
-    core = next(node for node in program.nodes if node.space_type == "core")
-    primary = next(
-        node
-        for node in program.nodes
-        if node.space_type in {"shop_unit", "office_area"}
-    )
+    core_nodes = [node for node in program.nodes if node.space_type == "core"]
+    if len(core_nodes) != 1:
+        raise ValueError("program must contain exactly one core role")
+    core = core_nodes[0]
+    primary_roles = {
+        "neighborhood_commercial": "sales",
+        "office": "open_work",
+    }
+    primary_role = primary_roles.get(program.use_type)
+    if primary_role is None:
+        primary_candidates = [
+            node
+            for node in program.nodes
+            if node.space_type in {"shop_unit", "office_area"}
+        ]
+    else:
+        primary_candidates = [
+            node for node in program.nodes if node.space_type == primary_role
+        ]
+    if len(primary_candidates) != 1:
+        raise ValueError(
+            f"program must contain exactly one residual primary role for {program.use_type}"
+        )
+    primary = primary_candidates[0]
     delta = shared_core_target - float(core.target_area)
     primary_target = float(primary.target_area) - delta
     if primary_target <= 0:
