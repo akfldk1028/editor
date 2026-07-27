@@ -153,6 +153,49 @@ def test_overlap_and_invalid_geometry_are_structured_violations():
     assert report.overlap_score == 0
 
 
+def test_any_positive_room_overlap_is_a_hard_failure():
+    overlap_height = 5e-11
+    program = _program(
+        ProgramNode(
+            node_id="a",
+            space_type="office_area",
+            target_area=4.9 * (5 + overlap_height),
+        ),
+        ProgramNode(
+            node_id="b",
+            space_type="core",
+            target_area=4.9 * 5,
+        ),
+    )
+    layout = _layout(
+        rooms=[
+            _room(
+                "a",
+                [(0, 0), (4.9, 0), (4.9, 5 + overlap_height), (0, 5 + overlap_height)],
+            ),
+            _room("b", [(0, 5), (4.9, 5), (4.9, 10), (0, 10)], "core"),
+        ],
+        circulation=[
+            _room(
+                "corridor",
+                [(4.9, 0), (5.1, 0), (5.1, 10), (4.9, 10)],
+                "circulation",
+            )
+        ],
+    )
+
+    report = validate_layout(
+        layout,
+        program,
+        boundary=[(0, 0), (10, 0), (10, 10), (0, 10)],
+    )
+
+    assert report.accepted is False
+    assert report.hard_violation_count == 1
+    assert _violation_subjects(report, "overlap") == {"a|b"}
+    assert report.overlap_score == 0
+
+
 def test_missing_circulation_is_a_hard_failure():
     program = _program(ProgramNode(node_id="a", space_type="office_area", target_area=100))
     layout = _layout(

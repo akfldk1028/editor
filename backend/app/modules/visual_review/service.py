@@ -41,6 +41,11 @@ PNG_PALETTE = {
     "ps_eps": (252, 229, 205),
 }
 
+CIRCULATION_FILL = "#d9d9d9"
+CIRCULATION_STROKE = "#38761d"
+PNG_CIRCULATION_FILL = (217, 217, 217)
+PNG_CIRCULATION_STROKE = (56, 118, 29)
+
 
 def create_visual_review_artifacts(
     result: GenerationResult,
@@ -221,6 +226,7 @@ def run_visual_review_loop(
         termination_reason=search.termination_reason,
         evaluation_count=search.evaluation_count,
         accepted=search.accepted,
+        error=search.error,
     )
 
 
@@ -253,6 +259,7 @@ def _review_index(search, reports: list[dict]) -> dict:
         "needs_iteration": not search.accepted,
         "termination_reason": search.termination_reason,
         "evaluation_count": search.evaluation_count,
+        "error": search.error,
         "iterations": iterations,
         "score_trend": [entry["scores"]["total_score"] for entry in iterations],
         "hard_failure_trend": [
@@ -362,6 +369,21 @@ def _render_svg(
             f'<text x="{_sx(cx, min_x, scale, pad_x)}" y="{_sy(cy, min_y, scale, pad_y, height)}" '
             f'font-family="Arial" font-size="14" text-anchor="middle">{html.escape(room.space_type)}</text>'
         )
+    for path in result.layout.circulation:
+        points = " ".join(
+            f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}"
+            for x, y in path.polygon
+        )
+        parts.append(
+            f'<polygon data-kind="circulation" points="{points}" '
+            f'fill="{CIRCULATION_FILL}" stroke="{CIRCULATION_STROKE}" stroke-width="2"/>'
+        )
+        cx, cy = _centroid(path.polygon)
+        parts.append(
+            f'<text data-kind="circulation" x="{_sx(cx, min_x, scale, pad_x)}" '
+            f'y="{_sy(cy, min_y, scale, pad_y, height)}" font-family="Arial" '
+            f'font-size="14" text-anchor="middle">{html.escape(path.space_type)}</text>'
+        )
     boundary_points = " ".join(
         f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}" for x, y in boundary
     )
@@ -384,6 +406,10 @@ def _render_png(
         color = PNG_PALETTE.get(room.space_type, (238, 238, 238))
         canvas.fill_polygon(points, color)
         canvas.stroke_polygon(points, (17, 17, 17), thickness=2)
+    for path in result.layout.circulation:
+        points = _raster_points(path.polygon, min_x, min_y, scale, pad_x, pad_y, height)
+        canvas.fill_polygon(points, PNG_CIRCULATION_FILL)
+        canvas.stroke_polygon(points, PNG_CIRCULATION_STROKE, thickness=2)
     canvas.stroke_polygon(
         _raster_points(boundary, min_x, min_y, scale, pad_x, pad_y, height), (0, 0, 0), thickness=4
     )

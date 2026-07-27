@@ -25,3 +25,4 @@ class VisualReviewLoopResult:
     termination_reason: str | None = None
     evaluation_count: int = 0
     accepted: bool = False
+    error: str | None = None

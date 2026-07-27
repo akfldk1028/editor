@@ -1,8 +1,13 @@
 import json
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree
+
+import pytest
+
+import backend.app.cli as cli_module
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -197,6 +202,16 @@ def test_cli_rectangular_sample_accepts_after_distinct_review_iterations(tmp_pat
     assert len(fingerprints) == len(set(fingerprints))
     assert index["hard_failure_trend"][-1] == 0
     _assert_index_artifacts_resolve(output_dir, index)
+    final_svg = output_dir / index["iterations"][-1]["artifacts"]["svg"]
+    root = ElementTree.fromstring(final_svg.read_text(encoding="utf-8"))
+    circulation = root.find(
+        "{http://www.w3.org/2000/svg}polygon[@data-kind='circulation']"
+    )
+    assert circulation is not None
+    assert circulation.attrib["points"] == (
+        "602.19,435.12 684.75,435.12 684.75,104.88 602.19,104.88"
+    )
+    assert _rendered_svg_text(root, "circulation") == "circulation"
 
 
 def test_cli_concave_sample_reports_truthful_non_acceptance_and_polygon_boundary(tmp_path):
@@ -228,3 +243,109 @@ def test_cli_concave_sample_reports_truthful_non_acceptance_and_polygon_boundary
     assert boundary_points == _expected_svg_points(manifest["footprint_polygon"])
     turns = _turn_signs(boundary_points)
     assert min(turns) < 0 < max(turns)
+
+
+def _rendered_svg_text(root, kind: str) -> str | None:
+    for text in root.findall("{http://www.w3.org/2000/svg}text"):
+        if text.attrib.get("data-kind") == kind:
+            return text.text
+    return None
+
+
+def test_cli_tiny_positive_mass_does_not_fail_search(tmp_path):
+    input_path = tmp_path / "tiny.json"
+    output_dir = tmp_path / "tiny-review"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "tiny-positive-mass",
+                "floors": 1,
+                "footprint_polygon": [[0, 0], [0.1, 0], [0.1, 0.1], [0, 0.1]],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [],
+                "use_mix": {"neighborhood_commercial": 1.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "backend.app.cli",
+            "loop-review",
+            "--input",
+            str(input_path),
+            "--floor",
+            "1",
+            "--use-type",
+            "neighborhood_commercial",
+            "--output-dir",
+            str(output_dir),
+            "--max-iterations",
+            "5",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=REPOSITORY_ROOT,
+    )
+
+    payload = json.loads(completed.stdout)
+    assert completed.returncode == 0
+    assert payload["termination_reason"] != "failed"
+    assert payload["error"] is None
+
+
+def test_cli_failed_loop_prints_diagnostic_json_and_exits_nonzero(
+    tmp_path, monkeypatch, capsys
+):
+    @dataclass(frozen=True)
+    class FailedReview:
+        termination_reason: str = "failed"
+        error: str = "RuntimeError: evaluator failed"
+
+    input_path = tmp_path / "mass.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-failed",
+                "floors": 1,
+                "footprint_polygon": [[0, 0], [1, 0], [1, 1], [0, 1]],
+                "site_edges": [],
+                "access_candidates": [],
+                "use_mix": {"neighborhood_commercial": 1.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "run_visual_review_loop",
+        lambda *args, **kwargs: FailedReview(),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "plan",
+            "loop-review",
+            "--input",
+            str(input_path),
+            "--floor",
+            "1",
+            "--use-type",
+            "neighborhood_commercial",
+            "--output-dir",
+            str(tmp_path / "output"),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exit_info:
+        cli_module.main()
+
+    assert exit_info.value.code == 1
+    assert json.loads(capsys.readouterr().out) == {
+        "termination_reason": "failed",
+        "error": "RuntimeError: evaluator failed",
+    }

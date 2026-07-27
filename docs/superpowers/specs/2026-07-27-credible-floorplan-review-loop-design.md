@@ -203,4 +203,3 @@ Work is split into independently reviewed changes:
 3. candidate generation and deterministic search;
 4. visual loop integration, run index, and CLI;
 5. research documentation and end-to-end verification.
-

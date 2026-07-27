@@ -12,6 +12,7 @@ import backend.app.modules.visual_review.service as visual_review_service
 from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.generation_loop.service import run_generation_loop
 from backend.app.modules.visual_review.service import create_visual_review_artifacts, run_visual_review_loop
+from backend.app.schemas.layout import RoomPolygon
 from backend.app.schemas.loop import CandidateRecord, IterationRecord, LoopResult
 from backend.app.schemas.mass import MassInput
 
@@ -100,6 +101,33 @@ def test_polygon_artifacts_render_an_l_shape_without_filling_its_missing_corner(
     assert _png_pixel(png, 141, 26) == (255, 255, 255)
     svg = review.svg_path.read_text(encoding="utf-8")
     assert '18.0,91.0 182.0,91.0 182.0,58.2 83.6,58.2 83.6,9.0 18.0,9.0' in svg
+
+
+def test_artifacts_render_circulation_in_svg_and_png(tmp_path):
+    result, boundary = _sample_result()
+    corridor = RoomPolygon(
+        room_id="corridor",
+        space_type="circulation",
+        polygon=[(9, 0), (11, 0), (11, 10), (9, 10)],
+    )
+    result = replace(
+        result,
+        layout=replace(result.layout, circulation=[corridor]),
+    )
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+        width=200,
+        height=100,
+    )
+
+    svg = review.svg_path.read_text(encoding="utf-8")
+    assert 'data-kind="circulation"' in svg
+    assert 'fill="#d9d9d9" stroke="#38761d"' in svg
+    assert ">circulation</text>" in svg
+    assert _png_pixel(review.png_path.read_bytes(), 100, 50) == (217, 217, 217)
 
 
 def test_artifacts_escape_text_use_safe_stems_and_keep_links_under_output_root(tmp_path):
@@ -349,6 +377,44 @@ def test_review_loop_iteration_budget_exhaustion_is_not_accepted(tmp_path):
     assert index["accepted"] is False
     assert index["needs_iteration"] is True
     assert index["termination_reason"] == "iteration_budget_exhausted"
+
+
+def test_failed_review_loop_preserves_search_diagnostic(tmp_path, monkeypatch):
+    generated, _ = _sample_result()
+    search = LoopResult(
+        mass=generated.mass,
+        program=generated.program,
+        best=None,
+        iterations=[],
+        history=[],
+        termination_reason="failed",
+        evaluation_count=0,
+        error="RuntimeError: evaluator failed",
+    )
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_candidate_search",
+        lambda *args, **kwargs: search,
+    )
+    mass = MassInput(
+        project_id="failed-review",
+        floors=1,
+        footprint_polygon=[(0, 0), (20, 0), (20, 10), (0, 10)],
+        site_edges=[],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        1,
+        "neighborhood_commercial",
+        tmp_path,
+    )
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+
+    assert result.error == "RuntimeError: evaluator failed"
+    assert index["error"] == "RuntimeError: evaluator failed"
 
 
 def test_review_report_uses_search_iteration_when_best_candidate_is_unchanged(

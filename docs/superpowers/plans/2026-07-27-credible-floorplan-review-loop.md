@@ -319,4 +319,3 @@ and artifact links agree with the files on disk.
 - [ ] **Step 6: Commit**
 
 Commit message: `docs: define credible floorplan evaluation baseline`
-

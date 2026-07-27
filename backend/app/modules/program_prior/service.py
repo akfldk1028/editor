@@ -65,18 +65,18 @@ def _ratios_for(use_type: str) -> dict[str, float]:
 
 def _nodes_from_ratios(total_area: float, ratios: dict[str, float]) -> list[ProgramNode]:
     names = list(ratios)
-    rounded = [round(total_area * ratios[name], 2) for name in names]
-    rounded[-1] = round(total_area - sum(rounded[:-1]), 2)
+    areas = [total_area * ratios[name] for name in names]
+    areas[-1] = total_area - sum(areas[:-1])
     return [
         ProgramNode(
             node_id=name,
             space_type=name,
             target_area=_clean_number(area),
-            min_area=_clean_number(round(area * 0.85, 2)),
-            max_area=_clean_number(round(area * 1.15, 2)),
+            min_area=_clean_number(area * 0.85),
+            max_area=_clean_number(area * 1.15),
             frontage_required=name == "shop_unit",
         )
-        for name, area in zip(names, rounded)
+        for name, area in zip(names, areas)
     ]
 
 

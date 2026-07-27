@@ -62,6 +62,8 @@ def main() -> None:
             max_iterations=args.max_iterations,
         )
         print(json.dumps(to_jsonable(result), ensure_ascii=False))
+        if result.termination_reason == "failed":
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":

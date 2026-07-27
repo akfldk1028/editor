@@ -1,3 +1,5 @@
+import math
+
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.mass import MassAnalysis
 
@@ -51,3 +53,29 @@ def test_generate_program_graph_for_typical_office_floor():
         and (edge.target in node_ids or edge.target == "street")
         for edge in graph.edges
     )
+
+
+def test_tiny_positive_mass_preserves_positive_coherent_program_areas():
+    analysis = MassAnalysis(
+        project_id="tiny-positive-mass",
+        area=0.01,
+        floor_area=0.01,
+        floors=1,
+        edge_count=4,
+        street_edge_indices=[0],
+        access_edge_indices=[],
+        bounds=(0, 0, 0.1, 0.1),
+    )
+
+    graph = generate_program_graph(
+        analysis,
+        floor_index=1,
+        use_type="neighborhood_commercial",
+    )
+
+    assert math.isclose(sum(node.target_area for node in graph.nodes), analysis.area)
+    for node in graph.nodes:
+        assert math.isfinite(node.target_area)
+        assert math.isfinite(node.min_area)
+        assert math.isfinite(node.max_area)
+        assert 0 < node.min_area < node.target_area < node.max_area

@@ -295,7 +295,7 @@ def _check_overlaps(
         for left_index, left in enumerate(shapes):
             for right in shapes[left_index + 1 :]:
                 area = polygon_overlap_area(left.polygon, right.polygon)
-                if area > _EPSILON:
+                if area > 0:
                     overlap_ok = False
                     add_violation(
                         "overlap",
@@ -306,7 +306,7 @@ def _check_overlaps(
     for room in rooms:
         for path in circulation:
             area = polygon_overlap_area(room.polygon, path.polygon)
-            if area > _EPSILON:
+            if area > 0:
                 overlap_ok = False
                 add_violation(
                     "overlap",

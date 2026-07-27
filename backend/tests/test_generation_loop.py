@@ -240,3 +240,4 @@ def test_unexpected_evaluation_error_returns_failed_result(monkeypatch):
     assert result.termination_reason == "failed"
     assert result.best is None
     assert result.evaluation_count == 0
+    assert result.error == "RuntimeError: evaluator failed"
