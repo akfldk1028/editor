@@ -570,18 +570,27 @@ def _room_shape_metrics(
                             ),
                         )
 
-            measured_aspect = bounding_box_aspect_ratio(room.polygon)
-            if maximum_aspect is not None:
-                aspect_passed = measured_aspect <= maximum_aspect + _EPSILON
-                if not aspect_passed:
+            try:
+                measured_aspect = bounding_box_aspect_ratio(room.polygon)
+            except ValueError as error:
+                if maximum_aspect is not None:
                     add_violation(
                         "room_aspect_ratio",
                         node.node_id,
-                        (
-                            f"room '{node.node_id}' aspect ratio {measured_aspect:.3f} "
-                            f"exceeds {maximum_aspect:.3f}"
-                        ),
+                        f"room '{node.node_id}' aspect ratio cannot be measured: {error}",
                     )
+            else:
+                if maximum_aspect is not None:
+                    aspect_passed = measured_aspect <= maximum_aspect + _EPSILON
+                    if not aspect_passed:
+                        add_violation(
+                            "room_aspect_ratio",
+                            node.node_id,
+                            (
+                                f"room '{node.node_id}' aspect ratio {measured_aspect:.3f} "
+                                f"exceeds {maximum_aspect:.3f}"
+                            ),
+                        )
 
         metrics.append(
             RoomShapeMetric(

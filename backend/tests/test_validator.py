@@ -830,6 +830,23 @@ def test_non_orthogonal_or_invalid_room_geometry_does_not_crash_form_validation(
     assert invalid_report.room_shapes[0].measured_min_width is None
 
 
+def test_near_degenerate_room_without_form_metadata_remains_structured():
+    height = 5e-10
+    program = _program(
+        ProgramNode("office", "office_area", 10 * height)
+    )
+    layout = _layout(
+        rooms=[_room("office", [(0, 0), (10, 0), (10, height), (0, height)])],
+        circulation=[],
+    )
+
+    report = validate_layout(layout, program, boundary=BOUNDARY)
+
+    assert _violation_subjects(report, "invalid_geometry") == set()
+    assert report.room_shapes[0].measured_aspect_ratio is None
+    assert report.room_shapes[0].aspect_ratio_passed is True
+
+
 @pytest.mark.parametrize(
     ("program", "rooms"),
     [
