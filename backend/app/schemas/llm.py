@@ -26,6 +26,9 @@ class ProgramNodeProposal:
     min_area: float | None = None
     max_area: float | None = None
     frontage_required: bool = False
+    min_width: float | None = None
+    max_aspect_ratio: float | None = None
+    zone: str | None = None
 
 
 @dataclass(frozen=True)

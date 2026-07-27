@@ -34,6 +34,9 @@ def _program_payload() -> dict:
                 "min_area": 70,
                 "max_area": 90,
                 "frontage_required": False,
+                "min_width": 6,
+                "max_aspect_ratio": 2.5,
+                "zone": "workplace",
             },
             {
                 "node_id": "core",
@@ -42,6 +45,9 @@ def _program_payload() -> dict:
                 "min_area": 18,
                 "max_area": 22,
                 "frontage_required": False,
+                "min_width": 3,
+                "max_aspect_ratio": 2,
+                "zone": "core",
             },
         ],
         "edges": [
@@ -121,6 +127,9 @@ def test_program_graph_proposal_parse_and_dump_deterministically():
                 "min_area": 18.0,
                 "max_area": 22.0,
                 "frontage_required": False,
+                "min_width": 3.0,
+                "max_aspect_ratio": 2.0,
+                "zone": "core",
             },
             {
                 "node_id": "office",
@@ -129,6 +138,9 @@ def test_program_graph_proposal_parse_and_dump_deterministically():
                 "min_area": 70.0,
                 "max_area": 90.0,
                 "frontage_required": False,
+                "min_width": 6.0,
+                "max_aspect_ratio": 2.5,
+                "zone": "workplace",
             },
         ],
         "edges": [

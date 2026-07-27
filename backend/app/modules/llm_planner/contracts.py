@@ -119,7 +119,14 @@ def _parse_nodes(value: Any) -> list[ProgramNodeProposal]:
         _require_fields(
             item,
             required={"node_id", "space_type", "target_area"},
-            optional={"min_area", "max_area", "frontage_required"},
+            optional={
+                "min_area",
+                "max_area",
+                "frontage_required",
+                "min_width",
+                "max_aspect_ratio",
+                "zone",
+            },
             label=label,
         )
         node_id = _require_text(item["node_id"], f"{label}.node_id")
@@ -145,6 +152,13 @@ def _parse_nodes(value: Any) -> list[ProgramNodeProposal]:
             raise ContractValidationError(
                 f"{label}.frontage_required must be a boolean"
             )
+        min_width = _optional_positive_number(item, "min_width", label)
+        max_aspect_ratio = _optional_positive_number(
+            item,
+            "max_aspect_ratio",
+            label,
+        )
+        zone = _optional_text(item, "zone", label)
         nodes.append(
             ProgramNodeProposal(
                 node_id=node_id,
@@ -155,6 +169,9 @@ def _parse_nodes(value: Any) -> list[ProgramNodeProposal]:
                 min_area=min_area,
                 max_area=max_area,
                 frontage_required=frontage_required,
+                min_width=min_width,
+                max_aspect_ratio=max_aspect_ratio,
+                zone=zone,
             )
         )
     return nodes
@@ -293,6 +310,16 @@ def _optional_positive_number(
     if field not in value or value[field] is None:
         return None
     return _require_positive_number(value[field], f"{label}.{field}")
+
+
+def _optional_text(
+    value: dict[str, Any],
+    field: str,
+    label: str,
+) -> str | None:
+    if field not in value or value[field] is None:
+        return None
+    return _require_text(value[field], f"{label}.{field}")
 
 
 def _require_use_type(value: Any, label: str) -> str:

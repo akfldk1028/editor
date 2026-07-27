@@ -1,7 +1,31 @@
 import math
 
+import pytest
+
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.mass import MassAnalysis
+
+
+OFFICE_PROFILE = {
+    "open_work": (0.52, 6.0, 2.5, "workplace"),
+    "meeting": (0.10, 2.7, 2.0, "public"),
+    "reception": (0.05, 2.4, 2.5, "public"),
+    "focus": (0.06, 1.8, 1.8, "workplace"),
+    "pantry": (0.03, 1.8, 2.0, "service"),
+    "restroom": (0.05, 1.8, 2.5, "service"),
+    "core": (0.14, 3.0, 2.0, "core"),
+    "it_storage": (0.05, 1.5, 2.5, "service"),
+}
+
+COMMERCIAL_PROFILE = {
+    "sales": (0.57, 5.0, 3.0, "frontage"),
+    "checkout": (0.04, 2.4, 3.0, "public"),
+    "stock": (0.10, 2.4, 2.5, "service"),
+    "staff": (0.05, 2.4, 2.0, "service"),
+    "restroom": (0.05, 1.8, 2.5, "service"),
+    "core": (0.12, 3.0, 2.0, "core"),
+    "utility": (0.07, 1.5, 2.5, "service"),
+}
 
 
 def test_generate_program_graph_for_ground_floor_commercial_office_mix():
@@ -23,7 +47,7 @@ def test_generate_program_graph_for_ground_floor_commercial_office_mix():
     )
 
     node_types = {node.space_type for node in graph.nodes}
-    assert {"shop_unit", "core", "restroom", "storage", "utility"}.issubset(node_types)
+    assert {"sales", "core", "restroom", "stock", "utility"}.issubset(node_types)
     assert sum(node.target_area for node in graph.nodes) == 300
     assert any(edge.relation == "public_access" for edge in graph.edges)
     assert graph.source == "baseline_prior"
@@ -45,7 +69,7 @@ def test_generate_program_graph_for_typical_office_floor():
 
     areas = {node.space_type: node.target_area for node in graph.nodes}
     node_ids = {node.node_id for node in graph.nodes}
-    assert areas["office_area"] > areas["core"]
+    assert areas["open_work"] > areas["core"]
     assert sum(areas.values()) == 400
     assert any(edge.relation == "service_adjacent" for edge in graph.edges)
     assert all(
@@ -79,3 +103,89 @@ def test_tiny_positive_mass_preserves_positive_coherent_program_areas():
         assert math.isfinite(node.min_area)
         assert math.isfinite(node.max_area)
         assert 0 < node.min_area < node.target_area < node.max_area
+
+
+@pytest.mark.parametrize(
+    ("use_type", "expected_profile", "frontage_required"),
+    [
+        ("office", OFFICE_PROFILE, set()),
+        ("neighborhood_commercial", COMMERCIAL_PROFILE, {"sales"}),
+    ],
+)
+def test_program_profiles_emit_exact_ratios_and_form_metadata(
+    use_type,
+    expected_profile,
+    frontage_required,
+):
+    analysis = MassAnalysis(
+        project_id="profile-metadata",
+        area=1000,
+        floor_area=1000,
+        floors=1,
+        edge_count=4,
+        street_edge_indices=[0],
+        access_edge_indices=[0],
+        bounds=(0, 0, 40, 25),
+    )
+
+    graph = generate_program_graph(analysis, floor_index=1, use_type=use_type)
+
+    assert {
+        node.node_id: (
+            node.target_area / analysis.area,
+            node.min_width,
+            node.max_aspect_ratio,
+            node.zone,
+        )
+        for node in graph.nodes
+    } == expected_profile
+    assert {
+        node.node_id for node in graph.nodes if node.frontage_required
+    } == frontage_required
+    assert sum(node.target_area for node in graph.nodes) == analysis.area
+    assert all(node.min_area == node.target_area * 0.85 for node in graph.nodes)
+    assert all(node.max_area == node.target_area * 1.15 for node in graph.nodes)
+
+
+@pytest.mark.parametrize(
+    ("use_type", "expected_edges"),
+    [
+        (
+            "office",
+            {
+                ("reception", "meeting"),
+                ("open_work", "focus"),
+                ("open_work", "meeting"),
+                ("core", "restroom"),
+                ("core", "it_storage"),
+                ("pantry", "open_work"),
+            },
+        ),
+        (
+            "neighborhood_commercial",
+            {
+                ("sales", "street"),
+                ("checkout", "sales"),
+                ("stock", "sales"),
+                ("staff", "stock"),
+                ("core", "restroom"),
+                ("core", "utility"),
+            },
+        ),
+    ],
+)
+def test_program_profiles_emit_exact_functional_relationships(use_type, expected_edges):
+    analysis = MassAnalysis(
+        project_id="profile-relationships",
+        area=300,
+        floor_area=300,
+        floors=1,
+        edge_count=4,
+        street_edge_indices=[0],
+        access_edge_indices=[0],
+        bounds=(0, 0, 30, 10),
+    )
+
+    graph = generate_program_graph(analysis, floor_index=1, use_type=use_type)
+
+    assert {(edge.source, edge.target) for edge in graph.edges} == expected_edges
