@@ -243,6 +243,19 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
     }
     assert reports[1]["accepted"] is True
     assert reports[1]["needs_iteration"] is False
+    assert reports[1]["checks"] == {
+        "area": "pass",
+        "boundary": "pass",
+        "circulation_access": "pass",
+        "overlap": "pass",
+    }
+    assert reports[1]["scores"]["area_score"] < 1
+    assert all(value == "pass" for value in reports[1]["checks"].values())
+    accepted_html = result.artifacts[1].html_path.read_text(encoding="utf-8")
+    assert "passes hard validation" in accepted_html
+    assert "Hard Validation Checks" in accepted_html
+    assert "Advisory Scores" in accepted_html
+    assert "<td>fail</td>" not in accepted_html
     assert reports[1]["parent_id"] is not None
     assert reports[1]["operator"] == "corridor-vertical"
     assert reports[1]["operator_params"]
@@ -349,6 +362,7 @@ def test_review_report_uses_search_iteration_when_best_candidate_is_unchanged(
         fingerprint=layout_fingerprint(generated.layout),
         parent_id=None,
         operator="baseline",
+        operator_params={"output": Path("relative-artifact")},
     )
     search = LoopResult(
         mass=generated.mass,
@@ -386,6 +400,15 @@ def test_review_report_uses_search_iteration_when_best_candidate_is_unchanged(
     assert reports[1]["fingerprint"] == reports[0]["fingerprint"]
     assert reports[1]["total_score_delta"] == 0
     assert reports[1]["hard_failure_count_delta"] == 0
+    assert reports[0]["operator_params"] == {"output": "relative-artifact"}
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+    assert index["iterations"][0]["operator_params"] == {
+        "output": "relative-artifact"
+    }
+    assert index["lineage"][0]["operator_params"] == {
+        "output": "relative-artifact"
+    }
+    assert "relative-artifact" in result.index_html_path.read_text(encoding="utf-8")
 
 
 def test_cli_loop_review_runs_iterations_and_prints_final_state(tmp_path):

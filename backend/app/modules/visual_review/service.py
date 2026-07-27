@@ -79,12 +79,7 @@ def create_visual_review_artifacts(
     svg_path.write_text(_render_svg(result, boundary, width, height), encoding="utf-8")
     png_path.write_bytes(_render_png(result, boundary, width, height))
 
-    checks = {
-        "boundary": "pass" if result.validation.boundary_score == 1 else "fail",
-        "overlap": "pass" if result.validation.overlap_score == 1 else "fail",
-        "area": "pass" if result.validation.area_score == 1 else "fail",
-        "efficiency": "pass" if result.validation.efficiency_score >= 0.85 else "fail",
-    }
+    checks = _hard_validation_checks(result.validation)
     needs_iteration = not result.validation.accepted
     scores = _validation_scores(result.validation)
     previous_total_score = (
@@ -109,7 +104,9 @@ def create_visual_review_artifacts(
         "fingerprint": candidate.fingerprint if candidate is not None else None,
         "parent_id": candidate.parent_id if candidate is not None else None,
         "operator": candidate.operator if candidate is not None else None,
-        "operator_params": candidate.operator_params if candidate is not None else {},
+        "operator_params": (
+            to_jsonable(candidate.operator_params) if candidate is not None else {}
+        ),
         "accepted": result.validation.accepted,
         "needs_iteration": needs_iteration,
         "hard_failure_count": result.validation.hard_violation_count,
@@ -276,6 +273,11 @@ def _review_index(search, reports: list[dict]) -> dict:
 def _render_index_html(index: dict) -> str:
     rows = []
     for entry in index["iterations"]:
+        operator_params = json.dumps(
+            entry["operator_params"],
+            ensure_ascii=False,
+            sort_keys=True,
+        )
         artifact_links = " ".join(
             f'<a href="{html.escape(path, quote=True)}">{html.escape(kind)}</a>'
             for kind, path in entry["artifacts"].items()
@@ -287,6 +289,7 @@ def _render_index_html(index: dict) -> str:
             f"<td>{html.escape(entry['fingerprint'])}</td>"
             f"<td>{html.escape(entry['parent_id'] or '')}</td>"
             f"<td>{html.escape(entry['operator'])}</td>"
+            f"<td>{html.escape(operator_params)}</td>"
             f"<td>{entry['hard_failure_count']}</td>"
             f"<td>{entry['scores']['total_score']}</td>"
             f"<td>{html.escape('accepted' if entry['accepted'] else 'rejected')}</td>"
@@ -323,7 +326,8 @@ def _render_index_html(index: dict) -> str:
       <table>
         <thead><tr><th scope="col">Iteration</th><th scope="col">Candidate</th>
         <th scope="col">Fingerprint</th><th scope="col">Parent</th>
-        <th scope="col">Operator</th><th scope="col">Hard failures</th>
+        <th scope="col">Operator</th><th scope="col">Operator parameters</th>
+        <th scope="col">Hard failures</th>
         <th scope="col">Total score</th><th scope="col">Status</th>
         <th scope="col">Artifacts</th></tr></thead>
         <tbody>{''.join(rows)}</tbody>
@@ -393,9 +397,19 @@ def _render_html(
     report_name: str,
     report: dict,
 ) -> str:
-    status = "needs iteration" if report["needs_iteration"] else "passes baseline checks"
+    status = (
+        "needs iteration"
+        if report["needs_iteration"]
+        else "passes hard validation"
+    )
     checks = "".join(
-        f"<tr><td>{html.escape(name)}</td><td>{html.escape(value)}</td></tr>" for name, value in report["checks"].items()
+        f'<tr><th scope="row">{html.escape(name)}</th>'
+        f"<td>{html.escape(value)}</td></tr>"
+        for name, value in report["checks"].items()
+    )
+    advisory_scores = "".join(
+        f'<tr><th scope="row">{html.escape(name)}</th><td>{value}</td></tr>'
+        for name, value in report["scores"].items()
     )
     project_id = html.escape(result.mass.project_id)
     return f"""<!doctype html>
@@ -422,7 +436,16 @@ def _render_html(
     <div class="grid">
       <iframe src="{html.escape(svg_name, quote=True)}" title="floor plan svg"></iframe>
       <section>
-        <table>{checks}</table>
+        <h2>Hard Validation Checks</h2>
+        <table>
+          <thead><tr><th scope="col">Hard gate</th><th scope="col">Status</th></tr></thead>
+          <tbody>{checks}</tbody>
+        </table>
+        <h2>Advisory Scores</h2>
+        <table>
+          <thead><tr><th scope="col">Metric</th><th scope="col">Score</th></tr></thead>
+          <tbody>{advisory_scores}</tbody>
+        </table>
         <p><a href="{html.escape(png_name, quote=True)}">PNG</a></p>
         <p><a href="{html.escape(report_name, quote=True)}">Review JSON</a></p>
       </section>
@@ -490,6 +513,24 @@ def _validation_scores(validation: ValidationReport) -> dict[str, float]:
         name: value
         for name, value in payload.items()
         if name.endswith("_score")
+    }
+
+
+def _hard_validation_checks(validation: ValidationReport) -> dict[str, str]:
+    violation_codes = {violation.code for violation in validation.violations}
+    hard_gate_codes = {
+        "boundary": {"invalid_geometry", "boundary"},
+        "overlap": {"overlap"},
+        "area": {"room_identity", "room_area"},
+        "circulation_access": {
+            "circulation_missing",
+            "circulation_disconnected",
+            "room_inaccessible",
+        },
+    }
+    return {
+        name: "fail" if violation_codes & codes else "pass"
+        for name, codes in hard_gate_codes.items()
     }
 
 
