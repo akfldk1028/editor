@@ -1,0 +1,10 @@
+{
+  "project_id": "sample-concave-office",
+  "floors": 3,
+  "footprint_polygon": [[0, 0], [30, 0], [30, 10], [14, 10], [14, 22], [0, 22]],
+  "site_edges": [{"edge_index": 0, "kind": "street"}],
+  "access_candidates": [{"edge_index": 0, "position": 0.5}],
+  "use_mix": {
+    "office": 1.0
+  }
+}
