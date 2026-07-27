@@ -6,6 +6,16 @@ Point = tuple[float, float]
 
 
 @dataclass(frozen=True)
+class OpeningSegment:
+    opening_id: str
+    kind: str
+    connects: tuple[str, str]
+    start: Point
+    end: Point
+    clear_width: float
+
+
+@dataclass(frozen=True)
 class RoomPolygon:
     room_id: str
     space_type: str
