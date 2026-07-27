@@ -65,6 +65,24 @@ class SimplePngCanvas:
         for (x1, y1), (x2, y2) in zip(points, points[1:] + points[:1]):
             self._draw_line(round(x1), round(y1), round(x2), round(y2), color, thickness)
 
+    def stroke_line(
+        self,
+        start: tuple[int | float, int | float],
+        end: tuple[int | float, int | float],
+        color: Color,
+        thickness: int = 1,
+    ) -> None:
+        if thickness < 1:
+            raise ValueError("line stroke thickness must be positive")
+        self._draw_line(
+            round(start[0]),
+            round(start[1]),
+            round(end[0]),
+            round(end[1]),
+            color,
+            thickness,
+        )
+
     def _set_pixel(self, x: int, y: int, color: Color) -> None:
         if 0 <= x < self.width and 0 <= y < self.height:
             offset = (y * self.width + x) * 3

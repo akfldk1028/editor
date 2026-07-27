@@ -19,7 +19,9 @@ from backend.app.schemas.visual import (
     VisualReviewArtifacts,
     VisualReviewLoopResult,
 )
+from engine.geometry import orthogonal_min_width
 from engine.geometry.polygon import bounds
+from engine.geometry.polygon import polygon_area
 from engine.io.png import SimplePngCanvas
 
 PALETTE = {
@@ -48,6 +50,8 @@ CIRCULATION_FILL = "#d9d9d9"
 CIRCULATION_STROKE = "#38761d"
 PNG_CIRCULATION_FILL = (217, 217, 217)
 PNG_CIRCULATION_STROKE = (56, 118, 29)
+DOOR_STROKE = "#0056b3"
+PNG_DOOR_STROKE = (0, 86, 179)
 
 
 def create_building_visual_review_artifacts(
@@ -147,6 +151,7 @@ def create_visual_review_artifacts(
     png_path.write_bytes(_render_png(result, boundary, width, height))
 
     checks = _hard_validation_checks(result.validation)
+    measurements = _layout_measurements(result)
     needs_iteration = not result.validation.accepted
     scores = _validation_scores(result.validation)
     previous_total_score = (
@@ -190,6 +195,7 @@ def create_visual_review_artifacts(
             else result.validation.hard_violation_count - previous_hard_failures
         ),
         "checks": checks,
+        "measurements": measurements,
         "validation": to_jsonable(result.validation),
         "artifacts": artifact_links,
     }
@@ -486,9 +492,15 @@ def _render_svg(
         fill = PALETTE.get(room.space_type, "#eeeeee")
         parts.append(f'<polygon points="{points}" fill="{fill}" stroke="#111111" stroke-width="2"/>')
         cx, cy = _centroid(room.polygon)
+        label_x = _sx(cx, min_x, scale, pad_x)
+        label_y = _sy(cy, min_y, scale, pad_y, height)
+        area = _format_measurement(polygon_area(room.polygon))
         parts.append(
-            f'<text x="{_sx(cx, min_x, scale, pad_x)}" y="{_sy(cy, min_y, scale, pad_y, height)}" '
-            f'font-family="Arial" font-size="14" text-anchor="middle">{html.escape(room.space_type)}</text>'
+            f'<text data-kind="room-label" x="{label_x}" y="{label_y}" '
+            'font-family="Arial" font-size="12" text-anchor="middle">'
+            f'<tspan x="{label_x}" dy="-0.6em">{html.escape(room.room_id)}</tspan>'
+            f'<tspan x="{label_x}" dy="1.2em">{html.escape(room.space_type)}</tspan>'
+            f'<tspan x="{label_x}" dy="1.2em">{area} m2</tspan></text>'
         )
     for path in result.layout.circulation:
         points = " ".join(
@@ -509,6 +521,31 @@ def _render_svg(
         f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}" for x, y in boundary
     )
     parts.append(f'<polygon points="{boundary_points}" fill="none" stroke="#000000" stroke-width="4"/>')
+    for opening in result.layout.openings:
+        start_x = _sx(opening.start[0], min_x, scale, pad_x)
+        start_y = _sy(opening.start[1], min_y, scale, pad_y, height)
+        end_x = _sx(opening.end[0], min_x, scale, pad_x)
+        end_y = _sy(opening.end[1], min_y, scale, pad_y, height)
+        midpoint_x = round((start_x + end_x) / 2, 2)
+        midpoint_y = round((start_y + end_y) / 2, 2)
+        clear_width = _format_measurement(opening.clear_width)
+        accessible_label = html.escape(
+            f"{opening.connects[0]} door clear width {clear_width} m",
+            quote=True,
+        )
+        parts.append(
+            f'<line x1="{start_x}" y1="{start_y}" x2="{end_x}" y2="{end_y}" '
+            'stroke="white" stroke-width="8"/>'
+        )
+        parts.append(
+            f'<line data-kind="door-opening" aria-label="{accessible_label}" '
+            f'x1="{start_x}" y1="{start_y}" x2="{end_x}" y2="{end_y}" '
+            f'stroke="{DOOR_STROKE}" stroke-width="4"/>'
+        )
+        parts.append(
+            f'<text data-kind="door-width" x="{midpoint_x + 7}" y="{midpoint_y - 4}" '
+            f'font-family="Arial" font-size="11">{clear_width} m</text>'
+        )
     parts.append("</svg>")
     return "\n".join(parts)
 
@@ -534,6 +571,19 @@ def _render_png(
     canvas.stroke_polygon(
         _raster_points(boundary, min_x, min_y, scale, pad_x, pad_y, height), (0, 0, 0), thickness=4
     )
+    for opening in result.layout.openings:
+        start, end = _raster_points(
+            [opening.start, opening.end],
+            min_x,
+            min_y,
+            scale,
+            pad_x,
+            pad_y,
+            height,
+        )
+        canvas.stroke_line(start, end, (255, 255, 255), thickness=8)
+        canvas.stroke_line(start, end, PNG_DOOR_STROKE, thickness=4)
+        _draw_door_jambs(canvas, start, end)
     return canvas.to_bytes()
 
 
@@ -675,11 +725,61 @@ def _hard_validation_checks(validation: ValidationReport) -> dict[str, str]:
             "circulation_disconnected",
             "room_inaccessible",
         },
+        "openings": {
+            "opening_identity",
+            "opening_reference",
+            "door_geometry",
+            "door_width",
+            "door_missing",
+        },
+        "corridor_width": {"circulation_too_narrow"},
     }
     return {
         name: "fail" if violation_codes & codes else "pass"
         for name, codes in hard_gate_codes.items()
     }
+
+
+def _layout_measurements(result: GenerationResult) -> dict[str, int | float | None]:
+    door_widths = [
+        float(opening.clear_width)
+        for opening in result.layout.openings
+        if opening.kind == "door"
+    ]
+    corridor_widths = []
+    for path in result.layout.circulation:
+        try:
+            corridor_widths.append(orthogonal_min_width(path.polygon))
+        except ValueError:
+            continue
+    return {
+        "door_count": len(result.layout.openings),
+        "min_door_width": min(door_widths) if door_widths else None,
+        "min_corridor_width": min(corridor_widths) if corridor_widths else None,
+    }
+
+
+def _format_measurement(value: float) -> str:
+    return f"{round(value, 3):g}"
+
+
+def _draw_door_jambs(
+    canvas: SimplePngCanvas,
+    start: tuple[int, int],
+    end: tuple[int, int],
+) -> None:
+    delta_x = end[0] - start[0]
+    delta_y = end[1] - start[1]
+    length = max((delta_x**2 + delta_y**2) ** 0.5, 1)
+    offset_x = round(-delta_y / length * 4)
+    offset_y = round(delta_x / length * 4)
+    for x, y in (start, end):
+        canvas.stroke_line(
+            (x - offset_x, y - offset_y),
+            (x + offset_x, y + offset_y),
+            (0, 0, 0),
+            thickness=2,
+        )
 
 
 def _relative_link(root: Path, path: Path) -> str:

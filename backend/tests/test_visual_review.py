@@ -36,6 +36,19 @@ def _sample_result():
     return run_generation_loop(mass, floor_index=1, use_type="neighborhood_commercial"), mass.footprint_polygon
 
 
+def _strict_building_floor():
+    mass = MassInput(
+        project_id="strict-visual",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 10), (0, 10)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+    )
+    building = run_building_generation(mass)
+    return building.floor_results[0], mass.footprint_polygon
+
+
 def _l_shaped_result(project_id: str = "visual"):
     result, boundary = _sample_result()
     room = replace(
@@ -167,6 +180,62 @@ def test_artifacts_render_circulation_in_svg_and_png(tmp_path):
     assert 'fill="#d9d9d9" stroke="#38761d"' in svg
     assert ">circulation</text>" in svg
     assert _png_pixel(review.png_path.read_bytes(), 100, 50) == (217, 217, 217)
+
+
+def test_svg_renders_door_width_and_room_identity_area_labels(tmp_path):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+        width=300,
+        height=100,
+    )
+
+    svg = review.svg_path.read_text(encoding="utf-8")
+    assert svg.count('data-kind="door-opening"') == len(result.layout.openings)
+    assert svg.count('data-kind="door-width"') == len(result.layout.openings)
+    assert 'aria-label="office_area door clear width 0.9 m"' in svg
+    assert ">0.9 m</text>" in svg
+    assert 'data-kind="room-label"' in svg
+    assert "office_area" in svg
+    assert "210.6 m2" in svg
+
+
+def test_png_renders_high_contrast_door_segment_pixels(tmp_path):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+        width=300,
+        height=100,
+    )
+
+    png = review.png_path.read_bytes()
+    assert _png_pixel(png, 200, 50) == (0, 86, 179)
+    assert _png_pixel(png, 197, 46) == (0, 0, 0)
+
+
+def test_review_report_exposes_validated_opening_and_corridor_measurements(tmp_path):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    assert report["checks"]["openings"] == "pass"
+    assert report["checks"]["corridor_width"] == "pass"
+    assert report["measurements"] == {
+        "door_count": len(result.layout.openings),
+        "min_door_width": 0.9,
+        "min_corridor_width": 3.0,
+    }
 
 
 def test_artifacts_escape_text_use_safe_stems_and_keep_links_under_output_root(tmp_path):
@@ -314,6 +383,8 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
         "area": "pass",
         "boundary": "pass",
         "circulation_access": "pass",
+        "corridor_width": "pass",
+        "openings": "pass",
         "overlap": "pass",
     }
     assert reports[1]["scores"]["area_score"] < 1
