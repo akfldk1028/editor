@@ -29,6 +29,14 @@ class LoopConfig:
 
 
 @dataclass(frozen=True)
+class CandidateProposal:
+    layout: LayoutCandidate
+    parent_id: str | None
+    operator: str
+    operator_params: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class CandidateRecord:
     iteration: int
     layout: LayoutCandidate

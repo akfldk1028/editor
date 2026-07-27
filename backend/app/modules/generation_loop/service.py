@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from backend.app.modules.generation_loop.operators import (
-    generate_initial_candidates,
+    generate_initial_proposals,
     layout_fingerprint,
-    refine_candidates,
+    refine_proposals,
 )
 from backend.app.modules.generation_loop.selector import rank_candidate, select_frontier
 from backend.app.modules.layout_generator.service import generate_baseline_layout
@@ -57,7 +57,7 @@ def run_candidate_search(
     )
     streets = _street_segments(mass)
     try:
-        pending = generate_initial_candidates(analysis, program)
+        pending = generate_initial_proposals(analysis, program)
     except Exception as error:
         return _failed_loop_result(analysis, program, error)
     seen: set[str] = set()
@@ -70,7 +70,8 @@ def run_candidate_search(
     for iteration in range(1, config.max_iterations + 1):
         records: list[CandidateRecord] = []
         skipped_for_budget = False
-        for layout in pending:
+        for proposal in pending:
+            layout = proposal.layout
             fingerprint = layout_fingerprint(layout)
             if fingerprint in seen:
                 continue
@@ -95,16 +96,15 @@ def run_candidate_search(
                     history=history,
                     evaluation_count=evaluation_count,
                 )
-            parent_id, operator, operator_params = _lineage(layout, iteration)
             records.append(
                 CandidateRecord(
                     iteration=iteration,
                     layout=layout,
                     validation=validation,
                     fingerprint=fingerprint,
-                    parent_id=parent_id,
-                    operator=operator,
-                    operator_params=operator_params,
+                    parent_id=proposal.parent_id,
+                    operator=proposal.operator,
+                    operator_params=proposal.operator_params,
                 )
             )
             evaluation_count += 1
@@ -151,7 +151,7 @@ def run_candidate_search(
         else:
             frontier = select_frontier(records, config.beam_width)
             try:
-                pending = refine_candidates(
+                pending = refine_proposals(
                     frontier,
                     [record.validation for record in frontier],
                     analysis,
@@ -171,7 +171,7 @@ def run_candidate_search(
             pending = [
                 candidate
                 for candidate in pending
-                if layout_fingerprint(candidate) not in seen
+                if layout_fingerprint(candidate.layout) not in seen
             ]
             if not pending:
                 reason = "search_exhausted"
@@ -204,16 +204,6 @@ def _street_segments(
             raise ValueError(f"street edge index {index} is outside footprint edges")
         segments.append((points[index], points[(index + 1) % len(points)]))
     return segments
-
-
-def _lineage(layout, iteration: int):
-    if "::" not in layout.candidate_id:
-        marker = f"-f{layout.floor_index}-"
-        operator = layout.candidate_id.split(marker, 1)[-1]
-        return None, operator, {}
-    parent_id, suffix = layout.candidate_id.split("::", 1)
-    _, operator, order = suffix.split(":", 2)
-    return parent_id, operator, {"order": order}
 
 
 def _loop_result(

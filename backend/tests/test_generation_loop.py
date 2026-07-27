@@ -7,7 +7,7 @@ from backend.app.modules.generation_loop.service import (
     run_generation_loop,
 )
 from backend.app.schemas.mass import MassInput
-from backend.app.schemas.loop import LoopConfig
+from backend.app.schemas.loop import CandidateProposal, LoopConfig
 from backend.app.schemas.layout import RoomPolygon
 from engine.geometry.polygon import shared_boundary_length
 
@@ -115,6 +115,18 @@ def test_candidate_search_uses_structured_feedback_and_improves_sample():
     assert has_rooms_on_both_sides
 
 
+def test_candidate_search_accepts_project_ids_with_lineage_delimiters():
+    result = run_candidate_search(
+        replace(_sample_mass(), project_id="tenant::phase"),
+        floor_index=1,
+        use_type="neighborhood_commercial",
+    )
+
+    assert result.termination_reason == "accepted"
+    assert result.best is not None
+    assert result.best.parent_id is not None
+
+
 def test_search_reports_evaluation_budget_exhaustion_without_accepting():
     result = run_candidate_search(
         _sample_mass(),
@@ -184,14 +196,19 @@ def test_search_stagnates_when_novel_refinement_does_not_improve(monkeypatch):
             for room in parent.rooms
         ]
         return [
-            replace(
-                parent,
-                candidate_id=f"{parent.candidate_id}::i{iteration}:shifted:test",
-                rooms=shifted_rooms,
+            CandidateProposal(
+                layout=replace(
+                    parent,
+                    candidate_id=f"{parent.candidate_id}-shifted-{iteration}",
+                    rooms=shifted_rooms,
+                ),
+                parent_id=parent.candidate_id,
+                operator="shifted",
+                operator_params={"case": "test"},
             )
         ]
 
-    monkeypatch.setattr(search_service, "refine_candidates", refine_once)
+    monkeypatch.setattr(search_service, "refine_proposals", refine_once)
 
     result = run_candidate_search(
         _sample_mass(),

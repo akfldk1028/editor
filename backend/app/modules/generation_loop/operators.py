@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 
 from backend.app.modules.layout_generator.service import (
     generate_baseline_layout,
@@ -9,7 +10,7 @@ from backend.app.modules.layout_generator.service import (
     generate_stripe_layout,
 )
 from backend.app.schemas.layout import LayoutCandidate, RoomPolygon
-from backend.app.schemas.loop import CandidateRecord
+from backend.app.schemas.loop import CandidateProposal, CandidateRecord
 from backend.app.schemas.mass import MassAnalysis
 from backend.app.schemas.metrics import ValidationReport
 from backend.app.schemas.program import ProgramGraph
@@ -28,29 +29,80 @@ def generate_initial_candidates(
     analysis: MassAnalysis,
     program: ProgramGraph,
 ) -> list[LayoutCandidate]:
-    return deduplicate_candidates(
-        [
-            generate_baseline_layout(analysis, program),
-            generate_stripe_layout(analysis, program, axis="x", reverse=True),
-            generate_stripe_layout(analysis, program, axis="y"),
-            generate_stripe_layout(analysis, program, axis="y", reverse=True),
-            generate_guillotine_layout(analysis, program),
-            generate_guillotine_layout(analysis, program, reverse=True),
-        ]
-    )
+    return [
+        proposal.layout
+        for proposal in generate_initial_proposals(analysis, program)
+    ]
+
+
+def generate_initial_proposals(
+    analysis: MassAnalysis,
+    program: ProgramGraph,
+) -> list[CandidateProposal]:
+    proposals = [
+        CandidateProposal(
+            layout=generate_baseline_layout(analysis, program),
+            parent_id=None,
+            operator="baseline",
+        ),
+        CandidateProposal(
+            layout=generate_stripe_layout(analysis, program, axis="x", reverse=True),
+            parent_id=None,
+            operator="stripe-x-reversed",
+        ),
+        CandidateProposal(
+            layout=generate_stripe_layout(analysis, program, axis="y"),
+            parent_id=None,
+            operator="stripe-y",
+        ),
+        CandidateProposal(
+            layout=generate_stripe_layout(analysis, program, axis="y", reverse=True),
+            parent_id=None,
+            operator="stripe-y-reversed",
+        ),
+        CandidateProposal(
+            layout=generate_guillotine_layout(analysis, program),
+            parent_id=None,
+            operator="guillotine-balanced",
+        ),
+        CandidateProposal(
+            layout=generate_guillotine_layout(analysis, program, reverse=True),
+            parent_id=None,
+            operator="guillotine-balanced-reversed",
+        ),
+    ]
+    return _deduplicate_proposals(proposals)
+
+
+def _deduplicate_proposals(
+    proposals: list[CandidateProposal],
+) -> list[CandidateProposal]:
+    seen: set[str] = set()
+    unique: list[CandidateProposal] = []
+    for proposal in proposals:
+        fingerprint = layout_fingerprint(proposal.layout)
+        if fingerprint not in seen:
+            seen.add(fingerprint)
+            unique.append(proposal)
+    return unique
 
 
 def deduplicate_candidates(
     candidates: list[LayoutCandidate],
 ) -> list[LayoutCandidate]:
-    seen: set[str] = set()
-    unique: list[LayoutCandidate] = []
-    for candidate in candidates:
-        fingerprint = layout_fingerprint(candidate)
-        if fingerprint not in seen:
-            seen.add(fingerprint)
-            unique.append(candidate)
-    return unique
+    return [
+        proposal.layout
+        for proposal in _deduplicate_proposals(
+            [
+                CandidateProposal(
+                    layout=candidate,
+                    parent_id=None,
+                    operator="unspecified",
+                )
+                for candidate in candidates
+            ]
+        )
+    ]
 
 
 def refine_candidates(
@@ -60,30 +112,56 @@ def refine_candidates(
     program: ProgramGraph,
     iteration: int,
 ) -> list[LayoutCandidate]:
-    candidates: list[LayoutCandidate] = []
+    return [
+        proposal.layout
+        for proposal in refine_proposals(
+            frontier,
+            reports,
+            analysis,
+            program,
+            iteration,
+        )
+    ]
+
+
+def refine_proposals(
+    frontier: list[CandidateRecord | LayoutCandidate],
+    reports: list[ValidationReport],
+    analysis: MassAnalysis,
+    program: ProgramGraph,
+    iteration: int,
+) -> list[CandidateProposal]:
+    proposals: list[CandidateProposal] = []
     for parent, report in zip(frontier, reports):
         if "circulation_missing" not in {
             violation.code for violation in report.violations
         }:
             continue
         parent_layout = parent.layout if isinstance(parent, CandidateRecord) else parent
-        candidates.extend(
-            _corridor_candidates(
+        parent_fingerprint = (
+            parent.fingerprint
+            if isinstance(parent, CandidateRecord)
+            else layout_fingerprint(parent_layout)
+        )
+        proposals.extend(
+            _corridor_proposals(
                 parent_layout,
+                parent_fingerprint,
                 analysis,
                 program,
                 iteration,
             )
         )
-    return deduplicate_candidates(candidates)
+    return _deduplicate_proposals(proposals)
 
 
-def _corridor_candidates(
+def _corridor_proposals(
     parent: LayoutCandidate,
+    parent_fingerprint: str,
     analysis: MassAnalysis,
     program: ProgramGraph,
     iteration: int,
-) -> list[LayoutCandidate]:
+) -> list[CandidateProposal]:
     scale = _room_scale(program)
     if scale >= 1:
         return []
@@ -105,26 +183,33 @@ def _corridor_candidates(
             ),
         ),
     ]
-    candidates = []
+    proposals = []
     for axis in ("horizontal", "vertical"):
         for order_name, nodes in orderings:
-            candidates.append(
-                _corridor_layout(
-                    parent,
-                    analysis,
-                    program,
-                    iteration=iteration,
-                    axis=axis,
-                    order_name=order_name,
-                    nodes=nodes,
-                    scale=scale,
+            operator = f"corridor-{axis}"
+            layout = _corridor_layout(
+                parent_fingerprint,
+                analysis,
+                program,
+                iteration=iteration,
+                axis=axis,
+                order_name=order_name,
+                nodes=nodes,
+                scale=scale,
+            )
+            proposals.append(
+                CandidateProposal(
+                    layout=layout,
+                    parent_id=parent.candidate_id,
+                    operator=operator,
+                    operator_params={"order": order_name},
                 )
             )
-    return candidates
+    return proposals
 
 
 def _corridor_layout(
-    parent: LayoutCandidate,
+    parent_fingerprint: str,
     analysis: MassAnalysis,
     program: ProgramGraph,
     *,
@@ -156,9 +241,9 @@ def _corridor_layout(
         rooms.extend(_band_rooms(second, min_y, max_y, second_start, max_x, horizontal=False))
         corridor_polygon = _rectangle(first_end, min_y, second_start, max_y)
 
-    operator = f"corridor-{axis}"
     candidate_id = (
-        f"{parent.candidate_id}::i{iteration}:{operator}:{order_name}"
+        f"{program.project_id}-f{program.floor_index}-i{iteration}-"
+        f"corridor-{axis}-{order_name}-{parent_fingerprint[:12]}"
     )
     return LayoutCandidate(
         candidate_id=candidate_id,
@@ -205,7 +290,11 @@ def _room_scale(program: ProgramGraph) -> float:
         )
         for node in program.nodes
     )
-    return round(max(0.9, minimum_scale), 6)
+    conservative_minimum = max(
+        math.nextafter(minimum_scale, math.inf),
+        minimum_scale + 1e-9,
+    )
+    return max(0.9, conservative_minimum)
 
 
 def _balanced_split_index(nodes) -> int:
@@ -220,10 +309,10 @@ def _balanced_split_index(nodes) -> int:
 
 def _rectangle(min_x: float, min_y: float, max_x: float, max_y: float):
     return [
-        (_rounded_coordinate(min_x), _rounded_coordinate(min_y)),
-        (_rounded_coordinate(max_x), _rounded_coordinate(min_y)),
-        (_rounded_coordinate(max_x), _rounded_coordinate(max_y)),
-        (_rounded_coordinate(min_x), _rounded_coordinate(max_y)),
+        (_generated_coordinate(min_x), _generated_coordinate(min_y)),
+        (_generated_coordinate(max_x), _generated_coordinate(min_y)),
+        (_generated_coordinate(max_x), _generated_coordinate(max_y)),
+        (_generated_coordinate(min_x), _generated_coordinate(max_y)),
     ]
 
 
@@ -245,7 +334,7 @@ def _canonical_shapes(shapes: list[RoomPolygon]) -> list[dict]:
     )
 
 
-def _canonical_polygon(points) -> list[list[float | int]]:
+def _canonical_polygon(points) -> list[list[str]]:
     rounded = [_canonical_point(point) for point in points]
     if len(rounded) > 1 and rounded[0] == rounded[-1]:
         rounded.pop()
@@ -258,10 +347,17 @@ def _canonical_polygon(points) -> list[list[float | int]]:
     return [list(point) for point in canonical]
 
 
-def _canonical_point(point) -> tuple[float | int, float | int]:
-    return tuple(_rounded_coordinate(value) for value in point)
+def _canonical_point(point) -> tuple[str, str]:
+    return tuple(_exact_coordinate(value) for value in point)
 
 
-def _rounded_coordinate(value: float) -> float | int:
-    rounded = round(float(value), 6)
-    return int(rounded) if rounded.is_integer() else rounded
+def _exact_coordinate(value: float) -> str:
+    coordinate = float(value)
+    if coordinate == 0:
+        coordinate = 0.0
+    return coordinate.hex()
+
+
+def _generated_coordinate(value: float) -> float | int:
+    coordinate = float(value)
+    return int(coordinate) if coordinate.is_integer() else coordinate
