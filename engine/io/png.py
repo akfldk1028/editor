@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import struct
 import zlib
 
@@ -31,6 +32,64 @@ class SimplePngCanvas:
         self.fill_rect(x0, y1 - thickness, x1, y1, color)
         self.fill_rect(x0, y0, x0 + thickness, y1, color)
         self.fill_rect(x1 - thickness, y0, x1, y1, color)
+
+    def fill_polygon(self, points: list[tuple[int | float, int | float]], color: Color) -> None:
+        if len(points) < 3:
+            raise ValueError("polygon requires at least three points")
+
+        min_y = max(0, math.floor(min(y for _, y in points)))
+        max_y = min(self.height - 1, math.ceil(max(y for _, y in points)) - 1)
+        for y in range(min_y, max_y + 1):
+            scanline = y + 0.5
+            intersections: list[float] = []
+            for (x1, y1), (x2, y2) in zip(points, points[1:] + points[:1]):
+                if (y1 > scanline) != (y2 > scanline):
+                    intersections.append(x1 + (scanline - y1) * (x2 - x1) / (y2 - y1))
+            intersections.sort()
+            for left, right in zip(intersections[::2], intersections[1::2]):
+                start_x = max(0, math.ceil(left - 0.5))
+                end_x = min(self.width - 1, math.floor(right - 0.5))
+                for x in range(start_x, end_x + 1):
+                    self._set_pixel(x, y, color)
+
+    def stroke_polygon(
+        self,
+        points: list[tuple[int | float, int | float]],
+        color: Color,
+        thickness: int = 1,
+    ) -> None:
+        if len(points) < 2:
+            raise ValueError("polygon requires at least two points")
+        if thickness < 1:
+            raise ValueError("polygon stroke thickness must be positive")
+        for (x1, y1), (x2, y2) in zip(points, points[1:] + points[:1]):
+            self._draw_line(round(x1), round(y1), round(x2), round(y2), color, thickness)
+
+    def _set_pixel(self, x: int, y: int, color: Color) -> None:
+        if 0 <= x < self.width and 0 <= y < self.height:
+            offset = (y * self.width + x) * 3
+            self.pixels[offset : offset + 3] = bytes(color)
+
+    def _draw_line(self, x1: int, y1: int, x2: int, y2: int, color: Color, thickness: int) -> None:
+        delta_x = abs(x2 - x1)
+        delta_y = -abs(y2 - y1)
+        step_x = 1 if x1 < x2 else -1
+        step_y = 1 if y1 < y2 else -1
+        error = delta_x + delta_y
+        start = -(thickness // 2)
+        while True:
+            for offset_y in range(start, start + thickness):
+                for offset_x in range(start, start + thickness):
+                    self._set_pixel(x1 + offset_x, y1 + offset_y, color)
+            if x1 == x2 and y1 == y2:
+                return
+            double_error = 2 * error
+            if double_error >= delta_y:
+                error += delta_y
+                x1 += step_x
+            if double_error <= delta_x:
+                error += delta_x
+                y1 += step_y
 
     def to_bytes(self) -> bytes:
         rows = []

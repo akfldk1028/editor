@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import html
 import json
+import re
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
@@ -41,14 +43,23 @@ def create_visual_review_artifacts(
     width: int = 960,
     height: int = 540,
 ) -> VisualReviewArtifacts:
-    target = Path(output_dir)
+    if width <= 0 or height <= 0:
+        raise ValueError("viewport width and height must be positive")
+
+    target = Path(output_dir).resolve()
     target.mkdir(parents=True, exist_ok=True)
 
-    stem = f"{result.mass.project_id}-f{result.program.floor_index}"
+    stem = f"{_slug(result.mass.project_id)}-f{result.program.floor_index}"
     svg_path = target / f"{stem}.svg"
     png_path = target / f"{stem}.png"
     html_path = target / f"{stem}.html"
     report_path = target / f"{stem}.review.json"
+    artifact_links = {
+        "svg": svg_path.name,
+        "png": png_path.name,
+        "html": html_path.name,
+    }
+    _ensure_within_target(target, svg_path, png_path, html_path, report_path)
 
     svg_path.write_text(_render_svg(result, boundary, width, height), encoding="utf-8")
     png_path.write_bytes(_render_png(result, boundary, width, height))
@@ -67,20 +78,26 @@ def create_visual_review_artifacts(
         "needs_iteration": needs_iteration,
         "checks": checks,
         "validation": to_jsonable(result.validation),
-        "artifacts": {
-            "svg": str(svg_path),
-            "png": str(png_path),
-            "html": str(html_path),
-        },
+        "artifacts": artifact_links,
     }
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    html_path.write_text(_render_html(result, svg_path.name, png_path.name, report_path.name, report), encoding="utf-8")
+    html_path.write_text(
+        _render_html(
+            result,
+            svg_name=artifact_links["svg"],
+            png_name=artifact_links["png"],
+            report_name=report_path.name,
+            report=report,
+        ),
+        encoding="utf-8",
+    )
 
     return VisualReviewArtifacts(
         svg_path=svg_path,
         png_path=png_path,
         html_path=html_path,
         report_path=report_path,
+        artifact_links=artifact_links,
         needs_iteration=needs_iteration,
         checks=checks,
     )
@@ -139,7 +156,7 @@ def _render_svg(
         cx, cy = _centroid(room.polygon)
         parts.append(
             f'<text x="{_sx(cx, min_x, scale, pad_x)}" y="{_sy(cy, min_y, scale, pad_y, height)}" '
-            f'font-family="Arial" font-size="14" text-anchor="middle">{room.space_type}</text>'
+            f'font-family="Arial" font-size="14" text-anchor="middle">{html.escape(room.space_type)}</text>'
         )
     boundary_points = " ".join(
         f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}" for x, y in boundary
@@ -159,19 +176,13 @@ def _render_png(
     scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
     canvas = SimplePngCanvas(width, height)
     for room in result.layout.rooms:
-        x0, y0, x1, y1 = bounds(room.polygon)
-        left = int(_sx(x0, min_x, scale, pad_x))
-        right = int(_sx(x1, min_x, scale, pad_x))
-        top = int(_sy(y1, min_y, scale, pad_y, height))
-        bottom = int(_sy(y0, min_y, scale, pad_y, height))
+        points = _raster_points(room.polygon, min_x, min_y, scale, pad_x, pad_y, height)
         color = PNG_PALETTE.get(room.space_type, (238, 238, 238))
-        canvas.fill_rect(left, top, right, bottom, color)
-        canvas.stroke_rect(left, top, right, bottom, (17, 17, 17), thickness=2)
-    b_left = int(_sx(min_x, min_x, scale, pad_x))
-    b_right = int(_sx(max_x, min_x, scale, pad_x))
-    b_top = int(_sy(max_y, min_y, scale, pad_y, height))
-    b_bottom = int(_sy(min_y, min_y, scale, pad_y, height))
-    canvas.stroke_rect(b_left, b_top, b_right, b_bottom, (0, 0, 0), thickness=4)
+        canvas.fill_polygon(points, color)
+        canvas.stroke_polygon(points, (17, 17, 17), thickness=2)
+    canvas.stroke_polygon(
+        _raster_points(boundary, min_x, min_y, scale, pad_x, pad_y, height), (0, 0, 0), thickness=4
+    )
     return canvas.to_bytes()
 
 
@@ -183,12 +194,15 @@ def _render_html(
     report: dict,
 ) -> str:
     status = "needs iteration" if report["needs_iteration"] else "passes baseline checks"
-    checks = "".join(f"<tr><td>{name}</td><td>{value}</td></tr>" for name, value in report["checks"].items())
+    checks = "".join(
+        f"<tr><td>{html.escape(name)}</td><td>{html.escape(value)}</td></tr>" for name, value in report["checks"].items()
+    )
+    project_id = html.escape(result.mass.project_id)
     return f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{result.mass.project_id} floor visual review</title>
+  <title>{project_id} floor visual review</title>
   <style>
     body {{ margin: 24px; font-family: Arial, sans-serif; background: white; color: #111; }}
     main {{ max-width: 1180px; margin: 0 auto; }}
@@ -203,14 +217,14 @@ def _render_html(
 </head>
 <body>
   <main>
-    <h1>Visual Review: {result.mass.project_id} F{result.program.floor_index}</h1>
-    <div class="status">{status}</div>
+    <h1>Visual Review: {project_id} F{result.program.floor_index}</h1>
+    <div class="status">{html.escape(status)}</div>
     <div class="grid">
-      <iframe src="{svg_name}" title="floor plan svg"></iframe>
+      <iframe src="{html.escape(svg_name, quote=True)}" title="floor plan svg"></iframe>
       <section>
         <table>{checks}</table>
-        <p><a href="{png_name}">PNG</a></p>
-        <p><a href="{report_name}">Review JSON</a></p>
+        <p><a href="{html.escape(png_name, quote=True)}">PNG</a></p>
+        <p><a href="{html.escape(report_name, quote=True)}">Review JSON</a></p>
       </section>
     </div>
   </main>
@@ -248,3 +262,28 @@ def _centroid(points: list[tuple[float, float]]) -> tuple[float, float]:
         sum(point[0] for point in points) / len(points),
         sum(point[1] for point in points) / len(points),
     )
+
+
+def _raster_points(
+    points: list[tuple[float, float]],
+    min_x: float,
+    min_y: float,
+    scale: float,
+    pad_x: float,
+    pad_y: float,
+    height: int,
+) -> list[tuple[int, int]]:
+    return [
+        (round(_sx(x, min_x, scale, pad_x)), round(_sy(y, min_y, scale, pad_y, height))) for x, y in points
+    ]
+
+
+def _slug(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+    return slug[:80] or "project"
+
+
+def _ensure_within_target(target: Path, *paths: Path) -> None:
+    for path in paths:
+        if not path.resolve().is_relative_to(target):
+            raise ValueError("artifact path escapes output root")

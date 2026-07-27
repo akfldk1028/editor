@@ -10,6 +10,7 @@ class VisualReviewArtifacts:
     png_path: Path
     html_path: Path
     report_path: Path
+    artifact_links: dict[str, str]
     needs_iteration: bool
     checks: dict[str, str]
 
