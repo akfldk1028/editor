@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
+from pathlib import Path
 from typing import Any
 
 
@@ -13,4 +14,6 @@ def to_jsonable(value: Any) -> Any:
         return [to_jsonable(item) for item in value]
     if isinstance(value, tuple):
         return [to_jsonable(item) for item in value]
+    if isinstance(value, Path):
+        return str(value)
     return value
