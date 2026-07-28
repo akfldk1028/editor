@@ -352,24 +352,44 @@ def _generate_role_driven_layout(
             rooms.append(RoomPolygon(node.node_id, node.space_type, _aligned_rectangle(spine_right, lower_cursor, spine_right + room_width, lower_cursor + room_height)))
             lower_cursor += room_height
             continue
-        room_height = branch_bottom - min_y
         target_area = _layout_area(node)
         room_width = max(
-            target_area / room_height,
+            min(
+                lower_width,
+                math.sqrt(target_area * float(node.max_aspect_ratio or math.inf))
+                * 0.999,
+                target_area / float(node.min_width or 1),
+            ),
             float(node.min_width or 0),
-            math.sqrt(target_area / float(node.max_aspect_ratio or math.inf)),
+            math.sqrt(target_area / float(node.max_aspect_ratio or math.inf)) * 1.001,
         )
         room_height = target_area / room_width
-        if lower_cursor + room_width > core_min_x + 1e-7:
+        lower_cursor = min_y if lower_cursor == spine_right else lower_cursor
+        if lower_cursor + room_height > branch_bottom + 1e-7:
             raise ValueError(f"role '{role}' cannot fit beside the shared core")
-        room_min_y = branch_bottom - room_height
-        rooms.append(RoomPolygon(node.node_id, node.space_type, _aligned_rectangle(lower_cursor, room_min_y, lower_cursor + room_width, branch_bottom)))
-        lower_cursor += room_width
+        rooms.append(
+            RoomPolygon(
+                node.node_id,
+                node.space_type,
+                _aligned_rectangle(
+                    spine_right,
+                    lower_cursor,
+                    spine_right + room_width,
+                    lower_cursor + room_height,
+                ),
+            )
+        )
+        lower_cursor += room_height
     upper_cursor = spine_right
     for role in upper_roles:
         node = nodes[role]
-        room_width = _layout_area(node) / upper_height
-        room_height = upper_height
+        target_area = _layout_area(node)
+        room_width = max(
+            target_area / upper_height,
+            float(node.min_width or 0),
+            math.sqrt(target_area / float(node.max_aspect_ratio or math.inf)) * 1.001,
+        )
+        room_height = target_area / room_width
         room_min_y = branch_top
         if upper_cursor + room_width > max_x + 1e-7:
             raise ValueError(f"role '{role}' cannot fit above the circulation branch")

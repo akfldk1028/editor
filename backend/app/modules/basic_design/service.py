@@ -753,6 +753,15 @@ def _room_contents(
             )
             placement_margin = 1.2
             aisle = 1.2
+            room_min_x, _, room_max_x, _ = _bounds(room.polygon)
+            if room_max_x - room_min_x < 8.5:
+                object_size = (
+                    (2.4, 0.8)
+                    if room.space_type == "sales"
+                    else (2.4, 1.4)
+                )
+                placement_margin = 0.8
+                aisle = 1.0
             room_clearance.extend(
                 _primary_access_segments(room, layout, fixed_lines)
             )
@@ -992,7 +1001,17 @@ def _centered_segment(segment: Segment, length: float) -> tuple[Point, Point]:
     total = math.dist(start, end)
     if length > total + _EPSILON:
         raise ValueError("line content cannot fit its host boundary")
-    return _segment_between(start, end, (total - length) / (2 * total), (total + length) / (2 * total))
+    first, second = _segment_between(
+        start,
+        end,
+        (total - length) / (2 * total),
+        (total + length) / (2 * total),
+    )
+    if abs(first[1] - second[1]) <= _EPSILON:
+        second = (round(first[0] + length, 6), first[1])
+    else:
+        second = (first[0], round(first[1] + length, 6))
+    return first, second
 
 
 def _orthogonal_route_in_polygon(

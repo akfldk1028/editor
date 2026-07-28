@@ -68,6 +68,7 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
             for point in (feature.footprint if isinstance(feature, PlanElement) else feature.points)
             for value in point
         )
+
         vertical = [element for element in features.elements if element.category == "vertical"]
         assert {element.kind for element in vertical} == {"stair", "elevator", "lobby", "shaft"}
         assert sum(element.kind == "stair" for element in vertical) == 2
@@ -187,6 +188,59 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
             (element.element_id, element.footprint) for element in first.elements
             if element.category in {"vertical", "structure"}
         ]
+
+
+@pytest.mark.parametrize(
+    ("width", "depth"),
+    [(20, 12), (20, 20), (30, 20), (40, 20)],
+)
+def test_concept_basic_generation_adapts_to_supported_rectangular_footprints(
+    width: float,
+    depth: float,
+) -> None:
+    mass = MassInput(
+        project_id=f"adaptive-{width}-{depth}",
+        floors=2,
+        footprint_polygon=[(0, 0), (width, 0), (width, depth), (0, depth)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+
+    result = run_building_generation(mass)
+
+    assert len(result.floor_results) == 2
+    assert result.accepted
+    assert all(floor.validation.accepted for floor in result.floor_results)
+    assert all(
+        floor.validation.basic_design_checked
+        and floor.validation.basic_design is not None
+        for floor in result.floor_results
+    )
+
+
+@pytest.mark.parametrize(
+    ("width", "depth"),
+    [(12, 30), (30, 8)],
+)
+def test_concept_basic_generation_rejects_footprints_below_supported_minimum(
+    width: float,
+    depth: float,
+) -> None:
+    mass = MassInput(
+        project_id=f"unsupported-{width}-{depth}",
+        floors=2,
+        footprint_polygon=[(0, 0), (width, 0), (width, depth), (0, depth)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"concept-basic footprint requires width >= 20\.0 m and depth >= 12\.0 m",
+    ):
+        run_building_generation(mass)
 
 
 def test_primary_room_furniture_density_scales_with_area() -> None:

@@ -66,6 +66,13 @@ def run_building_generation(
 ) -> BuildingGenerationResult:
     analysis = analyze_mass(mass)
     _require_rectangular_floor_plate(mass, analysis)
+    min_x, min_y, max_x, max_y = analysis.bounds
+    width = max_x - min_x
+    depth = max_y - min_y
+    if width < 20.0 or depth < 12.0:
+        raise ValueError(
+            "concept-basic footprint requires width >= 20.0 m and depth >= 12.0 m"
+        )
     if floor_assignments is None:
         assignments = assign_floors_from_use_mix(mass)
         assignment_source = "use_mix"
@@ -106,10 +113,6 @@ def run_building_generation(
         float(next(node.target_area for node in program.nodes if node.space_type == "core"))
         for program in programs
     )
-    programs = [
-        _normalize_program_core(program, shared_core_target)
-        for program in programs
-    ]
 
     room_scale = 0.9
     min_x, min_y, max_x, max_y = analysis.bounds
@@ -129,11 +132,18 @@ def run_building_generation(
                 raise ValueError(
                     "neighborhood commercial street edge must be the y=min_y floor boundary"
                 )
-        core_height = min(height * (0.47333333333333333 if height >= 12 else 0.46), height - 1.2)
-        service_band_width = shared_core_target / core_height
+        preferred_core_height = min(
+            height * (0.47333333333333333 if height >= 12 else 0.46),
+            height - 1.2,
+        )
+        service_band_width = max(
+            shared_core_target / preferred_core_height,
+            7.6,
+        )
         service_x = float(_clean_area(max_x - service_band_width))
         service_band_width = max_x - service_x
-        core_height = shared_core_target / service_band_width
+        core_height = max(5.4, shared_core_target / service_band_width)
+        shared_core_target = service_band_width * core_height
     else:
         service_band_width = max(
             room_scale
@@ -148,6 +158,15 @@ def run_building_generation(
         service_x = float(_clean_area(max_x - service_band_width))
         service_band_width = max_x - service_x
         core_height = room_scale * shared_core_target / service_band_width
+    programs = [
+        _normalize_program_core(program, shared_core_target)
+        for program in programs
+    ]
+    if width < 24.0:
+        programs = [
+            _compress_compact_program(program, primary_factor=0.9, service_factor=0.6)
+            for program in programs
+        ]
     core_top = float(_clean_area(min_y + core_height))
     shared_core = [
         (service_x, min_y),
@@ -418,6 +437,38 @@ def _normalize_program_core(program, shared_core_target: float):
         else:
             nodes.append(node)
     return replace(program, nodes=nodes, source="building_aligned_prior")
+
+
+def _compress_compact_program(
+    program,
+    *,
+    primary_factor: float,
+    service_factor: float,
+):
+    primary_roles = {"sales", "open_work", "shop_unit", "office_area"}
+    nodes = []
+    for node in program.nodes:
+        if node.space_type == "core":
+            nodes.append(node)
+            continue
+        factor = (
+            primary_factor
+            if node.space_type in primary_roles
+            else service_factor
+        )
+        target = max(
+            float(node.target_area) * factor,
+            (float(node.min_width or 0) ** 2) / 0.855 * 1.01,
+        )
+        nodes.append(
+            replace(
+                node,
+                target_area=_clean_area(target),
+                min_area=_clean_area(target * 0.85),
+                max_area=_clean_area(target * 1.15),
+            )
+        )
+    return replace(program, nodes=nodes, source="compact_building_aligned_prior")
 
 
 def _require_rectangular_floor_plate(
