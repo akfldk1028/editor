@@ -15,6 +15,7 @@ from backend.app.schemas.layout import (
     PlanElement,
     PlanLine,
     RoomPolygon,
+    UsePlanningMetadata,
 )
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.program import ProgramGraph, ProgramNode
@@ -51,12 +52,16 @@ def test_strict_validation_requires_feature_bundle() -> None:
     assert _codes(report) == {"basic_design_missing"}
 
 
-def test_strict_validation_accepts_independent_complete_candidate() -> None:
+def test_strict_validation_rejects_legacy_nonremote_second_exit() -> None:
     layout, program = _office_candidate()
 
-    report = _strict(layout, program)
+    report = _strict(layout, replace(program, use_type="generic"))
 
-    assert report.accepted
+    assert not report.accepted
+    assert {violation.code for violation in report.violations} == {
+        "protected_exit_separation",
+        "remote_exit_unfit",
+    }
     metric = report.basic_design
     assert metric is not None
     assert metric.policy_version == "concept-basic-v1"
@@ -1121,7 +1126,11 @@ def _office_features() -> BasicDesignFeatures:
             measured_value=5.0,
         ),
     )
-    return BasicDesignFeatures(elements, lines)
+    return BasicDesignFeatures(
+        elements,
+        lines,
+        planning=UsePlanningMetadata(),
+    )
 
 
 def _replace_element(

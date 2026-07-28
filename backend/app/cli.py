@@ -69,6 +69,11 @@ def main() -> None:
     alternatives_review = subparsers.add_parser("alternatives-review")
     alternatives_review.add_argument("--input", required=True)
     alternatives_review.add_argument("--output-dir", required=True)
+    alternatives_review.add_argument(
+        "--render-style",
+        choices=("review", "architectural"),
+        default="architectural",
+    )
 
     args = parser.parse_args()
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
@@ -158,6 +163,7 @@ def main() -> None:
                 alternative.building,
                 boundary=mass.footprint_polygon,
                 output_dir=target / alternative.alternative_id,
+                render_style=args.render_style,
             )
             summaries.append(
                 {
@@ -176,6 +182,13 @@ def main() -> None:
                     "tenant_assignment_signature": (
                         alternative.tenant_assignment_signature
                     ),
+                    "tenant_count": alternative.tenant_count,
+                    "tenant_entrance_assignments": (
+                        alternative.tenant_entrance_assignments
+                    ),
+                    "core_public_entrance": alternative.core_public_entrance,
+                    "design_family_signature": alternative.design_family_signature,
+                    "render_style": args.render_style,
                     "floor_count": len(alternative.floor_results),
                     "index_html": str(artifacts.index_html_path),
                     "report_json": str(artifacts.report_path),

@@ -62,6 +62,10 @@ class BuildingAlternativeResult:
     circulation_bounds: tuple[float, float, float, float]
     circulation_graph_signature: tuple[str, ...]
     tenant_assignment_signature: tuple[str, ...]
+    tenant_count: int
+    tenant_entrance_assignments: tuple[str, ...]
+    core_public_entrance: bool
+    design_family_signature: str
 
     @property
     def floor_results(self) -> tuple[GenerationResult, ...]:

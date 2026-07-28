@@ -1,0 +1,11 @@
+{
+  "project_id": "alternatives-30x12",
+  "floors": 3,
+  "footprint_polygon": [[0, 0], [30, 0], [30, 12], [0, 12]],
+  "site_edges": [{"edge_index": 0, "kind": "street"}],
+  "access_candidates": [{"edge_index": 0, "position": 0.5}],
+  "use_mix": {
+    "neighborhood_commercial": 0.3333333333333333,
+    "office": 0.6666666666666666
+  }
+}

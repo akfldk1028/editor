@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 
 from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 from backend.app.schemas.mass import MassAnalysis
@@ -127,6 +128,43 @@ def generate_core_aligned_layout(
     room_scale: float = 0.9,
     min_circulation_width: float = 1.2,
 ) -> LayoutCandidate:
+    commercial_tenants = (
+        [node for node in program.nodes if node.space_type == "sales"]
+        if program.use_type == "neighborhood_commercial"
+        else []
+    )
+    if program.use_type == "neighborhood_commercial":
+        tenant_ids = [node.tenant_id for node in commercial_tenants]
+        if (
+            len(commercial_tenants) != 2
+            or set(node.node_id for node in commercial_tenants)
+            != {"sales_a", "sales_b"}
+            or any(not tenant_id for tenant_id in tenant_ids)
+            or len(set(tenant_ids)) != 2
+        ):
+            raise ValueError(
+                "commercial role contract requires sales_a/sales_b with unique tenant_id"
+            )
+    generation_program = program
+    if len(commercial_tenants) >= 2:
+        total_target = sum(float(node.target_area) for node in commercial_tenants)
+        template = commercial_tenants[0]
+        consolidated = replace(
+            template,
+            node_id="sales",
+            tenant_id=None,
+            target_area=total_target,
+            min_area=total_target * 0.85,
+            max_area=total_target * 1.15,
+            min_width=5.0,
+        )
+        generation_program = replace(
+            program,
+            nodes=[
+                consolidated,
+                *(node for node in program.nodes if node.space_type != "sales"),
+            ],
+        )
     expected_roles = {
         "neighborhood_commercial": {
             "sales", "checkout", "stock", "staff", "restroom", "core", "utility"
@@ -136,9 +174,9 @@ def generate_core_aligned_layout(
             "core", "it_storage",
         },
     }
-    if program.use_type in expected_roles:
-        roles = [node.space_type for node in program.nodes]
-        expected = expected_roles[program.use_type]
+    if generation_program.use_type in expected_roles:
+        roles = [node.space_type for node in generation_program.nodes]
+        expected = expected_roles[generation_program.use_type]
         missing = sorted(expected - set(roles))
         extra = sorted(set(roles) - expected)
         duplicate = sorted(role for role in set(roles) if roles.count(role) > 1)
@@ -147,8 +185,13 @@ def generate_core_aligned_layout(
                 "role-driven program roles must match the use-specific profile: "
                 f"missing={missing}, extra={extra}, duplicate={duplicate}"
             )
-        _validate_role_driven_core(core_polygon, program, analysis.bounds)
-        return _generate_role_driven_layout(analysis, program, core_polygon)
+        _validate_role_driven_core(core_polygon, generation_program, analysis.bounds)
+        generated = _generate_role_driven_layout(
+            analysis, generation_program, core_polygon
+        )
+        if commercial_tenants:
+            return _split_sales_tenants(generated, commercial_tenants)
+        return generated
     if not 0.85 <= room_scale < 1:
         raise ValueError("room_scale must leave circulation and respect program minima")
     min_x, min_y, max_x, max_y = analysis.bounds
@@ -274,6 +317,415 @@ def generate_core_aligned_layout(
     )
 
 
+def generate_rear_center_layout(
+    analysis: MassAnalysis,
+    program: ProgramGraph,
+    *,
+    min_circulation_width: float = 1.2,
+    core_position: str = "rear_center",
+) -> LayoutCandidate:
+    """Generate a direct rear-center-core topology with a public access spine."""
+    min_x, min_y, max_x, max_y = analysis.bounds
+    depth = max_y - min_y
+    core_node = next(node for node in program.nodes if node.space_type == "core")
+    rear_height = max(5.2, depth * 0.5)
+    core_width = max(7.0, _layout_area(core_node) / rear_height)
+    if core_position == "rear_center":
+        core_min_x = (min_x + max_x - core_width) / 2
+    elif core_position == "rear_right":
+        core_min_x = max_x - core_width
+    else:
+        raise ValueError("core_position must be rear_center or rear_right")
+    core_max_x = core_min_x + core_width
+    core_min_y = max_y - rear_height
+    branch_bottom = core_min_y - min_circulation_width
+    if branch_bottom <= min_y + 3.0:
+        raise ValueError("rear-center core leaves insufficient front program depth")
+    core_room = RoomPolygon(
+        core_node.node_id,
+        "core",
+        _aligned_rectangle(core_min_x, core_min_y, core_max_x, max_y),
+    )
+    branch = RoomPolygon(
+        "corridor-branch",
+        "circulation",
+        _aligned_rectangle(min_x, branch_bottom, max_x, core_min_y),
+    )
+    service_nodes = [
+        node
+        for node in program.nodes
+        if node.space_type not in {"core", "sales", "open_work"}
+    ]
+    service_nodes.sort(key=lambda node: node.node_id)
+    service_widths = {
+        node.node_id: max(
+            _layout_area(node) / rear_height,
+            float(node.min_width or 0),
+            1.1,
+        )
+        for node in service_nodes
+    }
+    service_rooms = []
+    left_cursor = min_x + 4.8
+    right_cursor = core_max_x
+    left_capacity = core_min_x - left_cursor
+    right_capacity = max_x - right_cursor
+    support_ids = {"pantry", "restroom", "it_storage"} & set(service_widths)
+    feasible_splits = []
+    for mask in range(1 << len(service_nodes)):
+        left_ids = {
+            node.node_id
+            for index, node in enumerate(service_nodes)
+            if mask & (1 << index)
+        }
+        left_used = sum(service_widths[node_id] for node_id in left_ids)
+        right_used = sum(
+            width
+            for node_id, width in service_widths.items()
+            if node_id not in left_ids
+        )
+        if (
+            left_used <= left_capacity + 1e-7
+            and right_used <= right_capacity + 1e-7
+        ):
+            feasible_splits.append(
+                (
+                    (
+                        0
+                        if not support_ids
+                        or support_ids.issubset(left_ids)
+                        or not (support_ids & left_ids)
+                        else 1
+                    ),
+                    abs(
+                        (left_capacity - left_used)
+                        - (right_capacity - right_used)
+                    ),
+                    tuple(sorted(left_ids)),
+                    left_ids,
+                )
+            )
+    if feasible_splits:
+        left_ids = min(feasible_splits, key=lambda split: split[:3])[3]
+    else:
+        fallback_splits = []
+        for mask in range(1 << len(service_nodes)):
+            left_ids = {
+                node.node_id
+                for index, node in enumerate(service_nodes)
+                if mask & (1 << index)
+            }
+            left_used = sum(service_widths[node_id] for node_id in left_ids)
+            right_used = sum(
+                width
+                for node_id, width in service_widths.items()
+                if node_id not in left_ids
+            )
+            fallback_splits.append(
+                (
+                    max(0.0, left_used - left_capacity)
+                    + max(0.0, right_used - right_capacity),
+                    (
+                        0
+                        if not support_ids
+                        or support_ids.issubset(left_ids)
+                        or not (support_ids & left_ids)
+                        else 1
+                    ),
+                    abs(
+                        (left_capacity - left_used)
+                        - (right_capacity - right_used)
+                    ),
+                    tuple(sorted(left_ids)),
+                    left_ids,
+                )
+            )
+        left_ids = min(fallback_splits, key=lambda split: split[:4])[4]
+        left_used = sum(service_widths[node_id] for node_id in left_ids)
+        right_used = sum(
+            width
+            for node_id, width in service_widths.items()
+            if node_id not in left_ids
+        )
+        for node_id in service_widths:
+            if node_id in left_ids and left_used > left_capacity:
+                service_widths[node_id] *= left_capacity / left_used
+            elif node_id not in left_ids and right_used > right_capacity:
+                service_widths[node_id] *= right_capacity / right_used
+    for node in service_nodes:
+        target_area = _layout_area(node)
+        room_width = service_widths[node.node_id]
+        room_height = min(target_area / room_width, rear_height)
+        if node.node_id in left_ids:
+            cursor = left_cursor
+            left_cursor += room_width
+        else:
+            cursor = right_cursor
+            right_cursor += room_width
+        if cursor + room_width > max_x + 1e-7:
+            raise ValueError("rear-center service program exceeds rear bays")
+        service_rooms.append(
+            RoomPolygon(
+                node.node_id,
+                node.space_type,
+                _aligned_rectangle(
+                    cursor,
+                    core_min_y,
+                    cursor + room_width,
+                    core_min_y + room_height,
+                ),
+            )
+        )
+
+    if program.use_type == "neighborhood_commercial":
+        tenants = [node for node in program.nodes if node.space_type == "sales"]
+        if len(tenants) != 2:
+            raise ValueError("rear-center commercial layout requires two tenants")
+        spine_left = (min_x + max_x - min_circulation_width) / 2
+        spine_right = spine_left + min_circulation_width
+        tenant_rooms = [
+            RoomPolygon(
+                tenants[0].node_id,
+                "sales",
+                _aligned_rectangle(min_x, min_y, spine_left, branch_bottom),
+            ),
+            RoomPolygon(
+                tenants[1].node_id,
+                "sales",
+                _aligned_rectangle(spine_right, min_y, max_x, branch_bottom),
+            ),
+        ]
+        spine = RoomPolygon(
+            "corridor-spine",
+            "circulation",
+            _aligned_rectangle(spine_left, min_y, spine_right, branch_bottom),
+        )
+        rooms = [*tenant_rooms, core_room, *service_rooms]
+    else:
+        primary = next(node for node in program.nodes if node.space_type == "open_work")
+        spine_left = min_x
+        spine_right = min_x + min_circulation_width
+        actual_width = _layout_area(primary) / branch_bottom
+        if spine_right + actual_width > max_x:
+            raise ValueError("rear-center primary workplace exceeds front bay")
+        rooms = [
+            RoomPolygon(
+                primary.node_id,
+                primary.space_type,
+                _aligned_rectangle(
+                    spine_right,
+                    min_y,
+                    spine_right + actual_width,
+                    branch_bottom,
+                ),
+            ),
+            core_room,
+            *service_rooms,
+        ]
+        spine = RoomPolygon(
+            "corridor-spine",
+            "circulation",
+            _aligned_rectangle(spine_left, min_y, spine_right, branch_bottom),
+        )
+    circulation = [spine, branch]
+    openings = [_centered_door(room, circulation) for room in rooms]
+    return LayoutCandidate(
+        candidate_id=(
+            f"{program.project_id}-f{program.floor_index}-"
+            f"{core_position.replace('_', '-')}"
+        ),
+        project_id=program.project_id,
+        floor_index=program.floor_index,
+        rooms=rooms,
+        circulation=circulation,
+        score=0.0,
+        openings=openings,
+        remote_stair_footprint=tuple(
+            _aligned_rectangle(
+                min_x,
+                core_min_y,
+                min_x + 4.8,
+                core_min_y + 2.8,
+            )
+        ),
+    )
+
+
+def generate_side_mid_layout(
+    analysis: MassAnalysis,
+    program: ProgramGraph,
+    *,
+    min_circulation_width: float = 1.2,
+    cross_bottom_override: float | None = None,
+) -> LayoutCandidate:
+    """Generate a right-side mid-core with a longitudinal public corridor."""
+    min_x, min_y, max_x, max_y = analysis.bounds
+    depth = max_y - min_y
+    core_node = next(node for node in program.nodes if node.space_type == "core")
+    core_height = max(7.2, depth * 0.6)
+    core_width = _layout_area(core_node) / core_height
+    core_min_x = max_x - core_width
+    core_min_y = (min_y + max_y - core_height) / 2
+    core_max_y = core_min_y + core_height
+    branch_right = core_min_x
+    branch_left = branch_right - min_circulation_width
+
+    if program.use_type == "neighborhood_commercial":
+        tenants = [node for node in program.nodes if node.space_type == "sales"]
+        tenant_width = (branch_left - min_x) / 2
+        tenant_height = max(
+            _layout_area(node) / tenant_width for node in tenants
+        )
+        rooms = [
+            RoomPolygon(
+                tenants[0].node_id,
+                "sales",
+                _aligned_rectangle(
+                    min_x, min_y, min_x + tenant_width, min_y + tenant_height
+                ),
+            ),
+            RoomPolygon(
+                tenants[1].node_id,
+                "sales",
+                _aligned_rectangle(
+                    min_x + tenant_width,
+                    min_y,
+                    branch_left,
+                    min_y + tenant_height,
+                ),
+            ),
+        ]
+    else:
+        primary = next(node for node in program.nodes if node.space_type == "open_work")
+        primary_width = branch_left - min_x
+        tenant_height = _layout_area(primary) / primary_width
+        rooms = [
+            RoomPolygon(
+                primary.node_id,
+                primary.space_type,
+                _aligned_rectangle(
+                    min_x, min_y, branch_left, min_y + tenant_height
+                ),
+            )
+        ]
+    cross_bottom = (
+        float(cross_bottom_override)
+        if cross_bottom_override is not None
+        else min_y + tenant_height
+    )
+    tenant_height = cross_bottom - min_y
+    for index, room in enumerate(rooms):
+        room_min_x, _, room_max_x, _ = _polygon_bounds(room.polygon)
+        rooms[index] = RoomPolygon(
+            room.room_id,
+            room.space_type,
+            _aligned_rectangle(
+                room_min_x,
+                min_y,
+                room_max_x,
+                cross_bottom,
+            ),
+        )
+    cross_top = cross_bottom + min_circulation_width
+    service_nodes = [
+        node
+        for node in program.nodes
+        if node.space_type not in {"core", "sales", "open_work"}
+    ]
+    required_service_height = max(
+        2.4,
+        sum(_layout_area(node) for node in service_nodes)
+        / max(branch_left - min_x - 4.8, 1.0),
+    )
+    while (
+        sum(
+            max(
+                _layout_area(node) / required_service_height,
+                float(node.min_width or 0),
+                1.1,
+            )
+            for node in service_nodes
+        )
+        > branch_left - min_x - 4.8
+        and required_service_height < depth - min_circulation_width - 2.0
+    ):
+        required_service_height += 0.1
+    if max_y - cross_top < required_service_height:
+        cross_top = max_y - required_service_height
+        cross_bottom = cross_top - min_circulation_width
+        tenant_height = cross_bottom - min_y
+        for index, room in enumerate(rooms):
+            room_min_x, _, room_max_x, _ = _polygon_bounds(room.polygon)
+            rooms[index] = RoomPolygon(
+                room.room_id,
+                room.space_type,
+                _aligned_rectangle(
+                    room_min_x, min_y, room_max_x, min_y + tenant_height
+                ),
+            )
+    if cross_top >= max_y - 2.4:
+        raise ValueError("side-mid layout leaves insufficient rear service depth")
+    horizontal = RoomPolygon(
+        "corridor-cross",
+        "circulation",
+        _aligned_rectangle(min_x, cross_bottom, branch_left, cross_top),
+    )
+    longitudinal = RoomPolygon(
+        "corridor-longitudinal",
+        "circulation",
+        _aligned_rectangle(branch_left, min_y, branch_right, max_y),
+    )
+    core_room = RoomPolygon(
+        core_node.node_id,
+        "core",
+        _aligned_rectangle(core_min_x, core_min_y, max_x, core_max_y),
+    )
+    service_height = max_y - cross_top
+    cursor = min_x + 4.8
+    for node in service_nodes:
+        room_width = max(
+            _layout_area(node) / service_height,
+            float(node.min_width or 0),
+            1.1,
+        )
+        room_height = _layout_area(node) / room_width
+        if cursor + room_width > branch_left + 1e-7:
+            raise ValueError("side-mid service program exceeds rear service bay")
+        rooms.append(
+            RoomPolygon(
+                node.node_id,
+                node.space_type,
+                _aligned_rectangle(
+                    cursor,
+                    cross_top,
+                    cursor + room_width,
+                    cross_top + room_height,
+                ),
+            )
+        )
+        cursor += room_width
+    rooms.append(core_room)
+    circulation = [horizontal, longitudinal]
+    openings = [_centered_door(room, circulation) for room in rooms]
+    return LayoutCandidate(
+        candidate_id=f"{program.project_id}-f{program.floor_index}-side-mid",
+        project_id=program.project_id,
+        floor_index=program.floor_index,
+        rooms=rooms,
+        circulation=circulation,
+        score=0.0,
+        openings=openings,
+        remote_stair_footprint=tuple(
+            _aligned_rectangle(
+                min_x,
+                cross_top,
+                min_x + 4.8,
+                cross_top + 2.8,
+            )
+        ),
+    )
+
+
 def _generate_role_driven_layout(
     analysis: MassAnalysis,
     program: ProgramGraph,
@@ -293,7 +745,12 @@ def _generate_role_driven_layout(
         raise ValueError("shared core must anchor at the rear-bottom corner")
 
     primary = nodes[primary_role]
-    primary_width = _layout_area(primary) / height
+    primary_depth = (
+        height - 1.2
+        if program.use_type == "neighborhood_commercial"
+        else height
+    )
+    primary_width = _layout_area(primary) / primary_depth
     spine_right = primary_width + min_x + 1.2
     spine_left = float(_aligned_number(spine_right - 1.2))
     spine_right = float(_aligned_number(spine_right))
@@ -439,6 +896,47 @@ def _generate_role_driven_layout(
         rooms=rooms,
         circulation=circulation,
         score=0.0,
+        openings=openings,
+    )
+
+
+def _split_sales_tenants(
+    layout: LayoutCandidate,
+    tenant_nodes,
+) -> LayoutCandidate:
+    sales = next(room for room in layout.rooms if room.room_id == "sales")
+    min_x, min_y, max_x, max_y = _polygon_bounds(sales.polygon)
+    public_corridor_width = 1.2
+    tenant_max_y = max_y - public_corridor_width
+    weights = [float(node.target_area) for node in tenant_nodes]
+    split_x = min_x + (max_x - min_x) * weights[0] / sum(weights)
+    tenant_rooms = [
+        RoomPolygon(
+            tenant_nodes[0].node_id,
+            "sales",
+            _aligned_rectangle(min_x, min_y, split_x, tenant_max_y),
+        ),
+        RoomPolygon(
+            tenant_nodes[1].node_id,
+            "sales",
+            _aligned_rectangle(split_x, min_y, max_x, tenant_max_y),
+        ),
+    ]
+    public_corridor = RoomPolygon(
+        "tenant-public-corridor",
+        "circulation",
+        _aligned_rectangle(min_x, tenant_max_y, max_x, max_y),
+    )
+    rooms = [
+        *tenant_rooms,
+        *(room for room in layout.rooms if room.room_id != "sales"),
+    ]
+    circulation = [public_corridor, *layout.circulation]
+    openings = [_centered_door(room, circulation) for room in rooms]
+    return replace(
+        layout,
+        rooms=rooms,
+        circulation=circulation,
         openings=openings,
     )
 

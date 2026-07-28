@@ -18,7 +18,8 @@ OFFICE_PROFILE = {
 }
 
 COMMERCIAL_PROFILE = {
-    "sales": (0.57, 5.0, 3.0, "frontage"),
+    "sales_a": (0.285, 4.0, 3.0, "frontage"),
+    "sales_b": (0.285, 4.0, 3.0, "frontage"),
     "checkout": (0.04, 2.4, 3.0, "public"),
     "stock": (0.10, 2.4, 2.5, "service"),
     "staff": (0.05, 2.4, 2.0, "service"),
@@ -109,7 +110,7 @@ def test_tiny_positive_mass_preserves_positive_coherent_program_areas():
     ("use_type", "expected_profile", "frontage_required"),
     [
         ("office", OFFICE_PROFILE, set()),
-        ("neighborhood_commercial", COMMERCIAL_PROFILE, {"sales"}),
+        ("neighborhood_commercial", COMMERCIAL_PROFILE, {"sales_a", "sales_b"}),
     ],
 )
 def test_program_profiles_emit_exact_ratios_and_form_metadata(
@@ -164,9 +165,12 @@ def test_program_profiles_emit_exact_ratios_and_form_metadata(
         (
             "neighborhood_commercial",
             {
-                ("sales", "street"),
-                ("checkout", "sales"),
-                ("stock", "sales"),
+                ("sales_a", "street"),
+                ("sales_b", "street"),
+                ("checkout", "sales_a"),
+                ("checkout", "sales_b"),
+                ("stock", "sales_a"),
+                ("stock", "sales_b"),
                 ("staff", "stock"),
                 ("core", "restroom"),
                 ("core", "utility"),

@@ -180,10 +180,18 @@ def test_building_generation_accepts_complete_structured_floor_assignments():
     assert result.accepted
     commercial = result.floor_results[0]
     rooms = {room.room_id: room for room in commercial.layout.rooms}
-    assert set(rooms) == {"sales", "checkout", "stock", "staff", "restroom", "core", "utility"}
+    assert set(rooms) == {
+        "sales_a", "sales_b", "checkout", "stock", "staff",
+        "restroom", "core", "utility",
+    }
     assert all(metric.within_range for metric in commercial.validation.room_areas)
     assert all(metric.minimum_width_passed and metric.aspect_ratio_passed for metric in commercial.validation.room_shapes)
-    assert shared_boundary_with_segments_length(rooms["sales"].polygon, [((0, 0), (24, 0))]) > 0
+    assert all(
+        shared_boundary_with_segments_length(
+            rooms[tenant].polygon, [((0, 0), (24, 0))]
+        ) > 0
+        for tenant in ("sales_a", "sales_b")
+    )
     assert shared_boundary_with_segments_length(rooms["stock"].polygon, [((0, 0), (24, 0))]) == 0
     assert shared_boundary_with_segments_length(rooms["staff"].polygon, [((0, 0), (24, 0))]) == 0
     assert len(commercial.layout.openings) == len(rooms)
@@ -278,7 +286,8 @@ def test_role_driven_profiles_generate_exact_rooms_and_valid_30x12_layouts():
 
     expected = {
         "neighborhood_commercial": {
-            "sales", "checkout", "stock", "staff", "restroom", "core", "utility"
+            "sales_a", "sales_b", "checkout", "stock", "staff",
+            "restroom", "core", "utility",
         },
         "office": {
             "open_work", "meeting", "reception", "focus", "pantry", "restroom",
@@ -299,7 +308,12 @@ def test_role_driven_profiles_generate_exact_rooms_and_valid_30x12_layouts():
         )
 
         if floor.program.use_type == "neighborhood_commercial":
-            assert shared_boundary_with_segments_length(rooms["sales"].polygon, street) > 0
+            assert all(
+                shared_boundary_with_segments_length(
+                    rooms[tenant].polygon, street
+                ) > 0
+                for tenant in ("sales_a", "sales_b")
+            )
             assert shared_boundary_with_segments_length(rooms["stock"].polygon, street) == 0
             assert shared_boundary_with_segments_length(rooms["staff"].polygon, street) == 0
         else:
@@ -359,7 +373,7 @@ def test_role_driven_layout_rejects_invalid_profile_roles(nodes, match):
     program = generate_program_graph(analysis, 1, "neighborhood_commercial")
     invalid = replace(program, nodes=nodes(program.nodes))
 
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match="commercial role contract"):
         generate_core_aligned_layout(
             analysis,
             invalid,

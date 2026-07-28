@@ -82,23 +82,15 @@ def generate_program_graph(
 
     profile = _profile_for(use_type)
     nodes = _nodes_from_profile(analysis.area, profile)
+    if use_type == "neighborhood_commercial":
+        nodes = _split_commercial_tenants(nodes)
 
     return ProgramGraph(
         project_id=analysis.project_id,
         floor_index=floor_index,
         use_type=use_type,
         nodes=nodes,
-        edges=[
-            ProgramEdge(
-                source=relationship.source,
-                target=relationship.target,
-                relation=relationship.relation,
-                weight=relationship.weight,
-            )
-            for relationship in profile.relationships
-            if _node_exists(relationship.source, nodes)
-            and (_node_exists(relationship.target, nodes) or relationship.target == "street")
-        ],
+        edges=_relationship_edges(profile, nodes),
         source="baseline_prior",
     )
 
@@ -132,6 +124,51 @@ def _nodes_from_profile(total_area: float, profile: ProgramProfile) -> list[Prog
 
 def _node_exists(node_id: str, nodes: list[ProgramNode]) -> bool:
     return any(node.node_id == node_id for node in nodes)
+
+
+def _relationship_edges(
+    profile: ProgramProfile,
+    nodes: list[ProgramNode],
+) -> list[ProgramEdge]:
+    def ids(endpoint: str) -> list[str]:
+        exact = [node.node_id for node in nodes if node.node_id == endpoint]
+        if exact:
+            return exact
+        role_matches = [
+            node.node_id for node in nodes if node.space_type == endpoint
+        ]
+        return role_matches or ([endpoint] if endpoint == "street" else [])
+
+    return [
+        ProgramEdge(source, target, relationship.relation, relationship.weight)
+        for relationship in profile.relationships
+        for source in ids(relationship.source)
+        for target in ids(relationship.target)
+    ]
+
+
+def _split_commercial_tenants(nodes: list[ProgramNode]) -> list[ProgramNode]:
+    sales = next(node for node in nodes if node.node_id == "sales")
+    tenant_target = float(sales.target_area) * 0.5
+    tenants = [
+        ProgramNode(
+            node_id=f"sales_{suffix}",
+            space_type="sales",
+            target_area=_clean_number(tenant_target),
+            min_area=_clean_number(tenant_target * 0.85),
+            max_area=_clean_number(tenant_target * 1.15),
+            frontage_required=True,
+            min_width=4.0,
+            max_aspect_ratio=sales.max_aspect_ratio,
+            zone=sales.zone,
+            tenant_id=f"tenant_{suffix}",
+        )
+        for suffix in ("a", "b")
+    ]
+    return [
+        *tenants,
+        *(node for node in nodes if node.node_id != "sales"),
+    ]
 
 
 def _clean_number(value: float) -> float | int:

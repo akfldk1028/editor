@@ -9,6 +9,7 @@ from backend.app.schemas.layout import (
     PlanElement,
     PlanLine,
     RoomPolygon,
+    UsePlanningMetadata,
 )
 from engine.geometry.access import orthogonal_min_width, shared_boundary_segments
 from engine.geometry.polygon import contains_polygon, polygon_area, polygon_overlap_area
@@ -60,8 +61,12 @@ def generate_basic_design(
         raise ValueError("basic design requires validated room doors")
     circulation_cells = _circulation_cells(layout.circulation)
 
-    exits = _protected_exits(core, layout.circulation)
-    elements = _core_elements(core, exits)
+    exits = _protected_exits(
+        core,
+        layout.circulation,
+        layout.remote_stair_footprint,
+    )
+    elements = _core_elements(core, exits, layout.remote_stair_footprint)
     lines: list[PlanLine] = [*exits, *_core_access_lines(elements, exits)]
     lines.extend(_egress_routes(layout, exits, circulation_cells))
     if shared_structure is None:
@@ -75,7 +80,30 @@ def generate_basic_design(
     object_elements = _room_contents(layout, elements, lines)
     elements.extend(object_elements)
     lines.extend(_dimensions_and_site(boundary, layout.circulation, street_segments))
-    return BasicDesignFeatures(elements=tuple(elements), lines=tuple(lines))
+    planning = None
+    if any(room.space_type == "open_work" for room in layout.rooms):
+        reception_route = next(
+            (
+                line.line_id
+                for line in lines
+                if line.kind == "egress_route"
+                and line.host_id == "reception"
+            ),
+            None,
+        )
+        planning = UsePlanningMetadata(
+            reception_to_lobby_route_line_id=reception_route,
+            support_room_ids=tuple(
+                room.room_id
+                for room in layout.rooms
+                if room.space_type in {"pantry", "restroom", "it_storage"}
+            ),
+        )
+    return BasicDesignFeatures(
+        elements=tuple(elements),
+        lines=tuple(lines),
+        planning=planning,
+    )
 
 
 def generate_shared_structure(
@@ -91,8 +119,12 @@ def generate_shared_structure(
             raise ValueError("shared structure requires exactly one core per floor")
         core = cores[0]
         _require_rectangular_core(core)
-        exits = _protected_exits(core, layout.circulation)
-        elements = _core_elements(core, exits)
+        exits = _protected_exits(
+            core,
+            layout.circulation,
+            layout.remote_stair_footprint,
+        )
+        elements = _core_elements(core, exits, layout.remote_stair_footprint)
         core_data.append((elements, exits))
     lines, columns = _structure(boundary, layouts, tuple(core_data))
     return StructureSet(lines=tuple(lines), columns=tuple(columns))
@@ -101,6 +133,7 @@ def generate_shared_structure(
 def _core_elements(
     core: RoomPolygon,
     exits: list[PlanLine],
+    remote_stair_footprint: tuple[Point, ...] | None,
 ) -> list[PlanElement]:
     min_x, min_y, max_x, max_y = _bounds(core.polygon)
     if len(exits) != 2:
@@ -241,7 +274,28 @@ def _core_elements(
         )
         for element_id, kind, label, footprint in local_shapes
     ]
-    if not all(contains_polygon(core.polygon, element.footprint) for element in elements):
+    if remote_stair_footprint is None:
+        raise ValueError("core elements require a remote stair reserve")
+    elements = [
+        (
+            PlanElement(
+                element_id="remote-stair-2",
+                category="vertical",
+                kind="stair",
+                host_id="floor",
+                label="UP",
+                footprint=remote_stair_footprint,
+            )
+            if element.element_id == "core-stair-2"
+            else element
+        )
+        for element in elements
+    ]
+    if not all(
+        element.host_id == "floor"
+        or contains_polygon(core.polygon, element.footprint)
+        for element in elements
+    ):
         raise ValueError("core subdivision must remain contained in the actual core")
     if any(
         polygon_overlap_area(left.footprint, right.footprint) > _EPSILON
@@ -265,6 +319,8 @@ def _core_access_lines(
     lines: list[PlanLine] = []
     for index, exit_line in enumerate(exits, start=1):
         stair = stairs[exit_line.target_id or ""]
+        if stair.host_id == "floor":
+            continue
         shared = shared_boundary_segments(
             list(lobby.footprint),
             list(stair.footprint),
@@ -307,7 +363,11 @@ def _core_access_lines(
     return lines
 
 
-def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[PlanLine]:
+def _protected_exits(
+    core: RoomPolygon,
+    circulation: list[RoomPolygon],
+    remote_stair_footprint: tuple[Point, ...] | None,
+) -> list[PlanLine]:
     shared = [
         segment
         for path in circulation
@@ -319,19 +379,49 @@ def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[
         max(shared, key=lambda segment: math.dist(*segment))
     )
     length = math.dist(start, end)
-    if length < 2.7 - _EPSILON:
-        raise ValueError("core/circulation shared boundary cannot fit two protected exits")
-    first = _segment_between(
-        start,
-        end,
-        0.15,
-        0.15 + _PROTECTED_OPENING_WIDTH / length,
+    if length < _PROTECTED_OPENING_WIDTH - _EPSILON:
+        raise ValueError("core/circulation shared boundary cannot fit a protected exit")
+    first = _centered_segment((start, end), _PROTECTED_OPENING_WIDTH)
+    if remote_stair_footprint is None:
+        raise ValueError("layout must reserve a remote stair footprint")
+    remote_candidates = [
+        (path, segment)
+        for path in circulation
+        for segment in shared_boundary_segments(
+            list(remote_stair_footprint),
+            path.polygon,
+        )
+    ]
+    if not remote_candidates:
+        raise ValueError("remote stair reserve must share a circulation boundary")
+    remote_path, remote_boundary = max(
+        remote_candidates,
+        key=lambda item: math.dist(*item[1]),
     )
-    second = _segment_between(
-        start,
-        end,
-        0.85 - _PROTECTED_OPENING_WIDTH / length,
-        0.85,
+    remote_start, remote_end = _ordered_segment(remote_boundary)
+    remote_length = math.dist(remote_start, remote_end)
+    if remote_length < _PROTECTED_OPENING_WIDTH - _EPSILON:
+        raise ValueError("remote stair boundary cannot fit a protected exit")
+    unit_x = (remote_end[0] - remote_start[0]) / remote_length
+    unit_y = (remote_end[1] - remote_start[1]) / remote_length
+    remote_end_segment = (
+        (
+            remote_end[0] - unit_x * _PROTECTED_OPENING_WIDTH,
+            remote_end[1] - unit_y * _PROTECTED_OPENING_WIDTH,
+        ),
+        remote_end,
+    )
+    remote_start_segment = (
+        remote_start,
+        (
+            remote_start[0] + unit_x * _PROTECTED_OPENING_WIDTH,
+            remote_start[1] + unit_y * _PROTECTED_OPENING_WIDTH,
+        ),
+    )
+    first_midpoint = _midpoint(*first)
+    second = max(
+        (remote_start_segment, remote_end_segment),
+        key=lambda segment: math.dist(first_midpoint, _midpoint(*segment)),
     )
     return [
         PlanLine(
@@ -339,8 +429,8 @@ def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[
             category="egress",
             kind="protected_exit",
             points=points,
-            host_id=core.room_id,
-            target_id=f"core-stair-{index}",
+            host_id=core.room_id if index == 1 else remote_path.room_id,
+            target_id="core-stair-1" if index == 1 else "remote-stair-2",
             label=f"EXIT {index}",
             clear_width=_PROTECTED_OPENING_WIDTH,
         )
@@ -581,6 +671,18 @@ def _structure(
             *core_elements,
             *[
                 PlanElement(
+                    element_id=f"{room.room_id}-structure-exclusion",
+                    category="vertical",
+                    kind="core_exclusion",
+                    host_id=room.room_id,
+                    label="",
+                    footprint=tuple(room.polygon),
+                )
+                for room in layout.rooms
+                if room.space_type == "core"
+            ],
+            *[
+                PlanElement(
                     element_id=path.room_id,
                     category="circulation",
                     kind="circulation",
@@ -625,37 +727,96 @@ def _structure(
                 )
             )
     if not columns:
-        raise ValueError("no interior structural columns can be placed without collisions")
+        fallback_x = _grid_values(min_x + 3.0, max_x - 3.0)
+        fallback_y = _grid_values(min_y + 3.0, max_y - 3.0)
+        for x in fallback_x:
+            for y in fallback_y:
+                footprint = _rectangle(x - 0.2, y - 0.2, x + 0.2, y + 0.2)
+                if (
+                    contains_polygon(boundary, footprint)
+                    and not any(
+                        polygon_overlap_area(footprint, item.footprint) > _EPSILON
+                        for item in exclusions
+                    )
+                    and not any(
+                        _rectangle_intersects_segment(
+                            footprint, opening.start, opening.end
+                        )
+                        for layout in layouts
+                        for opening in layout.openings
+                    )
+                ):
+                    columns.append(
+                        PlanElement(
+                            element_id=f"column-{len(columns) + 1}",
+                            category="structure",
+                            kind="column",
+                            host_id="floor",
+                            label="COL",
+                            footprint=footprint,
+                        )
+                    )
+        if not columns:
+            raise ValueError("no interior structural columns can be placed without collisions")
     return lines, columns
 
 
 def _envelope(layout: LayoutCandidate, boundary: list[Point], streets: list[Segment]) -> list[PlanLine]:
     lines: list[PlanLine] = []
     street = streets[0] if streets else None
-    commercial_sales = next((room for room in layout.rooms if room.space_type == "sales"), None)
-    if commercial_sales is not None:
+    commercial_sales_rooms = [
+        room for room in layout.rooms if room.space_type == "sales"
+    ]
+    entrances: dict[str, tuple[Point, Point]] = {}
+    if commercial_sales_rooms:
         if street is None:
             raise ValueError("commercial design requires a supplied street edge")
-        sales_street_edges = [
-            segment
-            for segment in _exterior_segments(commercial_sales.polygon, boundary)
+        for commercial_sales in commercial_sales_rooms:
+            sales_street_edges = [
+                segment
+                for segment in _exterior_segments(commercial_sales.polygon, boundary)
+                if _segment_within(segment, street)
+            ]
+            if not sales_street_edges:
+                raise ValueError("commercial entrance street edge does not touch sales room")
+            entrance = _centered_segment(
+                max(sales_street_edges, key=lambda segment: math.dist(*segment)),
+                1.8,
+            )
+            entrances[commercial_sales.room_id] = entrance
+            lines.append(
+                PlanLine(
+                    line_id=f"{commercial_sales.room_id}-commercial-entrance",
+                    category="envelope",
+                    kind="entrance",
+                    points=entrance,
+                    host_id=commercial_sales.room_id,
+                    label="TENANT ENTRANCE",
+                    clear_width=1.8,
+                )
+            )
+        public_street_edges = [
+            (path.room_id, segment)
+            for path in layout.circulation
+            for segment in _exterior_segments(path.polygon, boundary)
             if _segment_within(segment, street)
+            and math.dist(*segment) >= 0.9
         ]
-        if not sales_street_edges:
-            raise ValueError("commercial entrance street edge does not touch sales room")
-        entrance = _centered_segment(
-            max(sales_street_edges, key=lambda segment: math.dist(*segment)),
-            1.8,
-        )
+        if not public_street_edges:
+            raise ValueError(
+                "commercial core requires a street-connected public circulation entrance"
+            )
+        public_path_id, public_edge = public_street_edges[0]
         lines.append(
             PlanLine(
-                line_id="commercial-entrance",
+                line_id="core-public-entrance",
                 category="envelope",
                 kind="entrance",
-                points=entrance,
-                host_id=commercial_sales.room_id,
-                label="ENTRANCE",
-                clear_width=1.8,
+                points=_centered_segment(public_edge, 0.9),
+                host_id="core",
+                target_id=public_path_id,
+                label="CORE ENTRY",
+                clear_width=0.9,
             )
         )
     for room in layout.rooms:
@@ -665,7 +826,9 @@ def _envelope(layout: LayoutCandidate, boundary: list[Point], streets: list[Segm
         if not candidates:
             continue
         storefront_window: tuple[Point, Point] | None = None
-        if room is commercial_sales and street is not None:
+        is_commercial_sales = room.room_id in entrances
+        entrance = entrances.get(room.room_id)
+        if is_commercial_sales and street is not None:
             alternate = [
                 segment for segment in candidates
                 if not _segment_within(segment, street)
@@ -682,7 +845,11 @@ def _envelope(layout: LayoutCandidate, boundary: list[Point], streets: list[Segm
         if storefront_window is None and length < 0.6:
             raise ValueError(f"perimeter room '{room.room_id}' has no usable exterior wall for window")
         window = storefront_window or _centered_segment(selected, min(1.5, length * 0.5))
-        if room is commercial_sales and _collinear_overlap_length(window, entrance) > _EPSILON:
+        if (
+            is_commercial_sales
+            and entrance is not None
+            and _collinear_overlap_length(window, entrance) > _EPSILON
+        ):
             raise ValueError("sales window cannot be separated from the commercial entrance")
         lines.append(
             PlanLine(
@@ -736,6 +903,8 @@ def _room_contents(
             for line in fixed_lines
             if line.kind == "window" and line.host_id == room.room_id
         )
+        if _bounds(room.polygon)[2] - _bounds(room.polygon)[0] < 1.2:
+            placement_margin = 0.3
         if room.space_type in {"sales", "open_work"}:
             # Representative density heuristic: one primary object per 30 m2,
             # with two minimum, for concept review only.
@@ -762,6 +931,25 @@ def _room_contents(
                 )
                 placement_margin = 0.8
                 aisle = 1.0
+            if (
+                room.space_type == "sales"
+                and room.room_id.startswith("sales_")
+                and room_max_x - room_min_x < 12.5
+            ):
+                object_size = (1.4, 0.6)
+                placement_margin = 0.3
+                aisle = 0.4
+                if room_max_x - room_min_x < 8.0:
+                    room_requirements = (("sales_shelf", "furniture"),)
+                    object_size = (0.8, 0.5)
+            if room.space_type == "open_work":
+                count = math.ceil(polygon_area(room.polygon) / 9.0)
+                room_requirements = tuple(
+                    ("workstation", "furniture") for _ in range(count)
+                )
+                object_size = (0.7, 0.7)
+                placement_margin = 0.6
+                aisle = 0.7
             room_clearance.extend(
                 _primary_access_segments(room, layout, fixed_lines)
             )
@@ -769,7 +957,17 @@ def _room_contents(
             footprint = _place_object(
                 room,
                 kind,
-                [*fixed_elements, *placed],
+                [
+                    *(
+                        element
+                        for element in fixed_elements
+                        if not (
+                            element.kind == "stair"
+                            and element.host_id == "floor"
+                        )
+                    ),
+                    *placed,
+                ],
                 room_clearance,
                 object_size=object_size,
                 placement_margin=placement_margin,

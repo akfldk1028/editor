@@ -13,6 +13,8 @@ from backend.app.modules.generation_loop.selector import rank_candidate, select_
 from backend.app.modules.layout_generator.service import (
     generate_baseline_layout,
     generate_core_aligned_layout,
+    generate_rear_center_layout,
+    generate_side_mid_layout,
 )
 from backend.app.modules.basic_design.service import (
     generate_basic_design,
@@ -38,6 +40,7 @@ from backend.app.schemas.result import (
     PlannerProvenance,
 )
 from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
+from backend.app.schemas.program import ProgramAdjustment
 
 
 def run_generation_loop(
@@ -171,16 +174,20 @@ def run_building_generation(
         programs = [
             _compress_compact_program(
                 program,
-                primary_factor=0.9,
+                primary_factor=0.8,
                 service_factor=0.6,
                 upper_service_factor=(
-                    (1.2 if program.use_type == "neighborhood_commercial" else 1.1)
+                    (0.5 if program.use_type == "neighborhood_commercial" else 0.5)
                     if shallow_compact
                     else None
                 ),
             )
             for program in programs
         ]
+    programs = [
+        _fit_rear_primary_program(program, analysis)
+        for program in programs
+    ]
     core_top = float(_clean_area(min_y + core_height))
     shared_core = [
         (service_x, min_y),
@@ -191,13 +198,20 @@ def run_building_generation(
 
     layouts = []
     for program in programs:
-        layout = generate_core_aligned_layout(
-            analysis,
-            program,
-            core_polygon=shared_core,
-            service_band_width=service_band_width,
-            room_scale=room_scale,
-        )
+        if use_role_layout:
+            layout = generate_rear_center_layout(
+                analysis,
+                program,
+                core_position="rear_right",
+            )
+        else:
+            layout = generate_core_aligned_layout(
+                analysis,
+                program,
+                core_polygon=shared_core,
+                service_band_width=service_band_width,
+                room_scale=room_scale,
+            )
         layouts.append(layout)
 
     shared_structure = generate_shared_structure(
@@ -268,9 +282,9 @@ def run_building_generation(
 
 
 _ALTERNATIVE_STRATEGIES = (
-    ("alternative-a", "rear-right-core-single-spine", "mirror-y"),
-    ("alternative-b", "rear-left-core-reversed-bays", "mirror-xy"),
-    ("alternative-c", "front-right-core-longitudinal-spine", "identity"),
+    ("alternative-a", "rear-right-core-single-spine", "rear-right"),
+    ("alternative-b", "rear-center-core-dual-bay", "rear-center"),
+    ("alternative-c", "side-mid-core-longitudinal-spine", "side-mid"),
 )
 
 
@@ -279,16 +293,29 @@ def run_building_alternatives(mass: MassInput) -> BuildingAlternativesResult:
     baseline = run_building_generation(mass)
     alternatives = []
     for alternative_id, strategy, transform in _ALTERNATIVE_STRATEGIES:
-        building = (
-            baseline
-            if transform == "identity"
-            else _transform_building_alternative(
+        if transform == "identity":
+            building = baseline
+        elif transform == "rear-right":
+            building = _generate_positioned_building(
+                baseline,
+                mass=mass,
+                generator=lambda analysis, program: generate_rear_center_layout(
+                    analysis,
+                    program,
+                    core_position="rear_right",
+                ),
+            )
+        elif transform == "rear-center":
+            building = _generate_rear_center_building(baseline, mass=mass)
+        elif transform == "side-mid":
+            building = _generate_side_mid_building(baseline, mass=mass)
+        else:
+            building = _transform_building_alternative(
                 baseline,
                 mass=mass,
                 transform=transform,
                 alternative_id=alternative_id,
             )
-        )
         fingerprints = tuple(
             layout_fingerprint(floor.layout)
             for floor in building.floor_results
@@ -398,12 +425,49 @@ def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
             if room.space_type != "core"
         )
     )
+    basic_design = layout.basic_design
+    entrance_lines = (
+        [
+            line
+            for line in basic_design.lines
+            if line.category == "envelope" and line.kind == "entrance"
+        ]
+        if basic_design is not None
+        else []
+    )
+    tenant_room_ids = {
+        room.room_id
+        for room in layout.rooms
+        if room.room_id.startswith("sales_")
+    }
+    tenant_entrances = tuple(
+        sorted(
+            f"{line.host_id}:{line.line_id}"
+            for line in entrance_lines
+            if line.host_id in tenant_room_ids
+        )
+    )
+    core_public_entrance = any(
+        line.line_id == "core-public-entrance"
+        for line in entrance_lines
+    )
+    family_payload = (
+        core_centroid,
+        orientation,
+        circulation_bounds,
+        graph,
+        tenants,
+    )
     return {
         "core_centroid": core_centroid,
         "circulation_orientation": orientation,
         "circulation_bounds": circulation_bounds,
         "circulation_graph_signature": graph,
         "tenant_assignment_signature": tenants,
+        "tenant_count": len(tenant_room_ids),
+        "tenant_entrance_assignments": tenant_entrances,
+        "core_public_entrance": core_public_entrance,
+        "design_family_signature": repr(family_payload),
     }
 
 
@@ -463,6 +527,174 @@ def _transform_building_alternative(
         baseline,
         floor_results=values,
         vertical_core_aligned=all(core == cores[0] for core in cores[1:]),
+        vertical_basic_design_aligned=vertical_basic,
+        vertical_structure_aligned=vertical_structure,
+    )
+
+
+def _generate_rear_center_building(
+    baseline: BuildingGenerationResult,
+    *,
+    mass: MassInput,
+) -> BuildingGenerationResult:
+    adjusted_floors = []
+    for floor in baseline.floor_results:
+        if floor.program.use_type != "office":
+            adjusted_floors.append(floor)
+            continue
+        nodes = [
+            (
+                replace(
+                    node,
+                    target_area=_clean_area(float(node.target_area) * 0.95),
+                    min_area=_clean_area(float(node.target_area) * 0.95 * 0.85),
+                    max_area=_clean_area(float(node.target_area) * 0.95 * 1.15),
+                    min_width=(
+                        _clean_area(float(node.min_width) * 0.95)
+                        if node.min_width is not None
+                        else None
+                    ),
+                )
+                if node.space_type not in {"core", "open_work"}
+                else node
+            )
+            for node in floor.program.nodes
+        ]
+        program = replace(
+            floor.program,
+            nodes=nodes,
+            source=f"{floor.program.source}:rear_center_service_fit",
+            adjustments=(
+                *floor.program.adjustments,
+                _program_adjustment(
+                    "rear_center_service_fit",
+                    floor.program.nodes,
+                    nodes,
+                ),
+            ),
+        )
+        adjusted_floors.append(replace(floor, program=program))
+    return _generate_positioned_building(
+        replace(baseline, floor_results=tuple(adjusted_floors)),
+        mass=mass,
+        generator=generate_rear_center_layout,
+    )
+
+
+def _generate_side_mid_building(
+    baseline: BuildingGenerationResult,
+    *,
+    mass: MassInput,
+) -> BuildingGenerationResult:
+    min_x, min_y, max_x, max_y = baseline.mass.bounds
+    depth = max_y - min_y
+    cross_bottoms = []
+    required_service_heights = []
+    for floor in baseline.floor_results:
+        core = next(
+            node for node in floor.program.nodes if node.space_type == "core"
+        )
+        core_height = max(7.2, depth * 0.6)
+        core_width = float(core.target_area) * 0.855 / core_height
+        branch_left = max_x - core_width - 1.2
+        primary = next(
+            node
+            for node in floor.program.nodes
+            if node.space_type in {"sales", "open_work"}
+        )
+        primary_width = (
+            (branch_left - min_x) / 2
+            if floor.program.use_type == "neighborhood_commercial"
+            else branch_left - min_x
+        )
+        cross_bottoms.append(
+            min_y + float(primary.target_area) * 0.855 / primary_width
+        )
+        service_nodes = [
+            node
+            for node in floor.program.nodes
+            if node.space_type not in {"core", "sales", "open_work"}
+        ]
+        available_width = max(branch_left - min_x - 4.8, 1.0)
+        service_height = max(
+            2.4,
+            sum(float(node.target_area) * 0.855 for node in service_nodes)
+            / available_width,
+        )
+        while (
+            sum(
+                max(
+                    float(node.target_area) * 0.855 / service_height,
+                    float(node.min_width or 0),
+                    1.1,
+                )
+                for node in service_nodes
+            )
+            > available_width
+            and service_height < depth - 3.2
+        ):
+            service_height += 0.1
+        required_service_heights.append(service_height)
+    shared_cross_bottom = min(
+        max(cross_bottoms),
+        max_y - 1.2 - max(required_service_heights),
+    )
+    return _generate_positioned_building(
+        baseline,
+        mass=mass,
+        generator=lambda analysis, program: generate_side_mid_layout(
+            analysis,
+            program,
+            cross_bottom_override=shared_cross_bottom,
+        ),
+    )
+
+
+def _generate_positioned_building(
+    baseline: BuildingGenerationResult,
+    *,
+    mass: MassInput,
+    generator,
+) -> BuildingGenerationResult:
+    layouts = tuple(
+        generator(baseline.mass, floor.program)
+        for floor in baseline.floor_results
+    )
+    shared_structure = generate_shared_structure(mass.footprint_polygon, layouts)
+    streets = _street_segments(mass)
+    floors = []
+    for floor, layout in zip(baseline.floor_results, layouts):
+        layout = replace(
+            layout,
+            basic_design=generate_basic_design(
+                layout,
+                boundary=mass.footprint_polygon,
+                street_segments=streets,
+                shared_structure=shared_structure,
+            ),
+        )
+        floors.append(
+            replace(
+                floor,
+                layout=layout,
+                validation=validate_layout(
+                    layout,
+                    floor.program,
+                    boundary=mass.footprint_polygon,
+                    street_segments=streets,
+                    require_openings=True,
+                    min_door_width=0.8,
+                    min_circulation_width=1.2,
+                    require_basic_design=True,
+                ),
+            )
+        )
+    values = tuple(floors)
+    vertical_basic, vertical_structure = _vertical_basic_design_alignment(values)
+    return replace(
+        baseline,
+        floor_results=values,
+        vertical_core_aligned=True,
         vertical_basic_design_aligned=vertical_basic,
         vertical_structure_aligned=vertical_structure,
     )
@@ -672,14 +904,13 @@ def _normalize_program_core(program, shared_core_target: float):
         primary_candidates = [
             node for node in program.nodes if node.space_type == primary_role
         ]
-    if len(primary_candidates) != 1:
+    if not primary_candidates:
         raise ValueError(
-            f"program must contain exactly one residual primary role for {program.use_type}"
+            f"program must contain a residual primary role for {program.use_type}"
         )
-    primary = primary_candidates[0]
     delta = shared_core_target - float(core.target_area)
-    primary_target = float(primary.target_area) - delta
-    if primary_target <= 0:
+    primary_total = sum(float(node.target_area) for node in primary_candidates)
+    if primary_total - delta <= 0:
         raise ValueError("shared core leaves no primary usable area")
     nodes = []
     for node in program.nodes:
@@ -693,7 +924,9 @@ def _normalize_program_core(program, shared_core_target: float):
                     max_area=_clean_area(target * 1.15),
                 )
             )
-        elif node.node_id == primary.node_id:
+        elif node in primary_candidates:
+            share = float(node.target_area) / primary_total
+            primary_target = float(node.target_area) - delta * share
             nodes.append(
                 replace(
                     node,
@@ -747,9 +980,153 @@ def _compress_compact_program(
                 target_area=_clean_area(target),
                 min_area=_clean_area(target * 0.85),
                 max_area=_clean_area(target * 1.15),
+                min_width=(
+                    max(1.1, float(node.min_width) * 0.5)
+                    if node.min_width is not None
+                    and node.space_type != "core"
+                    else node.min_width
+                ),
+                max_aspect_ratio=(
+                    max(8.5, float(node.max_aspect_ratio or 1.0))
+                    if node.space_type != "core"
+                    else node.max_aspect_ratio
+                ),
             )
         )
-    return replace(program, nodes=nodes, source="compact_building_aligned_prior")
+    return replace(
+        program,
+        nodes=nodes,
+        source="compact_building_aligned_prior",
+        adjustments=(
+            *program.adjustments,
+            _program_adjustment(
+                "compact_mass_fit",
+                program.nodes,
+                nodes,
+            ),
+        ),
+    )
+
+
+def _fit_rear_primary_program(program, analysis: MassAnalysis):
+    min_x, min_y, max_x, max_y = analysis.bounds
+    depth = max_y - min_y
+    rear_height = max(5.2, depth * 0.5)
+    front_depth = depth - rear_height - 1.2
+    capacity = (max_x - min_x - 1.2) * front_depth
+    core = next(node for node in program.nodes if node.space_type == "core")
+    actual_core_area = max(
+        7.0,
+        float(core.target_area) * 0.855 / rear_height,
+    ) * rear_height
+    fitted_core_target = (
+        actual_core_area / 0.855
+        if (
+            actual_core_area < float(core.min_area or 0)
+            or actual_core_area > float(core.max_area or math.inf)
+        )
+        else float(core.target_area)
+    )
+    if program.use_type == "neighborhood_commercial":
+        tenant_actual = ((max_x - min_x - 1.2) / 2) * front_depth
+        tenant_target = tenant_actual / 0.855
+        nodes = [
+            (
+                replace(
+                    node,
+                    target_area=_clean_area(tenant_target),
+                    min_area=_clean_area(tenant_target * 0.85),
+                    max_area=_clean_area(tenant_target * 1.15),
+                    max_aspect_ratio=max(
+                        6.5, float(node.max_aspect_ratio or 1.0)
+                    ),
+                )
+                if node.space_type == "sales"
+                else replace(
+                    node,
+                    max_aspect_ratio=max(
+                        6.5, float(node.max_aspect_ratio or 1.0)
+                    ),
+                )
+                if node.space_type != "core"
+                else replace(
+                    node,
+                    target_area=_clean_area(fitted_core_target),
+                    min_area=_clean_area(fitted_core_target * 0.85),
+                    max_area=_clean_area(fitted_core_target * 1.15),
+                )
+                if node.space_type == "core"
+                else node
+            )
+            for node in program.nodes
+        ]
+        return replace(
+            program,
+            nodes=nodes,
+            source=f"{program.source}:rear_tenant_fit",
+            adjustments=(
+                *program.adjustments,
+                _program_adjustment("rear_tenant_fit", program.nodes, nodes),
+            ),
+        )
+    if program.use_type != "office":
+        return program
+    primary = next(node for node in program.nodes if node.space_type == "open_work")
+    fitted_target = min(float(primary.target_area), capacity / 0.855 * 0.999)
+    nodes = [
+        (
+            replace(
+                node,
+                target_area=_clean_area(fitted_target),
+                min_area=_clean_area(fitted_target * 0.85),
+                max_area=_clean_area(fitted_target * 1.15),
+                min_width=min(float(node.min_width or front_depth), front_depth),
+                max_aspect_ratio=max(
+                    6.5, float(node.max_aspect_ratio or 1.0)
+                ),
+            )
+            if node.node_id == primary.node_id
+            else replace(
+                node,
+                max_aspect_ratio=max(
+                    6.5, float(node.max_aspect_ratio or 1.0)
+                ),
+            )
+            if node.space_type != "core"
+            else replace(
+                node,
+                target_area=_clean_area(fitted_core_target),
+                min_area=_clean_area(fitted_core_target * 0.85),
+                max_area=_clean_area(fitted_core_target * 1.15),
+            )
+            if node.space_type == "core"
+            else node
+        )
+        for node in program.nodes
+    ]
+    return replace(
+        program,
+        nodes=nodes,
+        source=f"{program.source}:rear_primary_fit",
+        adjustments=(
+            *program.adjustments,
+            _program_adjustment("rear_primary_fit", program.nodes, nodes),
+        ),
+    )
+
+
+def _program_adjustment(reason, original_nodes, adjusted_nodes):
+    return ProgramAdjustment(
+        reason=reason,
+        original_targets=tuple(
+            (node.node_id, float(node.target_area))
+            for node in original_nodes
+        ),
+        adjusted_targets=tuple(
+            (node.node_id, float(node.target_area))
+            for node in adjusted_nodes
+        ),
+    )
 
 
 def _require_rectangular_floor_plate(

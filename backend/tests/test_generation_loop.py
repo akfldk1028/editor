@@ -195,7 +195,6 @@ def test_candidate_search_reports_compact_commercial_infeasibility():
     corridor = next(record for record in result.history if record.operator == "corridor-horizontal")
     violations = {(item.code, item.subject) for item in corridor.validation.violations}
     assert {
-        ("room_aspect_ratio", "sales"),
         ("room_min_width", "checkout"),
         ("room_min_width", "staff"),
     } <= violations

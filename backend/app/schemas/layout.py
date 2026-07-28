@@ -114,3 +114,12 @@ class LayoutCandidate:
     score: float
     openings: list[OpeningSegment] = field(default_factory=list)
     basic_design: BasicDesignFeatures | None = None
+    remote_stair_footprint: tuple[Point, ...] | None = None
+
+    def __post_init__(self) -> None:
+        if self.remote_stair_footprint is not None:
+            _require_finite_points(
+                self.remote_stair_footprint,
+                label="remote stair footprint",
+                minimum=3,
+            )
