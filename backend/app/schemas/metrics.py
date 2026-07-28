@@ -134,6 +134,10 @@ class BasicDesignMetric:
         default_factory=UsePlanningMetrics
     )
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.policy_checks, UsePlanningMetrics):
+            raise TypeError("policy_checks must be immutable UsePlanningMetrics")
+
 
 @dataclass(frozen=True)
 class ValidationReport:

@@ -247,6 +247,70 @@ def test_common_core_access_requires_connected_circulation_topology() -> None:
     }
 
 
+def test_generated_commercial_common_entry_reaches_validated_core_exit() -> None:
+    mass, commercial = _generated_commercial_result("connected-core-entry")
+
+    report = validate_layout(
+        commercial.layout,
+        commercial.program,
+        mass.footprint_polygon,
+        street_segments=[((0, 0), (30, 0))],
+        require_basic_design=True,
+    )
+
+    assert report.basic_design is not None
+    check = report.basic_design.policy_checks["common_core_access"]
+    assert check["value"] == 1
+    assert check["threshold"] == 1
+    assert check["pass"] is True
+
+
+def test_common_core_access_requires_entry_component_to_contain_core_exit() -> None:
+    mass, commercial = _generated_commercial_result("split-core-access")
+    assert commercial.layout.basic_design is not None
+    entry_component = RoomPolygon(
+        "entry-core-pocket",
+        "circulation",
+        [(22.0, 0.0), (23.9, 0.0), (23.9, 6.0), (22.0, 6.0)],
+    )
+    exit_component = RoomPolygon(
+        "exit-core-pocket",
+        "circulation",
+        [(25.5, 4.8), (30.0, 4.8), (30.0, 6.0), (25.5, 6.0)],
+    )
+    split = replace(
+        commercial.layout,
+        circulation=[entry_component, exit_component],
+        basic_design=replace(
+            commercial.layout.basic_design,
+            lines=tuple(
+                replace(
+                    line,
+                    points=((22.5, 0.0), (23.4, 0.0)),
+                    target_id="entry-core-pocket",
+                )
+                if line.line_id == "core-public-entrance"
+                else line
+                for line in commercial.layout.basic_design.lines
+            ),
+        ),
+    )
+
+    report = validate_layout(
+        split,
+        commercial.program,
+        mass.footprint_polygon,
+        street_segments=[((0, 0), (30, 0))],
+        require_basic_design=True,
+    )
+
+    assert report.basic_design is not None
+    check = report.basic_design.policy_checks["common_core_access"]
+    assert check["value"] == 0
+    assert check["threshold"] == 1
+    assert check["pass"] is False
+
+
 def test_workpoint_upper_bound_uses_floor_for_eight_square_meters() -> None:
     layout, program = _office_candidate()
     assert layout.basic_design is not None
@@ -359,6 +423,11 @@ def test_planning_and_policy_records_are_frozen_and_json_safe() -> None:
         check["pass"] = True
     with pytest.raises(TypeError):
         report.basic_design.policy_checks["extra"] = check
+    with pytest.raises(TypeError):
+        replace(
+            report.basic_design,
+            policy_checks={"workpoint_count": dict(check)},
+        )
     json.dumps(to_jsonable(report))
 
 
@@ -443,3 +512,15 @@ def _remote_floor_stair_candidate():
     )
     boundary = [(0.0, 0.0), (18.0, 0.0), (18.0, 12.0), (0.0, 12.0)]
     return remote_layout, program, boundary
+
+
+def _generated_commercial_result(project_id: str):
+    mass = MassInput(
+        project_id=project_id,
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+    return mass, run_building_generation(mass).floor_results[0]

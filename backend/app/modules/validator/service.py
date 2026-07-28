@@ -1365,6 +1365,7 @@ def _validate_basic_design(
         valid_lines,
         boundary,
         streets,
+        min_exit_width,
         add_violation,
     )
 
@@ -1401,6 +1402,7 @@ def _validate_use_planning(
     lines: dict[str, PlanLine],
     boundary: list[tuple[float, float]],
     streets: list[Segment],
+    min_exit_width: float,
     add_violation,
 ) -> dict[str, PolicyCheck]:
     if program.use_type == "neighborhood_commercial":
@@ -1511,25 +1513,34 @@ def _validate_use_planning(
             and line.target_id in circulation_ids
             and line.line_id not in assigned_entrance_ids
         ]
-        core_rooms = [
-            rooms[core_id] for core_id in sorted(core_ids) if core_id in rooms
+        core_candidates = [
+            room
+            for room in layout.rooms
+            if (
+                room.room_id in core_ids
+                and _is_valid_polygon(room.polygon)
+                and _is_axis_aligned_rectangle(room.polygon)
+            )
         ]
-        core_exit_exists = any(
-            line.kind == "protected_exit" and line.host_id in core_ids
-            for line in lines.values()
+        core = core_candidates[0] if len(core_candidates) == 1 else None
+        core_exit_path_ids = _validated_core_exit_circulation_ids(
+            core,
+            circulation,
+            elements,
+            lines,
+            min_exit_width,
         )
         connected_common_entries = sum(
-            _circulation_target_reaches_core(
+            _circulation_target_reaches_exit(
                 entry.target_id,
                 circulation,
-                core_rooms,
+                core_exit_path_ids,
             )
             for entry in common_entries
         )
         common_core_access_passed = (
             len(common_entries) == 1
             and connected_common_entries == 1
-            and core_exit_exists
         )
         if not common_core_access_passed:
             add_violation(
@@ -1554,7 +1565,7 @@ def _validate_use_planning(
                 "tenants with unique entrance and supplied-street frontage",
             ),
             "common_core_access": _policy_check(
-                connected_common_entries if core_exit_exists else 0,
+                connected_common_entries,
                 1,
                 common_core_access_passed,
                 (
@@ -1768,27 +1779,57 @@ def _policy_check(
     return PolicyCheck(value, threshold, passed, reason)
 
 
-def _circulation_target_reaches_core(
+def _validated_core_exit_circulation_ids(
+    core: RoomPolygon | None,
+    circulation: list[RoomPolygon],
+    elements: dict[str, PlanElement],
+    lines: dict[str, PlanLine],
+    min_exit_width: float,
+) -> set[str]:
+    if core is None:
+        return set()
+    result: set[str] = set()
+    for line in lines.values():
+        target = elements.get(line.target_id or "")
+        if (
+            line.category != "egress"
+            or line.kind != "protected_exit"
+            or line.host_id != core.room_id
+            or target is None
+            or target.category != "vertical"
+            or target.kind != "stair"
+            or target.host_id != core.room_id
+            or not _is_finite_number(line.clear_width)
+            or float(line.clear_width) + _EPSILON < min_exit_width
+            or abs(_polyline_length(line.points) - float(line.clear_width)) > 1e-7
+        ):
+            continue
+        exit_segment = (line.points[0], line.points[-1])
+        for path in circulation:
+            if any(
+                _segment_contains(segment, exit_segment)
+                for segment in shared_boundary_segments(
+                    core.polygon,
+                    path.polygon,
+                )
+            ):
+                result.add(path.room_id)
+    return result
+
+
+def _circulation_target_reaches_exit(
     target_id: str | None,
     circulation: list[RoomPolygon],
-    core_rooms: list[RoomPolygon],
+    exit_path_ids: set[str],
 ) -> bool:
     by_id = {path.room_id: path for path in circulation}
-    if target_id not in by_id or not core_rooms:
+    if target_id not in by_id or not exit_path_ids:
         return False
-    core_adjacent_ids = {
-        path.room_id
-        for path in circulation
-        if any(
-            shared_boundary_length(path.polygon, core.polygon) > _EPSILON
-            for core in core_rooms
-        )
-    }
     reached = {target_id}
     pending = [target_id]
     while pending:
         current_id = pending.pop()
-        if current_id in core_adjacent_ids:
+        if current_id in exit_path_ids:
             return True
         current = by_id[current_id]
         for candidate_id, candidate in by_id.items():
