@@ -11,6 +11,7 @@ from xml.etree import ElementTree
 import pytest
 
 import backend.app.modules.visual_review.service as visual_review_service
+from backend.app.core.serialization import to_jsonable
 from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.generation_loop.service import (
     run_building_generation,
@@ -991,6 +992,109 @@ def test_default_review_loop_runs_one_strict_concept_basic_evaluation(tmp_path):
     ):
         counts = report["layer_completeness"][layer]
         assert counts["modeled"] == counts["svg"] == counts["png"]
+
+
+def test_failed_concept_basic_geometry_preserves_validated_planner_provenance(
+    tmp_path, monkeypatch
+):
+    class PlannerClient:
+        provider = "openai"
+        model = "gpt-test"
+        last_response_id = None
+
+        def complete_json(self, *, system_prompt, user_payload):
+            self.last_response_id = "resp_geometry_failure"
+            return json.dumps(
+                {
+                    "project_id": user_payload["project_id"],
+                    "assignments": [
+                        {"floor_index": 1, "use_type": "neighborhood_commercial"},
+                        {"floor_index": 2, "use_type": "office"},
+                    ],
+                }
+            )
+
+    def fail_geometry(*args, **kwargs):
+        raise RuntimeError("geometry generation failed")
+
+    monkeypatch.setattr(
+        visual_review_service, "run_building_generation", fail_geometry
+    )
+    mass = MassInput(
+        project_id="failed-openai-geometry",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        floor_index=1,
+        use_type="neighborhood_commercial",
+        output_dir=tmp_path,
+        planner_client=PlannerClient(),
+    )
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+    expected = {
+        "planner_mode": "structured",
+        "provider": "openai",
+        "model": "gpt-test",
+        "response_id": "resp_geometry_failure",
+        "validated_assignments": [
+            {"floor_index": 1, "use_type": "neighborhood_commercial"},
+            {"floor_index": 2, "use_type": "office"},
+        ],
+    }
+
+    assert result.accepted is False
+    assert result.planner_provenance is not None
+    assert to_jsonable(result.planner_provenance) == expected
+    assert index["planner_provenance"] == expected
+
+
+def test_failed_concept_basic_planner_contract_preserves_partial_provenance(
+    tmp_path,
+):
+    class PlannerClient:
+        provider = "openai"
+        model = "gpt-test"
+        last_response_id = None
+
+        def complete_json(self, *, system_prompt, user_payload):
+            self.last_response_id = "resp_contract_failure"
+            return "{}"
+
+    mass = MassInput(
+        project_id="failed-openai-contract",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        floor_index=1,
+        use_type="office",
+        output_dir=tmp_path,
+        planner_client=PlannerClient(),
+    )
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+    expected = {
+        "planner_mode": "structured",
+        "provider": "openai",
+        "model": "gpt-test",
+        "response_id": "resp_contract_failure",
+        "validated_assignments": [],
+    }
+
+    assert result.accepted is False
+    assert result.planner_provenance is not None
+    assert to_jsonable(result.planner_provenance) == expected
+    assert index["planner_provenance"] == expected
 
 
 def test_review_index_is_identical_across_output_roots(tmp_path):

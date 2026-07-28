@@ -14,7 +14,7 @@ from backend.app.modules.generation_loop.service import (
     run_building_generation,
     run_candidate_search,
 )
-from backend.app.modules.llm_planner.service import run_llm_building_generation
+from backend.app.modules.llm_planner.service import plan_floor_assignments
 from backend.app.schemas.llm import FloorAssignment, SUPPORTED_USE_TYPES
 from backend.app.schemas.loop import CandidateRecord, LoopConfig
 from backend.app.schemas.layout import OpeningSegment, PlanElement, PlanLine
@@ -511,28 +511,33 @@ def _run_concept_basic_review(
     if use_type not in SUPPORTED_USE_TYPES:
         raise ValueError(f"unsupported use type: {use_type}")
 
+    assignments: tuple[FloorAssignment, ...] = ()
+    planner_provenance = _review_planner_provenance(planner_client, assignments)
     try:
-        assignments = tuple(
-            FloorAssignment(
-                assignment.floor_index,
-                use_type if assignment.floor_index == floor_index else assignment.use_type,
-            )
-            for assignment in assign_floors_from_use_mix(mass)
-        )
         if planner_client is None:
-            building = run_building_generation(
-                mass,
-                floor_assignments=assignments,
-                planner_provenance=PlannerProvenance(
-                    planner_mode="deterministic",
-                    provider="deterministic",
-                    model=None,
-                    response_id=None,
-                    validated_assignments=assignments,
-                ),
+            assignments = tuple(
+                FloorAssignment(
+                    assignment.floor_index,
+                    (
+                        use_type
+                        if assignment.floor_index == floor_index
+                        else assignment.use_type
+                    ),
+                )
+                for assignment in assign_floors_from_use_mix(mass)
             )
+            planner_provenance = _review_planner_provenance(None, assignments)
         else:
-            building = run_llm_building_generation(mass, planner_client)
+            plan = plan_floor_assignments(mass, planner_client)
+            assignments = plan.assignments
+            planner_provenance = _review_planner_provenance(
+                planner_client, assignments
+            )
+        building = run_building_generation(
+            mass,
+            floor_assignments=assignments,
+            planner_provenance=planner_provenance,
+        )
         selected = next(
             floor
             for floor in building.floor_results
@@ -543,6 +548,9 @@ def _run_concept_basic_review(
                 "planner assignment does not match requested floor/use type"
             )
     except Exception as error:
+        planner_provenance = _review_planner_provenance(
+            planner_client, assignments
+        )
         message = f"{type(error).__name__}: {error}"
         index = {
             "schema_version": 1,
@@ -560,6 +568,7 @@ def _run_concept_basic_review(
             "score_trend": [],
             "hard_failure_trend": [],
             "lineage": [],
+            "planner_provenance": to_jsonable(planner_provenance),
         }
         index_json_path, index_html_path = _write_review_index(target, index)
         return VisualReviewLoopResult(
@@ -573,6 +582,7 @@ def _run_concept_basic_review(
             accepted=False,
             error=message,
             review_level="concept-basic",
+            planner_provenance=planner_provenance,
         )
 
     floor = next(
@@ -665,7 +675,37 @@ def _run_concept_basic_review(
         error=None,
         review_level="concept-basic",
         unchecked_checks=unchecked_checks,
+        planner_provenance=building.planner_provenance,
     )
+
+
+def _review_planner_provenance(
+    planner_client: object | None,
+    assignments: tuple[FloorAssignment, ...],
+) -> PlannerProvenance:
+    if planner_client is None:
+        return PlannerProvenance(
+            planner_mode="deterministic",
+            provider="deterministic",
+            model=None,
+            response_id=None,
+            validated_assignments=assignments,
+        )
+    return PlannerProvenance(
+        planner_mode="structured",
+        provider=_nonempty_string(
+            getattr(planner_client, "provider", None)
+        ) or "manual",
+        model=_nonempty_string(getattr(planner_client, "model", None)),
+        response_id=_nonempty_string(
+            getattr(planner_client, "last_response_id", None)
+        ),
+        validated_assignments=assignments,
+    )
+
+
+def _nonempty_string(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None
 
 
 def _write_review_index(target: Path, index: dict) -> tuple[Path, Path]:

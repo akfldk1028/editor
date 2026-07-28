@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from backend.app.schemas.result import PlannerProvenance
+
 
 @dataclass(frozen=True)
 class VisualReviewArtifacts:
@@ -28,6 +30,7 @@ class VisualReviewLoopResult:
     error: str | None = None
     review_level: str = "concept-basic"
     unchecked_checks: tuple[str, ...] = ()
+    planner_provenance: PlannerProvenance | None = None
 
 
 @dataclass(frozen=True)
