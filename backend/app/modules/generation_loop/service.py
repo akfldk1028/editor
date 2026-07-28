@@ -163,8 +163,18 @@ def run_building_generation(
         for program in programs
     ]
     if width <= 24.0 or depth <= 10.0:
+        shallow_compact = width <= 24.0 and depth <= 12.0
         programs = [
-            _compress_compact_program(program, primary_factor=0.9, service_factor=0.6)
+            _compress_compact_program(
+                program,
+                primary_factor=0.9,
+                service_factor=0.6,
+                upper_service_factor=(
+                    (1.2 if program.use_type == "neighborhood_commercial" else 1.1)
+                    if shallow_compact
+                    else None
+                ),
+            )
             for program in programs
         ]
     core_top = float(_clean_area(min_y + core_height))
@@ -444,18 +454,31 @@ def _compress_compact_program(
     *,
     primary_factor: float,
     service_factor: float,
+    upper_service_factor: float | None = None,
 ):
     primary_roles = {"sales", "open_work", "shop_unit", "office_area"}
+    upper_service_roles = {
+        "stock",
+        "meeting",
+        "reception",
+        "restroom",
+        "utility",
+        "it_storage",
+    }
     nodes = []
     for node in program.nodes:
         if node.space_type == "core":
             nodes.append(node)
             continue
-        factor = (
-            primary_factor
-            if node.space_type in primary_roles
-            else service_factor
-        )
+        if node.space_type in primary_roles:
+            factor = primary_factor
+        elif (
+            upper_service_factor is not None
+            and node.space_type in upper_service_roles
+        ):
+            factor = upper_service_factor
+        else:
+            factor = service_factor
         target = max(
             float(node.target_area) * factor,
             (float(node.min_width or 0) ** 2) / 0.855 * 1.01,
