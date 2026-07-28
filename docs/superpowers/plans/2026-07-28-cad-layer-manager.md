@@ -4,16 +4,21 @@
 
 **Goal:** Build a CAD-style, Korean layer manager for generated floor-plan review HTML.
 
-**Architecture:** Reuse the existing SVG `data-layer` contract and replace only the HTML controls, styles, and synchronization script produced by `_render_html`. Layer display metadata stays centralized in the visual-review service and modeled counts come from the existing completeness report.
+**Architecture:** Reuse the existing SVG `data-layer` contract and embed the
+generated SVG markup inside the HTML produced by `_render_html`, while retaining
+the standalone `.svg` artifact. Layer metadata stays centralized in the
+visual-review service and modeled counts come from the completeness report.
 
-**Tech Stack:** Python 3, static HTML/CSS/JavaScript, SVG iframe, pytest, Playwright.
+**Tech Stack:** Python 3, static HTML/CSS/JavaScript, inline SVG, pytest, Playwright.
 
 ## Global Constraints
 
 - Background remains white.
 - No external frontend library or network dependency.
 - PNG remains a flattened artifact; interactive visibility is HTML/SVG only.
-- Existing layer IDs and renderer geometry remain backward compatible.
+- Existing layer IDs, standalone SVG output, and renderer geometry remain
+  backward compatible.
+- Generated floor HTML must work when opened directly through `file://`.
 - All commands must be keyboard accessible and mobile responsive.
 
 ---
@@ -51,8 +56,8 @@ Add centralized layer labels and colors, render semantic rows and commands, and
 replace the current button event code with checkbox and bulk-command handlers.
 Each row has sibling native controls: a visibility checkbox and a layer-selection
 button. The selection button makes its layer active, and `선택만 보기` leaves
-only that active enabled layer checked. Keep iframe-load synchronization and
-disabled basic-design layers.
+only that active enabled layer checked. Query the embedded drawing root directly
+and keep disabled basic-design layers.
 
 - [ ] **Step 4: Verify GREEN**
 
@@ -89,8 +94,8 @@ rendering into their existing docs directories.
 
 - [ ] **Step 2: Verify browser behavior**
 
-Serve `docs/plan-alternatives-architectural`, open a commercial floor with
-Playwright, and assert:
+Open a commercial floor over HTTP and directly through `file://` with Playwright,
+and assert:
 
 ```javascript
 checkbox.checked === false
@@ -98,7 +103,7 @@ svgNodes.every(node => node.style.display === "none")
 ```
 
 after toggling a layer. Verify 전체 켜기, 전체 끄기, 선택만 보기, 초기화,
-iframe reload synchronization, and the mobile stacked layout.
+direct-file operation, and the mobile stacked layout.
 
 - [ ] **Step 3: Run full verification**
 

@@ -16,7 +16,8 @@ layer manager that controls the existing SVG `data-layer` groups.
 - Provide `전체 켜기`, `전체 끄기`, `선택만 보기`, and `초기화` commands.
 - Keep disabled layers visible in the list but unavailable when the floor has no
   basic-design data.
-- Synchronize layer state after the SVG iframe loads.
+- Embed the generated SVG markup in the review HTML while retaining the separate
+  `.svg` artifact, so controls work through `file://` as well as HTTP.
 - Preserve keyboard operation and expose checked state to assistive technology.
 
 ## Layer Model
@@ -50,12 +51,14 @@ label, and the modeled count from `report["layer_completeness"]`.
 - `선택만 보기` keeps the active enabled layer visible and hides every other
   enabled layer. It is disabled until an active layer exists.
 - `초기화` restores the initial all-visible state.
-- Reloading the iframe reapplies the current manager state.
+- The inline drawing applies the current manager state without local-file iframe
+  access.
 
 ## Validation
 
 HTML contract tests verify Korean layer metadata, checkboxes, counts, commands,
-responsive layout, and synchronization script. Playwright verifies checkbox and
-bulk-command behavior against actual SVG node `style.display` values at desktop
-and mobile widths. Final artifacts are regenerated under
+responsive layout, inline SVG, and synchronization script. Playwright verifies
+checkbox and bulk-command behavior against actual SVG node `style.display`
+values over HTTP and by opening the generated HTML file directly at desktop and
+mobile widths. Final artifacts are regenerated under
 `docs/plan-alternatives-architectural`.
