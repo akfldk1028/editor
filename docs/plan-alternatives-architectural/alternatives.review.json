@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "project_id": "sample-office-commercial",
+  "accepted_count": 2,
+  "alternatives": [
+    {
+      "alternative_id": "alternative-c",
+      "strategy": "side-mid-core-longitudinal-spine",
+      "rank": 1,
+      "score": 0.89966,
+      "accepted": true,
+      "fingerprints": [
+        "2e63d2281cbbeda8c1fa9c21519b1f6707eb679a854febf345d6fecc78a23e1d",
+        "0e17ec7a55d50b62750a119741d0a1d8ce514df7f46fcb3f054dad0661071216",
+        "0e17ec7a55d50b62750a119741d0a1d8ce514df7f46fcb3f054dad0661071216",
+        "0e17ec7a55d50b62750a119741d0a1d8ce514df7f46fcb3f054dad0661071216",
+        "0e17ec7a55d50b62750a119741d0a1d8ce514df7f46fcb3f054dad0661071216"
+      ],
+      "core_centroid": [
+        27.0075,
+        6.0
+      ],
+      "circulation_orientation": "longitudinal-x",
+      "circulation_bounds": [
+        0,
+        0,
+        24.015,
+        12
+      ],
+      "circulation_graph_signature": [
+        "checkout->corridor-cross",
+        "core->corridor-longitudinal",
+        "restroom->corridor-cross",
+        "sales_a->corridor-cross",
+        "sales_b->corridor-cross",
+        "staff->corridor-cross",
+        "stock->corridor-cross",
+        "utility->corridor-cross"
+      ],
+      "tenant_assignment_signature": [
+        "checkout@6.000,8.656",
+        "restroom@16.316,9.045",
+        "sales@17.111,2.445",
+        "sales@5.704,2.445",
+        "staff@13.711,9.045",
+        "stock@9.804,9.045",
+        "utility@19.441,9.045"
+      ],
+      "tenant_count": 2,
+      "tenant_entrance_assignments": [
+        "sales_a:sales_a-commercial-entrance",
+        "sales_b:sales_b-commercial-entrance"
+      ],
+      "core_public_entrance": true,
+      "design_family_signature": "((27.0075, 6.0), 'longitudinal-x', (0, 0, 24.015, 12), ('checkout->corridor-cross', 'core->corridor-longitudinal', 'restroom->corridor-cross', 'sales_a->corridor-cross', 'sales_b->corridor-cross', 'staff->corridor-cross', 'stock->corridor-cross', 'utility->corridor-cross'), ('checkout@6.000,8.656', 'restroom@16.316,9.045', 'sales@17.111,2.445', 'sales@5.704,2.445', 'staff@13.711,9.045', 'stock@9.804,9.045', 'utility@19.441,9.045'))",
+      "render_style": "architectural",
+      "floor_count": 5,
+      "index_html": "C:\\DK\\PLAN\\docs\\plan-alternatives-architectural\\alternative-c\\index.html",
+      "report_json": "C:\\DK\\PLAN\\docs\\plan-alternatives-architectural\\alternative-c\\building.review.json"
+    },
+    {
+      "alternative_id": "alternative-a",
+      "strategy": "rear-right-core-single-spine",
+      "rank": 2,
+      "score": 0.89026,
+      "accepted": true,
+      "fingerprints": [
+        "cdd63b303cbfc672c29068c0b0023de9106b57955d99d71aa10a0b198c98c041",
+        "17aceee6ef49c11ca3ce9c951cd66ae41f969ddcaf6e93d7a587c96cdc7b0e8f",
+        "17aceee6ef49c11ca3ce9c951cd66ae41f969ddcaf6e93d7a587c96cdc7b0e8f",
+        "17aceee6ef49c11ca3ce9c951cd66ae41f969ddcaf6e93d7a587c96cdc7b0e8f",
+        "17aceee6ef49c11ca3ce9c951cd66ae41f969ddcaf6e93d7a587c96cdc7b0e8f"
+      ],
+      "core_centroid": [
+        26.409,
+        9.0
+      ],
+      "circulation_orientation": "longitudinal-x",
+      "circulation_bounds": [
+        0,
+        0,
+        30,
+        6
+      ],
+      "circulation_graph_signature": [
+        "checkout->corridor-branch",
+        "core->corridor-branch",
+        "restroom->corridor-branch",
+        "sales_a->corridor-branch",
+        "sales_b->corridor-branch",
+        "staff->corridor-branch",
+        "stock->corridor-branch",
+        "utility->corridor-branch"
+      ],
+      "tenant_assignment_signature": [
+        "checkout@6.000,8.565",
+        "restroom@8.482,9.000",
+        "sales@22.800,2.400",
+        "sales@7.200,2.400",
+        "staff@11.047,9.000",
+        "stock@14.895,9.000",
+        "utility@19.255,9.000"
+      ],
+      "tenant_count": 2,
+      "tenant_entrance_assignments": [
+        "sales_a:sales_a-commercial-entrance",
+        "sales_b:sales_b-commercial-entrance"
+      ],
+      "core_public_entrance": true,
+      "design_family_signature": "((26.409, 9.0), 'longitudinal-x', (0, 0, 30, 6), ('checkout->corridor-branch', 'core->corridor-branch', 'restroom->corridor-branch', 'sales_a->corridor-branch', 'sales_b->corridor-branch', 'staff->corridor-branch', 'stock->corridor-branch', 'utility->corridor-branch'), ('checkout@6.000,8.565', 'restroom@8.482,9.000', 'sales@22.800,2.400', 'sales@7.200,2.400', 'staff@11.047,9.000', 'stock@14.895,9.000', 'utility@19.255,9.000'))",
+      "render_style": "architectural",
+      "floor_count": 5,
+      "index_html": "C:\\DK\\PLAN\\docs\\plan-alternatives-architectural\\alternative-a\\index.html",
+      "report_json": "C:\\DK\\PLAN\\docs\\plan-alternatives-architectural\\alternative-a\\building.review.json"
+    },
+    {
+      "alternative_id": "alternative-b",
+      "strategy": "rear-center-core-dual-bay",
+      "rank": 3,
+      "score": 0.86384,
+      "accepted": false,
+      "fingerprints": [
+        "206675d4002c3346c595ac3fa67f9a224acb0fe2a42e0344427c448a9988716b",
+        "345ea1d2940576cdd244c437a9e17a0bfc1a21dfa4f143e50046b701afcd1bd9",
+        "345ea1d2940576cdd244c437a9e17a0bfc1a21dfa4f143e50046b701afcd1bd9",
+        "345ea1d2940576cdd244c437a9e17a0bfc1a21dfa4f143e50046b701afcd1bd9",
+        "345ea1d2940576cdd244c437a9e17a0bfc1a21dfa4f143e50046b701afcd1bd9"
+      ],
+      "core_centroid": [
+        15.0,
+        9.0
+      ],
+      "circulation_orientation": "longitudinal-x",
+      "circulation_bounds": [
+        0,
+        0,
+        30,
+        6
+      ],
+      "circulation_graph_signature": [
+        "checkout->corridor-branch",
+        "core->corridor-branch",
+        "restroom->corridor-branch",
+        "sales_a->corridor-branch",
+        "sales_b->corridor-branch",
+        "staff->corridor-branch",
+        "stock->corridor-branch",
+        "utility->corridor-branch"
+      ],
+      "tenant_assignment_signature": [
+        "checkout@6.000,8.565",
+        "restroom@19.873,9.000",
+        "sales@22.800,2.400",
+        "sales@7.200,2.400",
+        "staff@22.438,9.000",
+        "stock@26.286,9.000",
+        "utility@8.995,9.000"
+      ],
+      "tenant_count": 2,
+      "tenant_entrance_assignments": [
+        "sales_a:sales_a-commercial-entrance",
+        "sales_b:sales_b-commercial-entrance"
+      ],
+      "core_public_entrance": true,
+      "design_family_signature": "((15.0, 9.0), 'longitudinal-x', (0, 0, 30, 6), ('checkout->corridor-branch', 'core->corridor-branch', 'restroom->corridor-branch', 'sales_a->corridor-branch', 'sales_b->corridor-branch', 'staff->corridor-branch', 'stock->corridor-branch', 'utility->corridor-branch'), ('checkout@6.000,8.565', 'restroom@19.873,9.000', 'sales@22.800,2.400', 'sales@7.200,2.400', 'staff@22.438,9.000', 'stock@26.286,9.000', 'utility@8.995,9.000'))",
+      "render_style": "architectural",
+      "floor_count": 5,
+      "index_html": "C:\\DK\\PLAN\\docs\\plan-alternatives-architectural\\alternative-b\\index.html",
+      "report_json": "C:\\DK\\PLAN\\docs\\plan-alternatives-architectural\\alternative-b\\building.review.json"
+    }
+  ],
+  "comparisons": [
+    {
+      "first_alternative_id": "alternative-c",
+      "second_alternative_id": "alternative-a",
+      "normalized_core_centroid_distance": 0.094677,
+      "circulation_graph_different": true,
+      "tenant_assignment_different": true,
+      "semantic_distinct": true
+    },
+    {
+      "first_alternative_id": "alternative-c",
+      "second_alternative_id": "alternative-b",
+      "normalized_core_centroid_distance": 0.383046,
+      "circulation_graph_different": true,
+      "tenant_assignment_different": true,
+      "semantic_distinct": true
+    },
+    {
+      "first_alternative_id": "alternative-a",
+      "second_alternative_id": "alternative-b",
+      "normalized_core_centroid_distance": 0.3531,
+      "circulation_graph_different": false,
+      "tenant_assignment_different": true,
+      "semantic_distinct": true
+    }
+  ]
+}

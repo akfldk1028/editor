@@ -1,0 +1,511 @@
+{
+  "schema_version": 1,
+  "project_id": "alternatives-20x12",
+  "accepted": true,
+  "assignment_source": "use_mix",
+  "vertical_core_aligned": true,
+  "vertical_basic_design_aligned": true,
+  "vertical_structure_aligned": true,
+  "planner_provenance": {
+    "planner_mode": "deterministic",
+    "provider": "deterministic",
+    "model": null,
+    "response_id": null,
+    "validated_assignments": [
+      {
+        "floor_index": 1,
+        "use_type": "neighborhood_commercial"
+      },
+      {
+        "floor_index": 2,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 3,
+        "use_type": "office"
+      }
+    ]
+  },
+  "render_style": "architectural",
+  "total_area": 720.0,
+  "use_type_areas": {
+    "neighborhood_commercial": 240,
+    "office": 480
+  },
+  "floors": [
+    {
+      "floor_index": 1,
+      "use_type": "neighborhood_commercial",
+      "program_source": "compact_building_aligned_prior:rear_tenant_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "compact_mass_fit",
+          "original_targets": [
+            [
+              "sales_a",
+              62.28
+            ],
+            [
+              "sales_b",
+              62.28
+            ],
+            [
+              "checkout",
+              9.6
+            ],
+            [
+              "stock",
+              24.0
+            ],
+            [
+              "staff",
+              12.0
+            ],
+            [
+              "restroom",
+              12.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "utility",
+              16.80000000000001
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "sales_a",
+              49.824
+            ],
+            [
+              "sales_b",
+              49.824
+            ],
+            [
+              "checkout",
+              6.804211
+            ],
+            [
+              "stock",
+              12.0
+            ],
+            [
+              "staff",
+              7.2
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "utility",
+              8.4
+            ]
+          ]
+        },
+        {
+          "reason": "rear_tenant_fit",
+          "original_targets": [
+            [
+              "sales_a",
+              49.824
+            ],
+            [
+              "sales_b",
+              49.824
+            ],
+            [
+              "checkout",
+              6.804211
+            ],
+            [
+              "stock",
+              12.0
+            ],
+            [
+              "staff",
+              7.2
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "utility",
+              8.4
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "sales_a",
+              52.77193
+            ],
+            [
+              "sales_b",
+              52.77193
+            ],
+            [
+              "checkout",
+              6.804211
+            ],
+            [
+              "stock",
+              12.0
+            ],
+            [
+              "staff",
+              7.2
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "utility",
+              8.4
+            ]
+          ]
+        }
+      ],
+      "accepted": true,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_001/alternatives-20x12-7cad349c48223a75-f1.svg",
+        "png": "floor_001/alternatives-20x12-7cad349c48223a75-f1.png",
+        "html": "floor_001/alternatives-20x12-7cad349c48223a75-f1.html",
+        "review_json": "floor_001/alternatives-20x12-7cad349c48223a75-f1.review.json"
+      }
+    },
+    {
+      "floor_index": 2,
+      "use_type": "office",
+      "program_source": "compact_building_aligned_prior:rear_primary_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "compact_mass_fit",
+          "original_targets": [
+            [
+              "open_work",
+              117.36
+            ],
+            [
+              "meeting",
+              24.0
+            ],
+            [
+              "reception",
+              12.0
+            ],
+            [
+              "focus",
+              14.399999999999999
+            ],
+            [
+              "pantry",
+              7.199999999999999
+            ],
+            [
+              "restroom",
+              12.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "it_storage",
+              12.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              93.888
+            ],
+            [
+              "meeting",
+              12.0
+            ],
+            [
+              "reception",
+              6.804211
+            ],
+            [
+              "focus",
+              8.64
+            ],
+            [
+              "pantry",
+              4.32
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "it_storage",
+              6.0
+            ]
+          ]
+        },
+        {
+          "reason": "rear_primary_fit",
+          "original_targets": [
+            [
+              "open_work",
+              93.888
+            ],
+            [
+              "meeting",
+              12.0
+            ],
+            [
+              "reception",
+              6.804211
+            ],
+            [
+              "focus",
+              8.64
+            ],
+            [
+              "pantry",
+              4.32
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "it_storage",
+              6.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              93.888
+            ],
+            [
+              "meeting",
+              12.0
+            ],
+            [
+              "reception",
+              6.804211
+            ],
+            [
+              "focus",
+              8.64
+            ],
+            [
+              "pantry",
+              4.32
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "it_storage",
+              6.0
+            ]
+          ]
+        }
+      ],
+      "accepted": true,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_002/alternatives-20x12-7cad349c48223a75-f2.svg",
+        "png": "floor_002/alternatives-20x12-7cad349c48223a75-f2.png",
+        "html": "floor_002/alternatives-20x12-7cad349c48223a75-f2.html",
+        "review_json": "floor_002/alternatives-20x12-7cad349c48223a75-f2.review.json"
+      }
+    },
+    {
+      "floor_index": 3,
+      "use_type": "office",
+      "program_source": "compact_building_aligned_prior:rear_primary_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "compact_mass_fit",
+          "original_targets": [
+            [
+              "open_work",
+              117.36
+            ],
+            [
+              "meeting",
+              24.0
+            ],
+            [
+              "reception",
+              12.0
+            ],
+            [
+              "focus",
+              14.399999999999999
+            ],
+            [
+              "pantry",
+              7.199999999999999
+            ],
+            [
+              "restroom",
+              12.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "it_storage",
+              12.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              93.888
+            ],
+            [
+              "meeting",
+              12.0
+            ],
+            [
+              "reception",
+              6.804211
+            ],
+            [
+              "focus",
+              8.64
+            ],
+            [
+              "pantry",
+              4.32
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "it_storage",
+              6.0
+            ]
+          ]
+        },
+        {
+          "reason": "rear_primary_fit",
+          "original_targets": [
+            [
+              "open_work",
+              93.888
+            ],
+            [
+              "meeting",
+              12.0
+            ],
+            [
+              "reception",
+              6.804211
+            ],
+            [
+              "focus",
+              8.64
+            ],
+            [
+              "pantry",
+              4.32
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "it_storage",
+              6.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              93.888
+            ],
+            [
+              "meeting",
+              12.0
+            ],
+            [
+              "reception",
+              6.804211
+            ],
+            [
+              "focus",
+              8.64
+            ],
+            [
+              "pantry",
+              4.32
+            ],
+            [
+              "restroom",
+              6.0
+            ],
+            [
+              "core",
+              41.04
+            ],
+            [
+              "it_storage",
+              6.0
+            ]
+          ]
+        }
+      ],
+      "accepted": true,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_003/alternatives-20x12-7cad349c48223a75-f3.svg",
+        "png": "floor_003/alternatives-20x12-7cad349c48223a75-f3.png",
+        "html": "floor_003/alternatives-20x12-7cad349c48223a75-f3.html",
+        "review_json": "floor_003/alternatives-20x12-7cad349c48223a75-f3.review.json"
+      }
+    }
+  ]
+}

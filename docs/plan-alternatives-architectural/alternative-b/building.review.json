@@ -1,0 +1,480 @@
+{
+  "schema_version": 1,
+  "project_id": "sample-office-commercial",
+  "accepted": false,
+  "assignment_source": "use_mix",
+  "vertical_core_aligned": true,
+  "vertical_basic_design_aligned": true,
+  "vertical_structure_aligned": true,
+  "planner_provenance": {
+    "planner_mode": "deterministic",
+    "provider": "deterministic",
+    "model": null,
+    "response_id": null,
+    "validated_assignments": [
+      {
+        "floor_index": 1,
+        "use_type": "neighborhood_commercial"
+      },
+      {
+        "floor_index": 2,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 3,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 4,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 5,
+        "use_type": "office"
+      }
+    ]
+  },
+  "render_style": "architectural",
+  "total_area": 1800.0,
+  "use_type_areas": {
+    "neighborhood_commercial": 360,
+    "office": 1440
+  },
+  "floors": [
+    {
+      "floor_index": 1,
+      "use_type": "neighborhood_commercial",
+      "program_source": "building_aligned_prior:rear_tenant_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "rear_tenant_fit",
+          "original_targets": [
+            [
+              "sales_a",
+              99.0
+            ],
+            [
+              "sales_b",
+              99.0
+            ],
+            [
+              "checkout",
+              14.4
+            ],
+            [
+              "stock",
+              36.0
+            ],
+            [
+              "staff",
+              18.0
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "utility",
+              25.19999999999999
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "sales_a",
+              80.842105
+            ],
+            [
+              "sales_b",
+              80.842105
+            ],
+            [
+              "checkout",
+              14.4
+            ],
+            [
+              "stock",
+              36.0
+            ],
+            [
+              "staff",
+              18.0
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "utility",
+              25.19999999999999
+            ]
+          ]
+        }
+      ],
+      "accepted": true,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.svg",
+        "png": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.png",
+        "html": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.html",
+        "review_json": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.review.json"
+      }
+    },
+    {
+      "floor_index": 2,
+      "use_type": "office",
+      "program_source": "building_aligned_prior:rear_primary_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "rear_primary_fit",
+          "original_targets": [
+            [
+              "open_work",
+              187.2
+            ],
+            [
+              "meeting",
+              36.0
+            ],
+            [
+              "reception",
+              18.0
+            ],
+            [
+              "focus",
+              21.599999999999998
+            ],
+            [
+              "pantry",
+              10.799999999999999
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "it_storage",
+              18.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              161.522526
+            ],
+            [
+              "meeting",
+              36.0
+            ],
+            [
+              "reception",
+              18.0
+            ],
+            [
+              "focus",
+              21.599999999999998
+            ],
+            [
+              "pantry",
+              10.799999999999999
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "it_storage",
+              18.0
+            ]
+          ]
+        }
+      ],
+      "accepted": false,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_002/sample-office-commercial-a8290018982a4b2c-f2.svg",
+        "png": "floor_002/sample-office-commercial-a8290018982a4b2c-f2.png",
+        "html": "floor_002/sample-office-commercial-a8290018982a4b2c-f2.html",
+        "review_json": "floor_002/sample-office-commercial-a8290018982a4b2c-f2.review.json"
+      }
+    },
+    {
+      "floor_index": 3,
+      "use_type": "office",
+      "program_source": "building_aligned_prior:rear_primary_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "rear_primary_fit",
+          "original_targets": [
+            [
+              "open_work",
+              187.2
+            ],
+            [
+              "meeting",
+              36.0
+            ],
+            [
+              "reception",
+              18.0
+            ],
+            [
+              "focus",
+              21.599999999999998
+            ],
+            [
+              "pantry",
+              10.799999999999999
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "it_storage",
+              18.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              161.522526
+            ],
+            [
+              "meeting",
+              36.0
+            ],
+            [
+              "reception",
+              18.0
+            ],
+            [
+              "focus",
+              21.599999999999998
+            ],
+            [
+              "pantry",
+              10.799999999999999
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "it_storage",
+              18.0
+            ]
+          ]
+        }
+      ],
+      "accepted": false,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_003/sample-office-commercial-a8290018982a4b2c-f3.svg",
+        "png": "floor_003/sample-office-commercial-a8290018982a4b2c-f3.png",
+        "html": "floor_003/sample-office-commercial-a8290018982a4b2c-f3.html",
+        "review_json": "floor_003/sample-office-commercial-a8290018982a4b2c-f3.review.json"
+      }
+    },
+    {
+      "floor_index": 4,
+      "use_type": "office",
+      "program_source": "building_aligned_prior:rear_primary_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "rear_primary_fit",
+          "original_targets": [
+            [
+              "open_work",
+              187.2
+            ],
+            [
+              "meeting",
+              36.0
+            ],
+            [
+              "reception",
+              18.0
+            ],
+            [
+              "focus",
+              21.599999999999998
+            ],
+            [
+              "pantry",
+              10.799999999999999
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "it_storage",
+              18.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              161.522526
+            ],
+            [
+              "meeting",
+              36.0
+            ],
+            [
+              "reception",
+              18.0
+            ],
+            [
+              "focus",
+              21.599999999999998
+            ],
+            [
+              "pantry",
+              10.799999999999999
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "it_storage",
+              18.0
+            ]
+          ]
+        }
+      ],
+      "accepted": false,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_004/sample-office-commercial-a8290018982a4b2c-f4.svg",
+        "png": "floor_004/sample-office-commercial-a8290018982a4b2c-f4.png",
+        "html": "floor_004/sample-office-commercial-a8290018982a4b2c-f4.html",
+        "review_json": "floor_004/sample-office-commercial-a8290018982a4b2c-f4.review.json"
+      }
+    },
+    {
+      "floor_index": 5,
+      "use_type": "office",
+      "program_source": "building_aligned_prior:rear_primary_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "rear_primary_fit",
+          "original_targets": [
+            [
+              "open_work",
+              187.2
+            ],
+            [
+              "meeting",
+              36.0
+            ],
+            [
+              "reception",
+              18.0
+            ],
+            [
+              "focus",
+              21.599999999999998
+            ],
+            [
+              "pantry",
+              10.799999999999999
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "it_storage",
+              18.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              161.522526
+            ],
+            [
+              "meeting",
+              36.0
+            ],
+            [
+              "reception",
+              18.0
+            ],
+            [
+              "focus",
+              21.599999999999998
+            ],
+            [
+              "pantry",
+              10.799999999999999
+            ],
+            [
+              "restroom",
+              18.0
+            ],
+            [
+              "core",
+              50.4
+            ],
+            [
+              "it_storage",
+              18.0
+            ]
+          ]
+        }
+      ],
+      "accepted": false,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_005/sample-office-commercial-a8290018982a4b2c-f5.svg",
+        "png": "floor_005/sample-office-commercial-a8290018982a4b2c-f5.png",
+        "html": "floor_005/sample-office-commercial-a8290018982a4b2c-f5.html",
+        "review_json": "floor_005/sample-office-commercial-a8290018982a4b2c-f5.review.json"
+      }
+    }
+  ]
+}

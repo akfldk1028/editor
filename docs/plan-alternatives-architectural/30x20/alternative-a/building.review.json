@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "project_id": "alternatives-30x20",
+  "accepted": true,
+  "assignment_source": "use_mix",
+  "vertical_core_aligned": true,
+  "vertical_basic_design_aligned": true,
+  "vertical_structure_aligned": true,
+  "planner_provenance": {
+    "planner_mode": "deterministic",
+    "provider": "deterministic",
+    "model": null,
+    "response_id": null,
+    "validated_assignments": [
+      {
+        "floor_index": 1,
+        "use_type": "neighborhood_commercial"
+      },
+      {
+        "floor_index": 2,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 3,
+        "use_type": "office"
+      }
+    ]
+  },
+  "render_style": "architectural",
+  "total_area": 1800.0,
+  "use_type_areas": {
+    "neighborhood_commercial": 600,
+    "office": 1200
+  },
+  "floors": [
+    {
+      "floor_index": 1,
+      "use_type": "neighborhood_commercial",
+      "program_source": "building_aligned_prior:rear_tenant_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "rear_tenant_fit",
+          "original_targets": [
+            [
+              "sales_a",
+              165.0
+            ],
+            [
+              "sales_b",
+              165.0
+            ],
+            [
+              "checkout",
+              24.0
+            ],
+            [
+              "stock",
+              60.0
+            ],
+            [
+              "staff",
+              30.0
+            ],
+            [
+              "restroom",
+              30.0
+            ],
+            [
+              "core",
+              84.0
+            ],
+            [
+              "utility",
+              42.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "sales_a",
+              148.210526
+            ],
+            [
+              "sales_b",
+              148.210526
+            ],
+            [
+              "checkout",
+              24.0
+            ],
+            [
+              "stock",
+              60.0
+            ],
+            [
+              "staff",
+              30.0
+            ],
+            [
+              "restroom",
+              30.0
+            ],
+            [
+              "core",
+              84.0
+            ],
+            [
+              "utility",
+              42.0
+            ]
+          ]
+        }
+      ],
+      "accepted": true,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_001/alternatives-30x20-14bd8ddc58a17fef-f1.svg",
+        "png": "floor_001/alternatives-30x20-14bd8ddc58a17fef-f1.png",
+        "html": "floor_001/alternatives-30x20-14bd8ddc58a17fef-f1.html",
+        "review_json": "floor_001/alternatives-30x20-14bd8ddc58a17fef-f1.review.json"
+      }
+    },
+    {
+      "floor_index": 2,
+      "use_type": "office",
+      "program_source": "building_aligned_prior:rear_primary_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "rear_primary_fit",
+          "original_targets": [
+            [
+              "open_work",
+              312.0
+            ],
+            [
+              "meeting",
+              60.0
+            ],
+            [
+              "reception",
+              30.0
+            ],
+            [
+              "focus",
+              36.0
+            ],
+            [
+              "pantry",
+              18.0
+            ],
+            [
+              "restroom",
+              30.0
+            ],
+            [
+              "core",
+              84.0
+            ],
+            [
+              "it_storage",
+              30.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              296.124632
+            ],
+            [
+              "meeting",
+              60.0
+            ],
+            [
+              "reception",
+              30.0
+            ],
+            [
+              "focus",
+              36.0
+            ],
+            [
+              "pantry",
+              18.0
+            ],
+            [
+              "restroom",
+              30.0
+            ],
+            [
+              "core",
+              84.0
+            ],
+            [
+              "it_storage",
+              30.0
+            ]
+          ]
+        }
+      ],
+      "accepted": true,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_002/alternatives-30x20-14bd8ddc58a17fef-f2.svg",
+        "png": "floor_002/alternatives-30x20-14bd8ddc58a17fef-f2.png",
+        "html": "floor_002/alternatives-30x20-14bd8ddc58a17fef-f2.html",
+        "review_json": "floor_002/alternatives-30x20-14bd8ddc58a17fef-f2.review.json"
+      }
+    },
+    {
+      "floor_index": 3,
+      "use_type": "office",
+      "program_source": "building_aligned_prior:rear_primary_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "rear_primary_fit",
+          "original_targets": [
+            [
+              "open_work",
+              312.0
+            ],
+            [
+              "meeting",
+              60.0
+            ],
+            [
+              "reception",
+              30.0
+            ],
+            [
+              "focus",
+              36.0
+            ],
+            [
+              "pantry",
+              18.0
+            ],
+            [
+              "restroom",
+              30.0
+            ],
+            [
+              "core",
+              84.0
+            ],
+            [
+              "it_storage",
+              30.0
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              296.124632
+            ],
+            [
+              "meeting",
+              60.0
+            ],
+            [
+              "reception",
+              30.0
+            ],
+            [
+              "focus",
+              36.0
+            ],
+            [
+              "pantry",
+              18.0
+            ],
+            [
+              "restroom",
+              30.0
+            ],
+            [
+              "core",
+              84.0
+            ],
+            [
+              "it_storage",
+              30.0
+            ]
+          ]
+        }
+      ],
+      "accepted": true,
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_003/alternatives-30x20-14bd8ddc58a17fef-f3.svg",
+        "png": "floor_003/alternatives-30x20-14bd8ddc58a17fef-f3.png",
+        "html": "floor_003/alternatives-30x20-14bd8ddc58a17fef-f3.html",
+        "review_json": "floor_003/alternatives-30x20-14bd8ddc58a17fef-f3.review.json"
+      }
+    }
+  ]
+}

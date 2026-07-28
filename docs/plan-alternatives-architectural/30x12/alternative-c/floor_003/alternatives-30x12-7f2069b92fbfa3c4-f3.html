@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <title>alternatives-30x12 floor visual review</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body { margin: 24px; font-family: "Noto Sans KR", "Malgun Gothic", Arial, sans-serif; background: white; color: #111; }
+    main { max-width: 1180px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 12px; }
+    .status { margin-bottom: 18px; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 20px; align-items: start; }
+    .grid > section { min-width: 0; }
+    iframe { width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }
+    #working-layer-controls { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+    #working-layer-controls button { flex: 0 0 auto; min-height: 32px; max-width: 100%; padding: 5px 9px; }
+    #working-layer-controls button[disabled] { opacity: 0.45; cursor: not-allowed; }
+    table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+    thead, tbody { white-space: nowrap; }
+    th, td { border-bottom: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+    a { color: #0645ad; }
+    @media (max-width: 680px) { body { margin: 14px; } .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Visual Review: alternatives-30x12 F3</h1>
+    <div class="status">needs iteration</div>
+    <div class="grid">
+      <section class="plan">
+        <div id="working-layer-controls" aria-label="Working layers">
+          <button type="button" data-layer="grid" aria-pressed="true">Grid</button><button type="button" data-layer="rooms" aria-pressed="true">Rooms</button><button type="button" data-layer="circulation" aria-pressed="true">Circulation</button><button type="button" data-layer="core" aria-pressed="true">Core</button><button type="button" data-layer="structure" aria-pressed="true">Structure</button><button type="button" data-layer="envelope" aria-pressed="true">Envelope</button><button type="button" data-layer="door-openings" aria-pressed="true">Doors</button><button type="button" data-layer="furniture" aria-pressed="true">Furniture</button><button type="button" data-layer="fixtures" aria-pressed="true">Fixtures</button><button type="button" data-layer="egress" aria-pressed="true">Egress</button><button type="button" data-layer="dimensions" aria-pressed="true">Dimensions / site</button><button type="button" data-layer="text-labels" aria-pressed="true">Labels</button>
+        </div>
+        <iframe id="floor-plan" src="alternatives-30x12-7f2069b92fbfa3c4-f3.svg" title="floor plan svg"></iframe>
+      </section>
+      <section>
+        <h2>Hard Validation Checks</h2>
+        <table>
+          <thead><tr><th scope="col">Hard gate</th><th scope="col">Status</th></tr></thead>
+          <tbody><tr><th scope="row">boundary</th><td>pass</td></tr><tr><th scope="row">overlap</th><td>pass</td></tr><tr><th scope="row">area</th><td>fail</td></tr><tr><th scope="row">circulation_access</th><td>pass</td></tr><tr><th scope="row">openings</th><td>pass</td></tr><tr><th scope="row">corridor_width</th><td>pass</td></tr><tr><th scope="row">room_form</th><td>pass</td></tr><tr><th scope="row">basic_design</th><td>pass</td></tr><tr><th scope="row">label_overlap</th><td>pass</td></tr></tbody>
+        </table>
+        <h2>Advisory Scores</h2>
+        <table>
+          <thead><tr><th scope="col">Metric</th><th scope="col">Score</th></tr></thead>
+          <tbody><tr><th scope="row">violation_score</th><td>0.0003</td></tr><tr><th scope="row">area_score</th><td>0.8345</td></tr><tr><th scope="row">overlap_score</th><td>1.0</td></tr><tr><th scope="row">boundary_score</th><td>1.0</td></tr><tr><th scope="row">circulation_score</th><td>1.0</td></tr><tr><th scope="row">efficiency_score</th><td>0.9495</td></tr><tr><th scope="row">adjacency_score</th><td>0.8333</td></tr><tr><th scope="row">frontage_score</th><td>1.0</td></tr><tr><th scope="row">coverage_score</th><td>0.8364</td></tr><tr><th scope="row">compactness_score</th><td>0.6667</td></tr><tr><th scope="row">total_score</th><td>0.9023</td></tr></tbody>
+        </table>
+        <h2>Room Program and Form</h2>
+        <table id="room-form-report">
+          <thead><tr><th scope="col">Room</th><th scope="col">Original target m2</th><th scope="col">Adjusted target m2</th><th scope="col">Area m2</th><th scope="col">Width m</th><th scope="col">Aspect</th><th scope="col">Min width</th><th scope="col">Max aspect</th><th scope="col">Adjustment reason</th></tr></thead>
+          <tbody><tr><th scope="row">open_work</th><td>187.2</td><td>161.523</td><td>111.585</td><td>4.891</td><td>4.665</td><td>4.8</td><td>6.5</td><td>rear_primary_fit</td></tr><tr><th scope="row">meeting</th><td>36</td><td>36</td><td>30.78</td><td>5.209</td><td>1.134</td><td>2.7</td><td>6.5</td><td>rear_primary_fit</td></tr><tr><th scope="row">reception</th><td>18</td><td>18</td><td>15.39</td><td>2.604</td><td>2.269</td><td>2.4</td><td>6.5</td><td>rear_primary_fit</td></tr><tr><th scope="row">focus</th><td>21.6</td><td>21.6</td><td>18.468</td><td>3.125</td><td>1.891</td><td>1.8</td><td>6.5</td><td>rear_primary_fit</td></tr><tr><th scope="row">pantry</th><td>10.8</td><td>10.8</td><td>9.234</td><td>1.8</td><td>2.85</td><td>1.8</td><td>6.5</td><td>rear_primary_fit</td></tr><tr><th scope="row">restroom</th><td>18</td><td>18</td><td>15.39</td><td>2.604</td><td>2.269</td><td>1.8</td><td>6.5</td><td>rear_primary_fit</td></tr><tr><th scope="row">core</th><td>50.4</td><td>50.4</td><td>43.092</td><td>5.985</td><td>1.203</td><td>3</td><td>2</td><td>rear_primary_fit</td></tr><tr><th scope="row">it_storage</th><td>18</td><td>18</td><td>15.39</td><td>2.604</td><td>2.269</td><td>1.5</td><td>6.5</td><td>rear_primary_fit</td></tr></tbody>
+        </table>
+        <h2>Render Completeness</h2>
+        <table id="render-completeness">
+          <thead><tr><th scope="col">Layer</th><th scope="col">Modeled</th><th scope="col">SVG</th><th scope="col">PNG</th></tr></thead>
+          <tbody><tr><th scope="row">grid</th><td>9</td><td>9</td><td>9</td></tr><tr><th scope="row">rooms</th><td>9</td><td>9</td><td>9</td></tr><tr><th scope="row">circulation</th><td>2</td><td>2</td><td>2</td></tr><tr><th scope="row">core</th><td>5</td><td>5</td><td>5</td></tr><tr><th scope="row">structure</th><td>7</td><td>7</td><td>7</td></tr><tr><th scope="row">envelope</th><td>6</td><td>6</td><td>6</td></tr><tr><th scope="row">door-openings</th><td>10</td><td>10</td><td>10</td></tr><tr><th scope="row">furniture</th><td>16</td><td>16</td><td>16</td></tr><tr><th scope="row">fixtures</th><td>6</td><td>6</td><td>6</td></tr><tr><th scope="row">egress</th><td>16</td><td>16</td><td>16</td></tr><tr><th scope="row">dimensions</th><td>6</td><td>6</td><td>6</td></tr><tr><th scope="row">text-labels</th><td>22</td><td>22</td><td>22</td></tr></tbody>
+        </table>
+        <p><a href="alternatives-30x12-7f2069b92fbfa3c4-f3.png">PNG</a></p>
+        <p><a href="alternatives-30x12-7f2069b92fbfa3c4-f3.review.json">Review JSON</a></p>
+      </section>
+    </div>
+  </main>
+  <script>
+    const frame = document.getElementById("floor-plan");
+    const controls = document.querySelectorAll("#working-layer-controls button");
+    function synchronizeLayers() {
+      const documentRoot = frame.contentDocument;
+      if (!documentRoot) return;
+      controls.forEach((button) => {
+        const visible = button.getAttribute("aria-pressed") === "true";
+        documentRoot.querySelectorAll(`[data-layer="${button.dataset.layer}"]`).forEach((node) => {
+          node.style.display = visible ? "" : "none";
+        });
+      });
+    }
+    frame.addEventListener("load", synchronizeLayers);
+    controls.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (button.disabled) return;
+        const pressed = button.getAttribute("aria-pressed") === "true";
+        button.setAttribute("aria-pressed", String(!pressed));
+        synchronizeLayers();
+      });
+    });
+  </script>
+</body>
+</html>

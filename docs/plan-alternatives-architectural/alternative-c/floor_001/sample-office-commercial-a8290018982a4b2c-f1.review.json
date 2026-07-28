@@ -1,0 +1,1222 @@
+{
+  "accepted": true,
+  "artifacts": {
+    "html": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.html",
+    "png": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.png",
+    "review_json": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.review.json",
+    "svg": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.svg"
+  },
+  "candidate_id": "sample-office-commercial-f1-side-mid",
+  "checks": {
+    "area": "pass",
+    "basic_design": "pass",
+    "boundary": "pass",
+    "circulation_access": "pass",
+    "corridor_width": "pass",
+    "label_overlap": "pass",
+    "openings": "pass",
+    "overlap": "pass",
+    "room_form": "pass"
+  },
+  "fingerprint": null,
+  "floor_index": 1,
+  "hard_failure_count": 0,
+  "hard_failure_count_delta": null,
+  "iteration": null,
+  "layer_completeness": {
+    "circulation": {
+      "modeled": 2,
+      "png": 2,
+      "svg": 2
+    },
+    "core": {
+      "modeled": 5,
+      "png": 5,
+      "svg": 5
+    },
+    "dimensions": {
+      "modeled": 6,
+      "png": 6,
+      "svg": 6
+    },
+    "door-openings": {
+      "modeled": 10,
+      "png": 10,
+      "svg": 10
+    },
+    "egress": {
+      "modeled": 16,
+      "png": 16,
+      "svg": 16
+    },
+    "envelope": {
+      "modeled": 9,
+      "png": 9,
+      "svg": 9
+    },
+    "fixtures": {
+      "modeled": 3,
+      "png": 3,
+      "svg": 3
+    },
+    "furniture": {
+      "modeled": 6,
+      "png": 6,
+      "svg": 6
+    },
+    "grid": {
+      "modeled": 9,
+      "png": 9,
+      "svg": 9
+    },
+    "rooms": {
+      "modeled": 9,
+      "png": 9,
+      "svg": 9
+    },
+    "structure": {
+      "modeled": 7,
+      "png": 7,
+      "svg": 7
+    },
+    "text-labels": {
+      "modeled": 22,
+      "png": 22,
+      "svg": 22
+    }
+  },
+  "measurements": {
+    "door_count": 8,
+    "failed_room_ids": [],
+    "max_room_aspect_ratio": 2.332420947644792,
+    "min_corridor_width": 1.1999999999999993,
+    "min_door_width": 0.9,
+    "min_room_width": 2.4000000000000004
+  },
+  "needs_iteration": false,
+  "operator": null,
+  "operator_params": {},
+  "parent_id": null,
+  "png_text": {
+    "adjusted_count": 6,
+    "collision_strategy": "offset",
+    "fallback": false,
+    "font_path": "C:\\Windows\\Fonts\\malgun.ttf",
+    "label_count": 30,
+    "renderer": "pillow",
+    "unresolved_collision_count": 0
+  },
+  "program_adjusted": true,
+  "program_adjustments": [
+    {
+      "adjusted_targets": [
+        [
+          "sales_a",
+          80.842105
+        ],
+        [
+          "sales_b",
+          80.842105
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "original_targets": [
+        [
+          "sales_a",
+          99.0
+        ],
+        [
+          "sales_b",
+          99.0
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "reason": "rear_tenant_fit"
+    },
+    {
+      "adjusted_targets": [
+        [
+          "sales_a",
+          65.254115
+        ],
+        [
+          "sales_b",
+          65.254115
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "original_targets": [
+        [
+          "sales_a",
+          80.842105
+        ],
+        [
+          "sales_b",
+          80.842105
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "reason": "side_mid_primary_fit"
+    }
+  ],
+  "program_source": "building_aligned_prior:rear_tenant_fit:side_mid_primary_fit",
+  "project_id": "sample-office-commercial",
+  "render_evidence": {
+    "missing": {
+      "png": {},
+      "svg": {}
+    },
+    "modeled": {
+      "circulation": {
+        "circulation": [
+          "corridor-cross",
+          "corridor-longitudinal"
+        ]
+      },
+      "core": {
+        "elevator": [
+          "core-elevator"
+        ],
+        "lobby": [
+          "core-lobby"
+        ],
+        "shaft": [
+          "core-shaft"
+        ],
+        "stair": [
+          "core-stair-1",
+          "remote-stair-2"
+        ]
+      },
+      "dimensions": {
+        "circulation_width": [
+          "dimension-circulation-width"
+        ],
+        "north_arrow": [
+          "north-arrow"
+        ],
+        "overall_depth": [
+          "dimension-overall-depth"
+        ],
+        "overall_width": [
+          "dimension-overall-width"
+        ],
+        "scale_line": [
+          "scale-line"
+        ],
+        "street": [
+          "street-line"
+        ]
+      },
+      "door-openings": {
+        "door-opening": [
+          "checkout-door",
+          "core-door",
+          "restroom-door",
+          "sales_a-door",
+          "sales_b-door",
+          "staff-door",
+          "stock-door",
+          "utility-door"
+        ],
+        "protected_exit": [
+          "protected-exit-1",
+          "protected-exit-2"
+        ]
+      },
+      "egress": {
+        "egress_route": [
+          "checkout-route-1",
+          "checkout-route-2",
+          "restroom-route-1",
+          "restroom-route-2",
+          "sales_a-route-1",
+          "sales_a-route-2",
+          "sales_b-route-1",
+          "sales_b-route-2",
+          "staff-route-1",
+          "staff-route-2",
+          "stock-route-1",
+          "stock-route-2",
+          "utility-route-1",
+          "utility-route-2"
+        ],
+        "lobby_route": [
+          "core-lobby-route-1"
+        ],
+        "stair_door": [
+          "core-stair-door-1"
+        ]
+      },
+      "envelope": {
+        "entrance": [
+          "core-public-entrance",
+          "sales_a-commercial-entrance",
+          "sales_b-commercial-entrance"
+        ],
+        "window": [
+          "restroom-window",
+          "sales_a-window",
+          "sales_b-window",
+          "staff-window",
+          "stock-window",
+          "utility-window"
+        ]
+      },
+      "fixtures": {
+        "lavatory": [
+          "restroom-lavatory-1"
+        ],
+        "utility_equipment": [
+          "utility-utility_equipment-1"
+        ],
+        "wc": [
+          "restroom-wc-1"
+        ]
+      },
+      "furniture": {
+        "checkout_counter": [
+          "checkout-checkout_counter-1"
+        ],
+        "sales_shelf": [
+          "sales_a-sales_shelf-1",
+          "sales_b-sales_shelf-2"
+        ],
+        "staff_table": [
+          "staff-staff_table-1"
+        ],
+        "stock_rack": [
+          "stock-stock_rack-1",
+          "stock-stock_rack-2"
+        ]
+      },
+      "grid": {
+        "grid": [
+          "grid-x-0",
+          "grid-x-1",
+          "grid-x-2",
+          "grid-x-3",
+          "grid-x-4",
+          "grid-x-5",
+          "grid-y-0",
+          "grid-y-1",
+          "grid-y-2"
+        ]
+      },
+      "rooms": {
+        "boundary": [
+          "floor-boundary"
+        ],
+        "room": [
+          "checkout",
+          "core",
+          "restroom",
+          "sales_a",
+          "sales_b",
+          "staff",
+          "stock",
+          "utility"
+        ]
+      },
+      "structure": {
+        "column": [
+          "column-1",
+          "column-2",
+          "column-3",
+          "column-4",
+          "column-5",
+          "column-6",
+          "column-7"
+        ]
+      },
+      "text-labels": {
+        "circulation": [
+          "corridor-cross-label"
+        ],
+        "core-label": [
+          "core-elevator-label",
+          "core-lobby-label",
+          "core-shaft-label",
+          "core-stair-1-label",
+          "remote-stair-2-label"
+        ],
+        "door-width": [
+          "checkout-door-width-label",
+          "core-door-width-label",
+          "restroom-door-width-label",
+          "sales_a-door-width-label",
+          "sales_b-door-width-label",
+          "staff-door-width-label",
+          "stock-door-width-label",
+          "utility-door-width-label"
+        ],
+        "room-label": [
+          "checkout-label",
+          "core-label",
+          "restroom-label",
+          "sales_a-label",
+          "sales_b-label",
+          "staff-label",
+          "stock-label",
+          "utility-label"
+        ]
+      }
+    },
+    "png": {
+      "circulation": {
+        "circulation": [
+          "corridor-cross",
+          "corridor-longitudinal"
+        ]
+      },
+      "core": {
+        "elevator": [
+          "core-elevator"
+        ],
+        "lobby": [
+          "core-lobby"
+        ],
+        "shaft": [
+          "core-shaft"
+        ],
+        "stair": [
+          "core-stair-1",
+          "remote-stair-2"
+        ]
+      },
+      "dimensions": {
+        "circulation_width": [
+          "dimension-circulation-width"
+        ],
+        "north_arrow": [
+          "north-arrow"
+        ],
+        "overall_depth": [
+          "dimension-overall-depth"
+        ],
+        "overall_width": [
+          "dimension-overall-width"
+        ],
+        "scale_line": [
+          "scale-line"
+        ],
+        "street": [
+          "street-line"
+        ]
+      },
+      "door-openings": {
+        "door-opening": [
+          "checkout-door",
+          "core-door",
+          "restroom-door",
+          "sales_a-door",
+          "sales_b-door",
+          "staff-door",
+          "stock-door",
+          "utility-door"
+        ],
+        "protected_exit": [
+          "protected-exit-1",
+          "protected-exit-2"
+        ]
+      },
+      "egress": {
+        "egress_route": [
+          "checkout-route-1",
+          "checkout-route-2",
+          "restroom-route-1",
+          "restroom-route-2",
+          "sales_a-route-1",
+          "sales_a-route-2",
+          "sales_b-route-1",
+          "sales_b-route-2",
+          "staff-route-1",
+          "staff-route-2",
+          "stock-route-1",
+          "stock-route-2",
+          "utility-route-1",
+          "utility-route-2"
+        ],
+        "lobby_route": [
+          "core-lobby-route-1"
+        ],
+        "stair_door": [
+          "core-stair-door-1"
+        ]
+      },
+      "envelope": {
+        "entrance": [
+          "core-public-entrance",
+          "sales_a-commercial-entrance",
+          "sales_b-commercial-entrance"
+        ],
+        "window": [
+          "restroom-window",
+          "sales_a-window",
+          "sales_b-window",
+          "staff-window",
+          "stock-window",
+          "utility-window"
+        ]
+      },
+      "fixtures": {
+        "lavatory": [
+          "restroom-lavatory-1"
+        ],
+        "utility_equipment": [
+          "utility-utility_equipment-1"
+        ],
+        "wc": [
+          "restroom-wc-1"
+        ]
+      },
+      "furniture": {
+        "checkout_counter": [
+          "checkout-checkout_counter-1"
+        ],
+        "sales_shelf": [
+          "sales_a-sales_shelf-1",
+          "sales_b-sales_shelf-2"
+        ],
+        "staff_table": [
+          "staff-staff_table-1"
+        ],
+        "stock_rack": [
+          "stock-stock_rack-1",
+          "stock-stock_rack-2"
+        ]
+      },
+      "grid": {
+        "grid": [
+          "grid-x-0",
+          "grid-x-1",
+          "grid-x-2",
+          "grid-x-3",
+          "grid-x-4",
+          "grid-x-5",
+          "grid-y-0",
+          "grid-y-1",
+          "grid-y-2"
+        ]
+      },
+      "rooms": {
+        "boundary": [
+          "floor-boundary"
+        ],
+        "room": [
+          "checkout",
+          "core",
+          "restroom",
+          "sales_a",
+          "sales_b",
+          "staff",
+          "stock",
+          "utility"
+        ]
+      },
+      "structure": {
+        "column": [
+          "column-1",
+          "column-2",
+          "column-3",
+          "column-4",
+          "column-5",
+          "column-6",
+          "column-7"
+        ]
+      },
+      "text-labels": {
+        "circulation": [
+          "corridor-cross-label"
+        ],
+        "core-label": [
+          "core-elevator-label",
+          "core-lobby-label",
+          "core-shaft-label",
+          "core-stair-1-label",
+          "remote-stair-2-label"
+        ],
+        "door-width": [
+          "checkout-door-width-label",
+          "core-door-width-label",
+          "restroom-door-width-label",
+          "sales_a-door-width-label",
+          "sales_b-door-width-label",
+          "staff-door-width-label",
+          "stock-door-width-label",
+          "utility-door-width-label"
+        ],
+        "room-label": [
+          "checkout-label",
+          "core-label",
+          "restroom-label",
+          "sales_a-label",
+          "sales_b-label",
+          "staff-label",
+          "stock-label",
+          "utility-label"
+        ]
+      }
+    },
+    "skipped": {
+      "png": [],
+      "svg": []
+    },
+    "svg": {
+      "circulation": {
+        "circulation": [
+          "corridor-cross",
+          "corridor-longitudinal"
+        ]
+      },
+      "core": {
+        "elevator": [
+          "core-elevator"
+        ],
+        "lobby": [
+          "core-lobby"
+        ],
+        "shaft": [
+          "core-shaft"
+        ],
+        "stair": [
+          "core-stair-1",
+          "remote-stair-2"
+        ]
+      },
+      "dimensions": {
+        "circulation_width": [
+          "dimension-circulation-width"
+        ],
+        "north_arrow": [
+          "north-arrow"
+        ],
+        "overall_depth": [
+          "dimension-overall-depth"
+        ],
+        "overall_width": [
+          "dimension-overall-width"
+        ],
+        "scale_line": [
+          "scale-line"
+        ],
+        "street": [
+          "street-line"
+        ]
+      },
+      "door-openings": {
+        "door-opening": [
+          "checkout-door",
+          "core-door",
+          "restroom-door",
+          "sales_a-door",
+          "sales_b-door",
+          "staff-door",
+          "stock-door",
+          "utility-door"
+        ],
+        "protected_exit": [
+          "protected-exit-1",
+          "protected-exit-2"
+        ]
+      },
+      "egress": {
+        "egress_route": [
+          "checkout-route-1",
+          "checkout-route-2",
+          "restroom-route-1",
+          "restroom-route-2",
+          "sales_a-route-1",
+          "sales_a-route-2",
+          "sales_b-route-1",
+          "sales_b-route-2",
+          "staff-route-1",
+          "staff-route-2",
+          "stock-route-1",
+          "stock-route-2",
+          "utility-route-1",
+          "utility-route-2"
+        ],
+        "lobby_route": [
+          "core-lobby-route-1"
+        ],
+        "stair_door": [
+          "core-stair-door-1"
+        ]
+      },
+      "envelope": {
+        "entrance": [
+          "core-public-entrance",
+          "sales_a-commercial-entrance",
+          "sales_b-commercial-entrance"
+        ],
+        "window": [
+          "restroom-window",
+          "sales_a-window",
+          "sales_b-window",
+          "staff-window",
+          "stock-window",
+          "utility-window"
+        ]
+      },
+      "fixtures": {
+        "lavatory": [
+          "restroom-lavatory-1"
+        ],
+        "utility_equipment": [
+          "utility-utility_equipment-1"
+        ],
+        "wc": [
+          "restroom-wc-1"
+        ]
+      },
+      "furniture": {
+        "checkout_counter": [
+          "checkout-checkout_counter-1"
+        ],
+        "sales_shelf": [
+          "sales_a-sales_shelf-1",
+          "sales_b-sales_shelf-2"
+        ],
+        "staff_table": [
+          "staff-staff_table-1"
+        ],
+        "stock_rack": [
+          "stock-stock_rack-1",
+          "stock-stock_rack-2"
+        ]
+      },
+      "grid": {
+        "grid": [
+          "grid-x-0",
+          "grid-x-1",
+          "grid-x-2",
+          "grid-x-3",
+          "grid-x-4",
+          "grid-x-5",
+          "grid-y-0",
+          "grid-y-1",
+          "grid-y-2"
+        ]
+      },
+      "rooms": {
+        "boundary": [
+          "floor-boundary"
+        ],
+        "room": [
+          "checkout",
+          "core",
+          "restroom",
+          "sales_a",
+          "sales_b",
+          "staff",
+          "stock",
+          "utility"
+        ]
+      },
+      "structure": {
+        "column": [
+          "column-1",
+          "column-2",
+          "column-3",
+          "column-4",
+          "column-5",
+          "column-6",
+          "column-7"
+        ]
+      },
+      "text-labels": {
+        "circulation": [
+          "corridor-cross-label"
+        ],
+        "core-label": [
+          "core-elevator-label",
+          "core-lobby-label",
+          "core-shaft-label",
+          "core-stair-1-label",
+          "remote-stair-2-label"
+        ],
+        "door-width": [
+          "checkout-door-width-label",
+          "core-door-width-label",
+          "restroom-door-width-label",
+          "sales_a-door-width-label",
+          "sales_b-door-width-label",
+          "staff-door-width-label",
+          "stock-door-width-label",
+          "utility-door-width-label"
+        ],
+        "room-label": [
+          "checkout-label",
+          "core-label",
+          "restroom-label",
+          "sales_a-label",
+          "sales_b-label",
+          "staff-label",
+          "stock-label",
+          "utility-label"
+        ]
+      }
+    }
+  },
+  "render_style": "architectural",
+  "room_areas": [
+    {
+      "actual_area": 55.7922687075,
+      "max_area": 75.042232,
+      "min_area": 55.465998,
+      "room_id": "sales_a",
+      "target_area": 65.254115,
+      "within_range": true
+    },
+    {
+      "actual_area": 55.7922687075,
+      "max_area": 75.042232,
+      "min_area": 55.465998,
+      "room_id": "sales_b",
+      "target_area": 65.254115,
+      "within_range": true
+    },
+    {
+      "actual_area": 12.312000000000001,
+      "max_area": 16.56,
+      "min_area": 12.24,
+      "room_id": "checkout",
+      "target_area": 14.4,
+      "within_range": true
+    },
+    {
+      "actual_area": 30.779999676217,
+      "max_area": 41.4,
+      "min_area": 30.599999999999998,
+      "room_id": "stock",
+      "target_area": 36.0,
+      "within_range": true
+    },
+    {
+      "actual_area": 15.390002792687994,
+      "max_area": 20.7,
+      "min_area": 15.299999999999999,
+      "room_id": "staff",
+      "target_area": 18.0,
+      "within_range": true
+    },
+    {
+      "actual_area": 15.38999688352901,
+      "max_area": 20.7,
+      "min_area": 15.299999999999999,
+      "room_id": "restroom",
+      "target_area": 18.0,
+      "within_range": true
+    },
+    {
+      "actual_area": 43.09199999999999,
+      "max_area": 57.96,
+      "min_area": 42.84,
+      "room_id": "core",
+      "target_area": 50.4,
+      "within_range": true
+    },
+    {
+      "actual_area": 21.545999182435985,
+      "max_area": 28.979999999999986,
+      "min_area": 21.41999999999999,
+      "room_id": "utility",
+      "target_area": 25.19999999999999,
+      "within_range": true
+    }
+  ],
+  "room_shapes": [
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 2.332420947644792,
+      "measured_min_width": 4.890841,
+      "minimum_width_passed": true,
+      "required_min_width": 4.0,
+      "room_id": "sales_a"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 2.332420947644792,
+      "measured_min_width": 4.890841,
+      "minimum_width_passed": true,
+      "required_min_width": 4.0,
+      "room_id": "sales_b"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 2.1374999999999997,
+      "measured_min_width": 2.4000000000000004,
+      "minimum_width_passed": true,
+      "required_min_width": 2.4,
+      "room_id": "checkout"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 1.1344431596684343,
+      "measured_min_width": 5.208863,
+      "minimum_width_passed": true,
+      "required_min_width": 2.4,
+      "room_id": "stock"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 2.2688858837550767,
+      "measured_min_width": 2.604431999999999,
+      "minimum_width_passed": true,
+      "required_min_width": 2.4,
+      "room_id": "staff"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 2.268886754918827,
+      "measured_min_width": 2.6044310000000017,
+      "minimum_width_passed": true,
+      "required_min_width": 1.8,
+      "room_id": "restroom"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 4.0,
+      "measured_aspect_ratio": 1.2030075187969924,
+      "measured_min_width": 5.984999999999999,
+      "minimum_width_passed": true,
+      "required_min_width": 3.0,
+      "room_id": "core"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 1.6206331296877532,
+      "measured_min_width": 3.6462039999999973,
+      "minimum_width_passed": true,
+      "required_min_width": 1.5,
+      "room_id": "utility"
+    }
+  ],
+  "schema_version": 1,
+  "scores": {
+    "adjacency_score": 0.6667,
+    "area_score": 0.855,
+    "boundary_score": 1.0,
+    "circulation_score": 1.0,
+    "compactness_score": 0.7048,
+    "coverage_score": 0.8108,
+    "efficiency_score": 0.8854,
+    "frontage_score": 1.0,
+    "overlap_score": 1.0,
+    "total_score": 0.8803,
+    "violation_score": 0.0
+  },
+  "total_score_delta": null,
+  "use_type": "neighborhood_commercial",
+  "validation": {
+    "accepted": true,
+    "adjacency_score": 0.6667,
+    "area_score": 0.855,
+    "basic_design": {
+      "column_count": 7,
+      "dimension_count": 3,
+      "elevator_count": 1,
+      "entrance_count": 3,
+      "exit_count": 2,
+      "exit_separation": 23.565175091377554,
+      "fixture_count": 3,
+      "furniture_count": 6,
+      "grid_line_count": 9,
+      "lobby_count": 1,
+      "min_exit_width": 0.9,
+      "min_object_clearance": 0.9443394391848726,
+      "min_routes_per_room": 2,
+      "missing_required_kinds": [],
+      "object_clearance_violation_count": 0,
+      "policy_checks": {
+        "common_core_access": {
+          "pass": true,
+          "reason": "independent public-circulation entrance with connected topology to a protected common-core exit",
+          "threshold": 1,
+          "value": 1
+        },
+        "remote_exit_separation": {
+          "pass": true,
+          "reason": "passes project policy max(3 m, footprint diagonal / 3)",
+          "threshold": 10.770329614269007,
+          "value": 23.565175091377554
+        },
+        "tenant_count": {
+          "pass": true,
+          "reason": "unique ProgramNode.tenant_id count",
+          "threshold": 2,
+          "value": 2
+        },
+        "tenant_independent_access": {
+          "pass": true,
+          "reason": "tenants with unique entrance and supplied-street frontage",
+          "threshold": 2,
+          "value": 2
+        }
+      },
+      "policy_version": "concept-basic-v1",
+      "route_count": 14,
+      "shaft_count": 1,
+      "stair_count": 2,
+      "window_count": 6
+    },
+    "basic_design_checked": true,
+    "boundary_score": 1.0,
+    "circulation_score": 1.0,
+    "compactness_score": 0.7048,
+    "corridor_width_checked": true,
+    "coverage_score": 0.8108,
+    "efficiency_score": 0.8854,
+    "frontage_score": 1.0,
+    "hard_violation_count": 0,
+    "is_valid": true,
+    "messages": [],
+    "openings_checked": true,
+    "overlap_score": 1.0,
+    "policy_version": "exact-v1",
+    "room_areas": [
+      {
+        "actual_area": 55.7922687075,
+        "max_area": 75.042232,
+        "min_area": 55.465998,
+        "room_id": "sales_a",
+        "target_area": 65.254115,
+        "within_range": true
+      },
+      {
+        "actual_area": 55.7922687075,
+        "max_area": 75.042232,
+        "min_area": 55.465998,
+        "room_id": "sales_b",
+        "target_area": 65.254115,
+        "within_range": true
+      },
+      {
+        "actual_area": 12.312000000000001,
+        "max_area": 16.56,
+        "min_area": 12.24,
+        "room_id": "checkout",
+        "target_area": 14.4,
+        "within_range": true
+      },
+      {
+        "actual_area": 30.779999676217,
+        "max_area": 41.4,
+        "min_area": 30.599999999999998,
+        "room_id": "stock",
+        "target_area": 36.0,
+        "within_range": true
+      },
+      {
+        "actual_area": 15.390002792687994,
+        "max_area": 20.7,
+        "min_area": 15.299999999999999,
+        "room_id": "staff",
+        "target_area": 18.0,
+        "within_range": true
+      },
+      {
+        "actual_area": 15.38999688352901,
+        "max_area": 20.7,
+        "min_area": 15.299999999999999,
+        "room_id": "restroom",
+        "target_area": 18.0,
+        "within_range": true
+      },
+      {
+        "actual_area": 43.09199999999999,
+        "max_area": 57.96,
+        "min_area": 42.84,
+        "room_id": "core",
+        "target_area": 50.4,
+        "within_range": true
+      },
+      {
+        "actual_area": 21.545999182435985,
+        "max_area": 28.979999999999986,
+        "min_area": 21.41999999999999,
+        "room_id": "utility",
+        "target_area": 25.19999999999999,
+        "within_range": true
+      }
+    ],
+    "room_shapes": [
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 2.332420947644792,
+        "measured_min_width": 4.890841,
+        "minimum_width_passed": true,
+        "required_min_width": 4.0,
+        "room_id": "sales_a"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 2.332420947644792,
+        "measured_min_width": 4.890841,
+        "minimum_width_passed": true,
+        "required_min_width": 4.0,
+        "room_id": "sales_b"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 2.1374999999999997,
+        "measured_min_width": 2.4000000000000004,
+        "minimum_width_passed": true,
+        "required_min_width": 2.4,
+        "room_id": "checkout"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 1.1344431596684343,
+        "measured_min_width": 5.208863,
+        "minimum_width_passed": true,
+        "required_min_width": 2.4,
+        "room_id": "stock"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 2.2688858837550767,
+        "measured_min_width": 2.604431999999999,
+        "minimum_width_passed": true,
+        "required_min_width": 2.4,
+        "room_id": "staff"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 2.268886754918827,
+        "measured_min_width": 2.6044310000000017,
+        "minimum_width_passed": true,
+        "required_min_width": 1.8,
+        "room_id": "restroom"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 4.0,
+        "measured_aspect_ratio": 1.2030075187969924,
+        "measured_min_width": 5.984999999999999,
+        "minimum_width_passed": true,
+        "required_min_width": 3.0,
+        "room_id": "core"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 1.6206331296877532,
+        "measured_min_width": 3.6462039999999973,
+        "minimum_width_passed": true,
+        "required_min_width": 1.5,
+        "room_id": "utility"
+      }
+    ],
+    "total_score": 0.8803,
+    "violation_score": 0.0,
+    "violations": []
+  },
+  "violations": []
+}
