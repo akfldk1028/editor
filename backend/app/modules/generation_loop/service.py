@@ -167,6 +167,7 @@ def run_building_generation(
             require_openings=True,
             min_door_width=0.8,
             min_circulation_width=1.2,
+            require_basic_design=True,
         )
         floor_results.append(
             GenerationResult(
@@ -515,7 +516,15 @@ def _street_segments(
         index = int(edge["edge_index"])
         if index < 0 or index >= len(points):
             raise ValueError(f"street edge index {index} is outside footprint edges")
-        segments.append((points[index], points[(index + 1) % len(points)]))
+        segment = []
+        for point in (points[index], points[(index + 1) % len(points)]):
+            if len(point) != 2:
+                raise ValueError("street edge points must contain two coordinates")
+            normalized = (float(point[0]), float(point[1]))
+            if not all(math.isfinite(value) for value in normalized):
+                raise ValueError("street edge points must be finite")
+            segment.append(normalized)
+        segments.append((segment[0], segment[1]))
     return segments
 
 

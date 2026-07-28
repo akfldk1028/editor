@@ -10,7 +10,7 @@ from backend.app.schemas.layout import (
     PlanLine,
     RoomPolygon,
 )
-from engine.geometry.access import shared_boundary_segments
+from engine.geometry.access import orthogonal_min_width, shared_boundary_segments
 from engine.geometry.polygon import contains_polygon, polygon_overlap_area
 
 Point = tuple[float, float]
@@ -144,6 +144,7 @@ def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[
             kind="protected_exit",
             points=points,
             host_id=core.room_id,
+            target_id=f"core-stair-{index}",
             label=f"EXIT {index}",
             clear_width=0.9,
         )
@@ -383,7 +384,10 @@ def _dimensions_and_site(
 ) -> list[PlanLine]:
     min_x, min_y, max_x, max_y = _bounds(boundary)
     width, depth = max_x - min_x, max_y - min_y
-    circulation_width = min(min(_bounds(path.polygon)[2] - _bounds(path.polygon)[0], _bounds(path.polygon)[3] - _bounds(path.polygon)[1]) for path in circulation)
+    circulation_width = min(
+        orthogonal_min_width(path.polygon)
+        for path in circulation
+    )
     lines = [
         PlanLine("dimension-overall-width", "dimension", "overall_width", ((min_x, min_y), (max_x, min_y)), label="WIDTH", measured_value=width),
         PlanLine("dimension-overall-depth", "dimension", "overall_depth", ((min_x, min_y), (min_x, max_y)), label="DEPTH", measured_value=depth),

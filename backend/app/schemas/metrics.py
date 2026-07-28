@@ -32,6 +32,28 @@ class RoomShapeMetric:
 
 
 @dataclass(frozen=True)
+class BasicDesignMetric:
+    policy_version: str
+    stair_count: int
+    elevator_count: int
+    lobby_count: int
+    shaft_count: int
+    exit_count: int
+    route_count: int
+    grid_line_count: int
+    column_count: int
+    window_count: int
+    entrance_count: int
+    furniture_count: int
+    fixture_count: int
+    dimension_count: int
+    min_exit_width: float | None
+    exit_separation: float | None
+    min_routes_per_room: int
+    missing_required_kinds: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ValidationReport:
     is_valid: bool
     accepted: bool
@@ -54,3 +76,5 @@ class ValidationReport:
     openings_checked: bool = False
     corridor_width_checked: bool = False
     room_shapes: list[RoomShapeMetric] = field(default_factory=list)
+    basic_design_checked: bool = False
+    basic_design: BasicDesignMetric | None = None
