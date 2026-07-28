@@ -99,6 +99,30 @@ python -m backend.app.cli building-review `
 Set `PLAN_LLM_MODEL` or pass `--llm-model` to override the default model.
 `OPENAI_API_KEY` is read by the official OpenAI Python SDK.
 
+## Generator Adapter Status
+
+PLAN now has a request-bound generator adapter contract. Requests and responses
+carry a canonical SHA-256 digest, immutable program and geometry records,
+backend provenance, and explicit `executed`, `failed`, or `unavailable`
+status. An `executed` response must include a normalized candidate that can be
+reconstructed and run through the same concept-basic validator.
+
+Current execution status:
+
+| Backend | Status | Current evidence |
+|---|---|---|
+| deterministic | executed | Exact program contract, normalized concept-basic geometry, and revalidation are tested |
+| Graph2Plan | unavailable | Official executable, RPLAN data/checkpoint, and post-processing environment are not configured |
+| HouseDiffusion | unavailable | Official executable and checkpoint are not configured |
+| floor-plan RLVR | unavailable | Model/runtime are not configured; there is no deterministic fallback presented as RLVR |
+| MANSION | unavailable | Enforced as downstream multi-floor/3D evaluation only, not a 2D plan generator |
+
+The adapter harness is integration infrastructure. It is not evidence that the
+learned paper implementations have run. Graph2Plan's official repository
+documents RPLAN80K residential training, raster and room-box output, and
+post-processing for overlap/alignment; those domain and environment limits
+must remain attached to any future benchmark result.
+
 ## Limits
 
 - Whole-building generation currently accepts only axis-aligned rectangular
@@ -114,5 +138,7 @@ Set `PLAN_LLM_MODEL` or pass `--llm-model` to override the default model.
 - Statutory applicability, maximum travel distance, fire resistance, detailed
   accessibility, elevator traffic, MEP sizing, and construction assemblies are
   explicitly not checked.
-- Passing hard validation means internally consistent under the current
-  concept-basic contract; it does not mean permit-ready or architect-quality.
+- `internal concept validation: pass` means internally consistent under the
+  current concept-basic contract. `regulatory screening` is reported
+  separately and remains `not_checked` while two-stair applicability is
+  unresolved. Neither status means permit-ready or architect-quality.
