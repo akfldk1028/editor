@@ -432,6 +432,43 @@ def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
         {"floor_index": 5, "use_type": "office"},
     ]
     assert [floor["floor_index"] for floor in report["floors"]] == [1, 2, 3, 4, 5]
+    assert all(
+        floor["program_source"] == "compact_building_aligned_prior"
+        for floor in report["floors"]
+    )
+    assert all(floor["program_adjusted"] is True for floor in report["floors"])
+
+
+def test_compact_building_review_discloses_program_adjustment(tmp_path):
+    mass = MassInput(
+        project_id="compact-review",
+        floors=2,
+        footprint_polygon=[(0, 0), (20, 0), (20, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+    result = run_building_generation(mass)
+
+    artifacts = create_building_visual_review_artifacts(
+        result,
+        boundary=mass.footprint_polygon,
+        output_dir=tmp_path,
+    )
+
+    building_report = json.loads(artifacts.report_path.read_text(encoding="utf-8"))
+    floor_report = json.loads(
+        artifacts.floor_artifacts[0].report_path.read_text(encoding="utf-8")
+    )
+    index = artifacts.index_html_path.read_text(encoding="utf-8")
+    assert all(floor["program_adjusted"] is True for floor in building_report["floors"])
+    assert all(
+        floor["program_source"] == "compact_building_aligned_prior"
+        for floor in building_report["floors"]
+    )
+    assert floor_report["program_adjusted"] is True
+    assert floor_report["program_source"] == "compact_building_aligned_prior"
+    assert "program adjusted" in index
 
 
 def test_png_artifact_has_requested_pixel_size(tmp_path):

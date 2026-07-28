@@ -189,6 +189,8 @@ def create_building_visual_review_artifacts(
             {
                 "floor_index": floor.program.floor_index,
                 "use_type": floor.program.use_type,
+                "program_source": floor.program.source,
+                "program_adjusted": _program_was_adjusted(floor.program.source),
                 "accepted": floor.validation.accepted,
                 "room_count": len(floor.layout.rooms),
                 "artifacts": artifacts.artifact_links,
@@ -290,6 +292,8 @@ def create_visual_review_artifacts(
         "project_id": result.mass.project_id,
         "floor_index": result.program.floor_index,
         "use_type": result.program.use_type,
+        "program_source": result.program.source,
+        "program_adjusted": _program_was_adjusted(result.program.source),
         "iteration": (
             iteration_number
             if iteration_number is not None
@@ -365,6 +369,8 @@ def _render_building_index(
         png = html.escape(floor["artifacts"]["png"], quote=True)
         review = html.escape(floor["artifacts"]["html"], quote=True)
         status = "accepted" if floor["accepted"] else "needs review"
+        if floor["program_adjusted"]:
+            status += " | program adjusted"
         floor_sections.append(
             f"""
             <section>
@@ -630,6 +636,8 @@ def _run_concept_basic_review(
         "violations": report["violations"],
         "scores": report["scores"],
         "checks": report["checks"],
+        "program_source": report["program_source"],
+        "program_adjusted": report["program_adjusted"],
         "total_score_delta": None,
         "hard_failure_count_delta": None,
         "artifacts": report["artifacts"],
@@ -650,6 +658,8 @@ def _run_concept_basic_review(
         "vertical_basic_design_aligned": building.vertical_basic_design_aligned,
         "vertical_structure_aligned": building.vertical_structure_aligned,
         "planner_provenance": to_jsonable(building.planner_provenance),
+        "program_source": report["program_source"],
+        "program_adjusted": report["program_adjusted"],
         "iterations": [iteration],
         "score_trend": [iteration["scores"]["total_score"]],
         "hard_failure_trend": [iteration["hard_failure_count"]],
@@ -677,6 +687,10 @@ def _run_concept_basic_review(
         unchecked_checks=unchecked_checks,
         planner_provenance=building.planner_provenance,
     )
+
+
+def _program_was_adjusted(source: str) -> bool:
+    return source == "compact_building_aligned_prior"
 
 
 def _review_planner_provenance(
