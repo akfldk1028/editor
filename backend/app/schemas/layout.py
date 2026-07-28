@@ -14,6 +14,30 @@ def _require_finite_points(points: tuple[Point, ...], *, label: str, minimum: in
 
 
 @dataclass(frozen=True)
+class UsePlanningMetadata:
+    reception_to_lobby_route_line_id: str | None = None
+    support_room_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        route_id = self.reception_to_lobby_route_line_id
+        if route_id is not None and (
+            not isinstance(route_id, str) or not route_id.strip()
+        ):
+            raise TypeError(
+                "reception_to_lobby_route_line_id must be a non-empty string or None"
+            )
+        if not isinstance(self.support_room_ids, tuple):
+            raise TypeError("support_room_ids must be an immutable tuple")
+        if any(
+            not isinstance(room_id, str) or not room_id.strip()
+            for room_id in self.support_room_ids
+        ):
+            raise TypeError("support_room_ids must contain non-empty strings")
+        if len(set(self.support_room_ids)) != len(self.support_room_ids):
+            raise ValueError("support_room_ids must be unique")
+
+
+@dataclass(frozen=True)
 class PlanElement:
     element_id: str
     category: str
@@ -53,7 +77,14 @@ class BasicDesignFeatures:
     elements: tuple[PlanElement, ...]
     lines: tuple[PlanLine, ...]
     policy_version: str = "concept-basic-v1"
-    planning: dict[str, object] | None = None
+    planning: UsePlanningMetadata | None = None
+
+    def __post_init__(self) -> None:
+        if self.planning is not None and not isinstance(
+            self.planning,
+            UsePlanningMetadata,
+        ):
+            raise TypeError("planning must be frozen UsePlanningMetadata or None")
 
 
 @dataclass(frozen=True)

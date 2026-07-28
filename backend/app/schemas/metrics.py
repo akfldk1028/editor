@@ -1,6 +1,83 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
+
+PolicyValue = bool | float | int | str | None
+_UNSET = object()
+
+
+class _ImmutableJsonDict(dict):
+    def _immutable(self, *args, **kwargs):
+        raise TypeError(f"{type(self).__name__} is immutable")
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    clear = _immutable
+    pop = _immutable
+    popitem = _immutable
+    setdefault = _immutable
+    update = _immutable
+    __ior__ = _immutable
+
+
+class PolicyCheck(_ImmutableJsonDict):
+    def __init__(
+        self,
+        value=_UNSET,
+        threshold=_UNSET,
+        passed=_UNSET,
+        reason=_UNSET,
+    ) -> None:
+        if (
+            threshold is _UNSET
+            and passed is _UNSET
+            and reason is _UNSET
+            and value is not _UNSET
+        ):
+            values = dict(value)
+            if set(values) != {"value", "threshold", "pass", "reason"}:
+                raise TypeError("PolicyCheck requires the exact policy-check fields")
+        else:
+            values = {
+                "value": value,
+                "threshold": threshold,
+                "pass": passed,
+                "reason": reason,
+            }
+        if not _is_json_policy_value(values["value"]) or not _is_json_policy_value(
+            values["threshold"]
+        ):
+            raise TypeError("PolicyCheck values must be finite JSON scalar values")
+        if not isinstance(values["pass"], bool):
+            raise TypeError("PolicyCheck passed value must be bool")
+        if not isinstance(values["reason"], str) or not values["reason"]:
+            raise TypeError("PolicyCheck reason must be a non-empty string")
+        dict.__init__(self, values)
+
+
+class UsePlanningMetrics(_ImmutableJsonDict):
+    def __init__(self, checks=None) -> None:
+        values = dict(() if checks is None else checks)
+        if any(
+            not isinstance(name, str)
+            or not name
+            or not isinstance(check, PolicyCheck)
+            for name, check in values.items()
+        ):
+            raise TypeError(
+                "UsePlanningMetrics requires named immutable PolicyCheck values"
+            )
+        dict.__init__(self, values)
+
+
+def _is_json_policy_value(value) -> bool:
+    return (
+        value is None
+        or isinstance(value, (bool, int, str))
+        or isinstance(value, float)
+        and math.isfinite(value)
+    )
 
 
 @dataclass(frozen=True)
@@ -53,8 +130,8 @@ class BasicDesignMetric:
     missing_required_kinds: tuple[str, ...]
     min_object_clearance: float | None = None
     object_clearance_violation_count: int = 0
-    policy_checks: dict[str, dict[str, bool | float | int | str | None]] = field(
-        default_factory=dict
+    policy_checks: UsePlanningMetrics = field(
+        default_factory=UsePlanningMetrics
     )
 
 

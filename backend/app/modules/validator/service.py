@@ -11,11 +11,14 @@ from backend.app.schemas.layout import (
     PlanElement,
     PlanLine,
     RoomPolygon,
+    UsePlanningMetadata,
 )
 from backend.app.schemas.metrics import (
     BasicDesignMetric,
+    PolicyCheck,
     RoomAreaMetric,
     RoomShapeMetric,
+    UsePlanningMetrics,
     ValidationReport,
     ValidationViolation,
 )
@@ -354,6 +357,7 @@ def validate_layout(
     if require_basic_design:
         min_x, min_y, max_x, max_y = _bounds(boundary)
         project_exit_separation = max(
+            3.0,
             min_exit_separation,
             math.hypot(max_x - min_x, max_y - min_y) / 3.0,
         )
@@ -1352,6 +1356,7 @@ def _validate_basic_design(
             missing_kinds.add(f"object:{room_id}:{kind}")
 
     policy_checks = _validate_use_planning(
+        layout,
         features,
         program,
         geometric_occupied_rooms,
@@ -1387,6 +1392,7 @@ def _validate_basic_design(
 
 
 def _validate_use_planning(
+    layout: LayoutCandidate,
     features: BasicDesignFeatures,
     program: ProgramGraph,
     rooms: dict[str, RoomPolygon],
@@ -1396,7 +1402,7 @@ def _validate_use_planning(
     boundary: list[tuple[float, float]],
     streets: list[Segment],
     add_violation,
-) -> dict[str, dict[str, bool | float | int | str | None]]:
+) -> dict[str, PolicyCheck]:
     if program.use_type == "neighborhood_commercial":
         tenant_nodes = [
             node for node in program.nodes if node.space_type == "sales"
@@ -1505,7 +1511,26 @@ def _validate_use_planning(
             and line.target_id in circulation_ids
             and line.line_id not in assigned_entrance_ids
         ]
-        common_core_access_passed = len(common_entries) == 1
+        core_rooms = [
+            rooms[core_id] for core_id in sorted(core_ids) if core_id in rooms
+        ]
+        core_exit_exists = any(
+            line.kind == "protected_exit" and line.host_id in core_ids
+            for line in lines.values()
+        )
+        connected_common_entries = sum(
+            _circulation_target_reaches_core(
+                entry.target_id,
+                circulation,
+                core_rooms,
+            )
+            for entry in common_entries
+        )
+        common_core_access_passed = (
+            len(common_entries) == 1
+            and connected_common_entries == 1
+            and core_exit_exists
+        )
         if not common_core_access_passed:
             add_violation(
                 "common_core_access_unmet",
@@ -1529,10 +1554,13 @@ def _validate_use_planning(
                 "tenants with unique entrance and supplied-street frontage",
             ),
             "common_core_access": _policy_check(
+                connected_common_entries if core_exit_exists else 0,
+                1,
                 common_core_access_passed,
-                True,
-                common_core_access_passed,
-                "independent public-circulation entrance to common core",
+                (
+                    "independent public-circulation entrance with connected "
+                    "topology to a protected common-core exit"
+                ),
             ),
         }
 
@@ -1540,8 +1568,15 @@ def _validate_use_planning(
         return {}
 
     planning = features.planning
-    planning_known = isinstance(planning, dict)
-    if not planning_known:
+    route_metadata_known = (
+        isinstance(planning, UsePlanningMetadata)
+        and planning.reception_to_lobby_route_line_id is not None
+    )
+    support_metadata_known = (
+        isinstance(planning, UsePlanningMetadata)
+        and bool(planning.support_room_ids)
+    )
+    if not route_metadata_known or not support_metadata_known:
         add_violation(
             "use_planning_metadata_missing",
             "office",
@@ -1566,7 +1601,7 @@ def _validate_use_planning(
     ]
     work_area = sum(polygon_area(room.polygon) for room in work_rooms)
     minimum_workpoints = math.ceil(work_area / 10.0)
-    maximum_workpoints = math.ceil(work_area / 8.0)
+    maximum_workpoints = math.floor(work_area / 8.0)
     workpoint_count = sum(
         element.category == "furniture"
         and element.kind == "workstation"
@@ -1588,8 +1623,8 @@ def _validate_use_planning(
         )
 
     reception_route_id = (
-        planning.get("reception_to_lobby_route_line_id")
-        if planning_known
+        planning.reception_to_lobby_route_line_id
+        if route_metadata_known
         else None
     )
     reception_route = (
@@ -1600,15 +1635,33 @@ def _validate_use_planning(
     reception_ids = {
         node.node_id for node in program.nodes if node.space_type == "reception"
     }
+    core_ids = {
+        node.node_id for node in program.nodes if node.space_type == "core"
+    }
+    target_exit = (
+        lines.get(reception_route.target_id)
+        if reception_route is not None
+        and isinstance(reception_route.target_id, str)
+        else None
+    )
+    reception_door_midpoints = _door_midpoints(layout, circulation)
+    reception_door_midpoint = (
+        reception_door_midpoints.get(reception_route.host_id)
+        if reception_route is not None
+        and isinstance(reception_route.host_id, str)
+        else None
+    )
     reception_to_lobby_passed = (
         reception_route is not None
         and reception_route.kind == "egress_route"
         and reception_route.host_id in reception_ids
-        and reception_route.target_id in {
-            line.line_id
-            for line in lines.values()
-            if line.kind == "protected_exit"
-        }
+        and target_exit is not None
+        and target_exit.kind == "protected_exit"
+        and target_exit.host_id in core_ids
+        and reception_door_midpoint is not None
+        and _points_equal(reception_route.points[0], reception_door_midpoint)
+        and _points_equal(reception_route.points[-1], _line_midpoint(target_exit))
+        and _egress_route_in_circulation(reception_route.points, circulation)
     )
     if not reception_to_lobby_passed:
         add_violation(
@@ -1621,22 +1674,15 @@ def _validate_use_planning(
         )
 
     declared_support_ids = (
-        planning.get("support_room_ids")
-        if planning_known
-        else None
+        planning.support_room_ids if support_metadata_known else None
     )
     expected_support_ids = {
         node.node_id
         for node in program.nodes
         if node.space_type in {"pantry", "restroom", "it_storage"}
     }
-    support_metadata_known = isinstance(declared_support_ids, (list, tuple))
     declared_support_set = (
-        {
-            room_id
-            for room_id in declared_support_ids
-            if isinstance(room_id, str)
-        }
+        set(declared_support_ids)
         if support_metadata_known
         else set()
     )
@@ -1683,12 +1729,12 @@ def _validate_use_planning(
 
     return {
         "reception_to_lobby": _policy_check(
-            reception_to_lobby_passed if planning_known else None,
+            reception_to_lobby_passed if route_metadata_known else None,
             True,
             reception_to_lobby_passed,
             (
                 "validated reception route to protected core-lobby exit"
-                if planning_known
+                if route_metadata_known
                 else "unknown: reception route metadata is missing"
             ),
         ),
@@ -1718,13 +1764,45 @@ def _policy_check(
     threshold: bool | float | int | str | None,
     passed: bool,
     reason: str,
-) -> dict[str, bool | float | int | str | None]:
-    return {
-        "value": value,
-        "threshold": threshold,
-        "pass": passed,
-        "reason": reason,
+) -> PolicyCheck:
+    return PolicyCheck(value, threshold, passed, reason)
+
+
+def _circulation_target_reaches_core(
+    target_id: str | None,
+    circulation: list[RoomPolygon],
+    core_rooms: list[RoomPolygon],
+) -> bool:
+    by_id = {path.room_id: path for path in circulation}
+    if target_id not in by_id or not core_rooms:
+        return False
+    core_adjacent_ids = {
+        path.room_id
+        for path in circulation
+        if any(
+            shared_boundary_length(path.polygon, core.polygon) > _EPSILON
+            for core in core_rooms
+        )
     }
+    reached = {target_id}
+    pending = [target_id]
+    while pending:
+        current_id = pending.pop()
+        if current_id in core_adjacent_ids:
+            return True
+        current = by_id[current_id]
+        for candidate_id, candidate in by_id.items():
+            if candidate_id in reached:
+                continue
+            if (
+                shared_boundary_length(current.polygon, candidate.polygon)
+                > _EPSILON
+                or polygon_overlap_area(current.polygon, candidate.polygon)
+                > _EPSILON
+            ):
+                reached.add(candidate_id)
+                pending.append(candidate_id)
+    return False
 
 
 def _polygon_bbox_center(polygon) -> tuple[float, float]:
@@ -1831,11 +1909,7 @@ def _basic_design_metric(
     min_object_clearance: float | None = None,
     object_clearance_violation_count: int = 0,
     exit_separation_threshold: float | None = None,
-    policy_checks: dict[
-        str,
-        dict[str, bool | float | int | str | None],
-    ]
-    | None = None,
+    policy_checks: dict[str, PolicyCheck] | None = None,
 ) -> BasicDesignMetric:
     elements = features.elements if features is not None else ()
     lines = features.lines if features is not None else ()
@@ -1884,19 +1958,21 @@ def _basic_design_metric(
         missing_required_kinds=missing_required_kinds,
         min_object_clearance=min_object_clearance,
         object_clearance_violation_count=object_clearance_violation_count,
-        policy_checks={
-            "remote_exit_separation": {
-                "value": exit_separation,
-                "threshold": exit_separation_threshold,
-                "pass": remote_exit_passed,
-                "reason": (
-                    "passes project policy max(3 m, footprint diagonal / 3)"
-                    if remote_exit_passed
-                    else "fails project policy max(3 m, footprint diagonal / 3)"
+        policy_checks=UsePlanningMetrics(
+            {
+                "remote_exit_separation": PolicyCheck(
+                    exit_separation,
+                    exit_separation_threshold,
+                    remote_exit_passed,
+                    (
+                        "passes project policy max(3 m, footprint diagonal / 3)"
+                        if remote_exit_passed
+                        else "fails project policy max(3 m, footprint diagonal / 3)"
+                    ),
                 ),
-            },
-            **(policy_checks or {}),
-        },
+                **(policy_checks or {}),
+            }
+        ),
     )
 
 
