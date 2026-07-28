@@ -98,6 +98,20 @@ LAYER_ORDER = (
     "dimensions",
     "text-labels",
 )
+LAYER_DISPLAY = {
+    "grid": ("그리드", "#8b95a1"),
+    "rooms": ("공간", "#c9dcf0"),
+    "circulation": ("복도·동선", "#79a96b"),
+    "core": ("코어", "#d68179"),
+    "structure": ("구조", "#343a40"),
+    "envelope": ("외벽·창호", "#176b87"),
+    "door-openings": ("문", "#1464a5"),
+    "furniture": ("가구", "#c79c3c"),
+    "fixtures": ("설비", "#3d948c"),
+    "egress": ("피난", "#36864a"),
+    "dimensions": ("치수·대지", "#b45f24"),
+    "text-labels": ("문자", "#24282d"),
+}
 RENDER_STYLES = {"review", "architectural"}
 ARCHITECTURAL_FONT_STACK = "Noto Sans KR, Malgun Gothic, sans-serif"
 ARCHITECTURAL_LABELS = {
@@ -2552,32 +2566,27 @@ def _render_html(
         for shape in report["room_shapes"]
     )
     basic_design_present = result.layout.basic_design is not None
-    control_labels = {
-        "grid": "Grid",
-        "rooms": "Rooms",
-        "circulation": "Circulation",
-        "core": "Core",
-        "structure": "Structure",
-        "envelope": "Envelope",
-        "door-openings": "Doors",
-        "furniture": "Furniture",
-        "fixtures": "Fixtures",
-        "egress": "Egress",
-        "dimensions": "Dimensions / site",
-        "text-labels": "Labels",
-    }
-    controls = "".join(
-        (
-            f'<button type="button" data-layer="{layer}" aria-pressed="true"'
-            + (
-                ' disabled aria-disabled="true"'
-                if layer in _BASIC_DESIGN_LAYERS and not basic_design_present
-                else ""
-            )
-            + f">{html.escape(control_labels[layer])}</button>"
+    layer_rows = []
+    for layer in LAYER_ORDER:
+        disabled = layer in _BASIC_DESIGN_LAYERS and not basic_design_present
+        label, color = LAYER_DISPLAY[layer]
+        modeled_count = report["layer_completeness"].get(layer, {}).get(
+            "modeled",
+            0,
         )
-        for layer in LAYER_ORDER
-    )
+        layer_rows.append(
+            f'<label class="cad-layer-row" data-layer="{layer}">'
+            f'<input type="checkbox" data-layer="{layer}" checked'
+            + (' disabled aria-disabled="true"' if disabled else "")
+            + ">"
+            f'<span class="layer-swatch" style="--layer-color: {color}" '
+            'aria-hidden="true"></span>'
+            f'<span class="layer-name">{label}</span>'
+            f'<span class="layer-modeled-count" '
+            f'aria-label="모델링 객체 {modeled_count}개">{modeled_count}</span>'
+            "</label>"
+        )
+    controls = "".join(layer_rows)
     completeness_rows = "".join(
         f'<tr><th scope="row">{html.escape(layer)}</th>'
         f'<td>{counts["modeled"]}</td><td>{counts["svg"]}</td>'
@@ -2586,7 +2595,7 @@ def _render_html(
     )
     project_id = html.escape(result.mass.project_id)
     return f"""<!doctype html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="utf-8">
   <link rel="icon" href="data:,">
@@ -2600,15 +2609,31 @@ def _render_html(
     .status {{ margin-bottom: 18px; font-weight: 700; }}
     .grid {{ display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 20px; align-items: start; }}
     .grid > section {{ min-width: 0; }}
+    .plan {{ grid-column: 1 / -1; }}
+    .review-workspace {{ display: grid; grid-template-columns: minmax(0, 1fr) 272px; gap: 14px; align-items: start; }}
+    .drawing-pane {{ min-width: 0; }}
     iframe {{ width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }}
-    #working-layer-controls {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }}
-    #working-layer-controls button {{ flex: 0 0 auto; min-height: 32px; max-width: 100%; padding: 5px 9px; }}
-    #working-layer-controls button[disabled] {{ opacity: 0.45; cursor: not-allowed; }}
+    #cad-layer-manager {{ min-width: 0; border: 1px solid #b9c0c7; background: #fff; color: #171a1d; }}
+    .cad-layer-header {{ padding: 9px 10px; border-bottom: 1px solid #cbd0d5; font-size: 14px; font-weight: 700; }}
+    .cad-layer-commands {{ display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 8px; border-bottom: 1px solid #d8dde1; }}
+    .cad-layer-commands button {{ min-height: 32px; padding: 5px 7px; border: 1px solid #aeb6bd; border-radius: 3px; background: #f7f8f9; color: #171a1d; font: inherit; cursor: pointer; }}
+    .cad-layer-commands button:hover:not(:disabled) {{ background: #e8edf1; }}
+    .cad-layer-commands button:focus-visible, .cad-layer-row input:focus-visible {{ outline: 2px solid #1261a0; outline-offset: 2px; }}
+    .cad-layer-commands button:disabled {{ opacity: 0.45; cursor: not-allowed; }}
+    .cad-layer-list {{ display: grid; padding: 4px 0; }}
+    .cad-layer-row {{ display: grid; grid-template-columns: 20px 16px minmax(0, 1fr) auto; gap: 7px; align-items: center; min-height: 33px; padding: 4px 10px; border-bottom: 1px solid #edf0f2; cursor: pointer; }}
+    .cad-layer-row:last-child {{ border-bottom: 0; }}
+    .cad-layer-row:hover {{ background: #f5f7f8; }}
+    .cad-layer-row:has(input:disabled) {{ color: #8b9298; cursor: not-allowed; }}
+    .cad-layer-row input {{ width: 16px; height: 16px; margin: 0; accent-color: #1261a0; }}
+    .layer-swatch {{ width: 13px; height: 13px; border: 1px solid #6d747a; background: var(--layer-color); }}
+    .layer-name {{ min-width: 0; font-size: 13px; }}
+    .layer-modeled-count {{ min-width: 24px; color: #5b6268; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }}
     table {{ border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }}
     thead, tbody {{ white-space: nowrap; }}
     th, td {{ border-bottom: 1px solid #ddd; padding: 8px 10px; text-align: left; }}
     a {{ color: #0645ad; }}
-    @media (max-width: 680px) {{ body {{ margin: 14px; }} .grid {{ grid-template-columns: 1fr; }} }}
+    @media (max-width: 680px) {{ body {{ margin: 14px; }} .grid, .review-workspace {{ grid-template-columns: 1fr; }} .plan {{ grid-column: auto; }} #cad-layer-manager {{ width: 100%; }} }}
   </style>
 </head>
 <body>
@@ -2617,10 +2642,23 @@ def _render_html(
     <div class="status">{html.escape(status)}</div>
     <div class="grid">
       <section class="plan">
-        <div id="working-layer-controls" aria-label="Working layers">
-          {controls}
+        <div class="review-workspace">
+          <div class="drawing-pane">
+            <iframe id="floor-plan" src="{html.escape(svg_name, quote=True)}" title="floor plan svg"></iframe>
+          </div>
+          <aside id="cad-layer-manager" aria-label="도면 레이어">
+            <div class="cad-layer-header">레이어</div>
+            <div class="cad-layer-commands" aria-label="레이어 명령">
+              <button type="button" data-command="all-on">전체 켜기</button>
+              <button type="button" data-command="all-off">전체 끄기</button>
+              <button type="button" data-command="isolate">선택만 보기</button>
+              <button type="button" data-command="reset">초기화</button>
+            </div>
+            <div class="cad-layer-list">
+              {controls}
+            </div>
+          </aside>
         </div>
-        <iframe id="floor-plan" src="{html.escape(svg_name, quote=True)}" title="floor plan svg"></iframe>
       </section>
       <section>
         <h2>Hard Validation Checks</h2>
@@ -2650,26 +2688,53 @@ def _render_html(
   </main>
   <script>
     const frame = document.getElementById("floor-plan");
-    const controls = document.querySelectorAll("#working-layer-controls button");
+    const checkboxes = Array.from(
+      document.querySelectorAll('#cad-layer-manager input[type="checkbox"][data-layer]')
+    );
+    const commandButtons = document.querySelectorAll(
+      "#cad-layer-manager button[data-command]"
+    );
+    const isolateButton = document.querySelector(
+      '#cad-layer-manager button[data-command="isolate"]'
+    );
+    function enabledCheckboxes() {{
+      return checkboxes.filter((checkbox) => !checkbox.disabled);
+    }}
+    function updateCommandState() {{
+      isolateButton.disabled = !enabledCheckboxes().some(
+        (checkbox) => checkbox.checked
+      );
+    }}
     function synchronizeLayers() {{
       const documentRoot = frame.contentDocument;
       if (!documentRoot) return;
-      controls.forEach((button) => {{
-        const visible = button.getAttribute("aria-pressed") === "true";
-        documentRoot.querySelectorAll(`[data-layer="${{button.dataset.layer}}"]`).forEach((node) => {{
+      checkboxes.forEach((checkbox) => {{
+        const visible = checkbox.checked;
+        documentRoot.querySelectorAll(`[data-layer="${{checkbox.dataset.layer}}"]`).forEach((node) => {{
           node.style.display = visible ? "" : "none";
         }});
       }});
     }}
     frame.addEventListener("load", synchronizeLayers);
-    controls.forEach((button) => {{
-      button.addEventListener("click", () => {{
-        if (button.disabled) return;
-        const pressed = button.getAttribute("aria-pressed") === "true";
-        button.setAttribute("aria-pressed", String(!pressed));
+    checkboxes.forEach((checkbox) => {{
+      checkbox.addEventListener("change", () => {{
         synchronizeLayers();
+        updateCommandState();
       }});
     }});
+    commandButtons.forEach((button) => {{
+      button.addEventListener("click", () => {{
+        const enabled = enabledCheckboxes();
+        if (button.dataset.command === "all-on" || button.dataset.command === "reset") {{
+          enabled.forEach((checkbox) => {{ checkbox.checked = true; }});
+        }} else if (button.dataset.command === "all-off") {{
+          enabled.forEach((checkbox) => {{ checkbox.checked = false; }});
+        }}
+        synchronizeLayers();
+        updateCommandState();
+      }});
+    }});
+    updateCommandState();
   </script>
 </body>
 </html>

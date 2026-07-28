@@ -605,7 +605,7 @@ def test_unchecked_review_does_not_fabricate_basic_design_layers_and_disables_co
     ):
         assert f'<g data-layer="{layer}">' not in svg
         assert re.search(
-            rf'<button[^>]+data-layer="{layer}"[^>]+disabled',
+            rf'<input[^>]+data-layer="{layer}"[^>]+disabled',
             page,
         )
         assert layer not in report["layer_completeness"]
@@ -886,8 +886,8 @@ def test_review_exposes_validator_room_form_measurements_and_layer_controls(tmp_
     assert 'data-layer="circulation"' in svg
     assert 'data-layer="door-openings"' in svg
     assert 'data-layer="text-labels"' in svg
-    assert 'id="working-layer-controls"' in page
-    assert 'aria-pressed="true"' in page
+    assert 'id="cad-layer-manager"' in page
+    assert 'type="checkbox"' in page
     assert "Room Program and Form" in page
 
 
@@ -912,6 +912,72 @@ def test_layer_control_script_resynchronizes_after_iframe_load(tmp_path):
 
     assert "function synchronizeLayers()" in page
     assert 'frame.addEventListener("load", synchronizeLayers)' in page
+
+
+def test_cad_layer_manager_exposes_korean_checkbox_contract_and_bulk_commands(
+    tmp_path,
+):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    page = review.html_path.read_text(encoding="utf-8")
+
+    assert 'id="cad-layer-manager"' in page
+    assert 'aria-label="도면 레이어"' in page
+    for layer, label in {
+        "grid": "그리드",
+        "rooms": "공간",
+        "circulation": "복도·동선",
+        "core": "코어",
+        "structure": "구조",
+        "envelope": "외벽·창호",
+        "door-openings": "문",
+        "furniture": "가구",
+        "fixtures": "설비",
+        "egress": "피난",
+        "dimensions": "치수·대지",
+        "text-labels": "문자",
+    }.items():
+        assert f'data-layer="{layer}"' in page
+        assert f'<span class="layer-name">{label}</span>' in page
+    assert len(re.findall(r'<input type="checkbox"', page)) == len(
+        visual_review_service.LAYER_ORDER
+    )
+    assert page.count('class="layer-swatch"') == len(
+        visual_review_service.LAYER_ORDER
+    )
+    assert page.count('class="layer-modeled-count"') == len(
+        visual_review_service.LAYER_ORDER
+    )
+    for command, label in {
+        "all-on": "전체 켜기",
+        "all-off": "전체 끄기",
+        "isolate": "선택만 보기",
+        "reset": "초기화",
+    }.items():
+        assert f'data-command="{command}"' in page
+        assert f">{label}</button>" in page
+    assert "checkbox.checked" in page
+    assert 'getAttribute("aria-pressed")' not in page
+    assert "@media (max-width: 680px)" in page
+    assert ".review-workspace" in page
+
+
+def test_cad_layer_manager_disables_unmodeled_basic_design_layers(tmp_path):
+    result, boundary = _sample_result()
+
+    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    page = review.html_path.read_text(encoding="utf-8")
+
+    for layer in visual_review_service._BASIC_DESIGN_LAYERS:
+        assert re.search(
+            rf'<input[^>]+data-layer="{re.escape(layer)}"[^>]+disabled',
+            page,
+        )
+    assert re.search(
+        r'<input[^>]+data-layer="rooms"[^>]+checked(?![^>]+disabled)',
+        page,
+    )
 
 
 def test_use_specific_room_palette_has_svg_and_png_entries_for_each_role():
