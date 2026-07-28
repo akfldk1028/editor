@@ -1,8 +1,58 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 
 Point = tuple[float, float]
+
+
+def _require_finite_points(points: tuple[Point, ...], *, label: str, minimum: int) -> None:
+    if len(points) < minimum:
+        raise ValueError(f"{label} needs at least {minimum} points")
+    if not all(math.isfinite(value) for point in points for value in point):
+        raise ValueError(f"{label} coordinates must be finite")
+
+
+@dataclass(frozen=True)
+class PlanElement:
+    element_id: str
+    category: str
+    kind: str
+    host_id: str
+    label: str
+    footprint: tuple[Point, ...]
+
+    def __post_init__(self) -> None:
+        _require_finite_points(self.footprint, label="element footprint", minimum=3)
+
+
+@dataclass(frozen=True)
+class PlanLine:
+    line_id: str
+    category: str
+    kind: str
+    points: tuple[Point, ...]
+    host_id: str | None = None
+    target_id: str | None = None
+    label: str = ""
+    measured_value: float | None = None
+    clear_width: float | None = None
+
+    def __post_init__(self) -> None:
+        _require_finite_points(self.points, label="line", minimum=2)
+        for name, value in (
+            ("measured_value", self.measured_value),
+            ("clear_width", self.clear_width),
+        ):
+            if value is not None and not math.isfinite(value):
+                raise ValueError(f"{name} must be finite")
+
+
+@dataclass(frozen=True)
+class BasicDesignFeatures:
+    elements: tuple[PlanElement, ...]
+    lines: tuple[PlanLine, ...]
+    policy_version: str = "concept-basic-v1"
 
 
 @dataclass(frozen=True)
@@ -31,3 +81,4 @@ class LayoutCandidate:
     circulation: list[RoomPolygon]
     score: float
     openings: list[OpeningSegment] = field(default_factory=list)
+    basic_design: BasicDesignFeatures | None = None

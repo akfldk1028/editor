@@ -14,6 +14,7 @@ from backend.app.modules.layout_generator.service import (
     generate_baseline_layout,
     generate_core_aligned_layout,
 )
+from backend.app.modules.basic_design.service import generate_basic_design
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
@@ -137,6 +138,14 @@ def run_building_generation(
             core_polygon=shared_core,
             service_band_width=service_band_width,
             room_scale=room_scale,
+        )
+        layout = replace(
+            layout,
+            basic_design=generate_basic_design(
+                layout,
+                boundary=mass.footprint_polygon,
+                street_segments=_street_segments(mass),
+            ),
         )
         validation = validate_layout(
             layout,
