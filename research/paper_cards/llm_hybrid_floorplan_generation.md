@@ -112,16 +112,25 @@ Current execution status:
 | Backend | Status | Current evidence |
 |---|---|---|
 | deterministic | executed | Exact program contract, normalized concept-basic geometry, and revalidation are tested |
-| Graph2Plan | unavailable | Official executable, RPLAN data/checkpoint, and post-processing environment are not configured |
-| HouseDiffusion | unavailable | Official executable and checkpoint are not configured |
+| Graph2Plan | unavailable | The official repository-tracked `Interface/model/model.pth` strictly loads on CPU with 109/109 state keys and 7,646,628 parameters. Extracted RPLAN retrieval data is present, but it is not installed at the repository-relative paths; Django, MATLAB Engine, and the documented MATLAB post-processing runtime are unavailable, and the repository has no project-level license file |
+| HouseDiffusion | unavailable | The local checkpoint strictly loads on CPU with 186/186 state keys and 26,541,330 parameters. No usable RPLAN JSON or processed NPZ dataset is present; required runtime packages are missing, official sampling assumes CUDA, the standalone checkpoint lacks download provenance metadata, and the repository prohibits commercial use of its code and weights |
 | floor-plan RLVR | unavailable | Model/runtime are not configured; there is no deterministic fallback presented as RLVR |
 | MANSION | unavailable | Enforced as downstream multi-floor/3D evaluation only, not a 2D plan generator |
 
 The adapter harness is integration infrastructure. It is not evidence that the
-learned paper implementations have run. Graph2Plan's official repository
-documents RPLAN80K residential training, raster and room-box output, and
-post-processing for overlap/alignment; those domain and environment limits
-must remain attached to any future benchmark result.
+learned paper implementations have run. The local-only preflight records exact
+repository revisions, artifact hashes, strict CPU load results, data schemas,
+licenses, and runtime blockers in
+[the ignored paper-backend preflight report](../../logs/runs/paper_backends/preflight-2026-07-28.json).
+Graph2Plan's checkpoint is a tracked blob in the official repository clone, not
+a member of the separately downloaded data archive. Its repository documents
+RPLAN80K residential training, raster and room-box output, and MATLAB-based
+post-processing for overlap/alignment; those domain, runtime, placement, and
+license limits must remain attached to any future benchmark result.
+
+No learned Graph2Plan or HouseDiffusion floorplan output was generated during
+the preflight. Only repository inspection, dataset inventory, hashing, and
+strict CPU checkpoint loading were executed.
 
 ## Limits
 
