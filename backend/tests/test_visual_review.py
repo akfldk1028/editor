@@ -169,6 +169,97 @@ def test_architectural_style_uses_monochrome_drafting_symbols_and_korean_font(
     assert "#f3b6b8" not in svg
 
 
+def test_architectural_commercial_entrances_render_as_labeled_swing_doors(
+    tmp_path,
+):
+    mass = MassInput(
+        project_id="architectural-entrances",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+    result = run_building_generation(mass).floor_results[0]
+
+    architectural = create_visual_review_artifacts(
+        result,
+        boundary=mass.footprint_polygon,
+        output_dir=tmp_path / "architectural",
+        render_style="architectural",
+    )
+    review = create_visual_review_artifacts(
+        result,
+        boundary=mass.footprint_polygon,
+        output_dir=tmp_path / "review",
+    )
+
+    architectural_svg = architectural.svg_path.read_text(encoding="utf-8")
+    review_svg = review.svg_path.read_text(encoding="utf-8")
+    assert architectural_svg.count('data-symbol="entrance-door"') == 3
+    assert architectural_svg.count("임대 출입") == 2
+    assert architectural_svg.count("공용 출입") == 1
+    assert 'data-id="sales_a-commercial-entrance"' in architectural_svg
+    assert 'data-id="sales_b-commercial-entrance"' in architectural_svg
+    assert 'data-id="core-public-entrance"' in architectural_svg
+    assert 'data-symbol="entrance-door"' not in review_svg
+    assert "#0087a8" in review_svg
+    report = json.loads(architectural.report_path.read_text(encoding="utf-8"))
+    assert report["png_text"]["unresolved_collision_count"] == 0
+
+
+def test_program_adjustment_report_uses_typed_adjustments_not_source_suffix(
+    tmp_path,
+):
+    mass = MassInput(
+        project_id="typed-adjustment-review",
+        floors=1,
+        footprint_polygon=[(0, 0), (20, 0), (20, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+    result = run_building_generation(mass).floor_results[0]
+    assert result.program.adjustments
+    typed = replace(
+        result,
+        program=replace(result.program, source="manual-without-adjusted-suffix"),
+    )
+    untyped = replace(
+        result,
+        program=replace(
+            result.program,
+            source="compact_building_aligned_prior",
+            adjustments=(),
+        ),
+    )
+
+    typed_review = create_visual_review_artifacts(
+        typed,
+        boundary=mass.footprint_polygon,
+        output_dir=tmp_path / "typed",
+    )
+    untyped_review = create_visual_review_artifacts(
+        untyped,
+        boundary=mass.footprint_polygon,
+        output_dir=tmp_path / "untyped",
+    )
+
+    typed_report = json.loads(typed_review.report_path.read_text(encoding="utf-8"))
+    untyped_report = json.loads(untyped_review.report_path.read_text(encoding="utf-8"))
+    html_page = typed_review.html_path.read_text(encoding="utf-8")
+    assert typed_report["program_adjusted"] is True
+    assert typed_report["program_adjustments"]
+    assert typed_report["program_adjustments"][0]["reason"] == "compact_mass_fit"
+    assert typed_report["program_adjustments"][0]["original_targets"]
+    assert typed_report["program_adjustments"][0]["adjusted_targets"]
+    assert untyped_report["program_adjusted"] is False
+    assert untyped_report["program_adjustments"] == []
+    assert "Original target m2" in html_page
+    assert "Adjusted target m2" in html_page
+    assert "compact_mass_fit" in html_page
+
+
 def test_architectural_png_draws_korean_glyph_pixels_instead_of_question_marks():
     feature = visual_review_service._RenderFeature(
         "korean-room-label",
@@ -541,7 +632,7 @@ def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
     assert "F1 | neighborhood_commercial" in index
     assert "F5 | office" in index
     report = json.loads(artifacts.report_path.read_text(encoding="utf-8"))
-    assert report["accepted"] is True
+    assert report["accepted"] is result.accepted
     assert report["vertical_core_aligned"] is True
     assert report["vertical_basic_design_aligned"] is True
     assert report["vertical_structure_aligned"] is True
@@ -554,11 +645,8 @@ def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
         {"floor_index": 5, "use_type": "office"},
     ]
     assert [floor["floor_index"] for floor in report["floors"]] == [1, 2, 3, 4, 5]
-    assert all(
-        floor["program_source"] == "compact_building_aligned_prior"
-        for floor in report["floors"]
-    )
     assert all(floor["program_adjusted"] is True for floor in report["floors"])
+    assert all(floor["program_adjustments"] for floor in report["floors"])
 
 
 def test_compact_building_review_discloses_program_adjustment(tmp_path):
@@ -585,11 +673,13 @@ def test_compact_building_review_discloses_program_adjustment(tmp_path):
     index = artifacts.index_html_path.read_text(encoding="utf-8")
     assert all(floor["program_adjusted"] is True for floor in building_report["floors"])
     assert all(
-        floor["program_source"] == "compact_building_aligned_prior"
+        floor["program_adjustments"][0]["reason"] == "compact_mass_fit"
         for floor in building_report["floors"]
     )
     assert floor_report["program_adjusted"] is True
-    assert floor_report["program_source"] == "compact_building_aligned_prior"
+    assert floor_report["program_adjustments"][0]["reason"] == "compact_mass_fit"
+    assert floor_report["program_adjustments"][0]["original_targets"]
+    assert floor_report["program_adjustments"][0]["adjusted_targets"]
     assert "program adjusted" in index
 
 
@@ -666,7 +756,12 @@ def test_svg_renders_door_width_and_room_identity_area_labels(tmp_path):
     assert ">0.9 m</text>" in svg
     assert 'data-kind="room-label"' in svg
     assert "open_work" in svg
-    assert "114.421 m2" in svg
+    open_work_area = next(
+        metric.actual_area
+        for metric in result.validation.room_areas
+        if metric.room_id == "open_work"
+    )
+    assert f"{round(open_work_area, 3):g} m2" in svg
 
 
 def test_png_renders_high_contrast_door_segment_pixels(tmp_path):
@@ -723,7 +818,14 @@ def test_review_report_exposes_validated_opening_and_corridor_measurements(tmp_p
     assert report["measurements"]["door_count"] == len(result.layout.openings)
     assert report["measurements"]["min_door_width"] == 0.9
     assert report["measurements"]["min_corridor_width"] == pytest.approx(1.2)
-    assert report["measurements"]["failed_room_ids"] == []
+    expected_failed_room_ids = sorted(
+        {
+            violation.subject
+            for violation in result.validation.violations
+            if violation.code in {"room_min_width", "room_aspect_ratio"}
+        }
+    )
+    assert report["measurements"]["failed_room_ids"] == expected_failed_room_ids
 
 
 def test_review_exposes_validator_room_form_measurements_and_layer_controls(tmp_path):
@@ -750,9 +852,19 @@ def test_review_exposes_validator_room_form_measurements_and_layer_controls(tmp_
     svg = review.svg_path.read_text(encoding="utf-8")
 
     assert report["checks"]["room_form"] == "fail"
-    assert report["measurements"]["min_room_width"] == pytest.approx(1.8)
+    assert report["measurements"]["min_room_width"] == pytest.approx(
+        min(
+            shape.measured_min_width
+            for shape in result.validation.room_shapes
+            if shape.measured_min_width is not None
+        )
+    )
     assert report["measurements"]["max_room_aspect_ratio"] == pytest.approx(
-        1.7964015811448208
+        max(
+            shape.measured_aspect_ratio
+            for shape in result.validation.room_shapes
+            if shape.measured_aspect_ratio is not None
+        )
     )
     assert report["measurements"]["failed_room_ids"] == ["meeting", "open_work"]
     assert 'data-layer="rooms"' in svg

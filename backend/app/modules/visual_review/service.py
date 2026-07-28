@@ -21,6 +21,7 @@ from backend.app.schemas.loop import CandidateRecord, LoopConfig
 from backend.app.schemas.layout import OpeningSegment, PlanElement, PlanLine
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.metrics import ValidationReport
+from backend.app.schemas.program import ProgramGraph
 from backend.app.schemas.result import (
     BuildingGenerationResult,
     GenerationResult,
@@ -222,7 +223,8 @@ def create_building_visual_review_artifacts(
                 "floor_index": floor.program.floor_index,
                 "use_type": floor.program.use_type,
                 "program_source": floor.program.source,
-                "program_adjusted": _program_was_adjusted(floor.program.source),
+                "program_adjusted": _program_was_adjusted(floor.program),
+                "program_adjustments": to_jsonable(floor.program.adjustments),
                 "accepted": floor.validation.accepted,
                 "room_count": len(floor.layout.rooms),
                 "artifacts": artifacts.artifact_links,
@@ -354,7 +356,8 @@ def create_visual_review_artifacts(
         "floor_index": result.program.floor_index,
         "use_type": result.program.use_type,
         "program_source": result.program.source,
-        "program_adjusted": _program_was_adjusted(result.program.source),
+        "program_adjusted": _program_was_adjusted(result.program),
+        "program_adjustments": to_jsonable(result.program.adjustments),
         "render_style": render_style,
         "png_text": png_output.metadata,
         "iteration": (
@@ -758,8 +761,34 @@ def _run_concept_basic_review(
     )
 
 
-def _program_was_adjusted(source: str) -> bool:
-    return source == "compact_building_aligned_prior"
+def _program_was_adjusted(program: ProgramGraph) -> bool:
+    return bool(program.adjustments)
+
+
+def _adjustment_display_by_room(
+    adjustments: list[dict],
+) -> dict[str, dict[str, object]]:
+    display: dict[str, dict[str, object]] = {}
+    for adjustment in adjustments:
+        reason = str(adjustment.get("reason", ""))
+        original_targets = adjustment.get("original_targets", [])
+        adjusted_targets = adjustment.get("adjusted_targets", [])
+        for room_id, value in original_targets:
+            record = display.setdefault(
+                str(room_id),
+                {"original": value, "adjusted": value, "reasons": []},
+            )
+            record.setdefault("original", value)
+        for room_id, value in adjusted_targets:
+            record = display.setdefault(
+                str(room_id),
+                {"original": value, "adjusted": value, "reasons": []},
+            )
+            record["adjusted"] = value
+            reasons = record["reasons"]
+            if reason and reason not in reasons:
+                reasons.append(reason)
+    return display
 
 
 def _review_planner_provenance(
@@ -951,7 +980,7 @@ def _normalize_render_features(
                     "polyline",
                     tuple(line.points),
                     _line_label(line),
-                    line.category,
+                    _line_style_key(line),
                 )
             )
     for room in result.layout.rooms:
@@ -1094,6 +1123,7 @@ def _normalize_render_features(
                         "label",
                         (_centroid(element.footprint),),
                         element.label or element.kind.upper(),
+                        style_key=element.kind,
                     )
                 )
     return tuple(
@@ -1122,6 +1152,12 @@ def _line_layer(line: PlanLine) -> str:
         return "door-openings" if line.kind == "protected_exit" else "egress"
     if line.category in {"dimension", "site"}:
         return "dimensions"
+    return line.category
+
+
+def _line_style_key(line: PlanLine) -> str:
+    if line.kind == "entrance":
+        return "common-entrance" if line.target_id else "tenant-entrance"
     return line.category
 
 
@@ -1310,6 +1346,14 @@ def _svg_feature(
     points = " ".join(f"{x},{y}" for x, y in raster)
     if render_style == "architectural" and feature.kind == "window":
         return _svg_window_symbol(metadata, raster)
+    if render_style == "architectural" and feature.kind == "entrance":
+        return _svg_door_symbol(
+            metadata,
+            feature,
+            raster,
+            symbol_name="entrance-door",
+            swing_inward=True,
+        )
     if render_style == "architectural" and feature.layer == "door-openings":
         return _svg_door_symbol(metadata, feature, raster)
     if render_style == "architectural" and feature.layer == "dimensions":
@@ -1433,11 +1477,18 @@ def _svg_door_symbol(
     metadata: str,
     feature: _RenderFeature,
     raster: list[tuple[float, float]],
+    *,
+    symbol_name: str = "door-swing",
+    swing_inward: bool = False,
 ) -> str:
     start, end = raster[0], raster[-1]
     delta_x = end[0] - start[0]
     delta_y = end[1] - start[1]
-    leaf_end = (start[0] - delta_y, start[1] + delta_x)
+    swing_sign = -1 if swing_inward else 1
+    leaf_end = (
+        start[0] - delta_y * swing_sign,
+        start[1] + delta_x * swing_sign,
+    )
     middle = (
         end[0] + (leaf_end[0] - end[0]) * 0.55,
         end[1] + (leaf_end[1] - end[1]) * 0.55,
@@ -1448,8 +1499,16 @@ def _svg_door_symbol(
             f' aria-label="{html.escape(feature.style_key, quote=True)} door '
             f'clear width {html.escape(feature.label, quote=True)}"'
         )
+    label = ""
+    if feature.kind == "entrance":
+        x, y = _architectural_line_label_position(feature, raster)
+        label = (
+            f'<text x="{x}" y="{y}" font-family="{ARCHITECTURAL_FONT_STACK}" '
+            f'font-size="9" text-anchor="middle">'
+            f'{html.escape(_display_label(feature, "architectural"))}</text>'
+        )
     return (
-        f'<g {metadata} data-symbol="door-swing"{aria}>'
+        f'<g {metadata} data-symbol="{symbol_name}"{aria}>'
         f'<polyline points="{start[0]},{start[1]} {end[0]},{end[1]}" '
         'fill="none" stroke="white" stroke-width="8"/>'
         f'<line x1="{start[0]}" y1="{start[1]}" x2="{leaf_end[0]}" '
@@ -1457,6 +1516,7 @@ def _svg_door_symbol(
         f'<path d="M {end[0]} {end[1]} Q {middle[0]} {middle[1]} '
         f'{leaf_end[0]} {leaf_end[1]}" fill="none" stroke="#777777" '
         'stroke-width="1"/>'
+        f"{label}"
         "</g>"
     )
 
@@ -1650,6 +1710,9 @@ def _png_feature(
     if render_style == "architectural" and feature.kind == "window":
         _draw_png_window(canvas, points)
         return
+    if render_style == "architectural" and feature.kind == "entrance":
+        _draw_png_door_swing(canvas, points, swing_inward=True)
+        return
     if render_style == "architectural" and feature.layer == "door-openings":
         _draw_png_door_swing(canvas, points)
         return
@@ -1767,6 +1830,8 @@ def _draw_png_window(
 def _draw_png_door_swing(
     canvas: SimplePngCanvas,
     points: list[tuple[int, int]],
+    *,
+    swing_inward: bool = False,
 ) -> None:
     if len(points) != 2:
         canvas.stroke_polyline(points, (34, 34, 34), thickness=1)
@@ -1774,14 +1839,18 @@ def _draw_png_door_swing(
     start, end = points
     delta_x = end[0] - start[0]
     delta_y = end[1] - start[1]
-    leaf_end = (start[0] - delta_y, start[1] + delta_x)
+    swing_sign = -1 if swing_inward else 1
+    leaf_end = (
+        start[0] - delta_y * swing_sign,
+        start[1] + delta_x * swing_sign,
+    )
     canvas.stroke_polyline((start, end), (255, 255, 255), thickness=8)
     canvas.stroke_polyline((start, leaf_end), (34, 34, 34), thickness=2)
     arc = []
     radius = math.hypot(delta_x, delta_y)
     start_angle = math.atan2(delta_y, delta_x)
     for index in range(13):
-        angle = start_angle - math.pi / 2 * index / 12
+        angle = start_angle + swing_sign * math.pi / 2 * index / 12
         arc.append(
             (
                 round(start[0] + math.cos(angle) * radius),
@@ -2015,10 +2084,25 @@ def _draw_architectural_ascii_fallback(
     height: int,
 ) -> tuple[bytes, dict[str, object]]:
     for feature in features:
-        if feature.geometry != "label":
+        if (
+            not feature.label
+            or feature.kind == "door-opening"
+            or not _architectural_label_visible(feature)
+        ):
             continue
-        x = round(_sx(feature.points[0][0], min_x, scale, pad_x))
-        y = round(_sy(feature.points[0][1], min_y, scale, pad_y, height))
+        raster = [
+            (
+                _sx(x, min_x, scale, pad_x),
+                _sy(y, min_y, scale, pad_y, height),
+            )
+            for x, y in feature.points
+        ]
+        if feature.geometry == "label":
+            x, y = raster[0]
+        else:
+            x, y = _architectural_line_label_position(feature, raster)
+        x = round(x)
+        y = round(y)
         label = _architectural_ascii_label(feature)
         canvas.draw_text(
             label,
@@ -2050,6 +2134,8 @@ def _architectural_ascii_label(feature: _RenderFeature) -> str:
         "staff": "STAFF",
         "restroom": "WC",
         "circulation": "CORRIDOR",
+        "tenant-entrance": "TENANT ENTRY",
+        "common-entrance": "COMMON ENTRY",
     }
     if feature.style_key in names:
         return names[feature.style_key]
@@ -2064,19 +2150,27 @@ def _display_label(feature: _RenderFeature, render_style: str) -> str:
         return re.sub(r"^(WIDTH|DEPTH)\s+", "", feature.label)
     if feature.kind == "street":
         return "도로"
+    if feature.kind == "entrance":
+        return (
+            "공용 출입"
+            if feature.style_key == "common-entrance"
+            else "임대 출입"
+        )
     key = feature.style_key
     rows = feature.label.split("|")
     if not key and feature.kind == "room-label":
         key = rows[-2] if len(rows) >= 3 else rows[0]
     elif not key and feature.kind == "circulation":
         key = "circulation"
-    elif not key and feature.kind == "core-label":
-        key = {
-            "STAIR": "stair",
-            "ELEVATOR": "elevator",
-            "LOBBY": "lobby",
-            "SHAFT": "shaft",
-        }.get(rows[0].split(" ", 1)[0])
+    elif feature.kind == "core-label":
+        if key == "stair" or rows[0].strip().upper() in {"STAIR", "UP", "DN"}:
+            key = "stair"
+        elif not key:
+            key = {
+                "ELEVATOR": "elevator",
+                "LOBBY": "lobby",
+                "SHAFT": "shaft",
+            }.get(rows[0].strip().upper().split(" ", 1)[0])
     translated = ARCHITECTURAL_LABELS.get(key)
     if translated is None:
         return feature.label
@@ -2094,6 +2188,7 @@ def _architectural_label_visible(feature: _RenderFeature) -> bool:
         "overall_width",
         "overall_depth",
         "street",
+        "entrance",
     }
 
 
@@ -2109,6 +2204,8 @@ def _architectural_line_label_position(
         return midpoint_x - 28, midpoint_y
     if feature.kind == "street":
         return midpoint_x, midpoint_y + 28
+    if feature.kind == "entrance":
+        return midpoint_x, midpoint_y + 20
     return _line_label_position(feature, points)
 
 
@@ -2437,14 +2534,20 @@ def _render_html(
     area_by_room_id = {
         metric["room_id"]: metric["actual_area"] for metric in report["room_areas"]
     }
+    adjustment_by_room = _adjustment_display_by_room(
+        report["program_adjustments"]
+    )
     room_form_rows = "".join(
         "<tr>"
         f'<th scope="row">{html.escape(shape["room_id"])}</th>'
+        f"<td>{_display_measurement(adjustment_by_room.get(shape['room_id'], {}).get('original'))}</td>"
+        f"<td>{_display_measurement(adjustment_by_room.get(shape['room_id'], {}).get('adjusted'))}</td>"
         f"<td>{_display_measurement(area_by_room_id.get(shape['room_id']))}</td>"
         f"<td>{_display_measurement(shape['measured_min_width'])}</td>"
         f"<td>{_display_measurement(shape['measured_aspect_ratio'])}</td>"
         f"<td>{_display_measurement(shape['required_min_width'])}</td>"
         f"<td>{_display_measurement(shape['maximum_aspect_ratio'])}</td>"
+        f"<td>{html.escape(', '.join(adjustment_by_room.get(shape['room_id'], {}).get('reasons', []))) or '-'}</td>"
         "</tr>"
         for shape in report["room_shapes"]
     )
@@ -2532,7 +2635,7 @@ def _render_html(
         </table>
         <h2>Room Program and Form</h2>
         <table id="room-form-report">
-          <thead><tr><th scope="col">Room</th><th scope="col">Area m2</th><th scope="col">Width m</th><th scope="col">Aspect</th><th scope="col">Min width</th><th scope="col">Max aspect</th></tr></thead>
+          <thead><tr><th scope="col">Room</th><th scope="col">Original target m2</th><th scope="col">Adjusted target m2</th><th scope="col">Area m2</th><th scope="col">Width m</th><th scope="col">Aspect</th><th scope="col">Min width</th><th scope="col">Max aspect</th><th scope="col">Adjustment reason</th></tr></thead>
           <tbody>{room_form_rows}</tbody>
         </table>
         <h2>Render Completeness</h2>
