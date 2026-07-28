@@ -515,7 +515,7 @@ def _room_contents(
     fixed_elements: list[PlanElement],
     fixed_lines: list[PlanLine],
 ) -> list[PlanElement]:
-    """Place concept-basic-v1 representative objects, not construction furniture."""
+    """Place concept-basic-v1 representative objects, not ergonomic furniture."""
     required = {
         "meeting": (("meeting_table", "furniture"),),
         "reception": (("reception_desk", "furniture"),),
@@ -540,6 +540,10 @@ def _room_contents(
     placed: list[PlanElement] = []
     for room in layout.rooms:
         room_requirements = required.get(room.space_type, ())
+        object_size: tuple[float, float] | None = None
+        placement_margin = 0.35
+        aisle = 0.8
+        room_clearance = list(clearance_segments)
         if room.space_type in {"sales", "open_work"}:
             # Representative density heuristic: one primary object per 30 m2,
             # with two minimum, for concept review only.
@@ -550,24 +554,79 @@ def _room_contents(
             room_requirements = tuple(
                 (primary_kind, "furniture") for _ in range(count)
             )
+            object_size = (
+                (2.8, 0.9)
+                if room.space_type == "sales"
+                else (2.8, 1.5)
+            )
+            placement_margin = 1.2
+            aisle = 1.2
+            room_clearance.extend(
+                _primary_access_segments(room, layout, fixed_lines)
+            )
         for kind, category in room_requirements:
             footprint = _place_object(
                 room,
                 kind,
                 [*fixed_elements, *placed],
-                clearance_segments,
+                room_clearance,
+                object_size=object_size,
+                placement_margin=placement_margin,
+                aisle=aisle,
             )
+            label = {
+                "sales_shelf": "GONDOLA",
+                "workstation": "WORK BENCH",
+            }.get(kind, kind.upper())
             placed.append(
                 PlanElement(
                     element_id=f"{room.room_id}-{kind}-{sum(item.kind == kind for item in placed) + 1}",
                     category=category,
                     kind=kind,
                     host_id=room.room_id,
-                    label=kind.upper(),
+                    label=label,
                     footprint=footprint,
                 )
             )
     return placed
+
+
+def _primary_access_segments(
+    room: RoomPolygon,
+    layout: LayoutCandidate,
+    fixed_lines: list[PlanLine],
+) -> list[Segment]:
+    min_x, min_y, max_x, max_y = _bounds(room.polygon)
+    center = ((min_x + max_x) / 2, (min_y + max_y) / 2)
+    endpoints = [
+        _midpoint(opening.start, opening.end)
+        for opening in layout.openings
+        if room.room_id in opening.connects
+    ] + [
+        _midpoint(line.points[0], line.points[-1])
+        for line in fixed_lines
+        if line.kind == "entrance" and line.host_id == room.room_id
+    ]
+    segments = [
+        segment
+        for endpoint in endpoints
+        for segment in _orthogonal_segments(endpoint, center)
+    ]
+    segments.extend(
+        (line.points[0], line.points[-1])
+        for line in fixed_lines
+        if line.kind == "window" and line.host_id == room.room_id
+    )
+    return segments
+
+
+def _orthogonal_segments(start: Point, end: Point) -> list[Segment]:
+    bend = (round(end[0], 6), round(start[1], 6))
+    return [
+        segment
+        for segment in ((start, bend), (bend, end))
+        if math.dist(*segment) > _EPSILON
+    ]
 
 
 def _place_object(
@@ -575,22 +634,34 @@ def _place_object(
     kind: str,
     occupied: list[PlanElement],
     clearance_segments: list[Segment],
+    *,
+    object_size: tuple[float, float] | None = None,
+    placement_margin: float = 0.35,
+    aisle: float = 0.8,
 ) -> tuple[Point, ...]:
     min_x, min_y, max_x, max_y = _bounds(room.polygon)
     width, height = max_x - min_x, max_y - min_y
-    object_width = min(1.2, max(0.45, width * 0.18))
-    object_height = min(0.7, max(0.35, height * 0.16))
-    if object_width + 0.4 > width or object_height + 0.4 > height:
+    if object_size is None:
+        object_width = min(1.2, max(0.45, width * 0.18))
+        object_height = min(0.7, max(0.35, height * 0.16))
+    else:
+        object_width, object_height = object_size
+    if (
+        object_width + 2 * placement_margin > width
+        or object_height + 2 * placement_margin > height
+    ):
         raise ValueError(f"room '{room.room_id}' cannot fit required {kind}")
     y_values = _placement_values(
-        min_y + 0.35,
-        max_y - object_height - 0.35,
-        object_height + 0.8,
+        min_y + placement_margin,
+        max_y - object_height - placement_margin,
+        object_height + aisle,
+        include_end=object_size is None,
     )
     x_values = _placement_values(
-        min_x + 0.35,
-        max_x - object_width - 0.35,
-        object_width + 0.8,
+        min_x + placement_margin,
+        max_x - object_width - placement_margin,
+        object_width + aisle,
+        include_end=object_size is None,
     )
 
     def available(footprint: tuple[Point, ...]) -> bool:
@@ -613,6 +684,10 @@ def _place_object(
             if available(footprint):
                 candidates.append(footprint)
     if not candidates:
+        if object_size is not None:
+            raise ValueError(
+                f"room '{room.room_id}' cannot place concept {kind} bank on its regular grid"
+            )
         for y in _search_values(min_y + 0.2, max_y - object_height - 0.2):
             for x in _search_values(min_x + 0.2, max_x - object_width - 0.2):
                 footprint = _rectangle(x, y, x + object_width, y + object_height)
@@ -712,7 +787,13 @@ def _search_values(start: float, end: float) -> list[float]:
     return [round(min(start + index * 0.2, end), 6) for index in range(count)]
 
 
-def _placement_values(start: float, end: float, spacing: float) -> list[float]:
+def _placement_values(
+    start: float,
+    end: float,
+    spacing: float,
+    *,
+    include_end: bool = True,
+) -> list[float]:
     if end < start - _EPSILON:
         return []
     coarse = []
@@ -720,7 +801,7 @@ def _placement_values(start: float, end: float, spacing: float) -> list[float]:
     while cursor <= end + _EPSILON:
         coarse.append(round(min(cursor, end), 6))
         cursor += spacing
-    if coarse and coarse[-1] < end - _EPSILON:
+    if include_end and coarse and coarse[-1] < end - _EPSILON:
         coarse.append(round(end, 6))
     return coarse
 

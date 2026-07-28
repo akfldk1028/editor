@@ -209,6 +209,118 @@ def test_primary_room_furniture_density_scales_with_area() -> None:
         )
 
 
+def test_primary_objects_form_interior_banks_with_clear_access_strips() -> None:
+    result = run_building_generation(_mixed_use_mass())
+
+    policy = {
+        "sales": ("sales_shelf", (2.4, 3.0), (0.8, 0.9), "GONDOLA"),
+        "open_work": ("workstation", (2.4, 3.0), (1.4, 1.6), "WORK BENCH"),
+    }
+    for floor in result.floor_results:
+        layout = floor.layout
+        features = layout.basic_design
+        assert features is not None
+        room = next(item for item in layout.rooms if item.space_type in policy)
+        kind, long_range, short_range, label = policy[room.space_type]
+        objects = [
+            element
+            for element in features.elements
+            if element.host_id == room.room_id and element.kind == kind
+        ]
+        assert len(objects) >= 5
+
+        room_min_x = min(point[0] for point in room.polygon)
+        room_min_y = min(point[1] for point in room.polygon)
+        room_max_x = max(point[0] for point in room.polygon)
+        room_max_y = max(point[1] for point in room.polygon)
+        center = (
+            (room_min_x + room_max_x) / 2,
+            (room_min_y + room_max_y) / 2,
+        )
+        for element in objects:
+            min_x = min(point[0] for point in element.footprint)
+            min_y = min(point[1] for point in element.footprint)
+            max_x = max(point[0] for point in element.footprint)
+            max_y = max(point[1] for point in element.footprint)
+            width, depth = max_x - min_x, max_y - min_y
+            assert long_range[0] - 1e-7 <= width <= long_range[1] + 1e-7
+            assert short_range[0] - 1e-7 <= depth <= short_range[1] + 1e-7
+            assert element.label == label
+            assert min_x - room_min_x >= 0.8
+            assert min_y - room_min_y >= 0.8
+            assert room_max_x - max_x >= 0.8
+            assert room_max_y - max_y >= 0.8
+
+        x_values = sorted(
+            {
+                round(min(point[0] for point in element.footprint), 6)
+                for element in objects
+            }
+        )
+        y_values = sorted(
+            {
+                round(min(point[1] for point in element.footprint), 6)
+                for element in objects
+            }
+        )
+        assert len(x_values) >= 2
+        assert len(y_values) >= 2
+        _assert_regular_lattice(x_values)
+        _assert_regular_lattice(y_values)
+
+        room_door = next(
+            opening
+            for opening in layout.openings
+            if room.room_id in opening.connects
+        )
+        door_midpoint = (
+            (room_door.start[0] + room_door.end[0]) / 2,
+            (room_door.start[1] + room_door.end[1]) / 2,
+        )
+        access_segments = _orthogonal_path_segments(door_midpoint, center)
+        entrance = next(
+            (
+                line
+                for line in features.lines
+                if line.kind == "entrance" and line.host_id == room.room_id
+            ),
+            None,
+        )
+        if entrance is not None:
+            entrance_midpoint = (
+                (entrance.points[0][0] + entrance.points[-1][0]) / 2,
+                (entrance.points[0][1] + entrance.points[-1][1]) / 2,
+            )
+            access_segments.extend(
+                _orthogonal_path_segments(entrance_midpoint, center)
+            )
+        window_segments = [
+            (line.points[0], line.points[-1])
+            for line in features.lines
+            if line.kind == "window" and line.host_id == room.room_id
+        ]
+        assert all(
+            not _rectangle_near_segment(
+                element.footprint,
+                segment,
+                clearance=0.59,
+            )
+            for element in objects
+            for segment in [*access_segments, *window_segments]
+        )
+
+        for left in objects:
+            for right in objects:
+                if left.element_id >= right.element_id:
+                    continue
+                left_box = _footprint_bounds(left.footprint)
+                right_box = _footprint_bounds(right.footprint)
+                if left_box[1] == pytest.approx(right_box[1]):
+                    assert _axis_gap(left_box[0], left_box[2], right_box[0], right_box[2]) >= 1.19
+                if left_box[0] == pytest.approx(right_box[0]):
+                    assert _axis_gap(left_box[1], left_box[3], right_box[1], right_box[3]) >= 1.19
+
+
 def test_basic_design_rejects_non_axis_aligned_circulation() -> None:
     mass = _mixed_use_mass()
     layout = run_building_generation(mass).floor_results[0].layout
@@ -390,3 +502,37 @@ def _rectangle_near_segment(rectangle, segment, *, clearance) -> bool:
         or max_y < min(start[1], end[1]) - clearance
         or min_y > max(start[1], end[1]) + clearance
     )
+
+
+def _assert_regular_lattice(values) -> None:
+    if len(values) < 3:
+        return
+    gaps = [
+        right - left
+        for left, right in zip(values, values[1:])
+        if right - left > 1e-7
+    ]
+    base = min(gaps)
+    assert all(abs(gap / base - round(gap / base)) <= 1e-6 for gap in gaps)
+
+
+def _orthogonal_path_segments(start, end):
+    bend = (end[0], start[1])
+    return [
+        segment
+        for segment in ((start, bend), (bend, end))
+        if math.dist(*segment) > 1e-7
+    ]
+
+
+def _footprint_bounds(footprint):
+    return (
+        min(point[0] for point in footprint),
+        min(point[1] for point in footprint),
+        max(point[0] for point in footprint),
+        max(point[1] for point in footprint),
+    )
+
+
+def _axis_gap(first_min, first_max, second_min, second_max):
+    return max(first_min, second_min) - min(first_max, second_max)
