@@ -11,7 +11,7 @@ from backend.app.schemas.layout import (
     RoomPolygon,
 )
 from engine.geometry.access import orthogonal_min_width, shared_boundary_segments
-from engine.geometry.polygon import contains_polygon, polygon_overlap_area
+from engine.geometry.polygon import contains_polygon, polygon_area, polygon_overlap_area
 
 Point = tuple[float, float]
 Segment = tuple[Point, Point]
@@ -22,6 +22,14 @@ _EPSILON = 1e-7
 class StructureSet:
     lines: tuple[PlanLine, ...]
     columns: tuple[PlanElement, ...]
+
+
+@dataclass(frozen=True)
+class _CirculationCell:
+    min_x: float
+    min_y: float
+    max_x: float
+    max_y: float
 
 
 def generate_basic_design(
@@ -44,11 +52,12 @@ def generate_basic_design(
         raise ValueError("basic design requires circulation")
     if not layout.openings:
         raise ValueError("basic design requires validated room doors")
+    circulation_cells = _circulation_cells(layout.circulation)
 
     elements = _core_elements(core)
     exits = _protected_exits(core, layout.circulation)
     lines: list[PlanLine] = list(exits)
-    lines.extend(_egress_routes(layout, exits))
+    lines.extend(_egress_routes(layout, exits, circulation_cells))
     if shared_structure is None:
         grid_lines, columns = _structure(boundary, (layout,), ((elements, exits),))
     else:
@@ -57,7 +66,7 @@ def generate_basic_design(
     elements.extend(columns)
     envelope_lines = _envelope(layout, boundary, street_segments)
     lines.extend(envelope_lines)
-    object_elements = _room_contents(layout, elements)
+    object_elements = _room_contents(layout, elements, lines)
     elements.extend(object_elements)
     lines.extend(_dimensions_and_site(boundary, layout.circulation, street_segments))
     return BasicDesignFeatures(elements=tuple(elements), lines=tuple(lines))
@@ -152,7 +161,11 @@ def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[
     ]
 
 
-def _egress_routes(layout: LayoutCandidate, exits: list[PlanLine]) -> list[PlanLine]:
+def _egress_routes(
+    layout: LayoutCandidate,
+    exits: list[PlanLine],
+    circulation_cells: list[_CirculationCell],
+) -> list[PlanLine]:
     doors = {opening.connects[0]: opening for opening in layout.openings}
     routes: list[PlanLine] = []
     for room in layout.rooms:
@@ -168,13 +181,183 @@ def _egress_routes(layout: LayoutCandidate, exits: list[PlanLine]) -> list[PlanL
                     line_id=f"{room.room_id}-route-{exit_line.line_id.rsplit('-', 1)[-1]}",
                     category="egress",
                     kind="egress_route",
-                    points=(start, _midpoint(*exit_line.points)),
+                    points=_route_through_circulation(
+                        start,
+                        _midpoint(*exit_line.points),
+                        circulation_cells,
+                    ),
                     host_id=room.room_id,
                     target_id=exit_line.line_id,
                     label="EGRESS",
                 )
             )
     return routes
+
+
+def _circulation_cells(circulation: list[RoomPolygon]) -> list[_CirculationCell]:
+    cells: list[_CirculationCell] = []
+    for path in circulation:
+        points = path.polygon
+        _require_finite_points(points, f"circulation '{path.room_id}'", 4)
+        if any(
+            start[0] != end[0] and start[1] != end[1]
+            for start, end in zip(points, [*points[1:], points[0]])
+        ):
+            raise ValueError(
+                f"circulation '{path.room_id}' must be an axis-aligned rectilinear polygon"
+            )
+        x_values = sorted({point[0] for point in points})
+        y_values = sorted({point[1] for point in points})
+        for min_x, max_x in zip(x_values, x_values[1:]):
+            for min_y, max_y in zip(y_values, y_values[1:]):
+                if (
+                    max_x - min_x <= _EPSILON
+                    or max_y - min_y <= _EPSILON
+                    or not _point_in_polygon_or_boundary(
+                        ((min_x + max_x) / 2, (min_y + max_y) / 2),
+                        points,
+                    )
+                ):
+                    continue
+                cell = _CirculationCell(min_x, min_y, max_x, max_y)
+                if cell not in cells:
+                    cells.append(cell)
+    if not cells:
+        raise ValueError("circulation has no routable axis-aligned rectangle cells")
+    reachable = {0}
+    frontier = [0]
+    while frontier:
+        current = frontier.pop()
+        for index, candidate in enumerate(cells):
+            if index not in reachable and _cell_portal(cells[current], candidate) is not None:
+                reachable.add(index)
+                frontier.append(index)
+    if len(reachable) != len(cells):
+        raise ValueError("circulation rectangle graph must be connected")
+    return cells
+
+
+def _route_through_circulation(
+    start: Point,
+    end: Point,
+    cells: list[_CirculationCell],
+) -> tuple[Point, ...]:
+    start_cells = {
+        index for index, cell in enumerate(cells) if _cell_contains_point(cell, start)
+    }
+    end_cells = {
+        index for index, cell in enumerate(cells) if _cell_contains_point(cell, end)
+    }
+    if not start_cells or not end_cells:
+        raise ValueError("egress route endpoint must lie on the circulation union")
+
+    previous: dict[int, int | None] = {
+        index: None for index in sorted(start_cells)
+    }
+    queue = list(sorted(start_cells))
+    destination: int | None = None
+    while queue:
+        current = queue.pop(0)
+        if current in end_cells:
+            destination = current
+            break
+        for index, candidate in enumerate(cells):
+            if (
+                index not in previous
+                and _cell_portal(cells[current], candidate) is not None
+            ):
+                previous[index] = current
+                queue.append(index)
+    if destination is None:
+        raise ValueError("egress endpoints are disconnected in the circulation graph")
+
+    cell_path = [destination]
+    while previous[cell_path[-1]] is not None:
+        cell_path.append(previous[cell_path[-1]])  # type: ignore[arg-type]
+    cell_path.reverse()
+
+    points = [start]
+    for left_index, right_index in zip(cell_path, cell_path[1:]):
+        portal = _cell_portal(cells[left_index], cells[right_index])
+        if portal is None:
+            raise ValueError("circulation graph contains a missing portal")
+        _append_orthogonal(points, portal, cells[left_index])
+    _append_orthogonal(points, end, cells[cell_path[-1]])
+    return tuple(_simplify_polyline(points))
+
+
+def _cell_portal(
+    left: _CirculationCell,
+    right: _CirculationCell,
+) -> Point | None:
+    if abs(left.max_x - right.min_x) <= _EPSILON or abs(
+        right.max_x - left.min_x
+    ) <= _EPSILON:
+        bottom = max(left.min_y, right.min_y)
+        top = min(left.max_y, right.max_y)
+        if top - bottom > _EPSILON:
+            x = (
+                left.max_x
+                if abs(left.max_x - right.min_x) <= _EPSILON
+                else right.max_x
+            )
+            return (round(x, 6), round((bottom + top) / 2, 6))
+    if abs(left.max_y - right.min_y) <= _EPSILON or abs(
+        right.max_y - left.min_y
+    ) <= _EPSILON:
+        left_x = max(left.min_x, right.min_x)
+        right_x = min(left.max_x, right.max_x)
+        if right_x - left_x > _EPSILON:
+            y = (
+                left.max_y
+                if abs(left.max_y - right.min_y) <= _EPSILON
+                else right.max_y
+            )
+            return (round((left_x + right_x) / 2, 6), round(y, 6))
+    return None
+
+
+def _cell_contains_point(cell: _CirculationCell, point: Point) -> bool:
+    return (
+        cell.min_x - _EPSILON <= point[0] <= cell.max_x + _EPSILON
+        and cell.min_y - _EPSILON <= point[1] <= cell.max_y + _EPSILON
+    )
+
+
+def _append_orthogonal(
+    points: list[Point],
+    target: Point,
+    cell: _CirculationCell,
+) -> None:
+    current = points[-1]
+    if not _cell_contains_point(cell, current) or not _cell_contains_point(cell, target):
+        raise ValueError("egress waypoint must remain inside its circulation cell")
+    if abs(current[0] - target[0]) <= _EPSILON or abs(
+        current[1] - target[1]
+    ) <= _EPSILON:
+        points.append(target)
+        return
+    points.extend(((round(target[0], 6), round(current[1], 6)), target))
+
+
+def _simplify_polyline(points: list[Point]) -> list[Point]:
+    simplified: list[Point] = []
+    for point in points:
+        if simplified and math.dist(simplified[-1], point) <= _EPSILON:
+            continue
+        if len(simplified) >= 2:
+            first, second = simplified[-2:]
+            if (
+                abs(first[0] - second[0]) <= _EPSILON
+                and abs(second[0] - point[0]) <= _EPSILON
+            ) or (
+                abs(first[1] - second[1]) <= _EPSILON
+                and abs(second[1] - point[1]) <= _EPSILON
+            ):
+                simplified[-1] = point
+                continue
+        simplified.append(point)
+    return simplified
 
 
 def _structure(
@@ -327,25 +510,53 @@ def _envelope(layout: LayoutCandidate, boundary: list[Point], streets: list[Segm
     return lines
 
 
-def _room_contents(layout: LayoutCandidate, fixed_elements: list[PlanElement]) -> list[PlanElement]:
+def _room_contents(
+    layout: LayoutCandidate,
+    fixed_elements: list[PlanElement],
+    fixed_lines: list[PlanLine],
+) -> list[PlanElement]:
+    """Place concept-basic-v1 representative objects, not construction furniture."""
     required = {
-        "open_work": (("workstation", "furniture"), ("workstation", "furniture")),
         "meeting": (("meeting_table", "furniture"),),
         "reception": (("reception_desk", "furniture"),),
         "focus": (("focus_desk", "furniture"),),
         "pantry": (("pantry_counter", "fixture"), ("sink", "fixture")),
         "restroom": (("wc", "fixture"), ("lavatory", "fixture")),
         "it_storage": (("it_rack", "fixture"), ("it_rack", "fixture")),
-        "sales": (("sales_shelf", "furniture"), ("sales_shelf", "furniture")),
         "checkout": (("checkout_counter", "furniture"),),
         "stock": (("stock_rack", "furniture"), ("stock_rack", "furniture")),
         "staff": (("staff_table", "furniture"),),
         "utility": (("utility_equipment", "fixture"),),
     }
+    clearance_segments = [
+        (opening.start, opening.end)
+        for opening in layout.openings
+    ] + [
+        segment
+        for line in fixed_lines
+        if line.kind in {"egress_route", "entrance"}
+        for segment in zip(line.points, line.points[1:])
+    ]
     placed: list[PlanElement] = []
     for room in layout.rooms:
-        for kind, category in required.get(room.space_type, ()):
-            footprint = _place_object(room, kind, [*fixed_elements, *placed])
+        room_requirements = required.get(room.space_type, ())
+        if room.space_type in {"sales", "open_work"}:
+            # Representative density heuristic: one primary object per 30 m2,
+            # with two minimum, for concept review only.
+            count = max(2, math.floor(polygon_area(room.polygon) / 30.0))
+            primary_kind = (
+                "sales_shelf" if room.space_type == "sales" else "workstation"
+            )
+            room_requirements = tuple(
+                (primary_kind, "furniture") for _ in range(count)
+            )
+        for kind, category in room_requirements:
+            footprint = _place_object(
+                room,
+                kind,
+                [*fixed_elements, *placed],
+                clearance_segments,
+            )
             placed.append(
                 PlanElement(
                     element_id=f"{room.room_id}-{kind}-{sum(item.kind == kind for item in placed) + 1}",
@@ -359,21 +570,71 @@ def _room_contents(layout: LayoutCandidate, fixed_elements: list[PlanElement]) -
     return placed
 
 
-def _place_object(room: RoomPolygon, kind: str, occupied: list[PlanElement]) -> tuple[Point, ...]:
+def _place_object(
+    room: RoomPolygon,
+    kind: str,
+    occupied: list[PlanElement],
+    clearance_segments: list[Segment],
+) -> tuple[Point, ...]:
     min_x, min_y, max_x, max_y = _bounds(room.polygon)
     width, height = max_x - min_x, max_y - min_y
     object_width = min(1.2, max(0.45, width * 0.18))
     object_height = min(0.7, max(0.35, height * 0.16))
     if object_width + 0.4 > width or object_height + 0.4 > height:
         raise ValueError(f"room '{room.room_id}' cannot fit required {kind}")
-    for y in _search_values(min_y + 0.2, max_y - object_height - 0.2):
-        for x in _search_values(min_x + 0.2, max_x - object_width - 0.2):
+    y_values = _placement_values(
+        min_y + 0.35,
+        max_y - object_height - 0.35,
+        object_height + 0.8,
+    )
+    x_values = _placement_values(
+        min_x + 0.35,
+        max_x - object_width - 0.35,
+        object_width + 0.8,
+    )
+
+    def available(footprint: tuple[Point, ...]) -> bool:
+        return (
+            contains_polygon(room.polygon, footprint)
+            and not any(
+                polygon_overlap_area(footprint, item.footprint) > _EPSILON
+                for item in occupied
+            )
+            and not any(
+                _rectangle_near_segment(footprint, segment, clearance=0.6)
+                for segment in clearance_segments
+            )
+        )
+
+    candidates: list[tuple[Point, ...]] = []
+    for y in y_values:
+        for x in x_values:
             footprint = _rectangle(x, y, x + object_width, y + object_height)
-            if not contains_polygon(room.polygon, footprint):
-                continue
-            if any(polygon_overlap_area(footprint, item.footprint) > _EPSILON for item in occupied):
-                continue
-            return footprint
+            if available(footprint):
+                candidates.append(footprint)
+    if not candidates:
+        for y in _search_values(min_y + 0.2, max_y - object_height - 0.2):
+            for x in _search_values(min_x + 0.2, max_x - object_width - 0.2):
+                footprint = _rectangle(x, y, x + object_width, y + object_height)
+                if available(footprint):
+                    return footprint
+    if candidates:
+        siblings = [
+            item for item in occupied if item.host_id == room.room_id
+        ]
+        if not siblings:
+            return candidates[0]
+        sibling_centers = [
+            _footprint_center(item.footprint)
+            for item in siblings
+        ]
+        return max(
+            candidates,
+            key=lambda footprint: min(
+                math.dist(_footprint_center(footprint), center)
+                for center in sibling_centers
+            ),
+        )
     raise ValueError(f"room '{room.room_id}' cannot place required {kind} without overlap")
 
 
@@ -451,6 +712,26 @@ def _search_values(start: float, end: float) -> list[float]:
     return [round(min(start + index * 0.2, end), 6) for index in range(count)]
 
 
+def _placement_values(start: float, end: float, spacing: float) -> list[float]:
+    if end < start - _EPSILON:
+        return []
+    coarse = []
+    cursor = start
+    while cursor <= end + _EPSILON:
+        coarse.append(round(min(cursor, end), 6))
+        cursor += spacing
+    if coarse and coarse[-1] < end - _EPSILON:
+        coarse.append(round(end, 6))
+    return coarse
+
+
+def _footprint_center(footprint: tuple[Point, ...]) -> Point:
+    return (
+        sum(point[0] for point in footprint) / len(footprint),
+        sum(point[1] for point in footprint) / len(footprint),
+    )
+
+
 def _rectangle_intersects_segment(rectangle: tuple[Point, ...], start: Point, end: Point) -> bool:
     min_x, min_y, max_x, max_y = _bounds(rectangle)
     if start[0] == end[0]:
@@ -458,6 +739,52 @@ def _rectangle_intersects_segment(rectangle: tuple[Point, ...], start: Point, en
     if start[1] == end[1]:
         return min_y - _EPSILON <= start[1] <= max_y + _EPSILON and max(min_x, min(start[0], end[0])) <= min(max_x, max(start[0], end[0])) + _EPSILON
     return False
+
+
+def _rectangle_near_segment(
+    rectangle: tuple[Point, ...],
+    segment: Segment,
+    *,
+    clearance: float,
+) -> bool:
+    min_x, min_y, max_x, max_y = _bounds(rectangle)
+    start, end = segment
+    segment_min_x = min(start[0], end[0]) - clearance
+    segment_max_x = max(start[0], end[0]) + clearance
+    segment_min_y = min(start[1], end[1]) - clearance
+    segment_max_y = max(start[1], end[1]) + clearance
+    return not (
+        max_x < segment_min_x - _EPSILON
+        or min_x > segment_max_x + _EPSILON
+        or max_y < segment_min_y - _EPSILON
+        or min_y > segment_max_y + _EPSILON
+    )
+
+
+def _point_in_polygon_or_boundary(point: Point, polygon: list[Point]) -> bool:
+    x, y = point
+    inside = False
+    for start, end in zip(polygon, [*polygon[1:], polygon[0]]):
+        cross = (end[0] - start[0]) * (y - start[1]) - (
+            end[1] - start[1]
+        ) * (x - start[0])
+        if (
+            abs(cross) <= _EPSILON
+            and min(start[0], end[0]) - _EPSILON
+            <= x
+            <= max(start[0], end[0]) + _EPSILON
+            and min(start[1], end[1]) - _EPSILON
+            <= y
+            <= max(start[1], end[1]) + _EPSILON
+        ):
+            return True
+        if (start[1] > y) != (end[1] > y):
+            intersection_x = start[0] + (y - start[1]) * (
+                end[0] - start[0]
+            ) / (end[1] - start[1])
+            if x < intersection_x:
+                inside = not inside
+    return inside
 
 
 def _exterior_segments(room: list[Point], boundary: list[Point]) -> list[Segment]:

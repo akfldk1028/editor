@@ -782,11 +782,19 @@ def _validate_basic_design(
             door_midpoint is None
             or not _points_equal(route.points[0], door_midpoint)
             or not _points_equal(route.points[-1], exit_midpoint)
+            or not _egress_route_in_circulation(
+                route.points,
+                geometric_circulation,
+            )
         ):
             add_violation(
                 "egress_route_geometry",
                 route.line_id,
-                "egress route must run from the real room-door midpoint to its referenced exit midpoint",
+                (
+                    "egress route must be an orthogonal polyline from the real "
+                    "room-door midpoint to its referenced exit midpoint, with "
+                    "every segment inside the circulation union"
+                ),
             )
     for room_id in occupied_rooms:
         if len(route_targets_by_room.get(room_id, set())) < 2:
@@ -1239,6 +1247,78 @@ def _door_midpoints(
 
 def _points_equal(left, right) -> bool:
     return math.dist(left, right) <= 1e-6
+
+
+def _egress_route_in_circulation(
+    points,
+    circulation: list[RoomPolygon],
+) -> bool:
+    if len(points) < 2 or not all(_is_finite_point(point) for point in points):
+        return False
+    for start, end in zip(points, points[1:]):
+        if math.dist(start, end) <= _EPSILON:
+            return False
+        if (
+            abs(start[0] - end[0]) > _EPSILON
+            and abs(start[1] - end[1]) > _EPSILON
+        ):
+            return False
+        if not _axis_segment_in_polygon_union(start, end, circulation):
+            return False
+    return True
+
+
+def _axis_segment_in_polygon_union(
+    start,
+    end,
+    circulation: list[RoomPolygon],
+) -> bool:
+    vertical = abs(start[0] - end[0]) <= _EPSILON
+    breakpoints = [start[1], end[1]] if vertical else [start[0], end[0]]
+    lower, upper = min(breakpoints), max(breakpoints)
+    for path in circulation:
+        for point in path.polygon:
+            coordinate = point[1] if vertical else point[0]
+            if lower + _EPSILON < coordinate < upper - _EPSILON:
+                breakpoints.append(coordinate)
+    ordered = sorted(set(breakpoints))
+    samples = [*ordered, *((left + right) / 2 for left, right in zip(ordered, ordered[1:]))]
+    return all(
+        any(
+            _point_in_polygon_or_boundary(
+                (start[0], coordinate) if vertical else (coordinate, start[1]),
+                path.polygon,
+            )
+            for path in circulation
+        )
+        for coordinate in samples
+    )
+
+
+def _point_in_polygon_or_boundary(point, polygon) -> bool:
+    x, y = point
+    inside = False
+    for start, end in _polygon_edges(polygon):
+        cross = (end[0] - start[0]) * (y - start[1]) - (
+            end[1] - start[1]
+        ) * (x - start[0])
+        if (
+            abs(cross) <= _EPSILON
+            and min(start[0], end[0]) - _EPSILON
+            <= x
+            <= max(start[0], end[0]) + _EPSILON
+            and min(start[1], end[1]) - _EPSILON
+            <= y
+            <= max(start[1], end[1]) + _EPSILON
+        ):
+            return True
+        if (start[1] > y) != (end[1] > y):
+            intersection_x = start[0] + (y - start[1]) * (
+                end[0] - start[0]
+            ) / (end[1] - start[1])
+            if x < intersection_x:
+                inside = not inside
+    return inside
 
 
 def _is_axis_aligned_rectangle(points) -> bool:

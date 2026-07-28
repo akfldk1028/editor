@@ -366,6 +366,31 @@ def test_protected_exits_reference_two_distinct_stairs() -> None:
         (
             lambda features: _replace_line(
                 features,
+                replace(
+                    _line(features, "route-1"),
+                    points=((6.0, 3.55), (8.0, 0.95)),
+                ),
+            ),
+            "egress_route_geometry",
+        ),
+        (
+            lambda features: _replace_line(
+                features,
+                replace(
+                    _line(features, "route-1"),
+                    points=(
+                        (6.0, 3.55),
+                        (5.0, 3.55),
+                        (5.0, 0.95),
+                        (8.0, 0.95),
+                    ),
+                ),
+            ),
+            "egress_route_geometry",
+        ),
+        (
+            lambda features: _replace_line(
+                features,
                 replace(_line(features, "route-1"), target_id="missing-exit"),
             ),
             "egress_route_reference",
@@ -875,7 +900,7 @@ def _office_features() -> BasicDesignFeatures:
             "route-1",
             "egress",
             "egress_route",
-            ((6.0, 3.55), (8.0, 0.95)),
+            ((6.0, 3.55), (7.0, 3.55), (7.0, 0.95), (8.0, 0.95)),
             host_id="open_work",
             target_id="exit-1",
         ),
@@ -883,7 +908,7 @@ def _office_features() -> BasicDesignFeatures:
             "route-2",
             "egress",
             "egress_route",
-            ((6.0, 3.55), (8.0, 5.05)),
+            ((6.0, 3.55), (7.0, 3.55), (7.0, 5.05), (8.0, 5.05)),
             host_id="open_work",
             target_id="exit-2",
         ),
