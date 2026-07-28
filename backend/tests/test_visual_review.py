@@ -1,10 +1,12 @@
 import json
+import re
 import struct
 import subprocess
 import sys
 import zlib
 from dataclasses import replace
 from pathlib import Path
+from xml.etree import ElementTree
 
 import pytest
 
@@ -116,6 +118,225 @@ def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
     assert report["checks"]["boundary"] == "pass"
     assert report["checks"]["openings"] == "not_checked"
     assert report["checks"]["corridor_width"] == "not_checked"
+    assert report["checks"]["basic_design"] == "not_checked"
+
+
+def test_strict_review_renders_complete_basic_design_evidence_in_fixed_layer_order(
+    tmp_path,
+):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    svg = review.svg_path.read_text(encoding="utf-8")
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    expected_layers = [
+        "grid",
+        "rooms",
+        "circulation",
+        "core",
+        "structure",
+        "envelope",
+        "door-openings",
+        "furniture",
+        "fixtures",
+        "egress",
+        "dimensions",
+        "text-labels",
+    ]
+    group_layers = re.findall(r'<g data-layer="([^"]+)">', svg)
+    assert group_layers[: len(expected_layers)] == expected_layers
+    assert report["checks"]["basic_design"] == "pass"
+    assert report["validation"]["basic_design"] is not None
+    assert report["render_evidence"]["modeled"] == report["render_evidence"]["svg"]
+    assert report["render_evidence"]["modeled"] == report["render_evidence"]["png"]
+    assert report["render_evidence"]["missing"] == {"png": {}, "svg": {}}
+    assert report["render_evidence"]["skipped"] == {"png": [], "svg": []}
+    for layer, kinds in report["render_evidence"]["modeled"].items():
+        for kind, identifiers in kinds.items():
+            for identifier in identifiers:
+                metadata = (
+                    f'data-id="{identifier}" data-kind="{kind}" '
+                    f'data-layer="{layer}"'
+                )
+                assert metadata in svg
+    for layer in expected_layers:
+        completeness = report["layer_completeness"][layer]
+        assert completeness["modeled"] == completeness["svg"]
+        assert completeness["modeled"] == completeness["png"]
+
+
+def test_svg_escapes_all_feature_metadata_attributes(tmp_path):
+    result, boundary = _strict_building_floor()
+    assert result.layout.basic_design is not None
+    unsafe_id = 'unsafe" onload="alert(1)'
+    unsafe_kind = 'grid" onclick="alert(2)'
+    changed_line = replace(
+        result.layout.basic_design.lines[0],
+        line_id=unsafe_id,
+        kind=unsafe_kind,
+    )
+    basic_design = replace(
+        result.layout.basic_design,
+        lines=(changed_line, *result.layout.basic_design.lines[1:]),
+    )
+    result = replace(
+        result,
+        layout=replace(result.layout, basic_design=basic_design),
+        validation=replace(result.validation, accepted=False, is_valid=False),
+    )
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    svg = review.svg_path.read_text(encoding="utf-8")
+    assert f'data-id="{unsafe_id}"' not in svg
+    assert f'data-kind="{unsafe_kind}"' not in svg
+    assert 'data-id="unsafe&quot; onload=&quot;alert(1)"' in svg
+    assert 'data-kind="grid&quot; onclick=&quot;alert(2)"' in svg
+
+
+def test_svg_keeps_exit_and_bottom_annotations_inside_separate_readable_lanes(
+    tmp_path,
+):
+    mass = MassInput(
+        project_id="annotation-lanes",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+    result = run_building_generation(mass).floor_results[0]
+    boundary = mass.footprint_polygon
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    root = ElementTree.fromstring(review.svg_path.read_text(encoding="utf-8"))
+    namespace = "{http://www.w3.org/2000/svg}"
+    texts = root.findall(f".//{namespace}text")
+    assert sum(text.attrib.get("data-kind") == "circulation" for text in texts) == 1
+    boundary_polygon = root.find(
+        f".//{namespace}polygon[@data-kind='boundary']"
+    )
+    assert boundary_polygon is not None
+    max_boundary_x = max(
+        float(point.split(",")[0])
+        for point in boundary_polygon.attrib["points"].split()
+    )
+    groups = root.findall(f".//{namespace}g")
+    annotated = {
+        group.attrib["data-kind"]: group.find(f"{namespace}text")
+        for group in groups
+        if group.attrib.get("data-kind")
+        in {
+            "protected_exit",
+            "overall_width",
+            "street",
+            "entrance",
+            "scale_line",
+        }
+    }
+    exits = [
+        group.find(f"{namespace}text")
+        for group in groups
+        if group.attrib.get("data-kind") == "protected_exit"
+    ]
+    assert len(exits) == 2
+    assert all(text is not None for text in exits)
+    for text in exits:
+        assert text is not None and text.text is not None
+        assert float(text.attrib["x"]) + len(text.text) * 3 <= max_boundary_x
+    bottom_kinds = ("overall_width", "street", "entrance", "scale_line")
+    assert all(annotated[kind] is not None for kind in bottom_kinds)
+    positions = {
+        kind: (
+            float(annotated[kind].attrib["x"]),
+            float(annotated[kind].attrib["y"]),
+            annotated[kind].text or "",
+        )
+        for kind in bottom_kinds
+    }
+    for index, first_kind in enumerate(bottom_kinds):
+        first_x, first_y, first_text = positions[first_kind]
+        for second_kind in bottom_kinds[index + 1 :]:
+            second_x, second_y, second_text = positions[second_kind]
+            same_lane = abs(first_y - second_y) < 10
+            overlaps = abs(first_x - second_x) < (
+                len(first_text) + len(second_text)
+            ) * 3
+            assert not (same_lane and overlaps)
+
+
+def test_strict_review_fails_basic_design_check_when_modeled_feature_is_not_renderable(
+    tmp_path,
+):
+    result, boundary = _strict_building_floor()
+    assert result.layout.basic_design is not None
+    malformed = result.layout.basic_design.lines[0]
+    object.__setattr__(malformed, "points", ((float("nan"), 0.0), (0.0, 0.0)))
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    assert report["accepted"] is False
+    assert report["needs_iteration"] is True
+    assert report["checks"]["basic_design"] == "fail"
+    assert report["render_evidence"]["missing"]["svg"]
+    assert report["render_evidence"]["missing"]["png"]
+    assert report["render_evidence"]["skipped"]["svg"][0]["reason"] == (
+        "non_finite_geometry"
+    )
+
+
+def test_unchecked_review_does_not_fabricate_basic_design_layers_and_disables_controls(
+    tmp_path,
+):
+    result, boundary = _sample_result()
+    assert result.layout.basic_design is None
+    assert result.validation.basic_design_checked is False
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    svg = review.svg_path.read_text(encoding="utf-8")
+    page = review.html_path.read_text(encoding="utf-8")
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    assert report["checks"]["basic_design"] == "not_checked"
+    for layer in (
+        "grid",
+        "core",
+        "structure",
+        "envelope",
+        "furniture",
+        "fixtures",
+        "egress",
+        "dimensions",
+    ):
+        assert f'<g data-layer="{layer}">' not in svg
+        assert re.search(
+            rf'<button[^>]+data-layer="{layer}"[^>]+disabled',
+            page,
+        )
+        assert layer not in report["layer_completeness"]
 
 
 def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
@@ -142,8 +363,8 @@ def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
     assert all(review.svg_path.is_file() for review in artifacts.floor_artifacts)
     index = artifacts.index_html_path.read_text(encoding="utf-8")
     assert '<link rel="icon" href="data:,"' in index
-    assert "F1 · neighborhood_commercial" in index
-    assert "F5 · office" in index
+    assert "F1 | neighborhood_commercial" in index
+    assert "F5 | office" in index
     report = json.loads(artifacts.report_path.read_text(encoding="utf-8"))
     assert report["accepted"] is True
     assert report["vertical_core_aligned"] is True
@@ -239,6 +460,30 @@ def test_png_renders_high_contrast_door_segment_pixels(tmp_path):
 
     png = review.png_path.read_bytes()
     assert visual_review_service.PNG_DOOR_STROKE in _png_colors(png)
+
+
+def test_png_contains_distinct_pixels_for_basic_design_layers_and_bitmap_labels(
+    tmp_path,
+):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    colors = _png_colors(review.png_path.read_bytes())
+    assert {
+        (247, 214, 208),  # core stair
+        (66, 75, 84),  # structure
+        (11, 110, 153),  # envelope
+        (242, 226, 184),  # furniture
+        (191, 227, 223),  # fixtures
+        (46, 125, 50),  # egress
+        (163, 72, 19),  # dimensions and site
+        (25, 30, 35),  # bitmap text
+    } <= colors
 
 
 def test_review_report_exposes_validated_opening_and_corridor_measurements(tmp_path):
@@ -560,6 +805,7 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
     assert reports[1]["needs_iteration"] is True
     assert reports[1]["checks"] == {
         "area": "pass",
+        "basic_design": "not_checked",
         "boundary": "pass",
         "circulation_access": "pass",
             "corridor_width": "not_checked",

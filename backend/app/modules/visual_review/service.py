@@ -5,6 +5,7 @@ import html
 import json
 import math
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
@@ -12,7 +13,7 @@ from backend.app.modules.generation_loop.service import (
     run_candidate_search,
 )
 from backend.app.schemas.loop import CandidateRecord, LoopConfig
-from backend.app.schemas.layout import OpeningSegment
+from backend.app.schemas.layout import OpeningSegment, PlanElement, PlanLine
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.metrics import ValidationReport
 from backend.app.schemas.result import BuildingGenerationResult, GenerationResult
@@ -72,6 +73,86 @@ PNG_CIRCULATION_FILL = (217, 217, 217)
 PNG_CIRCULATION_STROKE = (56, 118, 29)
 DOOR_STROKE = "#0056b3"
 PNG_DOOR_STROKE = (0, 86, 179)
+
+LAYER_ORDER = (
+    "grid",
+    "rooms",
+    "circulation",
+    "core",
+    "structure",
+    "envelope",
+    "door-openings",
+    "furniture",
+    "fixtures",
+    "egress",
+    "dimensions",
+    "text-labels",
+)
+_BASIC_DESIGN_LAYERS = {
+    "grid",
+    "core",
+    "structure",
+    "envelope",
+    "furniture",
+    "fixtures",
+    "egress",
+    "dimensions",
+}
+_BASIC_DESIGN_VIOLATION_CODES = {
+    "basic_design_missing",
+    "basic_design_identity",
+    "basic_design_reference",
+    "basic_design_geometry",
+    "core_geometry",
+    "core_subspace_containment",
+    "core_subspace_overlap",
+    "vertical_missing",
+    "protected_exit_count",
+    "protected_exit_reference",
+    "protected_exit_geometry",
+    "protected_exit_width",
+    "protected_exit_separation",
+    "egress_route_missing",
+    "egress_route_reference",
+    "egress_route_geometry",
+    "column_boundary",
+    "column_conflict",
+    "structure_missing",
+    "window_reference",
+    "window_geometry",
+    "window_conflict",
+    "window_missing",
+    "entrance_missing",
+    "entrance_geometry",
+    "placed_object_reference",
+    "placed_object_containment",
+    "placed_object_overlap",
+    "placed_object_missing",
+    "dimension_reference",
+    "dimension_value",
+    "dimension_missing",
+    "site_missing",
+    "site_geometry",
+}
+
+
+@dataclass(frozen=True)
+class _RenderFeature:
+    feature_id: str
+    layer: str
+    kind: str
+    geometry: str
+    points: tuple[tuple[float, float], ...]
+    label: str = ""
+    style_key: str = ""
+    invalid_reason: str = ""
+
+
+@dataclass(frozen=True)
+class _RenderedOutput:
+    payload: str | bytes
+    rendered: tuple[_RenderFeature, ...]
+    skipped: tuple[dict[str, str], ...]
 
 
 def create_building_visual_review_artifacts(
@@ -168,16 +249,22 @@ def create_visual_review_artifacts(
     }
     _ensure_within_target(target, svg_path, png_path, html_path, report_path)
 
-    svg_path.write_text(_render_svg(result, boundary, width, height), encoding="utf-8")
-    png_path.write_bytes(_render_png(result, boundary, width, height))
+    features = _normalize_render_features(result, boundary)
+    svg_output = _render_svg(features, boundary, width, height)
+    png_output = _render_png(features, boundary, width, height)
+    svg_path.write_text(str(svg_output.payload), encoding="utf-8")
+    png_path.write_bytes(bytes(png_output.payload))
 
-    checks = _hard_validation_checks(
-        result.validation,
-    )
+    render_evidence = _render_evidence(features, svg_output, png_output)
+    missing_basic_design = _missing_basic_design_ids(result, render_evidence)
+    checks = _hard_validation_checks(result.validation)
+    if result.validation.basic_design_checked and missing_basic_design:
+        checks["basic_design"] = "fail"
     measurements = _layout_measurements(result)
     room_shapes = to_jsonable(result.validation.room_shapes)
     room_areas = to_jsonable(result.validation.room_areas)
-    needs_iteration = not result.validation.accepted
+    accepted = result.validation.accepted and not missing_basic_design
+    needs_iteration = not accepted
     scores = _validation_scores(result.validation)
     previous_total_score = (
         previous_validation.total_score if previous_validation is not None else None
@@ -204,7 +291,7 @@ def create_visual_review_artifacts(
         "operator_params": (
             to_jsonable(candidate.operator_params) if candidate is not None else {}
         ),
-        "accepted": result.validation.accepted,
+        "accepted": accepted,
         "needs_iteration": needs_iteration,
         "hard_failure_count": result.validation.hard_violation_count,
         "violations": to_jsonable(result.validation.violations),
@@ -224,6 +311,8 @@ def create_visual_review_artifacts(
         "room_shapes": room_shapes,
         "room_areas": room_areas,
         "validation": to_jsonable(result.validation),
+        "render_evidence": render_evidence,
+        "layer_completeness": _layer_completeness(render_evidence),
         "artifacts": artifact_links,
     }
     report_path.write_text(
@@ -259,7 +348,7 @@ def _render_building_index(
     floor_sections = []
     for floor in floors:
         title = (
-            f"F{floor['floor_index']} · "
+            f"F{floor['floor_index']} | "
             f"{html.escape(str(floor['use_type']))}"
         )
         png = html.escape(floor["artifacts"]["png"], quote=True)
@@ -300,7 +389,7 @@ def _render_building_index(
 <body>
   <main>
     <div class="summary">
-      <div><h1>{html.escape(result.mass.project_id)}</h1><p>{len(floors)} floors · {result.total_area:g} total area</p></div>
+      <div><h1>{html.escape(result.mass.project_id)}</h1><p>{len(floors)} floors | {result.total_area:g} total area</p></div>
       <span class="status">{status}</span>
     </div>
     {''.join(floor_sections)}
@@ -500,131 +589,671 @@ def _render_index_html(index: dict) -> str:
 """
 
 
-def _render_svg(
+def _normalize_render_features(
     result: GenerationResult,
+    boundary: list[tuple[float, float]],
+) -> tuple[_RenderFeature, ...]:
+    features: list[_RenderFeature] = []
+    labels: list[_RenderFeature] = []
+    basic_design = result.layout.basic_design
+    if basic_design is not None:
+        for line in basic_design.lines:
+            layer = _line_layer(line)
+            features.append(
+                _RenderFeature(
+                    line.line_id,
+                    layer,
+                    line.kind,
+                    "polyline",
+                    tuple(line.points),
+                    _line_label(line),
+                    line.category,
+                )
+            )
+    for room in result.layout.rooms:
+        points = tuple(room.polygon)
+        features.append(
+            _RenderFeature(
+                room.room_id,
+                "rooms",
+                "room",
+                "polygon",
+                points,
+                style_key=room.space_type,
+            )
+        )
+        if _finite_points(points, minimum=3):
+            area = _format_measurement(polygon_area(room.polygon))
+            room_label = (
+                f"{room.room_id}|{area} m2"
+                if room.room_id == room.space_type
+                else f"{room.room_id}|{room.space_type}|{area} m2"
+            )
+            labels.append(
+                _RenderFeature(
+                    f"{room.room_id}-label",
+                    "text-labels",
+                    "room-label",
+                    "label",
+                    (_centroid(points),),
+                    room_label,
+                )
+            )
+    labeled_circulation = (
+        max(
+            (
+                path
+                for path in result.layout.circulation
+                if _finite_points(path.polygon, minimum=3)
+            ),
+            key=lambda path: polygon_area(path.polygon),
+            default=None,
+        )
+    )
+    for path in result.layout.circulation:
+        points = tuple(path.polygon)
+        features.append(
+            _RenderFeature(
+                path.room_id,
+                "circulation",
+                "circulation",
+                "polygon",
+                points,
+                style_key=path.space_type,
+            )
+        )
+        if path is labeled_circulation:
+            labels.append(
+                _RenderFeature(
+                    f"{path.room_id}-label",
+                    "text-labels",
+                    "circulation",
+                    "label",
+                    (_circulation_label_point(points),),
+                    path.space_type,
+                )
+            )
+    features.append(
+        _RenderFeature(
+            "floor-boundary",
+            "rooms",
+            "boundary",
+            "polygon",
+            tuple(boundary),
+        )
+    )
+    for opening in result.layout.openings:
+        label = ""
+        if isinstance(opening.clear_width, (int, float)) and math.isfinite(
+            opening.clear_width
+        ):
+            label = f"{_format_measurement(opening.clear_width)} m"
+        features.append(
+            _RenderFeature(
+                opening.opening_id,
+                "door-openings",
+                "door-opening",
+                "polyline",
+                (opening.start, opening.end),
+                label,
+                opening.connects[0] if opening.connects else "",
+                "" if _is_renderable_opening(opening) else "non_finite_geometry",
+            )
+        )
+        if _finite_points((opening.start, opening.end), minimum=2) and label:
+            midpoint = (
+                (opening.start[0] + opening.end[0]) / 2,
+                (opening.start[1] + opening.end[1]) / 2,
+            )
+            host = next(
+                (
+                    room
+                    for room in result.layout.rooms
+                    if room.room_id == opening.connects[0]
+                ),
+                None,
+            )
+            label_point = (
+                _offset_toward(midpoint, _centroid(host.polygon), 0.3)
+                if host is not None and _finite_points(host.polygon, minimum=3)
+                else midpoint
+            )
+            labels.append(
+                _RenderFeature(
+                    f"{opening.opening_id}-width-label",
+                    "text-labels",
+                    "door-width",
+                    "label",
+                    (label_point,),
+                    label,
+                )
+            )
+    if basic_design is not None:
+        for element in basic_design.elements:
+            layer = _element_layer(element)
+            features.append(
+                _RenderFeature(
+                    element.element_id,
+                    layer,
+                    element.kind,
+                    "polygon",
+                    tuple(element.footprint),
+                    style_key=element.category,
+                )
+            )
+            if layer == "core" and _finite_points(element.footprint, minimum=3):
+                labels.append(
+                    _RenderFeature(
+                        f"{element.element_id}-label",
+                        "text-labels",
+                        "core-label",
+                        "label",
+                        (_centroid(element.footprint),),
+                        element.label or element.kind.upper(),
+                    )
+                )
+    return tuple(
+        feature
+        for layer in LAYER_ORDER
+        for feature in (*features, *labels)
+        if feature.layer == layer
+    )
+
+
+def _element_layer(element: PlanElement) -> str:
+    return {
+        "vertical": "core",
+        "structure": "structure",
+        "furniture": "furniture",
+        "fixture": "fixtures",
+    }.get(element.category, element.category)
+
+
+def _line_layer(line: PlanLine) -> str:
+    if line.category == "structure":
+        return "grid"
+    if line.category == "envelope":
+        return "envelope"
+    if line.category == "egress":
+        return "door-openings" if line.kind == "protected_exit" else "egress"
+    if line.category in {"dimension", "site"}:
+        return "dimensions"
+    return line.category
+
+
+def _line_label(line: PlanLine) -> str:
+    if line.kind in {"egress_route", "window"}:
+        return ""
+    if line.kind == "protected_exit":
+        suffix = line.line_id.rsplit("-", 1)[-1]
+        width = (
+            f" {_format_measurement(line.clear_width)}m"
+            if line.clear_width is not None
+            else ""
+        )
+        return f"EXIT {suffix}{width}"
+    if line.kind == "scale_line" and line.measured_value is not None:
+        return f"SCALE {_format_measurement(line.measured_value)}m"
+    parts = [line.label] if line.label else []
+    if line.measured_value is not None:
+        parts.append(f"{_format_measurement(line.measured_value)} m")
+    elif line.clear_width is not None:
+        parts.append(f"{_format_measurement(line.clear_width)} m")
+    return " ".join(parts)
+
+
+def _render_svg(
+    features: tuple[_RenderFeature, ...],
     boundary: list[tuple[float, float]],
     width: int,
     height: int,
-) -> str:
+) -> _RenderedOutput:
     min_x, min_y, max_x, max_y = bounds(boundary)
     scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="white"/>',
     ]
-    parts.append('<g data-layer="rooms">')
-    for room in result.layout.rooms:
-        points = " ".join(
-            f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}" for x, y in room.polygon
+    rendered: list[_RenderFeature] = []
+    skipped: list[dict[str, str]] = []
+    for layer in LAYER_ORDER:
+        deferred_boundary = (
+            next(
+                (
+                    feature
+                    for feature in features
+                    if feature.layer == "rooms" and feature.kind == "boundary"
+                ),
+                None,
+            )
+            if layer == "rooms"
+            else None
         )
-        fill = PALETTE.get(room.space_type, "#eeeeee")
-        parts.append(f'<polygon points="{points}" fill="{fill}" stroke="#111111" stroke-width="2"/>')
-    parts.append("</g>")
-    parts.append('<g data-layer="text-labels">')
-    for room in result.layout.rooms:
-        cx, cy = _centroid(room.polygon)
-        label_x = _sx(cx, min_x, scale, pad_x)
-        label_y = _sy(cy, min_y, scale, pad_y, height)
-        area = _format_measurement(polygon_area(room.polygon))
-        parts.append(
-            f'<text data-kind="room-label" x="{label_x}" y="{label_y}" '
-            'font-family="Arial" font-size="12" text-anchor="middle">'
-            f'<tspan x="{label_x}" dy="-0.6em">{html.escape(room.room_id)}</tspan>'
-            f'<tspan x="{label_x}" dy="1.2em">{html.escape(room.space_type)}</tspan>'
-            f'<tspan x="{label_x}" dy="1.2em">{area} m2</tspan></text>'
-        )
-    parts.append("</g>")
-    parts.append('<g data-layer="circulation">')
-    for path in result.layout.circulation:
-        points = " ".join(
-            f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}"
-            for x, y in path.polygon
-        )
-        parts.append(
-            f'<polygon data-kind="circulation" points="{points}" '
-            f'fill="{CIRCULATION_FILL}" stroke="{CIRCULATION_STROKE}" stroke-width="2"/>'
-        )
-        cx, cy = _centroid(path.polygon)
-        parts.append(
-            f'<text data-kind="circulation" x="{_sx(cx, min_x, scale, pad_x)}" '
-            f'y="{_sy(cy, min_y, scale, pad_y, height)}" font-family="Arial" '
-            f'font-size="14" text-anchor="middle">{html.escape(path.space_type)}</text>'
-        )
-    parts.append("</g>")
-    boundary_points = " ".join(
-        f"{_sx(x, min_x, scale, pad_x)},{_sy(y, min_y, scale, pad_y, height)}" for x, y in boundary
-    )
-    parts.append(f'<polygon points="{boundary_points}" fill="none" stroke="#000000" stroke-width="4"/>')
-    parts.append('<g data-layer="door-openings">')
-    for opening in result.layout.openings:
-        if not _is_renderable_opening(opening):
+        layer_features = [
+            feature
+            for feature in features
+            if feature.layer == layer and feature is not deferred_boundary
+        ]
+        if not layer_features:
             continue
-        start_x = _sx(opening.start[0], min_x, scale, pad_x)
-        start_y = _sy(opening.start[1], min_y, scale, pad_y, height)
-        end_x = _sx(opening.end[0], min_x, scale, pad_x)
-        end_y = _sy(opening.end[1], min_y, scale, pad_y, height)
-        midpoint_x = round((start_x + end_x) / 2, 2)
-        midpoint_y = round((start_y + end_y) / 2, 2)
-        clear_width = _format_measurement(opening.clear_width)
-        accessible_label = html.escape(
-            f"{opening.connects[0]} door clear width {clear_width} m",
-            quote=True,
-        )
-        parts.append(
-            f'<line x1="{start_x}" y1="{start_y}" x2="{end_x}" y2="{end_y}" '
-            'stroke="white" stroke-width="8"/>'
-        )
-        parts.append(
-            f'<line data-kind="door-opening" aria-label="{accessible_label}" '
-            f'x1="{start_x}" y1="{start_y}" x2="{end_x}" y2="{end_y}" '
-            f'stroke="{DOOR_STROKE}" stroke-width="4"/>'
-        )
-        parts.append(
-            f'<text data-kind="door-width" x="{midpoint_x + 7}" y="{midpoint_y - 4}" '
-            f'font-family="Arial" font-size="11">{clear_width} m</text>'
-        )
-    parts.append("</g>")
+        parts.append(f'<g data-layer="{html.escape(layer, quote=True)}">')
+        for feature in layer_features:
+            reason = _feature_skip_reason(feature)
+            if reason is not None:
+                skipped.append(_skip_record(feature, reason))
+                continue
+            try:
+                parts.append(
+                    _svg_feature(
+                        feature,
+                        min_x,
+                        min_y,
+                        scale,
+                        pad_x,
+                        pad_y,
+                        height,
+                    )
+                )
+            except (TypeError, ValueError, OverflowError):
+                skipped.append(_skip_record(feature, "render_error"))
+                continue
+            rendered.append(feature)
+        parts.append("</g>")
+        if deferred_boundary is not None:
+            reason = _feature_skip_reason(deferred_boundary)
+            if reason is None:
+                try:
+                    parts.append(
+                        _svg_feature(
+                            deferred_boundary,
+                            min_x,
+                            min_y,
+                            scale,
+                            pad_x,
+                            pad_y,
+                            height,
+                        )
+                    )
+                except (TypeError, ValueError, OverflowError):
+                    skipped.append(_skip_record(deferred_boundary, "render_error"))
+                else:
+                    rendered.append(deferred_boundary)
+            else:
+                skipped.append(_skip_record(deferred_boundary, reason))
     parts.append("</svg>")
-    return "\n".join(parts)
+    return _RenderedOutput("\n".join(parts), tuple(rendered), tuple(skipped))
+
+
+def _svg_feature(
+    feature: _RenderFeature,
+    min_x: float,
+    min_y: float,
+    scale: float,
+    pad_x: float,
+    pad_y: float,
+    height: int,
+) -> str:
+    metadata = (
+        f'data-id="{html.escape(feature.feature_id, quote=True)}" '
+        f'data-kind="{html.escape(feature.kind, quote=True)}" '
+        f'data-layer="{html.escape(feature.layer, quote=True)}"'
+    )
+    raster = [
+        (
+            _sx(x, min_x, scale, pad_x),
+            _sy(y, min_y, scale, pad_y, height),
+        )
+        for x, y in feature.points
+    ]
+    if feature.geometry == "label":
+        x, y = raster[0]
+        rows = feature.label.split("|")
+        if len(rows) == 1:
+            return (
+                f"<text {metadata} x=\"{x}\" y=\"{y}\" font-family=\"Arial\" "
+                f'font-size="10" text-anchor="middle">'
+                f"{html.escape(rows[0])}</text>"
+            )
+        tspans = "".join(
+            f'<tspan x="{x}" dy="{0 if index == 0 else 12}">'
+            f"{html.escape(row)}</tspan>"
+            for index, row in enumerate(rows)
+        )
+        return (
+            f"<text {metadata} x=\"{x}\" y=\"{y}\" font-family=\"Arial\" "
+            f'font-size="10" text-anchor="middle">{tspans}</text>'
+        )
+    if feature.geometry == "polygon":
+        points = " ".join(f"{x},{y}" for x, y in raster)
+        fill, stroke, stroke_width = _svg_polygon_style(feature)
+        return (
+            f'<polygon {metadata} points="{points}" fill="{fill}" '
+            f'stroke="{stroke}" stroke-width="{stroke_width}"/>'
+        )
+    points = " ".join(f"{x},{y}" for x, y in raster)
+    stroke, stroke_width, dash = _svg_line_style(feature)
+    line = (
+        f'<polyline points="{points}" fill="none" stroke="{stroke}" '
+        f'stroke-width="{stroke_width}"{dash}/>'
+    )
+    label = ""
+    if feature.label and feature.kind != "door-opening":
+        x, y = _line_label_position(feature, raster)
+        label = (
+            f'<text x="{x}" y="{y}" font-family="Arial" font-size="9" '
+            f'text-anchor="middle">{html.escape(feature.label)}</text>'
+        )
+    aria_label = ""
+    if feature.kind == "door-opening":
+        aria_label = (
+            f' aria-label="{html.escape(feature.style_key, quote=True)} door '
+            f'clear width {html.escape(feature.label, quote=True)}"'
+        )
+    return f"<g {metadata}{aria_label}>{line}{label}</g>"
+
+
+def _svg_polygon_style(feature: _RenderFeature) -> tuple[str, str, int]:
+    if feature.kind == "boundary":
+        return "none", "#111111", 4
+    if feature.layer == "rooms":
+        return PALETTE.get(feature.style_key, "#eeeeee"), "#1f2933", 2
+    if feature.layer == "circulation":
+        return CIRCULATION_FILL, CIRCULATION_STROKE, 2
+    if feature.layer == "core":
+        return {
+            "stair": "#f7d6d0",
+            "elevator": "#d8d0e8",
+            "lobby": "#e7e9ec",
+            "shaft": "#c9cdd2",
+        }.get(feature.kind, "#e7e9ec"), "#28323c", 2
+    if feature.layer == "structure":
+        return "#424b54", "#111111", 2
+    if feature.layer == "furniture":
+        return "#f2e2b8", "#5d4a1f", 1
+    if feature.layer == "fixtures":
+        return "#bfe3df", "#155d58", 1
+    return "none", "#333333", 1
+
+
+def _svg_line_style(feature: _RenderFeature) -> tuple[str, int, str]:
+    if feature.layer == "grid":
+        return "#aeb7bf", 1, ' stroke-dasharray="5 5"'
+    if feature.layer == "envelope":
+        return ("#0b6e99", 6, "") if feature.kind == "window" else (
+            "#0087a8",
+            8,
+            "",
+        )
+    if feature.layer == "door-openings":
+        return DOOR_STROKE, 4, ""
+    if feature.layer == "egress":
+        return "#2e7d32", 2, ' stroke-dasharray="8 5"'
+    if feature.layer == "dimensions":
+        return "#a34813", 2, ' stroke-dasharray="4 3"'
+    return "#333333", 2, ""
 
 
 def _render_png(
-    result: GenerationResult,
+    features: tuple[_RenderFeature, ...],
     boundary: list[tuple[float, float]],
     width: int,
     height: int,
-) -> bytes:
+) -> _RenderedOutput:
     min_x, min_y, max_x, max_y = bounds(boundary)
     scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
     canvas = SimplePngCanvas(width, height)
-    for room in result.layout.rooms:
-        points = _raster_points(room.polygon, min_x, min_y, scale, pad_x, pad_y, height)
-        color = PNG_PALETTE.get(room.space_type, (238, 238, 238))
-        canvas.fill_polygon(points, color)
-        canvas.stroke_polygon(points, (17, 17, 17), thickness=2)
-    for path in result.layout.circulation:
-        points = _raster_points(path.polygon, min_x, min_y, scale, pad_x, pad_y, height)
-        canvas.fill_polygon(points, PNG_CIRCULATION_FILL)
-        canvas.stroke_polygon(points, PNG_CIRCULATION_STROKE, thickness=2)
-    canvas.stroke_polygon(
-        _raster_points(boundary, min_x, min_y, scale, pad_x, pad_y, height), (0, 0, 0), thickness=4
-    )
-    for opening in result.layout.openings:
-        if not _is_renderable_opening(opening):
+    rendered: list[_RenderFeature] = []
+    skipped: list[dict[str, str]] = []
+    for feature in features:
+        reason = _feature_skip_reason(feature)
+        if reason is not None:
+            skipped.append(_skip_record(feature, reason))
             continue
-        start, end = _raster_points(
-            [opening.start, opening.end],
-            min_x,
-            min_y,
-            scale,
-            pad_x,
-            pad_y,
-            height,
+        try:
+            _png_feature(
+                canvas,
+                feature,
+                min_x,
+                min_y,
+                scale,
+                pad_x,
+                pad_y,
+                height,
+            )
+        except (TypeError, ValueError, OverflowError):
+            skipped.append(_skip_record(feature, "render_error"))
+            continue
+        rendered.append(feature)
+    return _RenderedOutput(canvas.to_bytes(), tuple(rendered), tuple(skipped))
+
+
+def _png_feature(
+    canvas: SimplePngCanvas,
+    feature: _RenderFeature,
+    min_x: float,
+    min_y: float,
+    scale: float,
+    pad_x: float,
+    pad_y: float,
+    height: int,
+) -> None:
+    points = _raster_points(
+        feature.points,
+        min_x,
+        min_y,
+        scale,
+        pad_x,
+        pad_y,
+        height,
+    )
+    if feature.geometry == "label":
+        rows = feature.label.split("|")
+        x, y = points[0]
+        for index, row in enumerate(rows[:3]):
+            label = _bounded_ascii(row, 18)
+            origin = (x - len(label) * 3, y - 8 + index * 8)
+            canvas.draw_text(label, origin, (25, 30, 35))
+        return
+    if feature.geometry == "polygon":
+        fill, stroke, thickness = _png_polygon_style(feature)
+        if fill is not None:
+            canvas.fill_polygon(points, fill)
+        canvas.stroke_polygon(points, stroke, thickness=thickness)
+        return
+    color, thickness, dashed = _png_line_style(feature)
+    if feature.layer == "door-openings":
+        canvas.stroke_polyline(points, (255, 255, 255), thickness=8)
+    if dashed:
+        canvas.stroke_dashed_polyline(
+            points,
+            color,
+            thickness=thickness,
+            dash_length=7,
+            gap_length=5,
         )
-        canvas.stroke_line(start, end, (255, 255, 255), thickness=8)
-        canvas.stroke_line(start, end, PNG_DOOR_STROKE, thickness=4)
-        _draw_door_jambs(canvas, start, end)
-    return canvas.to_bytes()
+    else:
+        canvas.stroke_polyline(points, color, thickness=thickness)
+    if feature.layer == "door-openings" and len(points) == 2:
+        _draw_door_jambs(canvas, points[0], points[1])
+    if feature.kind in {"egress_route", "north_arrow"} and len(points) >= 2:
+        canvas.draw_arrowhead(points[-1], points[-2], color, size=6, thickness=1)
+    if feature.label and feature.kind != "door-opening":
+        x, y = _line_label_position(feature, points)
+        label = _bounded_ascii(feature.label, 14)
+        text_width = len(label) * 6
+        origin_x = max(2, min(canvas.width - text_width - 2, round(x - text_width / 2)))
+        origin_y = max(2, min(canvas.height - 9, round(y - 4)))
+        canvas.draw_text(label, (origin_x, origin_y), color)
+
+
+def _png_polygon_style(
+    feature: _RenderFeature,
+) -> tuple[tuple[int, int, int] | None, tuple[int, int, int], int]:
+    if feature.kind == "boundary":
+        return None, (15, 18, 20), 4
+    if feature.layer == "rooms":
+        return PNG_PALETTE.get(feature.style_key, (238, 238, 238)), (31, 41, 51), 2
+    if feature.layer == "circulation":
+        return PNG_CIRCULATION_FILL, PNG_CIRCULATION_STROKE, 2
+    if feature.layer == "core":
+        return {
+            "stair": (247, 214, 208),
+            "elevator": (216, 208, 232),
+            "lobby": (231, 233, 236),
+            "shaft": (201, 205, 210),
+        }.get(feature.kind, (231, 233, 236)), (40, 50, 60), 2
+    if feature.layer == "structure":
+        return (66, 75, 84), (17, 17, 17), 2
+    if feature.layer == "furniture":
+        return (242, 226, 184), (93, 74, 31), 1
+    if feature.layer == "fixtures":
+        return (191, 227, 223), (21, 93, 88), 1
+    return None, (51, 51, 51), 1
+
+
+def _png_line_style(
+    feature: _RenderFeature,
+) -> tuple[tuple[int, int, int], int, bool]:
+    if feature.layer == "grid":
+        return (174, 183, 191), 1, True
+    if feature.layer == "envelope":
+        return (11, 110, 153), 6 if feature.kind == "window" else 8, False
+    if feature.layer == "door-openings":
+        return PNG_DOOR_STROKE, 4, False
+    if feature.layer == "egress":
+        return (46, 125, 50), 2, True
+    if feature.layer == "dimensions":
+        return (163, 72, 19), 2, True
+    return (51, 51, 51), 2, False
+
+
+def _feature_skip_reason(feature: _RenderFeature) -> str | None:
+    if feature.invalid_reason:
+        return feature.invalid_reason
+    if feature.layer not in LAYER_ORDER:
+        return "unsupported_layer"
+    minimum = 3 if feature.geometry == "polygon" else 1 if feature.geometry == "label" else 2
+    if feature.geometry not in {"polygon", "polyline", "label"}:
+        return "unsupported_geometry"
+    if not _finite_points(feature.points, minimum=minimum):
+        return "non_finite_geometry"
+    return None
+
+
+def _finite_points(
+    points: tuple[tuple[float, float], ...] | list[tuple[float, float]],
+    *,
+    minimum: int,
+) -> bool:
+    try:
+        return len(points) >= minimum and all(
+            len(point) == 2
+            and all(
+                isinstance(value, (int, float))
+                and not isinstance(value, bool)
+                and math.isfinite(value)
+                for value in point
+            )
+            for point in points
+        )
+    except (TypeError, ValueError):
+        return False
+
+
+def _skip_record(feature: _RenderFeature, reason: str) -> dict[str, str]:
+    return {
+        "id": feature.feature_id,
+        "kind": feature.kind,
+        "layer": feature.layer,
+        "reason": reason,
+    }
+
+
+def _render_evidence(
+    modeled: tuple[_RenderFeature, ...],
+    svg_output: _RenderedOutput,
+    png_output: _RenderedOutput,
+) -> dict:
+    modeled_groups = _group_feature_ids(modeled)
+    svg_groups = _group_feature_ids(svg_output.rendered)
+    png_groups = _group_feature_ids(png_output.rendered)
+    return {
+        "modeled": modeled_groups,
+        "svg": svg_groups,
+        "png": png_groups,
+        "skipped": {
+            "svg": list(svg_output.skipped),
+            "png": list(png_output.skipped),
+        },
+        "missing": {
+            "svg": _missing_groups(modeled_groups, svg_groups),
+            "png": _missing_groups(modeled_groups, png_groups),
+        },
+    }
+
+
+def _group_feature_ids(features: tuple[_RenderFeature, ...]) -> dict:
+    grouped: dict[str, dict[str, list[str]]] = {}
+    for feature in features:
+        grouped.setdefault(feature.layer, {}).setdefault(feature.kind, []).append(
+            feature.feature_id
+        )
+    return {
+        layer: {
+            kind: sorted(identifiers)
+            for kind, identifiers in sorted(kinds.items())
+        }
+        for layer, kinds in grouped.items()
+    }
+
+
+def _missing_groups(modeled: dict, rendered: dict) -> dict:
+    missing: dict[str, dict[str, list[str]]] = {}
+    for layer, kinds in modeled.items():
+        for kind, identifiers in kinds.items():
+            absent = sorted(set(identifiers) - set(rendered.get(layer, {}).get(kind, [])))
+            if absent:
+                missing.setdefault(layer, {})[kind] = absent
+    return missing
+
+
+def _missing_basic_design_ids(result: GenerationResult, evidence: dict) -> set[str]:
+    if not result.validation.basic_design_checked or result.layout.basic_design is None:
+        return set()
+    required = {
+        *(element.element_id for element in result.layout.basic_design.elements),
+        *(line.line_id for line in result.layout.basic_design.lines),
+    }
+    missing = set()
+    for output in ("svg", "png"):
+        missing.update(
+            identifier
+            for kinds in evidence["missing"][output].values()
+            for identifiers in kinds.values()
+            for identifier in identifiers
+            if identifier in required
+        )
+    return missing
+
+
+def _layer_completeness(evidence: dict) -> dict[str, dict[str, int]]:
+    completeness = {}
+    for layer, kinds in evidence["modeled"].items():
+        completeness[layer] = {
+            output: sum(
+                len(identifiers)
+                for identifiers in evidence[output].get(layer, {}).values()
+            )
+            for output in ("modeled", "svg", "png")
+        }
+    return completeness
+
+
+def _bounded_ascii(value: str, limit: int) -> str:
+    return "".join(
+        character if 32 <= ord(character) <= 126 else "?"
+        for character in value
+    )[:limit]
 
 
 def _render_html(
@@ -662,6 +1291,39 @@ def _render_html(
         "</tr>"
         for shape in report["room_shapes"]
     )
+    basic_design_present = result.layout.basic_design is not None
+    control_labels = {
+        "grid": "Grid",
+        "rooms": "Rooms",
+        "circulation": "Circulation",
+        "core": "Core",
+        "structure": "Structure",
+        "envelope": "Envelope",
+        "door-openings": "Doors",
+        "furniture": "Furniture",
+        "fixtures": "Fixtures",
+        "egress": "Egress",
+        "dimensions": "Dimensions / site",
+        "text-labels": "Labels",
+    }
+    controls = "".join(
+        (
+            f'<button type="button" data-layer="{layer}" aria-pressed="true"'
+            + (
+                ' disabled aria-disabled="true"'
+                if layer in _BASIC_DESIGN_LAYERS and not basic_design_present
+                else ""
+            )
+            + f">{html.escape(control_labels[layer])}</button>"
+        )
+        for layer in LAYER_ORDER
+    )
+    completeness_rows = "".join(
+        f'<tr><th scope="row">{html.escape(layer)}</th>'
+        f'<td>{counts["modeled"]}</td><td>{counts["svg"]}</td>'
+        f'<td>{counts["png"]}</td></tr>'
+        for layer, counts in report["layer_completeness"].items()
+    )
     project_id = html.escape(result.mass.project_id)
     return f"""<!doctype html>
 <html lang="en">
@@ -670,6 +1332,8 @@ def _render_html(
   <link rel="icon" href="data:,">
   <title>{project_id} floor visual review</title>
   <style>
+    * {{ box-sizing: border-box; }}
+    html, body {{ max-width: 100%; overflow-x: hidden; }}
     body {{ margin: 24px; font-family: Arial, sans-serif; background: white; color: #111; }}
     main {{ max-width: 1180px; margin: 0 auto; }}
     h1 {{ font-size: 22px; margin: 0 0 12px; }}
@@ -678,8 +1342,10 @@ def _render_html(
     .plan {{ min-width: 0; }}
     iframe {{ width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }}
     #working-layer-controls {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }}
-    #working-layer-controls button {{ min-width: 78px; min-height: 32px; }}
-    table {{ border-collapse: collapse; width: 100%; }}
+    #working-layer-controls button {{ min-height: 32px; padding: 5px 9px; }}
+    #working-layer-controls button[disabled] {{ opacity: 0.45; cursor: not-allowed; }}
+    table {{ border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }}
+    thead, tbody {{ white-space: nowrap; }}
     td {{ border-bottom: 1px solid #ddd; padding: 8px 6px; }}
     a {{ color: #0645ad; }}
     @media (max-width: 680px) {{ body {{ margin: 14px; }} .grid {{ grid-template-columns: 1fr; }} }}
@@ -692,10 +1358,7 @@ def _render_html(
     <div class="grid">
       <section class="plan">
         <div id="working-layer-controls" aria-label="Working layers">
-          <button type="button" data-layer="rooms" aria-pressed="true">Rooms</button>
-          <button type="button" data-layer="circulation" aria-pressed="true">Circulation</button>
-          <button type="button" data-layer="door-openings" aria-pressed="true">Doors</button>
-          <button type="button" data-layer="text-labels" aria-pressed="true">Labels</button>
+          {controls}
         </div>
         <iframe id="floor-plan" src="{html.escape(svg_name, quote=True)}" title="floor plan svg"></iframe>
       </section>
@@ -714,6 +1377,11 @@ def _render_html(
         <table id="room-form-report">
           <thead><tr><th scope="col">Room</th><th scope="col">Area m2</th><th scope="col">Width m</th><th scope="col">Aspect</th><th scope="col">Min width</th><th scope="col">Max aspect</th></tr></thead>
           <tbody>{room_form_rows}</tbody>
+        </table>
+        <h2>Render Completeness</h2>
+        <table id="render-completeness">
+          <thead><tr><th scope="col">Layer</th><th scope="col">Modeled</th><th scope="col">SVG</th><th scope="col">PNG</th></tr></thead>
+          <tbody>{completeness_rows}</tbody>
         </table>
         <p><a href="{html.escape(png_name, quote=True)}">PNG</a></p>
         <p><a href="{html.escape(report_name, quote=True)}">Review JSON</a></p>
@@ -736,6 +1404,7 @@ def _render_html(
     frame.addEventListener("load", synchronizeLayers);
     controls.forEach((button) => {{
       button.addEventListener("click", () => {{
+        if (button.disabled) return;
         const pressed = button.getAttribute("aria-pressed") === "true";
         button.setAttribute("aria-pressed", String(!pressed));
         synchronizeLayers();
@@ -775,6 +1444,57 @@ def _centroid(points: list[tuple[float, float]]) -> tuple[float, float]:
     return (
         sum(point[0] for point in points) / len(points),
         sum(point[1] for point in points) / len(points),
+    )
+
+
+def _circulation_label_point(
+    points: tuple[tuple[float, float], ...],
+) -> tuple[float, float]:
+    min_x = min(point[0] for point in points)
+    max_x = max(point[0] for point in points)
+    min_y = min(point[1] for point in points)
+    max_y = max(point[1] for point in points)
+    if max_x - min_x >= max_y - min_y:
+        return (min_x + (max_x - min_x) * 0.18, (min_y + max_y) / 2)
+    return ((min_x + max_x) / 2, min_y + (max_y - min_y) * 0.82)
+
+
+def _line_label_position(
+    feature: _RenderFeature,
+    points: list[tuple[int | float, int | float]],
+) -> tuple[float, float]:
+    midpoint_x = sum(point[0] for point in points) / len(points)
+    midpoint_y = sum(point[1] for point in points) / len(points)
+    if feature.kind == "grid":
+        if abs(points[0][0] - points[-1][0]) < abs(
+            points[0][1] - points[-1][1]
+        ):
+            return points[0][0], max(point[1] for point in points) + 12
+        return min(point[0] for point in points) - 12, points[0][1]
+    if feature.kind == "overall_width":
+        return midpoint_x, midpoint_y - 30
+    if feature.kind == "street":
+        return midpoint_x, midpoint_y + 28
+    if feature.kind in {"entrance", "scale_line"}:
+        return midpoint_x, midpoint_y - 14
+    if feature.kind == "overall_depth":
+        return midpoint_x + 30, midpoint_y
+    return midpoint_x, midpoint_y - 8
+
+
+def _offset_toward(
+    start: tuple[float, float],
+    target: tuple[float, float],
+    distance: float,
+) -> tuple[float, float]:
+    delta_x = target[0] - start[0]
+    delta_y = target[1] - start[1]
+    length = math.hypot(delta_x, delta_y)
+    if length == 0:
+        return start
+    return (
+        start[0] + delta_x / length * distance,
+        start[1] + delta_y / length * distance,
     )
 
 
@@ -838,6 +1558,14 @@ def _hard_validation_checks(
         checks["openings"] = "not_checked"
     if not validation.corridor_width_checked:
         checks["corridor_width"] = "not_checked"
+    if not validation.basic_design_checked:
+        checks["basic_design"] = "not_checked"
+    else:
+        checks["basic_design"] = (
+            "fail"
+            if violation_codes & _BASIC_DESIGN_VIOLATION_CODES
+            else "pass"
+        )
     return checks
 
 

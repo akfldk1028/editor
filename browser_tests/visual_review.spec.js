@@ -49,9 +49,23 @@ test("working layer controls synchronize before and after iframe load", async ({
   await rooms.click();
   await expect(rooms).toHaveAttribute("aria-pressed", "false");
   const frame = page.frameLocator("#floor-plan");
-  await expect(frame.locator('[data-layer="rooms"]')).toHaveCSS("display", "none");
+  await expect(frame.locator('[data-layer="rooms"]').first()).toHaveCSS("display", "none");
 
-  for (const layer of ["rooms", "circulation", "door-openings", "text-labels"]) {
+  const layers = [
+    "grid",
+    "rooms",
+    "circulation",
+    "core",
+    "structure",
+    "envelope",
+    "door-openings",
+    "furniture",
+    "fixtures",
+    "egress",
+    "dimensions",
+    "text-labels",
+  ];
+  for (const layer of layers) {
     const button = page.locator(`#working-layer-controls [data-layer="${layer}"]`);
     if (layer !== "rooms") await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "false");
@@ -60,5 +74,33 @@ test("working layer controls synchronize before and after iframe load", async ({
     await expect(button).toHaveAttribute("aria-pressed", "true");
     await expect(frame.locator(`[data-layer="${layer}"]`).first()).not.toHaveCSS("display", "none");
   }
+
+  await page.locator('#working-layer-controls [data-layer="egress"]').click();
+  await expect(page.locator('#working-layer-controls [data-layer="egress"]')).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await page.reload();
+  await expect(page.locator('#working-layer-controls [data-layer="egress"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.frameLocator("#floor-plan").locator('[data-layer="egress"]').first()).not.toHaveCSS(
+    "display",
+    "none",
+  );
+
+  const floorTwoDir = join(outputDir, "floor_002");
+  const floorTwoHtml = readdirSync(floorTwoDir).find((name) => name.endsWith(".html"));
+  await page.goto(`http://127.0.0.1:${port}/floor_002/${floorTwoHtml}`);
+  await expect(page.locator('#working-layer-controls [data-layer="egress"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.frameLocator("#floor-plan").locator('[data-layer="egress"]').first()).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await expect(page.locator("#working-layer-controls")).toBeVisible();
   expect(errors).toEqual([]);
 });
