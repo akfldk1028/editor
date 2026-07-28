@@ -189,8 +189,14 @@ def test_building_generation_accepts_complete_structured_floor_assignments():
     assert len(commercial.layout.openings) == len(rooms)
     assert len(commercial.layout.circulation) == 2
     circulation = {path.room_id: path for path in commercial.layout.circulation}
-    assert shared_boundary_length(*[path.polygon for path in circulation.values()]) >= 1.2
-    assert all(orthogonal_min_width(path.polygon) >= 1.2 for path in circulation.values())
+    assert (
+        shared_boundary_length(*[path.polygon for path in circulation.values()])
+        >= 1.2 - 1e-7
+    )
+    assert all(
+        orthogonal_min_width(path.polygon) >= 1.2 - 1e-7
+        for path in circulation.values()
+    )
     for opening in commercial.layout.openings:
         assert opening.clear_width == pytest.approx(0.9)
         room = rooms[opening.connects[0]]

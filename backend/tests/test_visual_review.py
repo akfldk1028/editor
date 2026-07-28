@@ -507,7 +507,7 @@ def test_svg_renders_door_width_and_room_identity_area_labels(tmp_path):
     assert ">0.9 m</text>" in svg
     assert 'data-kind="room-label"' in svg
     assert "open_work" in svg
-    assert "133.38 m2" in svg
+    assert "114.421 m2" in svg
 
 
 def test_png_renders_high_contrast_door_segment_pixels(tmp_path):
@@ -591,8 +591,10 @@ def test_review_exposes_validator_room_form_measurements_and_layer_controls(tmp_
     svg = review.svg_path.read_text(encoding="utf-8")
 
     assert report["checks"]["room_form"] == "fail"
-    assert report["measurements"]["min_room_width"] == pytest.approx(1.961505)
-    assert report["measurements"]["max_room_aspect_ratio"] == pytest.approx(2.0)
+    assert report["measurements"]["min_room_width"] == pytest.approx(1.8)
+    assert report["measurements"]["max_room_aspect_ratio"] == pytest.approx(
+        1.7964015811448208
+    )
     assert report["measurements"]["failed_room_ids"] == ["meeting", "open_work"]
     assert 'data-layer="rooms"' in svg
     assert 'data-layer="circulation"' in svg

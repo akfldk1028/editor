@@ -66,13 +66,6 @@ def run_building_generation(
 ) -> BuildingGenerationResult:
     analysis = analyze_mass(mass)
     _require_rectangular_floor_plate(mass, analysis)
-    min_x, min_y, max_x, max_y = analysis.bounds
-    width = max_x - min_x
-    depth = max_y - min_y
-    if width < 20.0 or depth < 12.0:
-        raise ValueError(
-            "concept-basic footprint requires width >= 20.0 m and depth >= 12.0 m"
-        )
     if floor_assignments is None:
         assignments = assign_floors_from_use_mix(mass)
         assignment_source = "use_mix"
@@ -100,6 +93,13 @@ def run_building_generation(
             raise ValueError(
                 "planner provenance assignments must match validated floor assignments"
             )
+    min_x, min_y, max_x, max_y = analysis.bounds
+    width = max_x - min_x
+    depth = max_y - min_y
+    if width < 20.0 or depth < 10.0:
+        raise ValueError(
+            "concept-basic footprint requires width >= 20.0 m and depth >= 10.0 m"
+        )
 
     programs = [
         generate_program_graph(
@@ -162,7 +162,7 @@ def run_building_generation(
         _normalize_program_core(program, shared_core_target)
         for program in programs
     ]
-    if width < 24.0:
+    if width <= 24.0 or depth <= 10.0:
         programs = [
             _compress_compact_program(program, primary_factor=0.9, service_factor=0.6)
             for program in programs

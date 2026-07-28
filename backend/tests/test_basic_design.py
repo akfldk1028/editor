@@ -192,7 +192,7 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
 
 @pytest.mark.parametrize(
     ("width", "depth"),
-    [(20, 12), (20, 20), (30, 20), (40, 20)],
+    [(20, 12), (20, 20), (24, 12), (30, 10), (30, 20), (40, 20)],
 )
 def test_concept_basic_generation_adapts_to_supported_rectangular_footprints(
     width: float,
@@ -238,7 +238,7 @@ def test_concept_basic_generation_rejects_footprints_below_supported_minimum(
 
     with pytest.raises(
         ValueError,
-        match=r"concept-basic footprint requires width >= 20\.0 m and depth >= 12\.0 m",
+        match=r"concept-basic footprint requires width >= 20\.0 m and depth >= 10\.0 m",
     ):
         run_building_generation(mass)
 

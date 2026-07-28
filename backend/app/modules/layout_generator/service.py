@@ -323,18 +323,14 @@ def _generate_role_driven_layout(
         if primary_role == "sales":
             target_area = _layout_area(node)
             if height < 12:
-                room_height = branch_bottom - min_y
-                room_width = target_area / room_height
-                if role == "checkout":
-                    room_width = max(
-                        room_width,
-                        float(node.min_width or 0),
-                        math.sqrt(target_area / float(node.max_aspect_ratio or math.inf)),
+                room_width = max(
+                    float(node.min_width or 0),
+                    math.sqrt(
+                        target_area / float(node.max_aspect_ratio or math.inf)
                     )
-                    room_height = target_area / room_width
-                if role == "staff":
-                    room_height -= 0.1
-                    room_width = target_area / room_height
+                    * 1.001,
+                )
+                room_height = target_area / room_width
                 if lower_cursor + room_width > core_min_x + 1e-7:
                     raise ValueError(f"role '{role}' cannot fit beside the shared core")
                 room_min_y = branch_bottom - room_height
