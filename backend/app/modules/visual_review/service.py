@@ -328,7 +328,8 @@ def create_visual_review_artifacts(
         height,
         render_style=render_style,
     )
-    svg_path.write_text(str(svg_output.payload), encoding="utf-8")
+    svg_payload = str(svg_output.payload)
+    svg_path.write_text(svg_payload, encoding="utf-8")
     png_path.write_bytes(bytes(png_output.payload))
 
     render_evidence = _render_evidence(features, svg_output, png_output)
@@ -417,7 +418,7 @@ def create_visual_review_artifacts(
     html_path.write_text(
         _render_html(
             result,
-            svg_name=svg_path.name,
+            svg_payload=svg_payload,
             png_name=png_path.name,
             report_name=report_path.name,
             report=report,
@@ -2526,7 +2527,7 @@ def _bounded_ascii(value: str, limit: int) -> str:
 
 def _render_html(
     result: GenerationResult,
-    svg_name: str,
+    svg_payload: str,
     png_name: str,
     report_name: str,
     report: dict,
@@ -2618,7 +2619,7 @@ def _render_html(
     .plan {{ grid-column: 1 / -1; }}
     .review-workspace {{ display: grid; grid-template-columns: minmax(0, 1fr) 272px; gap: 14px; align-items: start; }}
     .drawing-pane {{ min-width: 0; }}
-    iframe {{ width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }}
+    .drawing-pane svg {{ display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }}
     #cad-layer-manager {{ min-width: 0; border: 1px solid #b9c0c7; background: #fff; color: #171a1d; }}
     .cad-layer-header {{ padding: 9px 10px; border-bottom: 1px solid #cbd0d5; font-size: 14px; font-weight: 700; }}
     .cad-layer-commands {{ display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 8px; border-bottom: 1px solid #d8dde1; }}
@@ -2653,7 +2654,7 @@ def _render_html(
       <section class="plan">
         <div class="review-workspace">
           <div class="drawing-pane">
-            <iframe id="floor-plan" src="{html.escape(svg_name, quote=True)}" title="floor plan svg"></iframe>
+            {svg_payload}
           </div>
           <aside id="cad-layer-manager" aria-label="도면 레이어">
             <div class="cad-layer-header">레이어</div>
@@ -2696,7 +2697,7 @@ def _render_html(
     </div>
   </main>
   <script>
-    const frame = document.getElementById("floor-plan");
+    const drawingRoot = document.querySelector(".drawing-pane svg");
     const checkboxes = Array.from(
       document.querySelectorAll('#cad-layer-manager input[type="checkbox"][data-layer]')
     );
@@ -2738,16 +2739,14 @@ def _render_html(
       isolateButton.disabled = activeLayer === null;
     }}
     function synchronizeLayers() {{
-      const documentRoot = frame.contentDocument;
-      if (!documentRoot) return;
+      if (!drawingRoot) return;
       checkboxes.forEach((checkbox) => {{
         const visible = checkbox.checked;
-        documentRoot.querySelectorAll(`[data-layer="${{checkbox.dataset.layer}}"]`).forEach((node) => {{
+        drawingRoot.querySelectorAll(`[data-layer="${{checkbox.dataset.layer}}"]`).forEach((node) => {{
           node.style.display = visible ? "" : "none";
         }});
       }});
     }}
-    frame.addEventListener("load", synchronizeLayers);
     checkboxes.forEach((checkbox) => {{
       checkbox.addEventListener("change", () => {{
         synchronizeLayers();
@@ -2781,6 +2780,7 @@ def _render_html(
       }});
     }});
     updateCommandState();
+    synchronizeLayers();
   </script>
 </body>
 </html>

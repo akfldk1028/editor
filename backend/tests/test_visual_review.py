@@ -904,14 +904,22 @@ def test_room_form_table_joins_validator_area_metric_by_room_id(tmp_path):
     assert f"<td>{open_work_area:g}</td>" in page
 
 
-def test_layer_control_script_resynchronizes_after_iframe_load(tmp_path):
+def test_layer_control_script_targets_inline_svg_without_iframe_dependency(tmp_path):
     result, boundary = _strict_building_floor()
 
     review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
     page = review.html_path.read_text(encoding="utf-8")
+    standalone_svg = review.svg_path.read_text(encoding="utf-8")
 
     assert "function synchronizeLayers()" in page
-    assert 'frame.addEventListener("load", synchronizeLayers)' in page
+    assert standalone_svg.startswith("<svg")
+    assert standalone_svg in page
+    assert '<svg xmlns="http://www.w3.org/2000/svg"' in page
+    assert 'data-layer="rooms"' in page
+    assert "<iframe" not in page
+    assert "contentDocument" not in page
+    assert 'document.querySelector(".drawing-pane svg")' in page
+    assert "drawingRoot.querySelectorAll" in page
 
 
 def test_cad_layer_manager_exposes_korean_checkbox_contract_and_bulk_commands(
