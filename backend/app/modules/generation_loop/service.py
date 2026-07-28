@@ -31,6 +31,16 @@ from backend.app.modules.basic_design.stair import (
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
+from backend.app.modules.area_ledger.service import (
+    build_building_area_ledger,
+    compute_floor_area_ledger,
+)
+from backend.app.modules.egress_graph.service import measure_traversable_egress
+from backend.app.schemas.area import AreaGeometry, FloorAreaLedger
+from backend.app.schemas.egress import (
+    FloorEgressGraphResult,
+    RoomTravelEvidence,
+)
 from backend.app.schemas.llm import SUPPORTED_USE_TYPES, FloorAssignment
 from backend.app.schemas.mass import MassAnalysis, MassInput
 from backend.app.schemas.loop import (
@@ -49,7 +59,160 @@ from backend.app.schemas.result import (
     RejectedAlternativeFamilyResult,
 )
 from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
-from backend.app.schemas.program import ProgramAdjustment
+from backend.app.schemas.program import ProgramAdjustment, ProgramGraph
+
+
+_SERVICE_SPACE_TYPES = {
+    "pantry",
+    "restroom",
+    "it_storage",
+    "stock",
+    "utility",
+}
+_OCCUPIED_SERVICE_SPACE_TYPES = {"pantry", "restroom"}
+_AREA_CLASSIFICATION_RULE = "actual-program-room-classification-v1"
+
+
+def build_floor_design_evidence(
+    *,
+    layout: LayoutCandidate,
+    program: ProgramGraph,
+    boundary: list[tuple[float, float]],
+) -> tuple[FloorAreaLedger, FloorEgressGraphResult]:
+    """Build conservative area and traversable-egress evidence for one floor."""
+    program_types = {
+        node.node_id: node.space_type
+        for node in program.nodes
+    }
+    layout_room_ids = {room.room_id for room in layout.rooms}
+    missing_program_reasons = tuple(
+        f"missing_program_room:{node_id}"
+        for node_id in sorted(program_types.keys() - layout_room_ids)
+    )
+    classified: dict[str, list[AreaGeometry]] = {
+        "core": [],
+        "service": [],
+        "primary": [],
+    }
+    unclassified: list[AreaGeometry] = []
+    occupied_room_ids: list[str] = []
+    for room in sorted(layout.rooms, key=lambda item: item.room_id):
+        geometry = AreaGeometry(
+            source_id=room.room_id,
+            polygon=tuple(room.polygon),
+        )
+        expected_type = program_types.get(room.room_id)
+        if expected_type is None or expected_type != room.space_type:
+            unclassified.append(geometry)
+            continue
+        if room.space_type == "core":
+            classified["core"].append(geometry)
+        elif room.space_type in _SERVICE_SPACE_TYPES:
+            classified["service"].append(geometry)
+            if room.space_type in _OCCUPIED_SERVICE_SPACE_TYPES:
+                occupied_room_ids.append(room.room_id)
+        else:
+            classified["primary"].append(geometry)
+            occupied_room_ids.append(room.room_id)
+
+    circulation = tuple(
+        AreaGeometry(path.room_id, tuple(path.polygon))
+        for path in sorted(layout.circulation, key=lambda item: item.room_id)
+    )
+    remote_stair = (
+        (
+            AreaGeometry(
+                "remote-stair-footprint",
+                tuple(layout.remote_stair_footprint),
+            ),
+        )
+        if layout.remote_stair_footprint is not None
+        else ()
+    )
+    area = compute_floor_area_ledger(
+        floor_index=layout.floor_index,
+        gross=AreaGeometry("floor-boundary", tuple(boundary)),
+        core=tuple(classified["core"]),
+        circulation=circulation,
+        remote_stair=remote_stair,
+        service=tuple(classified["service"]),
+        primary=tuple(classified["primary"]),
+        unclassified=tuple(unclassified),
+        classification_rule=_AREA_CLASSIFICATION_RULE,
+    )
+    unresolved = (
+        *missing_program_reasons,
+        *tuple(
+            f"unclassified_room:{geometry.source_id}"
+            for geometry in unclassified
+        ),
+    )
+    if unresolved:
+        area = replace(
+            area,
+            status="not_checked",
+            entries=tuple(
+                replace(entry, area_m2=None)
+                for entry in area.entries
+            ),
+            unresolved_facts=tuple(
+                dict.fromkeys((*area.unresolved_facts, *unresolved))
+            ),
+        )
+    if unresolved:
+        egress = _not_checked_egress(
+            layout.floor_index,
+            tuple(occupied_room_ids),
+            unresolved,
+        )
+    elif not occupied_room_ids:
+        egress = _not_checked_egress(
+            layout.floor_index,
+            (),
+            ("occupied_room_policy_empty",),
+        )
+    else:
+        egress = measure_traversable_egress(
+            layout=layout,
+            floor_boundary=tuple(boundary),
+            occupied_room_ids=tuple(occupied_room_ids),
+        )
+    return area, egress
+
+
+def _not_checked_egress(
+    floor_index: int,
+    room_ids: tuple[str, ...],
+    reasons: tuple[str, ...],
+) -> FloorEgressGraphResult:
+    return FloorEgressGraphResult(
+        floor_index=floor_index,
+        status="not_checked",
+        nodes=(),
+        edges=(),
+        room_results=tuple(
+            RoomTravelEvidence(
+                floor_index=floor_index,
+                room_id=room_id,
+                farthest_point=None,
+                nearest_exit_id=None,
+                distance_m=None,
+                route_node_ids=(),
+                route_polyline=(),
+                status="not_checked",
+                unresolved_facts=reasons,
+            )
+            for room_id in room_ids
+        ),
+        governing_room_id=None,
+        governing_distance_m=None,
+        governing_exit_id=None,
+        common_path_distance_m=None,
+        common_path_status="not_checked",
+        dead_end_distance_m=None,
+        dead_end_status="not_checked",
+        unresolved_facts=reasons,
+    )
 
 
 def run_generation_loop(
@@ -60,18 +223,26 @@ def run_generation_loop(
     analysis = analyze_mass(mass)
     program = generate_program_graph(analysis, floor_index=floor_index, use_type=use_type)
     layout = generate_baseline_layout(analysis, program)
+    area_ledger, egress_graph = build_floor_design_evidence(
+        layout=layout,
+        program=program,
+        boundary=mass.footprint_polygon,
+    )
     validation = validate_layout(
         layout,
         program,
         boundary=mass.footprint_polygon,
         street_segments=_street_segments(mass),
         building_code_context=mass.building_code_context,
+        egress_graph=egress_graph,
     )
     return GenerationResult(
         mass=analysis,
         program=program,
         layout=layout,
         validation=validation,
+        area_ledger=area_ledger,
+        egress_graph=egress_graph,
     )
 
 
@@ -262,6 +433,11 @@ def run_building_generation(
                 ),
             ),
         )
+        area_ledger, egress_graph = build_floor_design_evidence(
+            layout=layout,
+            program=program,
+            boundary=mass.footprint_polygon,
+        )
         validation = validate_layout(
             layout,
             program,
@@ -272,6 +448,7 @@ def run_building_generation(
             min_circulation_width=1.2,
             require_basic_design=True,
             building_code_context=mass.building_code_context,
+            egress_graph=egress_graph,
         )
         floor_results.append(
             GenerationResult(
@@ -279,6 +456,8 @@ def run_building_generation(
                 program=program,
                 layout=layout,
                 validation=validation,
+                area_ledger=area_ledger,
+                egress_graph=egress_graph,
             )
         )
 
@@ -312,6 +491,13 @@ def run_building_generation(
         vertical_basic_design_aligned=vertical_basic_design_aligned,
         vertical_structure_aligned=vertical_structure_aligned,
         planner_provenance=provenance,
+        area_ledger=build_building_area_ledger(
+            tuple(
+                floor.area_ledger
+                for floor in floor_results
+                if floor.area_ledger is not None
+            )
+        ),
     )
 
 
@@ -668,6 +854,11 @@ def _screened_one_stair_building(
             basic_design=features,
             remote_stair_footprint=None,
         )
+        area_ledger, egress_graph = build_floor_design_evidence(
+            layout=one_stair_layout,
+            program=floor.program,
+            boundary=mass.footprint_polygon,
+        )
         floors.append(
             replace(
                 floor,
@@ -683,7 +874,10 @@ def _screened_one_stair_building(
                     require_basic_design=True,
                     required_protected_exit_count=1,
                     building_code_context=mass.building_code_context,
+                    egress_graph=egress_graph,
                 ),
+                area_ledger=area_ledger,
+                egress_graph=egress_graph,
             )
         )
     values = tuple(floors)
@@ -694,6 +888,13 @@ def _screened_one_stair_building(
         vertical_core_aligned=True,
         vertical_basic_design_aligned=vertical_basic,
         vertical_structure_aligned=vertical_structure,
+        area_ledger=build_building_area_ledger(
+            tuple(
+                floor.area_ledger
+                for floor in values
+                if floor.area_ledger is not None
+            )
+        ),
     )
 
 
@@ -740,6 +941,11 @@ def _transform_building_alternative(
                 ),
             ),
         )
+        area_ledger, egress_graph = build_floor_design_evidence(
+            layout=layout,
+            program=floor.program,
+            boundary=mass.footprint_polygon,
+        )
         validation = validate_layout(
             layout,
             floor.program,
@@ -750,9 +956,16 @@ def _transform_building_alternative(
             min_circulation_width=1.2,
             require_basic_design=True,
             building_code_context=mass.building_code_context,
+            egress_graph=egress_graph,
         )
         floor_results.append(
-            replace(floor, layout=layout, validation=validation)
+            replace(
+                floor,
+                layout=layout,
+                validation=validation,
+                area_ledger=area_ledger,
+                egress_graph=egress_graph,
+            )
         )
     values = tuple(floor_results)
     cores = [
@@ -766,6 +979,13 @@ def _transform_building_alternative(
         vertical_core_aligned=all(core == cores[0] for core in cores[1:]),
         vertical_basic_design_aligned=vertical_basic,
         vertical_structure_aligned=vertical_structure,
+        area_ledger=build_building_area_ledger(
+            tuple(
+                floor.area_ledger
+                for floor in values
+                if floor.area_ledger is not None
+            )
+        ),
     )
 
 
@@ -938,6 +1158,11 @@ def _generate_positioned_building(
                 ),
             ),
         )
+        area_ledger, egress_graph = build_floor_design_evidence(
+            layout=layout,
+            program=floor.program,
+            boundary=mass.footprint_polygon,
+        )
         floors.append(
             replace(
                 floor,
@@ -952,7 +1177,10 @@ def _generate_positioned_building(
                     min_circulation_width=1.2,
                     require_basic_design=True,
                     building_code_context=mass.building_code_context,
+                    egress_graph=egress_graph,
                 ),
+                area_ledger=area_ledger,
+                egress_graph=egress_graph,
             )
         )
     values = tuple(floors)
@@ -963,6 +1191,13 @@ def _generate_positioned_building(
         vertical_core_aligned=True,
         vertical_basic_design_aligned=vertical_basic,
         vertical_structure_aligned=vertical_structure,
+        area_ledger=build_building_area_ledger(
+            tuple(
+                floor.area_ledger
+                for floor in values
+                if floor.area_ledger is not None
+            )
+        ),
     )
 
 

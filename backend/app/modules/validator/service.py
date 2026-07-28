@@ -17,6 +17,7 @@ from backend.app.schemas.layout import (
     StairLanding,
     UsePlanningMetadata,
 )
+from backend.app.schemas.egress import FloorEgressGraphResult
 from backend.app.schemas.mass import BuildingCodeContext, FloorCodeContext
 from backend.app.schemas.metrics import (
     BasicDesignMetric,
@@ -390,6 +391,40 @@ def _screened_direct_stair_count(
     return None, None, ("occupancy_category",), tuple(assumptions)
 
 
+def _protected_exit_passage_connected(
+    egress_graph: FloorEgressGraphResult | None,
+) -> bool | None:
+    if egress_graph is None or egress_graph.status != "checked":
+        return None
+    exit_ids = tuple(
+        node.node_id
+        for node in egress_graph.nodes
+        if node.kind == "protected_exit_portal"
+    )
+    if len(exit_ids) != 2:
+        return None
+    allowed_kinds = {
+        "inside_circulation",
+        "inside_lobby",
+        "through_protected_exit",
+    }
+    adjacency: dict[str, set[str]] = {}
+    for edge in egress_graph.edges:
+        if edge.kind not in allowed_kinds:
+            continue
+        adjacency.setdefault(edge.source_id, set()).add(edge.target_id)
+        adjacency.setdefault(edge.target_id, set()).add(edge.source_id)
+    visited = {exit_ids[0]}
+    pending = [exit_ids[0]]
+    while pending:
+        node_id = pending.pop()
+        for neighbor_id in adjacency.get(node_id, ()):
+            if neighbor_id not in visited:
+                visited.add(neighbor_id)
+                pending.append(neighbor_id)
+    return exit_ids[1] in visited
+
+
 def screen_egress_requirements(
     *,
     context: BuildingCodeContext | None,
@@ -398,6 +433,7 @@ def screen_egress_requirements(
     floor_diagonal: float,
     verified_direct_stair_count: int | None = None,
     exit_separation_evidence: ExitSeparationEvidence | None = None,
+    egress_graph: FloorEgressGraphResult | None = None,
 ) -> RegulatoryScreening:
     if (
         not isinstance(floor_index, int)
@@ -430,6 +466,16 @@ def screen_egress_requirements(
         raise TypeError(
             "exit_separation_evidence must be ExitSeparationEvidence or None"
         )
+    if egress_graph is not None and not isinstance(
+        egress_graph,
+        FloorEgressGraphResult,
+    ):
+        raise TypeError("egress_graph must be FloorEgressGraphResult or None")
+    if (
+        egress_graph is not None
+        and egress_graph.floor_index != floor_index
+    ):
+        raise ValueError("egress_graph floor_index must match screening floor")
 
     unresolved: list[str] = []
     context_supported = _supported_context(context, unresolved)
@@ -578,20 +624,44 @@ def screen_egress_requirements(
         "highrise_residential_40": 40.0,
     }
     travel_threshold = travel_thresholds.get(travel_limit, 30.0)
-    _append_unresolved(unresolved, "measured_travel_distance")
+    measured_travel_distance = (
+        egress_graph.governing_distance_m
+        if (
+            context_supported
+            and travel_limit is not None
+            and egress_graph is not None
+            and egress_graph.status == "checked"
+            and egress_graph.governing_distance_m is not None
+        )
+        else None
+    )
     if travel_limit is None:
         _append_unresolved(unresolved, "travel_limit_classification")
+    if measured_travel_distance is None:
+        _append_unresolved(unresolved, "measured_travel_distance")
+    travel_status = (
+        (
+            "pass"
+            if measured_travel_distance <= travel_threshold + _EPSILON
+            else "fail"
+        )
+        if measured_travel_distance is not None
+        else "not_checked"
+    )
     travel = RegulatoryCheck(
         rule_id=_TRAVEL_DISTANCE_RULE_ID,
-        status="not_checked",
+        status=travel_status,
         source_url=_ARTICLE_34_SOURCE,
         effective_date=_ARTICLE_34_EFFECTIVE_DATE,
-        measured_value=None,
+        measured_value=measured_travel_distance,
         threshold=travel_threshold,
         applicability=True if context_supported else None,
         assumptions=(
-            "traversable farthest-point travel distance is not implemented "
-            "in Task 2",
+            (
+                "measured governing traversable farthest-point route"
+                if measured_travel_distance is not None
+                else "governing traversable farthest-point route is unresolved"
+            ),
             (
                 "explicit fully qualified 50 m travel-limit classification"
                 if travel_limit == "qualified_50"
@@ -639,6 +709,7 @@ def validate_layout(
     min_exit_separation: float = 3.0,
     required_protected_exit_count: int = 2,
     building_code_context: BuildingCodeContext | None = None,
+    egress_graph: FloorEgressGraphResult | None = None,
 ) -> ValidationReport:
     if not math.isfinite(min_door_width) or min_door_width <= 0:
         raise ValueError("min_door_width must be finite and positive")
@@ -842,7 +913,9 @@ def validate_layout(
             nearest_doorway_segment_distance_m=(
                 basic_design_metric.exit_doorway_separation
             ),
-            connected_passage_verified=None,
+            connected_passage_verified=(
+                _protected_exit_passage_connected(egress_graph)
+            ),
             exit_portal_ids=basic_design_metric.verified_protected_exit_ids,
         )
         if (
@@ -866,6 +939,7 @@ def validate_layout(
         ),
         verified_direct_stair_count=None,
         exit_separation_evidence=exit_separation_evidence,
+        egress_graph=egress_graph,
     )
 
     circulation_score = _circulation_score(

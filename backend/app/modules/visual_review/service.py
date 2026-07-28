@@ -11,11 +11,14 @@ from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.modules.generation_loop.service import (
+    _street_segments,
     assign_floors_from_use_mix,
+    build_floor_design_evidence,
     run_building_generation,
     run_candidate_search,
 )
 from backend.app.modules.llm_planner.service import plan_floor_assignments
+from backend.app.modules.validator.service import validate_layout
 from backend.app.schemas.llm import FloorAssignment, SUPPORTED_USE_TYPES
 from backend.app.schemas.loop import CandidateRecord, LoopConfig
 from backend.app.schemas.layout import (
@@ -247,7 +250,7 @@ def create_building_visual_review_artifacts(
                 "program_source": floor.program.source,
                 "program_adjusted": _program_was_adjusted(floor.program),
                 "program_adjustments": to_jsonable(floor.program.adjustments),
-                "accepted": floor.validation.accepted,
+                "accepted": not artifacts.needs_iteration,
                 "internal_validation": {
                     "status": (
                         "pass" if floor.validation.accepted else "fail"
@@ -255,13 +258,13 @@ def create_building_visual_review_artifacts(
                     "policy_version": floor.validation.policy_version,
                 },
                 "render_validation": {
-                    "status": (
-                        "fail" if artifacts.needs_iteration else "pass"
-                    ),
+                    "status": artifacts.render_validation["status"],
                 },
                 "regulatory_screening": _regulatory_screening_payload(
                     floor.validation
                 ),
+                "area_ledger": to_jsonable(floor.area_ledger),
+                "egress_graph": to_jsonable(floor.egress_graph),
                 "room_count": len(floor.layout.rooms),
                 "artifacts": artifacts.artifact_links,
             }
@@ -270,9 +273,9 @@ def create_building_visual_review_artifacts(
     report_path = target / "building.review.json"
     index_html_path = target / "index.html"
     render_accepted = all(
-        not artifact.needs_iteration for artifact in floor_artifacts
+        artifact.render_validation["status"] == "pass"
+        for artifact in floor_artifacts
     )
-    building_accepted = result.accepted and render_accepted
     internal_validation = {
         "status": "pass" if result.accepted else "fail",
     }
@@ -280,6 +283,11 @@ def create_building_visual_review_artifacts(
         "status": "pass" if render_accepted else "fail",
     }
     regulatory_screening = _aggregate_regulatory_screening(floor_reports)
+    building_accepted = (
+        result.accepted
+        and render_accepted
+        and regulatory_screening["status"] != "fail"
+    )
     report = {
         "schema_version": 1,
         "project_id": result.mass.project_id,
@@ -295,6 +303,7 @@ def create_building_visual_review_artifacts(
         "render_style": render_style,
         "total_area": result.total_area,
         "use_type_areas": result.use_type_areas,
+        "area_ledger": to_jsonable(result.area_ledger),
         "floors": floor_reports,
     }
     report_path.write_text(
@@ -393,7 +402,14 @@ def create_visual_review_artifacts(
             or unresolved_label_collisions == 0
         )
     )
-    accepted = result.validation.accepted and render_passed
+    regulatory_screening = _regulatory_screening_payload(
+        result.validation
+    )
+    accepted = (
+        result.validation.accepted
+        and render_passed
+        and regulatory_screening["status"] != "fail"
+    )
     needs_iteration = not accepted
     scores = _validation_scores(result.validation)
     previous_total_score = (
@@ -439,9 +455,9 @@ def create_visual_review_artifacts(
             "missing_basic_design_ids": list(missing_basic_design),
             "unresolved_label_collision_count": unresolved_label_collisions,
         },
-        "regulatory_screening": _regulatory_screening_payload(
-            result.validation
-        ),
+        "regulatory_screening": regulatory_screening,
+        "area_ledger": to_jsonable(result.area_ledger),
+        "egress_graph": to_jsonable(result.egress_graph),
         "hard_failure_count": result.validation.hard_violation_count,
         "violations": to_jsonable(result.validation.violations),
         "scores": scores,
@@ -661,11 +677,26 @@ def run_visual_review_loop(
     reports: list[dict] = []
     for iteration in search.iterations:
         candidate = iteration.best_so_far
+        area_ledger, egress_graph = build_floor_design_evidence(
+            layout=candidate.layout,
+            program=search.program,
+            boundary=mass.footprint_polygon,
+        )
+        validation = validate_layout(
+            candidate.layout,
+            search.program,
+            boundary=mass.footprint_polygon,
+            street_segments=_street_segments(mass),
+            building_code_context=mass.building_code_context,
+            egress_graph=egress_graph,
+        )
         result = GenerationResult(
             mass=search.mass,
             program=search.program,
             layout=candidate.layout,
-            validation=candidate.validation,
+            validation=validation,
+            area_ledger=area_ledger,
+            egress_graph=egress_graph,
         )
         iteration_dir = target / f"iteration_{iteration.iteration:03d}"
         review = create_visual_review_artifacts(
@@ -690,7 +721,7 @@ def run_visual_review_loop(
             encoding="utf-8",
         )
         reports.append(report)
-        previous_validation = candidate.validation
+        previous_validation = validation
 
     index = _review_index(search, reports, review_level="zoning")
     index_json_path, index_html_path = _write_review_index(target, index)
@@ -698,13 +729,13 @@ def run_visual_review_loop(
 
     return VisualReviewLoopResult(
         iterations_run=len(artifacts),
-        final_needs_iteration=not search.accepted,
+        final_needs_iteration=index["needs_iteration"],
         artifacts=artifacts,
         index_json_path=index_json_path,
         index_html_path=index_html_path,
         termination_reason=search.termination_reason,
         evaluation_count=search.evaluation_count,
-        accepted=search.accepted,
+        accepted=index["accepted"],
         error=search.error,
         review_level="zoning",
         unchecked_checks=unchecked_checks,
@@ -840,7 +871,12 @@ def _run_concept_basic_review(
             if status == "not_checked"
         )
     )
-    accepted = building.accepted and strict_checks_pass and not unchecked_checks
+    accepted = (
+        building.accepted
+        and strict_checks_pass
+        and not unchecked_checks
+        and report["regulatory_screening"]["status"] != "fail"
+    )
     termination_reason = "accepted" if accepted else "strict_validation_failed"
     iteration = {
         "iteration": 1,
@@ -1013,14 +1049,17 @@ def _review_index(search, reports: list[dict], *, review_level: str) -> dict:
         for report in reports
     ]
     final_report = reports[-1] if reports else None
+    final_accepted = bool(
+        final_report is not None and final_report["accepted"]
+    )
     return {
         "schema_version": 1,
         "project_id": search.mass.project_id,
         "floor_index": search.program.floor_index,
         "use_type": search.program.use_type,
         "review_level": review_level,
-        "accepted": search.accepted,
-        "needs_iteration": not search.accepted,
+        "accepted": final_accepted,
+        "needs_iteration": not final_accepted,
         "internal_validation": (
             final_report["internal_validation"]
             if final_report is not None
@@ -2833,6 +2872,38 @@ def _render_html(
         f'<tr><th scope="row">{html.escape(name)}</th><td>{value}</td></tr>'
         for name, value in report["scores"].items()
     )
+    area_ledger = report.get("area_ledger") or {}
+    area_rows = "".join(
+        "<tr>"
+        f'<th scope="row">{html.escape(str(entry["bucket"]))}</th>'
+        f"<td>{_display_measurement(entry['area_m2'])}</td>"
+        f"<td>{html.escape(', '.join(entry['provenance']['source_ids']) or '-')}</td>"
+        "</tr>"
+        for entry in area_ledger.get("entries", [])
+    )
+    travel = next(
+        (
+            check
+            for check in report["regulatory_screening"].get("checks", [])
+            if check.get("rule_id") == "KR-EGRESS-TRAVEL-DISTANCE-ART34"
+        ),
+        {},
+    )
+    unresolved = tuple(
+        dict.fromkeys(
+            [
+                *report["regulatory_screening"].get("unresolved_facts", []),
+                *(report.get("egress_graph") or {}).get(
+                    "unresolved_facts",
+                    [],
+                ),
+            ]
+        )
+    )
+    unresolved_items = "".join(
+        f"<li>{html.escape(str(item))}</li>"
+        for item in unresolved
+    ) or "<li>none</li>"
     area_by_room_id = {
         metric["room_id"]: metric["actual_area"] for metric in report["room_areas"]
     }
@@ -2968,6 +3039,22 @@ def _render_html(
           <thead><tr><th scope="col">Hard gate</th><th scope="col">Status</th></tr></thead>
           <tbody>{checks}</tbody>
         </table>
+        <h2>Area Ledger</h2>
+        <p>status: {html.escape(str(area_ledger.get("status", "not_checked")))}</p>
+        <table id="area-ledger">
+          <thead><tr><th scope="col">Bucket</th><th scope="col">Area m2</th><th scope="col">Sources</th></tr></thead>
+          <tbody>{area_rows}</tbody>
+        </table>
+        <h2>Travel Distance</h2>
+        <table id="travel-distance">
+          <tbody>
+            <tr><th scope="row">Status</th><td>{html.escape(str(travel.get("status", "not_checked")))}</td></tr>
+            <tr><th scope="row">Measured m</th><td>{_display_measurement(travel.get("measured_value"))}</td></tr>
+            <tr><th scope="row">Threshold m</th><td>{_display_measurement(travel.get("threshold"))}</td></tr>
+          </tbody>
+        </table>
+        <h2>Unresolved Evidence</h2>
+        <ul id="unresolved-evidence">{unresolved_items}</ul>
         <h2>Advisory Scores</h2>
         <table>
           <thead><tr><th scope="col">Metric</th><th scope="col">Score</th></tr></thead>

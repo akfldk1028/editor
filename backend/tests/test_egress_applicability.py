@@ -764,7 +764,7 @@ def test_validate_layout_does_not_treat_stair_elements_as_verified_direct_stairs
     assert "ground_termination" in screening.unresolved_facts
 
 
-def test_validate_layout_records_portal_distance_but_not_connected_passage() -> None:
+def test_validate_layout_records_graph_proven_connected_passage() -> None:
     mass = MassInput(
         project_id="portal-distance",
         floors=1,
@@ -789,10 +789,12 @@ def test_validate_layout_records_portal_distance_but_not_connected_passage() -> 
     evidence = screening.exit_separation_evidence
     assert evidence is not None
     assert evidence.nearest_doorway_segment_distance_m is not None
-    assert evidence.connected_passage_verified is None
+    assert result.egress_graph is not None
+    assert result.egress_graph.status == "checked"
+    assert evidence.connected_passage_verified is True
     separation = _check(screening, "KR-EGRESS-STAIR-SEPARATION-ART8")
-    assert separation.status == "not_checked"
-    assert "connected_exit_passage" in screening.unresolved_facts
+    assert separation.status == "pass"
+    assert "connected_exit_passage" not in screening.unresolved_facts
 
 
 def test_irregular_boundary_uses_maximum_pairwise_vertex_distance() -> None:
