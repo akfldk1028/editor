@@ -7,10 +7,13 @@ from collections.abc import Iterable
 
 from backend.app.schemas.layout import (
     BasicDesignFeatures,
+    DoorSwing,
     LayoutCandidate,
     PlanElement,
     PlanLine,
     RoomPolygon,
+    StairGeometry,
+    StairLanding,
     UsePlanningMetadata,
 )
 from backend.app.schemas.mass import BuildingCodeContext
@@ -25,6 +28,7 @@ from backend.app.schemas.metrics import (
 )
 from backend.app.schemas.program import ProgramGraph
 from backend.app.schemas.regulatory import RegulatoryCheck, RegulatoryScreening
+from backend.app.modules.basic_design.stair import required_stair_enclosure
 from engine.geometry import (
     bounding_box_aspect_ratio,
     orthogonal_min_width,
@@ -72,6 +76,13 @@ _HARD_VIOLATION_CODES = (
     "core_subspace_overlap",
     "vertical_missing",
     "stair_geometry",
+    "stair_rise_sum",
+    "stair_tread_count",
+    "stair_flight_containment",
+    "stair_flight_direction",
+    "stair_landing_geometry",
+    "stair_door_swing",
+    "stair_height_context",
     "protected_exit_count",
     "protected_exit_reference",
     "protected_exit_geometry",
@@ -216,6 +227,11 @@ def _regulatory_screening(
     )
     if measured is None:
         unresolved.append("measured_exit_separation")
+    if (
+        basic_design is None
+        or "checked" not in basic_design.stair_headroom_statuses
+    ):
+        unresolved.append("stair_headroom")
 
     jurisdiction = (
         context.jurisdiction.strip().upper()
@@ -485,6 +501,7 @@ def validate_layout(
             program,
             min_protected_exit_width,
             internal_exit_separation,
+            building_code_context,
             add_violation,
         )
     regulatory_screening = _regulatory_screening(
@@ -674,6 +691,7 @@ def _validate_basic_design(
     program: ProgramGraph,
     min_exit_width: float,
     min_exit_separation: float,
+    building_code_context: BuildingCodeContext | None,
     add_violation,
 ) -> BasicDesignMetric:
     features = layout.basic_design
@@ -973,6 +991,200 @@ def _validate_basic_design(
                     f"{required_stair_area:.2f} m2 for this core geometry"
                 ),
             )
+        geometry = stair.stair_geometry
+        if geometry is None:
+            add_violation(
+                "stair_geometry",
+                stair.element_id,
+                "stair requires explicit height-derived geometry",
+            )
+            continue
+        context_height = (
+            building_code_context.floor_to_floor_height_m
+            if building_code_context is not None
+            else None
+        )
+        if context_height is not None and abs(
+            geometry.floor_to_floor_height_m - context_height
+        ) > 1e-7:
+            add_violation(
+                "stair_height_context",
+                stair.element_id,
+                "stair floor-to-floor height must equal the project code context fact",
+            )
+        if (
+            geometry.riser_count
+            != sum(flight.riser_count for flight in geometry.flights)
+            or abs(
+                geometry.riser_count * geometry.riser_height_m
+                - geometry.floor_to_floor_height_m
+            )
+            > 1e-7
+            or any(
+                abs(
+                    abs(flight.end_elevation_m - flight.start_elevation_m)
+                    - flight.riser_count * geometry.riser_height_m
+                )
+                > 1e-7
+                for flight in geometry.flights
+            )
+        ):
+            add_violation(
+                "stair_rise_sum",
+                stair.element_id,
+                "flight rises must sum to the modeled floor-to-floor height",
+            )
+        if any(
+            flight.tread_count != flight.riser_count - 1
+            for flight in geometry.flights
+        ):
+            add_violation(
+                "stair_tread_count",
+                stair.element_id,
+                "each flight tread count must equal its riser count minus one",
+            )
+        stair_bounds = _bounds(stair.footprint)
+        enclosure_bounds = _bounds(geometry.enclosure_footprint)
+        derived_width, derived_length = required_stair_enclosure(
+            geometry.floor_to_floor_height_m
+        )
+        host_width = stair_bounds[2] - stair_bounds[0]
+        host_height = stair_bounds[3] - stair_bounds[1]
+        expected_x = derived_length if host_width >= host_height else derived_width
+        expected_y = derived_width if host_width >= host_height else derived_length
+        enclosure_center = (
+            (enclosure_bounds[0] + enclosure_bounds[2]) / 2,
+            (enclosure_bounds[1] + enclosure_bounds[3]) / 2,
+        )
+        host_center = (
+            (stair_bounds[0] + stair_bounds[2]) / 2,
+            (stair_bounds[1] + stair_bounds[3]) / 2,
+        )
+        if (
+            abs(geometry.required_enclosure_width_m - derived_width) > 1e-7
+            or abs(geometry.required_enclosure_length_m - derived_length) > 1e-7
+            or abs(enclosure_bounds[2] - enclosure_bounds[0] - expected_x) > 1e-7
+            or abs(enclosure_bounds[3] - enclosure_bounds[1] - expected_y) > 1e-7
+            or math.dist(enclosure_center, host_center) > 1e-7
+            or not _bbox_contains(stair_bounds, enclosure_bounds)
+        ):
+            add_violation(
+                "stair_geometry",
+                stair.element_id,
+                "modeled enclosure must be the centered, contained height-derived polygon",
+            )
+        if len(geometry.flights) != 2 or any(
+            not _bbox_contains(enclosure_bounds, _bounds(flight.footprint))
+            for flight in geometry.flights
+        ):
+            add_violation(
+                "stair_flight_containment",
+                stair.element_id,
+                "two modeled flights must remain inside the stair enclosure",
+            )
+        roles = {landing.role: landing for landing in geometry.landings}
+        expected_elevations = {
+            "floor_lower": 0.0,
+            "intermediate": geometry.flights[0].end_elevation_m,
+            "floor_upper": geometry.floor_to_floor_height_m,
+        }
+        if (
+            set(roles) != set(expected_elevations)
+            or any(
+                not _bbox_contains(enclosure_bounds, _bounds(landing.footprint))
+                or abs(landing.elevation_m - expected_elevations[role]) > 1e-7
+                or min(
+                    _bounds(landing.footprint)[2] - _bounds(landing.footprint)[0],
+                    _bounds(landing.footprint)[3] - _bounds(landing.footprint)[1],
+                )
+                + _EPSILON
+                < geometry.clear_width_m
+                for role, landing in roles.items()
+            )
+        ):
+            add_violation(
+                "stair_landing_geometry",
+                stair.element_id,
+                "lower, intermediate, and upper landings must connect flight elevations and fit the enclosure",
+            )
+        if len(geometry.flights) == 2 and set(roles) == set(expected_elevations):
+            first, second = geometry.flights
+            lower = roles["floor_lower"]
+            intermediate = roles["intermediate"]
+            upper = roles["floor_upper"]
+            continuity_ok = (
+                abs(first.start_elevation_m - lower.elevation_m) <= 1e-7
+                and abs(first.end_elevation_m - intermediate.elevation_m) <= 1e-7
+                and abs(second.start_elevation_m - intermediate.elevation_m) <= 1e-7
+                and abs(second.end_elevation_m - upper.elevation_m) <= 1e-7
+                and _rectangles_share_boundary(
+                    first.footprint, lower.footprint
+                )
+                and _rectangles_share_boundary(
+                    first.footprint, intermediate.footprint
+                )
+                and _rectangles_share_boundary(
+                    second.footprint, intermediate.footprint
+                )
+                and _rectangles_share_boundary(
+                    second.footprint, upper.footprint
+                )
+            )
+            projected_parts = (
+                first.footprint,
+                second.footprint,
+                lower.footprint,
+                intermediate.footprint,
+            )
+            no_positive_overlap = all(
+                polygon_overlap_area(left, right) <= _EPSILON
+                for index, left in enumerate(projected_parts)
+                for right in projected_parts[index + 1 :]
+            )
+            if not continuity_ok or not no_positive_overlap:
+                add_violation(
+                    "stair_landing_geometry",
+                    stair.element_id,
+                    "flights and landings require shared-boundary elevation continuity without positive overlap",
+                )
+            axis = (
+                0
+                if enclosure_bounds[2] - enclosure_bounds[0]
+                >= enclosure_bounds[3] - enclosure_bounds[1]
+                else 1
+            )
+            lower_center = (
+                (_bounds(lower.footprint)[axis] + _bounds(lower.footprint)[axis + 2])
+                / 2
+            )
+            intermediate_center = (
+                (
+                    _bounds(intermediate.footprint)[axis]
+                    + _bounds(intermediate.footprint)[axis + 2]
+                )
+                / 2
+            )
+            upper_center = (
+                (_bounds(upper.footprint)[axis] + _bounds(upper.footprint)[axis + 2])
+                / 2
+            )
+            axis_name = "x" if axis == 0 else "y"
+            expected_directions = (
+                (
+                    "+" if intermediate_center > lower_center else "-"
+                )
+                + axis_name,
+                ("+" if upper_center > intermediate_center else "-")
+                + axis_name,
+            )
+            if tuple(flight.direction for flight in geometry.flights) != (
+                expected_directions
+            ):
+                add_violation(
+                    "stair_flight_direction",
+                    stair.element_id,
+                    "flight direction metadata must follow landing elevation order",
+                )
     if len(stairs) == 2 and (
         _footprint_bbox_distance(stairs[0].footprint, stairs[1].footprint)
         + _EPSILON
@@ -1145,6 +1357,59 @@ def _validate_basic_design(
                     "stair door must match its clear width on the real "
                     "stair/lobby shared boundary"
                 ),
+            )
+        swing = stair_door.door_swing
+        geometry = stair.stair_geometry if stair is not None else None
+        lower_landing = (
+            next(
+                (
+                    landing
+                    for landing in geometry.landings
+                    if landing.role == "floor_lower"
+                ),
+                None,
+            )
+            if geometry is not None
+            else None
+        )
+        if not _stair_door_swing_is_valid(
+            stair_door,
+            swing,
+            geometry,
+            lower_landing,
+        ):
+            add_violation(
+                "stair_door_swing",
+                stair_door.line_id,
+                "stair door swing must hinge on the opening and target a modeled floor landing",
+            )
+    for exit_line in exits:
+        stair = valid_elements.get(exit_line.target_id or "")
+        if stair is None or stair.host_id != "floor":
+            continue
+        geometry = stair.stair_geometry
+        lower_landing = (
+            next(
+                (
+                    landing
+                    for landing in geometry.landings
+                    if landing.role == "floor_lower"
+                ),
+                None,
+            )
+            if geometry is not None
+            else None
+        )
+        if not _stair_door_swing_is_valid(
+            exit_line,
+            exit_line.door_swing,
+            geometry,
+            lower_landing,
+        ):
+            add_violation(
+                "stair_door_swing",
+                exit_line.line_id,
+                "remote stair exit swing must match its opening and lower landing",
             )
 
     lobby_routes = [
@@ -2158,6 +2423,19 @@ def _basic_design_metric(
         and exit_separation_threshold is not None
         and exit_separation + _EPSILON >= exit_separation_threshold
     )
+    stair_geometries = [
+        element.stair_geometry
+        for element in elements
+        if element.kind == "stair" and element.stair_geometry is not None
+    ]
+    landing_depths = [
+        min(
+            _bounds(landing.footprint)[2] - _bounds(landing.footprint)[0],
+            _bounds(landing.footprint)[3] - _bounds(landing.footprint)[1],
+        )
+        for geometry in stair_geometries
+        for landing in geometry.landings
+    ]
     return BasicDesignMetric(
         policy_version=features.policy_version if features is not None else "missing",
         stair_count=sum(element.kind == "stair" for element in elements),
@@ -2177,6 +2455,34 @@ def _basic_design_metric(
         exit_separation=exit_separation,
         min_routes_per_room=min(route_counts) if route_counts else 0,
         missing_required_kinds=missing_required_kinds,
+        modeled_stair_count=len(stair_geometries),
+        min_riser_height=(
+            min(geometry.riser_height_m for geometry in stair_geometries)
+            if stair_geometries
+            else None
+        ),
+        max_riser_height=(
+            max(geometry.riser_height_m for geometry in stair_geometries)
+            if stair_geometries
+            else None
+        ),
+        min_tread_depth=(
+            min(geometry.tread_depth_m for geometry in stair_geometries)
+            if stair_geometries
+            else None
+        ),
+        min_stair_clear_width=(
+            min(geometry.clear_width_m for geometry in stair_geometries)
+            if stair_geometries
+            else None
+        ),
+        min_landing_depth=min(landing_depths) if landing_depths else None,
+        stair_height_sources=tuple(
+            sorted({geometry.height_source for geometry in stair_geometries})
+        ),
+        stair_headroom_statuses=tuple(
+            sorted({geometry.headroom_status for geometry in stair_geometries})
+        ),
         min_object_clearance=min_object_clearance,
         object_clearance_violation_count=object_clearance_violation_count,
         policy_checks=UsePlanningMetrics(
@@ -2458,6 +2764,78 @@ def _footprint_bbox_distance(left, right) -> float:
         0.0,
     )
     return math.hypot(gap_x, gap_y)
+
+
+def _bbox_contains(
+    container: tuple[float, float, float, float],
+    candidate: tuple[float, float, float, float],
+) -> bool:
+    return (
+        candidate[0] + _EPSILON >= container[0]
+        and candidate[1] + _EPSILON >= container[1]
+        and candidate[2] <= container[2] + _EPSILON
+        and candidate[3] <= container[3] + _EPSILON
+    )
+
+
+def _rectangles_share_boundary(left, right) -> bool:
+    left_bounds = _bounds(left)
+    right_bounds = _bounds(right)
+    vertical_touch = (
+        abs(left_bounds[2] - right_bounds[0]) <= 1e-7
+        or abs(right_bounds[2] - left_bounds[0]) <= 1e-7
+    ) and min(left_bounds[3], right_bounds[3]) - max(
+        left_bounds[1], right_bounds[1]
+    ) > _EPSILON
+    horizontal_touch = (
+        abs(left_bounds[3] - right_bounds[1]) <= 1e-7
+        or abs(right_bounds[3] - left_bounds[1]) <= 1e-7
+    ) and min(left_bounds[2], right_bounds[2]) - max(
+        left_bounds[0], right_bounds[0]
+    ) > _EPSILON
+    return vertical_touch or horizontal_touch
+
+
+def _stair_door_swing_is_valid(
+    line: PlanLine,
+    swing: DoorSwing | None,
+    geometry: StairGeometry | None,
+    lower_landing: StairLanding | None,
+) -> bool:
+    if (
+        swing is None
+        or geometry is None
+        or lower_landing is None
+        or swing.hinge not in {line.points[0], line.points[-1]}
+        or swing.target_landing_role != "floor_lower"
+        or not _is_finite_number(line.clear_width)
+    ):
+        return False
+    other = line.points[-1] if swing.hinge == line.points[0] else line.points[0]
+    opening = (other[0] - swing.hinge[0], other[1] - swing.hinge[1])
+    leaf = (
+        swing.leaf_end[0] - swing.hinge[0],
+        swing.leaf_end[1] - swing.hinge[1],
+    )
+    opening_length = math.hypot(*opening)
+    leaf_length = math.hypot(*leaf)
+    dot = opening[0] * leaf[0] + opening[1] * leaf[1]
+    cross = opening[0] * leaf[1] - opening[1] * leaf[0]
+    expected_direction = "counterclockwise" if cross > 0 else "clockwise"
+    landing_bounds = _bounds(lower_landing.footprint)
+    return (
+        abs(opening_length - float(line.clear_width)) <= 1e-7
+        and abs(leaf_length - float(line.clear_width)) <= 1e-7
+        and abs(dot) <= 1e-7
+        and abs(abs(swing.angle_degrees) - 90.0) <= 1e-7
+        and abs(cross) > _EPSILON
+        and swing.direction == expected_direction
+        and all(
+            landing_bounds[0] - _EPSILON <= point[0] <= landing_bounds[2] + _EPSILON
+            and landing_bounds[1] - _EPSILON <= point[1] <= landing_bounds[3] + _EPSILON
+            for point in (swing.hinge, other, swing.leaf_end)
+        )
+    )
 
 
 def _footprint_segment_distance(footprint, segment: Segment) -> float:

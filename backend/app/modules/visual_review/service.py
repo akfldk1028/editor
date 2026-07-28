@@ -18,7 +18,13 @@ from backend.app.modules.generation_loop.service import (
 from backend.app.modules.llm_planner.service import plan_floor_assignments
 from backend.app.schemas.llm import FloorAssignment, SUPPORTED_USE_TYPES
 from backend.app.schemas.loop import CandidateRecord, LoopConfig
-from backend.app.schemas.layout import OpeningSegment, PlanElement, PlanLine
+from backend.app.schemas.layout import (
+    DoorSwing,
+    OpeningSegment,
+    PlanElement,
+    PlanLine,
+    StairGeometry,
+)
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.metrics import ValidationReport
 from backend.app.schemas.program import ProgramGraph
@@ -196,6 +202,8 @@ class _RenderFeature:
     label: str = ""
     style_key: str = ""
     invalid_reason: str = ""
+    stair_geometry: StairGeometry | None = None
+    door_swing: DoorSwing | None = None
 
 
 @dataclass(frozen=True)
@@ -264,19 +272,21 @@ def create_building_visual_review_artifacts(
     render_accepted = all(
         not artifact.needs_iteration for artifact in floor_artifacts
     )
+    building_accepted = result.accepted and render_accepted
+    internal_validation = {
+        "status": "pass" if result.accepted else "fail",
+    }
+    render_validation = {
+        "status": "pass" if render_accepted else "fail",
+    }
+    regulatory_screening = _aggregate_regulatory_screening(floor_reports)
     report = {
         "schema_version": 1,
         "project_id": result.mass.project_id,
-        "accepted": result.accepted,
-        "internal_validation": {
-            "status": "pass" if result.accepted else "fail",
-        },
-        "render_validation": {
-            "status": "pass" if render_accepted else "fail",
-        },
-        "regulatory_screening": _aggregate_regulatory_screening(
-            floor_reports
-        ),
+        "accepted": building_accepted,
+        "internal_validation": internal_validation,
+        "render_validation": render_validation,
+        "regulatory_screening": regulatory_screening,
         "assignment_source": result.assignment_source,
         "vertical_core_aligned": result.vertical_core_aligned,
         "vertical_basic_design_aligned": result.vertical_basic_design_aligned,
@@ -299,7 +309,10 @@ def create_building_visual_review_artifacts(
         index_html_path=index_html_path,
         report_path=report_path,
         floor_artifacts=tuple(floor_artifacts),
-        accepted=result.accepted,
+        accepted=building_accepted,
+        internal_validation=internal_validation,
+        render_validation=render_validation,
+        regulatory_screening=regulatory_screening,
     )
 
 
@@ -373,14 +386,14 @@ def create_visual_review_artifacts(
     measurements = _layout_measurements(result)
     room_shapes = to_jsonable(result.validation.room_shapes)
     room_areas = to_jsonable(result.validation.room_areas)
-    accepted = (
-        result.validation.accepted
-        and not missing_basic_design
+    render_passed = (
+        not missing_basic_design
         and (
             render_style != "architectural"
             or unresolved_label_collisions == 0
         )
     )
+    accepted = result.validation.accepted and render_passed
     needs_iteration = not accepted
     scores = _validation_scores(result.validation)
     previous_total_score = (
@@ -422,7 +435,7 @@ def create_visual_review_artifacts(
             "policy_version": result.validation.policy_version,
         },
         "render_validation": {
-            "status": "pass" if accepted else "fail",
+            "status": "pass" if render_passed else "fail",
             "missing_basic_design_ids": list(missing_basic_design),
             "unresolved_label_collision_count": unresolved_label_collisions,
         },
@@ -449,7 +462,32 @@ def create_visual_review_artifacts(
         "validation": to_jsonable(result.validation),
         "render_evidence": render_evidence,
         "layer_completeness": _layer_completeness(render_evidence),
+        "stair_evidence": _stair_evidence(result),
         "artifacts": artifact_links,
+    }
+    status_text = (
+        f"internal={report['internal_validation']['status']}  "
+        f"render={report['render_validation']['status']}  "
+        f"regulatory={report['regulatory_screening']['status']}"
+    )
+    svg_status = (
+        f'<g data-review-status="{html.escape(status_text, quote=True)}">'
+        f'<rect x="0" y="{height}" width="{width}" height="30" '
+        'fill="white" fill-opacity="0.92"/>'
+        f'<text x="14" y="{height + 19}" font-family="Arial" font-size="10" '
+        f'fill="#333333">{html.escape(status_text)}</text></g>'
+    )
+    svg_payload = svg_payload.replace(
+        f'viewBox="0 0 {width} {height}"',
+        f'viewBox="0 0 {width} {height + 30}"',
+    ).replace("</svg>", f"{svg_status}</svg>")
+    svg_path.write_text(svg_payload, encoding="utf-8")
+    report["status_footer"] = {
+        "svg": "rendered",
+        "png": "unavailable",
+        "text": status_text,
+        "svg_output_size": [width, height + 30],
+        "png_output_size": [width, height],
     }
     report_path.write_text(
         json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
@@ -474,7 +512,26 @@ def create_visual_review_artifacts(
         artifact_links=artifact_links,
         needs_iteration=needs_iteration,
         checks=checks,
+        internal_validation=report["internal_validation"],
+        render_validation=report["render_validation"],
+        regulatory_screening=report["regulatory_screening"],
     )
+
+
+def _stair_evidence(result: GenerationResult) -> list[dict[str, object]]:
+    basic_design = result.layout.basic_design
+    if basic_design is None:
+        return []
+    return [
+        {
+            "element_id": element.element_id,
+            "stair_geometry": to_jsonable(element.stair_geometry),
+            "height_provenance": element.stair_geometry.height_source,
+            "headroom_status": element.stair_geometry.headroom_status,
+        }
+        for element in basic_design.elements
+        if element.kind == "stair" and element.stair_geometry is not None
+    ]
 
 
 def _validate_render_style(render_style: str) -> None:
@@ -651,6 +708,9 @@ def run_visual_review_loop(
         error=search.error,
         review_level="zoning",
         unchecked_checks=unchecked_checks,
+        internal_validation=index["internal_validation"],
+        render_validation=index["render_validation"],
+        regulatory_screening=index["regulatory_screening"],
     )
 
 
@@ -745,6 +805,9 @@ def _run_concept_basic_review(
             error=message,
             review_level="concept-basic",
             planner_provenance=planner_provenance,
+            internal_validation=index["internal_validation"],
+            render_validation=index["render_validation"],
+            regulatory_screening=index["regulatory_screening"],
         )
 
     floor = next(
@@ -848,6 +911,9 @@ def _run_concept_basic_review(
         review_level="concept-basic",
         unchecked_checks=unchecked_checks,
         planner_provenance=building.planner_provenance,
+        internal_validation=index["internal_validation"],
+        render_validation=index["render_validation"],
+        regulatory_screening=index["regulatory_screening"],
     )
 
 
@@ -1106,6 +1172,7 @@ def _normalize_render_features(
                     tuple(line.points),
                     _line_label(line),
                     _line_style_key(line),
+                    door_swing=line.door_swing,
                 )
             )
     for room in result.layout.rooms:
@@ -1237,6 +1304,7 @@ def _normalize_render_features(
                     "polygon",
                     tuple(element.footprint),
                     style_key=element.category,
+                    stair_geometry=element.stair_geometry,
                 )
             )
             if layer == "core" and _finite_points(element.footprint, minimum=3):
@@ -1316,7 +1384,9 @@ def _render_svg(
     render_style: str = "review",
 ) -> _RenderedOutput:
     min_x, min_y, max_x, max_y = bounds(boundary)
-    scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
+    scale, pad_x, pad_y = _fit_transform(
+        min_x, min_y, max_x, max_y, width, height
+    )
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="white"/>',
@@ -1471,6 +1541,19 @@ def _svg_feature(
     points = " ".join(f"{x},{y}" for x, y in raster)
     if render_style == "architectural" and feature.kind == "window":
         return _svg_window_symbol(metadata, raster)
+    if render_style == "architectural" and feature.door_swing is not None:
+        swing = feature.door_swing
+        leaf_end = (
+            _sx(swing.leaf_end[0], min_x, scale, pad_x),
+            _sy(swing.leaf_end[1], min_y, scale, pad_y, height),
+        )
+        return _svg_door_symbol(
+            metadata,
+            feature,
+            raster,
+            symbol_name="modeled-door-swing",
+            leaf_end_override=leaf_end,
+        )
     if render_style == "architectural" and feature.kind == "entrance":
         return _svg_door_symbol(
             metadata,
@@ -1605,19 +1688,23 @@ def _svg_door_symbol(
     *,
     symbol_name: str = "door-swing",
     swing_inward: bool = False,
+    leaf_end_override: tuple[float, float] | None = None,
 ) -> str:
     start, end = raster[0], raster[-1]
     delta_x = end[0] - start[0]
     delta_y = end[1] - start[1]
     swing_sign = -1 if swing_inward else 1
-    leaf_end = (
+    leaf_end = leaf_end_override or (
         start[0] - delta_y * swing_sign,
         start[1] + delta_x * swing_sign,
     )
-    middle = (
-        end[0] + (leaf_end[0] - end[0]) * 0.55,
-        end[1] + (leaf_end[1] - end[1]) * 0.55,
+    arc_points = _door_arc_points(
+        start,
+        end,
+        leaf_end,
+        abs(feature.door_swing.angle_degrees) if feature.door_swing else 90.0,
     )
+    arc = " ".join(f"{point[0]},{point[1]}" for point in arc_points)
     aria = ""
     if feature.kind == "door-opening":
         aria = (
@@ -1638,12 +1725,38 @@ def _svg_door_symbol(
         'fill="none" stroke="white" stroke-width="8"/>'
         f'<line x1="{start[0]}" y1="{start[1]}" x2="{leaf_end[0]}" '
         f'y2="{leaf_end[1]}" stroke="#222222" stroke-width="2"/>'
-        f'<path d="M {end[0]} {end[1]} Q {middle[0]} {middle[1]} '
-        f'{leaf_end[0]} {leaf_end[1]}" fill="none" stroke="#777777" '
+        f'<polyline points="{arc}" fill="none" stroke="#777777" '
         'stroke-width="1"/>'
         f"{label}"
         "</g>"
     )
+
+
+def _door_arc_points(
+    hinge: tuple[float, float],
+    closed_end: tuple[float, float],
+    open_end: tuple[float, float],
+    angle_degrees: float,
+) -> list[tuple[float, float]]:
+    radius = math.dist(hinge, closed_end)
+    start_angle = math.atan2(
+        closed_end[1] - hinge[1],
+        closed_end[0] - hinge[0],
+    )
+    end_angle = math.atan2(
+        open_end[1] - hinge[1],
+        open_end[0] - hinge[0],
+    )
+    delta = (end_angle - start_angle + math.pi) % (2 * math.pi) - math.pi
+    requested = math.radians(angle_degrees)
+    delta = math.copysign(requested, delta)
+    return [
+        (
+            hinge[0] + math.cos(start_angle + delta * index / 12) * radius,
+            hinge[1] + math.sin(start_angle + delta * index / 12) * radius,
+        )
+        for index in range(13)
+    ]
 
 
 def _svg_architectural_polygon_symbol(
@@ -1686,11 +1799,12 @@ def _svg_architectural_polygon_symbol(
         )
     if feature.kind != "stair":
         return ""
+    tread_rasters = _stair_tread_rasters(feature, raster)
     lines = "".join(
-        f'<line x1="{min_x + 3}" y1="{min_y + (max_y - min_y) * index / 7}" '
-        f'x2="{max_x - 3}" y2="{min_y + (max_y - min_y) * index / 7}" '
+        f'<line data-symbol="stair-tread" data-flight="{flight_index}" '
+        f'x1="{start[0]}" y1="{start[1]}" x2="{end[0]}" y2="{end[1]}" '
         'stroke="#555555" stroke-width="1"/>'
-        for index in range(1, 7)
+        for flight_index, start, end in tread_rasters
     )
     return (
         f'<g data-symbol="stair-treads">{lines}'
@@ -1699,6 +1813,48 @@ def _svg_architectural_polygon_symbol(
         f'<text x="{center_x + 5}" y="{min_y + 12}" '
         f'font-family="{ARCHITECTURAL_FONT_STACK}" font-size="8">UP</text></g>'
     )
+
+
+def _stair_tread_rasters(
+    feature: _RenderFeature,
+    raster: list[tuple[float, float]],
+) -> list[tuple[int, tuple[float, float], tuple[float, float]]]:
+    geometry = feature.stair_geometry
+    if geometry is None:
+        return []
+    model_min_x = min(point[0] for point in feature.points)
+    model_max_x = max(point[0] for point in feature.points)
+    model_min_y = min(point[1] for point in feature.points)
+    model_max_y = max(point[1] for point in feature.points)
+    raster_min_x = min(point[0] for point in raster)
+    raster_max_x = max(point[0] for point in raster)
+    raster_min_y = min(point[1] for point in raster)
+    raster_max_y = max(point[1] for point in raster)
+
+    def project(point: tuple[float, float]) -> tuple[float, float]:
+        x_ratio = (point[0] - model_min_x) / (model_max_x - model_min_x)
+        y_ratio = (point[1] - model_min_y) / (model_max_y - model_min_y)
+        return (
+            raster_min_x + x_ratio * (raster_max_x - raster_min_x),
+            raster_max_y - y_ratio * (raster_max_y - raster_min_y),
+        )
+
+    result = []
+    for flight in geometry.flights:
+        min_x = min(point[0] for point in flight.footprint)
+        max_x = max(point[0] for point in flight.footprint)
+        min_y = min(point[1] for point in flight.footprint)
+        max_y = max(point[1] for point in flight.footprint)
+        for index in range(1, flight.tread_count + 1):
+            ratio = index / (flight.tread_count + 1)
+            if flight.direction in {"+x", "-x"}:
+                x = min_x + (max_x - min_x) * ratio
+                start, end = project((x, min_y)), project((x, max_y))
+            else:
+                y = min_y + (max_y - min_y) * ratio
+                start, end = project((min_x, y)), project((max_x, y))
+            result.append((flight.flight_index, start, end))
+    return result
 
 
 def _svg_dimension_chain(
@@ -1739,7 +1895,9 @@ def _render_png(
     render_style: str = "review",
 ) -> _RenderedOutput:
     min_x, min_y, max_x, max_y = bounds(boundary)
-    scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
+    scale, pad_x, pad_y = _fit_transform(
+        min_x, min_y, max_x, max_y, width, height
+    )
     canvas = SimplePngCanvas(width, height)
     rendered: list[_RenderFeature] = []
     skipped: list[dict[str, str]] = []
@@ -1834,6 +1992,19 @@ def _png_feature(
         return
     if render_style == "architectural" and feature.kind == "window":
         _draw_png_window(canvas, points)
+        return
+    if render_style == "architectural" and feature.door_swing is not None:
+        swing = feature.door_swing
+        leaf_end = (
+            round(_sx(swing.leaf_end[0], min_x, scale, pad_x)),
+            round(_sy(swing.leaf_end[1], min_y, scale, pad_y, height)),
+        )
+        _draw_png_door_swing(
+            canvas,
+            points,
+            leaf_end_override=leaf_end,
+            angle_degrees=abs(swing.angle_degrees),
+        )
         return
     if render_style == "architectural" and feature.kind == "entrance":
         _draw_png_door_swing(canvas, points, swing_inward=True)
@@ -1957,6 +2128,8 @@ def _draw_png_door_swing(
     points: list[tuple[int, int]],
     *,
     swing_inward: bool = False,
+    leaf_end_override: tuple[int, int] | None = None,
+    angle_degrees: float = 90.0,
 ) -> None:
     if len(points) != 2:
         canvas.stroke_polyline(points, (34, 34, 34), thickness=1)
@@ -1965,23 +2138,16 @@ def _draw_png_door_swing(
     delta_x = end[0] - start[0]
     delta_y = end[1] - start[1]
     swing_sign = -1 if swing_inward else 1
-    leaf_end = (
+    leaf_end = leaf_end_override or (
         start[0] - delta_y * swing_sign,
         start[1] + delta_x * swing_sign,
     )
     canvas.stroke_polyline((start, end), (255, 255, 255), thickness=8)
     canvas.stroke_polyline((start, leaf_end), (34, 34, 34), thickness=2)
-    arc = []
-    radius = math.hypot(delta_x, delta_y)
-    start_angle = math.atan2(delta_y, delta_x)
-    for index in range(13):
-        angle = start_angle + swing_sign * math.pi / 2 * index / 12
-        arc.append(
-            (
-                round(start[0] + math.cos(angle) * radius),
-                round(start[1] + math.sin(angle) * radius),
-            )
-        )
+    arc = [
+        (round(point[0]), round(point[1]))
+        for point in _door_arc_points(start, end, leaf_end, angle_degrees)
+    ]
     canvas.stroke_polyline(arc, (119, 119, 119), thickness=1)
 
 
@@ -2030,10 +2196,15 @@ def _draw_png_architectural_polygon_symbol(
         return
     if feature.kind != "stair":
         return
-    for index in range(1, 7):
-        y = round(min_y + (max_y - min_y) * index / 7)
+    for _, start, end in _stair_tread_rasters(
+        feature,
+        [(float(x), float(y)) for x, y in points],
+    ):
         canvas.stroke_polyline(
-            ((min_x + 3, y), (max_x - 3, y)),
+            (
+                (round(start[0]), round(start[1])),
+                (round(end[0]), round(end[1])),
+            ),
             (85, 85, 85),
             thickness=1,
         )

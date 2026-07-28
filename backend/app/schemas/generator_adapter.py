@@ -7,6 +7,13 @@ import math
 from pathlib import PurePosixPath, PureWindowsPath
 from typing import Any, Literal
 
+from backend.app.schemas.layout import (
+    DoorSwing,
+    StairFlight,
+    StairGeometry,
+    StairLanding,
+)
+
 Point = tuple[float, float]
 JsonScalar = str | int | float | bool | None
 GeneratorStatus = Literal["executed", "unavailable", "failed"]
@@ -158,6 +165,7 @@ class NormalizedElement:
     host_id: str
     label: str
     footprint: tuple[Point, ...]
+    stair_geometry: StairGeometry | None = None
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -170,6 +178,10 @@ class NormalizedElement:
         if not isinstance(self.label, str):
             raise TypeError("element label must be a string")
         _require_points(self.footprint, "element footprint", 3)
+        if self.stair_geometry is not None and not isinstance(
+            self.stair_geometry, StairGeometry
+        ):
+            raise TypeError("normalized stair_geometry must be typed or None")
 
 
 @dataclass(frozen=True)
@@ -183,6 +195,7 @@ class NormalizedLine:
     label: str = ""
     measured_value: float | None = None
     clear_width: float | None = None
+    door_swing: DoorSwing | None = None
 
     def __post_init__(self) -> None:
         for name, value in (
@@ -208,6 +221,10 @@ class NormalizedLine:
                 not isinstance(value, (int, float)) or not math.isfinite(value)
             ):
                 raise ValueError(f"{name} must be finite or None")
+        if self.door_swing is not None and not isinstance(
+            self.door_swing, DoorSwing
+        ):
+            raise TypeError("normalized door_swing must be typed or None")
 
 
 @dataclass(frozen=True)
@@ -560,8 +577,15 @@ def _is_safe_relative_path(value: object) -> bool:
     return (
         not posix.is_absolute()
         and not windows.is_absolute()
+        and not windows.drive
+        and not windows.root
         and ".." not in posix.parts
         and ".." not in windows.parts
+        and all(
+            not PureWindowsPath(part).is_reserved()
+            and ":" not in part
+            for part in windows.parts
+        )
     )
 
 
@@ -576,6 +600,7 @@ def _normalized_line(payload: dict[str, Any]) -> NormalizedLine:
         label=payload.get("label", ""),
         measured_value=payload.get("measured_value"),
         clear_width=payload.get("clear_width"),
+        door_swing=_door_swing(payload.get("door_swing")),
     )
 
 
@@ -594,6 +619,7 @@ def _normalized_basic_design(
                 host_id=item["host_id"],
                 label=item.get("label", ""),
                 footprint=_points(item["footprint"]),
+                stair_geometry=_stair_geometry(item.get("stair_geometry")),
             )
             for item in payload["elements"]
         ),
@@ -611,4 +637,55 @@ def _normalized_basic_design(
                 ),
             )
         ),
+    )
+
+
+def _door_swing(payload: dict[str, Any] | None) -> DoorSwing | None:
+    if payload is None:
+        return None
+    return DoorSwing(
+        hinge=tuple(payload["hinge"]),
+        leaf_end=tuple(payload["leaf_end"]),
+        angle_degrees=payload["angle_degrees"],
+        direction=payload["direction"],
+        target_landing_role=payload["target_landing_role"],
+    )
+
+
+def _stair_geometry(payload: dict[str, Any] | None) -> StairGeometry | None:
+    if payload is None:
+        return None
+    return StairGeometry(
+        floor_to_floor_height_m=payload["floor_to_floor_height_m"],
+        height_source=payload["height_source"],
+        clear_width_m=payload["clear_width_m"],
+        riser_count=payload["riser_count"],
+        riser_height_m=payload["riser_height_m"],
+        tread_depth_m=payload["tread_depth_m"],
+        required_enclosure_width_m=payload["required_enclosure_width_m"],
+        required_enclosure_length_m=payload["required_enclosure_length_m"],
+        enclosure_footprint=_points(payload["enclosure_footprint"]),
+        flights=tuple(
+            StairFlight(
+                flight_index=item["flight_index"],
+                footprint=_points(item["footprint"]),
+                direction=item["direction"],
+                riser_count=item["riser_count"],
+                tread_count=item["tread_count"],
+                start_elevation_m=item["start_elevation_m"],
+                end_elevation_m=item["end_elevation_m"],
+            )
+            for item in payload["flights"]
+        ),
+        landings=tuple(
+            StairLanding(
+                landing_index=item["landing_index"],
+                role=item["role"],
+                footprint=_points(item["footprint"]),
+                elevation_m=item["elevation_m"],
+            )
+            for item in payload["landings"]
+        ),
+        headroom_m=payload.get("headroom_m"),
+        headroom_status=payload.get("headroom_status", "not_checked"),
     )

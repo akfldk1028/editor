@@ -6,6 +6,10 @@ from dataclasses import replace
 from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 from backend.app.schemas.mass import MassAnalysis
 from backend.app.schemas.program import ProgramGraph
+from backend.app.modules.basic_design.stair import (
+    required_stair_enclosure,
+    resolve_floor_height,
+)
 from engine.geometry import shared_boundary_segments
 from engine.geometry.polygon import polygon_area
 
@@ -323,12 +327,15 @@ def generate_rear_center_layout(
     *,
     min_circulation_width: float = 1.2,
     core_position: str = "rear_center",
+    floor_to_floor_height_m: float | None = None,
 ) -> LayoutCandidate:
     """Generate a direct rear-center-core topology with a public access spine."""
     min_x, min_y, max_x, max_y = analysis.bounds
+    stair_height, _ = resolve_floor_height(floor_to_floor_height_m)
+    _, stair_long_side = required_stair_enclosure(stair_height)
     depth = max_y - min_y
     core_node = next(node for node in program.nodes if node.space_type == "core")
-    rear_height = max(5.2, depth * 0.5)
+    rear_height = max(stair_long_side + 0.25, 5.2, depth * 0.5)
     core_width = max(7.0, _layout_area(core_node) / rear_height)
     if core_position == "rear_center":
         core_min_x = (min_x + max_x - core_width) / 2
@@ -366,7 +373,7 @@ def generate_rear_center_layout(
         for node in service_nodes
     }
     service_rooms = []
-    left_cursor = min_x + 4.8
+    left_cursor = min_x + stair_long_side
     right_cursor = core_max_x
     left_capacity = core_min_x - left_cursor
     right_capacity = max_x - right_cursor
@@ -505,9 +512,10 @@ def generate_rear_center_layout(
         primary = next(node for node in program.nodes if node.space_type == "open_work")
         spine_left = min_x
         spine_right = min_x + min_circulation_width
-        actual_width = _layout_area(primary) / branch_bottom
-        if spine_right + actual_width > max_x:
-            raise ValueError("rear-center primary workplace exceeds front bay")
+        actual_width = min(
+            _layout_area(primary) / branch_bottom,
+            max_x - spine_right,
+        )
         rooms = [
             RoomPolygon(
                 primary.node_id,
@@ -544,7 +552,7 @@ def generate_rear_center_layout(
             _aligned_rectangle(
                 min_x,
                 core_min_y,
-                min_x + 4.8,
+                min_x + stair_long_side,
                 core_min_y + 2.8,
             )
         ),
@@ -557,13 +565,19 @@ def generate_side_mid_layout(
     *,
     min_circulation_width: float = 1.2,
     cross_bottom_override: float | None = None,
+    floor_to_floor_height_m: float | None = None,
 ) -> LayoutCandidate:
     """Generate a right-side mid-core with a longitudinal public corridor."""
     min_x, min_y, max_x, max_y = analysis.bounds
+    stair_height, _ = resolve_floor_height(floor_to_floor_height_m)
+    _, stair_long_side = required_stair_enclosure(stair_height)
     depth = max_y - min_y
     core_node = next(node for node in program.nodes if node.space_type == "core")
     core_height = max(7.2, depth * 0.6)
-    core_width = _layout_area(core_node) / core_height
+    core_width = max(
+        _layout_area(core_node) / core_height,
+        stair_long_side + 0.25,
+    )
     core_min_x = max_x - core_width
     core_min_y = (min_y + max_y - core_height) / 2
     core_max_y = core_min_y + core_height
@@ -635,7 +649,7 @@ def generate_side_mid_layout(
     required_service_height = max(
         2.4,
         sum(_layout_area(node) for node in service_nodes)
-        / max(branch_left - min_x - 4.8, 1.0),
+        / max(branch_left - min_x - stair_long_side, 1.0),
     )
     while (
         sum(
@@ -646,7 +660,7 @@ def generate_side_mid_layout(
             )
             for node in service_nodes
         )
-        > branch_left - min_x - 4.8
+        > branch_left - min_x - stair_long_side
         and required_service_height < depth - min_circulation_width - 2.0
     ):
         required_service_height += 0.1
@@ -681,7 +695,7 @@ def generate_side_mid_layout(
         _aligned_rectangle(core_min_x, core_min_y, max_x, core_max_y),
     )
     service_height = max_y - cross_top
-    cursor = min_x + 4.8
+    cursor = min_x + stair_long_side
     for node in service_nodes:
         room_width = max(
             _layout_area(node) / service_height,
@@ -719,7 +733,7 @@ def generate_side_mid_layout(
             _aligned_rectangle(
                 min_x,
                 cross_top,
-                min_x + 4.8,
+                min_x + stair_long_side,
                 cross_top + 2.8,
             )
         ),

@@ -20,6 +20,10 @@ from backend.app.modules.basic_design.service import (
     generate_basic_design,
     generate_shared_structure,
 )
+from backend.app.modules.basic_design.stair import (
+    required_stair_enclosure,
+    resolve_floor_height,
+)
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
@@ -204,6 +208,11 @@ def run_building_generation(
                 analysis,
                 program,
                 core_position="rear_right",
+                floor_to_floor_height_m=(
+                    mass.building_code_context.floor_to_floor_height_m
+                    if mass.building_code_context is not None
+                    else None
+                ),
             )
         else:
             layout = generate_core_aligned_layout(
@@ -218,6 +227,11 @@ def run_building_generation(
     shared_structure = generate_shared_structure(
         mass.footprint_polygon,
         tuple(layouts),
+        floor_to_floor_height_m=(
+            mass.building_code_context.floor_to_floor_height_m
+            if mass.building_code_context is not None
+            else None
+        ),
     )
     floor_results = []
     for program, layout in zip(programs, layouts):
@@ -228,6 +242,11 @@ def run_building_generation(
                 boundary=mass.footprint_polygon,
                 street_segments=_street_segments(mass),
                 shared_structure=shared_structure,
+                floor_to_floor_height_m=(
+                    mass.building_code_context.floor_to_floor_height_m
+                    if mass.building_code_context is not None
+                    else None
+                ),
             ),
         )
         validation = validate_layout(
@@ -305,6 +324,11 @@ def run_building_alternatives(mass: MassInput) -> BuildingAlternativesResult:
                     analysis,
                     program,
                     core_position="rear_right",
+                    floor_to_floor_height_m=(
+                        mass.building_code_context.floor_to_floor_height_m
+                        if mass.building_code_context is not None
+                        else None
+                    ),
                 ),
             )
         elif transform == "rear-center":
@@ -525,6 +549,11 @@ def _transform_building_alternative(
     shared_structure = generate_shared_structure(
         mass.footprint_polygon,
         transformed_layouts,
+        floor_to_floor_height_m=(
+            mass.building_code_context.floor_to_floor_height_m
+            if mass.building_code_context is not None
+            else None
+        ),
     )
     floor_results = []
     streets = _street_segments(mass)
@@ -536,6 +565,11 @@ def _transform_building_alternative(
                 boundary=mass.footprint_polygon,
                 street_segments=streets,
                 shared_structure=shared_structure,
+                floor_to_floor_height_m=(
+                    mass.building_code_context.floor_to_floor_height_m
+                    if mass.building_code_context is not None
+                    else None
+                ),
             ),
         )
         validation = validate_layout(
@@ -585,7 +619,7 @@ def _generate_rear_center_building(
                     min_area=_clean_area(float(node.target_area) * 0.95 * 0.85),
                     max_area=_clean_area(float(node.target_area) * 0.95 * 1.15),
                     min_width=(
-                        _clean_area(float(node.min_width) * 0.95)
+                        _clean_area(float(node.min_width) * 0.92)
                         if node.min_width is not None
                         else None
                     ),
@@ -605,7 +639,15 @@ def _generate_rear_center_building(
     return _generate_positioned_building(
         replace(baseline, floor_results=tuple(adjusted_floors)),
         mass=mass,
-        generator=generate_rear_center_layout,
+        generator=lambda analysis, program: generate_rear_center_layout(
+            analysis,
+            program,
+            floor_to_floor_height_m=(
+                mass.building_code_context.floor_to_floor_height_m
+                if mass.building_code_context is not None
+                else None
+            ),
+        ),
     )
 
 
@@ -618,12 +660,21 @@ def _generate_side_mid_building(
     depth = max_y - min_y
     cross_bottoms = []
     required_service_heights = []
+    stair_height, _ = resolve_floor_height(
+        mass.building_code_context.floor_to_floor_height_m
+        if mass.building_code_context is not None
+        else None
+    )
+    _, stair_long_side = required_stair_enclosure(stair_height)
     for floor in baseline.floor_results:
         core = next(
             node for node in floor.program.nodes if node.space_type == "core"
         )
         core_height = max(7.2, depth * 0.6)
-        core_width = float(core.target_area) * 0.855 / core_height
+        core_width = max(
+            float(core.target_area) * 0.855 / core_height,
+            stair_long_side + 0.25,
+        )
         branch_left = max_x - core_width - 1.2
         primary = next(
             node
@@ -643,7 +694,7 @@ def _generate_side_mid_building(
             for node in floor.program.nodes
             if node.space_type not in {"core", "sales", "open_work"}
         ]
-        available_width = max(branch_left - min_x - 4.8, 1.0)
+        available_width = max(branch_left - min_x - stair_long_side, 1.0)
         service_height = max(
             2.4,
             sum(float(node.target_area) * 0.855 for node in service_nodes)
@@ -674,6 +725,11 @@ def _generate_side_mid_building(
             analysis,
             program,
             cross_bottom_override=shared_cross_bottom,
+            floor_to_floor_height_m=(
+                mass.building_code_context.floor_to_floor_height_m
+                if mass.building_code_context is not None
+                else None
+            ),
         ),
     )
 
@@ -688,7 +744,15 @@ def _generate_positioned_building(
         generator(baseline.mass, floor.program)
         for floor in baseline.floor_results
     )
-    shared_structure = generate_shared_structure(mass.footprint_polygon, layouts)
+    shared_structure = generate_shared_structure(
+        mass.footprint_polygon,
+        layouts,
+        floor_to_floor_height_m=(
+            mass.building_code_context.floor_to_floor_height_m
+            if mass.building_code_context is not None
+            else None
+        ),
+    )
     streets = _street_segments(mass)
     floors = []
     for floor, layout in zip(baseline.floor_results, layouts):
@@ -699,6 +763,11 @@ def _generate_positioned_building(
                 boundary=mass.footprint_polygon,
                 street_segments=streets,
                 shared_structure=shared_structure,
+                floor_to_floor_height_m=(
+                    mass.building_code_context.floor_to_floor_height_m
+                    if mass.building_code_context is not None
+                    else None
+                ),
             ),
         )
         floors.append(
@@ -801,6 +870,7 @@ def _vertical_basic_design_alignment(
                         element.element_id,
                         element.kind,
                         element.footprint,
+                        element.stair_geometry,
                     )
                     for element in basic_design.elements
                     if element.category == "vertical"

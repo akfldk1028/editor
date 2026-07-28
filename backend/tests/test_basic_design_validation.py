@@ -102,6 +102,8 @@ def test_strict_validation_rejects_legacy_nonremote_second_exit() -> None:
     assert {violation.code for violation in report.violations} == {
         "protected_exit_separation",
         "remote_exit_unfit",
+        "stair_geometry",
+        "stair_door_swing",
     }
     metric = report.basic_design
     assert metric is not None

@@ -319,3 +319,5 @@ def test_render_failure_does_not_overwrite_internal_validation_status(
     assert building_report["internal_validation"]["status"] == "pass"
     assert building_report["render_validation"]["status"] == "fail"
     assert building_report["regulatory_screening"]["status"] == "not_checked"
+    assert building_report["accepted"] is False
+    assert artifacts.accepted is False

@@ -130,6 +130,14 @@ class BasicDesignMetric:
     exit_separation: float | None
     min_routes_per_room: int
     missing_required_kinds: tuple[str, ...]
+    modeled_stair_count: int = 0
+    min_riser_height: float | None = None
+    max_riser_height: float | None = None
+    min_tread_depth: float | None = None
+    min_stair_clear_width: float | None = None
+    min_landing_depth: float | None = None
+    stair_height_sources: tuple[str, ...] = ()
+    stair_headroom_statuses: tuple[str, ...] = ()
     min_object_clearance: float | None = None
     object_clearance_violation_count: int = 0
     policy_checks: UsePlanningMetrics = field(

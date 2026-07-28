@@ -10,6 +10,10 @@ from backend.app.modules.generator_adapters.research import (
 from backend.app.modules.generator_adapters.subprocess_adapter import (
     SubprocessGeneratorAdapter,
 )
+from backend.app.modules.generator_adapters.validation import (
+    normalized_candidate_to_layout,
+    validate_normalized_response,
+)
 
 __all__ = [
     "DeterministicGeneratorAdapter",
@@ -18,4 +22,6 @@ __all__ = [
     "MansionAdapter",
     "RlvrAdapter",
     "SubprocessGeneratorAdapter",
+    "normalized_candidate_to_layout",
+    "validate_normalized_response",
 ]

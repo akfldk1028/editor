@@ -15,6 +15,9 @@ class VisualReviewArtifacts:
     artifact_links: dict[str, str]
     needs_iteration: bool
     checks: dict[str, str]
+    internal_validation: dict[str, object]
+    render_validation: dict[str, object]
+    regulatory_screening: dict[str, object]
 
 
 @dataclass(frozen=True)
@@ -31,6 +34,9 @@ class VisualReviewLoopResult:
     review_level: str = "concept-basic"
     unchecked_checks: tuple[str, ...] = ()
     planner_provenance: PlannerProvenance | None = None
+    internal_validation: dict[str, object] | None = None
+    render_validation: dict[str, object] | None = None
+    regulatory_screening: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
@@ -39,3 +45,6 @@ class BuildingVisualReviewArtifacts:
     report_path: Path
     floor_artifacts: tuple[VisualReviewArtifacts, ...]
     accepted: bool
+    internal_validation: dict[str, object]
+    render_validation: dict[str, object]
+    regulatory_screening: dict[str, object]

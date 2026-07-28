@@ -3,11 +3,13 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from xml.etree import ElementTree
 
 import pytest
 
 import backend.app.cli as cli_module
+from backend.app.schemas.visual import BuildingVisualReviewArtifacts
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -174,6 +176,9 @@ def test_cli_building_review_generates_all_floors(tmp_path):
 
     payload = json.loads(completed.stdout)
     assert payload["accepted"] is True
+    assert payload["internal_validation"]["status"] == "pass"
+    assert payload["render_validation"]["status"] == "pass"
+    assert payload["regulatory_screening"]["status"] == "not_checked"
     assert len(payload["floor_artifacts"]) == 5
     assert (output_dir / "index.html").is_file()
     assert (output_dir / "building.review.json").is_file()
@@ -212,13 +217,17 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
             "--output-dir",
             str(output_dir),
         ],
-        check=True,
         capture_output=True,
         text=True,
     )
 
     payload = json.loads(completed.stdout)
-    assert payload["accepted_count"] >= 2
+    assert payload["accepted_count"] == sum(
+        alternative["accepted"] for alternative in payload["alternatives"]
+    )
+    assert completed.returncode == (
+        0 if payload["accepted_count"] >= 2 else 1
+    )
     assert len(payload["alternatives"]) == 3
     assert payload["internal_validation"]["status"] in {"pass", "fail"}
     assert payload["render_validation"]["status"] in {"pass", "fail"}
@@ -244,6 +253,119 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
         assert (alternative_dir / "index.html").is_file()
         assert (alternative_dir / "building.review.json").is_file()
         assert len(list(alternative_dir.glob("floor_*/*.png"))) == 2
+
+
+def test_cli_alternatives_count_and_exit_include_render_validation(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    input_path = tmp_path / "mass.json"
+    output_dir = tmp_path / "alternatives"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-alternative-render",
+                "floors": 1,
+                "footprint_polygon": [[0, 0], [20, 0], [20, 10], [0, 10]],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [{"edge_index": 0, "position": 0.5}],
+                "use_mix": {"office": 1.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def alternative(index):
+        return SimpleNamespace(
+            alternative_id=f"alternative-{index}",
+            building=object(),
+            strategy=f"strategy-{index}",
+            rank=index,
+            score=1.0 / index,
+            accepted=True,
+            fingerprints=(),
+            core_centroid=(10.0, 5.0),
+            circulation_orientation="horizontal",
+            circulation_bounds=(0.0, 0.0, 20.0, 2.0),
+            circulation_graph_signature="graph",
+            tenant_assignment_signature="tenant",
+            tenant_count=1,
+            tenant_entrance_assignments=(),
+            core_public_entrance="entrance",
+            design_family_signature="family",
+            floor_results=(),
+        )
+
+    alternatives = tuple(alternative(index) for index in (1, 2, 3))
+    monkeypatch.setattr(
+        cli_module,
+        "run_building_alternatives",
+        lambda _mass: SimpleNamespace(
+            alternatives=alternatives,
+            accepted_count=3,
+            comparisons=(),
+        ),
+    )
+
+    render_statuses = iter(("fail", "fail", "pass"))
+
+    def fake_artifacts(*_args, output_dir, **_kwargs):
+        target = Path(output_dir)
+        target.mkdir(parents=True, exist_ok=True)
+        render_status = next(render_statuses)
+        report_path = target / "building.review.json"
+        index_path = target / "index.html"
+        report = {
+            "internal_validation": {"status": "pass"},
+            "render_validation": {"status": render_status},
+            "regulatory_screening": {"status": "not_checked"},
+        }
+        report_path.write_text(json.dumps(report), encoding="utf-8")
+        index_path.write_text("<!doctype html>", encoding="utf-8")
+        return BuildingVisualReviewArtifacts(
+            index_html_path=index_path,
+            report_path=report_path,
+            floor_artifacts=(),
+            accepted=render_status == "pass",
+            internal_validation=report["internal_validation"],
+            render_validation=report["render_validation"],
+            regulatory_screening=report["regulatory_screening"],
+        )
+
+    monkeypatch.setattr(
+        cli_module,
+        "create_building_visual_review_artifacts",
+        fake_artifacts,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "backend.app.cli",
+            "alternatives-review",
+            "--input",
+            str(input_path),
+            "--output-dir",
+            str(output_dir),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as error:
+        cli_module.main()
+
+    assert error.value.code == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["accepted_count"] == 1
+    assert [item["accepted"] for item in payload["alternatives"]] == [
+        False,
+        False,
+        True,
+    ]
+    page = (output_dir / "index.html").read_text(encoding="utf-8")
+    assert "대안 비교" in page
+    assert "순위" in page
+    assert "\ufffd" not in page
 
 
 def test_committed_alternative_review_json_has_no_checkout_absolute_paths():
@@ -405,6 +527,12 @@ def test_cli_openai_planner_failure_returns_diagnostic_json(
         "accepted": False,
         "planner": "openai",
         "error": "RuntimeError: provider unavailable",
+        "internal_validation": {"status": "fail"},
+        "render_validation": {"status": "fail"},
+        "regulatory_screening": {
+            "status": "not_checked",
+            "unresolved_facts": ["generation_failed"],
+        },
     }
 
 
@@ -646,9 +774,74 @@ def test_cli_loop_review_honors_max_iterations_and_writes_index(tmp_path):
     payload = json.loads(completed.stdout)
     assert payload["iterations_run"] == 1
     assert payload["accepted"] is False
+    assert payload["internal_validation"]["status"] in {"pass", "fail"}
+    assert payload["render_validation"]["status"] in {"pass", "fail"}
+    assert payload["regulatory_screening"]["status"] == "not_checked"
     assert payload["termination_reason"] == "iteration_budget_exhausted"
     assert Path(payload["index_json_path"]) == output_dir / "review.index.json"
     assert Path(payload["index_html_path"]) == output_dir / "index.html"
+
+
+def test_cli_building_review_exits_nonzero_when_render_validation_fails(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    input_path = tmp_path / "mass.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-render-failure",
+                "floors": 1,
+                "footprint_polygon": [[0, 0], [20, 0], [20, 10], [0, 10]],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [{"edge_index": 0, "position": 0.5}],
+                "use_mix": {"office": 1.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    artifacts = BuildingVisualReviewArtifacts(
+        index_html_path=tmp_path / "index.html",
+        report_path=tmp_path / "building.review.json",
+        floor_artifacts=(),
+        accepted=False,
+        internal_validation={"status": "pass"},
+        render_validation={"status": "fail"},
+        regulatory_screening={"status": "not_checked"},
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "run_building_generation",
+        lambda _mass: SimpleNamespace(accepted=True),
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "create_building_visual_review_artifacts",
+        lambda *_args, **_kwargs: artifacts,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "backend.app.cli",
+            "building-review",
+            "--input",
+            str(input_path),
+            "--output-dir",
+            str(tmp_path),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as error:
+        cli_module.main()
+
+    assert error.value.code == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["accepted"] is False
+    assert payload["internal_validation"]["status"] == "pass"
+    assert payload["render_validation"]["status"] == "fail"
+    assert payload["regulatory_screening"]["status"] == "not_checked"
 
 
 def test_cli_rectangular_sample_accepts_after_distinct_review_iterations(tmp_path):

@@ -186,6 +186,12 @@ def main() -> None:
                             "accepted": False,
                             "planner": "openai",
                             "error": f"{type(error).__name__}: {error}",
+                            "internal_validation": {"status": "fail"},
+                            "render_validation": {"status": "fail"},
+                            "regulatory_screening": {
+                                "status": "not_checked",
+                                "unresolved_facts": ["generation_failed"],
+                            },
                         },
                         ensure_ascii=False,
                     )
@@ -199,7 +205,7 @@ def main() -> None:
             output_dir=args.output_dir,
         )
         print(json.dumps(to_jsonable(artifacts), ensure_ascii=False))
-        if not result.accepted:
+        if not artifacts.accepted:
             raise SystemExit(1)
     elif args.command == "alternatives-review":
         result = run_building_alternatives(mass)
@@ -222,7 +228,7 @@ def main() -> None:
                     "strategy": alternative.strategy,
                     "rank": alternative.rank,
                     "score": alternative.score,
-                    "accepted": alternative.accepted,
+                    "accepted": artifacts.accepted,
                     "internal_validation": building_report[
                         "internal_validation"
                     ],
@@ -256,10 +262,13 @@ def main() -> None:
                     ),
                 }
             )
+        accepted_count = sum(
+            summary["accepted"] for summary in summaries
+        )
         payload = {
             "schema_version": 1,
             "project_id": mass.project_id,
-            "accepted_count": result.accepted_count,
+            "accepted_count": accepted_count,
             "internal_validation": _aggregate_review_status(
                 summaries,
                 "internal_validation",
@@ -315,7 +324,7 @@ def main() -> None:
             encoding="utf-8",
         )
         print(json.dumps(payload, ensure_ascii=False))
-        if result.accepted_count < 2:
+        if accepted_count < 2:
             raise SystemExit(1)
 
 

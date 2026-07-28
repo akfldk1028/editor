@@ -1212,6 +1212,9 @@ def test_cli_review_generates_visual_artifacts(tmp_path):
 
     payload = json.loads(completed.stdout)
     assert payload["needs_iteration"] is True
+    assert payload["internal_validation"]["status"] in {"pass", "fail"}
+    assert payload["render_validation"]["status"] in {"pass", "fail"}
+    assert payload["regulatory_screening"]["status"] == "not_checked"
     for key in ("svg_path", "png_path", "html_path", "report_path"):
         artifact_path = Path(payload[key])
         assert artifact_path.exists()

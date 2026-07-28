@@ -5,6 +5,9 @@ import math
 import subprocess
 
 from backend.app.schemas.generator_adapter import GeneratorRequest, GeneratorResponse
+from backend.app.modules.generator_adapters.validation import (
+    validate_normalized_response,
+)
 
 
 @dataclass(frozen=True)
@@ -87,7 +90,7 @@ class SubprocessGeneratorAdapter:
                 request,
                 "backend candidate identity does not match request",
             )
-        return response
+        return validate_normalized_response(request, response)
 
     def _unavailable(
         self,

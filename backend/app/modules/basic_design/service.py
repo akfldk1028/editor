@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from backend.app.schemas.layout import (
     BasicDesignFeatures,
@@ -11,6 +11,12 @@ from backend.app.schemas.layout import (
     RoomPolygon,
     UsePlanningMetadata,
 )
+from backend.app.modules.basic_design.stair import (
+    create_door_swing,
+    create_stair_geometry,
+    required_stair_enclosure,
+    resolve_floor_height,
+)
 from engine.geometry.access import orthogonal_min_width, shared_boundary_segments
 from engine.geometry.polygon import contains_polygon, polygon_area, polygon_overlap_area
 
@@ -18,8 +24,7 @@ Point = tuple[float, float]
 Segment = tuple[Point, Point]
 _EPSILON = 1e-7
 _STAIR_SHORT_SIDE = 2.8
-_STAIR_LONG_SIDE = 4.8
-_CORE_LOBBY_MIN_DEPTH = 0.6
+_CORE_LOBBY_MIN_DEPTH = 0.25
 _CORE_BANK_MIN_WIDTH = 1.2
 _CORE_BANK_DEPTH = 2.4
 _PROTECTED_OPENING_WIDTH = 0.9
@@ -45,6 +50,7 @@ def generate_basic_design(
     boundary: list[Point],
     street_segments: list[Segment],
     shared_structure: StructureSet | None = None,
+    floor_to_floor_height_m: float | None = None,
 ) -> BasicDesignFeatures:
     """Generate a deterministic concept-design annotation set for a validated layout."""
     _require_finite_points(boundary, "floor boundary", 3)
@@ -66,8 +72,65 @@ def generate_basic_design(
         layout.circulation,
         layout.remote_stair_footprint,
     )
-    elements = _core_elements(core, exits, layout.remote_stair_footprint)
+    resolved_height, height_source = resolve_floor_height(floor_to_floor_height_m)
+    elements = _core_elements(
+        core,
+        exits,
+        layout.remote_stair_footprint,
+        floor_to_floor_height_m=resolved_height,
+    )
     lines: list[PlanLine] = [*exits, *_core_access_lines(elements, exits)]
+    entry_lines = {
+        line.target_id: line
+        for line in lines
+        if line.kind in {"protected_exit", "stair_door"}
+    }
+    elements = [
+        replace(
+            element,
+            stair_geometry=create_stair_geometry(
+                element.footprint,
+                floor_to_floor_height_m=resolved_height,
+                height_source=height_source,
+                entry_points=entry_lines[element.element_id].points,
+            ),
+        )
+        if element.kind == "stair"
+        else element
+        for element in elements
+    ]
+    stair_geometries = {
+        element.element_id: element.stair_geometry
+        for element in elements
+        if element.stair_geometry is not None
+    }
+    stair_elements = {
+        element.element_id: element
+        for element in elements
+        if element.kind == "stair"
+    }
+    lines = [
+        replace(
+            line,
+            door_swing=create_door_swing(
+                line,
+                next(
+                    landing.footprint
+                    for landing in stair_geometries[line.target_id].landings
+                    if landing.role == "floor_lower"
+                ),
+            ),
+        )
+        if (
+            line.kind == "stair_door"
+            or (
+                line.kind == "protected_exit"
+                and stair_elements[line.target_id].host_id == "floor"
+            )
+        )
+        else line
+        for line in lines
+    ]
     lines.extend(_egress_routes(layout, exits, circulation_cells))
     if shared_structure is None:
         grid_lines, columns = _structure(boundary, (layout,), ((elements, exits),))
@@ -109,6 +172,8 @@ def generate_basic_design(
 def generate_shared_structure(
     boundary: list[Point],
     layouts: tuple[LayoutCandidate, ...],
+    *,
+    floor_to_floor_height_m: float | None = None,
 ) -> StructureSet:
     if not layouts:
         raise ValueError("shared structure requires at least one floor layout")
@@ -124,7 +189,13 @@ def generate_shared_structure(
             layout.circulation,
             layout.remote_stair_footprint,
         )
-        elements = _core_elements(core, exits, layout.remote_stair_footprint)
+        resolved_height, _ = resolve_floor_height(floor_to_floor_height_m)
+        elements = _core_elements(
+            core,
+            exits,
+            layout.remote_stair_footprint,
+            floor_to_floor_height_m=resolved_height,
+        )
         core_data.append((elements, exits))
     lines, columns = _structure(boundary, layouts, tuple(core_data))
     return StructureSet(lines=tuple(lines), columns=tuple(columns))
@@ -134,6 +205,8 @@ def _core_elements(
     core: RoomPolygon,
     exits: list[PlanLine],
     remote_stair_footprint: tuple[Point, ...] | None,
+    *,
+    floor_to_floor_height_m: float,
 ) -> list[PlanElement]:
     min_x, min_y, max_x, max_y = _bounds(core.polygon)
     if len(exits) != 2:
@@ -172,20 +245,20 @@ def _core_elements(
         _STAIR_SHORT_SIDE,
         (span - _CORE_BANK_MIN_WIDTH) / 2,
     )
-    stair_long_side = min(
-        _STAIR_LONG_SIDE,
-        depth - _CORE_LOBBY_MIN_DEPTH,
+    required_stair_short, required_stair_long = required_stair_enclosure(
+        floor_to_floor_height_m
     )
+    stair_long_side = required_stair_long
     central_width = span - 2 * stair_short_side
     lobby_depth = depth - stair_long_side
     if (
-        stair_short_side < 2.4 - _EPSILON
-        or stair_long_side < 4.0 - _EPSILON
+        stair_short_side + _EPSILON < required_stair_short
+        or depth - _CORE_LOBBY_MIN_DEPTH + _EPSILON < required_stair_long
         or central_width < _CORE_BANK_MIN_WIDTH - _EPSILON
         or lobby_depth < _CORE_LOBBY_MIN_DEPTH - _EPSILON
     ):
         raise ValueError(
-            "core is too small for two representative separated stairs, "
+            "core is too small for two height-derived separated stairs, "
             "a central bank, and lobby"
         )
     bank_depth = min(_CORE_BANK_DEPTH, depth - lobby_depth)
@@ -328,7 +401,10 @@ def _core_access_lines(
         if not shared:
             raise ValueError("each stair must share a boundary with the core lobby")
         boundary = max(shared, key=lambda segment: math.dist(*segment))
-        stair_door_points = _centered_segment(boundary, _PROTECTED_OPENING_WIDTH)
+        stair_door_points = _boundary_end_segment(
+            boundary,
+            _PROTECTED_OPENING_WIDTH,
+        )
         stair_door = PlanLine(
             line_id=f"core-stair-door-{index}",
             category="egress",
@@ -1287,6 +1363,21 @@ def _footprint_center(footprint: tuple[Point, ...]) -> Point:
     return (
         sum(point[0] for point in footprint) / len(footprint),
         sum(point[1] for point in footprint) / len(footprint),
+    )
+
+
+def _boundary_end_segment(
+    segment: Segment,
+    length: float,
+) -> tuple[Point, Point]:
+    start, end = _ordered_segment(segment)
+    total = math.dist(start, end)
+    if total + _EPSILON < length:
+        raise ValueError("boundary segment cannot fit requested opening")
+    unit = ((end[0] - start[0]) / total, (end[1] - start[1]) / total)
+    return (
+        start,
+        (start[0] + unit[0] * length, start[1] + unit[1] * length),
     )
 
 

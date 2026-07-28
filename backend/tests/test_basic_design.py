@@ -82,7 +82,7 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
                     - min(point[1] for point in stair.footprint),
                 )
             )
-            == pytest.approx([2.8, 4.8])
+            == pytest.approx([2.8, 4.92])
             for stair in stairs
         )
         assert all(

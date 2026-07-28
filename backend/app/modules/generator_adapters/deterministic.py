@@ -17,7 +17,7 @@ from backend.app.schemas.generator_adapter import (
     NormalizedOpening,
     NormalizedPolygon,
 )
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.mass import BuildingCodeContext, MassInput
 
 
 class DeterministicGeneratorAdapter:
@@ -40,7 +40,9 @@ class DeterministicGeneratorAdapter:
                 "supported entrance requires kind='access' and position=0.5",
             )
         facts = {fact.name: fact.value for fact in request.project_facts}
-        unsupported_facts = sorted(set(facts) - {"floors", "source"})
+        unsupported_facts = sorted(
+            set(facts) - {"floors", "source", "floor_to_floor_height_m"}
+        )
         if unsupported_facts:
             return self._failed(
                 request,
@@ -103,6 +105,9 @@ class DeterministicGeneratorAdapter:
                 for entrance in request.entrances
             ],
             use_mix={request.use_type: 1.0},
+            building_code_context=BuildingCodeContext(
+                floor_to_floor_height_m=facts.get("floor_to_floor_height_m"),
+            ),
         )
         try:
             building = run_building_generation(
@@ -166,6 +171,7 @@ class DeterministicGeneratorAdapter:
                         element.host_id,
                         element.label,
                         element.footprint,
+                        element.stair_geometry,
                     )
                     for element in basic_design.elements
                 ),
@@ -276,6 +282,7 @@ class DeterministicGeneratorAdapter:
             line.label,
             line.measured_value,
             line.clear_width,
+            line.door_swing,
         )
 
     @staticmethod

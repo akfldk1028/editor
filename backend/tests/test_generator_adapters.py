@@ -15,6 +15,7 @@ from backend.app.modules.generator_adapters import (
     MansionAdapter,
     RlvrAdapter,
     SubprocessGeneratorAdapter,
+    validate_normalized_response,
 )
 from backend.app.modules.validator.service import validate_layout
 from backend.app.schemas.generator_adapter import (
@@ -186,7 +187,15 @@ def test_generator_response_and_candidate_reject_wrong_member_types() -> None:
 
 @pytest.mark.parametrize(
     "path",
-    ["../escape.json", "/absolute/output.json", r"C:\absolute\output.json"],
+    [
+        "../escape.json",
+        "/absolute/output.json",
+        r"C:\absolute\output.json",
+        r"C:drive-relative.json",
+        r"\root-relative.json",
+        "CON",
+        "safe/AUX.txt",
+    ],
 )
 def test_generator_response_rejects_unsafe_raw_artifact_path(path: str) -> None:
     with pytest.raises(ValueError, match="relative"):
@@ -270,6 +279,53 @@ def test_deterministic_candidate_preserves_concept_basic_validator_contract() ->
     assert report.accepted is True
 
 
+def test_adapter_preserves_and_validates_typed_floor_height_fact() -> None:
+    request = replace(
+        _request_for_generated_program(),
+        project_facts=(
+            GeneratorProjectFact("floors", 2),
+            GeneratorProjectFact("source", "unit-test"),
+            GeneratorProjectFact("floor_to_floor_height_m", 4.2),
+        ),
+    )
+    response = DeterministicGeneratorAdapter().generate(request)
+
+    assert response.status == "executed"
+    assert response.normalized_candidate is not None
+    stair = next(
+        element
+        for element in response.normalized_candidate.basic_design.elements
+        if element.kind == "stair"
+    )
+    assert stair.stair_geometry.floor_to_floor_height_m == pytest.approx(4.2)
+    assert validate_normalized_response(request, response).status == "executed"
+
+    bad_stair = replace(
+        stair,
+        stair_geometry=replace(
+            stair.stair_geometry,
+            floor_to_floor_height_m=3.6,
+        ),
+    )
+    bad_design = replace(
+        response.normalized_candidate.basic_design,
+        elements=tuple(
+            bad_stair if element.element_id == stair.element_id else element
+            for element in response.normalized_candidate.basic_design.elements
+        ),
+    )
+    bad_response = replace(
+        response,
+        normalized_candidate=replace(
+            response.normalized_candidate,
+            basic_design=bad_design,
+        ),
+    )
+    validated = validate_normalized_response(request, bad_response)
+    assert validated.status == "failed"
+    assert "stair_height_context" in validated.reason
+
+
 def test_deterministic_adapter_rejects_unsupported_fixed_constraint() -> None:
     request = replace(
         _request_for_generated_program(),
@@ -337,7 +393,9 @@ def test_mansion_remains_downstream_only_even_with_command() -> None:
 
 
 def test_subprocess_adapter_uses_json_stdin_stdout_protocol() -> None:
-    script = _echo_response_script()
+    request = _request_for_generated_program()
+    response = _valid_external_response(request)
+    script = f"print({response.to_json()!r})"
     adapter = SubprocessGeneratorAdapter(
         command=(sys.executable, "-c", script),
         backend_id="fixture",
@@ -346,11 +404,76 @@ def test_subprocess_adapter_uses_json_stdin_stdout_protocol() -> None:
         timeout_seconds=2.0,
     )
 
-    response = adapter.generate(_request())
+    response = adapter.generate(request)
 
     assert response.status == "executed"
-    assert response.request_digest == _request().digest
+    assert response.request_digest == request.digest
     assert response.raw_artifact_paths == ("raw.json",)
+
+
+def test_subprocess_adapter_rejects_executed_candidate_that_fails_geometry() -> None:
+    request = _request()
+    adapter = SubprocessGeneratorAdapter(
+        command=(sys.executable, "-c", _echo_response_script()),
+        backend_id="fixture",
+        backend_version="1",
+        backend_domain="graph-to-plan",
+        timeout_seconds=2.0,
+    )
+
+    response = adapter.generate(request)
+
+    assert response.status == "failed"
+    assert response.normalized_candidate is None
+    assert response.reason is not None
+    assert "basic_design" in response.reason
+
+
+def test_common_normalized_response_validation_reuses_plan_validator() -> None:
+    request = _request_for_generated_program()
+    response = _valid_external_response(request)
+    candidate = response.normalized_candidate
+    assert candidate is not None
+    assert validate_normalized_response(request, response).status == "executed"
+
+    boundary_mismatch = replace(
+        candidate,
+        boundary=(
+            (0.0, 0.0),
+            (21.0, 0.0),
+            (21.0, 12.0),
+            (0.0, 12.0),
+        ),
+    )
+    first_room, second_room, *remaining_rooms = candidate.rooms
+    overlapping_room = replace(second_room, points=first_room.points)
+    overlap = replace(
+        candidate,
+        rooms=(first_room, overlapping_room, *remaining_rooms),
+    )
+    first_opening, *remaining_openings = candidate.openings
+    bad_opening = replace(
+        candidate,
+        openings=(
+            replace(first_opening, connects=("missing-room", "corridor")),
+            *remaining_openings,
+        ),
+    )
+    missing_basic_contract = replace(candidate, basic_design=None)
+
+    for malformed in (
+        boundary_mismatch,
+        overlap,
+        bad_opening,
+        missing_basic_contract,
+    ):
+        checked = validate_normalized_response(
+            request,
+            replace(response, normalized_candidate=malformed),
+        )
+        assert checked.status == "failed"
+        assert checked.normalized_candidate is None
+        assert checked.reason
 
 
 def test_subprocess_adapter_rejects_wrong_request_digest() -> None:
@@ -482,6 +605,18 @@ def _request_for_generated_program() -> GeneratorRequest:
     )
 
 
+def _valid_external_response(request: GeneratorRequest) -> GeneratorResponse:
+    generated = DeterministicGeneratorAdapter().generate(request)
+    assert generated.status == "executed"
+    return replace(
+        generated,
+        backend_id="fixture",
+        backend_version="1",
+        backend_domain="graph-to-plan",
+        raw_artifact_paths=("raw.json",),
+    )
+
+
 def _echo_response_script(
     *,
     request_digest: str | None = None,
@@ -523,6 +658,7 @@ def _restore_layout(candidate: NormalizedCandidate) -> LayoutCandidate:
                     element.host_id,
                     element.label,
                     element.footprint,
+                    element.stair_geometry,
                 )
                 for element in candidate.basic_design.elements
             ),
@@ -537,6 +673,7 @@ def _restore_layout(candidate: NormalizedCandidate) -> LayoutCandidate:
                     line.label,
                     line.measured_value,
                     line.clear_width,
+                    line.door_swing,
                 )
                 for line in candidate.basic_design.lines
             ),

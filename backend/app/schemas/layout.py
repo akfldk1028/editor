@@ -38,6 +38,116 @@ class UsePlanningMetadata:
 
 
 @dataclass(frozen=True)
+class StairFlight:
+    flight_index: int
+    footprint: tuple[Point, ...]
+    direction: str
+    riser_count: int
+    tread_count: int
+    start_elevation_m: float
+    end_elevation_m: float
+
+    def __post_init__(self) -> None:
+        _require_finite_points(self.footprint, label="stair flight", minimum=3)
+        if self.direction not in {"+x", "-x", "+y", "-y"}:
+            raise ValueError("stair flight direction must be an axis direction")
+        if self.riser_count < 1 or self.tread_count < 0:
+            raise ValueError("stair flight counts must be non-negative")
+        if not all(
+            math.isfinite(value)
+            for value in (self.start_elevation_m, self.end_elevation_m)
+        ):
+            raise ValueError("stair flight elevations must be finite")
+
+
+@dataclass(frozen=True)
+class StairLanding:
+    landing_index: int
+    role: str
+    footprint: tuple[Point, ...]
+    elevation_m: float
+
+    def __post_init__(self) -> None:
+        _require_finite_points(self.footprint, label="stair landing", minimum=3)
+        if self.role not in {"floor_lower", "intermediate", "floor_upper"}:
+            raise ValueError("stair landing role is invalid")
+        if not math.isfinite(self.elevation_m):
+            raise ValueError("stair landing elevation must be finite")
+
+
+@dataclass(frozen=True)
+class StairGeometry:
+    floor_to_floor_height_m: float
+    height_source: str
+    clear_width_m: float
+    riser_count: int
+    riser_height_m: float
+    tread_depth_m: float
+    required_enclosure_width_m: float
+    required_enclosure_length_m: float
+    enclosure_footprint: tuple[Point, ...]
+    flights: tuple[StairFlight, ...]
+    landings: tuple[StairLanding, ...]
+    headroom_m: float | None = None
+    headroom_status: str = "not_checked"
+
+    def __post_init__(self) -> None:
+        _require_finite_points(
+            self.enclosure_footprint,
+            label="stair enclosure",
+            minimum=3,
+        )
+        if self.height_source not in {"project-fact", "concept-default"}:
+            raise ValueError("stair height source is invalid")
+        if not isinstance(self.flights, tuple) or not all(
+            isinstance(flight, StairFlight) for flight in self.flights
+        ):
+            raise TypeError("stair flights must be an immutable typed tuple")
+        if not isinstance(self.landings, tuple) or not all(
+            isinstance(landing, StairLanding) for landing in self.landings
+        ):
+            raise TypeError("stair landings must be an immutable typed tuple")
+        values = (
+            self.floor_to_floor_height_m,
+            self.clear_width_m,
+            self.riser_height_m,
+            self.tread_depth_m,
+            self.required_enclosure_width_m,
+            self.required_enclosure_length_m,
+        )
+        if not all(math.isfinite(value) and value > 0 for value in values):
+            raise ValueError("stair dimensions must be finite and positive")
+        if self.riser_count < 1:
+            raise ValueError("stair riser count must be positive")
+        if self.headroom_m is not None and (
+            not math.isfinite(self.headroom_m) or self.headroom_m <= 0
+        ):
+            raise ValueError("stair headroom must be finite and positive or None")
+        if self.headroom_status not in {"checked", "not_checked"}:
+            raise ValueError("stair headroom_status must be checked or not_checked")
+        if (self.headroom_status == "checked") != (self.headroom_m is not None):
+            raise ValueError("checked stair headroom requires a measured value")
+
+
+@dataclass(frozen=True)
+class DoorSwing:
+    hinge: Point
+    leaf_end: Point
+    angle_degrees: float
+    direction: str
+    target_landing_role: str
+
+    def __post_init__(self) -> None:
+        _require_finite_points((self.hinge, self.leaf_end), label="door swing", minimum=2)
+        if not math.isfinite(self.angle_degrees) or self.angle_degrees == 0:
+            raise ValueError("door swing angle must be finite and non-zero")
+        if self.direction not in {"clockwise", "counterclockwise"}:
+            raise ValueError("door swing direction is invalid")
+        if self.target_landing_role not in {"floor_lower", "floor_upper"}:
+            raise ValueError("door swing must target a floor landing")
+
+
+@dataclass(frozen=True)
 class PlanElement:
     element_id: str
     category: str
@@ -45,9 +155,15 @@ class PlanElement:
     host_id: str
     label: str
     footprint: tuple[Point, ...]
+    stair_geometry: StairGeometry | None = None
 
     def __post_init__(self) -> None:
         _require_finite_points(self.footprint, label="element footprint", minimum=3)
+        if self.stair_geometry is not None and not isinstance(
+            self.stair_geometry,
+            StairGeometry,
+        ):
+            raise TypeError("stair_geometry must be StairGeometry or None")
 
 
 @dataclass(frozen=True)
@@ -61,6 +177,7 @@ class PlanLine:
     label: str = ""
     measured_value: float | None = None
     clear_width: float | None = None
+    door_swing: DoorSwing | None = None
 
     def __post_init__(self) -> None:
         _require_finite_points(self.points, label="line", minimum=2)
@@ -70,6 +187,8 @@ class PlanLine:
         ):
             if value is not None and not math.isfinite(value):
                 raise ValueError(f"{name} must be finite")
+        if self.door_swing is not None and not isinstance(self.door_swing, DoorSwing):
+            raise TypeError("door_swing must be DoorSwing or None")
 
 
 @dataclass(frozen=True)
