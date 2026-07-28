@@ -111,6 +111,7 @@ test("working layer controls synchronize before and after iframe load", async ({
   }
   const controlBounds = await page.locator("#working-layer-controls").boundingBox();
   expect(controlBounds).not.toBeNull();
+  expect(controlBounds.x + controlBounds.width).toBeLessThanOrEqual(376.5);
   for (const button of await page.locator("#working-layer-controls button").all()) {
     const bounds = await button.boundingBox();
     expect(bounds).not.toBeNull();

@@ -1525,7 +1525,7 @@ def _render_html(
     h1 {{ font-size: 22px; margin: 0 0 12px; }}
     .status {{ margin-bottom: 18px; font-weight: 700; }}
     .grid {{ display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 20px; align-items: start; }}
-    .plan {{ min-width: 0; }}
+    .grid > section {{ min-width: 0; }}
     iframe {{ width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }}
     #working-layer-controls {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }}
     #working-layer-controls button {{ flex: 0 0 auto; min-height: 32px; max-width: 100%; padding: 5px 9px; }}
