@@ -64,6 +64,7 @@ _HARD_VIOLATION_CODES = (
     "core_subspace_containment",
     "core_subspace_overlap",
     "vertical_missing",
+    "stair_geometry",
     "protected_exit_count",
     "protected_exit_reference",
     "protected_exit_geometry",
@@ -72,6 +73,12 @@ _HARD_VIOLATION_CODES = (
     "egress_route_missing",
     "egress_route_reference",
     "egress_route_geometry",
+    "stair_door_missing",
+    "stair_door_reference",
+    "stair_door_geometry",
+    "lobby_route_missing",
+    "lobby_route_reference",
+    "lobby_route_geometry",
     "column_boundary",
     "column_conflict",
     "structure_missing",
@@ -84,6 +91,7 @@ _HARD_VIOLATION_CODES = (
     "placed_object_reference",
     "placed_object_containment",
     "placed_object_overlap",
+    "placed_object_clearance",
     "placed_object_missing",
     "dimension_reference",
     "dimension_value",
@@ -93,6 +101,12 @@ _HARD_VIOLATION_CODES = (
 )
 _EXTERNAL_PROGRAM_ENDPOINTS = {"street"}
 _BASIC_DESIGN_POLICY = "concept-basic-v1"
+_MIN_STAIR_SHORT_SIDE = 2.8
+_MIN_STAIR_LONG_SIDE = 4.8
+_MIN_STAIR_AREA = _MIN_STAIR_SHORT_SIDE * _MIN_STAIR_LONG_SIDE
+_MIN_STAIR_SEPARATION = 0.2
+_OBJECT_CLEARANCE = 0.6
+_SMALL_ROOM_OBJECT_CLEARANCE = 0.3
 _ELEMENT_KINDS = {
     "vertical": {"stair", "elevator", "lobby", "shaft"},
     "structure": {"column"},
@@ -116,7 +130,12 @@ _ELEMENT_KINDS = {
     },
 }
 _LINE_KINDS = {
-    "egress": {"protected_exit", "egress_route"},
+    "egress": {
+        "protected_exit",
+        "egress_route",
+        "stair_door",
+        "lobby_route",
+    },
     "envelope": {"entrance", "window"},
     "structure": {"grid"},
     "dimension": {"overall_width", "overall_depth", "circulation_width"},
@@ -657,6 +676,32 @@ def _validate_basic_design(
                 and valid_lines[line.target_id].kind == "protected_exit"
             )
             code = "egress_route_reference"
+        elif line.kind == "stair_door":
+            host = valid_elements.get(line.host_id or "")
+            target = valid_elements.get(line.target_id or "")
+            valid_reference = (
+                host is not None
+                and host.category == "vertical"
+                and host.kind == "lobby"
+                and target is not None
+                and target.category == "vertical"
+                and target.kind == "stair"
+                and host.host_id == core_id
+                and target.host_id == core_id
+            )
+            code = "stair_door_reference"
+        elif line.kind == "lobby_route":
+            host = valid_elements.get(line.host_id or "")
+            target = valid_lines.get(line.target_id or "")
+            valid_reference = (
+                host is not None
+                and host.category == "vertical"
+                and host.kind == "lobby"
+                and target is not None
+                and target.kind == "stair_door"
+                and host.host_id == core_id
+            )
+            code = "lobby_route_reference"
         elif line.kind in {"window", "entrance"}:
             valid_reference = line.host_id in occupied_rooms and line.target_id is None
             code = "window_reference" if line.kind == "window" else "entrance_geometry"
@@ -703,6 +748,47 @@ def _validate_basic_design(
                         f"{left.element_id}|{right.element_id}",
                         "vertical core footprints cannot positively overlap",
                     )
+    stairs = [element for element in vertical if element.kind == "stair"]
+    required_stair_short, required_stair_long = _required_stair_sides(
+        core,
+        [
+            line
+            for line in valid_lines.values()
+            if line.kind == "protected_exit"
+        ],
+    )
+    required_stair_area = required_stair_short * required_stair_long
+    for stair in stairs:
+        min_x, min_y, max_x, max_y = _bounds(stair.footprint)
+        sides = sorted((max_x - min_x, max_y - min_y))
+        if (
+            sides[0] + _EPSILON < required_stair_short
+            or sides[1] + _EPSILON < required_stair_long
+            or polygon_area(stair.footprint) + _EPSILON < required_stair_area
+        ):
+            add_violation(
+                "stair_geometry",
+                stair.element_id,
+                (
+                    "concept-basic-v1 representative stair footprint requires "
+                    f"at least {required_stair_short:.1f} x "
+                    f"{required_stair_long:.1f} m and "
+                    f"{required_stair_area:.2f} m2 for this core geometry"
+                ),
+            )
+    if len(stairs) == 2 and (
+        _footprint_bbox_distance(stairs[0].footprint, stairs[1].footprint)
+        + _EPSILON
+        < _MIN_STAIR_SEPARATION
+    ):
+        add_violation(
+            "stair_geometry",
+            "core",
+            (
+                "representative stairs require a separated footprint with "
+                f"at least {_MIN_STAIR_SEPARATION:.1f} m concept separation"
+            ),
+        )
 
     exits = [
         line
@@ -763,6 +849,139 @@ def _validate_basic_design(
             "core",
             f"protected exit midpoints must be separated by at least {min_exit_separation:.3f}",
         )
+
+    lobby = next(
+        (element for element in vertical if element.kind == "lobby"),
+        None,
+    )
+    stair_doors = [
+        line
+        for line in valid_lines.values()
+        if line.category == "egress" and line.kind == "stair_door"
+    ]
+    if len(stair_doors) != 2:
+        add_violation(
+            "stair_door_missing",
+            "core",
+            f"concept core requires exactly two stair doors, found {len(stair_doors)}",
+        )
+        if len(stair_doors) < 2:
+            missing_kinds.add("egress:stair_door")
+    valid_stair_ids = {stair.element_id for stair in stairs}
+    if len(stair_doors) == 2 and (
+        len({line.target_id for line in stair_doors}) != 2
+        or {line.target_id for line in stair_doors} != valid_stair_ids
+    ):
+        add_violation(
+            "stair_door_reference",
+            "core",
+            "stair doors must target the two distinct representative stairs",
+        )
+    for stair_door in stair_doors:
+        stair = valid_elements.get(stair_door.target_id or "")
+        actual_width = _polyline_length(stair_door.points)
+        shared = (
+            shared_boundary_segments(
+                list(lobby.footprint),
+                list(stair.footprint),
+            )
+            if lobby is not None and stair is not None
+            else []
+        )
+        if (
+            lobby is None
+            or stair is None
+            or stair.kind != "stair"
+            or not any(
+                _segment_contains(
+                    segment,
+                    (stair_door.points[0], stair_door.points[-1]),
+                )
+                for segment in shared
+            )
+            or not _is_finite_number(stair_door.clear_width)
+            or abs(actual_width - float(stair_door.clear_width)) > 1e-7
+            or float(stair_door.clear_width) + _EPSILON < min_exit_width
+        ):
+            add_violation(
+                "stair_door_geometry",
+                stair_door.line_id,
+                (
+                    "stair door must match its clear width on the real "
+                    "stair/lobby shared boundary"
+                ),
+            )
+
+    lobby_routes = [
+        line
+        for line in valid_lines.values()
+        if line.category == "egress" and line.kind == "lobby_route"
+    ]
+    if len(lobby_routes) != 2:
+        add_violation(
+            "lobby_route_missing",
+            "core",
+            f"concept core requires exactly two lobby routes, found {len(lobby_routes)}",
+        )
+        if len(lobby_routes) < 2:
+            missing_kinds.add("egress:lobby_route")
+    valid_stair_door_ids = {line.line_id for line in stair_doors}
+    if len(lobby_routes) == 2 and (
+        len({line.target_id for line in lobby_routes}) != 2
+        or {line.target_id for line in lobby_routes} != valid_stair_door_ids
+    ):
+        add_violation(
+            "lobby_route_reference",
+            "core",
+            "lobby routes must target the two distinct stair doors",
+        )
+    exits_by_stair = {
+        line.target_id: line
+        for line in exits
+        if line.target_id in valid_stair_ids
+    }
+    for lobby_route in lobby_routes:
+        stair_door = valid_lines.get(lobby_route.target_id or "")
+        exit_line = (
+            exits_by_stair.get(stair_door.target_id)
+            if stair_door is not None
+            else None
+        )
+        lobby_room = (
+            RoomPolygon(
+                room_id=lobby.element_id,
+                space_type="lobby",
+                polygon=list(lobby.footprint),
+            )
+            if lobby is not None
+            else None
+        )
+        if (
+            stair_door is None
+            or exit_line is None
+            or lobby_room is None
+            or not _points_equal(
+                lobby_route.points[0],
+                _line_midpoint(exit_line),
+            )
+            or not _points_equal(
+                lobby_route.points[-1],
+                _line_midpoint(stair_door),
+            )
+            or not _egress_route_in_circulation(
+                lobby_route.points,
+                [lobby_room],
+            )
+        ):
+            add_violation(
+                "lobby_route_geometry",
+                lobby_route.line_id,
+                (
+                    "lobby route must be a finite orthogonal polyline inside "
+                    "the lobby from its protected-exit midpoint to its distinct "
+                    "stair-door midpoint"
+                ),
+            )
 
     doors_by_room = _door_midpoints(layout, geometric_circulation)
     routes = [
@@ -936,6 +1155,8 @@ def _validate_basic_design(
         for element in valid_elements.values()
         if element.category in {"furniture", "fixture"}
     ]
+    measured_object_clearances: list[float] = []
+    object_clearance_violation_count = 0
     for element in placed:
         room = geometric_occupied_rooms.get(element.host_id)
         if room is None:
@@ -945,6 +1166,40 @@ def _validate_basic_design(
                 "placed_object_containment",
                 element.element_id,
                 "placed object must remain inside its host room",
+            )
+        clearance = _object_clearance_for_room(room)
+        access_segments = [
+            (opening.start, opening.end)
+            for opening in layout.openings
+            if room.room_id in opening.connects
+        ]
+        access_segments.extend(
+            segment
+            for line in valid_lines.values()
+            if (
+                (
+                    line.kind in {"entrance", "window", "egress_route"}
+                    and line.host_id == room.room_id
+                )
+            )
+            for segment in zip(line.points, line.points[1:])
+        )
+        distances = [
+            _footprint_segment_distance(element.footprint, segment)
+            for segment in access_segments
+        ]
+        if distances:
+            measured_object_clearances.append(min(distances))
+        if any(distance + _EPSILON < clearance for distance in distances):
+            object_clearance_violation_count += 1
+            add_violation(
+                "placed_object_clearance",
+                element.element_id,
+                (
+                    f"concept object clearance requires {clearance:.2f} m from "
+                    "its room door, entrance, egress start/route, and window; "
+                    "positive intersection is never permitted"
+                ),
             )
     for index, left in enumerate(placed):
         for right in placed[index + 1 :]:
@@ -985,6 +1240,12 @@ def _validate_basic_design(
         features,
         occupied_rooms,
         missing_required_kinds=tuple(sorted(missing_kinds)),
+        min_object_clearance=(
+            min(measured_object_clearances)
+            if measured_object_clearances
+            else None
+        ),
+        object_clearance_violation_count=object_clearance_violation_count,
     )
 
 
@@ -1084,6 +1345,8 @@ def _basic_design_metric(
     occupied_rooms: dict[str, RoomPolygon],
     *,
     missing_required_kinds: tuple[str, ...],
+    min_object_clearance: float | None = None,
+    object_clearance_violation_count: int = 0,
 ) -> BasicDesignMetric:
     elements = features.elements if features is not None else ()
     lines = features.lines if features is not None else ()
@@ -1124,6 +1387,8 @@ def _basic_design_metric(
         exit_separation=_exit_separation(exits),
         min_routes_per_room=min(route_counts) if route_counts else 0,
         missing_required_kinds=missing_required_kinds,
+        min_object_clearance=min_object_clearance,
+        object_clearance_violation_count=object_clearance_violation_count,
     )
 
 
@@ -1141,6 +1406,10 @@ def _segment_contains(container: Segment, candidate: Segment) -> bool:
 def _semantic_line_geometry_violation(line: PlanLine) -> str | None:
     if line.kind == "protected_exit":
         code = "protected_exit_geometry"
+    elif line.kind == "stair_door":
+        code = "stair_door_geometry"
+    elif line.kind == "lobby_route":
+        code = "lobby_route_geometry"
     elif line.kind == "window":
         code = "window_geometry"
     elif line.kind == "entrance":
@@ -1159,12 +1428,12 @@ def _semantic_line_geometry_violation(line: PlanLine) -> str | None:
         kind
         for kinds in _LINE_KINDS.values()
         for kind in kinds
-        if kind != "egress_route"
+        if kind not in {"egress_route", "lobby_route"}
     }
     if line.kind in semantic_segment_kinds and len(line.points) != 2:
         return code
 
-    if line.kind in {"protected_exit", "entrance"}:
+    if line.kind in {"protected_exit", "entrance", "stair_door"}:
         if (
             not _is_finite_number(line.clear_width)
             or line.clear_width <= _EPSILON
@@ -1344,6 +1613,72 @@ def _bounds(points) -> tuple[float, float, float, float]:
         max(point[0] for point in points),
         max(point[1] for point in points),
     )
+
+
+def _required_stair_sides(
+    core: RoomPolygon | None,
+    exits: list[PlanLine],
+) -> tuple[float, float]:
+    if core is None or not exits:
+        return _MIN_STAIR_SHORT_SIDE, _MIN_STAIR_LONG_SIDE
+    min_x, min_y, max_x, max_y = _bounds(core.polygon)
+    first = exits[0]
+    horizontal = abs(first.points[0][1] - first.points[-1][1]) <= _EPSILON
+    span = max_x - min_x if horizontal else max_y - min_y
+    depth = max_y - min_y if horizontal else max_x - min_x
+    short_side = min(
+        _MIN_STAIR_SHORT_SIDE,
+        (span - 1.2) / 2,
+    )
+    long_side = min(
+        _MIN_STAIR_LONG_SIDE,
+        depth - 0.6,
+    )
+    return max(2.4, short_side), max(4.0, long_side)
+
+
+def _footprint_bbox_distance(left, right) -> float:
+    left_min_x, left_min_y, left_max_x, left_max_y = _bounds(left)
+    right_min_x, right_min_y, right_max_x, right_max_y = _bounds(right)
+    gap_x = max(
+        left_min_x - right_max_x,
+        right_min_x - left_max_x,
+        0.0,
+    )
+    gap_y = max(
+        left_min_y - right_max_y,
+        right_min_y - left_max_y,
+        0.0,
+    )
+    return math.hypot(gap_x, gap_y)
+
+
+def _footprint_segment_distance(footprint, segment: Segment) -> float:
+    min_x, min_y, max_x, max_y = _bounds(footprint)
+    (start_x, start_y), (end_x, end_y) = segment
+    segment_min_x, segment_max_x = sorted((start_x, end_x))
+    segment_min_y, segment_max_y = sorted((start_y, end_y))
+    gap_x = max(
+        min_x - segment_max_x,
+        segment_min_x - max_x,
+        0.0,
+    )
+    gap_y = max(
+        min_y - segment_max_y,
+        segment_min_y - max_y,
+        0.0,
+    )
+    return math.hypot(gap_x, gap_y)
+
+
+def _object_clearance_for_room(room: RoomPolygon) -> float:
+    min_x, min_y, max_x, max_y = _bounds(room.polygon)
+    if (
+        polygon_area(room.polygon) < 12.0 - _EPSILON
+        or min(max_x - min_x, max_y - min_y) < 3.0 - _EPSILON
+    ):
+        return _SMALL_ROOM_OBJECT_CLEARANCE
+    return _OBJECT_CLEARANCE
 
 
 def _is_valid_polygon(points) -> bool:

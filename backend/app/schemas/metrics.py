@@ -51,6 +51,8 @@ class BasicDesignMetric:
     exit_separation: float | None
     min_routes_per_room: int
     missing_required_kinds: tuple[str, ...]
+    min_object_clearance: float | None = None
+    object_clearance_violation_count: int = 0
 
 
 @dataclass(frozen=True)

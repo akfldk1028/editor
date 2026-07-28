@@ -20,8 +20,8 @@ from backend.app.schemas.mass import MassInput
 from backend.app.schemas.program import ProgramGraph, ProgramNode
 
 
-BOUNDARY = [(0.0, 0.0), (12.0, 0.0), (12.0, 10.0), (0.0, 10.0)]
-STREET = [((0.0, 0.0), (12.0, 0.0))]
+BOUNDARY = [(0.0, 0.0), (18.0, 0.0), (18.0, 10.0), (0.0, 10.0)]
+STREET = [((0.0, 0.0), (18.0, 0.0))]
 
 
 def test_basic_design_validation_is_opt_in() -> None:
@@ -265,6 +265,70 @@ def test_strict_validation_rejects_core_contract_failures() -> None:
     assert "core_geometry" in _codes(malformed)
 
 
+def test_strict_validation_rejects_small_or_touching_representative_stairs() -> None:
+    layout, program = _office_candidate()
+    features = layout.basic_design
+    assert features is not None
+    undersized = _replace_element(
+        features,
+        replace(
+            _element(features, "stair-1"),
+            footprint=((13.2, 0.0), (15.0, 0.0), (15.0, 2.0), (13.2, 2.0)),
+        ),
+    )
+    touching = _replace_element(
+        features,
+        replace(
+            _element(features, "stair-2"),
+            footprint=((13.2, 2.8), (18.0, 2.8), (18.0, 5.6), (13.2, 5.6)),
+        ),
+    )
+
+    assert "stair_geometry" in _codes(
+        _strict(replace(layout, basic_design=undersized), program)
+    )
+    assert "stair_geometry" in _codes(
+        _strict(replace(layout, basic_design=touching), program)
+    )
+
+
+def test_strict_validation_rejects_invalid_stair_door_and_lobby_route() -> None:
+    layout, program = _office_candidate()
+    features = layout.basic_design
+    assert features is not None
+    off_boundary_door = _replace_line(
+        features,
+        replace(
+            _line(features, "stair-door-1"),
+            points=((14.0, 0.5), (14.0, 1.4)),
+        ),
+    )
+    wrong_route_start = _replace_line(
+        features,
+        replace(
+            _line(features, "lobby-route-1"),
+            points=((8.0, 1.2), (13.2, 1.2), (13.2, 0.95)),
+        ),
+    )
+    duplicate_target = _replace_line(
+        features,
+        replace(
+            _line(features, "lobby-route-2"),
+            target_id="stair-door-1",
+        ),
+    )
+
+    assert "stair_door_geometry" in _codes(
+        _strict(replace(layout, basic_design=off_boundary_door), program)
+    )
+    assert "lobby_route_geometry" in _codes(
+        _strict(replace(layout, basic_design=wrong_route_start), program)
+    )
+    assert "lobby_route_reference" in _codes(
+        _strict(replace(layout, basic_design=duplicate_target), program)
+    )
+
+
 @pytest.mark.parametrize(
     ("mutate", "code"),
     [
@@ -412,7 +476,7 @@ def test_strict_validation_rejects_route_failures(mutate, code) -> None:
 @pytest.mark.parametrize(
     ("footprint", "code"),
     [
-        (((11.8, 9.0), (12.2, 9.0), (12.2, 9.4), (11.8, 9.4)), "column_boundary"),
+        (((17.8, 9.0), (18.2, 9.0), (18.2, 9.4), (17.8, 9.4)), "column_boundary"),
         (((8.5, 3.0), (8.9, 3.0), (8.9, 3.4), (8.5, 3.4)), "column_conflict"),
         (((5.8, 3.2), (6.2, 3.2), (6.2, 3.6), (5.8, 3.6)), "column_conflict"),
     ],
@@ -568,6 +632,55 @@ def test_strict_validation_rejects_object_reference_containment_overlap_and_miss
     assert "placed_object_missing" in _codes(missing)
 
 
+def test_strict_validation_rejects_sales_shelf_on_room_door_clearance() -> None:
+    layout, program = _commercial_candidate()
+    features = layout.basic_design
+    assert features is not None
+    shelf = _element(features, "sales-shelf-1")
+    blocking_shelf = replace(
+        shelf,
+        footprint=((5.7, 3.2), (6.0, 3.2), (6.0, 3.9), (5.7, 3.9)),
+    )
+
+    report = _strict(
+        replace(
+            layout,
+            basic_design=_replace_element(features, blocking_shelf),
+        ),
+        program,
+    )
+
+    assert "placed_object_clearance" in _codes(report)
+    assert report.basic_design is not None
+    assert report.basic_design.object_clearance_violation_count >= 1
+
+
+@pytest.mark.parametrize(
+    "footprint",
+    [
+        ((2.3, 0.0), (3.0, 0.0), (3.0, 0.4), (2.3, 0.4)),
+        ((0.5, 0.0), (1.2, 0.0), (1.2, 0.4), (0.5, 0.4)),
+    ],
+)
+def test_strict_validation_rejects_sales_objects_at_entrance_or_window(
+    footprint,
+) -> None:
+    layout, program = _commercial_candidate()
+    features = layout.basic_design
+    assert features is not None
+    blocking = replace(
+        _element(features, "sales-shelf-1"),
+        footprint=footprint,
+    )
+
+    report = _strict(
+        replace(layout, basic_design=_replace_element(features, blocking)),
+        program,
+    )
+
+    assert "placed_object_clearance" in _codes(report)
+
+
 def test_strict_validation_recomputes_dimensions_and_requires_site_and_structure() -> None:
     layout, program = _office_candidate()
     features = layout.basic_design
@@ -687,7 +800,7 @@ def _office_candidate() -> tuple[LayoutCandidate, ProgramGraph]:
         RoomPolygon(
             "core",
             "core",
-            [(8.0, 0.0), (12.0, 0.0), (12.0, 6.0), (8.0, 6.0)],
+            [(8.0, 0.0), (18.0, 0.0), (18.0, 6.0), (8.0, 6.0)],
         ),
     ]
     layout = LayoutCandidate(
@@ -729,7 +842,7 @@ def _office_candidate() -> tuple[LayoutCandidate, ProgramGraph]:
         use_type="office",
         nodes=[
             ProgramNode("open_work", "open_work", 48.0),
-            ProgramNode("core", "core", 24.0),
+            ProgramNode("core", "core", 60.0),
         ],
         edges=[],
         source="independent-test",
@@ -826,7 +939,7 @@ def _office_features() -> BasicDesignFeatures:
             "stair",
             "core",
             "UP",
-            ((8.0, 0.0), (9.0, 0.0), (9.0, 2.0), (8.0, 2.0)),
+            ((13.2, 0.0), (18.0, 0.0), (18.0, 2.8), (13.2, 2.8)),
         ),
         PlanElement(
             "stair-2",
@@ -834,7 +947,7 @@ def _office_features() -> BasicDesignFeatures:
             "stair",
             "core",
             "UP",
-            ((9.0, 0.0), (10.0, 0.0), (10.0, 2.0), (9.0, 2.0)),
+            ((13.2, 3.2), (18.0, 3.2), (18.0, 6.0), (13.2, 6.0)),
         ),
         PlanElement(
             "elevator-1",
@@ -842,7 +955,7 @@ def _office_features() -> BasicDesignFeatures:
             "elevator",
             "core",
             "ELEV",
-            ((10.0, 0.0), (11.0, 0.0), (11.0, 2.0), (10.0, 2.0)),
+            ((10.8, 1.8), (12.0, 1.8), (12.0, 4.2), (10.8, 4.2)),
         ),
         PlanElement(
             "shaft-1",
@@ -850,7 +963,7 @@ def _office_features() -> BasicDesignFeatures:
             "shaft",
             "core",
             "SHAFT",
-            ((11.0, 0.0), (12.0, 0.0), (12.0, 2.0), (11.0, 2.0)),
+            ((12.0, 1.8), (13.2, 1.8), (13.2, 4.2), (12.0, 4.2)),
         ),
         PlanElement(
             "lobby-1",
@@ -858,7 +971,16 @@ def _office_features() -> BasicDesignFeatures:
             "lobby",
             "core",
             "LOBBY",
-            ((8.0, 2.0), (12.0, 2.0), (12.0, 6.0), (8.0, 6.0)),
+            (
+                (8.0, 0.0),
+                (13.2, 0.0),
+                (13.2, 1.8),
+                (10.8, 1.8),
+                (10.8, 4.2),
+                (13.2, 4.2),
+                (13.2, 6.0),
+                (8.0, 6.0),
+            ),
         ),
         PlanElement(
             "column-1",
@@ -912,8 +1034,42 @@ def _office_features() -> BasicDesignFeatures:
             host_id="open_work",
             target_id="exit-2",
         ),
+        PlanLine(
+            "stair-door-1",
+            "egress",
+            "stair_door",
+            ((13.2, 0.5), (13.2, 1.4)),
+            host_id="lobby-1",
+            target_id="stair-1",
+            clear_width=0.9,
+        ),
+        PlanLine(
+            "stair-door-2",
+            "egress",
+            "stair_door",
+            ((13.2, 4.6), (13.2, 5.5)),
+            host_id="lobby-1",
+            target_id="stair-2",
+            clear_width=0.9,
+        ),
+        PlanLine(
+            "lobby-route-1",
+            "egress",
+            "lobby_route",
+            ((8.0, 0.95), (13.2, 0.95)),
+            host_id="lobby-1",
+            target_id="stair-door-1",
+        ),
+        PlanLine(
+            "lobby-route-2",
+            "egress",
+            "lobby_route",
+            ((8.0, 5.05), (13.2, 5.05)),
+            host_id="lobby-1",
+            target_id="stair-door-2",
+        ),
         PlanLine("grid-x", "structure", "grid", ((3.0, 0.0), (3.0, 10.0))),
-        PlanLine("grid-y", "structure", "grid", ((0.0, 5.0), (12.0, 5.0))),
+        PlanLine("grid-y", "structure", "grid", ((0.0, 5.0), (18.0, 5.0))),
         PlanLine(
             "open-work-window",
             "envelope",
@@ -925,8 +1081,8 @@ def _office_features() -> BasicDesignFeatures:
             "overall-width",
             "dimension",
             "overall_width",
-            ((0.0, 0.0), (12.0, 0.0)),
-            measured_value=12.0,
+            ((0.0, 0.0), (18.0, 0.0)),
+            measured_value=18.0,
         ),
         PlanLine(
             "overall-depth",
@@ -946,7 +1102,7 @@ def _office_features() -> BasicDesignFeatures:
             "street",
             "site",
             "street",
-            ((0.0, 0.0), (12.0, 0.0)),
+            ((0.0, 0.0), (18.0, 0.0)),
             label="STREET",
         ),
         PlanLine(

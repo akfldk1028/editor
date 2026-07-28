@@ -71,6 +71,19 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
         vertical = [element for element in features.elements if element.category == "vertical"]
         assert {element.kind for element in vertical} == {"stair", "elevator", "lobby", "shaft"}
         assert sum(element.kind == "stair" for element in vertical) == 2
+        stairs = [element for element in vertical if element.kind == "stair"]
+        assert all(
+            sorted(
+                (
+                    max(point[0] for point in stair.footprint)
+                    - min(point[0] for point in stair.footprint),
+                    max(point[1] for point in stair.footprint)
+                    - min(point[1] for point in stair.footprint),
+                )
+            )
+            == pytest.approx([2.8, 4.8])
+            for stair in stairs
+        )
         assert all(
             polygon_overlap_area(left.footprint, right.footprint) == pytest.approx(0.0)
             for index, left in enumerate(features.elements)
@@ -80,6 +93,42 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
         assert len(exits) == 2
         assert {line.clear_width for line in exits} == {0.9}
         assert exits[0].points != exits[1].points
+        stair_doors = [line for line in features.lines if line.kind == "stair_door"]
+        lobby_routes = [line for line in features.lines if line.kind == "lobby_route"]
+        lobby = next(element for element in vertical if element.kind == "lobby")
+        assert len(stair_doors) == 2
+        assert len(lobby_routes) == 2
+        assert {line.target_id for line in stair_doors} == {
+            stair.element_id for stair in stairs
+        }
+        assert {line.target_id for line in lobby_routes} == {
+            line.line_id for line in stair_doors
+        }
+        for route in lobby_routes:
+            exit_line = next(
+                line
+                for line in exits
+                if line.target_id
+                == next(
+                    door.target_id
+                    for door in stair_doors
+                    if door.line_id == route.target_id
+                )
+            )
+            stair_door = next(
+                line for line in stair_doors if line.line_id == route.target_id
+            )
+            assert route.points[0] == pytest.approx(
+                _midpoint(exit_line.points[0], exit_line.points[-1])
+            )
+            assert route.points[-1] == pytest.approx(
+                _midpoint(stair_door.points[0], stair_door.points[-1])
+            )
+            assert all(
+                _axis_aligned_segment(start, end)
+                and _segment_in_polygon(start, end, lobby.footprint)
+                for start, end in zip(route.points, route.points[1:])
+            )
         door_midpoints = {
             opening.connects[0]: tuple(
                 (opening.start[index] + opening.end[index]) / 2 for index in range(2)
@@ -465,6 +514,28 @@ def _segment_in_circulation_union(start, end, circulation) -> bool:
             for path in circulation
         )
         for index in range(samples + 1)
+    )
+
+
+def _segment_in_polygon(start, end, polygon) -> bool:
+    distance = math.dist(start, end)
+    samples = max(2, math.ceil(distance / 0.05))
+    return all(
+        _point_in_polygon_or_boundary(
+            (
+                start[0] + (end[0] - start[0]) * index / samples,
+                start[1] + (end[1] - start[1]) * index / samples,
+            ),
+            polygon,
+        )
+        for index in range(samples + 1)
+    )
+
+
+def _midpoint(start, end):
+    return (
+        (start[0] + end[0]) / 2,
+        (start[1] + end[1]) / 2,
     )
 
 

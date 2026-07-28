@@ -16,6 +16,12 @@ from engine.geometry.polygon import contains_polygon, polygon_area, polygon_over
 Point = tuple[float, float]
 Segment = tuple[Point, Point]
 _EPSILON = 1e-7
+_STAIR_SHORT_SIDE = 2.8
+_STAIR_LONG_SIDE = 4.8
+_CORE_LOBBY_MIN_DEPTH = 0.6
+_CORE_BANK_MIN_WIDTH = 1.2
+_CORE_BANK_DEPTH = 2.4
+_PROTECTED_OPENING_WIDTH = 0.9
 
 
 @dataclass(frozen=True)
@@ -54,9 +60,9 @@ def generate_basic_design(
         raise ValueError("basic design requires validated room doors")
     circulation_cells = _circulation_cells(layout.circulation)
 
-    elements = _core_elements(core)
     exits = _protected_exits(core, layout.circulation)
-    lines: list[PlanLine] = list(exits)
+    elements = _core_elements(core, exits)
+    lines: list[PlanLine] = [*exits, *_core_access_lines(elements, exits)]
     lines.extend(_egress_routes(layout, exits, circulation_cells))
     if shared_structure is None:
         grid_lines, columns = _structure(boundary, (layout,), ((elements, exits),))
@@ -85,30 +91,144 @@ def generate_shared_structure(
             raise ValueError("shared structure requires exactly one core per floor")
         core = cores[0]
         _require_rectangular_core(core)
-        elements = _core_elements(core)
         exits = _protected_exits(core, layout.circulation)
+        elements = _core_elements(core, exits)
         core_data.append((elements, exits))
     lines, columns = _structure(boundary, layouts, tuple(core_data))
     return StructureSet(lines=tuple(lines), columns=tuple(columns))
 
 
-def _core_elements(core: RoomPolygon) -> list[PlanElement]:
+def _core_elements(
+    core: RoomPolygon,
+    exits: list[PlanLine],
+) -> list[PlanElement]:
     min_x, min_y, max_x, max_y = _bounds(core.polygon)
-    width, height = max_x - min_x, max_y - min_y
-    if width < 5.0 or height < 3.2:
-        raise ValueError("core is too small to place two stairs, elevator, lobby, and shaft")
-    lower_height = min(2.4, height * 0.58)
-    stair_width = min(1.5, width * 0.24)
-    elevator_width = min(1.8, width * 0.28)
-    shaft_width = width - 2 * stair_width - elevator_width
-    if shaft_width < 0.7 or height - lower_height < 0.7:
-        raise ValueError("core cannot fit required vertical transport content")
-    cells = (
-        ("core-stair-1", "stair", "UP", min_x, min_y, min_x + stair_width, min_y + lower_height),
-        ("core-stair-2", "stair", "UP", min_x + stair_width, min_y, min_x + 2 * stair_width, min_y + lower_height),
-        ("core-elevator", "elevator", "ELEV", min_x + 2 * stair_width, min_y, min_x + 2 * stair_width + elevator_width, min_y + lower_height),
-        ("core-shaft", "shaft", "SHAFT", min_x + 2 * stair_width + elevator_width, min_y, max_x, min_y + lower_height),
-        ("core-lobby", "lobby", "LOBBY", min_x, min_y + lower_height, max_x, max_y),
+    if len(exits) != 2:
+        raise ValueError("core subdivision requires two protected exits")
+    first_start, first_end = exits[0].points
+    horizontal = abs(first_start[1] - first_end[1]) <= _EPSILON
+    if horizontal:
+        shared_coordinate = first_start[1]
+        if abs(shared_coordinate - min_y) <= _EPSILON:
+            inward_sign = 1.0
+        elif abs(shared_coordinate - max_y) <= _EPSILON:
+            inward_sign = -1.0
+        else:
+            raise ValueError("protected exits must lie on one core edge")
+        span = max_x - min_x
+        depth = max_y - min_y
+
+        def local(u: float, d: float) -> Point:
+            return (min_x + u, shared_coordinate + inward_sign * d)
+
+    else:
+        shared_coordinate = first_start[0]
+        if abs(shared_coordinate - min_x) <= _EPSILON:
+            inward_sign = 1.0
+        elif abs(shared_coordinate - max_x) <= _EPSILON:
+            inward_sign = -1.0
+        else:
+            raise ValueError("protected exits must lie on one core edge")
+        span = max_y - min_y
+        depth = max_x - min_x
+
+        def local(u: float, d: float) -> Point:
+            return (shared_coordinate + inward_sign * d, min_y + u)
+
+    stair_short_side = min(
+        _STAIR_SHORT_SIDE,
+        (span - _CORE_BANK_MIN_WIDTH) / 2,
+    )
+    stair_long_side = min(
+        _STAIR_LONG_SIDE,
+        depth - _CORE_LOBBY_MIN_DEPTH,
+    )
+    central_width = span - 2 * stair_short_side
+    lobby_depth = depth - stair_long_side
+    if (
+        stair_short_side < 2.4 - _EPSILON
+        or stair_long_side < 4.0 - _EPSILON
+        or central_width < _CORE_BANK_MIN_WIDTH - _EPSILON
+        or lobby_depth < _CORE_LOBBY_MIN_DEPTH - _EPSILON
+    ):
+        raise ValueError(
+            "core is too small for two representative separated stairs, "
+            "a central bank, and lobby"
+        )
+    bank_depth = min(_CORE_BANK_DEPTH, depth - lobby_depth)
+    elevator_width = min(1.8, central_width - 0.6)
+    if elevator_width < 0.75 - _EPSILON:
+        raise ValueError("core central bank cannot fit elevator and shaft")
+    bank_start = depth - bank_depth
+    stair_start = lobby_depth
+
+    local_shapes = (
+        (
+            "core-stair-1",
+            "stair",
+            "UP",
+            _local_rectangle(
+                local,
+                0.0,
+                stair_start,
+                stair_short_side,
+                stair_start + stair_long_side,
+            ),
+        ),
+        (
+            "core-stair-2",
+            "stair",
+            "UP",
+            _local_rectangle(
+                local,
+                span - stair_short_side,
+                stair_start,
+                span,
+                stair_start + stair_long_side,
+            ),
+        ),
+        (
+            "core-elevator",
+            "elevator",
+            "ELEV",
+            _local_rectangle(
+                local,
+                stair_short_side,
+                bank_start,
+                stair_short_side + elevator_width,
+                depth,
+            ),
+        ),
+        (
+            "core-shaft",
+            "shaft",
+            "SHAFT",
+            _local_rectangle(
+                local,
+                stair_short_side + elevator_width,
+                bank_start,
+                span - stair_short_side,
+                depth,
+            ),
+        ),
+        (
+            "core-lobby",
+            "lobby",
+            "LOBBY",
+            tuple(
+                local(u, d)
+                for u, d in (
+                    (0.0, 0.0),
+                    (span, 0.0),
+                    (span, lobby_depth),
+                    (span - stair_short_side, lobby_depth),
+                    (span - stair_short_side, bank_start),
+                    (stair_short_side, bank_start),
+                    (stair_short_side, lobby_depth),
+                    (0.0, lobby_depth),
+                )
+            ),
+        ),
     )
     elements = [
         PlanElement(
@@ -117,9 +237,9 @@ def _core_elements(core: RoomPolygon) -> list[PlanElement]:
             kind=kind,
             host_id=core.room_id,
             label=label,
-            footprint=_rectangle(left, bottom, right, top),
+            footprint=footprint,
         )
-        for element_id, kind, label, left, bottom, right, top in cells
+        for element_id, kind, label, footprint in local_shapes
     ]
     if not all(contains_polygon(core.polygon, element.footprint) for element in elements):
         raise ValueError("core subdivision must remain contained in the actual core")
@@ -132,6 +252,61 @@ def _core_elements(core: RoomPolygon) -> list[PlanElement]:
     return elements
 
 
+def _core_access_lines(
+    elements: list[PlanElement],
+    exits: list[PlanLine],
+) -> list[PlanLine]:
+    lobby = next(element for element in elements if element.kind == "lobby")
+    stairs = {
+        element.element_id: element
+        for element in elements
+        if element.kind == "stair"
+    }
+    lines: list[PlanLine] = []
+    for index, exit_line in enumerate(exits, start=1):
+        stair = stairs[exit_line.target_id or ""]
+        shared = shared_boundary_segments(
+            list(lobby.footprint),
+            list(stair.footprint),
+        )
+        if not shared:
+            raise ValueError("each stair must share a boundary with the core lobby")
+        boundary = max(shared, key=lambda segment: math.dist(*segment))
+        stair_door_points = _centered_segment(boundary, _PROTECTED_OPENING_WIDTH)
+        stair_door = PlanLine(
+            line_id=f"core-stair-door-{index}",
+            category="egress",
+            kind="stair_door",
+            points=stair_door_points,
+            host_id=lobby.element_id,
+            target_id=stair.element_id,
+            label=f"STAIR {index}",
+            clear_width=_PROTECTED_OPENING_WIDTH,
+        )
+        exit_midpoint = _midpoint(exit_line.points[0], exit_line.points[-1])
+        stair_midpoint = _midpoint(*stair_door_points)
+        route_points = _orthogonal_route_in_polygon(
+            exit_midpoint,
+            stair_midpoint,
+            lobby.footprint,
+        )
+        lines.extend(
+            (
+                stair_door,
+                PlanLine(
+                    line_id=f"core-lobby-route-{index}",
+                    category="egress",
+                    kind="lobby_route",
+                    points=route_points,
+                    host_id=lobby.element_id,
+                    target_id=stair_door.line_id,
+                    label="LOBBY ROUTE",
+                ),
+            )
+        )
+    return lines
+
+
 def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[PlanLine]:
     shared = [
         segment
@@ -140,12 +315,24 @@ def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[
     ]
     if not shared:
         raise ValueError("core has no shared circulation boundary for protected exits")
-    start, end = max(shared, key=lambda segment: math.dist(*segment))
+    start, end = _ordered_segment(
+        max(shared, key=lambda segment: math.dist(*segment))
+    )
     length = math.dist(start, end)
     if length < 2.7 - _EPSILON:
         raise ValueError("core/circulation shared boundary cannot fit two protected exits")
-    first = _segment_between(start, end, 0.15, 0.15 + 0.9 / length)
-    second = _segment_between(start, end, 0.85 - 0.9 / length, 0.85)
+    first = _segment_between(
+        start,
+        end,
+        0.15,
+        0.15 + _PROTECTED_OPENING_WIDTH / length,
+    )
+    second = _segment_between(
+        start,
+        end,
+        0.85 - _PROTECTED_OPENING_WIDTH / length,
+        0.85,
+    )
     return [
         PlanLine(
             line_id=f"protected-exit-{index}",
@@ -155,7 +342,7 @@ def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[
             host_id=core.room_id,
             target_id=f"core-stair-{index}",
             label=f"EXIT {index}",
-            clear_width=0.9,
+            clear_width=_PROTECTED_OPENING_WIDTH,
         )
         for index, points in enumerate((first, second), start=1)
     ]
@@ -544,6 +731,11 @@ def _room_contents(
         placement_margin = 0.35
         aisle = 0.8
         room_clearance = list(clearance_segments)
+        room_clearance.extend(
+            (line.points[0], line.points[-1])
+            for line in fixed_lines
+            if line.kind == "window" and line.host_id == room.room_id
+        )
         if room.space_type in {"sales", "open_work"}:
             # Representative density heuristic: one primary object per 30 m2,
             # with two minimum, for concept review only.
@@ -750,6 +942,29 @@ def _rectangle(min_x: float, min_y: float, max_x: float, max_y: float) -> tuple[
     return ((round(min_x, 6), round(min_y, 6)), (round(max_x, 6), round(min_y, 6)), (round(max_x, 6), round(max_y, 6)), (round(min_x, 6), round(max_y, 6)))
 
 
+def _local_rectangle(
+    local,
+    min_u: float,
+    min_d: float,
+    max_u: float,
+    max_d: float,
+) -> tuple[Point, ...]:
+    return tuple(
+        local(u, d)
+        for u, d in (
+            (min_u, min_d),
+            (max_u, min_d),
+            (max_u, max_d),
+            (min_u, max_d),
+        )
+    )
+
+
+def _ordered_segment(segment: Segment) -> Segment:
+    start, end = segment
+    return (start, end) if start <= end else (end, start)
+
+
 def _grid_values(start: float, end: float) -> list[float]:
     values = [start]
     cursor = start + 6.0
@@ -773,11 +988,55 @@ def _midpoint(start: Point, end: Point) -> Point:
 
 
 def _centered_segment(segment: Segment, length: float) -> tuple[Point, Point]:
-    start, end = segment
+    start, end = _ordered_segment(segment)
     total = math.dist(start, end)
     if length > total + _EPSILON:
         raise ValueError("line content cannot fit its host boundary")
     return _segment_between(start, end, (total - length) / (2 * total), (total + length) / (2 * total))
+
+
+def _orthogonal_route_in_polygon(
+    start: Point,
+    end: Point,
+    polygon: tuple[Point, ...],
+) -> tuple[Point, ...]:
+    candidates = (
+        (start, (start[0], end[1]), end),
+        (start, (end[0], start[1]), end),
+    )
+    for candidate in candidates:
+        points = tuple(
+            point
+            for index, point in enumerate(candidate)
+            if index == 0 or math.dist(candidate[index - 1], point) > _EPSILON
+        )
+        if all(
+            _axis_segment_in_polygon(segment_start, segment_end, polygon)
+            for segment_start, segment_end in zip(points, points[1:])
+        ):
+            return points
+    raise ValueError("core lobby cannot route a protected exit to its stair door")
+
+
+def _axis_segment_in_polygon(
+    start: Point,
+    end: Point,
+    polygon: tuple[Point, ...],
+) -> bool:
+    if (
+        abs(start[0] - end[0]) > _EPSILON
+        and abs(start[1] - end[1]) > _EPSILON
+    ):
+        return False
+    samples = (
+        start,
+        end,
+        ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2),
+    )
+    return all(
+        _point_in_polygon_or_boundary(point, list(polygon))
+        for point in samples
+    )
 
 
 def _search_values(start: float, end: float) -> list[float]:
