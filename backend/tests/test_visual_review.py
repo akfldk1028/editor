@@ -980,6 +980,27 @@ def test_cad_layer_manager_disables_unmodeled_basic_design_layers(tmp_path):
     )
 
 
+def test_cad_layer_isolate_uses_active_row_without_checkbox_side_effects(tmp_path):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    page = review.html_path.read_text(encoding="utf-8")
+
+    assert 'class="cad-layer-row" data-layer="rooms" role="button"' in page
+    assert 'tabindex="0" aria-pressed="false"' in page
+    assert "let activeLayer = null;" in page
+    assert "function setActiveLayer(layer)" in page
+    assert 'row.addEventListener("click", (event) =>' in page
+    assert "if (event.target === checkbox) return;" in page
+    assert 'row.addEventListener("keydown", (event) =>' in page
+    assert (
+        'button.dataset.command === "isolate" && activeLayer !== null'
+        in page
+    )
+    assert "checkbox.checked = checkbox.dataset.layer === activeLayer;" in page
+    assert "isolateButton.disabled = activeLayer === null;" in page
+
+
 def test_use_specific_room_palette_has_svg_and_png_entries_for_each_role():
     room_types = {
         "open_work", "meeting", "reception", "focus", "pantry", "restroom", "core", "it_storage",

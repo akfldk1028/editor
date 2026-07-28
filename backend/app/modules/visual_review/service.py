@@ -2574,9 +2574,15 @@ def _render_html(
             "modeled",
             0,
         )
+        row_state = (
+            'role="button" tabindex="-1" aria-pressed="false" aria-disabled="true"'
+            if disabled
+            else 'role="button" tabindex="0" aria-pressed="false"'
+        )
         layer_rows.append(
-            f'<label class="cad-layer-row" data-layer="{layer}">'
-            f'<input type="checkbox" data-layer="{layer}" checked'
+            f'<div class="cad-layer-row" data-layer="{layer}" {row_state}>'
+            f'<input type="checkbox" data-layer="{layer}" '
+            f'aria-label="{label} 표시" checked'
             + (' disabled aria-disabled="true"' if disabled else "")
             + ">"
             f'<span class="layer-swatch" style="--layer-color: {color}" '
@@ -2584,7 +2590,7 @@ def _render_html(
             f'<span class="layer-name">{label}</span>'
             f'<span class="layer-modeled-count" '
             f'aria-label="모델링 객체 {modeled_count}개">{modeled_count}</span>'
-            "</label>"
+            "</div>"
         )
     controls = "".join(layer_rows)
     completeness_rows = "".join(
@@ -2624,6 +2630,7 @@ def _render_html(
     .cad-layer-row {{ display: grid; grid-template-columns: 20px 16px minmax(0, 1fr) auto; gap: 7px; align-items: center; min-height: 33px; padding: 4px 10px; border-bottom: 1px solid #edf0f2; cursor: pointer; }}
     .cad-layer-row:last-child {{ border-bottom: 0; }}
     .cad-layer-row:hover {{ background: #f5f7f8; }}
+    .cad-layer-row[data-active="true"] {{ background: #e5f0f8; box-shadow: inset 3px 0 #1261a0; }}
     .cad-layer-row:has(input:disabled) {{ color: #8b9298; cursor: not-allowed; }}
     .cad-layer-row input {{ width: 16px; height: 16px; margin: 0; accent-color: #1261a0; }}
     .layer-swatch {{ width: 13px; height: 13px; border: 1px solid #6d747a; background: var(--layer-color); }}
@@ -2691,19 +2698,36 @@ def _render_html(
     const checkboxes = Array.from(
       document.querySelectorAll('#cad-layer-manager input[type="checkbox"][data-layer]')
     );
+    const rows = Array.from(
+      document.querySelectorAll("#cad-layer-manager .cad-layer-row[data-layer]")
+    );
     const commandButtons = document.querySelectorAll(
       "#cad-layer-manager button[data-command]"
     );
     const isolateButton = document.querySelector(
       '#cad-layer-manager button[data-command="isolate"]'
     );
+    let activeLayer = null;
     function enabledCheckboxes() {{
       return checkboxes.filter((checkbox) => !checkbox.disabled);
     }}
+    function setActiveLayer(layer) {{
+      if (layer !== null) {{
+        const checkbox = checkboxes.find(
+          (candidate) => candidate.dataset.layer === layer
+        );
+        if (!checkbox || checkbox.disabled) return;
+      }}
+      activeLayer = layer;
+      rows.forEach((row) => {{
+        const active = row.dataset.layer === activeLayer;
+        row.dataset.active = String(active);
+        row.setAttribute("aria-pressed", String(active));
+      }});
+      updateCommandState();
+    }}
     function updateCommandState() {{
-      isolateButton.disabled = !enabledCheckboxes().some(
-        (checkbox) => checkbox.checked
-      );
+      isolateButton.disabled = activeLayer === null;
     }}
     function synchronizeLayers() {{
       const documentRoot = frame.contentDocument;
@@ -2722,13 +2746,34 @@ def _render_html(
         updateCommandState();
       }});
     }});
+    rows.forEach((row) => {{
+      const checkbox = row.querySelector('input[type="checkbox"]');
+      row.addEventListener("click", (event) => {{
+        if (event.target === checkbox) return;
+        setActiveLayer(row.dataset.layer);
+      }});
+      row.addEventListener("keydown", (event) => {{
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        setActiveLayer(row.dataset.layer);
+      }});
+    }});
     commandButtons.forEach((button) => {{
       button.addEventListener("click", () => {{
         const enabled = enabledCheckboxes();
-        if (button.dataset.command === "all-on" || button.dataset.command === "reset") {{
+        if (button.dataset.command === "all-on") {{
           enabled.forEach((checkbox) => {{ checkbox.checked = true; }});
         }} else if (button.dataset.command === "all-off") {{
           enabled.forEach((checkbox) => {{ checkbox.checked = false; }});
+        }} else if (
+          button.dataset.command === "isolate" && activeLayer !== null
+        ) {{
+          enabled.forEach((checkbox) => {{
+            checkbox.checked = checkbox.dataset.layer === activeLayer;
+          }});
+        }} else if (button.dataset.command === "reset") {{
+          enabled.forEach((checkbox) => {{ checkbox.checked = true; }});
+          setActiveLayer(null);
         }}
         synchronizeLayers();
         updateCommandState();
