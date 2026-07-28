@@ -6,9 +6,13 @@ import math
 import pytest
 
 from backend.app.modules.generation_loop.service import run_building_generation
-from backend.app.modules.basic_design.service import generate_basic_design
+from backend.app.modules.basic_design.service import (
+    _nearest_separated_exit_openings,
+    generate_basic_design,
+)
 from backend.app.schemas.layout import BasicDesignFeatures, PlanElement, PlanLine, RoomPolygon
 from backend.app.schemas.mass import MassInput
+from engine.geometry.distance import segment_to_segment_distance
 from engine.geometry.polygon import polygon_area, polygon_overlap_area
 
 
@@ -103,6 +107,38 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
         assert {line.target_id for line in lobby_routes} == {
             line.line_id for line in stair_doors
         }
+        core_exit = next(
+            line for line in exits if line.target_id == "core-stair-1"
+        )
+        core_stair_door = next(
+            line for line in stair_doors if line.target_id == "core-stair-1"
+        )
+        core_route = next(
+            line
+            for line in lobby_routes
+            if line.target_id == core_stair_door.line_id
+        )
+        along_axis = (
+            0
+            if core_exit.points[0][1] == core_exit.points[-1][1]
+            else 1
+        )
+        assert tuple(
+            point[along_axis] for point in core_exit.points
+        ) == pytest.approx(
+            tuple(
+                point[along_axis] for point in core_stair_door.points
+            )
+        )
+        assert len(core_route.points) == 2
+        assert (
+            core_route.points[0][along_axis]
+            == pytest.approx(core_route.points[-1][along_axis])
+        )
+        remote_exit = next(
+            line for line in exits if line.target_id == "remote-stair-2"
+        )
+        assert remote_exit.points == ((0.0, 6.0), (0.9, 6.0))
         for route in lobby_routes:
             exit_line = next(
                 line
@@ -195,6 +231,224 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
             (element.element_id, element.footprint) for element in first.elements
             if element.category in {"vertical", "structure"}
         ]
+
+
+def test_rotated_core_exit_aligns_with_vertical_stair_door_bank() -> None:
+    mass = MassInput(
+        project_id="vertical-core-exit",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+    )
+    floor = run_building_generation(mass).floor_results[0]
+
+    def rotate(point):
+        return (point[1], point[0])
+
+    rotated = replace(
+        floor.layout,
+        rooms=[
+            replace(room, polygon=[rotate(point) for point in room.polygon])
+            for room in floor.layout.rooms
+        ],
+        circulation=[
+            replace(path, polygon=[rotate(point) for point in path.polygon])
+            for path in floor.layout.circulation
+        ],
+        openings=[
+            replace(
+                opening,
+                start=rotate(opening.start),
+                end=rotate(opening.end),
+            )
+            for opening in floor.layout.openings
+        ],
+        basic_design=None,
+        remote_stair_footprint=tuple(
+            rotate(point)
+            for point in floor.layout.remote_stair_footprint or ()
+        ),
+    )
+    features = generate_basic_design(
+        rotated,
+        boundary=[rotate(point) for point in mass.footprint_polygon],
+        street_segments=[
+            (
+                rotate(mass.footprint_polygon[0]),
+                rotate(mass.footprint_polygon[1]),
+            )
+        ],
+    )
+    core_exit = next(
+        line
+        for line in features.lines
+        if line.kind == "protected_exit"
+        and line.target_id == "core-stair-1"
+    )
+    stair_door = next(
+        line
+        for line in features.lines
+        if line.kind == "stair_door"
+        and line.target_id == "core-stair-1"
+    )
+    lobby_route = next(
+        line
+        for line in features.lines
+        if line.kind == "lobby_route"
+        and line.target_id == stair_door.line_id
+    )
+
+    assert core_exit.points[0][0] == pytest.approx(core_exit.points[1][0])
+    assert tuple(point[1] for point in core_exit.points) == pytest.approx(
+        tuple(point[1] for point in stair_door.points)
+    )
+    assert len(lobby_route.points) == 2
+    assert lobby_route.points[0][1] == pytest.approx(
+        lobby_route.points[1][1]
+    )
+
+
+@pytest.mark.parametrize("rotated_orientation", [False, True])
+def test_exit_separation_clamps_nearest_feasible_boundary_center(
+    rotated_orientation: bool,
+) -> None:
+    mass = MassInput(
+        project_id=f"clamped-core-exit-{rotated_orientation}",
+        floors=1,
+        footprint_polygon=[(0, 0), (20, 0), (20, 20), (0, 20)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+    )
+    floor = run_building_generation(mass).floor_results[0]
+
+    def transform(point):
+        return (
+            (point[1], point[0])
+            if rotated_orientation
+            else point
+        )
+
+    layout = replace(
+        floor.layout,
+        rooms=[
+            replace(room, polygon=[transform(point) for point in room.polygon])
+            for room in floor.layout.rooms
+        ],
+        circulation=[
+            replace(path, polygon=[transform(point) for point in path.polygon])
+            for path in floor.layout.circulation
+        ],
+        openings=[
+            replace(
+                opening,
+                start=transform(opening.start),
+                end=transform(opening.end),
+            )
+            for opening in floor.layout.openings
+        ],
+        basic_design=None,
+        remote_stair_footprint=tuple(
+            transform(point)
+            for point in floor.layout.remote_stair_footprint or ()
+        ),
+    )
+    boundary = [
+        transform(point) for point in mass.footprint_polygon
+    ]
+    features = generate_basic_design(
+        layout,
+        boundary=boundary,
+        street_segments=[
+            (transform((0, 0)), transform((20, 0)))
+        ],
+    )
+    core_exit = next(
+        line
+        for line in features.lines
+        if line.kind == "protected_exit"
+        and line.target_id == "core-stair-1"
+    )
+    remote_exit = next(
+        line
+        for line in features.lines
+        if line.kind == "protected_exit"
+        and line.target_id == "remote-stair-2"
+    )
+    stair_door = next(
+        line
+        for line in features.lines
+        if line.kind == "stair_door"
+        and line.target_id == "core-stair-1"
+    )
+    core_midpoint = _midpoint(*core_exit.points)
+    door_midpoint = _midpoint(*stair_door.points)
+    along_axis = 1 if rotated_orientation else 0
+    fixed_axis = 1 - along_axis
+    target = max(
+        math.dist(first, second)
+        for index, first in enumerate(boundary)
+        for second in boundary[index + 1 :]
+    ) / 2.0
+    actual_gap = segment_to_segment_distance(
+        tuple(core_exit.points),
+        tuple(remote_exit.points),
+    )
+    toward_preferred = (
+        -1.0
+        if core_midpoint[along_axis] > door_midpoint[along_axis]
+        else 1.0
+    )
+    epsilon_below = tuple(
+        tuple(
+            coordinate + (
+                toward_preferred * 1e-6
+                if axis == along_axis
+                else 0.0
+            )
+            for axis, coordinate in enumerate(point)
+        )
+        for point in core_exit.points
+    )
+
+    assert actual_gap == pytest.approx(target)
+    assert segment_to_segment_distance(
+        epsilon_below,
+        tuple(remote_exit.points),
+    ) < target
+    assert (
+        actual_gap + 1e-7 >= target
+    )
+    assert (
+        core_exit.points[0][fixed_axis]
+        == pytest.approx(core_exit.points[1][fixed_axis])
+    )
+    assert math.dist(*core_exit.points) == pytest.approx(0.9)
+    assert remote_exit.points == tuple(
+        transform(point) for point in ((0.0, 10.0), (0.9, 10.0))
+    )
+
+
+def test_exit_separation_infeasible_fallback_is_deterministic() -> None:
+    arguments = {
+        "core_boundary": ((0.0, 0.0), (2.0, 0.0)),
+        "remote_candidates": (
+            ((0.0, 1.0), (0.9, 1.0)),
+            ((1.1, 1.0), (2.0, 1.0)),
+        ),
+        "opening_width": 0.9,
+        "separation_target": 10.0,
+    }
+
+    first = _nearest_separated_exit_openings(**arguments)
+    second = _nearest_separated_exit_openings(**arguments)
+
+    assert first == second
+    assert first[0] == ((0.0, 0.0), (0.9, 0.0))
+    assert first[1] == ((1.1, 1.0), (2.0, 1.0))
+    assert segment_to_segment_distance(*first) < arguments["separation_target"]
 
 
 @pytest.mark.parametrize(

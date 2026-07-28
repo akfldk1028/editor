@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 import json
+import math
 
 import pytest
 
@@ -174,6 +175,109 @@ def test_building_generation_exposes_per_floor_area_and_egress_evidence() -> Non
     )
     assert len({id(floor.area_ledger) for floor in building.floor_results}) == 3
     assert len({id(floor.egress_graph) for floor in building.floor_results}) == 3
+
+
+def test_30x12_upper_office_route_recomputes_to_general_30_pass() -> None:
+    building = run_building_generation(_mass())
+
+    for floor in building.floor_results[1:]:
+        assert floor.egress_graph is not None
+        assert floor.egress_graph.governing_distance_m == pytest.approx(26.85)
+        governing = next(
+            room
+            for room in floor.egress_graph.room_results
+            if room.room_id == floor.egress_graph.governing_room_id
+        )
+        assert sum(
+            math.dist(start, end)
+            for start, end in zip(
+                governing.route_polyline,
+                governing.route_polyline[1:],
+            )
+        ) == pytest.approx(26.85)
+        travel = next(
+            check
+            for check in floor.validation.regulatory_screening.checks
+            if check.rule_id == "KR-EGRESS-TRAVEL-DISTANCE-ART34"
+        )
+        assert travel.status == "pass"
+        assert travel.measured_value == pytest.approx(26.85)
+
+
+@pytest.mark.parametrize(
+    ("width", "depth", "travel_status"),
+    [
+        (20.0, 12.0, "pass"),
+        (20.0, 20.0, "pass"),
+        (30.0, 12.0, "pass"),
+        (30.0, 20.0, "fail"),
+    ],
+)
+def test_egress_alignment_preserves_concept_basic_matrix(
+    width: float,
+    depth: float,
+    travel_status: str,
+) -> None:
+    mass = MassInput(
+        project_id=f"egress-matrix-{width:g}x{depth:g}",
+        floors=1,
+        footprint_polygon=[
+            (0, 0),
+            (width, 0),
+            (width, depth),
+            (0, depth),
+        ],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+        building_code_context=BuildingCodeContext(
+            jurisdiction="KR",
+            effective_date="2026-07-28",
+            qualifying_sprinkler_protection=False,
+            travel_limit_classification="general_30",
+            floor_facts=(
+                FloorCodeContext(
+                    floor_index=1,
+                    above_grade=True,
+                    occupancy_category=(
+                        "assembly_religious_bar_funeral_200"
+                    ),
+                    story_number=1,
+                    habitable_area_m2=width * depth,
+                    is_evacuation_floor=False,
+                ),
+            ),
+        ),
+    )
+
+    floor = run_building_generation(mass).floor_results[0]
+    screening = floor.validation.regulatory_screening
+    assert screening is not None
+    travel = next(
+        check
+        for check in screening.checks
+        if check.rule_id == "KR-EGRESS-TRAVEL-DISTANCE-ART34"
+    )
+    separation = next(
+        check
+        for check in screening.checks
+        if check.rule_id == "KR-EGRESS-STAIR-SEPARATION-ART8"
+    )
+
+    assert floor.validation.accepted
+    assert floor.validation.hard_violation_count == 0
+    assert floor.area_ledger is not None
+    assert floor.area_ledger.status == "pass"
+    assert floor.validation.basic_design is not None
+    assert floor.validation.basic_design.stair_count == 2
+    assert separation.status == "pass"
+    assert travel.status == travel_status
+    if (width, depth) == (20.0, 20.0):
+        assert screening.exit_separation_evidence is not None
+        assert (
+            screening.exit_separation_evidence
+            .nearest_doorway_segment_distance_m
+        ) == pytest.approx(math.hypot(width, depth) / 2.0)
 
 
 def test_floor_area_classification_uses_actual_room_and_layout_sources() -> None:
@@ -479,12 +583,13 @@ def test_zoning_loop_revalidates_candidate_with_same_egress_evidence(
         if check["rule_id"] == "KR-EGRESS-TRAVEL-DISTANCE-ART34"
     )
     assert payload["egress_graph"]["status"] == "checked"
-    assert travel["status"] == "fail"
+    assert travel["status"] == "pass"
     assert travel["measured_value"] == pytest.approx(
         payload["egress_graph"]["governing_distance_m"]
     )
-    assert loop.accepted is False
-    assert loop.final_needs_iteration is True
+    assert travel["measured_value"] == pytest.approx(26.85)
+    assert loop.accepted is True
+    assert loop.final_needs_iteration is False
 
 
 def test_building_review_json_retains_floor_area_and_egress_evidence(
@@ -507,9 +612,31 @@ def test_building_review_json_retains_floor_area_and_egress_evidence(
 
 
 def test_explicit_regulatory_failure_forces_review_iteration(tmp_path) -> None:
-    mass = _mass()
+    mass = _mass(floors=1)
     building = run_building_generation(mass)
-    failed_floor = building.floor_results[1]
+    floor = building.floor_results[0]
+    failed_egress = _checked_egress(30.001)
+    failed_validation = validate_layout(
+        floor.layout,
+        floor.program,
+        boundary=mass.footprint_polygon,
+        street_segments=[((0, 0), (30, 0))],
+        require_openings=True,
+        min_door_width=0.8,
+        min_circulation_width=1.2,
+        require_basic_design=True,
+        building_code_context=mass.building_code_context,
+        egress_graph=failed_egress,
+    )
+    failed_floor = replace(
+        floor,
+        validation=failed_validation,
+        egress_graph=failed_egress,
+    )
+    failed_building = replace(
+        building,
+        floor_results=(failed_floor,),
+    )
     screening = failed_floor.validation.regulatory_screening
     assert screening is not None
     assert screening.status == "fail"
@@ -520,7 +647,7 @@ def test_explicit_regulatory_failure_forces_review_iteration(tmp_path) -> None:
         output_dir=tmp_path / "floor",
     )
     building_artifacts = create_building_visual_review_artifacts(
-        building,
+        failed_building,
         boundary=mass.footprint_polygon,
         output_dir=tmp_path / "building",
     )
@@ -538,9 +665,9 @@ def test_explicit_regulatory_failure_forces_review_iteration(tmp_path) -> None:
     assert floor_payload["needs_iteration"] is True
     assert "Area Ledger" in floor_html
     assert "Travel Distance" in floor_html
-    assert "30.6" in floor_html
-    assert "common_path_unique_route_unverified" in floor_html
+    assert "30.001" in floor_html
+    assert "Unresolved Evidence" in floor_html
     assert building_payload["regulatory_screening"]["status"] == "fail"
     assert building_payload["render_validation"]["status"] == "pass"
     assert building_payload["accepted"] is False
-    assert building_payload["floors"][1]["accepted"] is False
+    assert building_payload["floors"][0]["accepted"] is False

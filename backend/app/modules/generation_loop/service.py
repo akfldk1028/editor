@@ -80,6 +80,10 @@ def build_floor_design_evidence(
     boundary: list[tuple[float, float]],
 ) -> tuple[FloorAreaLedger, FloorEgressGraphResult]:
     """Build conservative area and traversable-egress evidence for one floor."""
+    floor_boundary = tuple(
+        (float(x), float(y))
+        for x, y in boundary
+    )
     program_types = {
         node.node_id: node.space_type
         for node in program.nodes
@@ -131,7 +135,7 @@ def build_floor_design_evidence(
     )
     area = compute_floor_area_ledger(
         floor_index=layout.floor_index,
-        gross=AreaGeometry("floor-boundary", tuple(boundary)),
+        gross=AreaGeometry("floor-boundary", floor_boundary),
         core=tuple(classified["core"]),
         circulation=circulation,
         remote_stair=remote_stair,
@@ -174,7 +178,7 @@ def build_floor_design_evidence(
     else:
         egress = measure_traversable_egress(
             layout=layout,
-            floor_boundary=tuple(boundary),
+            floor_boundary=floor_boundary,
             occupied_room_ids=tuple(occupied_room_ids),
         )
     return area, egress

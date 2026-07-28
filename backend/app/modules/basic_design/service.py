@@ -18,6 +18,7 @@ from backend.app.modules.basic_design.stair import (
     resolve_floor_height,
 )
 from engine.geometry.access import orthogonal_min_width, shared_boundary_segments
+from engine.geometry.distance import segment_to_segment_distance
 from engine.geometry.polygon import contains_polygon, polygon_area, polygon_overlap_area
 
 Point = tuple[float, float]
@@ -71,6 +72,7 @@ def generate_basic_design(
         core,
         layout.circulation,
         layout.remote_stair_footprint,
+        boundary,
     )
     resolved_height, height_source = resolve_floor_height(floor_to_floor_height_m)
     elements = _core_elements(
@@ -188,6 +190,7 @@ def generate_shared_structure(
             core,
             layout.circulation,
             layout.remote_stair_footprint,
+            boundary,
         )
         resolved_height, _ = resolve_floor_height(floor_to_floor_height_m)
         elements = _core_elements(
@@ -443,6 +446,7 @@ def _protected_exits(
     core: RoomPolygon,
     circulation: list[RoomPolygon],
     remote_stair_footprint: tuple[Point, ...] | None,
+    floor_boundary: list[Point],
 ) -> list[PlanLine]:
     shared = [
         segment
@@ -457,7 +461,6 @@ def _protected_exits(
     length = math.dist(start, end)
     if length < _PROTECTED_OPENING_WIDTH - _EPSILON:
         raise ValueError("core/circulation shared boundary cannot fit a protected exit")
-    first = _centered_segment((start, end), _PROTECTED_OPENING_WIDTH)
     if remote_stair_footprint is None:
         raise ValueError("layout must reserve a remote stair footprint")
     remote_candidates = [
@@ -494,10 +497,11 @@ def _protected_exits(
             remote_start[1] + unit_y * _PROTECTED_OPENING_WIDTH,
         ),
     )
-    first_midpoint = _midpoint(*first)
-    second = max(
-        (remote_start_segment, remote_end_segment),
-        key=lambda segment: math.dist(first_midpoint, _midpoint(*segment)),
+    first, second = _nearest_separated_exit_openings(
+        core_boundary=(start, end),
+        remote_candidates=(remote_start_segment, remote_end_segment),
+        opening_width=_PROTECTED_OPENING_WIDTH,
+        separation_target=_maximum_pairwise_distance(floor_boundary) / 2.0,
     )
     return [
         PlanLine(
@@ -1378,6 +1382,146 @@ def _boundary_end_segment(
     return (
         start,
         (start[0] + unit[0] * length, start[1] + unit[1] * length),
+    )
+
+
+def _nearest_separated_exit_openings(
+    *,
+    core_boundary: Segment,
+    remote_candidates: tuple[Segment, Segment],
+    opening_width: float,
+    separation_target: float,
+) -> tuple[Segment, Segment]:
+    start, end = _ordered_segment(core_boundary)
+    preferred_center = opening_width / 2.0
+    feasible: list[tuple[float, tuple[Point, Point], float]] = []
+    for remote in remote_candidates:
+        remote_ordered = _ordered_segment(remote)
+        center = _nearest_separated_boundary_center(
+            boundary=(start, end),
+            preferred_center=preferred_center,
+            remote_segment=remote_ordered,
+            opening_width=opening_width,
+            separation_target=separation_target,
+        )
+        if center is None:
+            continue
+        feasible.append(
+            (
+                abs(center - preferred_center),
+                remote_ordered,
+                center,
+            )
+        )
+    if feasible:
+        _, remote, center = min(feasible)
+        return (
+            _boundary_segment_at_center(
+                (start, end),
+                opening_width,
+                center,
+            ),
+            remote,
+        )
+
+    preferred = _boundary_end_segment(
+        (start, end),
+        opening_width,
+    )
+    preferred_midpoint = _midpoint(*preferred)
+    remote = max(
+        remote_candidates,
+        key=lambda segment: (
+            math.dist(preferred_midpoint, _midpoint(*segment)),
+            _ordered_segment(segment),
+        ),
+    )
+    return preferred, _ordered_segment(remote)
+
+
+def _nearest_separated_boundary_center(
+    *,
+    boundary: Segment,
+    preferred_center: float,
+    remote_segment: Segment,
+    opening_width: float,
+    separation_target: float,
+) -> float | None:
+    start, end = _ordered_segment(boundary)
+    total = math.dist(start, end)
+    minimum = opening_width / 2.0
+    maximum = total - opening_width / 2.0
+    if maximum < minimum - _EPSILON:
+        return None
+    preferred = min(max(preferred_center, minimum), maximum)
+
+    def separation(center: float) -> float:
+        opening = _boundary_segment_at_center(
+            (start, end),
+            opening_width,
+            center,
+        )
+        return segment_to_segment_distance(opening, remote_segment)
+
+    if separation(preferred) >= separation_target:
+        return preferred
+
+    # Distance between a translated segment and a fixed segment is convex in
+    # translation. Its below-threshold centers therefore form one interval:
+    # any feasible endpoint brackets the nearest exact threshold crossing.
+    candidates: list[float] = []
+    for endpoint in (minimum, maximum):
+        if endpoint == preferred or separation(endpoint) < separation_target:
+            continue
+        infeasible = preferred
+        feasible = endpoint
+        while True:
+            midpoint = (infeasible + feasible) / 2.0
+            if midpoint == infeasible or midpoint == feasible:
+                break
+            if separation(midpoint) >= separation_target:
+                feasible = midpoint
+            else:
+                infeasible = midpoint
+        if separation(feasible) >= separation_target:
+            candidates.append(feasible)
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda center: (abs(center - preferred), center),
+    )
+
+
+def _boundary_segment_at_center(
+    boundary: Segment,
+    length: float,
+    center: float,
+) -> Segment:
+    start, end = _ordered_segment(boundary)
+    total = math.dist(start, end)
+    unit = (
+        (end[0] - start[0]) / total,
+        (end[1] - start[1]) / total,
+    )
+    half = length / 2.0
+    return (
+        (
+            start[0] + unit[0] * (center - half),
+            start[1] + unit[1] * (center - half),
+        ),
+        (
+            start[0] + unit[0] * (center + half),
+            start[1] + unit[1] * (center + half),
+        ),
+    )
+
+
+def _maximum_pairwise_distance(points: list[Point]) -> float:
+    return max(
+        math.dist(first, second)
+        for index, first in enumerate(points)
+        for second in points[index + 1 :]
     )
 
 
