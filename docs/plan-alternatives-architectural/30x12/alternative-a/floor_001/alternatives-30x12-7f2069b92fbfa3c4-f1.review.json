@@ -60,9 +60,9 @@
       "svg": 3
     },
     "furniture": {
-      "modeled": 8,
-      "png": 8,
-      "svg": 8
+      "modeled": 10,
+      "png": 10,
+      "svg": 10
     },
     "grid": {
       "modeled": 9,
@@ -765,8 +765,10 @@
         "sales_shelf": [
           "sales_a-sales_shelf-1",
           "sales_a-sales_shelf-2",
-          "sales_b-sales_shelf-3",
-          "sales_b-sales_shelf-4"
+          "sales_a-sales_shelf-3",
+          "sales_b-sales_shelf-4",
+          "sales_b-sales_shelf-5",
+          "sales_b-sales_shelf-6"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -964,8 +966,10 @@
         "sales_shelf": [
           "sales_a-sales_shelf-1",
           "sales_a-sales_shelf-2",
-          "sales_b-sales_shelf-3",
-          "sales_b-sales_shelf-4"
+          "sales_a-sales_shelf-3",
+          "sales_b-sales_shelf-4",
+          "sales_b-sales_shelf-5",
+          "sales_b-sales_shelf-6"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -1167,8 +1171,10 @@
         "sales_shelf": [
           "sales_a-sales_shelf-1",
           "sales_a-sales_shelf-2",
-          "sales_b-sales_shelf-3",
-          "sales_b-sales_shelf-4"
+          "sales_a-sales_shelf-3",
+          "sales_b-sales_shelf-4",
+          "sales_b-sales_shelf-5",
+          "sales_b-sales_shelf-6"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -1421,11 +1427,11 @@
       "exit_count": 2,
       "exit_separation": 25.959,
       "fixture_count": 3,
-      "furniture_count": 8,
+      "furniture_count": 10,
       "grid_line_count": 9,
       "lobby_count": 1,
       "min_exit_width": 0.9,
-      "min_object_clearance": 1.2,
+      "min_object_clearance": 0.7158910531638176,
       "min_routes_per_room": 2,
       "missing_required_kinds": [],
       "object_clearance_violation_count": 0,

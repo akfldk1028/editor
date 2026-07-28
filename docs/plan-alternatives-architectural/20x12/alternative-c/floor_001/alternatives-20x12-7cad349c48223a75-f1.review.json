@@ -60,9 +60,9 @@
       "svg": 3
     },
     "furniture": {
-      "modeled": 6,
-      "png": 6,
-      "svg": 6
+      "modeled": 8,
+      "png": 8,
+      "svg": 8
     },
     "grid": {
       "modeled": 8,
@@ -1032,7 +1032,9 @@
         ],
         "sales_shelf": [
           "sales_a-sales_shelf-1",
-          "sales_b-sales_shelf-2"
+          "sales_a-sales_shelf-2",
+          "sales_b-sales_shelf-3",
+          "sales_b-sales_shelf-4"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -1223,7 +1225,9 @@
         ],
         "sales_shelf": [
           "sales_a-sales_shelf-1",
-          "sales_b-sales_shelf-2"
+          "sales_a-sales_shelf-2",
+          "sales_b-sales_shelf-3",
+          "sales_b-sales_shelf-4"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -1418,7 +1422,9 @@
         ],
         "sales_shelf": [
           "sales_a-sales_shelf-1",
-          "sales_b-sales_shelf-2"
+          "sales_a-sales_shelf-2",
+          "sales_b-sales_shelf-3",
+          "sales_b-sales_shelf-4"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -1664,7 +1670,7 @@
       "exit_count": 2,
       "exit_separation": 14.772310421910616,
       "fixture_count": 3,
-      "furniture_count": 6,
+      "furniture_count": 8,
       "grid_line_count": 8,
       "lobby_count": 1,
       "min_exit_width": 0.9,

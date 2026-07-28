@@ -60,9 +60,9 @@
       "svg": 3
     },
     "furniture": {
-      "modeled": 12,
-      "png": 12,
-      "svg": 12
+      "modeled": 14,
+      "png": 14,
+      "svg": 14
     },
     "grid": {
       "modeled": 11,
@@ -767,10 +767,12 @@
           "sales_a-sales_shelf-2",
           "sales_a-sales_shelf-3",
           "sales_a-sales_shelf-4",
-          "sales_b-sales_shelf-5",
+          "sales_a-sales_shelf-5",
+          "sales_b-sales_shelf-10",
           "sales_b-sales_shelf-6",
           "sales_b-sales_shelf-7",
-          "sales_b-sales_shelf-8"
+          "sales_b-sales_shelf-8",
+          "sales_b-sales_shelf-9"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -974,10 +976,12 @@
           "sales_a-sales_shelf-2",
           "sales_a-sales_shelf-3",
           "sales_a-sales_shelf-4",
-          "sales_b-sales_shelf-5",
+          "sales_a-sales_shelf-5",
+          "sales_b-sales_shelf-10",
           "sales_b-sales_shelf-6",
           "sales_b-sales_shelf-7",
-          "sales_b-sales_shelf-8"
+          "sales_b-sales_shelf-8",
+          "sales_b-sales_shelf-9"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -1185,10 +1189,12 @@
           "sales_a-sales_shelf-2",
           "sales_a-sales_shelf-3",
           "sales_a-sales_shelf-4",
-          "sales_b-sales_shelf-5",
+          "sales_a-sales_shelf-5",
+          "sales_b-sales_shelf-10",
           "sales_b-sales_shelf-6",
           "sales_b-sales_shelf-7",
-          "sales_b-sales_shelf-8"
+          "sales_b-sales_shelf-8",
+          "sales_b-sales_shelf-9"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -1445,11 +1451,11 @@
       "exit_count": 2,
       "exit_separation": 25.959,
       "fixture_count": 3,
-      "furniture_count": 12,
+      "furniture_count": 14,
       "grid_line_count": 11,
       "lobby_count": 1,
       "min_exit_width": 0.9,
-      "min_object_clearance": 1.2257650672131262,
+      "min_object_clearance": 1.200000000000001,
       "min_routes_per_room": 2,
       "missing_required_kinds": [],
       "object_clearance_violation_count": 0,

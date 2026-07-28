@@ -1707,7 +1707,7 @@
           "pass": true,
           "reason": "minimum per-tenant actual/required sales-fixture ratio",
           "threshold": 1.0,
-          "value": 2.0
+          "value": 1.0
         },
         "tenant_independent_access": {
           "pass": true,
