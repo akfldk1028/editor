@@ -53,6 +53,9 @@ class BasicDesignMetric:
     missing_required_kinds: tuple[str, ...]
     min_object_clearance: float | None = None
     object_clearance_violation_count: int = 0
+    policy_checks: dict[str, dict[str, bool | float | int | str | None]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass(frozen=True)

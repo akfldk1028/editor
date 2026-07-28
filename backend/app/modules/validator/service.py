@@ -78,6 +78,14 @@ _HARD_VIOLATION_CODES = (
     "stair_door_missing",
     "stair_door_reference",
     "stair_door_geometry",
+    "remote_exit_unfit",
+    "use_planning_metadata_missing",
+    "tenant_count_unmet",
+    "tenant_access_unmet",
+    "common_core_access_unmet",
+    "reception_to_lobby_unmet",
+    "workpoint_count_unmet",
+    "support_clustering_unmet",
     "lobby_route_missing",
     "lobby_route_reference",
     "lobby_route_geometry",
@@ -344,13 +352,18 @@ def validate_layout(
 
     basic_design_metric: BasicDesignMetric | None = None
     if require_basic_design:
+        min_x, min_y, max_x, max_y = _bounds(boundary)
+        project_exit_separation = max(
+            min_exit_separation,
+            math.hypot(max_x - min_x, max_y - min_y) / 3.0,
+        )
         basic_design_metric = _validate_basic_design(
             layout,
             boundary,
             streets,
             program,
             min_protected_exit_width,
-            min_exit_separation,
+            project_exit_separation,
             add_violation,
         )
 
@@ -652,7 +665,10 @@ def _validate_basic_design(
 
     for element in features.elements:
         if element.category == "vertical":
-            expected = core_id is not None and element.host_id == core_id
+            expected = core_id is not None and (
+                element.host_id == core_id
+                or (element.kind == "stair" and element.host_id == "floor")
+            )
         elif element.category == "structure":
             expected = element.host_id == "floor"
         elif element.category in {"furniture", "fixture"}:
@@ -671,12 +687,17 @@ def _validate_basic_design(
         if line.kind == "protected_exit":
             target = valid_elements.get(line.target_id or "")
             valid_reference = (
-                core_id is not None
-                and line.host_id == core_id
-                and target is not None
+                target is not None
                 and target.category == "vertical"
                 and target.kind == "stair"
-                and target.host_id == core_id
+                and (
+                    (target.host_id == core_id and line.host_id == core_id)
+                    or (
+                        target.host_id == "floor"
+                        and line.host_id
+                        in {path.room_id for path in geometric_circulation}
+                    )
+                )
             )
             code = "protected_exit_reference"
         elif line.kind == "egress_route":
@@ -712,9 +733,25 @@ def _validate_basic_design(
                 and host.host_id == core_id
             )
             code = "lobby_route_reference"
-        elif line.kind in {"window", "entrance"}:
+        elif line.kind == "window":
             valid_reference = line.host_id in occupied_rooms and line.target_id is None
-            code = "window_reference" if line.kind == "window" else "entrance_geometry"
+            code = "window_reference"
+        elif line.kind == "entrance":
+            host = valid_elements.get(line.host_id or "")
+            valid_reference = (
+                (line.host_id in occupied_rooms and line.target_id is None)
+                or (
+                    line.host_id == core_id
+                    and line.target_id
+                    in {path.room_id for path in geometric_circulation}
+                )
+                or (
+                    host is not None
+                    and host.category == "vertical"
+                    and host.kind == "lobby"
+                )
+            )
+            code = "entrance_geometry"
         else:
             valid_reference = line.host_id is None and line.target_id is None
             code = "basic_design_reference"
@@ -741,14 +778,37 @@ def _validate_basic_design(
         )
     if core is not None:
         for element in vertical:
-            if element.host_id == core.room_id and not contains_polygon(
-                core.polygon,
-                element.footprint,
+            if element.host_id == core.room_id:
+                if not contains_polygon(core.polygon, element.footprint):
+                    add_violation(
+                        "core_subspace_containment",
+                        element.element_id,
+                        "core-hosted vertical footprint must remain inside the core",
+                    )
+            elif (
+                element.kind == "stair"
+                and element.host_id == "floor"
+                and (
+                    not contains_polygon(boundary, element.footprint)
+                    or any(
+                        polygon_overlap_area(element.footprint, room.polygon)
+                        > _EPSILON
+                        for room in geometric_occupied_rooms.values()
+                    )
+                    or any(
+                        polygon_overlap_area(element.footprint, path.polygon)
+                        > _EPSILON
+                        for path in geometric_circulation
+                    )
+                )
             ):
                 add_violation(
                     "core_subspace_containment",
                     element.element_id,
-                    "vertical footprint must remain inside the core",
+                    (
+                        "floor-hosted remote stair must stay inside the floor "
+                        "without occupying a room or circulation area"
+                    ),
                 )
         for index, left in enumerate(vertical):
             for right in vertical[index + 1 :]:
@@ -819,27 +879,50 @@ def _validate_basic_design(
             "core",
             "protected exits must reference two distinct stair elements",
         )
-    shared_core_boundaries = (
-        [
-            segment
-            for path in geometric_circulation
-            for segment in shared_boundary_segments(core.polygon, path.polygon)
-        ]
-        if core is not None
-        else []
-    )
     for exit_line in exits:
-        if exit_line.host_id != core_id:
-            continue
+        target_stair = valid_elements.get(exit_line.target_id or "")
+        if target_stair is not None and target_stair.host_id == "floor":
+            host_path = next(
+                (
+                    path
+                    for path in geometric_circulation
+                    if path.room_id == exit_line.host_id
+                ),
+                None,
+            )
+            valid_boundaries = (
+                shared_boundary_segments(
+                    list(target_stair.footprint),
+                    host_path.polygon,
+                )
+                if host_path is not None
+                else []
+            )
+        else:
+            valid_boundaries = (
+                [
+                    segment
+                    for path in geometric_circulation
+                    for segment in shared_boundary_segments(
+                        core.polygon,
+                        path.polygon,
+                    )
+                ]
+                if core is not None
+                else []
+            )
         actual_width = _polyline_length(exit_line.points)
         if not any(
             _segment_contains(segment, (exit_line.points[0], exit_line.points[-1]))
-            for segment in shared_core_boundaries
+            for segment in valid_boundaries
         ) or abs(actual_width - (exit_line.clear_width or 0.0)) > 1e-7:
             add_violation(
                 "protected_exit_geometry",
                 exit_line.line_id,
-                "protected exit must match its width on a real core/circulation shared boundary",
+                (
+                    "protected exit must match its width on the real "
+                    "core/circulation or remote-stair/circulation boundary"
+                ),
             )
         if (
             not _is_finite_number(exit_line.clear_width)
@@ -859,6 +942,15 @@ def _validate_basic_design(
             "core",
             f"protected exit midpoints must be separated by at least {min_exit_separation:.3f}",
         )
+        add_violation(
+            "remote_exit_unfit",
+            "core",
+            (
+                "project policy requires remote protected-exit midpoints to be "
+                f"separated by at least max(3 m, footprint diagonal / 3) = "
+                f"{min_exit_separation:.3f} m"
+            ),
+        )
 
     lobby = next(
         (element for element in vertical if element.kind == "lobby"),
@@ -869,23 +961,29 @@ def _validate_basic_design(
         for line in valid_lines.values()
         if line.category == "egress" and line.kind == "stair_door"
     ]
-    if len(stair_doors) != 2:
+    core_stair_ids = {
+        stair.element_id for stair in stairs if stair.host_id == core_id
+    }
+    if len(stair_doors) != len(core_stair_ids):
         add_violation(
             "stair_door_missing",
             "core",
-            f"concept core requires exactly two stair doors, found {len(stair_doors)}",
+            (
+                "concept core requires exactly one lobby stair door per "
+                f"core-hosted stair, found {len(stair_doors)}"
+            ),
         )
-        if len(stair_doors) < 2:
+        if len(stair_doors) < len(core_stair_ids):
             missing_kinds.add("egress:stair_door")
     valid_stair_ids = {stair.element_id for stair in stairs}
-    if len(stair_doors) == 2 and (
-        len({line.target_id for line in stair_doors}) != 2
-        or {line.target_id for line in stair_doors} != valid_stair_ids
+    if len(stair_doors) == len(core_stair_ids) and (
+        len({line.target_id for line in stair_doors}) != len(core_stair_ids)
+        or {line.target_id for line in stair_doors} != core_stair_ids
     ):
         add_violation(
             "stair_door_reference",
             "core",
-            "stair doors must target the two distinct representative stairs",
+            "stair doors must target exactly the core-hosted stairs",
         )
     for stair_door in stair_doors:
         stair = valid_elements.get(stair_door.target_id or "")
@@ -927,23 +1025,26 @@ def _validate_basic_design(
         for line in valid_lines.values()
         if line.category == "egress" and line.kind == "lobby_route"
     ]
-    if len(lobby_routes) != 2:
+    if len(lobby_routes) != len(core_stair_ids):
         add_violation(
             "lobby_route_missing",
             "core",
-            f"concept core requires exactly two lobby routes, found {len(lobby_routes)}",
+            (
+                "concept core requires one lobby route per core-hosted stair, "
+                f"found {len(lobby_routes)}"
+            ),
         )
-        if len(lobby_routes) < 2:
+        if len(lobby_routes) < len(core_stair_ids):
             missing_kinds.add("egress:lobby_route")
     valid_stair_door_ids = {line.line_id for line in stair_doors}
-    if len(lobby_routes) == 2 and (
-        len({line.target_id for line in lobby_routes}) != 2
+    if len(lobby_routes) == len(core_stair_ids) and (
+        len({line.target_id for line in lobby_routes}) != len(core_stair_ids)
         or {line.target_id for line in lobby_routes} != valid_stair_door_ids
     ):
         add_violation(
             "lobby_route_reference",
             "core",
-            "lobby routes must target the two distinct stair doors",
+            "lobby routes must target all and only core-hosted stair doors",
         )
     exits_by_stair = {
         line.target_id: line
@@ -1131,33 +1232,45 @@ def _validate_basic_design(
         missing_kinds.add(f"envelope:window:{room_id}")
 
     if program.use_type == "neighborhood_commercial":
-        if len(entrances) != 1:
+        if not entrances:
             add_violation(
                 "entrance_missing",
                 "sales",
-                f"commercial floor requires exactly one entrance, found {len(entrances)}",
+                "commercial floor requires tenant and common-core entrances",
             )
             missing_kinds.add("envelope:entrance")
-        sales = next(
-            (
-                room
-                for room in geometric_occupied_rooms.values()
-                if program_space_types.get(room.room_id) == "sales"
-            ),
-            None,
-        )
         for entrance in entrances:
             segment = (entrance.points[0], entrance.points[-1])
-            if (
-                sales is None
-                or entrance.host_id != sales.room_id
-                or not _segment_on_polygon_boundary(segment, sales.polygon)
-                or not any(_segment_contains(street, segment) for street in streets)
+            tenant_room = geometric_occupied_rooms.get(entrance.host_id or "")
+            target_path = next(
+                (
+                    path
+                    for path in geometric_circulation
+                    if path.room_id == entrance.target_id
+                ),
+                None,
+            )
+            host_polygon = (
+                tenant_room.polygon
+                if tenant_room is not None
+                and program_space_types.get(tenant_room.room_id) == "sales"
+                else target_path.polygon
+                if entrance.host_id == core_id and target_path is not None
+                else None
+            )
+            if host_polygon is None or not _segment_on_polygon_boundary(
+                segment,
+                host_polygon,
+            ) or not any(
+                _segment_contains(street, segment) for street in streets
             ):
                 add_violation(
                     "entrance_geometry",
                     entrance.line_id,
-                    "commercial entrance must lie on both the sales-room and supplied street boundary",
+                    (
+                        "commercial entrance must lie on its tenant frontage or "
+                        "street-connected public circulation boundary"
+                    ),
                 )
 
     placed = [
@@ -1238,6 +1351,18 @@ def _validate_basic_design(
             )
             missing_kinds.add(f"object:{room_id}:{kind}")
 
+    policy_checks = _validate_use_planning(
+        features,
+        program,
+        geometric_occupied_rooms,
+        geometric_circulation,
+        valid_elements,
+        valid_lines,
+        boundary,
+        streets,
+        add_violation,
+    )
+
     _validate_dimensions_and_site(
         valid_lines,
         boundary,
@@ -1256,7 +1381,355 @@ def _validate_basic_design(
             else None
         ),
         object_clearance_violation_count=object_clearance_violation_count,
+        exit_separation_threshold=min_exit_separation,
+        policy_checks=policy_checks,
     )
+
+
+def _validate_use_planning(
+    features: BasicDesignFeatures,
+    program: ProgramGraph,
+    rooms: dict[str, RoomPolygon],
+    circulation: list[RoomPolygon],
+    elements: dict[str, PlanElement],
+    lines: dict[str, PlanLine],
+    boundary: list[tuple[float, float]],
+    streets: list[Segment],
+    add_violation,
+) -> dict[str, dict[str, bool | float | int | str | None]]:
+    if program.use_type == "neighborhood_commercial":
+        tenant_nodes = [
+            node for node in program.nodes if node.space_type == "sales"
+        ]
+        metadata_known = bool(tenant_nodes) and all(
+            isinstance(node.tenant_id, str) and node.tenant_id.strip()
+            for node in tenant_nodes
+        )
+        if not metadata_known:
+            add_violation(
+                "use_planning_metadata_missing",
+                "neighborhood_commercial",
+                (
+                    "tenant planning is unknown: each sales ProgramNode requires "
+                    "a non-empty tenant_id"
+                ),
+            )
+            return {
+                "tenant_count": _policy_check(
+                    None, 2, False, "unknown: tenant_id metadata is missing"
+                ),
+                "tenant_independent_access": _policy_check(
+                    None,
+                    True,
+                    False,
+                    "unknown: tenant entrance assignments are missing",
+                ),
+                "common_core_access": _policy_check(
+                    None,
+                    True,
+                    False,
+                    "unknown: independent common-core access is missing",
+                ),
+            }
+
+        tenant_count = len({node.tenant_id for node in tenant_nodes})
+        tenant_count_passed = tenant_count >= 2
+        if not tenant_count_passed:
+            add_violation(
+                "tenant_count_unmet",
+                "neighborhood_commercial",
+                "project policy requires at least two uniquely identified tenants",
+            )
+
+        entrances = [
+            line
+            for line in lines.values()
+            if line.category == "envelope" and line.kind == "entrance"
+        ]
+        valid_tenant_access = 0
+        assigned_entrance_ids: set[str] = set()
+        for node in tenant_nodes:
+            room = rooms.get(node.node_id)
+            matching = [
+                line for line in entrances if line.host_id == node.node_id
+            ]
+            frontage_ok = (
+                room is not None
+                and shared_boundary_with_segments_length(
+                    room.polygon,
+                    streets,
+                )
+                > _EPSILON
+            )
+            entrance_ok = (
+                room is not None
+                and len(matching) == 1
+                and matching[0].line_id not in assigned_entrance_ids
+                and _segment_on_polygon_boundary(
+                    (matching[0].points[0], matching[0].points[-1]),
+                    room.polygon,
+                )
+                and any(
+                    _segment_contains(
+                        street,
+                        (matching[0].points[0], matching[0].points[-1]),
+                    )
+                    for street in streets
+                )
+            )
+            if frontage_ok and entrance_ok:
+                assigned_entrance_ids.add(matching[0].line_id)
+                valid_tenant_access += 1
+        tenant_access_passed = (
+            tenant_count_passed
+            and valid_tenant_access == len(tenant_nodes)
+        )
+        if not tenant_access_passed:
+            add_violation(
+                "tenant_access_unmet",
+                "neighborhood_commercial",
+                (
+                    "each tenant requires one unique exterior entrance on its "
+                    "own supplied-street frontage"
+                ),
+            )
+
+        core_ids = {
+            node.node_id for node in program.nodes if node.space_type == "core"
+        }
+        circulation_ids = {path.room_id for path in circulation}
+        common_entries = [
+            line
+            for line in entrances
+            if line.host_id in core_ids
+            and line.target_id in circulation_ids
+            and line.line_id not in assigned_entrance_ids
+        ]
+        common_core_access_passed = len(common_entries) == 1
+        if not common_core_access_passed:
+            add_violation(
+                "common_core_access_unmet",
+                "neighborhood_commercial",
+                (
+                    "project policy requires one street entrance assigned to "
+                    "public circulation and the common core, independent of tenants"
+                ),
+            )
+        return {
+            "tenant_count": _policy_check(
+                tenant_count,
+                2,
+                tenant_count_passed,
+                "unique ProgramNode.tenant_id count",
+            ),
+            "tenant_independent_access": _policy_check(
+                valid_tenant_access,
+                len(tenant_nodes),
+                tenant_access_passed,
+                "tenants with unique entrance and supplied-street frontage",
+            ),
+            "common_core_access": _policy_check(
+                common_core_access_passed,
+                True,
+                common_core_access_passed,
+                "independent public-circulation entrance to common core",
+            ),
+        }
+
+    if program.use_type != "office":
+        return {}
+
+    planning = features.planning
+    planning_known = isinstance(planning, dict)
+    if not planning_known:
+        add_violation(
+            "use_planning_metadata_missing",
+            "office",
+            (
+                "office planning is unknown: BasicDesignFeatures.planning "
+                "requires reception_to_lobby_route_line_id and support_room_ids"
+            ),
+        )
+
+    work_rooms = [
+        room
+        for room_id, room in rooms.items()
+        if next(
+            (
+                node.space_type
+                for node in program.nodes
+                if node.node_id == room_id
+            ),
+            None,
+        )
+        == "open_work"
+    ]
+    work_area = sum(polygon_area(room.polygon) for room in work_rooms)
+    minimum_workpoints = math.ceil(work_area / 10.0)
+    maximum_workpoints = math.ceil(work_area / 8.0)
+    workpoint_count = sum(
+        element.category == "furniture"
+        and element.kind == "workstation"
+        and element.host_id in {room.room_id for room in work_rooms}
+        for element in elements.values()
+    )
+    workpoint_passed = (
+        minimum_workpoints > 0
+        and minimum_workpoints <= workpoint_count <= maximum_workpoints
+    )
+    if not workpoint_passed:
+        add_violation(
+            "workpoint_count_unmet",
+            "office",
+            (
+                "project planning heuristic requires one workpoint per "
+                "8 to 10 m2 of open-work area"
+            ),
+        )
+
+    reception_route_id = (
+        planning.get("reception_to_lobby_route_line_id")
+        if planning_known
+        else None
+    )
+    reception_route = (
+        lines.get(reception_route_id)
+        if isinstance(reception_route_id, str)
+        else None
+    )
+    reception_ids = {
+        node.node_id for node in program.nodes if node.space_type == "reception"
+    }
+    reception_to_lobby_passed = (
+        reception_route is not None
+        and reception_route.kind == "egress_route"
+        and reception_route.host_id in reception_ids
+        and reception_route.target_id in {
+            line.line_id
+            for line in lines.values()
+            if line.kind == "protected_exit"
+        }
+    )
+    if not reception_to_lobby_passed:
+        add_violation(
+            "reception_to_lobby_unmet",
+            "office",
+            (
+                "planning metadata must reference a validated reception route "
+                "to a protected core-lobby exit"
+            ),
+        )
+
+    declared_support_ids = (
+        planning.get("support_room_ids")
+        if planning_known
+        else None
+    )
+    expected_support_ids = {
+        node.node_id
+        for node in program.nodes
+        if node.space_type in {"pantry", "restroom", "it_storage"}
+    }
+    support_metadata_known = isinstance(declared_support_ids, (list, tuple))
+    declared_support_set = (
+        {
+            room_id
+            for room_id in declared_support_ids
+            if isinstance(room_id, str)
+        }
+        if support_metadata_known
+        else set()
+    )
+    support_rooms = [
+        rooms[room_id]
+        for room_id in sorted(expected_support_ids)
+        if room_id in rooms
+    ]
+    min_x, min_y, max_x, max_y = _bounds(boundary)
+    diagonal = math.hypot(max_x - min_x, max_y - min_y)
+    centers = [_polygon_bbox_center(room.polygon) for room in support_rooms]
+    maximum_spread = max(
+        (
+            math.dist(left, right)
+            for index, left in enumerate(centers)
+            for right in centers[index + 1 :]
+        ),
+        default=0.0,
+    )
+    normalized_spread = maximum_spread / diagonal if diagonal > 0 else math.inf
+    support_clustering_passed = (
+        support_metadata_known
+        and bool(expected_support_ids)
+        and declared_support_set == expected_support_ids
+        and len(support_rooms) == len(expected_support_ids)
+        and normalized_spread <= 0.5 + _EPSILON
+        and all(
+            any(
+                shared_boundary_length(room.polygon, path.polygon) > _EPSILON
+                for path in circulation
+            )
+            for room in support_rooms
+        )
+    )
+    if not support_clustering_passed:
+        add_violation(
+            "support_clustering_unmet",
+            "office",
+            (
+                "declared pantry/restroom/IT rooms must all access circulation "
+                "and remain within half the floor diagonal of each other"
+            ),
+        )
+
+    return {
+        "reception_to_lobby": _policy_check(
+            reception_to_lobby_passed if planning_known else None,
+            True,
+            reception_to_lobby_passed,
+            (
+                "validated reception route to protected core-lobby exit"
+                if planning_known
+                else "unknown: reception route metadata is missing"
+            ),
+        ),
+        "workpoint_count": _policy_check(
+            workpoint_count,
+            f"{minimum_workpoints}..{maximum_workpoints}",
+            workpoint_passed,
+            "project heuristic one workpoint per 8 to 10 m2",
+        ),
+        "support_clustering": _policy_check(
+            round(normalized_spread, 6)
+            if support_metadata_known and expected_support_ids
+            else None,
+            "<=0.5 floor diagonal",
+            support_clustering_passed,
+            (
+                "declared support rooms cluster on circulation"
+                if support_metadata_known
+                else "unknown: support_room_ids metadata is missing"
+            ),
+        ),
+    }
+
+
+def _policy_check(
+    value: bool | float | int | str | None,
+    threshold: bool | float | int | str | None,
+    passed: bool,
+    reason: str,
+) -> dict[str, bool | float | int | str | None]:
+    return {
+        "value": value,
+        "threshold": threshold,
+        "pass": passed,
+        "reason": reason,
+    }
+
+
+def _polygon_bbox_center(polygon) -> tuple[float, float]:
+    min_x, min_y, max_x, max_y = _bounds(polygon)
+    return ((min_x + max_x) / 2, (min_y + max_y) / 2)
 
 
 def _validate_dimensions_and_site(
@@ -1357,6 +1830,12 @@ def _basic_design_metric(
     missing_required_kinds: tuple[str, ...],
     min_object_clearance: float | None = None,
     object_clearance_violation_count: int = 0,
+    exit_separation_threshold: float | None = None,
+    policy_checks: dict[
+        str,
+        dict[str, bool | float | int | str | None],
+    ]
+    | None = None,
 ) -> BasicDesignMetric:
     elements = features.elements if features is not None else ()
     lines = features.lines if features is not None else ()
@@ -1378,6 +1857,12 @@ def _basic_design_metric(
         for line in exits
         if _is_finite_number(line.clear_width)
     ]
+    exit_separation = _exit_separation(exits)
+    remote_exit_passed = (
+        exit_separation is not None
+        and exit_separation_threshold is not None
+        and exit_separation + _EPSILON >= exit_separation_threshold
+    )
     return BasicDesignMetric(
         policy_version=features.policy_version if features is not None else "missing",
         stair_count=sum(element.kind == "stair" for element in elements),
@@ -1394,11 +1879,24 @@ def _basic_design_metric(
         fixture_count=sum(element.category == "fixture" for element in elements),
         dimension_count=sum(line.category == "dimension" for line in lines),
         min_exit_width=min(widths) if widths else None,
-        exit_separation=_exit_separation(exits),
+        exit_separation=exit_separation,
         min_routes_per_room=min(route_counts) if route_counts else 0,
         missing_required_kinds=missing_required_kinds,
         min_object_clearance=min_object_clearance,
         object_clearance_violation_count=object_clearance_violation_count,
+        policy_checks={
+            "remote_exit_separation": {
+                "value": exit_separation,
+                "threshold": exit_separation_threshold,
+                "pass": remote_exit_passed,
+                "reason": (
+                    "passes project policy max(3 m, footprint diagonal / 3)"
+                    if remote_exit_passed
+                    else "fails project policy max(3 m, footprint diagonal / 3)"
+                ),
+            },
+            **(policy_checks or {}),
+        },
     )
 
 

@@ -53,6 +53,7 @@ class BasicDesignFeatures:
     elements: tuple[PlanElement, ...]
     lines: tuple[PlanLine, ...]
     policy_version: str = "concept-basic-v1"
+    planning: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)
