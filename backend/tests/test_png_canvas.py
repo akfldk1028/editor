@@ -227,3 +227,44 @@ def test_public_primitives_reject_non_finite_geometry(operation, message: str) -
 
     with pytest.raises(ValueError, match=message):
         operation(canvas)
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "thickness", "visible_pixel"),
+    [
+        ((0, -1), (7, -1), 4, (0, 0)),
+        ((0, 8), (7, 8), 3, (0, 7)),
+        ((-1, 0), (-1, 7), 3, (0, 0)),
+        ((8, 0), (8, 7), 2, (7, 0)),
+    ],
+    ids=("top-even", "bottom-odd", "left-odd", "right-even"),
+)
+def test_thick_line_keeps_stroke_portion_inside_each_canvas_edge(
+    start: tuple[int, int],
+    end: tuple[int, int],
+    thickness: int,
+    visible_pixel: tuple[int, int],
+) -> None:
+    canvas = SimplePngCanvas(8, 8)
+
+    canvas.stroke_line(start, end, BLACK, thickness=thickness)
+
+    assert _pixel(canvas, *visible_pixel) == BLACK
+
+
+def test_thick_polyline_and_dashed_polyline_keep_edge_strokes() -> None:
+    solid = SimplePngCanvas(8, 8)
+    dashed = SimplePngCanvas(8, 8)
+
+    solid.stroke_polyline([(0, -1), (7, -1)], BLACK, thickness=4)
+    dashed.stroke_dashed_polyline(
+        [(0, -1), (7, -1)],
+        BLACK,
+        thickness=4,
+        dash_length=1,
+        gap_length=6,
+    )
+
+    assert all(_pixel(solid, x, 0) == BLACK for x in range(8))
+    assert any(_pixel(dashed, x, 0) == BLACK for x in range(8))
+    assert any(_pixel(dashed, x, 0) == WHITE for x in range(8))

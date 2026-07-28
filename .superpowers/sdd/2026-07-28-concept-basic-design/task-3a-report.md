@@ -33,6 +33,36 @@ new primitives were absent.
 - Compileall: passed
 - Diff check: passed
 
+## Stroke-Bounds Review Fix
+
+RED command:
+
+```text
+python -m pytest -q backend/tests/test_png_canvas.py
+```
+
+Result: `5 failed, 22 passed`. Thick lines centered just outside the top,
+bottom, left, or right canvas boundary were discarded even when their raster
+offsets reached visible pixels. Solid and dashed polyline cases failed too.
+
+Fix:
+
+- Expand segment clipping bounds by the exact even/odd stroke raster offsets
+- Apply the expanded bounds consistently to lines, polylines, and dashed lines
+- Preserve canvas-clamped pixel painting after center-line clipping
+
+Verification after the fix:
+
+- Focused: `27 passed`
+- Full: `238 passed, 2 failed`
+- Ruff: passed
+- Compileall: passed
+- Diff check: passed
+
+The two full-suite failures are concurrent renderer work in `test_cli.py`:
+the SVG circulation text lookup and top-level boundary polygon lookup no longer
+match the in-progress SVG DOM. No PNG canvas test failed.
+
 The three full-suite failures are concurrent Task 2 validation/generation work:
 `test_basic_design_validation.py` expects a sales-window ID, strict validation
 wiring, and tuple-normalized manifest points. No PNG canvas test failed.

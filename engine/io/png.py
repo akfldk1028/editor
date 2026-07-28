@@ -293,7 +293,7 @@ class SimplePngCanvas:
             self.pixels[offset : offset + 3] = bytes(color)
 
     def _draw_line(self, x1: int, y1: int, x2: int, y2: int, color: Color, thickness: int) -> None:
-        clipped = self._clip_segment((x1, y1), (x2, y2))
+        clipped = self._clip_segment((x1, y1), (x2, y2), thickness)
         if clipped is None:
             return
         (clipped_start, clipped_end, _, _) = clipped
@@ -326,7 +326,7 @@ class SimplePngCanvas:
         cycle_length: int | float,
         phase: float,
     ) -> None:
-        clipped = self._clip_segment(start, end)
+        clipped = self._clip_segment(start, end, thickness)
         if clipped is None:
             return
         clipped_start, clipped_end, start_ratio, end_ratio = clipped
@@ -371,19 +371,26 @@ class SimplePngCanvas:
         self,
         start: Point,
         end: Point,
+        thickness: int,
     ) -> tuple[Point, Point, float, float] | None:
         delta_x = end[0] - start[0]
         delta_y = end[1] - start[1]
         if not math.isfinite(delta_x) or not math.isfinite(delta_y):
             raise ValueError("line segment delta must be finite")
 
+        offset_start = -(thickness // 2)
+        offset_end = offset_start + thickness - 1
+        min_x = -offset_end
+        max_x = self.width - 1 - offset_start
+        min_y = -offset_end
+        max_y = self.height - 1 - offset_start
         start_ratio = 0.0
         end_ratio = 1.0
         boundaries = (
-            (-delta_x, start[0]),
-            (delta_x, self.width - 1 - start[0]),
-            (-delta_y, start[1]),
-            (delta_y, self.height - 1 - start[1]),
+            (-delta_x, start[0] - min_x),
+            (delta_x, max_x - start[0]),
+            (-delta_y, start[1] - min_y),
+            (delta_y, max_y - start[1]),
         )
         for direction, distance in boundaries:
             if direction == 0:
