@@ -39,6 +39,28 @@ def union_area(polygons: Iterable[Iterable[Point]]) -> float:
     return float(union_all(shapes).area)
 
 
+def union_polygon(
+    polygons: Iterable[Iterable[Point]],
+) -> tuple[Point, ...]:
+    shapes = [
+        _as_polygon(points, label=f"polygon {index}")
+        for index, points in enumerate(polygons)
+    ]
+    if not shapes:
+        raise ValueError("polygon union requires at least one polygon")
+    merged = union_all(shapes)
+    if not isinstance(merged, Polygon) or merged.is_empty:
+        raise ValueError("polygon union must produce one connected polygon")
+    if merged.interiors:
+        raise ValueError("polygon union with holes is unsupported")
+    points = tuple(
+        (float(x), float(y))
+        for x, y in tuple(merged.exterior.coords)[:-1]
+    )
+    _as_polygon(points, label="polygon union")
+    return points
+
+
 def union_intersection_area(
     container: Iterable[Point],
     polygons: Iterable[Iterable[Point]],

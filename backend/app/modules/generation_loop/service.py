@@ -20,8 +20,9 @@ from backend.app.modules.layout_generator.service import (
     generate_rear_center_layout,
     generate_side_mid_layout,
 )
-from backend.app.modules.basic_design.service import (
+from backend.app.modules.basic_design import (
     generate_basic_design,
+    generate_room_window,
     generate_shared_structure,
 )
 from backend.app.modules.basic_design.stair import (
@@ -60,6 +61,18 @@ from backend.app.schemas.result import (
 )
 from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 from backend.app.schemas.program import ProgramAdjustment, ProgramGraph
+from engine.geometry import (
+    bounding_box_aspect_ratio,
+    orthogonal_min_width,
+    shared_boundary_segments,
+)
+from engine.geometry.polygon import (
+    bounds as polygon_bounds,
+    contains_polygon,
+    polygon_area,
+    polygon_overlap_area,
+    union_polygon,
+)
 
 
 _SERVICE_SPACE_TYPES = {
@@ -852,24 +865,56 @@ def _screened_one_stair_building(
                 and line.target_id not in removed_exit_ids
             ),
         )
+        reclaimed_layout, reclaimed_program, reclaimed_room_id = (
+            _reclaim_remote_stair_reserve(
+                layout,
+                floor.program,
+                boundary=mass.footprint_polygon,
+            )
+        )
+        if reclaimed_room_id is not None:
+            reclaimed_room = next(
+                room
+                for room in reclaimed_layout.rooms
+                if room.room_id == reclaimed_room_id
+            )
+            reclaimed_window = generate_room_window(
+                reclaimed_room,
+                boundary=mass.footprint_polygon,
+            )
+            features = replace(
+                features,
+                lines=(
+                    *tuple(
+                        line
+                        for line in features.lines
+                        if not (
+                            line.kind == "window"
+                            and line.host_id == reclaimed_room_id
+                        )
+                    ),
+                    *((reclaimed_window,) if reclaimed_window is not None else ()),
+                ),
+            )
         one_stair_layout = replace(
-            layout,
+            reclaimed_layout,
             candidate_id=f"{layout.candidate_id}-screened-one-stair",
             basic_design=features,
             remote_stair_footprint=None,
         )
         area_ledger, egress_graph = build_floor_design_evidence(
             layout=one_stair_layout,
-            program=floor.program,
+            program=reclaimed_program,
             boundary=mass.footprint_polygon,
         )
         floors.append(
             replace(
                 floor,
+                program=reclaimed_program,
                 layout=one_stair_layout,
                 validation=validate_layout(
                     one_stair_layout,
-                    floor.program,
+                    reclaimed_program,
                     boundary=mass.footprint_polygon,
                     street_segments=streets,
                     require_openings=True,
@@ -899,6 +944,175 @@ def _screened_one_stair_building(
                 if floor.area_ledger is not None
             )
         ),
+    )
+
+
+def _reclaim_remote_stair_reserve(
+    layout: LayoutCandidate,
+    program: ProgramGraph,
+    *,
+    boundary: list[tuple[float, float]],
+) -> tuple[LayoutCandidate, ProgramGraph, str | None]:
+    reserve = layout.remote_stair_footprint
+    if reserve is None:
+        raise ValueError("one-stair reclamation requires a remote stair reserve")
+    room_candidates = []
+    program_by_id = {node.node_id: node for node in program.nodes}
+    for room in layout.rooms:
+        if room.space_type == "core" or room.room_id not in program_by_id:
+            continue
+        shared_length = sum(
+            math.dist(*segment)
+            for segment in shared_boundary_segments(
+                room.polygon,
+                reserve,
+            )
+        )
+        if shared_length > 1e-9:
+            room_candidates.append((shared_length, room))
+    for _, room in sorted(
+        room_candidates,
+        key=lambda item: (-item[0], item[1].room_id),
+    ):
+        node = program_by_id[room.room_id]
+        for reclaimed in _room_reclamation_candidates(room, reserve):
+            if not _valid_reclaimed_room(
+                reclaimed,
+                room=room,
+                layout=layout,
+                boundary=boundary,
+                min_width=node.min_width,
+                max_aspect_ratio=node.max_aspect_ratio,
+            ):
+                continue
+            reclaimed_area = polygon_area(reclaimed)
+            rooms = [
+                (
+                    replace(candidate, polygon=list(reclaimed))
+                    if candidate.room_id == room.room_id
+                    else candidate
+                )
+                for candidate in layout.rooms
+            ]
+            nodes = [
+                (
+                    replace(
+                        candidate,
+                        target_area=_clean_area(reclaimed_area),
+                        min_area=_clean_area(reclaimed_area * 0.85),
+                        max_area=_clean_area(reclaimed_area * 1.15),
+                    )
+                    if candidate.node_id == room.room_id
+                    else candidate
+                )
+                for candidate in program.nodes
+            ]
+            adjusted = _with_program_adjustment(
+                program,
+                nodes,
+                reason=(
+                    "one_stair_remote_reserve_reclaimed:"
+                    f"{room.room_id}"
+                ),
+                source=(
+                    f"{program.source}:one_stair_remote_reserve_reclaimed"
+                ),
+            )
+            return replace(layout, rooms=rooms), adjusted, room.room_id
+
+    circulation_candidates = []
+    for path in layout.circulation:
+        shared_length = sum(
+            math.dist(*segment)
+            for segment in shared_boundary_segments(
+                path.polygon,
+                reserve,
+            )
+        )
+        if shared_length > 1e-9:
+            circulation_candidates.append((shared_length, path))
+    if not circulation_candidates:
+        raise ValueError(
+            "remote stair reserve has no valid adjacent reclamation space"
+        )
+    _, target = min(
+        circulation_candidates,
+        key=lambda item: (-item[0], item[1].room_id),
+    )
+    merged = union_polygon((target.polygon, reserve))
+    if not math.isclose(
+        polygon_area(merged),
+        polygon_area(target.polygon) + polygon_area(reserve),
+        abs_tol=1e-7,
+    ):
+        raise ValueError(
+            "remote stair reserve must not overlap reclaimed circulation"
+        )
+    return (
+        replace(
+            layout,
+            circulation=[
+                (
+                    replace(path, polygon=list(merged))
+                    if path.room_id == target.room_id
+                    else path
+                )
+                for path in layout.circulation
+            ],
+        ),
+        program,
+        None,
+    )
+
+
+def _room_reclamation_candidates(
+    room: RoomPolygon,
+    reserve: tuple[tuple[float, float], ...],
+) -> tuple[tuple[tuple[float, float], ...], ...]:
+    min_x, min_y, max_x, max_y = polygon_bounds(
+        (*room.polygon, *reserve)
+    )
+    rectangle = (
+        (min_x, min_y),
+        (max_x, min_y),
+        (max_x, max_y),
+        (min_x, max_y),
+    )
+    exact_union = union_polygon((room.polygon, reserve))
+    return tuple(dict.fromkeys((rectangle, exact_union)))
+
+
+def _valid_reclaimed_room(
+    reclaimed: tuple[tuple[float, float], ...],
+    *,
+    room: RoomPolygon,
+    layout: LayoutCandidate,
+    boundary: list[tuple[float, float]],
+    min_width: float | None,
+    max_aspect_ratio: float | None,
+) -> bool:
+    if not contains_polygon(boundary, reclaimed):
+        return False
+    if min_width is not None and (
+        orthogonal_min_width(reclaimed) + 1e-9 < float(min_width)
+    ):
+        return False
+    if max_aspect_ratio is not None and (
+        bounding_box_aspect_ratio(reclaimed) - 1e-9
+        > float(max_aspect_ratio)
+    ):
+        return False
+    obstacles = [
+        candidate.polygon
+        for candidate in layout.rooms
+        if candidate.room_id != room.room_id
+    ] + [
+        path.polygon
+        for path in layout.circulation
+    ]
+    return all(
+        polygon_overlap_area(reclaimed, obstacle) <= 1e-9
+        for obstacle in obstacles
     )
 
 

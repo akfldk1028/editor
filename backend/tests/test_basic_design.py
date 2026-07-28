@@ -9,6 +9,7 @@ from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.basic_design.service import (
     _nearest_separated_exit_openings,
     generate_basic_design,
+    generate_room_window,
 )
 from backend.app.schemas.layout import BasicDesignFeatures, PlanElement, PlanLine, RoomPolygon
 from backend.app.schemas.mass import MassInput
@@ -308,6 +309,35 @@ def test_rotated_core_exit_aligns_with_vertical_stair_door_bank() -> None:
     assert lobby_route.points[0][1] == pytest.approx(
         lobby_route.points[1][1]
     )
+
+
+def test_generate_room_window_returns_none_for_interior_room() -> None:
+    room = RoomPolygon(
+        "interior-focus",
+        "focus",
+        [(4.0, 4.0), (8.0, 4.0), (8.0, 8.0), (4.0, 8.0)],
+    )
+
+    assert generate_room_window(
+        room,
+        boundary=[(0, 0), (12, 0), (12, 12), (0, 12)],
+    ) is None
+
+
+def test_generate_room_window_is_vertex_order_independent() -> None:
+    polygon = [(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 4.0)]
+    boundary = [(0, 0), (12, 0), (12, 12), (0, 12)]
+
+    first = generate_room_window(
+        RoomPolygon("focus", "focus", polygon),
+        boundary=boundary,
+    )
+    reversed_order = generate_room_window(
+        RoomPolygon("focus", "focus", list(reversed(polygon))),
+        boundary=boundary,
+    )
+
+    assert first == reversed_order
 
 
 @pytest.mark.parametrize("rotated_orientation", [False, True])

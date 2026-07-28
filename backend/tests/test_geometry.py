@@ -7,6 +7,7 @@ from engine.geometry.polygon import (
     polygon_overlap_area,
     shared_boundary_length,
     union_area,
+    union_polygon,
     validate_polygon,
 )
 
@@ -39,6 +40,34 @@ def test_overlap_and_union_use_polygon_interiors():
 
     assert polygon_overlap_area(first, second) == 1
     assert union_area([first, second]) == 7
+
+
+def test_union_polygon_returns_one_connected_hole_free_outline():
+    left = [(0, 0), (2, 0), (2, 2), (0, 2)]
+    right = [(2, 0), (4, 0), (4, 1), (2, 1)]
+
+    merged = union_polygon([left, right])
+
+    assert union_area([merged]) == pytest.approx(6.0)
+    validate_polygon(merged, label="merged")
+
+
+def test_union_polygon_rejects_disconnected_result():
+    first = [(0, 0), (1, 0), (1, 1), (0, 1)]
+    second = [(2, 0), (3, 0), (3, 1), (2, 1)]
+
+    with pytest.raises(ValueError, match="one connected polygon"):
+        union_polygon([first, second])
+
+
+def test_union_polygon_rejects_result_with_hole():
+    top = [(0, 3), (4, 3), (4, 4), (0, 4)]
+    bottom = [(0, 0), (4, 0), (4, 1), (0, 1)]
+    left = [(0, 1), (1, 1), (1, 3), (0, 3)]
+    right = [(3, 1), (4, 1), (4, 3), (3, 3)]
+
+    with pytest.raises(ValueError, match="holes"):
+        union_polygon([top, bottom, left, right])
 
 
 def test_closed_clockwise_ring_is_valid():

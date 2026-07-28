@@ -902,6 +902,11 @@ def _envelope(layout: LayoutCandidate, boundary: list[Point], streets: list[Segm
     for room in layout.rooms:
         if room.space_type == "core":
             continue
+        if room.room_id not in entrances:
+            window = generate_room_window(room, boundary=boundary)
+            if window is not None:
+                lines.append(window)
+            continue
         candidates = _exterior_segments(room.polygon, boundary)
         if not candidates:
             continue
@@ -942,6 +947,37 @@ def _envelope(layout: LayoutCandidate, boundary: list[Point], streets: list[Segm
             )
         )
     return lines
+
+
+def generate_room_window(
+    room: RoomPolygon,
+    *,
+    boundary: list[Point],
+) -> PlanLine | None:
+    """Generate one deterministic exterior window, or None for an interior room."""
+    candidates = _exterior_segments(room.polygon, boundary)
+    if not candidates:
+        return None
+    selected = max(
+        candidates,
+        key=lambda segment: (
+            math.dist(*segment),
+            _ordered_segment(segment),
+        ),
+    )
+    length = math.dist(*selected)
+    if length < 0.6:
+        raise ValueError(
+            f"perimeter room '{room.room_id}' has no usable exterior wall for window"
+        )
+    return PlanLine(
+        line_id=f"{room.room_id}-window",
+        category="envelope",
+        kind="window",
+        points=_centered_segment(selected, min(1.5, length * 0.5)),
+        host_id=room.room_id,
+        label="WINDOW",
+    )
 
 
 def _room_contents(

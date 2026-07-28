@@ -13,7 +13,12 @@ from backend.app.schemas.mass import (
     MassInput,
 )
 from backend.app.schemas.program import ProgramAdjustment, ProgramNode
-from engine.geometry.polygon import polygon_area
+from engine.geometry.polygon import (
+    polygon_area,
+    polygon_overlap_area,
+    shared_boundary_with_segments_length,
+    validate_boundary_segments,
+)
 
 
 def _adjustment_kwargs():
@@ -266,6 +271,32 @@ def _explicit_one_stair_mass() -> MassInput:
     )
 
 
+def _explicit_mixed_one_stair_mass() -> MassInput:
+    mass = _explicit_one_stair_mass()
+    return replace(
+        mass,
+        floors=3,
+        use_mix={
+            "neighborhood_commercial": 1 / 3,
+            "office": 2 / 3,
+        },
+        building_code_context=replace(
+            mass.building_code_context,
+            floor_facts=tuple(
+                FloorCodeContext(
+                    floor_index=index,
+                    above_grade=True,
+                    story_number=index,
+                    habitable_area_m2=100.0,
+                    is_evacuation_floor=False,
+                    occupancy_category="other_supported",
+                )
+                for index in range(1, 4)
+            ),
+        ),
+    )
+
+
 def test_explicit_all_floor_one_stair_screen_emits_both_stair_families():
     result = run_building_alternatives(_explicit_one_stair_mass())
 
@@ -342,6 +373,131 @@ def test_explicit_all_floor_one_stair_screen_emits_both_stair_families():
         "protected_exit_count",
         "egress_route_missing",
     }
+
+
+def test_one_stair_family_reclaims_remote_stair_reserve_into_program_space():
+    result = run_building_alternatives(_explicit_one_stair_mass())
+    by_id = {
+        alternative.alternative_id: alternative
+        for alternative in result.alternatives
+    }
+    one_stair_alternatives = [
+        alternative
+        for alternative in result.alternatives
+        if alternative.strategy.startswith("screened_minimum_one_stair/")
+    ]
+
+    assert result.accepted_count >= 2
+    assert one_stair_alternatives
+    for one_stair in one_stair_alternatives:
+        conservative_id = one_stair.alternative_id.removeprefix("one-stair-")
+        conservative = by_id[conservative_id]
+        assert len(one_stair.floor_results) == len(conservative.floor_results)
+        for one_floor, conservative_floor in zip(
+            one_stair.floor_results,
+            conservative.floor_results,
+            strict=True,
+        ):
+            assert one_floor.layout.remote_stair_footprint is None
+            assert all(
+                not (
+                    element.kind == "stair"
+                    and element.host_id == "floor"
+                )
+                for element in one_floor.layout.basic_design.elements
+            )
+            assert all(
+                not (
+                    line.kind == "protected_exit"
+                    and line.target_id == "remote-stair-2"
+                )
+                for line in one_floor.layout.basic_design.lines
+            )
+            assert one_floor.area_ledger is not None
+            assert conservative_floor.area_ledger is not None
+            assert one_floor.area_ledger.status == "pass"
+            one_values = {
+                entry.bucket: entry.area_m2
+                for entry in one_floor.area_ledger.entries
+            }
+            conservative_values = {
+                entry.bucket: entry.area_m2
+                for entry in conservative_floor.area_ledger.entries
+            }
+            assert one_values["remote_stair"] == pytest.approx(0.0)
+            assert one_values["circulation"] == pytest.approx(
+                conservative_values["circulation"]
+            )
+            assert one_values["net"] + 1e-7 >= (
+                conservative_values["net"]
+                + conservative_values["remote_stair"]
+            )
+            assert (
+                one_values["unassigned"]
+                < conservative_values["unassigned"]
+            )
+            assert one_floor.program.adjustments[-1].reason.startswith(
+                "one_stair_remote_reserve_reclaimed:"
+            )
+            assert (
+                one_floor.program.adjustments[-1].original_nodes
+                != one_floor.program.adjustments[-1].adjusted_nodes
+            )
+
+
+def test_mixed_one_stair_reclaimed_rooms_have_truthful_exterior_windows():
+    mass = _explicit_mixed_one_stair_mass()
+    result = run_building_alternatives(mass)
+    one_stair = next(
+        alternative
+        for alternative in result.alternatives
+        if alternative.alternative_id == "one-stair-alternative-a"
+    )
+
+    assert result.accepted_count >= 2
+    assert one_stair.accepted
+    assert [
+        floor.program.use_type for floor in one_stair.floor_results
+    ] == ["neighborhood_commercial", "office", "office"]
+    for floor in one_stair.floor_results:
+        adjustment = floor.program.adjustments[-1]
+        reclaimed_room_id = adjustment.reason.split(":", 1)[1]
+        reclaimed_room = next(
+            room
+            for room in floor.layout.rooms
+            if room.room_id == reclaimed_room_id
+        )
+        windows = [
+            line
+            for line in floor.layout.basic_design.lines
+            if line.kind == "window"
+            and line.host_id == reclaimed_room_id
+        ]
+        assert len(windows) == 1
+        segment = (windows[0].points[0], windows[0].points[-1])
+        validate_boundary_segments(
+            mass.footprint_polygon,
+            [segment],
+            label="reclaimed room window",
+        )
+        assert shared_boundary_with_segments_length(
+            reclaimed_room.polygon,
+            [segment],
+        ) == pytest.approx(math.dist(*segment))
+        assert "window_missing" not in {
+            violation.code for violation in floor.validation.violations
+        }
+        assert all(
+            polygon_overlap_area(reclaimed_room.polygon, obstacle) == 0.0
+            for obstacle in (
+                *(
+                    room.polygon
+                    for room in floor.layout.rooms
+                    if room.room_id != reclaimed_room_id
+                ),
+                *(path.polygon for path in floor.layout.circulation),
+            )
+        )
 
 
 def test_unknown_floor_applicability_only_emits_conservative_family():
