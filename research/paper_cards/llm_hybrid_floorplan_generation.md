@@ -14,6 +14,39 @@ making geometric acceptance reproducible.
 
 ## Public Paper-Code Evidence
 
+### Graph2Plan
+
+Graph2Plan conditions a learned raster/box generator on both a layout graph and
+the building boundary. Its public implementation also documents geometric
+post-processing because predicted room boxes can remain misaligned or overlap.
+
+- Paper: https://arxiv.org/abs/2004.13204
+- Code: https://github.com/HanHan55/Graph2plan
+- PLAN adoption: explicit program graph plus boundary-conditioned geometry
+  contract and independent post-generation validation.
+- Not adopted yet: RPLAN retrieval/training and learned raster-to-box geometry.
+
+### HouseDiffusion
+
+HouseDiffusion directly generates vector room and door loops. Its discrete and
+continuous denoising objectives target both corner coordinates and geometric
+incidence such as parallelism, orthogonality, and shared corners.
+
+- Paper: https://arxiv.org/abs/2211.13287
+- Project: https://aminshabani.github.io/housediffusion/
+- PLAN adoption: vector-first room/opening contracts and explicit incidence
+  validation rather than accepting an image as geometry.
+- Not adopted yet: learned graph-conditioned diffusion geometry.
+
+### LayoutGPT
+
+LayoutGPT uses an LLM as a visual planner that converts text and spatial
+constraints into a structured layout consumed by a downstream generator.
+
+- Paper: https://arxiv.org/abs/2305.15393
+- PLAN adoption: the hosted LLM is a high-level program planner behind a strict
+  structured contract, not the final geometric authority.
+
 ### ChatHouseDiffusion
 
 The public implementation converts a language prompt into structured JSON and
@@ -28,9 +61,11 @@ supports OpenAI-compatible endpoints, including hosted models and local Ollama.
 ### Floor-plan RLVR
 
 The public implementation trains structured JSON-to-JSON generation with SFT
-and then reinforcement learning from verifiable rewards. Its reward components
-include valid JSON, no overlap, connectivity, and total area.
+and then reinforcement learning from verifiable rewards. The 2026 paper and
+code use executable rewards for valid JSON, non-overlapping room polygons,
+connectivity agreement, and total-area agreement.
 
+- Paper: https://arxiv.org/abs/2605.14117
 - Paper/code: https://github.com/ludolara/floor-plan-rlvr
 - PLAN adoption: exact machine checks remain authoritative after LLM output.
 - Future experiment: use PLAN validation codes as verifiable reward signals.
@@ -69,9 +104,15 @@ Set `PLAN_LLM_MODEL` or pass `--llm-model` to override the default model.
 - Whole-building generation currently accepts only axis-aligned rectangular
   floor plates.
 - LLM output currently controls floor use assignment, not room polygons.
-- The output is a connected schematic plan with explicit room-to-corridor
-  doors and a configurable research minimum corridor width. Dimensions,
-  jurisdiction-specific corridor rules, egress, structure, MEP, and detailed
-  room subdivision remain pending.
-- Passing hard validation means geometrically consistent under the current
-  contract; it does not mean permit-ready or architect-quality.
+- The deterministic concept-basic output includes role-specific rooms,
+  room-to-corridor doors, core subdivision, two stair references, elevator,
+  shaft, lobby, schematic corridor-routed egress, structural grid/columns,
+  windows/entrance, representative furniture/fixtures, dimensions, north,
+  scale, and street evidence.
+- Numerical defaults and furniture density are `concept-basic-v1` research
+  policies. They are not jurisdictional compliance values.
+- Statutory applicability, maximum travel distance, fire resistance, detailed
+  accessibility, elevator traffic, MEP sizing, and construction assemblies are
+  explicitly not checked.
+- Passing hard validation means internally consistent under the current
+  concept-basic contract; it does not mean permit-ready or architect-quality.
