@@ -14,6 +14,13 @@
     `pytest -q backend/tests/test_basic_design_validation.py::test_protected_exits_reference_two_distinct_stairs`
   - Result: `1 failed`; a valid distinct-stair reference was rejected because
     protected exits had no stair-target contract yet.
+- Independent-review fix RED:
+  - Command:
+    `pytest -q backend/tests/test_basic_design_validation.py -k "semantic_segments or commercial_entrance_rejects or program_space_type"`
+  - Result: `9 failed`
+  - Bent three-point semantic lines and mismatched entrance clear width were
+    accepted; a room/object pair disguised with the wrong space type was also
+    accepted.
 
 ## Verification
 
@@ -50,3 +57,21 @@
 - Occupant load and legal travel distance
 - Fire-resistance ratings
 - Elevator traffic/capacity analysis
+
+## Independent Review Fix Verification
+
+- Targeted RED cases after implementation:
+  - `9 passed, 27 deselected`
+- Focused validator/generation suite:
+  - `pytest -q backend/tests/test_basic_design_validation.py backend/tests/test_validator.py backend/tests/test_basic_design.py backend/tests/test_building_generation.py`
+  - `97 passed`
+- Ruff on fix-owned Python files: passed
+- Compileall on fix-owned Python files: passed
+- Scoped `git diff --check`: passed; only LF-to-CRLF warnings
+- Full-suite attempt during the parallel renderer task:
+  - `201 passed, 33 failed`
+  - All failures were in CLI/visual-review paths because the concurrently
+    edited `visual_review/service.py` called an as-yet undefined
+    `_normalize_render_features`.
+  - The Task 2 focused suites remained green; root will rerun the full suite
+    after the Task 3 renderer edit is complete.

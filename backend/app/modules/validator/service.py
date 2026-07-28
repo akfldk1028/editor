@@ -185,6 +185,20 @@ def validate_layout(
             add_violation("room_identity", room_id, f"required room '{room_id}' is missing")
         elif count > 1:
             add_violation("room_identity", room_id, f"room '{room_id}' appears {count} times")
+        else:
+            room = next(item for item in layout.rooms if item.room_id == room_id)
+            expected_type = next(
+                node.space_type for node in program.nodes if node.node_id == room_id
+            )
+            if room.space_type != expected_type:
+                add_violation(
+                    "room_identity",
+                    room_id,
+                    (
+                        f"room '{room_id}' space type '{room.space_type}' does not match "
+                        f"program type '{expected_type}'"
+                    ),
+                )
     for room_id in sorted(room_counts.keys() - expected_set):
         add_violation("room_identity", room_id, f"unexpected room '{room_id}' is present")
     circulation_counts = Counter(path.room_id for path in layout.circulation)
@@ -494,10 +508,17 @@ def _validate_basic_design(
     add_violation,
 ) -> BasicDesignMetric:
     features = layout.basic_design
+    program_space_types = {
+        node.node_id: node.space_type
+        for node in program.nodes
+    }
     occupied_rooms = {
         room.room_id: room
         for room in layout.rooms
-        if room.space_type != "core"
+        if (
+            room.room_id in program_space_types
+            and program_space_types[room.room_id] != "core"
+        )
     }
     geometric_occupied_rooms = {
         room_id: room
@@ -564,16 +585,33 @@ def _validate_basic_design(
                 line.line_id,
                 f"invalid line category/kind '{line.category}/{line.kind}'",
             )
-        if not _valid_polyline(line.points):
+        geometry_code = _semantic_line_geometry_violation(line)
+        if geometry_code is not None:
             add_violation(
-                "basic_design_geometry",
+                geometry_code,
                 line.line_id,
-                "basic-design lines must contain finite positive-length geometry",
+                (
+                    "semantic segment lines require exactly two finite, "
+                    "positive-length points and matching clear width"
+                ),
             )
+            if line.kind == "protected_exit" and (
+                not _is_finite_number(line.clear_width)
+                or line.clear_width + _EPSILON < min_exit_width
+            ):
+                add_violation(
+                    "protected_exit_width",
+                    line.line_id,
+                    f"protected exit clear width must be at least {min_exit_width:.3f}",
+                )
         elif id_counts[line.line_id] == 1:
             valid_lines[line.line_id] = line
 
-    cores = [room for room in layout.rooms if room.space_type == "core"]
+    cores = [
+        room
+        for room in layout.rooms
+        if program_space_types.get(room.room_id) == "core"
+    ]
     core = cores[0] if len(cores) == 1 and _is_axis_aligned_rectangle(cores[0].polygon) else None
     if core is None:
         add_violation(
@@ -867,7 +905,7 @@ def _validate_basic_design(
             (
                 room
                 for room in geometric_occupied_rooms.values()
-                if room.space_type == "sales"
+                if program_space_types.get(room.room_id) == "sales"
             ),
             None,
         )
@@ -915,7 +953,11 @@ def _validate_basic_design(
         actual_kinds = {
             element.kind for element in placed if element.host_id == room_id
         }
-        for kind in sorted(_REQUIRED_OBJECT_KINDS.get(room.space_type, set()) - actual_kinds):
+        required_kinds = _REQUIRED_OBJECT_KINDS.get(
+            program_space_types[room_id],
+            set(),
+        )
+        for kind in sorted(required_kinds - actual_kinds):
             add_violation(
                 "placed_object_missing",
                 room_id,
@@ -1088,12 +1130,42 @@ def _segment_contains(container: Segment, candidate: Segment) -> bool:
     )
 
 
-def _valid_polyline(points) -> bool:
-    return (
-        len(points) >= 2
-        and all(_is_finite_point(point) for point in points)
-        and _polyline_length(points) > _EPSILON
-    )
+def _semantic_line_geometry_violation(line: PlanLine) -> str | None:
+    if line.kind == "protected_exit":
+        code = "protected_exit_geometry"
+    elif line.kind == "window":
+        code = "window_geometry"
+    elif line.kind == "entrance":
+        code = "entrance_geometry"
+    else:
+        code = "basic_design_geometry"
+
+    if (
+        len(line.points) < 2
+        or not all(_is_finite_point(point) for point in line.points)
+        or _polyline_length(line.points) <= _EPSILON
+    ):
+        return code
+
+    semantic_segment_kinds = {
+        kind
+        for kinds in _LINE_KINDS.values()
+        for kind in kinds
+        if kind != "egress_route"
+    }
+    if line.kind in semantic_segment_kinds and len(line.points) != 2:
+        return code
+
+    if line.kind in {"protected_exit", "entrance"}:
+        if (
+            not _is_finite_number(line.clear_width)
+            or line.clear_width <= _EPSILON
+            or abs(math.dist(line.points[0], line.points[1]) - line.clear_width) > 1e-7
+        ):
+            return code
+    elif line.clear_width is not None:
+        return code
+    return None
 
 
 def _polyline_length(points) -> float:

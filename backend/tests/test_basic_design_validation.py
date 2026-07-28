@@ -127,6 +127,89 @@ def test_strict_validation_rejects_identity_reference_and_line_geometry(
     assert code in _codes(report)
 
 
+@pytest.mark.parametrize(
+    ("line_id", "expected_code"),
+    [
+        ("exit-1", "protected_exit_geometry"),
+        ("open-work-window", "window_geometry"),
+        ("grid-x", "basic_design_geometry"),
+        ("overall-width", "basic_design_geometry"),
+        ("street", "basic_design_geometry"),
+        ("north", "basic_design_geometry"),
+        ("scale", "basic_design_geometry"),
+    ],
+)
+def test_semantic_segments_reject_bent_three_point_geometry(
+    line_id,
+    expected_code,
+) -> None:
+    layout, program = _office_candidate()
+    features = layout.basic_design
+    assert features is not None
+    line = _line(features, line_id)
+    bent = replace(
+        line,
+        points=(line.points[0], (8.0, -10.0), line.points[-1]),
+        clear_width=21.9 if line.kind == "protected_exit" else line.clear_width,
+    )
+
+    report = _strict(
+        replace(layout, basic_design=_replace_line(features, bent)),
+        program,
+    )
+
+    assert expected_code in _codes(report)
+
+
+def test_commercial_entrance_rejects_bent_geometry_and_width_mismatch() -> None:
+    layout, program = _commercial_candidate()
+    features = layout.basic_design
+    assert features is not None
+    entrance = _line(features, "commercial-entrance")
+    bent = replace(
+        entrance,
+        points=(entrance.points[0], (2.9, -5.0), entrance.points[-1]),
+        clear_width=12.0,
+    )
+    wrong_width = replace(entrance, clear_width=2.0)
+
+    bent_report = _strict(
+        replace(layout, basic_design=_replace_line(features, bent)),
+        program,
+    )
+    width_report = _strict(
+        replace(layout, basic_design=_replace_line(features, wrong_width)),
+        program,
+    )
+
+    assert "entrance_geometry" in _codes(bent_report)
+    assert "entrance_geometry" in _codes(width_report)
+
+
+def test_program_space_type_is_trusted_for_identity_and_required_objects() -> None:
+    layout, program = _office_candidate()
+    features = layout.basic_design
+    assert features is not None
+    disguised_room = replace(layout.rooms[0], space_type="sales")
+    disguised_object = replace(
+        _element(features, "workstation-1"),
+        kind="sales_shelf",
+    )
+
+    report = _strict(
+        replace(
+            layout,
+            rooms=[disguised_room, layout.rooms[1]],
+            basic_design=_replace_element(features, disguised_object),
+        ),
+        program,
+    )
+
+    assert report.accepted is False
+    assert "open_work" in _subjects(report, "room_identity")
+    assert "open_work" in _subjects(report, "placed_object_missing")
+
+
 def test_strict_validation_rejects_core_contract_failures() -> None:
     layout, program = _office_candidate()
     features = layout.basic_design
@@ -896,6 +979,14 @@ def _line(features: BasicDesignFeatures, line_id: str) -> PlanLine:
 
 def _codes(report) -> set[str]:
     return {violation.code for violation in report.violations}
+
+
+def _subjects(report, code: str) -> set[str]:
+    return {
+        violation.subject
+        for violation in report.violations
+        if violation.code == code
+    }
 
 
 def _structure_geometry(features: BasicDesignFeatures):
