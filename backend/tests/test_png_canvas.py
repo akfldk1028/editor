@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+
 import pytest
 
 from engine.io.png import SimplePngCanvas
@@ -86,3 +89,141 @@ def test_canvas_primitives_keep_png_bytes_deterministic() -> None:
         return canvas.to_bytes()
 
     assert render() == render()
+
+
+def test_large_offscreen_geometry_finishes_with_a_valid_png() -> None:
+    script = """
+from engine.io.png import SimplePngCanvas
+
+canvas = SimplePngCanvas(16, 16)
+canvas.stroke_line((-1e9, 8), (1e9, 8), (0, 0, 0))
+canvas.stroke_polyline([(-1e9, 4), (1e9, 4)], (0, 0, 0))
+canvas.stroke_dashed_polyline([(-1e9, 12), (1e9, 12)], (0, 0, 0))
+canvas.draw_arrowhead((1e9, 6), (-1e9, 6), (0, 0, 0))
+canvas.fill_circle((0, 0), 1e9, (0, 0, 0))
+canvas.stroke_circle((0, 0), 1e9, (0, 0, 0))
+print(canvas.to_bytes()[:8].hex())
+"""
+
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=2,
+    )
+
+    assert result.stdout.strip() == "89504e470d0a1a0a"
+
+
+@pytest.mark.parametrize(
+    ("operation", "message"),
+    [
+        (lambda canvas: canvas.fill_rect(0, 0, float("nan"), 2, BLACK), "finite"),
+        (
+            lambda canvas: canvas.stroke_rect(0, 0, 2, float("inf"), BLACK),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.fill_polygon(
+                [(0, 0), (float("nan"), 1), (1, 0)],
+                BLACK,
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.stroke_polygon(
+                [(0, 0), (float("inf"), 1)],
+                BLACK,
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.stroke_line(
+                (float("nan"), 0),
+                (1, 1),
+                BLACK,
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.stroke_polyline(
+                [(0, 0), (float("inf"), 1)],
+                BLACK,
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.stroke_dashed_polyline(
+                [(0, 0), (1, 1)],
+                BLACK,
+                dash_length=float("nan"),
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.stroke_dashed_polyline(
+                [(0, 0), (1, 1)],
+                BLACK,
+                gap_length=float("inf"),
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.draw_arrowhead(
+                (1, 1),
+                (0, 0),
+                BLACK,
+                size=float("nan"),
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.fill_circle(
+                (0, 0),
+                float("inf"),
+                BLACK,
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.stroke_circle(
+                (float("nan"), 0),
+                2,
+                BLACK,
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.draw_text(
+                "A",
+                (float("inf"), 0),
+                BLACK,
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.stroke_line(
+                (0, 0),
+                (1, 1),
+                BLACK,
+                thickness=float("inf"),
+            ),
+            "finite",
+        ),
+        (
+            lambda canvas: canvas.draw_text(
+                "A",
+                (0, 0),
+                BLACK,
+                scale=float("nan"),
+            ),
+            "finite",
+        ),
+    ],
+)
+def test_public_primitives_reject_non_finite_geometry(operation, message: str) -> None:
+    canvas = SimplePngCanvas(8, 8)
+
+    with pytest.raises(ValueError, match=message):
+        operation(canvas)

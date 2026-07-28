@@ -36,3 +36,31 @@ new primitives were absent.
 The three full-suite failures are concurrent Task 2 validation/generation work:
 `test_basic_design_validation.py` expects a sales-window ID, strict validation
 wiring, and tuple-normalized manifest points. No PNG canvas test failed.
+
+## Independent Review Fix
+
+RED command:
+
+```text
+python -m pytest -q backend/tests/test_png_canvas.py
+```
+
+Result: `15 failed, 7 passed`. The `1e9` off-canvas subprocess timed out after
+two seconds. Fourteen NaN/inf cases were silently ignored or leaked internal
+`TypeError`, `ValueError`, or `OverflowError` messages.
+
+Fix:
+
+- Clip every rasterized line segment to the canvas before Bresenham traversal
+- Rasterize dashed segments only across visible canvas pixels
+- Clamp filled/stroked circle loops to canvas bounds
+- Reject non-finite public geometry, size, dash, gap, thickness, and scale
+  parameters with explicit `ValueError`
+
+Verification after the fix:
+
+- Focused: `22 passed`
+- Full: `222 passed`
+- Ruff: passed
+- Compileall: passed
+- Diff check: passed

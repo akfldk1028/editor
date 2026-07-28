@@ -50,6 +50,7 @@ class SimplePngCanvas:
         self.pixels = bytearray(background * width * height)
 
     def fill_rect(self, x0: int, y0: int, x1: int, y1: int, color: Color) -> None:
+        _require_finite_values((x0, y0, x1, y1), "rectangle coordinates")
         left = max(0, min(self.width, min(x0, x1)))
         right = max(0, min(self.width, max(x0, x1)))
         top = max(0, min(self.height, min(y0, y1)))
@@ -61,6 +62,8 @@ class SimplePngCanvas:
                 self.pixels[offset : offset + 3] = bytes(color)
 
     def stroke_rect(self, x0: int, y0: int, x1: int, y1: int, color: Color, thickness: int = 2) -> None:
+        _require_finite_values((x0, y0, x1, y1), "rectangle coordinates")
+        _require_positive_integer(thickness, "rectangle stroke thickness")
         self.fill_rect(x0, y0, x1, y0 + thickness, color)
         self.fill_rect(x0, y1 - thickness, x1, y1, color)
         self.fill_rect(x0, y0, x0 + thickness, y1, color)
@@ -69,6 +72,7 @@ class SimplePngCanvas:
     def fill_polygon(self, points: list[tuple[int | float, int | float]], color: Color) -> None:
         if len(points) < 3:
             raise ValueError("polygon requires at least three points")
+        _require_finite_points(points, "polygon points")
 
         min_y = max(0, math.floor(min(y for _, y in points)))
         max_y = min(self.height - 1, math.ceil(max(y for _, y in points)) - 1)
@@ -93,8 +97,8 @@ class SimplePngCanvas:
     ) -> None:
         if len(points) < 2:
             raise ValueError("polygon requires at least two points")
-        if thickness < 1:
-            raise ValueError("polygon stroke thickness must be positive")
+        _require_finite_points(points, "polygon points")
+        _require_positive_integer(thickness, "polygon stroke thickness")
         for (x1, y1), (x2, y2) in zip(points, points[1:] + points[:1]):
             self._draw_line(round(x1), round(y1), round(x2), round(y2), color, thickness)
 
@@ -105,8 +109,8 @@ class SimplePngCanvas:
         color: Color,
         thickness: int = 1,
     ) -> None:
-        if thickness < 1:
-            raise ValueError("line stroke thickness must be positive")
+        _require_finite_points((start, end), "line points")
+        _require_positive_integer(thickness, "line stroke thickness")
         self._draw_line(
             round(start[0]),
             round(start[1]),
@@ -124,8 +128,8 @@ class SimplePngCanvas:
     ) -> None:
         if len(points) < 2:
             raise ValueError("polyline requires at least two points")
-        if thickness < 1:
-            raise ValueError("polyline stroke thickness must be positive")
+        _require_finite_points(points, "polyline points")
+        _require_positive_integer(thickness, "polyline stroke thickness")
         for start, end in zip(points, points[1:]):
             self._draw_line(
                 round(start[0]),
@@ -146,8 +150,9 @@ class SimplePngCanvas:
     ) -> None:
         if len(points) < 2:
             raise ValueError("dashed polyline requires at least two points")
-        if thickness < 1:
-            raise ValueError("dashed polyline stroke thickness must be positive")
+        _require_finite_points(points, "dashed polyline points")
+        _require_positive_integer(thickness, "dashed polyline stroke thickness")
+        _require_finite_values((dash_length, gap_length), "dash and gap lengths")
         if dash_length <= 0 or gap_length <= 0:
             raise ValueError("dash and gap lengths must be positive")
 
@@ -157,29 +162,20 @@ class SimplePngCanvas:
             delta_x = end[0] - start[0]
             delta_y = end[1] - start[1]
             segment_length = math.hypot(delta_x, delta_y)
+            if not math.isfinite(segment_length):
+                raise ValueError("dashed polyline segment length must be finite")
             if segment_length == 0:
                 continue
-
-            position = 0.0
-            while position < segment_length:
-                cycle_position = phase % cycle_length
-                drawing = cycle_position < dash_length
-                interval_end = dash_length if drawing else cycle_length
-                step = min(interval_end - cycle_position, segment_length - position)
-                next_position = position + step
-                if drawing:
-                    ratio_start = position / segment_length
-                    ratio_end = next_position / segment_length
-                    self._draw_line(
-                        round(start[0] + delta_x * ratio_start),
-                        round(start[1] + delta_y * ratio_start),
-                        round(start[0] + delta_x * ratio_end),
-                        round(start[1] + delta_y * ratio_end),
-                        color,
-                        thickness,
-                    )
-                position = next_position
-                phase = (phase + step) % cycle_length
+            self._draw_dashed_segment(
+                start,
+                end,
+                color,
+                thickness,
+                dash_length,
+                cycle_length,
+                phase,
+            )
+            phase = (phase + segment_length) % cycle_length
 
     def draw_arrowhead(
         self,
@@ -189,13 +185,16 @@ class SimplePngCanvas:
         size: int | float = 6,
         thickness: int = 1,
     ) -> None:
+        _require_finite_points((tip, tail), "arrowhead points")
+        _require_finite_values((size,), "arrowhead size")
         if size <= 0:
             raise ValueError("arrowhead size must be positive")
-        if thickness < 1:
-            raise ValueError("arrowhead stroke thickness must be positive")
+        _require_positive_integer(thickness, "arrowhead stroke thickness")
         delta_x = tail[0] - tip[0]
         delta_y = tail[1] - tip[1]
         length = math.hypot(delta_x, delta_y)
+        if not math.isfinite(length):
+            raise ValueError("arrowhead length must be finite")
         if length == 0:
             raise ValueError("arrowhead tip and tail must differ")
 
@@ -215,13 +214,15 @@ class SimplePngCanvas:
             )
 
     def fill_circle(self, center: Point, radius: int | float, color: Color) -> None:
+        _require_finite_points((center,), "circle center")
+        _require_finite_values((radius,), "circle radius")
         if radius < 0:
             raise ValueError("circle radius cannot be negative")
         center_x, center_y = center
-        min_x = math.floor(center_x - radius)
-        max_x = math.ceil(center_x + radius)
-        min_y = math.floor(center_y - radius)
-        max_y = math.ceil(center_y + radius)
+        min_x = max(0, math.floor(center_x - radius))
+        max_x = min(self.width - 1, math.ceil(center_x + radius))
+        min_y = max(0, math.floor(center_y - radius))
+        max_y = min(self.height - 1, math.ceil(center_y + radius))
         squared_radius = radius * radius
         for y in range(min_y, max_y + 1):
             for x in range(min_x, max_x + 1):
@@ -235,15 +236,16 @@ class SimplePngCanvas:
         color: Color,
         thickness: int = 1,
     ) -> None:
+        _require_finite_points((center,), "circle center")
+        _require_finite_values((radius,), "circle radius")
         if radius <= 0:
             raise ValueError("circle radius must be positive")
-        if thickness < 1:
-            raise ValueError("circle stroke thickness must be positive")
+        _require_positive_integer(thickness, "circle stroke thickness")
         center_x, center_y = center
-        min_x = math.floor(center_x - radius)
-        max_x = math.ceil(center_x + radius)
-        min_y = math.floor(center_y - radius)
-        max_y = math.ceil(center_y + radius)
+        min_x = max(0, math.floor(center_x - radius))
+        max_x = min(self.width - 1, math.ceil(center_x + radius))
+        min_y = max(0, math.floor(center_y - radius))
+        max_y = min(self.height - 1, math.ceil(center_y + radius))
         inner_radius = max(0.0, radius - thickness)
         squared_inner = inner_radius * inner_radius
         squared_outer = radius * radius
@@ -260,6 +262,8 @@ class SimplePngCanvas:
         color: Color,
         scale: int = 1,
     ) -> None:
+        _require_finite_points((origin,), "text origin")
+        _require_finite_values((scale,), "text scale")
         if not isinstance(scale, int) or isinstance(scale, bool) or not 1 <= scale <= 8:
             raise ValueError("text scale must be an integer from 1 to 8")
         origin_x = round(origin[0])
@@ -289,16 +293,19 @@ class SimplePngCanvas:
             self.pixels[offset : offset + 3] = bytes(color)
 
     def _draw_line(self, x1: int, y1: int, x2: int, y2: int, color: Color, thickness: int) -> None:
+        clipped = self._clip_segment((x1, y1), (x2, y2))
+        if clipped is None:
+            return
+        (clipped_start, clipped_end, _, _) = clipped
+        x1, y1 = round(clipped_start[0]), round(clipped_start[1])
+        x2, y2 = round(clipped_end[0]), round(clipped_end[1])
         delta_x = abs(x2 - x1)
         delta_y = -abs(y2 - y1)
         step_x = 1 if x1 < x2 else -1
         step_y = 1 if y1 < y2 else -1
         error = delta_x + delta_y
-        start = -(thickness // 2)
         while True:
-            for offset_y in range(start, start + thickness):
-                for offset_x in range(start, start + thickness):
-                    self._set_pixel(x1 + offset_x, y1 + offset_y, color)
+            self._paint_stroke_pixel(x1, y1, color, thickness)
             if x1 == x2 and y1 == y2:
                 return
             double_error = 2 * error
@@ -309,6 +316,100 @@ class SimplePngCanvas:
                 error += delta_x
                 y1 += step_y
 
+    def _draw_dashed_segment(
+        self,
+        start: Point,
+        end: Point,
+        color: Color,
+        thickness: int,
+        dash_length: int | float,
+        cycle_length: int | float,
+        phase: float,
+    ) -> None:
+        clipped = self._clip_segment(start, end)
+        if clipped is None:
+            return
+        clipped_start, clipped_end, start_ratio, end_ratio = clipped
+        delta_x = clipped_end[0] - clipped_start[0]
+        delta_y = clipped_end[1] - clipped_start[1]
+        steps = max(abs(round(delta_x)), abs(round(delta_y)))
+        original_length = math.hypot(end[0] - start[0], end[1] - start[1])
+        if steps == 0:
+            ratios = (start_ratio,)
+        else:
+            ratios = (
+                start_ratio + (end_ratio - start_ratio) * index / steps
+                for index in range(steps + 1)
+            )
+        for ratio in ratios:
+            cycle_position = (phase + original_length * ratio) % cycle_length
+            if cycle_position <= dash_length:
+                self._paint_stroke_pixel(
+                    round(start[0] + (end[0] - start[0]) * ratio),
+                    round(start[1] + (end[1] - start[1]) * ratio),
+                    color,
+                    thickness,
+                )
+
+    def _paint_stroke_pixel(
+        self,
+        x: int,
+        y: int,
+        color: Color,
+        thickness: int,
+    ) -> None:
+        offset_start = -(thickness // 2)
+        left = max(0, x + offset_start)
+        right = min(self.width - 1, x + offset_start + thickness - 1)
+        top = max(0, y + offset_start)
+        bottom = min(self.height - 1, y + offset_start + thickness - 1)
+        for pixel_y in range(top, bottom + 1):
+            for pixel_x in range(left, right + 1):
+                self._set_pixel(pixel_x, pixel_y, color)
+
+    def _clip_segment(
+        self,
+        start: Point,
+        end: Point,
+    ) -> tuple[Point, Point, float, float] | None:
+        delta_x = end[0] - start[0]
+        delta_y = end[1] - start[1]
+        if not math.isfinite(delta_x) or not math.isfinite(delta_y):
+            raise ValueError("line segment delta must be finite")
+
+        start_ratio = 0.0
+        end_ratio = 1.0
+        boundaries = (
+            (-delta_x, start[0]),
+            (delta_x, self.width - 1 - start[0]),
+            (-delta_y, start[1]),
+            (delta_y, self.height - 1 - start[1]),
+        )
+        for direction, distance in boundaries:
+            if direction == 0:
+                if distance < 0:
+                    return None
+                continue
+            ratio = distance / direction
+            if direction < 0:
+                start_ratio = max(start_ratio, ratio)
+            else:
+                end_ratio = min(end_ratio, ratio)
+            if start_ratio > end_ratio:
+                return None
+        return (
+            (
+                start[0] + delta_x * start_ratio,
+                start[1] + delta_y * start_ratio,
+            ),
+            (
+                start[0] + delta_x * end_ratio,
+                start[1] + delta_y * end_ratio,
+            ),
+            start_ratio,
+            end_ratio,
+        )
+
     def to_bytes(self) -> bytes:
         rows = []
         stride = self.width * 3
@@ -318,6 +419,39 @@ class SimplePngCanvas:
         return b"\x89PNG\r\n\x1a\n" + _chunk(b"IHDR", _ihdr(self.width, self.height)) + _chunk(
             b"IDAT", zlib.compress(raw)
         ) + _chunk(b"IEND", b"")
+
+
+def _require_finite_values(
+    values: tuple[int | float, ...],
+    description: str,
+) -> None:
+    try:
+        finite = all(math.isfinite(value) for value in values)
+    except TypeError as error:
+        raise ValueError(f"{description} must be finite numbers") from error
+    if not finite:
+        raise ValueError(f"{description} must be finite")
+
+
+def _require_finite_points(
+    points: tuple[Point, ...] | list[Point],
+    description: str,
+) -> None:
+    try:
+        values = tuple(coordinate for point in points for coordinate in point)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{description} must contain finite coordinate pairs") from error
+    if any(len(point) != 2 for point in points):
+        raise ValueError(f"{description} must contain finite coordinate pairs")
+    _require_finite_values(values, description)
+
+
+def _require_positive_integer(value: int, description: str) -> None:
+    _require_finite_values((value,), description)
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{description} must be a positive integer")
+    if value < 1:
+        raise ValueError(f"{description} must be positive")
 
 
 def _ihdr(width: int, height: int) -> bytes:
