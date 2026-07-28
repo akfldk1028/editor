@@ -30,10 +30,14 @@ from backend.app.schemas.loop import (
     LoopResult,
 )
 from backend.app.schemas.result import (
+    AlternativeGeometryComparison,
+    BuildingAlternativeResult,
+    BuildingAlternativesResult,
     BuildingGenerationResult,
     GenerationResult,
     PlannerProvenance,
 )
+from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 
 
 def run_generation_loop(
@@ -260,6 +264,260 @@ def run_building_generation(
         vertical_basic_design_aligned=vertical_basic_design_aligned,
         vertical_structure_aligned=vertical_structure_aligned,
         planner_provenance=provenance,
+    )
+
+
+_ALTERNATIVE_STRATEGIES = (
+    ("alternative-a", "rear-right-core-single-spine", "mirror-y"),
+    ("alternative-b", "rear-left-core-reversed-bays", "mirror-xy"),
+    ("alternative-c", "front-right-core-longitudinal-spine", "identity"),
+)
+
+
+def run_building_alternatives(mass: MassInput) -> BuildingAlternativesResult:
+    """Generate ranked, geometrically distinct concept-basic building options."""
+    baseline = run_building_generation(mass)
+    alternatives = []
+    for alternative_id, strategy, transform in _ALTERNATIVE_STRATEGIES:
+        building = (
+            baseline
+            if transform == "identity"
+            else _transform_building_alternative(
+                baseline,
+                mass=mass,
+                transform=transform,
+                alternative_id=alternative_id,
+            )
+        )
+        fingerprints = tuple(
+            layout_fingerprint(floor.layout)
+            for floor in building.floor_results
+        )
+        mean_score = sum(
+            floor.validation.total_score for floor in building.floor_results
+        ) / len(building.floor_results)
+        geometry = _alternative_geometry_evidence(building)
+        alternatives.append(
+            BuildingAlternativeResult(
+                alternative_id=alternative_id,
+                strategy=strategy,
+                building=building,
+                score=round(mean_score, 6),
+                rank=0,
+                fingerprints=fingerprints,
+                **geometry,
+            )
+        )
+    alternatives.sort(
+        key=lambda alternative: (
+            not alternative.accepted,
+            -alternative.score,
+            alternative.alternative_id,
+        )
+    )
+    ranked = tuple(
+        replace(alternative, rank=rank)
+        for rank, alternative in enumerate(alternatives, start=1)
+    )
+    diagonal = math.hypot(
+        baseline.mass.bounds[2] - baseline.mass.bounds[0],
+        baseline.mass.bounds[3] - baseline.mass.bounds[1],
+    )
+    comparisons = []
+    for index, first in enumerate(ranked):
+        for second in ranked[index + 1:]:
+            core_distance = math.dist(first.core_centroid, second.core_centroid)
+            normalized_distance = core_distance / diagonal
+            circulation_different = (
+                first.circulation_graph_signature
+                != second.circulation_graph_signature
+                or first.circulation_bounds != second.circulation_bounds
+            )
+            tenant_different = (
+                first.tenant_assignment_signature
+                != second.tenant_assignment_signature
+            )
+            comparisons.append(
+                AlternativeGeometryComparison(
+                    first_alternative_id=first.alternative_id,
+                    second_alternative_id=second.alternative_id,
+                    normalized_core_centroid_distance=round(normalized_distance, 6),
+                    circulation_graph_different=circulation_different,
+                    tenant_assignment_different=tenant_different,
+                    semantic_distinct=(
+                        normalized_distance >= 0.15
+                        or circulation_different
+                        or tenant_different
+                    ),
+                )
+            )
+    return BuildingAlternativesResult(
+        mass=baseline.mass,
+        alternatives=ranked,
+        comparisons=tuple(comparisons),
+    )
+
+
+def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
+    layout = building.floor_results[0].layout
+    core = next(room for room in layout.rooms if room.space_type == "core")
+    core_x = [point[0] for point in core.polygon]
+    core_y = [point[1] for point in core.polygon]
+    core_centroid = (
+        round((min(core_x) + max(core_x)) / 2, 6),
+        round((min(core_y) + max(core_y)) / 2, 6),
+    )
+    circulation_points = [
+        point
+        for path in layout.circulation
+        for point in path.polygon
+    ]
+    circulation_bounds = (
+        round(min(point[0] for point in circulation_points), 6),
+        round(min(point[1] for point in circulation_points), 6),
+        round(max(point[0] for point in circulation_points), 6),
+        round(max(point[1] for point in circulation_points), 6),
+    )
+    width = circulation_bounds[2] - circulation_bounds[0]
+    depth = circulation_bounds[3] - circulation_bounds[1]
+    orientation = "longitudinal-x" if width >= depth else "longitudinal-y"
+    graph = tuple(
+        sorted(
+            f"{opening.connects[0]}->{opening.connects[1]}"
+            for opening in layout.openings
+        )
+    )
+    tenants = tuple(
+        sorted(
+            (
+                f"{room.space_type}@"
+                f"{(min(x for x, _ in room.polygon) + max(x for x, _ in room.polygon)) / 2:.3f},"
+                f"{(min(y for _, y in room.polygon) + max(y for _, y in room.polygon)) / 2:.3f}"
+            )
+            for room in layout.rooms
+            if room.space_type != "core"
+        )
+    )
+    return {
+        "core_centroid": core_centroid,
+        "circulation_orientation": orientation,
+        "circulation_bounds": circulation_bounds,
+        "circulation_graph_signature": graph,
+        "tenant_assignment_signature": tenants,
+    }
+
+
+def _transform_building_alternative(
+    baseline: BuildingGenerationResult,
+    *,
+    mass: MassInput,
+    transform: str,
+    alternative_id: str,
+) -> BuildingGenerationResult:
+    bounds = baseline.mass.bounds
+    transformed_layouts = tuple(
+        _transform_layout(
+            floor.layout,
+            bounds=bounds,
+            transform=transform,
+            candidate_id=f"{floor.layout.candidate_id}-{alternative_id}",
+        )
+        for floor in baseline.floor_results
+    )
+    shared_structure = generate_shared_structure(
+        mass.footprint_polygon,
+        transformed_layouts,
+    )
+    floor_results = []
+    streets = _street_segments(mass)
+    for floor, layout in zip(baseline.floor_results, transformed_layouts):
+        layout = replace(
+            layout,
+            basic_design=generate_basic_design(
+                layout,
+                boundary=mass.footprint_polygon,
+                street_segments=streets,
+                shared_structure=shared_structure,
+            ),
+        )
+        validation = validate_layout(
+            layout,
+            floor.program,
+            boundary=mass.footprint_polygon,
+            street_segments=streets,
+            require_openings=True,
+            min_door_width=0.8,
+            min_circulation_width=1.2,
+            require_basic_design=True,
+        )
+        floor_results.append(
+            replace(floor, layout=layout, validation=validation)
+        )
+    values = tuple(floor_results)
+    cores = [
+        next(room.polygon for room in floor.layout.rooms if room.space_type == "core")
+        for floor in values
+    ]
+    vertical_basic, vertical_structure = _vertical_basic_design_alignment(values)
+    return replace(
+        baseline,
+        floor_results=values,
+        vertical_core_aligned=all(core == cores[0] for core in cores[1:]),
+        vertical_basic_design_aligned=vertical_basic,
+        vertical_structure_aligned=vertical_structure,
+    )
+
+
+def _transform_layout(
+    layout: LayoutCandidate,
+    *,
+    bounds: tuple[float, float, float, float],
+    transform: str,
+    candidate_id: str,
+) -> LayoutCandidate:
+    min_x, min_y, max_x, max_y = bounds
+
+    def point(value):
+        x, y = value
+        if transform == "mirror-x":
+            return (min_x + max_x - x, y)
+        if transform == "mirror-y":
+            return (x, min_y + max_y - y)
+        if transform == "mirror-xy":
+            return (min_x + max_x - x, min_y + max_y - y)
+        raise ValueError(f"unsupported alternative transform: {transform}")
+
+    def polygon(points):
+        transformed = [point(value) for value in points]
+        transformed.reverse()
+        return transformed
+
+    def room(value):
+        return RoomPolygon(
+            room_id=value.room_id,
+            space_type=value.space_type,
+            polygon=polygon(value.polygon),
+        )
+
+    def opening(value):
+        endpoints = sorted((point(value.start), point(value.end)))
+        return OpeningSegment(
+            opening_id=value.opening_id,
+            kind=value.kind,
+            connects=value.connects,
+            start=endpoints[0],
+            end=endpoints[1],
+            clear_width=value.clear_width,
+        )
+
+    return LayoutCandidate(
+        candidate_id=candidate_id,
+        project_id=layout.project_id,
+        floor_index=layout.floor_index,
+        rooms=[room(value) for value in layout.rooms],
+        circulation=[room(value) for value in layout.circulation],
+        score=layout.score,
+        openings=[opening(value) for value in layout.openings],
     )
 
 

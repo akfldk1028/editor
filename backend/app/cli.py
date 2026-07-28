@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.modules.generation_loop.service import (
+    run_building_alternatives,
     run_building_generation,
     run_generation_loop,
 )
@@ -63,6 +65,10 @@ def main() -> None:
         default="deterministic",
     )
     building_review.add_argument("--llm-model")
+
+    alternatives_review = subparsers.add_parser("alternatives-review")
+    alternatives_review.add_argument("--input", required=True)
+    alternatives_review.add_argument("--output-dir", required=True)
 
     args = parser.parse_args()
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
@@ -141,6 +147,84 @@ def main() -> None:
         )
         print(json.dumps(to_jsonable(artifacts), ensure_ascii=False))
         if not result.accepted:
+            raise SystemExit(1)
+    elif args.command == "alternatives-review":
+        result = run_building_alternatives(mass)
+        target = Path(args.output_dir).resolve()
+        target.mkdir(parents=True, exist_ok=True)
+        summaries = []
+        for alternative in result.alternatives:
+            artifacts = create_building_visual_review_artifacts(
+                alternative.building,
+                boundary=mass.footprint_polygon,
+                output_dir=target / alternative.alternative_id,
+            )
+            summaries.append(
+                {
+                    "alternative_id": alternative.alternative_id,
+                    "strategy": alternative.strategy,
+                    "rank": alternative.rank,
+                    "score": alternative.score,
+                    "accepted": alternative.accepted,
+                    "fingerprints": alternative.fingerprints,
+                    "core_centroid": alternative.core_centroid,
+                    "circulation_orientation": alternative.circulation_orientation,
+                    "circulation_bounds": alternative.circulation_bounds,
+                    "circulation_graph_signature": (
+                        alternative.circulation_graph_signature
+                    ),
+                    "tenant_assignment_signature": (
+                        alternative.tenant_assignment_signature
+                    ),
+                    "floor_count": len(alternative.floor_results),
+                    "index_html": str(artifacts.index_html_path),
+                    "report_json": str(artifacts.report_path),
+                }
+            )
+        payload = {
+            "schema_version": 1,
+            "project_id": mass.project_id,
+            "accepted_count": result.accepted_count,
+            "alternatives": summaries,
+            "comparisons": to_jsonable(result.comparisons),
+        }
+        report_path = target / "alternatives.review.json"
+        report_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        rows = "\n".join(
+            (
+                "<tr>"
+                f"<td>{summary['rank']}</td>"
+                f"<td><a href=\"{summary['alternative_id']}/index.html\">"
+                f"{html.escape(summary['alternative_id'])}</a></td>"
+                f"<td>{html.escape(summary['strategy'])}</td>"
+                f"<td>{summary['score']:.4f}</td>"
+                f"<td>{'PASS' if summary['accepted'] else 'FAIL'}</td>"
+                f"<td>{html.escape(str(tuple(summary['core_centroid'])))}</td>"
+                f"<td>{html.escape(summary['circulation_orientation'])}</td>"
+                "</tr>"
+            )
+            for summary in summaries
+        )
+        (target / "index.html").write_text(
+            (
+                "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"
+                "<title>Floor-plan alternatives</title>"
+                "<style>body{font-family:Arial,sans-serif;margin:24px;color:#171717}"
+                "table{border-collapse:collapse;width:100%}th,td{padding:9px;"
+                "border:1px solid #bbb;text-align:left}th{background:#f3f3f3}"
+                "a{color:#0056b3}</style></head><body>"
+                f"<h1>{html.escape(mass.project_id)} 대안 비교</h1>"
+                "<table><thead><tr><th>순위</th><th>대안</th><th>전략</th>"
+                "<th>점수</th><th>검증</th><th>코어 중심</th><th>복도 주축</th>"
+                f"</tr></thead><tbody>{rows}</tbody></table></body></html>"
+            ),
+            encoding="utf-8",
+        )
+        print(json.dumps(payload, ensure_ascii=False))
+        if result.accepted_count < 2:
             raise SystemExit(1)
 
 

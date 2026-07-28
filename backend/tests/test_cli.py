@@ -179,6 +179,51 @@ def test_cli_building_review_generates_all_floors(tmp_path):
     assert (output_dir / "building.review.json").is_file()
 
 
+def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tmp_path):
+    input_path = tmp_path / "mass.json"
+    output_dir = tmp_path / "alternatives-review"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-alternatives",
+                "floors": 2,
+                "footprint_polygon": [[0, 0], [30, 0], [30, 12], [0, 12]],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [{"edge_index": 0, "position": 0.5}],
+                "use_mix": {"neighborhood_commercial": 0.5, "office": 0.5},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "backend.app.cli",
+            "alternatives-review",
+            "--input",
+            str(input_path),
+            "--output-dir",
+            str(output_dir),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads(completed.stdout)
+    assert payload["accepted_count"] >= 2
+    assert len(payload["alternatives"]) == 3
+    assert (output_dir / "index.html").is_file()
+    assert (output_dir / "alternatives.review.json").is_file()
+    for alternative in payload["alternatives"]:
+        alternative_dir = output_dir / alternative["alternative_id"]
+        assert (alternative_dir / "index.html").is_file()
+        assert (alternative_dir / "building.review.json").is_file()
+        assert len(list(alternative_dir.glob("floor_*/*.png"))) == 2
+
+
 def test_cli_building_review_can_use_openai_planner(
     tmp_path, monkeypatch, capsys
 ):
