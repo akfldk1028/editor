@@ -278,6 +278,9 @@ def main() -> None:
         accepted_count = sum(
             summary["accepted"] for summary in summaries
         )
+        rejected_families = to_jsonable(
+            getattr(result, "rejected_families", ())
+        )
         payload = {
             "schema_version": 1,
             "project_id": mass.project_id,
@@ -296,6 +299,7 @@ def main() -> None:
             ),
             "alternatives": summaries,
             "comparisons": to_jsonable(result.comparisons),
+            "rejected_families": rejected_families,
         }
         report_path = target / "alternatives.review.json"
         report_path.write_text(
@@ -319,6 +323,24 @@ def main() -> None:
             )
             for summary in summaries
         )
+        rejected_family_review = (
+            "<section><h2>Rejected alternative families</h2><ul>"
+            + "".join(
+                (
+                    f"<li><strong>{html.escape(item['family'])}</strong>"
+                    "<ul>"
+                    + "".join(
+                        f"<li>{html.escape(reason)}</li>"
+                        for reason in item["reasons"]
+                    )
+                    + "</ul></li>"
+                )
+                for item in rejected_families
+            )
+            + "</ul></section>"
+            if rejected_families
+            else ""
+        )
         (target / "index.html").write_text(
             (
                 "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"
@@ -332,7 +354,8 @@ def main() -> None:
                 "<th>점수</th><th>internal concept validation</th>"
                 "<th>render validation</th><th>regulatory screening</th>"
                 "<th>코어 중심</th><th>복도 주축</th>"
-                f"</tr></thead><tbody>{rows}</tbody></table></body></html>"
+                f"</tr></thead><tbody>{rows}</tbody></table>"
+                f"{rejected_family_review}</body></html>"
             ),
             encoding="utf-8",
         )

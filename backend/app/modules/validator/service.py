@@ -637,6 +637,7 @@ def validate_layout(
     require_basic_design: bool = False,
     min_protected_exit_width: float = 0.9,
     min_exit_separation: float = 3.0,
+    required_protected_exit_count: int = 2,
     building_code_context: BuildingCodeContext | None = None,
 ) -> ValidationReport:
     if not math.isfinite(min_door_width) or min_door_width <= 0:
@@ -651,6 +652,12 @@ def validate_layout(
     ):
         if not math.isfinite(value) or value <= 0:
             raise ValueError(f"{name} must be finite and positive")
+    if (
+        not isinstance(required_protected_exit_count, int)
+        or isinstance(required_protected_exit_count, bool)
+        or required_protected_exit_count not in {1, 2}
+    ):
+        raise ValueError("required_protected_exit_count must be 1 or 2")
     _validate_program(program)
     validate_polygon(boundary, label="boundary")
     streets = street_segments or []
@@ -826,6 +833,7 @@ def validate_layout(
             program,
             min_protected_exit_width,
             internal_exit_separation,
+            required_protected_exit_count,
             building_code_context,
             add_violation,
         )
@@ -1041,6 +1049,7 @@ def _validate_basic_design(
     program: ProgramGraph,
     min_exit_width: float,
     min_exit_separation: float,
+    required_exit_count: int,
     building_code_context: BuildingCodeContext | None,
     add_violation,
 ) -> BasicDesignMetric:
@@ -1262,12 +1271,20 @@ def _validate_basic_design(
         if element.category == "vertical"
     ]
     vertical_counts = Counter(element.kind for element in vertical)
-    expected_vertical = {"stair": 2, "elevator": 1, "lobby": 1, "shaft": 1}
+    expected_vertical = {
+        "stair": required_exit_count,
+        "elevator": 1,
+        "lobby": 1,
+        "shaft": 1,
+    }
     if any(vertical_counts[kind] != count for kind, count in expected_vertical.items()):
         add_violation(
             "vertical_missing",
             "core",
-            "core requires exactly two stairs and one elevator, lobby, and shaft",
+            (
+                f"core requires exactly {required_exit_count} stair(s) and "
+                "one elevator, lobby, and shaft"
+            ),
         )
         missing_kinds.update(
             f"vertical:{kind}"
@@ -1538,7 +1555,7 @@ def _validate_basic_design(
                     stair.element_id,
                     "flight direction metadata must follow landing elevation order",
                 )
-    if len(stairs) == 2 and (
+    if required_exit_count == 2 and len(stairs) == 2 and (
         _footprint_bbox_distance(stairs[0].footprint, stairs[1].footprint)
         + _EPSILON
         < _MIN_STAIR_SEPARATION
@@ -1557,19 +1574,25 @@ def _validate_basic_design(
         for line in valid_lines.values()
         if line.category == "egress" and line.kind == "protected_exit"
     ]
-    if len(exits) != 2:
+    if len(exits) != required_exit_count:
         add_violation(
             "protected_exit_count",
             "core",
-            f"strict basic design requires exactly two protected exits, found {len(exits)}",
+            (
+                "strict basic design requires exactly "
+                f"{required_exit_count} protected exit(s), found {len(exits)}"
+            ),
         )
-        if len(exits) < 2:
+        if len(exits) < required_exit_count:
             missing_kinds.add("egress:protected_exit")
-    if len(exits) == 2 and len({line.target_id for line in exits}) != 2:
+    if (
+        len(exits) == required_exit_count
+        and len({line.target_id for line in exits}) != required_exit_count
+    ):
         add_violation(
             "protected_exit_reference",
             "core",
-            "protected exits must reference two distinct stair elements",
+            "protected exits must reference distinct stair elements",
         )
     verified_exit_ids: set[str] = set()
     for exit_line in exits:
@@ -1634,14 +1657,17 @@ def _validate_basic_design(
             and width_valid
         ):
             verified_exit_ids.add(exit_line.line_id)
-    if len(exits) != 2 or len({line.target_id for line in exits}) != 2:
+    if (
+        len(exits) != required_exit_count
+        or len({line.target_id for line in exits}) != required_exit_count
+    ):
         verified_exit_ids.clear()
     verified_exits = [
         line for line in exits if line.line_id in verified_exit_ids
     ]
     exit_doorway_separation = _exit_doorway_separation(verified_exits)
     exit_separation = _exit_separation(exits)
-    if len(exits) == 2 and (
+    if required_exit_count == 2 and len(exits) == 2 and (
         exit_separation is None or exit_separation + _EPSILON < min_exit_separation
     ):
         add_violation(
@@ -1887,11 +1913,17 @@ def _validate_basic_design(
                 ),
             )
     for room_id in occupied_rooms:
-        if len(route_targets_by_room.get(room_id, set())) < 2:
+        if (
+            len(route_targets_by_room.get(room_id, set()))
+            < required_exit_count
+        ):
             add_violation(
                 "egress_route_missing",
                 room_id,
-                "occupied room requires routes to two distinct protected exits",
+                (
+                    "occupied room requires routes to "
+                    f"{required_exit_count} distinct protected exit(s)"
+                ),
             )
             missing_kinds.add(f"egress:route:{room_id}")
 

@@ -228,7 +228,7 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
     assert completed.returncode == (
         0 if payload["accepted_count"] >= 2 else 1
     )
-    assert len(payload["alternatives"]) == 3
+    assert len(payload["alternatives"]) == 2
     assert payload["internal_validation"]["status"] in {"pass", "fail"}
     assert payload["render_validation"]["status"] in {"pass", "fail"}
     assert payload["regulatory_screening"]["status"] == "not_checked"
@@ -253,6 +253,63 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
         assert (alternative_dir / "index.html").is_file()
         assert (alternative_dir / "building.review.json").is_file()
         assert len(list(alternative_dir.glob("floor_*/*.png"))) == 2
+
+
+def test_cli_alternatives_review_preserves_infeasible_family_rejection(tmp_path):
+    input_path = tmp_path / "infeasible.json"
+    output_dir = tmp_path / "infeasible-review"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-<infeasible>",
+                "floors": 2,
+                "footprint_polygon": [[0, 0], [18, 0], [18, 12], [0, 12]],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [],
+                "use_mix": {"office": 1.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "backend.app.cli",
+            "alternatives-review",
+            "--input",
+            str(input_path),
+            "--output-dir",
+            str(output_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 1
+    payload = json.loads(completed.stdout)
+    assert payload["alternatives"] == []
+    assert payload["rejected_families"] == [
+        {
+            "family": "conservative_redundant_two_stair",
+            "reasons": [
+                (
+                    "concept-basic footprint requires width >= 20.0 m "
+                    "and depth >= 10.0 m"
+                )
+            ],
+        }
+    ]
+    report = json.loads(
+        (output_dir / "alternatives.review.json").read_text(encoding="utf-8")
+    )
+    assert report["rejected_families"] == payload["rejected_families"]
+    page = (output_dir / "index.html").read_text(encoding="utf-8")
+    assert "conservative_redundant_two_stair" in page
+    assert "width &gt;= 20.0 m" in page
+    assert "cli-&lt;infeasible&gt;" in page
+    assert "<infeasible>" not in page
 
 
 def test_cli_alternatives_count_and_exit_include_render_validation(

@@ -176,7 +176,7 @@ def test_door_closed_leaf_endpoint_must_remain_in_lower_landing() -> None:
 def test_tall_floor_height_building_alternatives_return_structured_results() -> None:
     alternatives = run_building_alternatives(_mass(4.8))
 
-    assert len(alternatives.alternatives) == 3
+    assert len(alternatives.alternatives) == 2
     assert all(alternative.building.floor_results for alternative in alternatives.alternatives)
 
 

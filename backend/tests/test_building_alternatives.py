@@ -1,9 +1,17 @@
+from dataclasses import replace
 import pytest
 import math
 
 from backend.app.modules.generation_loop.operators import layout_fingerprint
+from backend.app.modules.generation_loop.selector import (
+    canonical_building_topology_signature,
+)
 from backend.app.modules.generation_loop.service import run_building_alternatives
-from backend.app.schemas.mass import BuildingCodeContext, MassInput
+from backend.app.schemas.mass import (
+    BuildingCodeContext,
+    FloorCodeContext,
+    MassInput,
+)
 from backend.app.schemas.program import ProgramAdjustment, ProgramNode
 from engine.geometry.polygon import polygon_area
 
@@ -98,9 +106,9 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
 
     result = run_building_alternatives(mass)
 
-    assert len(result.alternatives) == 3
-    assert sum(alternative.accepted for alternative in result.alternatives) >= 2
-    assert [alternative.rank for alternative in result.alternatives] == [1, 2, 3]
+    assert len(result.alternatives) == 2
+    assert sum(alternative.accepted for alternative in result.alternatives) >= 1
+    assert [alternative.rank for alternative in result.alternatives] == [1, 2]
     assert [alternative.accepted for alternative in result.alternatives] == sorted(
         (alternative.accepted for alternative in result.alternatives),
         reverse=True,
@@ -117,11 +125,11 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
             tuple(layout_fingerprint(floor.layout) for floor in alternative.floor_results)
             for alternative in result.alternatives
         }
-    ) == 3
-    assert len({alternative.strategy for alternative in result.alternatives}) == 3
-    assert len(result.comparisons) == 3
+    ) == 2
+    assert len({alternative.strategy for alternative in result.alternatives}) == 2
+    assert len(result.comparisons) == 1
     assert all(comparison.semantic_distinct for comparison in result.comparisons)
-    assert len({alternative.core_centroid for alternative in result.alternatives}) == 3
+    assert len({alternative.core_centroid for alternative in result.alternatives}) == 2
     assert all(alternative.circulation_graph_signature for alternative in result.alternatives)
     assert all(
         alternative.building.vertical_core_aligned
@@ -168,8 +176,6 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
     }
     assert normalized["alternative-a"][0] > 0.65
     assert normalized["alternative-a"][1] > 0.65
-    assert 0.35 < normalized["alternative-b"][0] < 0.65
-    assert normalized["alternative-b"][1] > 0.65
     assert normalized["alternative-c"][0] > 0.65
     assert 0.35 < normalized["alternative-c"][1] < 0.65
     assert all("front" not in alternative.strategy for alternative in result.alternatives)
@@ -224,4 +230,276 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
         or assignment in {"common-core-access:True"}
         for alternative in result.alternatives
         for assignment in alternative.tenant_assignment_signature
+    )
+
+
+def _explicit_one_stair_mass() -> MassInput:
+    return MassInput(
+        project_id="explicit-one-stair-family",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+        building_code_context=BuildingCodeContext(
+            jurisdiction="KR",
+            effective_date="2026-07-28",
+            floor_facts=(
+                FloorCodeContext(
+                    floor_index=1,
+                    above_grade=True,
+                    story_number=1,
+                    habitable_area_m2=100.0,
+                    is_evacuation_floor=False,
+                    occupancy_category="other_supported",
+                ),
+                FloorCodeContext(
+                    floor_index=2,
+                    above_grade=True,
+                    story_number=2,
+                    habitable_area_m2=100.0,
+                    is_evacuation_floor=False,
+                    occupancy_category="other_supported",
+                ),
+            ),
+        ),
+    )
+
+
+def test_explicit_all_floor_one_stair_screen_emits_both_stair_families():
+    result = run_building_alternatives(_explicit_one_stair_mass())
+
+    families = {
+        alternative.strategy.split("/", 1)[0]
+        for alternative in result.alternatives
+    }
+    assert families == {
+        "screened_minimum_one_stair",
+        "conservative_redundant_two_stair",
+    }
+    for alternative in result.alternatives:
+        expected_count = (
+            1
+            if alternative.strategy.startswith("screened_minimum_one_stair/")
+            else 2
+        )
+        assert all(
+            sum(
+                element.kind == "stair"
+                for element in floor.layout.basic_design.elements
+            )
+            == expected_count
+            for floor in alternative.floor_results
+        )
+        assert len({id(floor.layout) for floor in alternative.floor_results}) == 2
+        assert len(
+            {
+                id(floor.validation)
+                for floor in alternative.floor_results
+            }
+        ) == 2
+        stair_ids_by_floor = {
+            tuple(
+                sorted(
+                    element.element_id
+                    for element in floor.layout.basic_design.elements
+                    if element.kind == "stair"
+                )
+            )
+            for floor in alternative.floor_results
+        }
+        assert len(stair_ids_by_floor) == 1
+        assert {
+            next(
+                room.room_id
+                for room in floor.layout.rooms
+                if room.space_type == "core"
+            )
+            for floor in alternative.floor_results
+        } == {"core"}
+        assert all(
+            floor.validation.regulatory_screening
+            .screened_required_direct_stair_count
+            == 1
+            for floor in alternative.floor_results
+        )
+    accepted_one_stair = [
+        alternative
+        for alternative in result.alternatives
+        if (
+            alternative.strategy.startswith("screened_minimum_one_stair/")
+            and alternative.accepted
+        )
+    ]
+    assert accepted_one_stair
+    assert not {
+        violation.code
+        for alternative in accepted_one_stair
+        for floor in alternative.floor_results
+        for violation in floor.validation.violations
+    } & {
+        "vertical_missing",
+        "protected_exit_count",
+        "egress_route_missing",
+    }
+
+
+def test_unknown_floor_applicability_only_emits_conservative_family():
+    mass = MassInput(
+        project_id="unknown-stair-family",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    result = run_building_alternatives(mass)
+
+    assert result.alternatives
+    assert all(
+        alternative.strategy.startswith(
+            "conservative_redundant_two_stair/"
+        )
+        for alternative in result.alternatives
+    )
+    signatures = [
+        alternative.design_family_signature
+        for alternative in result.alternatives
+    ]
+    assert len(signatures) == len(set(signatures))
+    assert all(
+        floor.validation.regulatory_screening.status == "not_checked"
+        for alternative in result.alternatives
+        for floor in alternative.floor_results
+    )
+
+
+def test_any_floor_requiring_two_stairs_suppresses_one_stair_family():
+    mass = _explicit_one_stair_mass()
+    first, second = mass.building_code_context.floor_facts
+    mass = MassInput(
+        project_id="mixed-stair-family",
+        floors=mass.floors,
+        footprint_polygon=mass.footprint_polygon,
+        site_edges=mass.site_edges,
+        access_candidates=mass.access_candidates,
+        use_mix=mass.use_mix,
+        building_code_context=BuildingCodeContext(
+            jurisdiction="KR",
+            effective_date="2026-07-28",
+            floor_facts=(
+                first,
+                FloorCodeContext(
+                    floor_index=second.floor_index,
+                    above_grade=True,
+                    story_number=5,
+                    habitable_area_m2=500.0,
+                    is_evacuation_floor=False,
+                    occupancy_category="other_supported",
+                ),
+            ),
+        ),
+    )
+
+    result = run_building_alternatives(mass)
+
+    assert result.alternatives
+    assert all(
+        alternative.strategy.startswith(
+            "conservative_redundant_two_stair/"
+        )
+        for alternative in result.alternatives
+    )
+    assert {
+        floor.validation.regulatory_screening
+        .screened_required_direct_stair_count
+        for floor in result.alternatives[0].floor_results
+    } == {1, 2}
+
+
+@pytest.mark.parametrize(
+    ("polygon", "reason"),
+    [
+        (
+            [(0, 0), (18, 0), (18, 12), (0, 12)],
+            "width >= 20.0",
+        ),
+        (
+            [(0, 0), (30, 0), (30, 12), (20, 12), (20, 8), (0, 8)],
+            "rectangular",
+        ),
+    ],
+)
+def test_infeasible_mass_reports_conservative_family_rejection(
+    polygon,
+    reason,
+):
+    mass = MassInput(
+        project_id="infeasible-family",
+        floors=2,
+        footprint_polygon=polygon,
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    result = run_building_alternatives(mass)
+
+    assert result.alternatives == ()
+    assert len(result.rejected_families) == 1
+    rejected = result.rejected_families[0]
+    assert rejected.family == "conservative_redundant_two_stair"
+    assert any(reason in item for item in rejected.reasons)
+
+
+def test_topology_signature_ignores_connects_order_and_tracks_circulation_edges():
+    mass = MassInput(
+        project_id="topology-canonical",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+    result = run_building_alternatives(mass)
+    alternative = next(
+        item for item in result.alternatives
+        if item.alternative_id == "alternative-c"
+    )
+    floor = alternative.floor_results[0]
+    reversed_connects = replace(
+        floor,
+        layout=replace(
+            floor.layout,
+            openings=[
+                replace(opening, connects=tuple(reversed(opening.connects)))
+                for opening in floor.layout.openings
+            ],
+        ),
+    )
+    assert canonical_building_topology_signature((floor,)) == (
+        canonical_building_topology_signature((reversed_connects,))
+    )
+
+    assert len(floor.layout.circulation) == 2
+    first, second = floor.layout.circulation
+    disconnected = replace(
+        floor,
+        layout=replace(
+            floor.layout,
+            circulation=[
+                first,
+                replace(
+                    second,
+                    polygon=[
+                        (x + 100.0, y)
+                        for x, y in second.polygon
+                    ],
+                ),
+            ],
+        ),
+    )
+    assert canonical_building_topology_signature((floor,)) != (
+        canonical_building_topology_signature((disconnected,))
     )

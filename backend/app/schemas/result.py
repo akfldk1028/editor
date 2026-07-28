@@ -77,10 +77,32 @@ class BuildingAlternativeResult:
 
 
 @dataclass(frozen=True)
+class RejectedAlternativeFamilyResult:
+    family: str
+    reasons: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.family, str) or not self.family.strip():
+            raise ValueError("rejected alternative family must be non-empty")
+        if (
+            not isinstance(self.reasons, tuple)
+            or not self.reasons
+            or any(
+                not isinstance(reason, str) or not reason.strip()
+                for reason in self.reasons
+            )
+        ):
+            raise ValueError(
+                "rejected alternative family requires exact non-empty reasons"
+            )
+
+
+@dataclass(frozen=True)
 class BuildingAlternativesResult:
     mass: MassAnalysis
     alternatives: tuple[BuildingAlternativeResult, ...]
     comparisons: tuple["AlternativeGeometryComparison", ...]
+    rejected_families: tuple[RejectedAlternativeFamilyResult, ...] = ()
 
     @property
     def accepted_count(self) -> int:

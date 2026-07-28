@@ -9,7 +9,11 @@ from backend.app.modules.generation_loop.operators import (
     layout_fingerprint,
     refine_proposals,
 )
-from backend.app.modules.generation_loop.selector import rank_candidate, select_frontier
+from backend.app.modules.generation_loop.selector import (
+    canonical_building_topology_signature,
+    rank_candidate,
+    select_frontier,
+)
 from backend.app.modules.layout_generator.service import (
     generate_baseline_layout,
     generate_core_aligned_layout,
@@ -42,6 +46,7 @@ from backend.app.schemas.result import (
     BuildingGenerationResult,
     GenerationResult,
     PlannerProvenance,
+    RejectedAlternativeFamilyResult,
 )
 from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 from backend.app.schemas.program import ProgramAdjustment
@@ -190,7 +195,15 @@ def run_building_generation(
             for program in programs
         ]
     programs = [
-        _fit_rear_primary_program(program, analysis)
+        _fit_rear_primary_program(
+            program,
+            analysis,
+            floor_to_floor_height_m=(
+                mass.building_code_context.floor_to_floor_height_m
+                if mass.building_code_context is not None
+                else None
+            ),
+        )
         for program in programs
     ]
     core_top = float(_clean_area(min_y + core_height))
@@ -311,8 +324,21 @@ _ALTERNATIVE_STRATEGIES = (
 
 def run_building_alternatives(mass: MassInput) -> BuildingAlternativesResult:
     """Generate ranked, geometrically distinct concept-basic building options."""
-    baseline = run_building_generation(mass)
-    alternatives = []
+    try:
+        baseline = run_building_generation(mass)
+    except ValueError as error:
+        return BuildingAlternativesResult(
+            mass=analyze_mass(mass),
+            alternatives=(),
+            comparisons=(),
+            rejected_families=(
+                RejectedAlternativeFamilyResult(
+                    family="conservative_redundant_two_stair",
+                    reasons=(str(error),),
+                ),
+            ),
+        )
+    conservative = []
     for alternative_id, strategy, transform in _ALTERNATIVE_STRATEGIES:
         if transform == "identity":
             building = baseline
@@ -350,10 +376,10 @@ def run_building_alternatives(mass: MassInput) -> BuildingAlternativesResult:
             floor.validation.total_score for floor in building.floor_results
         ) / len(building.floor_results)
         geometry = _alternative_geometry_evidence(building)
-        alternatives.append(
+        conservative.append(
             BuildingAlternativeResult(
                 alternative_id=alternative_id,
-                strategy=strategy,
+                strategy=f"conservative_redundant_two_stair/{strategy}",
                 building=building,
                 score=round(mean_score, 6),
                 rank=0,
@@ -361,6 +387,57 @@ def run_building_alternatives(mass: MassInput) -> BuildingAlternativesResult:
                 **geometry,
             )
         )
+    conservative = _deduplicate_family_topologies(conservative)
+    alternatives = list(conservative)
+    floor_required_counts = tuple(
+        (
+            floor.program.floor_index,
+            (
+                floor.validation.regulatory_screening
+                .screened_required_direct_stair_count
+                if floor.validation.regulatory_screening is not None
+                else None
+            ),
+        )
+        for floor in baseline.floor_results
+    )
+    if floor_required_counts and all(
+        count == 1 for _, count in floor_required_counts
+    ):
+        one_stair = []
+        for conservative_alternative in conservative:
+            building = _screened_one_stair_building(
+                conservative_alternative.building,
+                mass=mass,
+            )
+            geometry = _alternative_geometry_evidence(building)
+            one_stair.append(
+                BuildingAlternativeResult(
+                    alternative_id=(
+                        f"one-stair-{conservative_alternative.alternative_id}"
+                    ),
+                    strategy=(
+                        "screened_minimum_one_stair/"
+                        + conservative_alternative.strategy.split("/", 1)[1]
+                    ),
+                    building=building,
+                    score=round(
+                        sum(
+                            floor.validation.total_score
+                            for floor in building.floor_results
+                        )
+                        / len(building.floor_results),
+                        6,
+                    ),
+                    rank=0,
+                    fingerprints=tuple(
+                        layout_fingerprint(floor.layout)
+                        for floor in building.floor_results
+                    ),
+                    **geometry,
+                )
+            )
+        alternatives.extend(_deduplicate_family_topologies(one_stair))
     alternatives.sort(
         key=lambda alternative: (
             not alternative.accepted,
@@ -509,13 +586,6 @@ def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
         ]
         + [f"common-core-access:{common_core_policy_passed}"]
     )
-    family_payload = (
-        core_centroid,
-        orientation,
-        circulation_bounds,
-        graph,
-        tenants,
-    )
     return {
         "core_centroid": core_centroid,
         "circulation_orientation": orientation,
@@ -525,8 +595,106 @@ def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
         "tenant_count": len(tenant_room_ids),
         "tenant_entrance_assignments": tenant_entrances,
         "core_public_entrance": core_public_entrance,
-        "design_family_signature": repr(family_payload),
+        "design_family_signature": canonical_building_topology_signature(
+            building.floor_results
+        ),
     }
+
+
+def _deduplicate_family_topologies(
+    alternatives: list[BuildingAlternativeResult],
+) -> list[BuildingAlternativeResult]:
+    distinct = []
+    seen: set[str] = set()
+    for alternative in alternatives:
+        signature = alternative.design_family_signature
+        if signature in seen:
+            continue
+        seen.add(signature)
+        distinct.append(alternative)
+    return distinct
+
+
+def _screened_one_stair_building(
+    building: BuildingGenerationResult,
+    *,
+    mass: MassInput,
+) -> BuildingGenerationResult:
+    floors = []
+    streets = _street_segments(mass)
+    for floor in building.floor_results:
+        layout = floor.layout
+        basic_design = layout.basic_design
+        if basic_design is None:
+            raise ValueError(
+                "screened one-stair family requires generated basic design"
+            )
+        removed_stair_ids = {
+            element.element_id
+            for element in basic_design.elements
+            if element.kind == "stair" and element.host_id == "floor"
+        }
+        if len(removed_stair_ids) != 1:
+            raise ValueError(
+                "screened one-stair family requires exactly one removable "
+                "remote stair"
+            )
+        removed_exit_ids = {
+            line.line_id
+            for line in basic_design.lines
+            if (
+                line.kind == "protected_exit"
+                and line.target_id in removed_stair_ids
+            )
+        }
+        features = replace(
+            basic_design,
+            elements=tuple(
+                element
+                for element in basic_design.elements
+                if element.element_id not in removed_stair_ids
+            ),
+            lines=tuple(
+                line
+                for line in basic_design.lines
+                if line.target_id not in removed_stair_ids
+                and line.line_id not in removed_exit_ids
+                and line.target_id not in removed_exit_ids
+            ),
+        )
+        one_stair_layout = replace(
+            layout,
+            candidate_id=f"{layout.candidate_id}-screened-one-stair",
+            basic_design=features,
+            remote_stair_footprint=None,
+        )
+        floors.append(
+            replace(
+                floor,
+                layout=one_stair_layout,
+                validation=validate_layout(
+                    one_stair_layout,
+                    floor.program,
+                    boundary=mass.footprint_polygon,
+                    street_segments=streets,
+                    require_openings=True,
+                    min_door_width=0.8,
+                    min_circulation_width=1.2,
+                    require_basic_design=True,
+                    required_protected_exit_count=1,
+                    building_code_context=mass.building_code_context,
+                ),
+            )
+        )
+    values = tuple(floors)
+    vertical_basic, vertical_structure = _vertical_basic_design_alignment(values)
+    return replace(
+        building,
+        floor_results=values,
+        vertical_core_aligned=True,
+        vertical_basic_design_aligned=vertical_basic,
+        vertical_structure_aligned=vertical_structure,
+    )
 
 
 def _transform_building_alternative(
@@ -672,7 +840,7 @@ def _generate_side_mid_building(
         )
         core_height = max(7.2, depth * 0.6)
         core_width = max(
-            float(core.target_area) * 0.855 / core_height,
+            float(core.target_area) / core_height,
             stair_long_side + 0.25,
         )
         branch_left = max_x - core_width - 1.2
@@ -687,7 +855,7 @@ def _generate_side_mid_building(
             else branch_left - min_x
         )
         cross_bottoms.append(
-            min_y + float(primary.target_area) * 0.855 / primary_width
+            min_y + float(primary.target_area) / primary_width
         )
         service_nodes = [
             node
@@ -697,13 +865,13 @@ def _generate_side_mid_building(
         available_width = max(branch_left - min_x - stair_long_side, 1.0)
         service_height = max(
             2.4,
-            sum(float(node.target_area) * 0.855 for node in service_nodes)
+            sum(float(node.target_area) for node in service_nodes)
             / available_width,
         )
         while (
             sum(
                 max(
-                    float(node.target_area) * 0.855 / service_height,
+                    float(node.target_area) / service_height,
                     float(node.min_width or 0),
                     1.1,
                 )
@@ -1076,7 +1244,7 @@ def _compress_compact_program(
             factor = service_factor
         target = max(
             float(node.target_area) * factor,
-            (float(node.min_width or 0) ** 2) / 0.855 * 1.01,
+            (float(node.min_width or 0) ** 2) * 1.01,
         )
         nodes.append(
             replace(
@@ -1105,19 +1273,61 @@ def _compress_compact_program(
     )
 
 
-def _fit_rear_primary_program(program, analysis: MassAnalysis):
+def _fit_rear_primary_program(
+    program,
+    analysis: MassAnalysis,
+    *,
+    floor_to_floor_height_m: float | None,
+):
     min_x, min_y, max_x, max_y = analysis.bounds
     depth = max_y - min_y
-    rear_height = max(5.2, depth * 0.5)
+    resolved_height, _ = resolve_floor_height(floor_to_floor_height_m)
+    _, stair_long_side = required_stair_enclosure(resolved_height)
+    rear_height = max(stair_long_side + 0.25, 5.2, depth * 0.5)
     front_depth = depth - rear_height - 1.2
     capacity = (max_x - min_x - 1.2) * front_depth
     core = next(node for node in program.nodes if node.space_type == "core")
+    core_width = max(7.0, float(core.target_area) / rear_height)
+    service_nodes = [
+        node
+        for node in program.nodes
+        if node.space_type not in {"core", "sales", "open_work"}
+    ]
+    service_total = sum(float(node.target_area) for node in service_nodes)
+    service_capacity = max(
+        0.0,
+        (max_x - min_x - core_width - stair_long_side) * rear_height,
+    )
+    if service_total > service_capacity and service_capacity > 0:
+        scale = service_capacity / service_total
+        adjusted_nodes = [
+            (
+                replace(
+                    node,
+                    target_area=_clean_area(float(node.target_area) * scale),
+                    min_area=_clean_area(float(node.target_area) * scale * 0.85),
+                    max_area=_clean_area(float(node.target_area) * scale * 1.15),
+                )
+                if node in service_nodes
+                else node
+            )
+            for node in program.nodes
+        ]
+        program = _with_program_adjustment(
+            program,
+            adjusted_nodes,
+            reason="rear_service_residual_fit",
+            source=f"{program.source}:rear_service_residual_fit",
+        )
+        core = next(
+            node for node in program.nodes if node.space_type == "core"
+        )
     actual_core_area = max(
         7.0,
-        float(core.target_area) * 0.855 / rear_height,
+        float(core.target_area) / rear_height,
     ) * rear_height
     fitted_core_target = (
-        actual_core_area / 0.855
+        actual_core_area
         if (
             actual_core_area < float(core.min_area or 0)
             or actual_core_area > float(core.max_area or math.inf)
@@ -1126,7 +1336,7 @@ def _fit_rear_primary_program(program, analysis: MassAnalysis):
     )
     if program.use_type == "neighborhood_commercial":
         tenant_actual = ((max_x - min_x - 1.2) / 2) * front_depth
-        tenant_target = tenant_actual / 0.855
+        tenant_target = tenant_actual
         nodes = [
             (
                 replace(
@@ -1166,7 +1376,7 @@ def _fit_rear_primary_program(program, analysis: MassAnalysis):
     if program.use_type != "office":
         return program
     primary = next(node for node in program.nodes if node.space_type == "open_work")
-    fitted_target = min(float(primary.target_area), capacity / 0.855 * 0.999)
+    fitted_target = min(float(primary.target_area), capacity * 0.999)
     nodes = [
         (
             replace(

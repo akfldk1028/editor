@@ -430,6 +430,17 @@ def generate_rear_center_layout(
             )
             fallback_splits.append(
                 (
+                    sum(
+                        (
+                            node.node_id in left_ids
+                            and left_capacity <= 1e-7
+                        )
+                        or (
+                            node.node_id not in left_ids
+                            and right_capacity <= 1e-7
+                        )
+                        for node in service_nodes
+                    ),
                     max(0.0, left_used - left_capacity)
                     + max(0.0, right_used - right_capacity),
                     (
@@ -445,20 +456,61 @@ def generate_rear_center_layout(
                     ),
                     tuple(sorted(left_ids)),
                     left_ids,
-                )
+                ),
             )
-        left_ids = min(fallback_splits, key=lambda split: split[:4])[4]
+        left_ids = min(fallback_splits, key=lambda split: split[:5])[5]
         left_used = sum(service_widths[node_id] for node_id in left_ids)
         right_used = sum(
             width
             for node_id, width in service_widths.items()
             if node_id not in left_ids
         )
-        for node_id in service_widths:
-            if node_id in left_ids and left_used > left_capacity:
-                service_widths[node_id] *= left_capacity / left_used
-            elif node_id not in left_ids and right_used > right_capacity:
-                service_widths[node_id] *= right_capacity / right_used
+        nodes_by_id = {node.node_id: node for node in service_nodes}
+        for side_ids, used, side_capacity in (
+            (left_ids, left_used, left_capacity),
+            (set(service_widths) - left_ids, right_used, right_capacity),
+        ):
+            if used <= side_capacity + 1e-7:
+                continue
+            minimums = {
+                node_id: max(
+                    float(nodes_by_id[node_id].min_width or 0),
+                    min(
+                        rear_height
+                        / float(
+                            nodes_by_id[node_id].max_aspect_ratio
+                            or math.inf
+                        ),
+                        math.sqrt(
+                            _layout_area(nodes_by_id[node_id])
+                            / float(
+                                nodes_by_id[node_id].max_aspect_ratio
+                                or math.inf
+                            )
+                        ),
+                    ),
+                    1.1,
+                )
+                for node_id in side_ids
+            }
+            minimum_total = sum(minimums.values())
+            if minimum_total > side_capacity + 1e-7:
+                raise ValueError(
+                    "rear-center service minimum widths exceed rear bay"
+                )
+            desired_excess = sum(
+                service_widths[node_id] - minimums[node_id]
+                for node_id in side_ids
+            )
+            excess_scale = (
+                (side_capacity - minimum_total) / desired_excess
+                if desired_excess > 0
+                else 0.0
+            )
+            for node_id in side_ids:
+                service_widths[node_id] = minimums[node_id] + (
+                    service_widths[node_id] - minimums[node_id]
+                ) * excess_scale
     for node in service_nodes:
         target_area = _layout_area(node)
         room_width = service_widths[node.node_id]
@@ -976,8 +1028,8 @@ def _validate_role_driven_core(core_polygon, program: ProgramGraph, bounds) -> N
 
 
 def _layout_area(node) -> float:
-    """Stay strictly inside the inclusive 15 percent target tolerance after rounding."""
-    return float(node.target_area) * 0.855
+    """Use the explicit program-area intent without a universal fill factor."""
+    return float(node.target_area)
 
 
 def _centered_door(
