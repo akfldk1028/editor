@@ -1084,9 +1084,10 @@ def _place_object(
                 candidates.append(footprint)
     if not candidates:
         if object_size is not None:
-            raise ValueError(
-                f"room '{room.room_id}' cannot place concept {kind} bank on its regular grid"
-            )
+                raise ValueError(
+                    f"room '{room.room_id}' cannot place concept {kind} "
+                    "arrangement on its regular grid"
+                )
         for y in _search_values(min_y + 0.2, max_y - object_height - 0.2):
             for x in _search_values(min_x + 0.2, max_x - object_width - 0.2):
                 footprint = _rectangle(x, y, x + object_width, y + object_height)

@@ -86,6 +86,7 @@ _HARD_VIOLATION_CODES = (
     "tenant_count_unmet",
     "tenant_access_unmet",
     "common_core_access_unmet",
+    "tenant_fixture_density_unmet",
     "reception_to_lobby_unmet",
     "workpoint_count_unmet",
     "support_clustering_unmet",
@@ -1501,6 +1502,32 @@ def _validate_use_planning(
                     "own supplied-street frontage"
                 ),
             )
+        tenant_fixture_density_passed = True
+        minimum_fixture_ratio = math.inf
+        for node in tenant_nodes:
+            room = rooms.get(node.node_id)
+            room_area = polygon_area(room.polygon) if room is not None else 0.0
+            required_count = max(1, math.floor(room_area / 30.0))
+            actual_count = sum(
+                element.category == "furniture"
+                and element.kind == "sales_shelf"
+                and element.host_id == node.node_id
+                for element in elements.values()
+            )
+            minimum_fixture_ratio = min(
+                minimum_fixture_ratio,
+                actual_count / required_count,
+            )
+            if actual_count < required_count:
+                tenant_fixture_density_passed = False
+                add_violation(
+                    "tenant_fixture_density_unmet",
+                    node.node_id,
+                    (
+                        f"tenant '{node.node_id}' requires at least "
+                        f"{required_count} sales fixtures for {room_area:.3f} m2"
+                    ),
+                )
 
         core_ids = {
             node.node_id for node in program.nodes if node.space_type == "core"
@@ -1578,6 +1605,16 @@ def _validate_use_planning(
                     "independent public-circulation entrance with connected "
                     "topology to a protected common-core exit"
                 ),
+            ),
+            "tenant_fixture_density": _policy_check(
+                (
+                    round(minimum_fixture_ratio, 6)
+                    if math.isfinite(minimum_fixture_ratio)
+                    else None
+                ),
+                1.0,
+                tenant_fixture_density_passed,
+                "minimum per-tenant actual/required sales-fixture ratio",
             ),
         }
 

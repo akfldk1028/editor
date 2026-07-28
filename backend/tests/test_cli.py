@@ -219,6 +219,11 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
     assert (output_dir / "alternatives.review.json").is_file()
     for alternative in payload["alternatives"]:
         alternative_dir = output_dir / alternative["alternative_id"]
+        assert not Path(alternative["index_html"]).is_absolute()
+        assert not Path(alternative["report_json"]).is_absolute()
+        assert (
+            output_dir / alternative["index_html"]
+        ).resolve().is_relative_to(output_dir.resolve())
         assert (alternative_dir / "index.html").is_file()
         assert (alternative_dir / "building.review.json").is_file()
         assert len(list(alternative_dir.glob("floor_*/*.png"))) == 2

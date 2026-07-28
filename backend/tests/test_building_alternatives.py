@@ -3,37 +3,78 @@ import pytest
 from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.generation_loop.service import run_building_alternatives
 from backend.app.schemas.mass import MassInput
-from backend.app.schemas.program import ProgramAdjustment
+from backend.app.schemas.program import ProgramAdjustment, ProgramNode
+
+
+def _adjustment_kwargs():
+    original = ProgramNode(
+        "sales",
+        "sales",
+        10.0,
+        min_area=8.5,
+        max_area=11.5,
+        min_width=4.0,
+        max_aspect_ratio=3.0,
+    )
+    adjusted = ProgramNode(
+        "sales",
+        "sales",
+        9.0,
+        min_area=7.65,
+        max_area=10.35,
+        min_width=3.0,
+        max_aspect_ratio=6.5,
+    )
+    return {
+        "reason": "fit",
+        "original_nodes": (original,),
+        "adjusted_nodes": (adjusted,),
+        "original_targets": (("sales", 10.0),),
+        "adjusted_targets": (("sales", 9.0),),
+    }
 
 
 @pytest.mark.parametrize(
     "kwargs",
     [
         {
+            **_adjustment_kwargs(),
             "reason": "",
-            "original_targets": (("sales", 10.0),),
-            "adjusted_targets": (("sales", 9.0),),
         },
         {
-            "reason": "fit",
+            **_adjustment_kwargs(),
             "original_targets": (("sales", float("nan")),),
-            "adjusted_targets": (("sales", 9.0),),
         },
         {
-            "reason": "fit",
-            "original_targets": (("sales", 10.0),),
+            **_adjustment_kwargs(),
             "adjusted_targets": (("office", 9.0),),
         },
         {
-            "reason": "fit",
+            **_adjustment_kwargs(),
             "original_targets": (("sales", 10.0), ("sales", 9.0)),
-            "adjusted_targets": (("sales", 8.0),),
+        },
+        {
+            **_adjustment_kwargs(),
+            "adjusted_nodes": _adjustment_kwargs()["original_nodes"],
+            "adjusted_targets": (("sales", 10.0),),
         },
     ],
 )
 def test_program_adjustment_rejects_invalid_audit_evidence(kwargs):
     with pytest.raises(ValueError):
         ProgramAdjustment(**kwargs)
+
+
+def test_program_adjustment_captures_all_changed_node_fields():
+    adjustment = ProgramAdjustment(**_adjustment_kwargs())
+
+    before = adjustment.original_nodes[0]
+    after = adjustment.adjusted_nodes[0]
+    assert before.target_area != after.target_area
+    assert before.min_area != after.min_area
+    assert before.max_area != after.max_area
+    assert before.min_width != after.min_width
+    assert before.max_aspect_ratio != after.max_aspect_ratio
 
 
 @pytest.mark.parametrize("width,depth", [(20, 12), (30, 12), (30, 20)])
@@ -113,3 +154,23 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
         assert len(footprints) == 1
         assert None not in footprints
         assert all(floor.program.adjustments for floor in alternative.floor_results)
+        for floor in alternative.floor_results:
+            for adjustment in floor.program.adjustments:
+                assert adjustment.original_nodes != adjustment.adjusted_nodes
+                assert {
+                    node.node_id for node in adjustment.original_nodes
+                } == {
+                    node.node_id for node in adjustment.adjusted_nodes
+                }
+    assert "shared_core_normalization" in {
+        adjustment.reason
+        for alternative in result.alternatives
+        for floor in alternative.floor_results
+        for adjustment in floor.program.adjustments
+    }
+    assert all(
+        assignment.startswith("tenant_")
+        or assignment in {"common-core-access:True"}
+        for alternative in result.alternatives
+        for assignment in alternative.tenant_assignment_signature
+    )

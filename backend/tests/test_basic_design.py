@@ -264,21 +264,20 @@ def test_primary_room_furniture_density_scales_with_area() -> None:
         primary_rooms = [
             room for room in layout.rooms if room.space_type in expected_kinds
         ]
-        expected_count = sum(
-            max(1, math.floor(polygon_area(primary.polygon) / 30.0))
-            for primary in primary_rooms
-        )
-        actual = [
-            element
-            for element in features.elements
-            if any(
-                element.host_id == primary.room_id
-                and element.kind == expected_kinds[primary.space_type]
-                for primary in primary_rooms
+        actual = []
+        for primary in primary_rooms:
+            expected_count = max(
+                1,
+                math.floor(polygon_area(primary.polygon) / 30.0),
             )
-        ]
-
-        assert len(actual) >= expected_count
+            host_objects = [
+                element
+                for element in features.elements
+                if element.host_id == primary.room_id
+                and element.kind == expected_kinds[primary.space_type]
+            ]
+            assert len(host_objects) >= expected_count
+            actual.extend(host_objects)
         assert all(
             polygon_overlap_area(left.footprint, right.footprint)
             == pytest.approx(0.0)

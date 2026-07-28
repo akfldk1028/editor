@@ -35,6 +35,47 @@ def test_basic_design_validation_is_opt_in() -> None:
     assert report.basic_design is None
 
 
+def test_commercial_validation_enforces_fixture_density_per_tenant() -> None:
+    mass = MassInput(
+        project_id="tenant-fixture-density",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+    floor = run_building_generation(mass).floor_results[0]
+    features = floor.layout.basic_design
+    assert features is not None
+    starved = replace(
+        features,
+        elements=tuple(
+            element
+            for element in features.elements
+            if not (
+                element.host_id == "sales_a"
+                and element.kind == "sales_shelf"
+            )
+        ),
+    )
+
+    report = validate_layout(
+        replace(floor.layout, basic_design=starved),
+        floor.program,
+        mass.footprint_polygon,
+        street_segments=[((0, 0), (30, 0))],
+        require_basic_design=True,
+    )
+
+    assert "tenant_fixture_density_unmet" in {
+        violation.code for violation in report.violations
+    }
+    assert (
+        report.basic_design.policy_checks["tenant_fixture_density"]["pass"]
+        is False
+    )
+
+
 def test_strict_validation_requires_feature_bundle() -> None:
     layout, program = _office_candidate()
 

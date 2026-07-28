@@ -250,9 +250,15 @@ def test_program_adjustment_report_uses_typed_adjustments_not_source_suffix(
     html_page = typed_review.html_path.read_text(encoding="utf-8")
     assert typed_report["program_adjusted"] is True
     assert typed_report["program_adjustments"]
-    assert typed_report["program_adjustments"][0]["reason"] == "compact_mass_fit"
-    assert typed_report["program_adjustments"][0]["original_targets"]
-    assert typed_report["program_adjustments"][0]["adjusted_targets"]
+    compact_adjustment = next(
+        adjustment
+        for adjustment in typed_report["program_adjustments"]
+        if adjustment["reason"] == "compact_mass_fit"
+    )
+    assert compact_adjustment["original_targets"]
+    assert compact_adjustment["adjusted_targets"]
+    assert compact_adjustment["original_nodes"]
+    assert compact_adjustment["adjusted_nodes"]
     assert untyped_report["program_adjusted"] is False
     assert untyped_report["program_adjustments"] == []
     assert "Original target m2" in html_page
@@ -673,13 +679,22 @@ def test_compact_building_review_discloses_program_adjustment(tmp_path):
     index = artifacts.index_html_path.read_text(encoding="utf-8")
     assert all(floor["program_adjusted"] is True for floor in building_report["floors"])
     assert all(
-        floor["program_adjustments"][0]["reason"] == "compact_mass_fit"
+        any(
+            adjustment["reason"] == "compact_mass_fit"
+            for adjustment in floor["program_adjustments"]
+        )
         for floor in building_report["floors"]
     )
     assert floor_report["program_adjusted"] is True
-    assert floor_report["program_adjustments"][0]["reason"] == "compact_mass_fit"
-    assert floor_report["program_adjustments"][0]["original_targets"]
-    assert floor_report["program_adjustments"][0]["adjusted_targets"]
+    compact_adjustment = next(
+        adjustment
+        for adjustment in floor_report["program_adjustments"]
+        if adjustment["reason"] == "compact_mass_fit"
+    )
+    assert compact_adjustment["original_targets"]
+    assert compact_adjustment["adjusted_targets"]
+    assert compact_adjustment["original_nodes"]
+    assert compact_adjustment["adjusted_nodes"]
     assert "program adjusted" in index
 
 

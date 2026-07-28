@@ -414,17 +414,6 @@ def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
             for opening in layout.openings
         )
     )
-    tenants = tuple(
-        sorted(
-            (
-                f"{room.space_type}@"
-                f"{(min(x for x, _ in room.polygon) + max(x for x, _ in room.polygon)) / 2:.3f},"
-                f"{(min(y for _, y in room.polygon) + max(y for _, y in room.polygon)) / 2:.3f}"
-            )
-            for room in layout.rooms
-            if room.space_type != "core"
-        )
-    )
     basic_design = layout.basic_design
     entrance_lines = (
         [
@@ -450,6 +439,49 @@ def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
     core_public_entrance = any(
         line.line_id == "core-public-entrance"
         for line in entrance_lines
+    )
+    commercial_floor = next(
+        (
+            floor
+            for floor in building.floor_results
+            if floor.program.use_type == "neighborhood_commercial"
+        ),
+        None,
+    )
+    tenant_nodes = (
+        sorted(
+            (
+                node
+                for node in commercial_floor.program.nodes
+                if node.space_type == "sales"
+            ),
+            key=lambda node: (str(node.tenant_id), node.node_id),
+        )
+        if commercial_floor is not None
+        else []
+    )
+    entrance_by_host = {
+        line.host_id: line.line_id
+        for line in entrance_lines
+        if line.host_id in {node.node_id for node in tenant_nodes}
+    }
+    common_core_policy_passed = bool(
+        commercial_floor is not None
+        and commercial_floor.validation.basic_design is not None
+        and commercial_floor.validation.basic_design.policy_checks.get(
+            "common_core_access",
+            {},
+        ).get("pass")
+    )
+    tenants = tuple(
+        [
+            (
+                f"{node.tenant_id}->{node.node_id}->"
+                f"{entrance_by_host.get(node.node_id, 'missing')}"
+            )
+            for node in tenant_nodes
+        ]
+        + [f"common-core-access:{common_core_policy_passed}"]
     )
     family_payload = (
         core_centroid,
@@ -560,18 +592,11 @@ def _generate_rear_center_building(
             )
             for node in floor.program.nodes
         ]
-        program = replace(
+        program = _with_program_adjustment(
             floor.program,
-            nodes=nodes,
+            nodes,
+            reason="rear_center_service_fit",
             source=f"{floor.program.source}:rear_center_service_fit",
-            adjustments=(
-                *floor.program.adjustments,
-                _program_adjustment(
-                    "rear_center_service_fit",
-                    floor.program.nodes,
-                    nodes,
-                ),
-            ),
         )
         adjusted_floors.append(replace(floor, program=program))
     return _generate_positioned_building(
@@ -937,7 +962,12 @@ def _normalize_program_core(program, shared_core_target: float):
             )
         else:
             nodes.append(node)
-    return replace(program, nodes=nodes, source="building_aligned_prior")
+    return _with_program_adjustment(
+        program,
+        nodes,
+        reason="shared_core_normalization",
+        source="building_aligned_prior",
+    )
 
 
 def _compress_compact_program(
@@ -993,18 +1023,11 @@ def _compress_compact_program(
                 ),
             )
         )
-    return replace(
+    return _with_program_adjustment(
         program,
-        nodes=nodes,
+        nodes,
+        reason="compact_mass_fit",
         source="compact_building_aligned_prior",
-        adjustments=(
-            *program.adjustments,
-            _program_adjustment(
-                "compact_mass_fit",
-                program.nodes,
-                nodes,
-            ),
-        ),
     )
 
 
@@ -1060,14 +1083,11 @@ def _fit_rear_primary_program(program, analysis: MassAnalysis):
             )
             for node in program.nodes
         ]
-        return replace(
+        return _with_program_adjustment(
             program,
-            nodes=nodes,
+            nodes,
+            reason="rear_tenant_fit",
             source=f"{program.source}:rear_tenant_fit",
-            adjustments=(
-                *program.adjustments,
-                _program_adjustment("rear_tenant_fit", program.nodes, nodes),
-            ),
         )
     if program.use_type != "office":
         return program
@@ -1104,20 +1124,19 @@ def _fit_rear_primary_program(program, analysis: MassAnalysis):
         )
         for node in program.nodes
     ]
-    return replace(
+    return _with_program_adjustment(
         program,
-        nodes=nodes,
+        nodes,
+        reason="rear_primary_fit",
         source=f"{program.source}:rear_primary_fit",
-        adjustments=(
-            *program.adjustments,
-            _program_adjustment("rear_primary_fit", program.nodes, nodes),
-        ),
     )
 
 
 def _program_adjustment(reason, original_nodes, adjusted_nodes):
     return ProgramAdjustment(
         reason=reason,
+        original_nodes=tuple(original_nodes),
+        adjusted_nodes=tuple(adjusted_nodes),
         original_targets=tuple(
             (node.node_id, float(node.target_area))
             for node in original_nodes
@@ -1125,6 +1144,26 @@ def _program_adjustment(reason, original_nodes, adjusted_nodes):
         adjusted_targets=tuple(
             (node.node_id, float(node.target_area))
             for node in adjusted_nodes
+        ),
+    )
+
+
+def _with_program_adjustment(
+    program,
+    nodes,
+    *,
+    reason: str,
+    source: str,
+):
+    if list(program.nodes) == list(nodes):
+        return program
+    return replace(
+        program,
+        nodes=nodes,
+        source=source,
+        adjustments=(
+            *program.adjustments,
+            _program_adjustment(reason, program.nodes, nodes),
         ),
     )
 

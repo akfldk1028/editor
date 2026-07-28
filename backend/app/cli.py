@@ -190,8 +190,12 @@ def main() -> None:
                     "design_family_signature": alternative.design_family_signature,
                     "render_style": args.render_style,
                     "floor_count": len(alternative.floor_results),
-                    "index_html": str(artifacts.index_html_path),
-                    "report_json": str(artifacts.report_path),
+                    "index_html": str(
+                        artifacts.index_html_path.relative_to(target)
+                    ),
+                    "report_json": str(
+                        artifacts.report_path.relative_to(target)
+                    ),
                 }
             )
         payload = {
