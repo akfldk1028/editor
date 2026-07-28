@@ -986,13 +986,18 @@ def test_cad_layer_isolate_uses_active_row_without_checkbox_side_effects(tmp_pat
     review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
     page = review.html_path.read_text(encoding="utf-8")
 
-    assert 'class="cad-layer-row" data-layer="rooms" role="button"' in page
-    assert 'tabindex="0" aria-pressed="false"' in page
+    assert '<div class="cad-layer-row" data-layer="rooms">' in page
+    assert (
+        '<button type="button" class="layer-select" data-layer="rooms" '
+        'aria-pressed="false">'
+        in page
+    )
+    assert 'class="cad-layer-row" data-layer="rooms" role="button"' not in page
     assert "let activeLayer = null;" in page
     assert "function setActiveLayer(layer)" in page
-    assert 'row.addEventListener("click", (event) =>' in page
-    assert "if (event.target === checkbox) return;" in page
-    assert 'row.addEventListener("keydown", (event) =>' in page
+    assert 'selectButton.addEventListener("click", () =>' in page
+    assert "setActiveLayer(selectButton.dataset.layer);" in page
+    assert 'row.addEventListener("keydown"' not in page
     assert (
         'button.dataset.command === "isolate" && activeLayer !== null'
         in page

@@ -2574,15 +2574,14 @@ def _render_html(
             "modeled",
             0,
         )
-        row_state = (
-            'role="button" tabindex="-1" aria-pressed="false" aria-disabled="true"'
-            if disabled
-            else 'role="button" tabindex="0" aria-pressed="false"'
-        )
         layer_rows.append(
-            f'<div class="cad-layer-row" data-layer="{layer}" {row_state}>'
+            f'<div class="cad-layer-row" data-layer="{layer}">'
             f'<input type="checkbox" data-layer="{layer}" '
             f'aria-label="{label} 표시" checked'
+            + (' disabled aria-disabled="true"' if disabled else "")
+            + ">"
+            f'<button type="button" class="layer-select" data-layer="{layer}" '
+            'aria-pressed="false"'
             + (' disabled aria-disabled="true"' if disabled else "")
             + ">"
             f'<span class="layer-swatch" style="--layer-color: {color}" '
@@ -2590,6 +2589,7 @@ def _render_html(
             f'<span class="layer-name">{label}</span>'
             f'<span class="layer-modeled-count" '
             f'aria-label="모델링 객체 {modeled_count}개">{modeled_count}</span>'
+            "</button>"
             "</div>"
         )
     controls = "".join(layer_rows)
@@ -2624,15 +2624,17 @@ def _render_html(
     .cad-layer-commands {{ display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 8px; border-bottom: 1px solid #d8dde1; }}
     .cad-layer-commands button {{ min-height: 32px; padding: 5px 7px; border: 1px solid #aeb6bd; border-radius: 3px; background: #f7f8f9; color: #171a1d; font: inherit; cursor: pointer; }}
     .cad-layer-commands button:hover:not(:disabled) {{ background: #e8edf1; }}
-    .cad-layer-commands button:focus-visible, .cad-layer-row input:focus-visible {{ outline: 2px solid #1261a0; outline-offset: 2px; }}
+    .cad-layer-commands button:focus-visible, .cad-layer-row input:focus-visible, .layer-select:focus-visible {{ outline: 2px solid #1261a0; outline-offset: 2px; }}
     .cad-layer-commands button:disabled {{ opacity: 0.45; cursor: not-allowed; }}
     .cad-layer-list {{ display: grid; padding: 4px 0; }}
-    .cad-layer-row {{ display: grid; grid-template-columns: 20px 16px minmax(0, 1fr) auto; gap: 7px; align-items: center; min-height: 33px; padding: 4px 10px; border-bottom: 1px solid #edf0f2; cursor: pointer; }}
+    .cad-layer-row {{ display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 7px; align-items: center; min-height: 33px; padding: 4px 10px; border-bottom: 1px solid #edf0f2; }}
     .cad-layer-row:last-child {{ border-bottom: 0; }}
     .cad-layer-row:hover {{ background: #f5f7f8; }}
     .cad-layer-row[data-active="true"] {{ background: #e5f0f8; box-shadow: inset 3px 0 #1261a0; }}
-    .cad-layer-row:has(input:disabled) {{ color: #8b9298; cursor: not-allowed; }}
+    .cad-layer-row:has(input:disabled) {{ color: #8b9298; }}
     .cad-layer-row input {{ width: 16px; height: 16px; margin: 0; accent-color: #1261a0; }}
+    .layer-select {{ display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 7px; align-items: center; width: 100%; min-height: 27px; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }}
+    .layer-select:disabled {{ cursor: not-allowed; }}
     .layer-swatch {{ width: 13px; height: 13px; border: 1px solid #6d747a; background: var(--layer-color); }}
     .layer-name {{ min-width: 0; font-size: 13px; }}
     .layer-modeled-count {{ min-width: 24px; color: #5b6268; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }}
@@ -2701,6 +2703,9 @@ def _render_html(
     const rows = Array.from(
       document.querySelectorAll("#cad-layer-manager .cad-layer-row[data-layer]")
     );
+    const selectionButtons = Array.from(
+      document.querySelectorAll("#cad-layer-manager .layer-select[data-layer]")
+    );
     const commandButtons = document.querySelectorAll(
       "#cad-layer-manager button[data-command]"
     );
@@ -2722,7 +2727,10 @@ def _render_html(
       rows.forEach((row) => {{
         const active = row.dataset.layer === activeLayer;
         row.dataset.active = String(active);
-        row.setAttribute("aria-pressed", String(active));
+      }});
+      selectionButtons.forEach((selectButton) => {{
+        const active = selectButton.dataset.layer === activeLayer;
+        selectButton.setAttribute("aria-pressed", String(active));
       }});
       updateCommandState();
     }}
@@ -2746,16 +2754,9 @@ def _render_html(
         updateCommandState();
       }});
     }});
-    rows.forEach((row) => {{
-      const checkbox = row.querySelector('input[type="checkbox"]');
-      row.addEventListener("click", (event) => {{
-        if (event.target === checkbox) return;
-        setActiveLayer(row.dataset.layer);
-      }});
-      row.addEventListener("keydown", (event) => {{
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        setActiveLayer(row.dataset.layer);
+    selectionButtons.forEach((selectButton) => {{
+      selectButton.addEventListener("click", () => {{
+        setActiveLayer(selectButton.dataset.layer);
       }});
     }});
     commandButtons.forEach((button) => {{
