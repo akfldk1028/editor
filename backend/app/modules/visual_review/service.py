@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import html
+import io
 import json
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
@@ -96,6 +97,32 @@ LAYER_ORDER = (
     "dimensions",
     "text-labels",
 )
+RENDER_STYLES = {"review", "architectural"}
+ARCHITECTURAL_FONT_STACK = "Noto Sans KR, Malgun Gothic, sans-serif"
+ARCHITECTURAL_LABELS = {
+    "shop_unit": "상가",
+    "office_area": "사무공간",
+    "open_work": "업무공간",
+    "meeting": "회의실",
+    "reception": "접수",
+    "focus": "집중업무실",
+    "it_storage": "전산·창고",
+    "sales": "판매공간",
+    "checkout": "계산대",
+    "stock": "창고",
+    "staff": "직원실",
+    "restroom": "화장실",
+    "storage": "창고",
+    "utility": "설비실",
+    "pantry": "탕비실",
+    "ps_eps": "PS·EPS",
+    "core": "코어",
+    "circulation": "복도",
+    "stair": "계단실",
+    "elevator": "승강기",
+    "lobby": "로비",
+    "shaft": "샤프트",
+}
 _BASIC_DESIGN_LAYERS = {
     "grid",
     "core",
@@ -161,6 +188,7 @@ class _RenderedOutput:
     payload: str | bytes
     rendered: tuple[_RenderFeature, ...]
     skipped: tuple[dict[str, str], ...]
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 def create_building_visual_review_artifacts(
@@ -169,7 +197,10 @@ def create_building_visual_review_artifacts(
     output_dir: str | Path,
     width: int = 960,
     height: int = 540,
+    *,
+    render_style: str = "review",
 ) -> BuildingVisualReviewArtifacts:
+    _validate_render_style(render_style)
     target = Path(output_dir).resolve()
     target.mkdir(parents=True, exist_ok=True)
     floor_artifacts = []
@@ -183,6 +214,7 @@ def create_building_visual_review_artifacts(
             width=width,
             height=height,
             run_root=target,
+            render_style=render_style,
         )
         floor_artifacts.append(artifacts)
         floor_reports.append(
@@ -208,6 +240,7 @@ def create_building_visual_review_artifacts(
         "vertical_basic_design_aligned": result.vertical_basic_design_aligned,
         "vertical_structure_aligned": result.vertical_structure_aligned,
         "planner_provenance": to_jsonable(result.planner_provenance),
+        "render_style": render_style,
         "total_area": result.total_area,
         "use_type_areas": result.use_type_areas,
         "floors": floor_reports,
@@ -239,9 +272,11 @@ def create_visual_review_artifacts(
     iteration_number: int | None = None,
     previous_validation: ValidationReport | None = None,
     run_root: str | Path | None = None,
+    render_style: str = "review",
 ) -> VisualReviewArtifacts:
     if width <= 0 or height <= 0:
         raise ValueError("viewport width and height must be positive")
+    _validate_render_style(render_style)
 
     target = Path(output_dir).resolve()
     target.mkdir(parents=True, exist_ok=True)
@@ -263,8 +298,20 @@ def create_visual_review_artifacts(
     _ensure_within_target(target, svg_path, png_path, html_path, report_path)
 
     features = _normalize_render_features(result, boundary)
-    svg_output = _render_svg(features, boundary, width, height)
-    png_output = _render_png(features, boundary, width, height)
+    svg_output = _render_svg(
+        features,
+        boundary,
+        width,
+        height,
+        render_style=render_style,
+    )
+    png_output = _render_png(
+        features,
+        boundary,
+        width,
+        height,
+        render_style=render_style,
+    )
     svg_path.write_text(str(svg_output.payload), encoding="utf-8")
     png_path.write_bytes(bytes(png_output.payload))
 
@@ -273,10 +320,24 @@ def create_visual_review_artifacts(
     checks = _hard_validation_checks(result.validation)
     if result.validation.basic_design_checked and missing_basic_design:
         checks["basic_design"] = "fail"
+    unresolved_label_collisions = int(
+        png_output.metadata.get("unresolved_collision_count", 0)
+    )
+    if render_style == "architectural":
+        checks["label_overlap"] = (
+            "pass" if unresolved_label_collisions == 0 else "fail"
+        )
     measurements = _layout_measurements(result)
     room_shapes = to_jsonable(result.validation.room_shapes)
     room_areas = to_jsonable(result.validation.room_areas)
-    accepted = result.validation.accepted and not missing_basic_design
+    accepted = (
+        result.validation.accepted
+        and not missing_basic_design
+        and (
+            render_style != "architectural"
+            or unresolved_label_collisions == 0
+        )
+    )
     needs_iteration = not accepted
     scores = _validation_scores(result.validation)
     previous_total_score = (
@@ -294,6 +355,8 @@ def create_visual_review_artifacts(
         "use_type": result.program.use_type,
         "program_source": result.program.source,
         "program_adjusted": _program_was_adjusted(result.program.source),
+        "render_style": render_style,
+        "png_text": png_output.metadata,
         "iteration": (
             iteration_number
             if iteration_number is not None
@@ -356,6 +419,12 @@ def create_visual_review_artifacts(
     )
 
 
+def _validate_render_style(render_style: str) -> None:
+    if render_style not in RENDER_STYLES:
+        supported = ", ".join(sorted(RENDER_STYLES))
+        raise ValueError(f"unsupported render style: {render_style}; expected {supported}")
+
+
 def _render_building_index(
     result: BuildingGenerationResult,
     floors: list[dict],
@@ -388,7 +457,7 @@ def _render_building_index(
   <link rel="icon" href="data:,">
   <title>{html.escape(result.mass.project_id)} building review</title>
   <style>
-    :root {{ font-family: Inter, Segoe UI, sans-serif; color: #17232f; background: #f4f6f8; }}
+    :root {{ font-family: "Noto Sans KR", "Malgun Gothic", Inter, Segoe UI, sans-serif; color: #17232f; background: #f4f6f8; }}
     * {{ box-sizing: border-box; }}
     body {{ margin: 0; }}
     main {{ width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 48px; }}
@@ -828,7 +897,7 @@ def _render_index_html(index: dict) -> str:
   <link rel="icon" href="data:,">
   <title>{project_id} review history</title>
   <style>
-    body {{ margin: 24px; font-family: Arial, sans-serif; background: white; color: #111; }}
+    body {{ margin: 24px; font-family: "Noto Sans KR", "Malgun Gothic", Arial, sans-serif; background: white; color: #111; }}
     main {{ max-width: 1280px; margin: 0 auto; }}
     h1 {{ font-size: 24px; }}
     table {{ border-collapse: collapse; width: 100%; }}
@@ -1082,6 +1151,8 @@ def _render_svg(
     boundary: list[tuple[float, float]],
     width: int,
     height: int,
+    *,
+    render_style: str = "review",
 ) -> _RenderedOutput:
     min_x, min_y, max_x, max_y = bounds(boundary)
     scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
@@ -1136,6 +1207,7 @@ def _render_svg(
                         pad_x,
                         pad_y,
                         height,
+                        render_style,
                     )
                 )
             except (TypeError, ValueError, OverflowError):
@@ -1165,6 +1237,7 @@ def _render_svg(
                             pad_x,
                             pad_y,
                             height,
+                            render_style,
                         )
                     )
                 except (TypeError, ValueError, OverflowError):
@@ -1185,6 +1258,7 @@ def _svg_feature(
     pad_x: float,
     pad_y: float,
     height: int,
+    render_style: str,
 ) -> str:
     metadata = (
         f'data-id="{html.escape(feature.feature_id, quote=True)}" '
@@ -1200,10 +1274,16 @@ def _svg_feature(
     ]
     if feature.geometry == "label":
         x, y = raster[0]
-        rows = feature.label.split("|")
+        if (
+            render_style == "architectural"
+            and not _architectural_label_visible(feature)
+        ):
+            return f"<g {metadata}></g>"
+        rows = _display_label(feature, render_style).split("|")
         if len(rows) == 1:
             return (
-                f"<text {metadata} x=\"{x}\" y=\"{y}\" font-family=\"Arial\" "
+                f"<text {metadata} x=\"{x}\" y=\"{y}\" "
+                f'font-family="{ARCHITECTURAL_FONT_STACK if render_style == "architectural" else "Arial"}" '
                 f'font-size="10" text-anchor="middle">'
                 f"{html.escape(rows[0])}</text>"
             )
@@ -1213,28 +1293,47 @@ def _svg_feature(
             for index, row in enumerate(rows)
         )
         return (
-            f"<text {metadata} x=\"{x}\" y=\"{y}\" font-family=\"Arial\" "
+            f"<text {metadata} x=\"{x}\" y=\"{y}\" "
+            f'font-family="{ARCHITECTURAL_FONT_STACK if render_style == "architectural" else "Arial"}" '
             f'font-size="10" text-anchor="middle">{tspans}</text>'
         )
     if feature.geometry == "polygon":
         points = " ".join(f"{x},{y}" for x, y in raster)
-        fill, stroke, stroke_width = _svg_polygon_style(feature)
-        return (
+        fill, stroke, stroke_width = _svg_polygon_style(feature, render_style)
+        polygon = (
             f'<polygon {metadata} points="{points}" fill="{fill}" '
             f'stroke="{stroke}" stroke-width="{stroke_width}"/>'
         )
+        if render_style == "architectural":
+            polygon += _svg_architectural_polygon_symbol(feature, raster)
+        return polygon
     points = " ".join(f"{x},{y}" for x, y in raster)
-    stroke, stroke_width, dash = _svg_line_style(feature)
+    if render_style == "architectural" and feature.kind == "window":
+        return _svg_window_symbol(metadata, raster)
+    if render_style == "architectural" and feature.layer == "door-openings":
+        return _svg_door_symbol(metadata, feature, raster)
+    if render_style == "architectural" and feature.layer == "dimensions":
+        return _svg_dimension_chain(metadata, feature, raster)
+    stroke, stroke_width, dash = _svg_line_style(feature, render_style)
     line = (
         f'<polyline points="{points}" fill="none" stroke="{stroke}" '
         f'stroke-width="{stroke_width}"{dash}/>'
     )
     label = ""
-    if feature.label and feature.kind != "door-opening":
+    if (
+        feature.label
+        and feature.kind != "door-opening"
+        and (
+            render_style != "architectural"
+            or _architectural_label_visible(feature)
+        )
+    ):
         x, y = _line_label_position(feature, raster)
+        display_label = _display_label(feature, render_style)
         label = (
-            f'<text x="{x}" y="{y}" font-family="Arial" font-size="9" '
-            f'text-anchor="middle">{html.escape(feature.label)}</text>'
+            f'<text x="{x}" y="{y}" '
+            f'font-family="{ARCHITECTURAL_FONT_STACK if render_style == "architectural" else "Arial"}" font-size="9" '
+            f'text-anchor="middle">{html.escape(display_label)}</text>'
         )
     aria_label = ""
     if feature.kind == "door-opening":
@@ -1245,7 +1344,20 @@ def _svg_feature(
     return f"<g {metadata}{aria_label}>{line}{label}</g>"
 
 
-def _svg_polygon_style(feature: _RenderFeature) -> tuple[str, str, int]:
+def _svg_polygon_style(
+    feature: _RenderFeature,
+    render_style: str = "review",
+) -> tuple[str, str, int]:
+    if render_style == "architectural":
+        if feature.kind == "boundary":
+            return "none", "#111111", 6
+        if feature.layer in {"rooms", "circulation", "core"}:
+            return "white", "#202020", 4 if feature.layer != "circulation" else 2
+        if feature.layer == "structure":
+            return "#555555", "#111111", 2
+        if feature.layer in {"furniture", "fixtures"}:
+            return "white", "#666666", 1
+        return "none", "#555555", 1
     if feature.kind == "boundary":
         return "none", "#111111", 4
     if feature.layer == "rooms":
@@ -1268,7 +1380,20 @@ def _svg_polygon_style(feature: _RenderFeature) -> tuple[str, str, int]:
     return "none", "#333333", 1
 
 
-def _svg_line_style(feature: _RenderFeature) -> tuple[str, int, str]:
+def _svg_line_style(
+    feature: _RenderFeature,
+    render_style: str = "review",
+) -> tuple[str, int, str]:
+    if render_style == "architectural":
+        if feature.layer == "grid":
+            return "#888888", 1, ' stroke-dasharray="4 5"'
+        if feature.layer == "egress":
+            return "#777777", 1, ' stroke-dasharray="7 5"'
+        if feature.layer == "dimensions":
+            return "#333333", 1, ""
+        if feature.layer == "envelope":
+            return "#222222", 2, ""
+        return "#444444", 1, ""
     if feature.layer == "grid":
         return "#aeb7bf", 1, ' stroke-dasharray="5 5"'
     if feature.layer == "envelope":
@@ -1286,11 +1411,147 @@ def _svg_line_style(feature: _RenderFeature) -> tuple[str, int, str]:
     return "#333333", 2, ""
 
 
+def _svg_window_symbol(
+    metadata: str,
+    raster: list[tuple[float, float]],
+) -> str:
+    first, last = raster[0], raster[-1]
+    offset_x, offset_y = _normal_offset(first, last, 2.0)
+    rails = []
+    for direction in (-1, 1):
+        points = " ".join(
+            f"{x + offset_x * direction},{y + offset_y * direction}"
+            for x, y in raster
+        )
+        rails.append(
+            f'<polyline points="{points}" fill="none" stroke="#222222" stroke-width="1"/>'
+        )
+    return f'<g {metadata} data-symbol="window-double-line">{"".join(rails)}</g>'
+
+
+def _svg_door_symbol(
+    metadata: str,
+    feature: _RenderFeature,
+    raster: list[tuple[float, float]],
+) -> str:
+    start, end = raster[0], raster[-1]
+    delta_x = end[0] - start[0]
+    delta_y = end[1] - start[1]
+    leaf_end = (start[0] - delta_y, start[1] + delta_x)
+    middle = (
+        end[0] + (leaf_end[0] - end[0]) * 0.55,
+        end[1] + (leaf_end[1] - end[1]) * 0.55,
+    )
+    aria = ""
+    if feature.kind == "door-opening":
+        aria = (
+            f' aria-label="{html.escape(feature.style_key, quote=True)} door '
+            f'clear width {html.escape(feature.label, quote=True)}"'
+        )
+    return (
+        f'<g {metadata} data-symbol="door-swing"{aria}>'
+        f'<polyline points="{start[0]},{start[1]} {end[0]},{end[1]}" '
+        'fill="none" stroke="white" stroke-width="8"/>'
+        f'<line x1="{start[0]}" y1="{start[1]}" x2="{leaf_end[0]}" '
+        f'y2="{leaf_end[1]}" stroke="#222222" stroke-width="2"/>'
+        f'<path d="M {end[0]} {end[1]} Q {middle[0]} {middle[1]} '
+        f'{leaf_end[0]} {leaf_end[1]}" fill="none" stroke="#777777" '
+        'stroke-width="1"/>'
+        "</g>"
+    )
+
+
+def _svg_architectural_polygon_symbol(
+    feature: _RenderFeature,
+    raster: list[tuple[float, float]],
+) -> str:
+    min_x = min(point[0] for point in raster)
+    max_x = max(point[0] for point in raster)
+    min_y = min(point[1] for point in raster)
+    max_y = max(point[1] for point in raster)
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+    if feature.kind == "elevator":
+        return (
+            '<g data-symbol="elevator-car">'
+            f'<rect x="{min_x + 4}" y="{min_y + 4}" '
+            f'width="{max(0, max_x - min_x - 8)}" '
+            f'height="{max(0, max_y - min_y - 8)}" fill="none" '
+            'stroke="#555555" stroke-width="1"/>'
+            f'<line x1="{center_x}" y1="{max_y - 4}" x2="{center_x}" '
+            f'y2="{max_y}" stroke="#222222" stroke-width="2"/></g>'
+        )
+    if feature.layer == "fixtures":
+        return (
+            '<g data-symbol="fixture">'
+            f'<ellipse cx="{center_x}" cy="{center_y}" '
+            f'rx="{max(2, (max_x - min_x) * 0.28)}" '
+            f'ry="{max(2, (max_y - min_y) * 0.28)}" fill="none" '
+            'stroke="#666666" stroke-width="1"/>'
+            f'<line x1="{center_x}" y1="{min_y + 2}" x2="{center_x}" '
+            f'y2="{center_y}" stroke="#666666" stroke-width="1"/></g>'
+        )
+    if feature.layer == "furniture":
+        return (
+            '<g data-symbol="furniture">'
+            f'<line x1="{min_x + 3}" y1="{center_y}" x2="{max_x - 3}" '
+            f'y2="{center_y}" stroke="#777777" stroke-width="1"/>'
+            f'<circle cx="{center_x}" cy="{center_y}" r="2.5" fill="none" '
+            'stroke="#777777" stroke-width="1"/></g>'
+        )
+    if feature.kind != "stair":
+        return ""
+    lines = "".join(
+        f'<line x1="{min_x + 3}" y1="{min_y + (max_y - min_y) * index / 7}" '
+        f'x2="{max_x - 3}" y2="{min_y + (max_y - min_y) * index / 7}" '
+        'stroke="#555555" stroke-width="1"/>'
+        for index in range(1, 7)
+    )
+    return (
+        f'<g data-symbol="stair-treads">{lines}'
+        f'<line x1="{center_x}" y1="{max_y - 5}" x2="{center_x}" '
+        f'y2="{min_y + 8}" stroke="#222222" stroke-width="1"/>'
+        f'<text x="{center_x + 5}" y="{min_y + 12}" '
+        f'font-family="{ARCHITECTURAL_FONT_STACK}" font-size="8">UP</text></g>'
+    )
+
+
+def _svg_dimension_chain(
+    metadata: str,
+    feature: _RenderFeature,
+    raster: list[tuple[float, float]],
+) -> str:
+    start, end = raster[0], raster[-1]
+    offset_x, offset_y = _normal_offset(start, end, 5.0)
+    points = " ".join(f"{x},{y}" for x, y in raster)
+    ticks = "".join(
+        f'<line x1="{x - offset_x}" y1="{y - offset_y}" '
+        f'x2="{x + offset_x}" y2="{y + offset_y}" '
+        'stroke="#333333" stroke-width="1"/>'
+        for x, y in (start, end)
+    )
+    x, y = _architectural_line_label_position(feature, raster)
+    label = (
+        f'<text x="{x}" y="{y}" font-family="{ARCHITECTURAL_FONT_STACK}" '
+        f'font-size="9" text-anchor="middle">'
+        f'{html.escape(_display_label(feature, "architectural"))}</text>'
+        if feature.label and _architectural_label_visible(feature)
+        else ""
+    )
+    return (
+        f'<g {metadata} data-symbol="dimension-chain">'
+        f'<polyline points="{points}" fill="none" stroke="#333333" '
+        f'stroke-width="1"/>{ticks}{label}</g>'
+    )
+
+
 def _render_png(
     features: tuple[_RenderFeature, ...],
     boundary: list[tuple[float, float]],
     width: int,
     height: int,
+    *,
+    render_style: str = "review",
 ) -> _RenderedOutput:
     min_x, min_y, max_x, max_y = bounds(boundary)
     scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
@@ -1321,12 +1582,31 @@ def _render_png(
                 pad_x,
                 pad_y,
                 height,
+                render_style,
             )
         except (TypeError, ValueError, OverflowError):
             skipped.append(_skip_record(feature, "render_error"))
             continue
         rendered.append(feature)
-    return _RenderedOutput(canvas.to_bytes(), tuple(rendered), tuple(skipped))
+    payload = canvas.to_bytes()
+    metadata: dict[str, object] = {
+        "renderer": "bitmap-ascii",
+        "font_path": None,
+        "fallback": False,
+    }
+    if render_style == "architectural":
+        payload, metadata = _draw_architectural_png_text(
+            payload,
+            canvas,
+            features,
+            min_x,
+            min_y,
+            scale,
+            pad_x,
+            pad_y,
+            height,
+        )
+    return _RenderedOutput(payload, tuple(rendered), tuple(skipped), metadata)
 
 
 def _png_feature(
@@ -1338,6 +1618,7 @@ def _png_feature(
     pad_x: float,
     pad_y: float,
     height: int,
+    render_style: str = "review",
 ) -> None:
     points = _raster_points(
         feature.points,
@@ -1349,6 +1630,8 @@ def _png_feature(
         height,
     )
     if feature.geometry == "label":
+        if render_style == "architectural":
+            return
         rows = feature.label.split("|")
         x, y = points[0]
         for index, row in enumerate(rows[:3]):
@@ -1357,12 +1640,22 @@ def _png_feature(
             canvas.draw_text(label, origin, (25, 30, 35))
         return
     if feature.geometry == "polygon":
-        fill, stroke, thickness = _png_polygon_style(feature)
+        fill, stroke, thickness = _png_polygon_style(feature, render_style)
         if fill is not None:
             canvas.fill_polygon(points, fill)
         canvas.stroke_polygon(points, stroke, thickness=thickness)
+        if render_style == "architectural":
+            _draw_png_architectural_polygon_symbol(canvas, feature, points)
         return
-    color, thickness, dashed = _png_line_style(feature)
+    if render_style == "architectural" and feature.kind == "window":
+        _draw_png_window(canvas, points)
+        return
+    if render_style == "architectural" and feature.layer == "door-openings":
+        _draw_png_door_swing(canvas, points)
+        return
+    if render_style == "architectural" and feature.layer == "dimensions":
+        _draw_png_dimension_chain(canvas, points)
+    color, thickness, dashed = _png_line_style(feature, render_style)
     if feature.layer == "door-openings":
         canvas.stroke_polyline(points, (255, 255, 255), thickness=8)
     if dashed:
@@ -1379,7 +1672,11 @@ def _png_feature(
         _draw_door_jambs(canvas, points[0], points[1])
     if feature.kind in {"egress_route", "north_arrow"} and len(points) >= 2:
         canvas.draw_arrowhead(points[-1], points[-2], color, size=6, thickness=1)
-    if feature.label and feature.kind != "door-opening":
+    if (
+        feature.label
+        and feature.kind != "door-opening"
+        and render_style != "architectural"
+    ):
         x, y = _line_label_position(feature, points)
         label = _bounded_ascii(feature.label, 14)
         text_width = len(label) * 6
@@ -1390,7 +1687,20 @@ def _png_feature(
 
 def _png_polygon_style(
     feature: _RenderFeature,
+    render_style: str = "review",
 ) -> tuple[tuple[int, int, int] | None, tuple[int, int, int], int]:
+    if render_style == "architectural":
+        if feature.kind == "boundary":
+            return None, (17, 17, 17), 6
+        if feature.layer in {"rooms", "circulation", "core"}:
+            return (255, 255, 255), (32, 32, 32), (
+                4 if feature.layer != "circulation" else 2
+            )
+        if feature.layer == "structure":
+            return (85, 85, 85), (17, 17, 17), 2
+        if feature.layer in {"furniture", "fixtures"}:
+            return (255, 255, 255), (102, 102, 102), 1
+        return None, (85, 85, 85), 1
     if feature.kind == "boundary":
         return None, (15, 18, 20), 4
     if feature.layer == "rooms":
@@ -1415,7 +1725,16 @@ def _png_polygon_style(
 
 def _png_line_style(
     feature: _RenderFeature,
+    render_style: str = "review",
 ) -> tuple[tuple[int, int, int], int, bool]:
+    if render_style == "architectural":
+        if feature.layer == "grid":
+            return (136, 136, 136), 1, True
+        if feature.layer == "egress":
+            return (119, 119, 119), 1, True
+        if feature.layer == "dimensions":
+            return (51, 51, 51), 1, False
+        return (68, 68, 68), 1, False
     if feature.layer == "grid":
         return (174, 183, 191), 1, True
     if feature.layer == "envelope":
@@ -1427,6 +1746,383 @@ def _png_line_style(
     if feature.layer == "dimensions":
         return (163, 72, 19), 2, True
     return (51, 51, 51), 2, False
+
+
+def _draw_png_window(
+    canvas: SimplePngCanvas,
+    points: list[tuple[int, int]],
+) -> None:
+    offset_x, offset_y = _normal_offset(points[0], points[-1], 2.0)
+    for direction in (-1, 1):
+        rail = [
+            (
+                round(x + offset_x * direction),
+                round(y + offset_y * direction),
+            )
+            for x, y in points
+        ]
+        canvas.stroke_polyline(rail, (34, 34, 34), thickness=1)
+
+
+def _draw_png_door_swing(
+    canvas: SimplePngCanvas,
+    points: list[tuple[int, int]],
+) -> None:
+    if len(points) != 2:
+        canvas.stroke_polyline(points, (34, 34, 34), thickness=1)
+        return
+    start, end = points
+    delta_x = end[0] - start[0]
+    delta_y = end[1] - start[1]
+    leaf_end = (start[0] - delta_y, start[1] + delta_x)
+    canvas.stroke_polyline((start, end), (255, 255, 255), thickness=8)
+    canvas.stroke_polyline((start, leaf_end), (34, 34, 34), thickness=2)
+    arc = []
+    radius = math.hypot(delta_x, delta_y)
+    start_angle = math.atan2(delta_y, delta_x)
+    for index in range(13):
+        angle = start_angle - math.pi / 2 * index / 12
+        arc.append(
+            (
+                round(start[0] + math.cos(angle) * radius),
+                round(start[1] + math.sin(angle) * radius),
+            )
+        )
+    canvas.stroke_polyline(arc, (119, 119, 119), thickness=1)
+
+
+def _draw_png_architectural_polygon_symbol(
+    canvas: SimplePngCanvas,
+    feature: _RenderFeature,
+    points: list[tuple[int, int]],
+) -> None:
+    min_x = min(point[0] for point in points)
+    max_x = max(point[0] for point in points)
+    min_y = min(point[1] for point in points)
+    max_y = max(point[1] for point in points)
+    center_x = round((min_x + max_x) / 2)
+    center_y = round((min_y + max_y) / 2)
+    if feature.kind == "elevator":
+        canvas.stroke_rect(
+            min_x + 4,
+            min_y + 4,
+            max_x - 4,
+            max_y - 4,
+            (85, 85, 85),
+            thickness=1,
+        )
+        canvas.stroke_polyline(
+            ((center_x, max_y - 4), (center_x, max_y)),
+            (34, 34, 34),
+            thickness=2,
+        )
+        return
+    if feature.layer == "fixtures":
+        radius = max(2, min(max_x - min_x, max_y - min_y) // 4)
+        canvas.stroke_circle((center_x, center_y), radius, (102, 102, 102))
+        canvas.stroke_polyline(
+            ((center_x, min_y + 2), (center_x, center_y)),
+            (102, 102, 102),
+            thickness=1,
+        )
+        return
+    if feature.layer == "furniture":
+        canvas.stroke_polyline(
+            ((min_x + 3, center_y), (max_x - 3, center_y)),
+            (119, 119, 119),
+            thickness=1,
+        )
+        canvas.stroke_circle((center_x, center_y), 2, (119, 119, 119))
+        return
+    if feature.kind != "stair":
+        return
+    for index in range(1, 7):
+        y = round(min_y + (max_y - min_y) * index / 7)
+        canvas.stroke_polyline(
+            ((min_x + 3, y), (max_x - 3, y)),
+            (85, 85, 85),
+            thickness=1,
+        )
+    canvas.stroke_polyline(
+        ((center_x, max_y - 5), (center_x, min_y + 8)),
+        (34, 34, 34),
+        thickness=1,
+    )
+    canvas.draw_arrowhead(
+        (center_x, min_y + 8),
+        (center_x, max_y - 5),
+        (34, 34, 34),
+        size=4,
+        thickness=1,
+    )
+
+
+def _draw_png_dimension_chain(
+    canvas: SimplePngCanvas,
+    points: list[tuple[int, int]],
+) -> None:
+    start, end = points[0], points[-1]
+    canvas.stroke_polyline(points, (51, 51, 51), thickness=1)
+    offset_x, offset_y = _normal_offset(start, end, 5.0)
+    for x, y in (start, end):
+        canvas.stroke_polyline(
+            (
+                (round(x - offset_x), round(y - offset_y)),
+                (round(x + offset_x), round(y + offset_y)),
+            ),
+            (51, 51, 51),
+            thickness=1,
+        )
+
+
+def _draw_architectural_png_text(
+    payload: bytes,
+    fallback_canvas: SimplePngCanvas,
+    features: tuple[_RenderFeature, ...],
+    min_x: float,
+    min_y: float,
+    scale: float,
+    pad_x: float,
+    pad_y: float,
+    height: int,
+) -> tuple[bytes, dict[str, object]]:
+    font_path = _architectural_font_path()
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        font_path = None
+    if font_path is None:
+        return _draw_architectural_ascii_fallback(
+            fallback_canvas,
+            features,
+            min_x,
+            min_y,
+            scale,
+            pad_x,
+            pad_y,
+            height,
+        )
+
+    image = Image.open(io.BytesIO(payload)).convert("RGB")
+    drawing = ImageDraw.Draw(image)
+    font = ImageFont.truetype(str(font_path), 12)
+    occupied: list[tuple[float, float, float, float]] = []
+    adjusted_count = 0
+    label_count = 0
+    unresolved_collision_count = 0
+    for feature in features:
+        if (
+            not feature.label
+            or feature.kind == "door-opening"
+            or not _architectural_label_visible(feature)
+        ):
+            continue
+        label_count += 1
+        raster = [
+            (
+                _sx(x, min_x, scale, pad_x),
+                _sy(y, min_y, scale, pad_y, height),
+            )
+            for x, y in feature.points
+        ]
+        if feature.geometry == "label":
+            x, y = raster[0]
+        else:
+            x, y = _architectural_line_label_position(feature, raster)
+        text = _display_label(feature, "architectural").replace("|", "\n")
+        box = drawing.multiline_textbbox((0, 0), text, font=font, spacing=1, align="center")
+        text_width = box[2] - box[0]
+        text_height = box[3] - box[1]
+        origin = (x - text_width / 2, y - text_height / 2)
+        offsets = [(0, 0)]
+        for radius in (16, 28, 42, 58, 76):
+            offsets.extend(
+                (
+                    (0, -radius),
+                    (0, radius),
+                    (radius, 0),
+                    (-radius, 0),
+                    (radius, radius),
+                    (radius, -radius),
+                    (-radius, radius),
+                    (-radius, -radius),
+                )
+            )
+        for offset_x, offset_y in offsets:
+            candidate = (
+                origin[0] + offset_x,
+                origin[1] + offset_y,
+                origin[0] + offset_x + text_width,
+                origin[1] + offset_y + text_height,
+            )
+            inside_canvas = (
+                candidate[0] >= 2
+                and candidate[1] >= 2
+                and candidate[2] <= image.width - 2
+                and candidate[3] <= image.height - 2
+            )
+            if inside_canvas and not any(
+                _rectangles_intersect(candidate, item) for item in occupied
+            ):
+                if offset_x or offset_y:
+                    adjusted_count += 1
+                origin = (candidate[0], candidate[1])
+                occupied.append(candidate)
+                break
+        else:
+            unresolved_collision_count += 1
+            occupied.append(
+                (origin[0], origin[1], origin[0] + text_width, origin[1] + text_height)
+            )
+        drawing.multiline_text(
+            origin,
+            text,
+            fill=(25, 25, 25),
+            font=font,
+            spacing=1,
+            align="center",
+        )
+    output = io.BytesIO()
+    image.save(output, format="PNG", optimize=False)
+    return output.getvalue(), {
+        "renderer": "pillow",
+        "font_path": str(font_path),
+        "fallback": False,
+        "collision_strategy": "offset",
+        "label_count": label_count,
+        "adjusted_count": adjusted_count,
+        "unresolved_collision_count": unresolved_collision_count,
+    }
+
+
+def _architectural_font_path() -> Path | None:
+    candidates = (
+        Path(r"C:\Windows\Fonts\malgun.ttf"),
+        Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+        Path("/usr/share/fonts/truetype/noto/NotoSansKR-Regular.ttf"),
+    )
+    return next((path for path in candidates if path.is_file()), None)
+
+
+def _draw_architectural_ascii_fallback(
+    canvas: SimplePngCanvas,
+    features: tuple[_RenderFeature, ...],
+    min_x: float,
+    min_y: float,
+    scale: float,
+    pad_x: float,
+    pad_y: float,
+    height: int,
+) -> tuple[bytes, dict[str, object]]:
+    for feature in features:
+        if feature.geometry != "label":
+            continue
+        x = round(_sx(feature.points[0][0], min_x, scale, pad_x))
+        y = round(_sy(feature.points[0][1], min_y, scale, pad_y, height))
+        label = _architectural_ascii_label(feature)
+        canvas.draw_text(
+            label,
+            (x - len(label) * 3, y - 4),
+            (25, 25, 25),
+        )
+    return canvas.to_bytes(), {
+        "renderer": "bitmap-ascii",
+        "font_path": None,
+        "fallback": True,
+        "collision_strategy": "none",
+        "label_count": sum(feature.geometry == "label" for feature in features),
+        "adjusted_count": 0,
+        "unresolved_collision_count": 1,
+    }
+
+
+def _architectural_ascii_label(feature: _RenderFeature) -> str:
+    names = {
+        "office_area": "OFFICE",
+        "open_work": "OPEN WORK",
+        "meeting": "MEETING",
+        "reception": "RECEPTION",
+        "focus": "FOCUS",
+        "it_storage": "IT/STOR",
+        "sales": "SALES",
+        "checkout": "CHECKOUT",
+        "stock": "STOCK",
+        "staff": "STAFF",
+        "restroom": "WC",
+        "circulation": "CORRIDOR",
+    }
+    if feature.style_key in names:
+        return names[feature.style_key]
+    ascii_text = _bounded_ascii(feature.label.replace("|", " "), 18).replace("?", "")
+    return ascii_text.strip() or feature.kind.upper()[:18]
+
+
+def _display_label(feature: _RenderFeature, render_style: str) -> str:
+    if render_style != "architectural":
+        return feature.label
+    if feature.kind in {"overall_width", "overall_depth"}:
+        return re.sub(r"^(WIDTH|DEPTH)\s+", "", feature.label)
+    if feature.kind == "street":
+        return "도로"
+    key = feature.style_key
+    rows = feature.label.split("|")
+    if not key and feature.kind == "room-label":
+        key = rows[-2] if len(rows) >= 3 else rows[0]
+    elif not key and feature.kind == "circulation":
+        key = "circulation"
+    elif not key and feature.kind == "core-label":
+        key = {
+            "STAIR": "stair",
+            "ELEVATOR": "elevator",
+            "LOBBY": "lobby",
+            "SHAFT": "shaft",
+        }.get(rows[0].split(" ", 1)[0])
+    translated = ARCHITECTURAL_LABELS.get(key)
+    if translated is None:
+        return feature.label
+    if feature.kind == "room-label" and len(rows) >= 2:
+        return f"{translated}|{rows[-1]}"
+    return translated
+
+
+def _architectural_label_visible(feature: _RenderFeature) -> bool:
+    if feature.geometry == "label":
+        return feature.kind != "door-width"
+    return feature.kind in {
+        "grid",
+        "north_arrow",
+        "overall_width",
+        "overall_depth",
+        "street",
+    }
+
+
+def _architectural_line_label_position(
+    feature: _RenderFeature,
+    points: list[tuple[int | float, int | float]],
+) -> tuple[float, float]:
+    midpoint_x = sum(point[0] for point in points) / len(points)
+    midpoint_y = sum(point[1] for point in points) / len(points)
+    if feature.kind == "overall_width":
+        return midpoint_x, midpoint_y + 24
+    if feature.kind == "overall_depth":
+        return midpoint_x - 28, midpoint_y
+    if feature.kind == "street":
+        return midpoint_x, midpoint_y + 28
+    return _line_label_position(feature, points)
+
+
+def _normal_offset(
+    start: tuple[float, float],
+    end: tuple[float, float],
+    distance: float,
+) -> tuple[float, float]:
+    delta_x = end[0] - start[0]
+    delta_y = end[1] - start[1]
+    length = math.hypot(delta_x, delta_y)
+    if length == 0:
+        return 0.0, 0.0
+    return -delta_y / length * distance, delta_x / length * distance
 
 
 def _feature_skip_reason(feature: _RenderFeature) -> str | None:
@@ -1795,7 +2491,7 @@ def _render_html(
   <style>
     * {{ box-sizing: border-box; }}
     html, body {{ max-width: 100%; overflow-x: hidden; }}
-    body {{ margin: 24px; font-family: Arial, sans-serif; background: white; color: #111; }}
+    body {{ margin: 24px; font-family: "Noto Sans KR", "Malgun Gothic", Arial, sans-serif; background: white; color: #111; }}
     main {{ max-width: 1180px; margin: 0 auto; }}
     h1 {{ font-size: 22px; margin: 0 0 12px; }}
     .status {{ margin-bottom: 18px; font-weight: 700; }}

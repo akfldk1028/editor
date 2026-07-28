@@ -5,6 +5,7 @@ description = "Mass-conditioned program-aware floor plan research scaffold"
 requires-python = ">=3.11"
 dependencies = [
     "openai>=2.11,<3",
+    "pillow>=12.1,<13",
     "shapely>=2.1,<3",
 ]
 

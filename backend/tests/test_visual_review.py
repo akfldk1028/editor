@@ -122,6 +122,128 @@ def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
     assert report["checks"]["basic_design"] == "not_checked"
 
 
+def test_architectural_style_uses_monochrome_drafting_symbols_and_korean_font(
+    tmp_path,
+):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+        render_style="architectural",
+    )
+
+    svg = review.svg_path.read_text(encoding="utf-8")
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    assert report["render_style"] == "architectural"
+    assert report["png_text"]["renderer"] == "pillow"
+    assert report["png_text"]["fallback"] is False
+    assert report["png_text"]["font_path"].lower().endswith("malgun.ttf")
+    assert "업무공간" in svg
+    assert [ord(character) for character in "업무공간"] == [
+        50629,
+        47924,
+        44277,
+        44036,
+    ]
+    assert "계단실" in svg
+    assert "코어" in svg
+    assert "LOBBY ROUTE" not in svg
+    assert ">0.9 m</text>" not in svg
+    assert ">WIDTH " not in svg
+    assert ">DEPTH " not in svg
+    assert 'font-family="Noto Sans KR, Malgun Gothic, sans-serif"' in svg
+    assert 'data-symbol="door-swing"' in svg
+    assert 'data-symbol="window-double-line"' in svg
+    assert 'data-symbol="stair-treads"' in svg
+    assert 'data-symbol="elevator-car"' in svg
+    assert 'data-symbol="fixture"' in svg
+    assert 'data-symbol="furniture"' in svg
+    assert 'data-symbol="dimension-chain"' in svg
+    assert "UP" in svg
+    assert report["png_text"]["collision_strategy"] == "offset"
+    assert report["png_text"]["label_count"] > 0
+    assert report["png_text"]["unresolved_collision_count"] == 0
+    assert report["checks"]["label_overlap"] == "pass"
+    assert "#f3b6b8" not in svg
+
+
+def test_architectural_png_draws_korean_glyph_pixels_instead_of_question_marks():
+    feature = visual_review_service._RenderFeature(
+        "korean-room-label",
+        "text-labels",
+        "room-label",
+        "label",
+        ((5.0, 5.0),),
+        "사무실",
+        "office_area",
+    )
+
+    output = visual_review_service._render_png(
+        (feature,),
+        [(0, 0), (10, 0), (10, 10), (0, 10)],
+        240,
+        160,
+        render_style="architectural",
+    )
+
+    assert output.metadata["renderer"] == "pillow"
+    assert output.metadata["fallback"] is False
+    colors = _png_colors(bytes(output.payload))
+    assert any(red == green == blue and 0 < red < 245 for red, green, blue in colors)
+
+
+def test_architectural_png_reports_ascii_fallback_when_korean_font_is_missing(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        visual_review_service,
+        "_architectural_font_path",
+        lambda: None,
+    )
+    feature = visual_review_service._RenderFeature(
+        "missing-font-label",
+        "text-labels",
+        "room-label",
+        "label",
+        ((5.0, 5.0),),
+        "업무공간",
+        "open_work",
+    )
+
+    output = visual_review_service._render_png(
+        (feature,),
+        [(0, 0), (10, 0), (10, 10), (0, 10)],
+        240,
+        160,
+        render_style="architectural",
+    )
+
+    assert bytes(output.payload).startswith(b"\x89PNG\r\n\x1a\n")
+    assert output.metadata["renderer"] == "bitmap-ascii"
+    assert output.metadata["fallback"] is True
+
+
+def test_default_review_style_remains_colored_and_rejects_unknown_style(tmp_path):
+    result, boundary = _strict_building_floor()
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path / "review",
+    )
+
+    assert "#b8d8f0" in review.svg_path.read_text(encoding="utf-8")
+    with pytest.raises(ValueError, match="render style"):
+        create_visual_review_artifacts(
+            result,
+            boundary=boundary,
+            output_dir=tmp_path / "invalid",
+            render_style="blueprint",
+        )
+
+
 def test_strict_review_renders_complete_basic_design_evidence_in_fixed_layer_order(
     tmp_path,
 ):
