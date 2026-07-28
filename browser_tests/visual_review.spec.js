@@ -109,6 +109,16 @@ test("working layer controls synchronize before and after iframe load", async ({
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
   }
+  const controlBounds = await page.locator("#working-layer-controls").boundingBox();
+  expect(controlBounds).not.toBeNull();
+  for (const button of await page.locator("#working-layer-controls button").all()) {
+    const bounds = await button.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds.x).toBeGreaterThanOrEqual(controlBounds.x);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(
+      controlBounds.x + controlBounds.width + 0.5,
+    );
+  }
   await expect(page.locator("#room-form-report th").first()).toHaveCSS("padding-left", "10px");
   expect(errors).toEqual([]);
 });
