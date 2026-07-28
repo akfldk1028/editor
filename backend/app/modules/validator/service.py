@@ -1505,13 +1505,19 @@ def _validate_use_planning(
         core_ids = {
             node.node_id for node in program.nodes if node.space_type == "core"
         }
-        circulation_ids = {path.room_id for path in circulation}
+        circulation_by_id = {path.room_id: path for path in circulation}
+        circulation_ids = set(circulation_by_id)
         common_entries = [
             line
             for line in entrances
             if line.host_id in core_ids
             and line.target_id in circulation_ids
             and line.line_id not in assigned_entrance_ids
+            and _valid_common_entrance_geometry(
+                line,
+                circulation_by_id[line.target_id],
+                streets,
+            )
         ]
         core_candidates = [
             room
@@ -1815,6 +1821,21 @@ def _validated_core_exit_circulation_ids(
             ):
                 result.add(path.room_id)
     return result
+
+
+def _valid_common_entrance_geometry(
+    line: PlanLine,
+    target_path: RoomPolygon,
+    streets: list[Segment],
+) -> bool:
+    segment = (line.points[0], line.points[-1])
+    return (
+        _is_finite_number(line.clear_width)
+        and float(line.clear_width) > _EPSILON
+        and abs(_polyline_length(line.points) - float(line.clear_width)) <= 1e-7
+        and _segment_on_polygon_boundary(segment, target_path.polygon)
+        and any(_segment_contains(street, segment) for street in streets)
+    )
 
 
 def _circulation_target_reaches_exit(

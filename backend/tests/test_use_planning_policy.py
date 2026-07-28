@@ -265,6 +265,43 @@ def test_generated_commercial_common_entry_reaches_validated_core_exit() -> None
     assert check["pass"] is True
 
 
+def test_common_core_access_rejects_entry_off_supplied_street() -> None:
+    mass, commercial = _generated_commercial_result("invalid-core-entry")
+    assert commercial.layout.basic_design is not None
+    invalid_entry = replace(
+        commercial.layout,
+        basic_design=replace(
+            commercial.layout.basic_design,
+            lines=tuple(
+                replace(
+                    line,
+                    points=((14.4, 2.0), (14.4, 2.9)),
+                )
+                if line.line_id == "core-public-entrance"
+                else line
+                for line in commercial.layout.basic_design.lines
+            ),
+        ),
+    )
+
+    report = validate_layout(
+        invalid_entry,
+        commercial.program,
+        mass.footprint_polygon,
+        street_segments=[((0, 0), (30, 0))],
+        require_basic_design=True,
+    )
+
+    codes = {violation.code for violation in report.violations}
+    assert "entrance_geometry" in codes
+    assert "common_core_access_unmet" in codes
+    assert report.basic_design is not None
+    check = report.basic_design.policy_checks["common_core_access"]
+    assert check["value"] == 0
+    assert check["threshold"] == 1
+    assert check["pass"] is False
+
+
 def test_common_core_access_requires_entry_component_to_contain_core_exit() -> None:
     mass, commercial = _generated_commercial_result("split-core-access")
     assert commercial.layout.basic_design is not None
