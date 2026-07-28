@@ -1,5 +1,5 @@
 import math
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import pytest
 
@@ -584,6 +584,112 @@ def test_adjacency_score_uses_positive_shared_wall():
 
     assert validate_layout(touching, program, boundary).adjacency_score == 1
     assert validate_layout(separated, program, boundary).adjacency_score == 0
+
+
+def test_adjacency_score_accepts_nearby_rooms_through_valid_circulation_doors():
+    program = ProgramGraph(
+        project_id="test",
+        floor_index=1,
+        use_type="office",
+        nodes=[
+            ProgramNode(node_id="a", space_type="office_area", target_area=16),
+            ProgramNode(node_id="b", space_type="office_area", target_area=16),
+        ],
+        edges=[ProgramEdge(source="a", target="b", relation="adjacent")],
+        source="test",
+    )
+    layout = replace(
+        _layout(
+            rooms=[
+                _room("a", [(0, 0), (4, 0), (4, 4), (0, 4)]),
+                _room("b", [(4, 6), (8, 6), (8, 10), (4, 10)]),
+            ],
+            circulation=[
+                _room("hall", [(0, 4), (8, 4), (8, 6), (0, 6)], "circulation")
+            ],
+        ),
+        openings=[
+            OpeningSegment(
+                opening_id="a-door",
+                kind="door",
+                connects=("a", "hall"),
+                start=(0.55, 4),
+                end=(1.45, 4),
+                clear_width=0.9,
+            ),
+            OpeningSegment(
+                opening_id="b-door",
+                kind="door",
+                connects=("b", "hall"),
+                start=(4.55, 6),
+                end=(5.45, 6),
+                clear_width=0.9,
+            ),
+        ],
+    )
+
+    report = validate_layout(layout, program, [(0, 0), (8, 0), (8, 10), (0, 10)])
+
+    assert report.adjacency_score == 1
+
+
+@pytest.mark.parametrize("case", ["far", "disconnected"])
+def test_adjacency_score_rejects_distant_or_disconnected_circulation_access(case):
+    program = ProgramGraph(
+        project_id="test",
+        floor_index=1,
+        use_type="office",
+        nodes=[
+            ProgramNode(node_id="a", space_type="office_area", target_area=16),
+            ProgramNode(node_id="b", space_type="office_area", target_area=16),
+        ],
+        edges=[ProgramEdge(source="a", target="b", relation="adjacent")],
+        source="test",
+    )
+    if case == "far":
+        rooms = [
+            _room("a", [(0, 0), (4, 0), (4, 4), (0, 4)]),
+            _room("b", [(8, 6), (12, 6), (12, 10), (8, 10)]),
+        ]
+        circulation = [
+            _room("hall", [(0, 4), (12, 4), (12, 6), (0, 6)], "circulation")
+        ]
+        b_path_id = "hall"
+    else:
+        rooms = [
+            _room("a", [(0, 0), (4, 0), (4, 4), (0, 4)]),
+            _room("b", [(8, 6), (12, 6), (12, 10), (8, 10)]),
+        ]
+        circulation = [
+            _room("hall-a", [(0, 4), (4, 4), (4, 6), (0, 6)], "circulation"),
+            _room("hall-b", [(8, 4), (12, 4), (12, 6), (8, 6)], "circulation"),
+        ]
+        b_path_id = "hall-b"
+    layout = replace(
+        _layout(rooms=rooms, circulation=circulation),
+        openings=[
+            OpeningSegment(
+                opening_id="a-door",
+                kind="door",
+                connects=("a", "hall" if case == "far" else "hall-a"),
+                start=(0.55, 4),
+                end=(1.45, 4),
+                clear_width=0.9,
+            ),
+            OpeningSegment(
+                opening_id="b-door",
+                kind="door",
+                connects=("b", b_path_id),
+                start=(8.55, 6),
+                end=(9.45, 6),
+                clear_width=0.9,
+            ),
+        ],
+    )
+
+    report = validate_layout(layout, program, [(0, 0), (12, 0), (12, 10), (0, 10)])
+
+    assert report.adjacency_score == 0
 
 
 def test_street_scores_only_contact_with_supplied_street_segments():

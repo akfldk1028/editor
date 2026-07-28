@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import heapq
 import math
 from collections import Counter
 from collections.abc import Iterable
@@ -37,6 +38,7 @@ from engine.geometry.polygon import (
 )
 
 _EPSILON = 1e-9
+_FUNCTIONAL_ADJACENCY_DISTANCE = 6.0
 _POLICY_VERSION = "exact-v1"
 _HARD_VIOLATION_CODES = (
     "invalid_geometry",
@@ -358,7 +360,15 @@ def validate_layout(
         accessible_count,
         accessible_room_count,
     )
-    adjacency_score = _adjacency_score(valid_rooms, room_counts, program, streets)
+    adjacency_score = _adjacency_score(
+        layout,
+        valid_rooms,
+        valid_circulation,
+        room_counts,
+        program,
+        streets,
+        min_door_width,
+    )
     frontage_score = _frontage_score(valid_rooms, room_counts, program, streets)
     coverage_score = _coverage_score(valid_rooms, valid_circulation, boundary)
     compactness_score = _compactness_score(valid_rooms)
@@ -1465,6 +1475,7 @@ def _exit_separation(exits: list[PlanLine]) -> float | None:
 def _door_midpoints(
     layout: LayoutCandidate,
     circulation: list[RoomPolygon],
+    min_clear_width: float = 0.0,
 ) -> dict[str, tuple[float, float]]:
     rooms = {
         room.room_id: room
@@ -1496,6 +1507,7 @@ def _door_midpoints(
         if (
             actual_width <= _EPSILON
             or abs(actual_width - opening.clear_width) > 1e-7
+            or opening.clear_width + _EPSILON < min_clear_width
             or not any(
                 _segment_contains(shared, segment)
                 for shared in shared_boundary_segments(room.polygon, path.polygon)
@@ -2076,27 +2088,39 @@ def _circulation_score(
 
 
 def _adjacency_score(
+    layout: LayoutCandidate,
     rooms: list[RoomPolygon],
+    circulation: list[RoomPolygon],
     room_counts: Counter,
     program: ProgramGraph,
     street_segments: list[Segment],
+    min_door_width: float,
 ) -> float:
     room_by_id = {
         room.room_id: room
         for room in rooms
         if room_counts[room.room_id] == 1
     }
+    door_midpoints = _door_midpoints(layout, circulation, min_door_width)
     weighted_checks: list[tuple[float, bool]] = []
     program_ids = {node.node_id for node in program.nodes}
     for edge in program.edges:
         weight = max(0.0, float(edge.weight))
         if edge.source in room_by_id and edge.target in room_by_id:
-            satisfied = (
+            directly_adjacent = (
                 shared_boundary_length(
                     room_by_id[edge.source].polygon,
                     room_by_id[edge.target].polygon,
                 )
                 > _EPSILON
+            )
+            circulation_distance = _circulation_path_distance(
+                door_midpoints.get(edge.source),
+                door_midpoints.get(edge.target),
+                circulation,
+            )
+            satisfied = directly_adjacent or (
+                circulation_distance <= _FUNCTIONAL_ADJACENCY_DISTANCE + _EPSILON
             )
             weighted_checks.append((weight, satisfied))
         elif edge.source in room_by_id and edge.target == "street":
@@ -2120,6 +2144,61 @@ def _adjacency_score(
         elif edge.source in program_ids and edge.target in program_ids:
             weighted_checks.append((weight, False))
     return _weighted_score(weighted_checks)
+
+
+def _circulation_path_distance(
+    start: tuple[float, float] | None,
+    end: tuple[float, float] | None,
+    circulation: list[RoomPolygon],
+) -> float:
+    if start is None or end is None or not circulation:
+        return math.inf
+
+    x_values = {start[0], end[0]}
+    y_values = {start[1], end[1]}
+    for path in circulation:
+        x_values.update(point[0] for point in path.polygon)
+        y_values.update(point[1] for point in path.polygon)
+    nodes = {
+        (x, y)
+        for x in x_values
+        for y in y_values
+        if any(_point_in_polygon_or_boundary((x, y), path.polygon) for path in circulation)
+    }
+    if start not in nodes or end not in nodes:
+        return math.inf
+
+    graph: dict[tuple[float, float], list[tuple[float, tuple[float, float]]]] = {
+        node: [] for node in nodes
+    }
+    for vertical in (False, True):
+        grouped: dict[float, list[tuple[float, float]]] = {}
+        for node in nodes:
+            fixed = node[0] if vertical else node[1]
+            grouped.setdefault(fixed, []).append(node)
+        for group in grouped.values():
+            ordered = sorted(group, key=lambda point: point[1] if vertical else point[0])
+            for left, right in zip(ordered, ordered[1:]):
+                if not _axis_segment_in_polygon_union(left, right, circulation):
+                    continue
+                distance = math.dist(left, right)
+                graph[left].append((distance, right))
+                graph[right].append((distance, left))
+
+    distances = {start: 0.0}
+    pending = [(0.0, start)]
+    while pending:
+        distance, current = heapq.heappop(pending)
+        if distance > distances[current] + _EPSILON:
+            continue
+        if current == end:
+            return distance
+        for step, neighbor in graph[current]:
+            candidate = distance + step
+            if candidate + _EPSILON < distances.get(neighbor, math.inf):
+                distances[neighbor] = candidate
+                heapq.heappush(pending, (candidate, neighbor))
+    return math.inf
 
 
 def _frontage_score(
