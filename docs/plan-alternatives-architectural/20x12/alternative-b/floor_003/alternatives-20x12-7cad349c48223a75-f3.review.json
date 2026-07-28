@@ -109,6 +109,371 @@
   "program_adjusted": true,
   "program_adjustments": [
     {
+      "adjusted_nodes": [
+        {
+          "frontage_required": false,
+          "max_area": 134.964,
+          "max_aspect_ratio": 2.5,
+          "min_area": 99.756,
+          "min_width": 6.0,
+          "node_id": "open_work",
+          "space_type": "open_work",
+          "target_area": 117.36,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 27.599999999999998,
+          "max_aspect_ratio": 2.0,
+          "min_area": 20.4,
+          "min_width": 2.7,
+          "node_id": "meeting",
+          "space_type": "meeting",
+          "target_area": 24,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 2.4,
+          "node_id": "reception",
+          "space_type": "reception",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 1.8,
+          "min_area": 12.239999999999998,
+          "min_width": 1.8,
+          "node_id": "focus",
+          "space_type": "focus",
+          "target_area": 14.399999999999999,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 8.28,
+          "max_aspect_ratio": 2.0,
+          "min_area": 6.119999999999999,
+          "min_width": 1.8,
+          "node_id": "pantry",
+          "space_type": "pantry",
+          "target_area": 7.199999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 47.196,
+          "max_aspect_ratio": 2.0,
+          "min_area": 34.884,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 41.04,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 1.5,
+          "node_id": "it_storage",
+          "space_type": "it_storage",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "adjusted_targets": [
+        [
+          "open_work",
+          117.36
+        ],
+        [
+          "meeting",
+          24.0
+        ],
+        [
+          "reception",
+          12.0
+        ],
+        [
+          "focus",
+          14.399999999999999
+        ],
+        [
+          "pantry",
+          7.199999999999999
+        ],
+        [
+          "restroom",
+          12.0
+        ],
+        [
+          "core",
+          41.04
+        ],
+        [
+          "it_storage",
+          12.0
+        ]
+      ],
+      "original_nodes": [
+        {
+          "frontage_required": false,
+          "max_area": 143.52,
+          "max_aspect_ratio": 2.5,
+          "min_area": 106.08000000000001,
+          "min_width": 6.0,
+          "node_id": "open_work",
+          "space_type": "open_work",
+          "target_area": 124.80000000000001,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 27.599999999999998,
+          "max_aspect_ratio": 2.0,
+          "min_area": 20.4,
+          "min_width": 2.7,
+          "node_id": "meeting",
+          "space_type": "meeting",
+          "target_area": 24,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 2.4,
+          "node_id": "reception",
+          "space_type": "reception",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 1.8,
+          "min_area": 12.239999999999998,
+          "min_width": 1.8,
+          "node_id": "focus",
+          "space_type": "focus",
+          "target_area": 14.399999999999999,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 8.28,
+          "max_aspect_ratio": 2.0,
+          "min_area": 6.119999999999999,
+          "min_width": 1.8,
+          "node_id": "pantry",
+          "space_type": "pantry",
+          "target_area": 7.199999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 38.64,
+          "max_aspect_ratio": 2.0,
+          "min_area": 28.56,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 33.6,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 1.5,
+          "node_id": "it_storage",
+          "space_type": "it_storage",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "original_targets": [
+        [
+          "open_work",
+          124.80000000000001
+        ],
+        [
+          "meeting",
+          24.0
+        ],
+        [
+          "reception",
+          12.0
+        ],
+        [
+          "focus",
+          14.399999999999999
+        ],
+        [
+          "pantry",
+          7.199999999999999
+        ],
+        [
+          "restroom",
+          12.0
+        ],
+        [
+          "core",
+          33.6
+        ],
+        [
+          "it_storage",
+          12.0
+        ]
+      ],
+      "reason": "shared_core_normalization"
+    },
+    {
+      "adjusted_nodes": [
+        {
+          "frontage_required": false,
+          "max_area": 107.9712,
+          "max_aspect_ratio": 8.5,
+          "min_area": 79.8048,
+          "min_width": 3.0,
+          "node_id": "open_work",
+          "space_type": "open_work",
+          "target_area": 93.888,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.8,
+          "max_aspect_ratio": 8.5,
+          "min_area": 10.2,
+          "min_width": 1.35,
+          "node_id": "meeting",
+          "space_type": "meeting",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 7.824842,
+          "max_aspect_ratio": 8.5,
+          "min_area": 5.783579,
+          "min_width": 1.2,
+          "node_id": "reception",
+          "space_type": "reception",
+          "target_area": 6.804211,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 9.936,
+          "max_aspect_ratio": 8.5,
+          "min_area": 7.344,
+          "min_width": 1.1,
+          "node_id": "focus",
+          "space_type": "focus",
+          "target_area": 8.64,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 4.968,
+          "max_aspect_ratio": 8.5,
+          "min_area": 3.672,
+          "min_width": 1.1,
+          "node_id": "pantry",
+          "space_type": "pantry",
+          "target_area": 4.32,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 6.9,
+          "max_aspect_ratio": 8.5,
+          "min_area": 5.1,
+          "min_width": 1.1,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 6,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 47.196,
+          "max_aspect_ratio": 2.0,
+          "min_area": 34.884,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 41.04,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 6.9,
+          "max_aspect_ratio": 8.5,
+          "min_area": 5.1,
+          "min_width": 1.1,
+          "node_id": "it_storage",
+          "space_type": "it_storage",
+          "target_area": 6,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
       "adjusted_targets": [
         [
           "open_work",
@@ -142,6 +507,104 @@
           "it_storage",
           6.0
         ]
+      ],
+      "original_nodes": [
+        {
+          "frontage_required": false,
+          "max_area": 134.964,
+          "max_aspect_ratio": 2.5,
+          "min_area": 99.756,
+          "min_width": 6.0,
+          "node_id": "open_work",
+          "space_type": "open_work",
+          "target_area": 117.36,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 27.599999999999998,
+          "max_aspect_ratio": 2.0,
+          "min_area": 20.4,
+          "min_width": 2.7,
+          "node_id": "meeting",
+          "space_type": "meeting",
+          "target_area": 24,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 2.4,
+          "node_id": "reception",
+          "space_type": "reception",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 1.8,
+          "min_area": 12.239999999999998,
+          "min_width": 1.8,
+          "node_id": "focus",
+          "space_type": "focus",
+          "target_area": 14.399999999999999,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 8.28,
+          "max_aspect_ratio": 2.0,
+          "min_area": 6.119999999999999,
+          "min_width": 1.8,
+          "node_id": "pantry",
+          "space_type": "pantry",
+          "target_area": 7.199999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 47.196,
+          "max_aspect_ratio": 2.0,
+          "min_area": 34.884,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 41.04,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.799999999999999,
+          "max_aspect_ratio": 2.5,
+          "min_area": 10.2,
+          "min_width": 1.5,
+          "node_id": "it_storage",
+          "space_type": "it_storage",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "service"
+        }
       ],
       "original_targets": [
         [
@@ -180,77 +643,104 @@
       "reason": "compact_mass_fit"
     },
     {
-      "adjusted_targets": [
-        [
-          "open_work",
-          93.888
-        ],
-        [
-          "meeting",
-          12.0
-        ],
-        [
-          "reception",
-          6.804211
-        ],
-        [
-          "focus",
-          8.64
-        ],
-        [
-          "pantry",
-          4.32
-        ],
-        [
-          "restroom",
-          6.0
-        ],
-        [
-          "core",
-          41.04
-        ],
-        [
-          "it_storage",
-          6.0
-        ]
+      "adjusted_nodes": [
+        {
+          "frontage_required": false,
+          "max_area": 107.9712,
+          "max_aspect_ratio": 8.5,
+          "min_area": 79.8048,
+          "min_width": 3.0,
+          "node_id": "open_work",
+          "space_type": "open_work",
+          "target_area": 93.888,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.11,
+          "max_aspect_ratio": 8.5,
+          "min_area": 9.69,
+          "min_width": 1.2825,
+          "node_id": "meeting",
+          "space_type": "meeting",
+          "target_area": 11.4,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 7.433601,
+          "max_aspect_ratio": 8.5,
+          "min_area": 5.4944,
+          "min_width": 1.14,
+          "node_id": "reception",
+          "space_type": "reception",
+          "target_area": 6.464,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 9.4392,
+          "max_aspect_ratio": 8.5,
+          "min_area": 6.9768,
+          "min_width": 1.045,
+          "node_id": "focus",
+          "space_type": "focus",
+          "target_area": 8.208,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 4.7196,
+          "max_aspect_ratio": 8.5,
+          "min_area": 3.4884,
+          "min_width": 1.045,
+          "node_id": "pantry",
+          "space_type": "pantry",
+          "target_area": 4.104,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 6.555,
+          "max_aspect_ratio": 8.5,
+          "min_area": 4.845,
+          "min_width": 1.045,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 5.7,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 47.196,
+          "max_aspect_ratio": 2.0,
+          "min_area": 34.884,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 41.04,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 6.555,
+          "max_aspect_ratio": 8.5,
+          "min_area": 4.845,
+          "min_width": 1.045,
+          "node_id": "it_storage",
+          "space_type": "it_storage",
+          "target_area": 5.7,
+          "tenant_id": null,
+          "zone": "service"
+        }
       ],
-      "original_targets": [
-        [
-          "open_work",
-          93.888
-        ],
-        [
-          "meeting",
-          12.0
-        ],
-        [
-          "reception",
-          6.804211
-        ],
-        [
-          "focus",
-          8.64
-        ],
-        [
-          "pantry",
-          4.32
-        ],
-        [
-          "restroom",
-          6.0
-        ],
-        [
-          "core",
-          41.04
-        ],
-        [
-          "it_storage",
-          6.0
-        ]
-      ],
-      "reason": "rear_primary_fit"
-    },
-    {
       "adjusted_targets": [
         [
           "open_work",
@@ -284,6 +774,104 @@
           "it_storage",
           5.7
         ]
+      ],
+      "original_nodes": [
+        {
+          "frontage_required": false,
+          "max_area": 107.9712,
+          "max_aspect_ratio": 8.5,
+          "min_area": 79.8048,
+          "min_width": 3.0,
+          "node_id": "open_work",
+          "space_type": "open_work",
+          "target_area": 93.888,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 13.8,
+          "max_aspect_ratio": 8.5,
+          "min_area": 10.2,
+          "min_width": 1.35,
+          "node_id": "meeting",
+          "space_type": "meeting",
+          "target_area": 12,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 7.824842,
+          "max_aspect_ratio": 8.5,
+          "min_area": 5.783579,
+          "min_width": 1.2,
+          "node_id": "reception",
+          "space_type": "reception",
+          "target_area": 6.804211,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 9.936,
+          "max_aspect_ratio": 8.5,
+          "min_area": 7.344,
+          "min_width": 1.1,
+          "node_id": "focus",
+          "space_type": "focus",
+          "target_area": 8.64,
+          "tenant_id": null,
+          "zone": "workplace"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 4.968,
+          "max_aspect_ratio": 8.5,
+          "min_area": 3.672,
+          "min_width": 1.1,
+          "node_id": "pantry",
+          "space_type": "pantry",
+          "target_area": 4.32,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 6.9,
+          "max_aspect_ratio": 8.5,
+          "min_area": 5.1,
+          "min_width": 1.1,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 6,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 47.196,
+          "max_aspect_ratio": 2.0,
+          "min_area": 34.884,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 41.04,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 6.9,
+          "max_aspect_ratio": 8.5,
+          "min_area": 5.1,
+          "min_width": 1.1,
+          "node_id": "it_storage",
+          "space_type": "it_storage",
+          "target_area": 6,
+          "tenant_id": null,
+          "zone": "service"
+        }
       ],
       "original_targets": [
         [
@@ -322,7 +910,7 @@
       "reason": "rear_center_service_fit"
     }
   ],
-  "program_source": "compact_building_aligned_prior:rear_primary_fit:rear_center_service_fit",
+  "program_source": "compact_building_aligned_prior:rear_center_service_fit",
   "project_id": "alternatives-20x12",
   "render_evidence": {
     "missing": {
