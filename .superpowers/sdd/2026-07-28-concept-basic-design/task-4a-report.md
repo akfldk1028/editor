@@ -33,3 +33,36 @@ furniture design.
 - `compileall`: passed
 - `git diff --check`: passed
 - 30 m x 12 m sample: F1 sales shelves `5`, F2 workstations `5`
+
+## Visual Evidence
+
+- Deterministic building review:
+  `logs/runs/sample_basic_design_routed/index.html`
+- F1 PNG:
+  `logs/runs/sample_basic_design_routed/floor_001/sample-office-commercial-a8290018982a4b2c-f1.png`
+- F2 PNG:
+  `logs/runs/sample_basic_design_routed/floor_002/sample-office-commercial-a8290018982a4b2c-f2.png`
+- All five floors: accepted, `needs_iteration=false`, all review checks pass
+- Direct PNG inspection: F1 sales shelves and F2 workstations are visibly
+  distributed across both room axes; route strokes remain inside the rendered
+  circulation band and terminate at both protected exits.
+
+Primary-room route points:
+
+```text
+F1 sales -> exit 1:
+(14.1075, 6.0) -> (15.3075, 6.0) -> (15.3075, 6.28)
+-> (22.907747, 6.28) -> (22.907747, 5.68)
+
+F1 sales -> exit 2:
+(14.1075, 6.0) -> (15.3075, 6.0) -> (15.3075, 6.28)
+-> (28.219014, 6.28) -> (28.219014, 5.68)
+
+F2 open_work -> exit 1:
+(13.338, 6.0) -> (14.538, 6.0) -> (14.538, 6.28)
+-> (22.907747, 6.28) -> (22.907747, 5.68)
+
+F2 open_work -> exit 2:
+(13.338, 6.0) -> (14.538, 6.0) -> (14.538, 6.28)
+-> (28.219014, 6.28) -> (28.219014, 5.68)
+```
