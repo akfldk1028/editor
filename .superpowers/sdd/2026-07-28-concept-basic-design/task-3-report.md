@@ -11,6 +11,19 @@
   - Unchecked layouts had no `basic_design` review check or absent-layer
     control policy.
 
+### Independent Review Fix
+
+- Command:
+  `pytest -q backend/tests/test_visual_review.py -k "no_visible_output"`
+- Result: `2 failed`
+- Reproduced both false-positive evidence cases:
+  - finite zero-length grid line
+  - finite grid line completely outside the render viewport
+- Added one shared preflight for SVG and PNG that rejects non-finite,
+  degenerate, and off-canvas geometry before a feature can be recorded as
+  rendered. Both outputs now record the same structured skip reason and
+  missing ID, forcing strict review failure.
+
 ## Implementation
 
 - One normalized feature sequence now drives both SVG and PNG.
@@ -32,15 +45,11 @@
 
 - Focused:
   - `pytest -q backend/tests/test_visual_review.py`
-  - `36 passed`
+  - `38 passed`
 - Full:
   - `pytest -q`
-  - Task 3 checkpoint before concurrent Task 4 RED: `241 passed`
-  - Current shared-tree run: `241 passed, 3 failed`
-  - All three failures are concurrent Task 4 RED cases in
-    `backend/tests/test_basic_design.py`: rectilinear circulation egress,
-    primary-room furniture density, and explicit non-axis-aligned circulation
-    rejection.
+  - Task 3 checkpoint: `241 passed`
+  - Current shared-tree run after the parallel Task 4 fixes: `248 passed`
 - Browser:
   - `npx playwright test browser_tests/visual_review.spec.js`
   - `1 passed`

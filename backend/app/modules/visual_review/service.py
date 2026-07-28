@@ -838,7 +838,16 @@ def _render_svg(
             continue
         parts.append(f'<g data-layer="{html.escape(layer, quote=True)}">')
         for feature in layer_features:
-            reason = _feature_skip_reason(feature)
+            reason = _render_skip_reason(
+                feature,
+                min_x,
+                min_y,
+                scale,
+                pad_x,
+                pad_y,
+                width,
+                height,
+            )
             if reason is not None:
                 skipped.append(_skip_record(feature, reason))
                 continue
@@ -860,7 +869,16 @@ def _render_svg(
             rendered.append(feature)
         parts.append("</g>")
         if deferred_boundary is not None:
-            reason = _feature_skip_reason(deferred_boundary)
+            reason = _render_skip_reason(
+                deferred_boundary,
+                min_x,
+                min_y,
+                scale,
+                pad_x,
+                pad_y,
+                width,
+                height,
+            )
             if reason is None:
                 try:
                     parts.append(
@@ -1005,7 +1023,16 @@ def _render_png(
     rendered: list[_RenderFeature] = []
     skipped: list[dict[str, str]] = []
     for feature in features:
-        reason = _feature_skip_reason(feature)
+        reason = _render_skip_reason(
+            feature,
+            min_x,
+            min_y,
+            scale,
+            pad_x,
+            pad_y,
+            width,
+            height,
+        )
         if reason is not None:
             skipped.append(_skip_record(feature, reason))
             continue
@@ -1138,6 +1165,165 @@ def _feature_skip_reason(feature: _RenderFeature) -> str | None:
     if not _finite_points(feature.points, minimum=minimum):
         return "non_finite_geometry"
     return None
+
+
+def _render_skip_reason(
+    feature: _RenderFeature,
+    min_x: float,
+    min_y: float,
+    scale: float,
+    pad_x: float,
+    pad_y: float,
+    width: int,
+    height: int,
+) -> str | None:
+    reason = _feature_skip_reason(feature)
+    if reason is not None:
+        return reason
+    if feature.geometry == "polyline" and not any(
+        math.dist(start, end) > 1e-9
+        for start, end in zip(feature.points, feature.points[1:])
+    ):
+        return "degenerate_geometry"
+    if feature.geometry == "polygon" and abs(_signed_area(feature.points)) <= 1e-9:
+        return "degenerate_geometry"
+    screen_points = tuple(
+        (
+            _sx(x, min_x, scale, pad_x),
+            _sy(y, min_y, scale, pad_y, height),
+        )
+        for x, y in feature.points
+    )
+    if not _screen_geometry_visible(
+        feature,
+        screen_points,
+        width,
+        height,
+    ):
+        return "off_canvas"
+    return None
+
+
+def _screen_geometry_visible(
+    feature: _RenderFeature,
+    points: tuple[tuple[float, float], ...],
+    width: int,
+    height: int,
+) -> bool:
+    max_x = width - 1
+    max_y = height - 1
+    if feature.geometry == "label":
+        x, y = points[0]
+        half_width = max(3.0, len(feature.label) * 3.0)
+        return _rectangles_intersect(
+            (x - half_width, y - 8.0, x + half_width, y + 16.0),
+            (0.0, 0.0, max_x, max_y),
+        )
+    if feature.geometry == "polyline":
+        return any(
+            _segment_intersects_viewport(start, end, max_x, max_y)
+            for start, end in zip(points, points[1:])
+        )
+    return _polygon_intersects_viewport(points, max_x, max_y)
+
+
+def _polygon_intersects_viewport(
+    points: tuple[tuple[float, float], ...],
+    max_x: float,
+    max_y: float,
+) -> bool:
+    if any(_point_in_viewport(point, max_x, max_y) for point in points):
+        return True
+    if any(
+        _segment_intersects_viewport(start, end, max_x, max_y)
+        for start, end in zip(points, (*points[1:], points[0]))
+    ):
+        return True
+    return any(
+        _point_in_polygon(corner, points)
+        for corner in ((0.0, 0.0), (max_x, 0.0), (max_x, max_y), (0.0, max_y))
+    )
+
+
+def _segment_intersects_viewport(
+    start: tuple[float, float],
+    end: tuple[float, float],
+    max_x: float,
+    max_y: float,
+) -> bool:
+    if _point_in_viewport(start, max_x, max_y) or _point_in_viewport(
+        end,
+        max_x,
+        max_y,
+    ):
+        return True
+    delta_x = end[0] - start[0]
+    delta_y = end[1] - start[1]
+    start_ratio = 0.0
+    end_ratio = 1.0
+    for direction, distance in (
+        (-delta_x, start[0]),
+        (delta_x, max_x - start[0]),
+        (-delta_y, start[1]),
+        (delta_y, max_y - start[1]),
+    ):
+        if direction == 0:
+            if distance < 0:
+                return False
+            continue
+        ratio = distance / direction
+        if direction < 0:
+            start_ratio = max(start_ratio, ratio)
+        else:
+            end_ratio = min(end_ratio, ratio)
+        if start_ratio > end_ratio:
+            return False
+    return True
+
+
+def _point_in_viewport(
+    point: tuple[float, float],
+    max_x: float,
+    max_y: float,
+) -> bool:
+    return 0.0 <= point[0] <= max_x and 0.0 <= point[1] <= max_y
+
+
+def _point_in_polygon(
+    point: tuple[float, float],
+    polygon: tuple[tuple[float, float], ...],
+) -> bool:
+    inside = False
+    x, y = point
+    previous = polygon[-1]
+    for current in polygon:
+        x1, y1 = previous
+        x2, y2 = current
+        if (y1 > y) != (y2 > y):
+            intersection_x = x1 + (y - y1) * (x2 - x1) / (y2 - y1)
+            if x < intersection_x:
+                inside = not inside
+        previous = current
+    return inside
+
+
+def _signed_area(points: tuple[tuple[float, float], ...]) -> float:
+    return 0.5 * sum(
+        start[0] * end[1] - end[0] * start[1]
+        for start, end in zip(points, (*points[1:], points[0]))
+    )
+
+
+def _rectangles_intersect(
+    first: tuple[float, float, float, float],
+    second: tuple[float, float, float, float],
+) -> bool:
+    return not (
+        first[2] < second[0]
+        or second[2] < first[0]
+        or first[3] < second[1]
+        or second[3] < first[1]
+    )
 
 
 def _finite_points(

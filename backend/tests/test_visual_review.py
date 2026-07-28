@@ -304,6 +304,58 @@ def test_strict_review_fails_basic_design_check_when_modeled_feature_is_not_rend
     )
 
 
+@pytest.mark.parametrize(
+    ("points", "reason"),
+    [
+        (((0.0, 0.0), (0.0, 0.0)), "degenerate_geometry"),
+        (((1000.0, 1000.0), (1000.0, 1005.0)), "off_canvas"),
+    ],
+)
+def test_strict_review_rejects_finite_basic_design_features_with_no_visible_output(
+    tmp_path,
+    points,
+    reason,
+):
+    result, boundary = _strict_building_floor()
+    assert result.layout.basic_design is not None
+    grid = next(
+        line for line in result.layout.basic_design.lines if line.kind == "grid"
+    )
+    malformed = replace(grid, points=points, label="")
+    features = replace(
+        result.layout.basic_design,
+        lines=tuple(
+            malformed if line.line_id == grid.line_id else line
+            for line in result.layout.basic_design.lines
+        ),
+    )
+    result = replace(
+        result,
+        layout=replace(result.layout, basic_design=features),
+    )
+
+    review = create_visual_review_artifacts(
+        result,
+        boundary=boundary,
+        output_dir=tmp_path,
+    )
+
+    report = json.loads(review.report_path.read_text(encoding="utf-8"))
+    assert report["accepted"] is False
+    assert report["needs_iteration"] is True
+    assert report["checks"]["basic_design"] == "fail"
+    for output in ("svg", "png"):
+        skipped = next(
+            item
+            for item in report["render_evidence"]["skipped"][output]
+            if item["id"] == grid.line_id
+        )
+        assert skipped["reason"] == reason
+        assert grid.line_id in report["render_evidence"]["missing"][output]["grid"][
+            "grid"
+        ]
+
+
 def test_unchecked_review_does_not_fabricate_basic_design_layers_and_disables_controls(
     tmp_path,
 ):
