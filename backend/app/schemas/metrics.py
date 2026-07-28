@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import math
 
+from backend.app.schemas.regulatory import RegulatoryScreening
+
 PolicyValue = bool | float | int | str | None
 _UNSET = object()
 
@@ -164,3 +166,4 @@ class ValidationReport:
     room_shapes: list[RoomShapeMetric] = field(default_factory=list)
     basic_design_checked: bool = False
     basic_design: BasicDesignMetric | None = None
+    regulatory_screening: RegulatoryScreening | None = None

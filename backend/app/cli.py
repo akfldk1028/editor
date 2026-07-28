@@ -20,7 +20,62 @@ from backend.app.modules.visual_review.service import (
     create_visual_review_artifacts,
     run_visual_review_loop,
 )
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.mass import (
+    BuildingCodeContext,
+    FloorCodeContext,
+    MassInput,
+)
+
+
+def _mass_input_from_payload(payload: dict) -> MassInput:
+    context_payload = payload.get("building_code_context")
+    context = None
+    if context_payload is not None:
+        if not isinstance(context_payload, dict):
+            raise TypeError("building_code_context must be an object")
+        floor_payloads = context_payload.get("floor_facts", [])
+        if not isinstance(floor_payloads, list):
+            raise TypeError("building_code_context.floor_facts must be a list")
+        context = BuildingCodeContext(
+            jurisdiction=context_payload.get("jurisdiction"),
+            effective_date=context_payload.get("effective_date"),
+            floor_to_floor_height_m=context_payload.get(
+                "floor_to_floor_height_m"
+            ),
+            sprinklered=context_payload.get("sprinklered"),
+            fire_resistant=context_payload.get("fire_resistant"),
+            floor_facts=tuple(
+                FloorCodeContext(
+                    floor_index=fact["floor_index"],
+                    occupancy=fact.get("occupancy"),
+                    occupant_load=fact.get("occupant_load"),
+                    above_grade=fact.get("above_grade"),
+                )
+                for fact in floor_payloads
+            ),
+        )
+    return MassInput(
+        project_id=payload["project_id"],
+        floors=int(payload["floors"]),
+        footprint_polygon=[
+            tuple(point) for point in payload["footprint_polygon"]
+        ],
+        site_edges=list(payload.get("site_edges", [])),
+        access_candidates=list(payload.get("access_candidates", [])),
+        use_mix=dict(payload.get("use_mix", {})),
+        building_code_context=context,
+    )
+
+
+def _aggregate_review_status(records: list[dict], key: str) -> dict:
+    statuses = [record[key]["status"] for record in records]
+    if statuses and all(status == "pass" for status in statuses):
+        status = "pass"
+    elif any(status == "fail" for status in statuses):
+        status = "fail"
+    else:
+        status = "not_checked"
+    return {"status": status}
 
 
 def main() -> None:
@@ -77,14 +132,7 @@ def main() -> None:
 
     args = parser.parse_args()
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
-    mass = MassInput(
-        project_id=payload["project_id"],
-        floors=int(payload["floors"]),
-        footprint_polygon=[tuple(point) for point in payload["footprint_polygon"]],
-        site_edges=list(payload.get("site_edges", [])),
-        access_candidates=list(payload.get("access_candidates", [])),
-        use_mix=dict(payload.get("use_mix", {})),
-    )
+    mass = _mass_input_from_payload(payload)
     if args.command == "generate":
         result = run_generation_loop(mass, floor_index=args.floor, use_type=args.use_type)
         print(json.dumps(to_jsonable(result), ensure_ascii=False))
@@ -165,6 +213,9 @@ def main() -> None:
                 output_dir=target / alternative.alternative_id,
                 render_style=args.render_style,
             )
+            building_report = json.loads(
+                artifacts.report_path.read_text(encoding="utf-8")
+            )
             summaries.append(
                 {
                     "alternative_id": alternative.alternative_id,
@@ -172,6 +223,13 @@ def main() -> None:
                     "rank": alternative.rank,
                     "score": alternative.score,
                     "accepted": alternative.accepted,
+                    "internal_validation": building_report[
+                        "internal_validation"
+                    ],
+                    "render_validation": building_report["render_validation"],
+                    "regulatory_screening": building_report[
+                        "regulatory_screening"
+                    ],
                     "fingerprints": alternative.fingerprints,
                     "core_centroid": alternative.core_centroid,
                     "circulation_orientation": alternative.circulation_orientation,
@@ -202,6 +260,18 @@ def main() -> None:
             "schema_version": 1,
             "project_id": mass.project_id,
             "accepted_count": result.accepted_count,
+            "internal_validation": _aggregate_review_status(
+                summaries,
+                "internal_validation",
+            ),
+            "render_validation": _aggregate_review_status(
+                summaries,
+                "render_validation",
+            ),
+            "regulatory_screening": _aggregate_review_status(
+                summaries,
+                "regulatory_screening",
+            ),
             "alternatives": summaries,
             "comparisons": to_jsonable(result.comparisons),
         }
@@ -218,7 +288,9 @@ def main() -> None:
                 f"{html.escape(summary['alternative_id'])}</a></td>"
                 f"<td>{html.escape(summary['strategy'])}</td>"
                 f"<td>{summary['score']:.4f}</td>"
-                f"<td>{'PASS' if summary['accepted'] else 'FAIL'}</td>"
+                f"<td>{html.escape(summary['internal_validation']['status'])}</td>"
+                f"<td>{html.escape(summary['render_validation']['status'])}</td>"
+                f"<td>{html.escape(summary['regulatory_screening']['status'].replace('_', ' '))}</td>"
                 f"<td>{html.escape(str(tuple(summary['core_centroid'])))}</td>"
                 f"<td>{html.escape(summary['circulation_orientation'])}</td>"
                 "</tr>"
@@ -235,7 +307,9 @@ def main() -> None:
                 "a{color:#0056b3}</style></head><body>"
                 f"<h1>{html.escape(mass.project_id)} 대안 비교</h1>"
                 "<table><thead><tr><th>순위</th><th>대안</th><th>전략</th>"
-                "<th>점수</th><th>검증</th><th>코어 중심</th><th>복도 주축</th>"
+                "<th>점수</th><th>internal concept validation</th>"
+                "<th>render validation</th><th>regulatory screening</th>"
+                "<th>코어 중심</th><th>복도 주축</th>"
                 f"</tr></thead><tbody>{rows}</tbody></table></body></html>"
             ),
             encoding="utf-8",

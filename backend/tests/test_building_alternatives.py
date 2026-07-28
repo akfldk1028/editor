@@ -3,7 +3,7 @@ import math
 
 from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.generation_loop.service import run_building_alternatives
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.mass import BuildingCodeContext, MassInput
 from backend.app.schemas.program import ProgramAdjustment, ProgramNode
 from engine.geometry.polygon import polygon_area
 
@@ -88,6 +88,11 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
         site_edges=[{"edge_index": 0, "kind": "street"}],
         access_candidates=[{"edge_index": 0, "position": 0.5}],
         use_mix={"neighborhood_commercial": 1 / 3, "office": 2 / 3},
+        building_code_context=BuildingCodeContext(
+            jurisdiction="KR",
+            effective_date="2025-10-31",
+            sprinklered=True,
+        ),
     )
 
     result = run_building_alternatives(mass)
@@ -123,6 +128,31 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
         and alternative.building.vertical_structure_aligned
         for alternative in result.alternatives
     )
+
+
+def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
+    mass = MassInput(
+        project_id="legacy-unknown-sprinkler",
+        floors=3,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 1 / 3, "office": 2 / 3},
+    )
+
+    result = run_building_alternatives(mass)
+
+    assert result.accepted_count < 2
+    for alternative in result.alternatives:
+        for floor in alternative.floor_results:
+            screening = floor.validation.regulatory_screening
+            assert screening is not None
+            assert screening.status == "not_checked"
+            assert "sprinklered" in screening.unresolved_facts
+            assert floor.validation.basic_design is not None
+            assert floor.validation.basic_design.policy_checks[
+                "remote_exit_separation"
+            ]["threshold"] == pytest.approx(math.hypot(30, 12) / 2)
     by_id = {
         alternative.alternative_id: alternative
         for alternative in result.alternatives

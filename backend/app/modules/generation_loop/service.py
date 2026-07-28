@@ -56,6 +56,7 @@ def run_generation_loop(
         program,
         boundary=mass.footprint_polygon,
         street_segments=_street_segments(mass),
+        building_code_context=mass.building_code_context,
     )
     return GenerationResult(
         mass=analysis,
@@ -238,6 +239,7 @@ def run_building_generation(
             min_door_width=0.8,
             min_circulation_width=1.2,
             require_basic_design=True,
+            building_code_context=mass.building_code_context,
         )
         floor_results.append(
             GenerationResult(
@@ -545,6 +547,7 @@ def _transform_building_alternative(
             min_door_width=0.8,
             min_circulation_width=1.2,
             require_basic_design=True,
+            building_code_context=mass.building_code_context,
         )
         floor_results.append(
             replace(floor, layout=layout, validation=validation)
@@ -711,6 +714,7 @@ def _generate_positioned_building(
                     min_door_width=0.8,
                     min_circulation_width=1.2,
                     require_basic_design=True,
+                    building_code_context=mass.building_code_context,
                 ),
             )
         )
@@ -1233,6 +1237,7 @@ def run_candidate_search(
                     program,
                     boundary=mass.footprint_polygon,
                     street_segments=streets,
+                    building_code_context=mass.building_code_context,
                 )
             except Exception as error:
                 return _failed_loop_result(

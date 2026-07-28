@@ -11,7 +11,7 @@ from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.validator.service import validate_layout
 from backend.app.schemas import layout as layout_schema
 from backend.app.schemas.layout import RoomPolygon
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.mass import BuildingCodeContext, MassInput
 from backend.app.schemas.metrics import PolicyCheck
 from backend.tests.test_basic_design_validation import (
     BOUNDARY,
@@ -21,7 +21,7 @@ from backend.tests.test_basic_design_validation import (
 )
 
 
-def test_remote_exit_policy_uses_one_third_of_floor_plate_diagonal() -> None:
+def test_unknown_sprinkler_uses_conservative_half_floor_plate_diagonal() -> None:
     layout, program = _office_candidate()
 
     report = validate_layout(
@@ -38,10 +38,11 @@ def test_remote_exit_policy_uses_one_third_of_floor_plate_diagonal() -> None:
     check = report.basic_design.policy_checks["remote_exit_separation"]
     assert check["value"] == pytest.approx(4.1)
     assert check["threshold"] == pytest.approx(
-        math.hypot(18.0, 10.0) / 3.0
+        math.hypot(18.0, 10.0) / 2.0
     )
     assert check["pass"] is False
-    assert "project policy" in str(check["reason"])
+    assert "internal concept separation target" in str(check["reason"])
+    assert "diagonal / 3" not in str(check["reason"])
     json.dumps(to_jsonable(report))
 
 
@@ -109,6 +110,11 @@ def test_remote_floor_stair_uses_circulation_exit_without_core_lobby_door() -> N
         boundary,
         street_segments=STREET,
         require_basic_design=True,
+        building_code_context=BuildingCodeContext(
+            jurisdiction="KR",
+            effective_date="2025-10-31",
+            sprinklered=True,
+        ),
     )
 
     codes = {violation.code for violation in report.violations}
@@ -404,7 +410,7 @@ def test_workpoint_upper_bound_uses_floor_for_eight_square_meters() -> None:
     assert check["pass"] is False
 
 
-def test_remote_exit_policy_keeps_absolute_three_meter_floor() -> None:
+def test_sprinkler_ratio_is_not_mixed_with_old_three_meter_project_floor() -> None:
     layout, program = _office_candidate()
     small_boundary = [
         (0.0, 0.0),
@@ -419,12 +425,21 @@ def test_remote_exit_policy_keeps_absolute_three_meter_floor() -> None:
         small_boundary,
         require_basic_design=True,
         min_exit_separation=1.0,
+        building_code_context=BuildingCodeContext(
+            jurisdiction="KR",
+            effective_date="2025-10-31",
+            sprinklered=True,
+        ),
     )
 
     assert report.basic_design is not None
-    assert (
-        report.basic_design.policy_checks["remote_exit_separation"]["threshold"]
-        == pytest.approx(3.0)
+    expected_threshold = math.hypot(6.0, 6.0) / 3.0
+    assert report.basic_design.policy_checks["remote_exit_separation"][
+        "threshold"
+    ] == pytest.approx(expected_threshold)
+    assert report.regulatory_screening is not None
+    assert report.regulatory_screening.checks[0].threshold == pytest.approx(
+        expected_threshold
     )
 
 

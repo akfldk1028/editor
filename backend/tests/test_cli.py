@@ -191,6 +191,11 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
                 "site_edges": [{"edge_index": 0, "kind": "street"}],
                 "access_candidates": [{"edge_index": 0, "position": 0.5}],
                 "use_mix": {"neighborhood_commercial": 0.5, "office": 0.5},
+                "building_code_context": {
+                    "jurisdiction": "KR",
+                    "effective_date": "2025-10-31",
+                    "sprinklered": True,
+                },
             }
         ),
         encoding="utf-8",
@@ -215,8 +220,20 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
     payload = json.loads(completed.stdout)
     assert payload["accepted_count"] >= 2
     assert len(payload["alternatives"]) == 3
+    assert payload["internal_validation"]["status"] in {"pass", "fail"}
+    assert payload["render_validation"]["status"] in {"pass", "fail"}
+    assert payload["regulatory_screening"]["status"] == "not_checked"
+    assert all(
+        alternative["regulatory_screening"]["status"] == "not_checked"
+        for alternative in payload["alternatives"]
+    )
     assert (output_dir / "index.html").is_file()
     assert (output_dir / "alternatives.review.json").is_file()
+    index = (output_dir / "index.html").read_text(encoding="utf-8")
+    assert "internal concept validation" in index
+    assert "render validation" in index
+    assert "regulatory screening" in index
+    assert ">PASS<" not in index
     for alternative in payload["alternatives"]:
         alternative_dir = output_dir / alternative["alternative_id"]
         assert not Path(alternative["index_html"]).is_absolute()

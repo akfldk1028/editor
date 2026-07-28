@@ -643,6 +643,12 @@ def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
     assert report["vertical_basic_design_aligned"] is True
     assert report["vertical_structure_aligned"] is True
     assert report["planner_provenance"]["provider"] == "deterministic"
+    assert report["internal_validation"]["status"] in {"pass", "fail"}
+    assert report["render_validation"]["status"] in {"pass", "fail"}
+    assert report["regulatory_screening"]["status"] == "not_checked"
+    assert "internal concept validation:" in index
+    assert "render validation:" in index
+    assert "regulatory screening: not checked" in index
     assert report["planner_provenance"]["validated_assignments"] == [
         {"floor_index": 1, "use_type": "neighborhood_commercial"},
         {"floor_index": 2, "use_type": "office"},
@@ -1238,6 +1244,14 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
     assert result.evaluation_count > result.iterations_run
     assert result.index_json_path == tmp_path / "review.index.json"
     assert result.index_html_path == tmp_path / "index.html"
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+    index_page = result.index_html_path.read_text(encoding="utf-8")
+    assert index["internal_validation"]["status"] in {"pass", "fail"}
+    assert index["render_validation"]["status"] in {"pass", "fail"}
+    assert index["regulatory_screening"]["status"] == "not_checked"
+    assert "internal concept validation:" in index_page
+    assert "render validation:" in index_page
+    assert "regulatory screening: not checked" in index_page
 
     reports = [
         json.loads(artifact.report_path.read_text(encoding="utf-8"))

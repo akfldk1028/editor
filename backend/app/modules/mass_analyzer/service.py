@@ -34,6 +34,7 @@ def analyze_mass(mass: MassInput) -> MassAnalysis:
         street_edge_indices=street_edges,
         access_edge_indices=access_edges,
         bounds=tuple(_clean_number(value) for value in bounds(mass.footprint_polygon)),
+        building_code_context=mass.building_code_context,
     )
 
 

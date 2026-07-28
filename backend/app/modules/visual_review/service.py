@@ -240,6 +240,20 @@ def create_building_visual_review_artifacts(
                 "program_adjusted": _program_was_adjusted(floor.program),
                 "program_adjustments": to_jsonable(floor.program.adjustments),
                 "accepted": floor.validation.accepted,
+                "internal_validation": {
+                    "status": (
+                        "pass" if floor.validation.accepted else "fail"
+                    ),
+                    "policy_version": floor.validation.policy_version,
+                },
+                "render_validation": {
+                    "status": (
+                        "fail" if artifacts.needs_iteration else "pass"
+                    ),
+                },
+                "regulatory_screening": _regulatory_screening_payload(
+                    floor.validation
+                ),
                 "room_count": len(floor.layout.rooms),
                 "artifacts": artifacts.artifact_links,
             }
@@ -247,10 +261,22 @@ def create_building_visual_review_artifacts(
 
     report_path = target / "building.review.json"
     index_html_path = target / "index.html"
+    render_accepted = all(
+        not artifact.needs_iteration for artifact in floor_artifacts
+    )
     report = {
         "schema_version": 1,
         "project_id": result.mass.project_id,
         "accepted": result.accepted,
+        "internal_validation": {
+            "status": "pass" if result.accepted else "fail",
+        },
+        "render_validation": {
+            "status": "pass" if render_accepted else "fail",
+        },
+        "regulatory_screening": _aggregate_regulatory_screening(
+            floor_reports
+        ),
         "assignment_source": result.assignment_source,
         "vertical_core_aligned": result.vertical_core_aligned,
         "vertical_basic_design_aligned": result.vertical_basic_design_aligned,
@@ -389,6 +415,20 @@ def create_visual_review_artifacts(
         ),
         "accepted": accepted,
         "needs_iteration": needs_iteration,
+        "internal_validation": {
+            "status": (
+                "pass" if result.validation.accepted else "fail"
+            ),
+            "policy_version": result.validation.policy_version,
+        },
+        "render_validation": {
+            "status": "pass" if accepted else "fail",
+            "missing_basic_design_ids": list(missing_basic_design),
+            "unresolved_label_collision_count": unresolved_label_collisions,
+        },
+        "regulatory_screening": _regulatory_screening_payload(
+            result.validation
+        ),
         "hard_failure_count": result.validation.hard_violation_count,
         "violations": to_jsonable(result.validation.violations),
         "scores": scores,
@@ -455,7 +495,17 @@ def _render_building_index(
         )
         png = html.escape(floor["artifacts"]["png"], quote=True)
         review = html.escape(floor["artifacts"]["html"], quote=True)
-        status = "accepted" if floor["accepted"] else "needs review"
+        internal_status = floor["internal_validation"]["status"]
+        render_status = floor["render_validation"]["status"]
+        regulatory_status = floor["regulatory_screening"]["status"].replace(
+            "_",
+            " ",
+        )
+        status = (
+            f"internal concept validation: {internal_status} | "
+            f"render validation: {render_status} | "
+            f"regulatory screening: {regulatory_status}"
+        )
         if floor["program_adjusted"]:
             status += " | program adjusted"
         floor_sections.append(
@@ -466,7 +516,20 @@ def _render_building_index(
             </section>
             """
         )
-    status = "accepted" if result.accepted else "needs review"
+    internal_status = "pass" if result.accepted else "fail"
+    render_status = (
+        "pass"
+        if all(floor["render_validation"]["status"] == "pass" for floor in floors)
+        else "fail"
+    )
+    regulatory_status = _aggregate_regulatory_screening(floors)[
+        "status"
+    ].replace("_", " ")
+    status = (
+        f"internal concept validation: {internal_status} | "
+        f"render validation: {render_status} | "
+        f"regulatory screening: {regulatory_status}"
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -653,6 +716,12 @@ def _run_concept_basic_review(
             "review_level": "concept-basic",
             "accepted": False,
             "needs_iteration": True,
+            "internal_validation": {"status": "fail"},
+            "render_validation": {"status": "fail"},
+            "regulatory_screening": {
+                "status": "not_checked",
+                "unresolved_facts": ["generation_failed"],
+            },
             "termination_reason": "failed",
             "evaluation_count": 1,
             "error": message,
@@ -719,6 +788,9 @@ def _run_concept_basic_review(
         "operator_params": {},
         "accepted": accepted,
         "needs_iteration": not accepted,
+        "internal_validation": report["internal_validation"],
+        "render_validation": report["render_validation"],
+        "regulatory_screening": report["regulatory_screening"],
         "hard_failure_count": report["hard_failure_count"],
         "violations": report["violations"],
         "scores": report["scores"],
@@ -737,6 +809,9 @@ def _run_concept_basic_review(
         "review_level": "concept-basic",
         "accepted": accepted,
         "needs_iteration": not accepted,
+        "internal_validation": report["internal_validation"],
+        "render_validation": report["render_validation"],
+        "regulatory_screening": report["regulatory_screening"],
         "termination_reason": termination_reason,
         "evaluation_count": 1,
         "error": None,
@@ -858,6 +933,9 @@ def _review_index(search, reports: list[dict], *, review_level: str) -> dict:
             "operator_params": report["operator_params"],
             "accepted": report["accepted"],
             "needs_iteration": report["needs_iteration"],
+            "internal_validation": report["internal_validation"],
+            "render_validation": report["render_validation"],
+            "regulatory_screening": report["regulatory_screening"],
             "hard_failure_count": report["hard_failure_count"],
             "violations": report["violations"],
             "scores": report["scores"],
@@ -868,6 +946,7 @@ def _review_index(search, reports: list[dict], *, review_level: str) -> dict:
         }
         for report in reports
     ]
+    final_report = reports[-1] if reports else None
     return {
         "schema_version": 1,
         "project_id": search.mass.project_id,
@@ -876,6 +955,24 @@ def _review_index(search, reports: list[dict], *, review_level: str) -> dict:
         "review_level": review_level,
         "accepted": search.accepted,
         "needs_iteration": not search.accepted,
+        "internal_validation": (
+            final_report["internal_validation"]
+            if final_report is not None
+            else {"status": "fail"}
+        ),
+        "render_validation": (
+            final_report["render_validation"]
+            if final_report is not None
+            else {"status": "fail"}
+        ),
+        "regulatory_screening": (
+            final_report["regulatory_screening"]
+            if final_report is not None
+            else {
+                "status": "not_checked",
+                "unresolved_facts": ["generation_failed"],
+            }
+        ),
         "termination_reason": search.termination_reason,
         "evaluation_count": search.evaluation_count,
         "error": search.error,
@@ -926,11 +1023,18 @@ def _render_index_html(index: dict) -> str:
             f"<td>{html.escape(operator_params)}</td>"
             f"<td>{entry['hard_failure_count']}</td>"
             f"<td>{entry['scores']['total_score']}</td>"
-            f"<td>{html.escape('accepted' if entry['accepted'] else 'rejected')}</td>"
+            f"<td>{html.escape(entry['internal_validation']['status'])}</td>"
+            f"<td>{html.escape(entry['render_validation']['status'])}</td>"
+            f"<td>{html.escape(entry['regulatory_screening']['status'].replace('_', ' '))}</td>"
             f"<td>{artifact_links}</td>"
             "</tr>"
         )
-    status = "accepted" if index["accepted"] else "needs iteration"
+    internal_status = index["internal_validation"]["status"]
+    render_status = index["render_validation"]["status"]
+    regulatory_status = index["regulatory_screening"]["status"].replace(
+        "_",
+        " ",
+    )
     project_id = html.escape(index["project_id"])
     review_level = html.escape(index["review_level"])
     unchecked = ", ".join(index["unchecked_checks"]) or "none"
@@ -955,7 +1059,10 @@ def _render_index_html(index: dict) -> str:
     <h1>Review History: {project_id} F{index["floor_index"]}</h1>
     <section aria-labelledby="run-summary">
       <h2 id="run-summary">Run Summary</h2>
-      <p>Status: {html.escape(status)}. Termination: {html.escape(index["termination_reason"])}.
+      <p>internal concept validation: {html.escape(internal_status)}.
+      render validation: {html.escape(render_status)}.
+      regulatory screening: {html.escape(regulatory_status)}.
+      Termination: {html.escape(index["termination_reason"])}.
       Evaluations: {index["evaluation_count"]}. Review level: {review_level}.
       Unchecked checks: {html.escape(unchecked)}.</p>
     </section>
@@ -966,7 +1073,10 @@ def _render_index_html(index: dict) -> str:
         <th scope="col">Fingerprint</th><th scope="col">Parent</th>
         <th scope="col">Operator</th><th scope="col">Operator parameters</th>
         <th scope="col">Hard failures</th>
-        <th scope="col">Total score</th><th scope="col">Status</th>
+        <th scope="col">Total score</th>
+        <th scope="col">Internal concept validation</th>
+        <th scope="col">Render validation</th>
+        <th scope="col">Regulatory screening</th>
         <th scope="col">Artifacts</th></tr></thead>
         <tbody>{''.join(rows)}</tbody>
       </table>
@@ -2532,10 +2642,16 @@ def _render_html(
     report_name: str,
     report: dict,
 ) -> str:
-    status = (
+    internal_status = report["internal_validation"]["status"]
+    render_status = report["render_validation"]["status"]
+    review_disposition = (
         "needs iteration"
         if report["needs_iteration"]
-        else "passes hard validation"
+        else "accepted for internal review"
+    )
+    regulatory_status = report["regulatory_screening"]["status"].replace(
+        "_",
+        " ",
     )
     checks = "".join(
         f'<tr><th scope="row">{html.escape(name)}</th>'
@@ -2649,7 +2765,12 @@ def _render_html(
 <body>
   <main>
     <h1>Visual Review: {project_id} F{result.program.floor_index}</h1>
-    <div class="status">{html.escape(status)}</div>
+    <div class="status">
+      <div>review disposition: {html.escape(review_disposition)}</div>
+      <div>internal concept validation: {html.escape(internal_status)}</div>
+      <div>render validation: {html.escape(render_status)}</div>
+      <div>regulatory screening: {html.escape(regulatory_status)}</div>
+    </div>
     <div class="grid">
       <section class="plan">
         <div class="review-workspace">
@@ -2895,6 +3016,39 @@ def _validation_scores(validation: ValidationReport) -> dict[str, float]:
         name: value
         for name, value in payload.items()
         if name.endswith("_score")
+    }
+
+
+def _regulatory_screening_payload(validation: ValidationReport) -> dict:
+    if validation.regulatory_screening is not None:
+        return to_jsonable(validation.regulatory_screening)
+    return {
+        "ruleset_id": "not-configured",
+        "status": "not_checked",
+        "checks": [],
+        "unresolved_facts": ["building_code_context"],
+    }
+
+
+def _aggregate_regulatory_screening(records: list[dict]) -> dict:
+    screenings = [record["regulatory_screening"] for record in records]
+    statuses = [screening["status"] for screening in screenings]
+    if statuses and all(status == "pass" for status in statuses):
+        status = "pass"
+    elif any(status == "fail" for status in statuses):
+        status = "fail"
+    else:
+        status = "not_checked"
+    unresolved = sorted(
+        {
+            fact
+            for screening in screenings
+            for fact in screening.get("unresolved_facts", [])
+        }
+    )
+    return {
+        "status": status,
+        "unresolved_facts": unresolved,
     }
 
 

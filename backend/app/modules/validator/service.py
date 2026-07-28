@@ -13,6 +13,7 @@ from backend.app.schemas.layout import (
     RoomPolygon,
     UsePlanningMetadata,
 )
+from backend.app.schemas.mass import BuildingCodeContext
 from backend.app.schemas.metrics import (
     BasicDesignMetric,
     PolicyCheck,
@@ -23,6 +24,7 @@ from backend.app.schemas.metrics import (
     ValidationViolation,
 )
 from backend.app.schemas.program import ProgramGraph
+from backend.app.schemas.regulatory import RegulatoryCheck, RegulatoryScreening
 from engine.geometry import (
     bounding_box_aspect_ratio,
     orthogonal_min_width,
@@ -119,6 +121,13 @@ _MIN_STAIR_SHORT_SIDE = 2.8
 _MIN_STAIR_LONG_SIDE = 4.8
 _MIN_STAIR_AREA = _MIN_STAIR_SHORT_SIDE * _MIN_STAIR_LONG_SIDE
 _MIN_STAIR_SEPARATION = 0.2
+_REGULATORY_RULESET = "KR-egress-2025-10-31"
+_REGULATORY_EFFECTIVE_DATE = "2025-10-31"
+_STAIR_SEPARATION_RULE_ID = "KR-EGRESS-STAIR-SEPARATION"
+_STAIR_SEPARATION_SOURCE = (
+    "https://law.go.kr/LSW/lumLsLinkPop.do?"
+    "chrClsCd=010202&lspttninfSeq=104954"
+)
 _OBJECT_CLEARANCE = 0.6
 _SMALL_ROOM_OBJECT_CLEARANCE = 0.3
 _ELEMENT_KINDS = {
@@ -171,6 +180,110 @@ _REQUIRED_OBJECT_KINDS = {
 }
 
 
+def _regulatory_exit_separation_threshold(
+    boundary: list[tuple[float, float]],
+    context: BuildingCodeContext | None,
+) -> float:
+    min_x, min_y, max_x, max_y = _bounds(boundary)
+    denominator = (
+        3.0
+        if context is not None and context.sprinklered is True
+        else 2.0
+    )
+    return math.hypot(max_x - min_x, max_y - min_y) / denominator
+
+
+def _regulatory_screening(
+    context: BuildingCodeContext | None,
+    basic_design: BasicDesignMetric | None,
+    threshold: float,
+) -> RegulatoryScreening:
+    unresolved = ["two_stair_applicability"]
+    if context is None or context.jurisdiction is None:
+        unresolved.append("jurisdiction")
+    effective_date_supported = (
+        context is not None
+        and context.effective_date == _REGULATORY_EFFECTIVE_DATE
+    )
+    if not effective_date_supported:
+        unresolved.append("effective_date")
+    if context is None or context.sprinklered is None:
+        unresolved.append("sprinklered")
+    measured = (
+        basic_design.exit_separation
+        if basic_design is not None
+        else None
+    )
+    if measured is None:
+        unresolved.append("measured_exit_separation")
+
+    jurisdiction = (
+        context.jurisdiction.strip().upper()
+        if context is not None and context.jurisdiction is not None
+        else None
+    )
+    supported_jurisdiction = jurisdiction in {
+        "KR",
+        "KOREA",
+        "REPUBLIC OF KOREA",
+    }
+    applicability = (
+        supported_jurisdiction
+        if jurisdiction is not None and effective_date_supported
+        else None
+    )
+    checked = (
+        applicability is True
+        and context is not None
+        and effective_date_supported
+        and context.sprinklered is not None
+        and measured is not None
+    )
+    check_status = (
+        "pass"
+        if checked and measured + _EPSILON >= threshold
+        else "fail"
+        if checked
+        else "not_checked"
+    )
+    if context is None or context.sprinklered is None:
+        sprinkler_assumption = (
+            "sprinkler protection is unknown; conservative internal "
+            "half-diagonal target used"
+        )
+    elif context.sprinklered:
+        sprinkler_assumption = (
+            "qualifying sprinkler protection was explicitly supplied; "
+            "one-third-diagonal threshold used"
+        )
+    else:
+        sprinkler_assumption = (
+            "sprinkler protection was explicitly absent; "
+            "half-diagonal threshold used"
+        )
+    assumptions = [sprinkler_assumption]
+    if applicability is False:
+        assumptions.append(
+            "supplied jurisdiction is outside the supported KR ruleset"
+        )
+    check = RegulatoryCheck(
+        rule_id=_STAIR_SEPARATION_RULE_ID,
+        status=check_status,
+        source_url=_STAIR_SEPARATION_SOURCE,
+        effective_date=_REGULATORY_EFFECTIVE_DATE,
+        measured_value=measured,
+        threshold=threshold,
+        applicability=applicability,
+        assumptions=tuple(assumptions),
+    )
+    return RegulatoryScreening(
+        ruleset_id=_REGULATORY_RULESET,
+        status="not_checked",
+        checks=(check,),
+        unresolved_facts=tuple(unresolved),
+    )
+
+
 def validate_layout(
     layout: LayoutCandidate,
     program: ProgramGraph,
@@ -183,6 +296,7 @@ def validate_layout(
     require_basic_design: bool = False,
     min_protected_exit_width: float = 0.9,
     min_exit_separation: float = 3.0,
+    building_code_context: BuildingCodeContext | None = None,
 ) -> ValidationReport:
     if not math.isfinite(min_door_width) or min_door_width <= 0:
         raise ValueError("min_door_width must be finite and positive")
@@ -355,12 +469,14 @@ def validate_layout(
             )
 
     basic_design_metric: BasicDesignMetric | None = None
+    regulatory_threshold = _regulatory_exit_separation_threshold(
+        boundary,
+        building_code_context,
+    )
     if require_basic_design:
-        min_x, min_y, max_x, max_y = _bounds(boundary)
-        project_exit_separation = max(
-            3.0,
+        internal_exit_separation = max(
             min_exit_separation,
-            math.hypot(max_x - min_x, max_y - min_y) / 3.0,
+            regulatory_threshold,
         )
         basic_design_metric = _validate_basic_design(
             layout,
@@ -368,9 +484,14 @@ def validate_layout(
             streets,
             program,
             min_protected_exit_width,
-            project_exit_separation,
+            internal_exit_separation,
             add_violation,
         )
+    regulatory_screening = _regulatory_screening(
+        building_code_context,
+        basic_design_metric,
+        regulatory_threshold,
+    )
 
     circulation_score = _circulation_score(
         circulation_exists,
@@ -438,6 +559,7 @@ def validate_layout(
         corridor_width_checked=min_circulation_width is not None,
         basic_design_checked=require_basic_design,
         basic_design=basic_design_metric,
+        regulatory_screening=regulatory_screening,
     )
 
 
@@ -951,8 +1073,8 @@ def _validate_basic_design(
             "remote_exit_unfit",
             "core",
             (
-                "project policy requires remote protected-exit midpoints to be "
-                f"separated by at least max(3 m, footprint diagonal / 3) = "
+                "internal concept validation requires protected-exit midpoints "
+                "to meet the current separation target of "
                 f"{min_exit_separation:.3f} m"
             ),
         )
@@ -2064,9 +2186,9 @@ def _basic_design_metric(
                     exit_separation_threshold,
                     remote_exit_passed,
                     (
-                        "passes project policy max(3 m, footprint diagonal / 3)"
+                        "passes internal concept separation target"
                         if remote_exit_passed
-                        else "fails project policy max(3 m, footprint diagonal / 3)"
+                        else "fails internal concept separation target"
                     ),
                 ),
                 **(policy_checks or {}),
