@@ -42,6 +42,17 @@ def main() -> None:
     loop_review.add_argument("--use-type", required=True)
     loop_review.add_argument("--output-dir", required=True)
     loop_review.add_argument("--max-iterations", type=int, default=3)
+    loop_review.add_argument(
+        "--review-level",
+        choices=("concept-basic", "zoning"),
+        default="concept-basic",
+    )
+    loop_review.add_argument(
+        "--planner",
+        choices=("deterministic", "openai"),
+        default=None,
+    )
+    loop_review.add_argument("--llm-model")
 
     building_review = subparsers.add_parser("building-review")
     building_review.add_argument("--input", required=True)
@@ -75,15 +86,30 @@ def main() -> None:
         )
         print(json.dumps(to_jsonable(artifacts), ensure_ascii=False))
     elif args.command == "loop-review":
+        if args.review_level == "zoning" and (
+            args.planner is not None or args.llm_model is not None
+        ):
+            parser.error("planner options are only supported for concept-basic review")
+        planner_client = None
+        if args.planner == "openai":
+            planner_client = (
+                OpenAIResponsesPlannerClient(model=args.llm_model)
+                if args.llm_model
+                else OpenAIResponsesPlannerClient()
+            )
         result = run_visual_review_loop(
             mass,
             floor_index=args.floor,
             use_type=args.use_type,
             output_dir=args.output_dir,
             max_iterations=args.max_iterations,
+            review_level=args.review_level,
+            planner_client=planner_client,
         )
         print(json.dumps(to_jsonable(result), ensure_ascii=False))
-        if result.termination_reason == "failed":
+        if result.termination_reason == "failed" or (
+            result.review_level == "concept-basic" and not result.accepted
+        ):
             raise SystemExit(1)
     elif args.command == "building-review":
         if args.planner == "openai":

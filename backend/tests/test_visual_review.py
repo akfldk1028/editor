@@ -420,6 +420,16 @@ def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
     report = json.loads(artifacts.report_path.read_text(encoding="utf-8"))
     assert report["accepted"] is True
     assert report["vertical_core_aligned"] is True
+    assert report["vertical_basic_design_aligned"] is True
+    assert report["vertical_structure_aligned"] is True
+    assert report["planner_provenance"]["provider"] == "deterministic"
+    assert report["planner_provenance"]["validated_assignments"] == [
+        {"floor_index": 1, "use_type": "neighborhood_commercial"},
+        {"floor_index": 2, "use_type": "office"},
+        {"floor_index": 3, "use_type": "office"},
+        {"floor_index": 4, "use_type": "office"},
+        {"floor_index": 5, "use_type": "office"},
+    ]
     assert [floor["floor_index"] for floor in report["floors"]] == [1, 2, 3, 4, 5]
 
 
@@ -829,6 +839,7 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
         use_type="neighborhood_commercial",
         output_dir=tmp_path,
         max_iterations=5,
+        review_level="zoning",
     )
 
     assert result.iterations_run == 2
@@ -893,6 +904,12 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
     assert index["floor_index"] == 1
     assert index["use_type"] == "neighborhood_commercial"
     assert index["accepted"] is False
+    assert index["review_level"] == "zoning"
+    assert set(index["unchecked_checks"]) == {
+        "basic_design",
+        "corridor_width",
+        "openings",
+    }
     assert index["termination_reason"] == "search_exhausted"
     assert index["evaluation_count"] == result.evaluation_count
     assert [entry["iteration"] for entry in index["iterations"]] == [1, 2]
@@ -925,6 +942,57 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
         assert entry["artifacts"]["html"] in index_html
 
 
+def test_default_review_loop_runs_one_strict_concept_basic_evaluation(tmp_path):
+    mass = MassInput(
+        project_id="strict-loop-review",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        floor_index=2,
+        use_type="office",
+        output_dir=tmp_path,
+        max_iterations=9,
+    )
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+    report = json.loads(result.artifacts[0].report_path.read_text(encoding="utf-8"))
+
+    assert result.review_level == "concept-basic"
+    assert result.iterations_run == 1
+    assert result.evaluation_count == 1
+    assert result.accepted is True
+    assert result.final_needs_iteration is False
+    assert result.termination_reason == "accepted"
+    assert result.unchecked_checks == ()
+    assert index["review_level"] == "concept-basic"
+    assert index["unchecked_checks"] == []
+    assert index["planner_provenance"]["provider"] == "deterministic"
+    assert index["planner_provenance"]["planner_mode"] == "deterministic"
+    assert index["iterations"][0]["checks"]["openings"] == "pass"
+    assert index["iterations"][0]["checks"]["corridor_width"] == "pass"
+    assert index["iterations"][0]["checks"]["basic_design"] == "pass"
+    assert report["floor_index"] == 2
+    assert report["use_type"] == "office"
+    assert report["validation"]["basic_design_checked"] is True
+    for layer in (
+        "grid",
+        "core",
+        "structure",
+        "envelope",
+        "furniture",
+        "fixtures",
+        "egress",
+        "dimensions",
+    ):
+        counts = report["layer_completeness"][layer]
+        assert counts["modeled"] == counts["svg"] == counts["png"]
+
+
 def test_review_index_is_identical_across_output_roots(tmp_path):
     mass = MassInput(
         project_id="deterministic-review",
@@ -936,10 +1004,12 @@ def test_review_index_is_identical_across_output_roots(tmp_path):
     )
 
     first = run_visual_review_loop(
-        mass, 1, "neighborhood_commercial", tmp_path / "first", max_iterations=5
+        mass, 1, "neighborhood_commercial", tmp_path / "first",
+        max_iterations=5, review_level="zoning",
     )
     second = run_visual_review_loop(
-        mass, 1, "neighborhood_commercial", tmp_path / "second", max_iterations=5
+        mass, 1, "neighborhood_commercial", tmp_path / "second",
+        max_iterations=5, review_level="zoning",
     )
 
     first_index = json.loads(first.index_json_path.read_text(encoding="utf-8"))
@@ -958,7 +1028,8 @@ def test_review_loop_iteration_budget_exhaustion_is_not_accepted(tmp_path):
     )
 
     result = run_visual_review_loop(
-        mass, 1, "neighborhood_commercial", tmp_path, max_iterations=1
+        mass, 1, "neighborhood_commercial", tmp_path,
+        max_iterations=1, review_level="zoning",
     )
     index = json.loads((tmp_path / "review.index.json").read_text(encoding="utf-8"))
 
@@ -1001,6 +1072,7 @@ def test_failed_review_loop_preserves_search_diagnostic(tmp_path, monkeypatch):
         1,
         "neighborhood_commercial",
         tmp_path,
+        review_level="zoning",
     )
     index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
 
@@ -1046,7 +1118,8 @@ def test_review_report_uses_search_iteration_when_best_candidate_is_unchanged(
     )
 
     result = run_visual_review_loop(
-        mass, 1, "neighborhood_commercial", tmp_path, max_iterations=2
+        mass, 1, "neighborhood_commercial", tmp_path,
+        max_iterations=2, review_level="zoning",
     )
     reports = [
         json.loads(artifact.report_path.read_text(encoding="utf-8"))
@@ -1076,7 +1149,7 @@ def test_cli_loop_review_runs_iterations_and_prints_final_state(tmp_path):
             {
                 "project_id": "cli-loop",
                 "floors": 2,
-                "footprint_polygon": [[0, 0], [20, 0], [20, 10], [0, 10]],
+                "footprint_polygon": [[0, 0], [30, 0], [30, 12], [0, 12]],
                 "site_edges": [{"edge_index": 0, "kind": "street"}],
                 "access_candidates": [{"edge_index": 0, "position": 0.5}],
                 "use_mix": {"neighborhood_commercial": 0.5, "office": 0.5},
@@ -1108,10 +1181,13 @@ def test_cli_loop_review_runs_iterations_and_prints_final_state(tmp_path):
     )
 
     payload = json.loads(completed.stdout)
-    assert payload["iterations_run"] == 2
-    assert payload["final_needs_iteration"] is True
-    assert payload["accepted"] is False
-    assert payload["termination_reason"] == "search_exhausted"
+    assert payload["review_level"] == "concept-basic"
+    assert payload["iterations_run"] == 1
+    assert payload["evaluation_count"] == 1
+    assert payload["final_needs_iteration"] is False
+    assert payload["accepted"] is True
+    assert payload["termination_reason"] == "accepted"
+    assert payload["unchecked_checks"] == []
     assert Path(payload["index_json_path"]).exists()
     assert Path(payload["index_html_path"]).exists()
     assert all(Path(artifact["html_path"]).exists() for artifact in payload["artifacts"])

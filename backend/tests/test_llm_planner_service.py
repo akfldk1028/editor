@@ -75,6 +75,26 @@ def test_run_llm_building_generation_uses_structured_assignments():
         floor.program.use_type for floor in result.floor_results
     ] == ["neighborhood_commercial", "office", "office"]
     assert result.accepted
+    assert result.planner_provenance.provider == "manual"
+    assert result.planner_provenance.planner_mode == "structured"
+    assert result.planner_provenance.model is None
+    assert result.planner_provenance.response_id is None
+    assert result.planner_provenance.validated_assignments == result.floor_assignments
+
+
+def test_run_llm_building_generation_persists_openai_response_provenance():
+    client = RecordingPlannerClient(_valid_response())
+    client.provider = "openai"
+    client.model = "gpt-test"
+    client.last_response_id = "resp_123"
+
+    result = run_llm_building_generation(_sample_mass(), client)
+
+    assert result.planner_provenance.provider == "openai"
+    assert result.planner_provenance.planner_mode == "structured"
+    assert result.planner_provenance.model == "gpt-test"
+    assert result.planner_provenance.response_id == "resp_123"
+    assert result.planner_provenance.validated_assignments == result.floor_assignments
 
 
 def test_plan_floor_assignments_rejects_invalid_json():

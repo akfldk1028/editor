@@ -26,6 +26,8 @@ class VisualReviewLoopResult:
     evaluation_count: int = 0
     accepted: bool = False
     error: str | None = None
+    review_level: str = "concept-basic"
+    unchecked_checks: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

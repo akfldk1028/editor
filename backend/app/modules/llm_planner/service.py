@@ -13,7 +13,7 @@ from backend.app.modules.llm_planner.contracts import (
 )
 from backend.app.schemas.llm import BuildingFloorAssignments
 from backend.app.schemas.mass import MassInput
-from backend.app.schemas.result import BuildingGenerationResult
+from backend.app.schemas.result import BuildingGenerationResult, PlannerProvenance
 
 
 class StructuredPlannerClient(Protocol):
@@ -101,4 +101,19 @@ def run_llm_building_generation(
     return run_building_generation(
         mass,
         floor_assignments=plan.assignments,
+        planner_provenance=PlannerProvenance(
+            planner_mode="structured",
+            provider=_optional_string(
+                getattr(client, "provider", None)
+            ) or "manual",
+            model=_optional_string(getattr(client, "model", None)),
+            response_id=_optional_string(
+                getattr(client, "last_response_id", None)
+            ),
+            validated_assignments=plan.assignments,
+        ),
     )
+
+
+def _optional_string(value: object) -> str | None:
+    return value if isinstance(value, str) and value else None

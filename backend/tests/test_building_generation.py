@@ -67,6 +67,11 @@ def test_building_generation_assigns_all_floors_and_aligns_vertical_core():
         "office": 1200,
     }
     assert result.accepted
+    assert result.vertical_basic_design_aligned
+    assert result.vertical_structure_aligned
+    assert result.planner_provenance.provider == "deterministic"
+    assert result.planner_provenance.planner_mode == "deterministic"
+    assert result.planner_provenance.validated_assignments == result.floor_assignments
     assert all(floor.validation.accepted for floor in result.floor_results)
     assert all(
         len(floor.layout.openings) == len(floor.layout.rooms)
@@ -85,6 +90,68 @@ def test_building_generation_assigns_all_floors_and_aligns_vertical_core():
             and opening.connects[1] in circulation_ids
             for opening in floor.layout.openings
         )
+
+
+def test_vertical_alignment_detects_changed_core_subspace_and_structure():
+    mass = MassInput(
+        project_id="misaligned-building",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+    result = generation_service.run_building_generation(mass)
+    floor = result.floor_results[1]
+    basic_design = floor.layout.basic_design
+    assert basic_design is not None
+    elements = list(basic_design.elements)
+    stair_index = next(
+        index for index, element in enumerate(elements)
+        if element.kind == "stair"
+    )
+    stair = elements[stair_index]
+    elements[stair_index] = replace(
+        stair,
+        footprint=tuple((x + 0.1, y) for x, y in stair.footprint),
+    )
+    lines = list(basic_design.lines)
+    grid_index = next(
+        index for index, line in enumerate(lines)
+        if line.category == "structure" and line.kind == "grid"
+    )
+    grid = lines[grid_index]
+    lines[grid_index] = replace(
+        grid,
+        points=tuple((x + 0.1, y) for x, y in grid.points),
+    )
+    changed_floor = replace(
+        floor,
+        layout=replace(
+            floor.layout,
+            basic_design=replace(
+                basic_design,
+                elements=tuple(elements),
+                lines=tuple(lines),
+            ),
+        ),
+    )
+
+    basic_aligned, structure_aligned = (
+        generation_service._vertical_basic_design_alignment(
+            (result.floor_results[0], changed_floor)
+        )
+    )
+
+    assert basic_aligned is False
+    assert structure_aligned is False
+    mismatched = replace(
+        result,
+        floor_results=(result.floor_results[0], changed_floor),
+        vertical_basic_design_aligned=basic_aligned,
+        vertical_structure_aligned=structure_aligned,
+    )
+    assert mismatched.accepted is False
 
 
 def test_building_generation_accepts_complete_structured_floor_assignments():
@@ -108,6 +175,8 @@ def test_building_generation_accepts_complete_structured_floor_assignments():
 
     assert [item.floor_index for item in result.floor_assignments] == [1, 2, 3]
     assert result.assignment_source == "structured"
+    assert result.planner_provenance.provider == "manual"
+    assert result.planner_provenance.planner_mode == "structured"
     assert result.accepted
     commercial = result.floor_results[0]
     rooms = {room.room_id: room for room in commercial.layout.rooms}

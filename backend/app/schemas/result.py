@@ -18,6 +18,15 @@ class GenerationResult:
 
 
 @dataclass(frozen=True)
+class PlannerProvenance:
+    planner_mode: str
+    provider: str
+    model: str | None
+    response_id: str | None
+    validated_assignments: tuple[FloorAssignment, ...]
+
+
+@dataclass(frozen=True)
 class BuildingGenerationResult:
     mass: MassAnalysis
     floor_assignments: tuple[FloorAssignment, ...]
@@ -26,9 +35,15 @@ class BuildingGenerationResult:
     use_type_areas: dict[str, float]
     assignment_source: str
     vertical_core_aligned: bool
+    vertical_basic_design_aligned: bool
+    vertical_structure_aligned: bool
+    planner_provenance: PlannerProvenance
 
     @property
     def accepted(self) -> bool:
-        return self.vertical_core_aligned and all(
-            floor.validation.accepted for floor in self.floor_results
+        return (
+            self.vertical_core_aligned
+            and self.vertical_basic_design_aligned
+            and self.vertical_structure_aligned
+            and all(floor.validation.accepted for floor in self.floor_results)
         )

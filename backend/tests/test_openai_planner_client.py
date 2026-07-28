@@ -8,13 +8,18 @@ from backend.app.modules.llm_planner.openai_client import (
 
 
 class FakeResponses:
-    def __init__(self, output_text: str):
+    def __init__(self, output_text: str, response_id: str = "resp_test"):
         self.output_text = output_text
+        self.response_id = response_id
         self.calls: list[dict] = []
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
-        return type("Response", (), {"output_text": self.output_text})()
+        return type(
+            "Response",
+            (),
+            {"output_text": self.output_text, "id": self.response_id},
+        )()
 
 
 class FakeOpenAI:
@@ -46,6 +51,9 @@ def test_openai_planner_client_uses_responses_strict_json_schema():
     )
 
     assert json.loads(result)["project_id"] == "sample"
+    assert client.provider == "openai"
+    assert client.last_response_id == "resp_test"
+    assert client.last_response_model == "gpt-test"
     assert len(sdk.responses.calls) == 1
     request = sdk.responses.calls[0]
     assert request["model"] == "gpt-test"

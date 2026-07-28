@@ -10,13 +10,21 @@ from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.modules.generation_loop.service import (
+    assign_floors_from_use_mix,
+    run_building_generation,
     run_candidate_search,
 )
+from backend.app.modules.llm_planner.service import run_llm_building_generation
+from backend.app.schemas.llm import FloorAssignment, SUPPORTED_USE_TYPES
 from backend.app.schemas.loop import CandidateRecord, LoopConfig
 from backend.app.schemas.layout import OpeningSegment, PlanElement, PlanLine
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.metrics import ValidationReport
-from backend.app.schemas.result import BuildingGenerationResult, GenerationResult
+from backend.app.schemas.result import (
+    BuildingGenerationResult,
+    GenerationResult,
+    PlannerProvenance,
+)
 from backend.app.schemas.visual import (
     BuildingVisualReviewArtifacts,
     VisualReviewArtifacts,
@@ -195,6 +203,9 @@ def create_building_visual_review_artifacts(
         "accepted": result.accepted,
         "assignment_source": result.assignment_source,
         "vertical_core_aligned": result.vertical_core_aligned,
+        "vertical_basic_design_aligned": result.vertical_basic_design_aligned,
+        "vertical_structure_aligned": result.vertical_structure_aligned,
+        "planner_provenance": to_jsonable(result.planner_provenance),
         "total_area": result.total_area,
         "use_type_areas": result.use_type_areas,
         "floors": floor_reports,
@@ -405,12 +416,27 @@ def run_visual_review_loop(
     use_type: str,
     output_dir: str | Path,
     max_iterations: int = 3,
+    review_level: str = "concept-basic",
+    planner_client: object | None = None,
 ) -> VisualReviewLoopResult:
     if max_iterations < 1:
         raise ValueError("max_iterations must be at least 1")
+    if review_level not in {"concept-basic", "zoning"}:
+        raise ValueError("review_level must be 'concept-basic' or 'zoning'")
+    if review_level == "zoning" and planner_client is not None:
+        raise ValueError("planner is only supported for concept-basic review")
 
     target = Path(output_dir).resolve()
     target.mkdir(parents=True, exist_ok=True)
+    if review_level == "concept-basic":
+        return _run_concept_basic_review(
+            mass,
+            floor_index=floor_index,
+            use_type=use_type,
+            target=target,
+            planner_client=planner_client,
+        )
+
     search = run_candidate_search(
         mass,
         floor_index=floor_index,
@@ -439,25 +465,23 @@ def run_visual_review_loop(
             run_root=target,
         )
         artifacts.append(review)
-        reports.append(
-            json.loads(review.report_path.read_text(encoding="utf-8"))
+        report = json.loads(review.report_path.read_text(encoding="utf-8"))
+        report["review_level"] = "zoning"
+        report["unchecked_checks"] = sorted(
+            name
+            for name, status in report["checks"].items()
+            if status == "not_checked"
         )
+        review.report_path.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        reports.append(report)
         previous_validation = candidate.validation
 
-    index = _review_index(search, reports)
-    index_json_path = target / "review.index.json"
-    index_html_path = target / "index.html"
-    _ensure_within_target(target, index_json_path, index_html_path)
-    index_json_path.write_text(
-        json.dumps(
-            index,
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        ),
-        encoding="utf-8",
-    )
-    index_html_path.write_text(_render_index_html(index), encoding="utf-8")
+    index = _review_index(search, reports, review_level="zoning")
+    index_json_path, index_html_path = _write_review_index(target, index)
+    unchecked_checks = tuple(index["unchecked_checks"])
 
     return VisualReviewLoopResult(
         iterations_run=len(artifacts),
@@ -469,10 +493,194 @@ def run_visual_review_loop(
         evaluation_count=search.evaluation_count,
         accepted=search.accepted,
         error=search.error,
+        review_level="zoning",
+        unchecked_checks=unchecked_checks,
     )
 
 
-def _review_index(search, reports: list[dict]) -> dict:
+def _run_concept_basic_review(
+    mass: MassInput,
+    *,
+    floor_index: int,
+    use_type: str,
+    target: Path,
+    planner_client: object | None,
+) -> VisualReviewLoopResult:
+    if floor_index < 1 or floor_index > mass.floors:
+        raise ValueError("floor_index must identify a floor in the building")
+    if use_type not in SUPPORTED_USE_TYPES:
+        raise ValueError(f"unsupported use type: {use_type}")
+
+    try:
+        assignments = tuple(
+            FloorAssignment(
+                assignment.floor_index,
+                use_type if assignment.floor_index == floor_index else assignment.use_type,
+            )
+            for assignment in assign_floors_from_use_mix(mass)
+        )
+        if planner_client is None:
+            building = run_building_generation(
+                mass,
+                floor_assignments=assignments,
+                planner_provenance=PlannerProvenance(
+                    planner_mode="deterministic",
+                    provider="deterministic",
+                    model=None,
+                    response_id=None,
+                    validated_assignments=assignments,
+                ),
+            )
+        else:
+            building = run_llm_building_generation(mass, planner_client)
+        selected = next(
+            floor
+            for floor in building.floor_results
+            if floor.program.floor_index == floor_index
+        )
+        if selected.program.use_type != use_type:
+            raise ValueError(
+                "planner assignment does not match requested floor/use type"
+            )
+    except Exception as error:
+        message = f"{type(error).__name__}: {error}"
+        index = {
+            "schema_version": 1,
+            "project_id": mass.project_id,
+            "floor_index": floor_index,
+            "use_type": use_type,
+            "review_level": "concept-basic",
+            "accepted": False,
+            "needs_iteration": True,
+            "termination_reason": "failed",
+            "evaluation_count": 1,
+            "error": message,
+            "unchecked_checks": [],
+            "iterations": [],
+            "score_trend": [],
+            "hard_failure_trend": [],
+            "lineage": [],
+        }
+        index_json_path, index_html_path = _write_review_index(target, index)
+        return VisualReviewLoopResult(
+            iterations_run=0,
+            final_needs_iteration=True,
+            artifacts=[],
+            index_json_path=index_json_path,
+            index_html_path=index_html_path,
+            termination_reason="failed",
+            evaluation_count=1,
+            accepted=False,
+            error=message,
+            review_level="concept-basic",
+        )
+
+    floor = next(
+        floor
+        for floor in building.floor_results
+        if floor.program.floor_index == floor_index
+    )
+    artifact = create_visual_review_artifacts(
+        floor,
+        boundary=mass.footprint_polygon,
+        output_dir=target / "iteration_001",
+        iteration_number=1,
+        run_root=target,
+    )
+    report = json.loads(artifact.report_path.read_text(encoding="utf-8"))
+    report["review_level"] = "concept-basic"
+    report["planner_provenance"] = to_jsonable(building.planner_provenance)
+    artifact.report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    required_checks = ("openings", "corridor_width", "basic_design")
+    strict_checks_pass = all(
+        report["checks"].get(name) == "pass" for name in required_checks
+    )
+    unchecked_checks = tuple(
+        sorted(
+            name
+            for name, status in report["checks"].items()
+            if status == "not_checked"
+        )
+    )
+    accepted = building.accepted and strict_checks_pass and not unchecked_checks
+    termination_reason = "accepted" if accepted else "strict_validation_failed"
+    iteration = {
+        "iteration": 1,
+        "candidate_id": report["candidate_id"],
+        "fingerprint": None,
+        "parent_id": None,
+        "operator": "concept-basic-generation",
+        "operator_params": {},
+        "accepted": accepted,
+        "needs_iteration": not accepted,
+        "hard_failure_count": report["hard_failure_count"],
+        "violations": report["violations"],
+        "scores": report["scores"],
+        "checks": report["checks"],
+        "total_score_delta": None,
+        "hard_failure_count_delta": None,
+        "artifacts": report["artifacts"],
+    }
+    index = {
+        "schema_version": 1,
+        "project_id": mass.project_id,
+        "floor_index": floor_index,
+        "use_type": use_type,
+        "review_level": "concept-basic",
+        "accepted": accepted,
+        "needs_iteration": not accepted,
+        "termination_reason": termination_reason,
+        "evaluation_count": 1,
+        "error": None,
+        "unchecked_checks": list(unchecked_checks),
+        "vertical_core_aligned": building.vertical_core_aligned,
+        "vertical_basic_design_aligned": building.vertical_basic_design_aligned,
+        "vertical_structure_aligned": building.vertical_structure_aligned,
+        "planner_provenance": to_jsonable(building.planner_provenance),
+        "iterations": [iteration],
+        "score_trend": [iteration["scores"]["total_score"]],
+        "hard_failure_trend": [iteration["hard_failure_count"]],
+        "lineage": [
+            {
+                "candidate_id": iteration["candidate_id"],
+                "parent_id": None,
+                "operator": iteration["operator"],
+                "operator_params": {},
+            }
+        ],
+    }
+    index_json_path, index_html_path = _write_review_index(target, index)
+    return VisualReviewLoopResult(
+        iterations_run=1,
+        final_needs_iteration=not accepted,
+        artifacts=[artifact],
+        index_json_path=index_json_path,
+        index_html_path=index_html_path,
+        termination_reason=termination_reason,
+        evaluation_count=1,
+        accepted=accepted,
+        error=None,
+        review_level="concept-basic",
+        unchecked_checks=unchecked_checks,
+    )
+
+
+def _write_review_index(target: Path, index: dict) -> tuple[Path, Path]:
+    index_json_path = target / "review.index.json"
+    index_html_path = target / "index.html"
+    _ensure_within_target(target, index_json_path, index_html_path)
+    index_json_path.write_text(
+        json.dumps(index, ensure_ascii=False, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    index_html_path.write_text(_render_index_html(index), encoding="utf-8")
+    return index_json_path, index_html_path
+
+
+def _review_index(search, reports: list[dict], *, review_level: str) -> dict:
     iterations = [
         {
             "iteration": report["iteration"],
@@ -486,6 +694,7 @@ def _review_index(search, reports: list[dict]) -> dict:
             "hard_failure_count": report["hard_failure_count"],
             "violations": report["violations"],
             "scores": report["scores"],
+            "checks": report["checks"],
             "total_score_delta": report["total_score_delta"],
             "hard_failure_count_delta": report["hard_failure_count_delta"],
             "artifacts": report["artifacts"],
@@ -497,11 +706,20 @@ def _review_index(search, reports: list[dict]) -> dict:
         "project_id": search.mass.project_id,
         "floor_index": search.program.floor_index,
         "use_type": search.program.use_type,
+        "review_level": review_level,
         "accepted": search.accepted,
         "needs_iteration": not search.accepted,
         "termination_reason": search.termination_reason,
         "evaluation_count": search.evaluation_count,
         "error": search.error,
+        "unchecked_checks": sorted(
+            {
+                name
+                for report in reports
+                for name, status in report["checks"].items()
+                if status == "not_checked"
+            }
+        ),
         "iterations": iterations,
         "score_trend": [entry["scores"]["total_score"] for entry in iterations],
         "hard_failure_trend": [
@@ -535,7 +753,7 @@ def _render_index_html(index: dict) -> str:
             "<tr>"
             f'<th scope="row">{entry["iteration"]}</th>'
             f"<td>{html.escape(entry['candidate_id'])}</td>"
-            f"<td>{html.escape(entry['fingerprint'])}</td>"
+            f"<td>{html.escape(str(entry['fingerprint'] or ''))}</td>"
             f"<td>{html.escape(entry['parent_id'] or '')}</td>"
             f"<td>{html.escape(entry['operator'])}</td>"
             f"<td>{html.escape(operator_params)}</td>"
@@ -547,6 +765,8 @@ def _render_index_html(index: dict) -> str:
         )
     status = "accepted" if index["accepted"] else "needs iteration"
     project_id = html.escape(index["project_id"])
+    review_level = html.escape(index["review_level"])
+    unchecked = ", ".join(index["unchecked_checks"]) or "none"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -569,7 +789,8 @@ def _render_index_html(index: dict) -> str:
     <section aria-labelledby="run-summary">
       <h2 id="run-summary">Run Summary</h2>
       <p>Status: {html.escape(status)}. Termination: {html.escape(index["termination_reason"])}.
-      Evaluations: {index["evaluation_count"]}.</p>
+      Evaluations: {index["evaluation_count"]}. Review level: {review_level}.
+      Unchecked checks: {html.escape(unchecked)}.</p>
     </section>
     <section aria-labelledby="iteration-history">
       <h2 id="iteration-history">Iteration History</h2>

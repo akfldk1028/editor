@@ -39,7 +39,10 @@ class OpenAIResponsesPlannerClient:
         model: str | None = None,
         sdk_client: Any | None = None,
     ) -> None:
+        self.provider = "openai"
         self.model = model or os.getenv("PLAN_LLM_MODEL", "gpt-5.6")
+        self.last_response_id: str | None = None
+        self.last_response_model: str | None = None
         if sdk_client is None:
             from openai import OpenAI
 
@@ -52,6 +55,8 @@ class OpenAIResponsesPlannerClient:
         system_prompt: str,
         user_payload: dict[str, Any],
     ) -> str:
+        self.last_response_id = None
+        self.last_response_model = None
         response = self._client.responses.create(
             model=self.model,
             store=False,
@@ -71,6 +76,9 @@ class OpenAIResponsesPlannerClient:
                 }
             },
         )
+        response_id = getattr(response, "id", None)
+        self.last_response_id = response_id if isinstance(response_id, str) else None
+        self.last_response_model = self.model
         output_text = response.output_text
         if not isinstance(output_text, str) or not output_text.strip():
             raise RuntimeError("OpenAI returned an empty structured response")

@@ -29,7 +29,11 @@ from backend.app.schemas.loop import (
     LoopConfig,
     LoopResult,
 )
-from backend.app.schemas.result import BuildingGenerationResult, GenerationResult
+from backend.app.schemas.result import (
+    BuildingGenerationResult,
+    GenerationResult,
+    PlannerProvenance,
+)
 
 
 def run_generation_loop(
@@ -58,18 +62,37 @@ def run_building_generation(
     mass: MassInput,
     *,
     floor_assignments: Iterable[FloorAssignment] | None = None,
+    planner_provenance: PlannerProvenance | None = None,
 ) -> BuildingGenerationResult:
     analysis = analyze_mass(mass)
     _require_rectangular_floor_plate(mass, analysis)
     if floor_assignments is None:
         assignments = assign_floors_from_use_mix(mass)
         assignment_source = "use_mix"
+        provenance = PlannerProvenance(
+            planner_mode="deterministic",
+            provider="deterministic",
+            model=None,
+            response_id=None,
+            validated_assignments=assignments,
+        )
     else:
         assignments = _validate_floor_assignments(
             floor_assignments,
             floors=mass.floors,
         )
         assignment_source = "structured"
+        provenance = planner_provenance or PlannerProvenance(
+            planner_mode="structured",
+            provider="manual",
+            model=None,
+            response_id=None,
+            validated_assignments=assignments,
+        )
+        if provenance.validated_assignments != assignments:
+            raise ValueError(
+                "planner provenance assignments must match validated floor assignments"
+            )
 
     programs = [
         generate_program_graph(
@@ -191,6 +214,9 @@ def run_building_generation(
         polygon == core_polygons[0]
         for polygon in core_polygons[1:]
     )
+    vertical_basic_design_aligned, vertical_structure_aligned = (
+        _vertical_basic_design_alignment(tuple(floor_results))
+    )
     return BuildingGenerationResult(
         mass=analysis,
         floor_assignments=assignments,
@@ -202,6 +228,66 @@ def run_building_generation(
         },
         assignment_source=assignment_source,
         vertical_core_aligned=vertical_core_aligned,
+        vertical_basic_design_aligned=vertical_basic_design_aligned,
+        vertical_structure_aligned=vertical_structure_aligned,
+        planner_provenance=provenance,
+    )
+
+
+def _vertical_basic_design_alignment(
+    floor_results: tuple[GenerationResult, ...],
+) -> tuple[bool, bool]:
+    if not floor_results:
+        return False, False
+
+    vertical_signatures = []
+    structure_signatures = []
+    for floor in floor_results:
+        basic_design = floor.layout.basic_design
+        if basic_design is None:
+            return False, False
+        vertical_signatures.append(
+            tuple(
+                sorted(
+                    (
+                        element.element_id,
+                        element.kind,
+                        element.footprint,
+                    )
+                    for element in basic_design.elements
+                    if element.category == "vertical"
+                )
+            )
+        )
+        structure_signatures.append(
+            (
+                tuple(
+                    sorted(
+                        (
+                            element.element_id,
+                            element.kind,
+                            element.footprint,
+                        )
+                        for element in basic_design.elements
+                        if element.category == "structure"
+                    )
+                ),
+                tuple(
+                    sorted(
+                        (
+                            line.line_id,
+                            line.kind,
+                            line.points,
+                        )
+                        for line in basic_design.lines
+                        if line.category == "structure"
+                    )
+                ),
+            )
+        )
+    return (
+        all(signature == vertical_signatures[0] for signature in vertical_signatures[1:]),
+        all(signature == structure_signatures[0] for signature in structure_signatures[1:]),
     )
 
 
