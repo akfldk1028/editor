@@ -16,7 +16,7 @@
     .plan { grid-column: 1 / -1; }
     .review-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 272px; gap: 14px; align-items: start; }
     .drawing-pane { min-width: 0; }
-    iframe { width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }
+    .drawing-pane svg { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; border: 1px solid #ccc; }
     #cad-layer-manager { min-width: 0; border: 1px solid #b9c0c7; background: #fff; color: #171a1d; }
     .cad-layer-header { padding: 9px 10px; border-bottom: 1px solid #cbd0d5; font-size: 14px; font-weight: 700; }
     .cad-layer-commands { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 8px; border-bottom: 1px solid #d8dde1; }
@@ -51,7 +51,139 @@
       <section class="plan">
         <div class="review-workspace">
           <div class="drawing-pane">
-            <iframe id="floor-plan" src="alternatives-20x12-7cad349c48223a75-f2.svg" title="floor plan svg"></iframe>
+            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 960 540">
+<rect width="100%" height="100%" fill="white"/>
+<g data-layer="grid">
+<g data-id="grid-x-0" data-kind="grid" data-layer="grid"><polyline points="111.0,491.4 111.0,48.6" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="4 5"/><text x="111.0" y="503.4" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">A</text></g>
+<g data-id="grid-x-1" data-kind="grid" data-layer="grid"><polyline points="332.4,491.4 332.4,48.6" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="4 5"/><text x="332.4" y="503.4" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">B</text></g>
+<g data-id="grid-x-2" data-kind="grid" data-layer="grid"><polyline points="553.8,491.4 553.8,48.6" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="4 5"/><text x="553.8" y="503.4" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">C</text></g>
+<g data-id="grid-x-3" data-kind="grid" data-layer="grid"><polyline points="775.2,491.4 775.2,48.6" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="4 5"/><text x="775.2" y="503.4" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">D</text></g>
+<g data-id="grid-x-4" data-kind="grid" data-layer="grid"><polyline points="849.0,491.4 849.0,48.6" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="4 5"/><text x="849.0" y="503.4" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">E</text></g>
+<g data-id="grid-y-0" data-kind="grid" data-layer="grid"><polyline points="111.0,491.4 849.0,491.4" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="4 5"/><text x="99.0" y="491.4" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">1</text></g>
+<g data-id="grid-y-1" data-kind="grid" data-layer="grid"><polyline points="111.0,270.0 849.0,270.0" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="4 5"/><text x="99.0" y="270.0" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">2</text></g>
+<g data-id="grid-y-2" data-kind="grid" data-layer="grid"><polyline points="111.0,48.6 849.0,48.6" fill="none" stroke="#888888" stroke-width="1" stroke-dasharray="4 5"/><text x="99.0" y="48.6" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">3</text></g>
+</g>
+<g data-layer="rooms">
+<polygon data-id="open_work" data-kind="room" data-layer="rooms" points="111.0,491.4 624.89,491.4 624.89,252.3 111.0,252.3" fill="white" stroke="#202020" stroke-width="4"/>
+<polygon data-id="meeting" data-kind="room" data-layer="rooms" points="288.12,208.02 375.75,208.02 375.75,48.6 288.12,48.6" fill="white" stroke="#202020" stroke-width="4"/>
+<polygon data-id="reception" data-kind="room" data-layer="rooms" points="375.75,208.02 425.44,208.02 425.44,48.6 375.75,48.6" fill="white" stroke="#202020" stroke-width="4"/>
+<polygon data-id="focus" data-kind="room" data-layer="rooms" points="425.44,208.02 488.54,208.02 488.54,48.6 425.44,48.6" fill="white" stroke="#202020" stroke-width="4"/>
+<polygon data-id="pantry" data-kind="room" data-layer="rooms" points="488.54,208.02 529.13,208.02 529.13,84.11 488.54,84.11" fill="white" stroke="#202020" stroke-width="4"/>
+<polygon data-id="restroom" data-kind="room" data-layer="rooms" points="529.13,208.02 572.94,208.02 572.94,48.6 529.13,48.6" fill="white" stroke="#202020" stroke-width="4"/>
+<polygon data-id="it_storage" data-kind="room" data-layer="rooms" points="572.94,208.02 616.76,208.02 616.76,48.6 572.94,48.6" fill="white" stroke="#202020" stroke-width="4"/>
+<polygon data-id="core" data-kind="room" data-layer="rooms" points="669.17,402.84 849.0,402.84 849.0,137.16 669.17,137.16" fill="white" stroke="#202020" stroke-width="4"/>
+</g>
+<polygon data-id="floor-boundary" data-kind="boundary" data-layer="rooms" points="111.0,491.4 849.0,491.4 849.0,48.6 111.0,48.6" fill="none" stroke="#111111" stroke-width="6"/>
+<g data-layer="circulation">
+<polygon data-id="corridor-cross" data-kind="circulation" data-layer="circulation" points="111.0,252.3 624.89,252.3 624.89,208.02 111.0,208.02" fill="white" stroke="#202020" stroke-width="2"/>
+<polygon data-id="corridor-longitudinal" data-kind="circulation" data-layer="circulation" points="624.89,491.4 669.17,491.4 669.17,48.6 624.89,48.6" fill="white" stroke="#202020" stroke-width="2"/>
+</g>
+<g data-layer="core">
+<polygon data-id="core-stair-1" data-kind="stair" data-layer="core" points="691.31,402.84 691.31,299.52 849.0,299.52 849.0,402.84" fill="white" stroke="#202020" stroke-width="4"/><g data-symbol="stair-treads"><line x1="694.31" y1="314.28" x2="846.0" y2="314.28" stroke="#555555" stroke-width="1"/><line x1="694.31" y1="329.03999999999996" x2="846.0" y2="329.03999999999996" stroke="#555555" stroke-width="1"/><line x1="694.31" y1="343.79999999999995" x2="846.0" y2="343.79999999999995" stroke="#555555" stroke-width="1"/><line x1="694.31" y1="358.56" x2="846.0" y2="358.56" stroke="#555555" stroke-width="1"/><line x1="694.31" y1="373.31999999999994" x2="846.0" y2="373.31999999999994" stroke="#555555" stroke-width="1"/><line x1="694.31" y1="388.08" x2="846.0" y2="388.08" stroke="#555555" stroke-width="1"/><line x1="770.155" y1="397.84" x2="770.155" y2="307.52" stroke="#222222" stroke-width="1"/><text x="775.155" y="311.52" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="8">UP</text></g>
+<polygon data-id="remote-stair-2" data-kind="stair" data-layer="core" points="111.0,208.02 288.12,208.02 288.12,104.7 111.0,104.7" fill="white" stroke="#202020" stroke-width="4"/><g data-symbol="stair-treads"><line x1="114.0" y1="119.46000000000001" x2="285.12" y2="119.46000000000001" stroke="#555555" stroke-width="1"/><line x1="114.0" y1="134.22" x2="285.12" y2="134.22" stroke="#555555" stroke-width="1"/><line x1="114.0" y1="148.98000000000002" x2="285.12" y2="148.98000000000002" stroke="#555555" stroke-width="1"/><line x1="114.0" y1="163.74" x2="285.12" y2="163.74" stroke="#555555" stroke-width="1"/><line x1="114.0" y1="178.5" x2="285.12" y2="178.5" stroke="#555555" stroke-width="1"/><line x1="114.0" y1="193.26000000000002" x2="285.12" y2="193.26000000000002" stroke="#555555" stroke-width="1"/><line x1="199.56" y1="203.02" x2="199.56" y2="112.7" stroke="#222222" stroke-width="1"/><text x="204.56" y="116.7" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="8">UP</text></g>
+<polygon data-id="core-elevator" data-kind="elevator" data-layer="core" points="760.44,299.52 760.44,262.62 849.0,262.62 849.0,299.52" fill="white" stroke="#202020" stroke-width="4"/><g data-symbol="elevator-car"><rect x="764.44" y="266.62" width="80.55999999999995" height="28.899999999999977" fill="none" stroke="#555555" stroke-width="1"/><line x1="804.72" y1="295.52" x2="804.72" y2="299.52" stroke="#222222" stroke-width="2"/></g>
+<polygon data-id="core-shaft" data-kind="shaft" data-layer="core" points="760.44,262.62 760.44,240.48 849.0,240.48 849.0,262.62" fill="white" stroke="#202020" stroke-width="4"/>
+<polygon data-id="core-lobby" data-kind="lobby" data-layer="core" points="669.17,402.84 669.17,137.16 691.31,137.16 691.31,240.48 760.44,240.48 760.44,299.52 691.31,299.52 691.31,402.84" fill="white" stroke="#202020" stroke-width="4"/>
+</g>
+<g data-layer="structure">
+<polygon data-id="column-1" data-kind="column" data-layer="structure" points="325.02,277.38 339.78,277.38 339.78,262.62 325.02,262.62" fill="#555555" stroke="#111111" stroke-width="2"/>
+<polygon data-id="column-2" data-kind="column" data-layer="structure" points="546.42,277.38 561.18,277.38 561.18,262.62 546.42,262.62" fill="#555555" stroke="#111111" stroke-width="2"/>
+</g>
+<g data-layer="envelope">
+<g data-id="open_work-window" data-kind="window" data-layer="envelope" data-symbol="window-double-line"><polyline points="340.27,489.4 395.62,489.4" fill="none" stroke="#222222" stroke-width="1"/><polyline points="340.27,493.4 395.62,493.4" fill="none" stroke="#222222" stroke-width="1"/></g>
+<g data-id="meeting-window" data-kind="window" data-layer="envelope" data-symbol="window-double-line"><polyline points="310.03,46.6 353.84,46.6" fill="none" stroke="#222222" stroke-width="1"/><polyline points="310.03,50.6 353.84,50.6" fill="none" stroke="#222222" stroke-width="1"/></g>
+<g data-id="reception-window" data-kind="window" data-layer="envelope" data-symbol="window-double-line"><polyline points="388.17,46.6 413.02,46.6" fill="none" stroke="#222222" stroke-width="1"/><polyline points="388.17,50.6 413.02,50.6" fill="none" stroke="#222222" stroke-width="1"/></g>
+<g data-id="focus-window" data-kind="window" data-layer="envelope" data-symbol="window-double-line"><polyline points="441.21,46.6 472.76,46.6" fill="none" stroke="#222222" stroke-width="1"/><polyline points="441.21,50.6 472.76,50.6" fill="none" stroke="#222222" stroke-width="1"/></g>
+<g data-id="restroom-window" data-kind="window" data-layer="envelope" data-symbol="window-double-line"><polyline points="540.08,46.6 561.99,46.6" fill="none" stroke="#222222" stroke-width="1"/><polyline points="540.08,50.6 561.99,50.6" fill="none" stroke="#222222" stroke-width="1"/></g>
+<g data-id="it_storage-window" data-kind="window" data-layer="envelope" data-symbol="window-double-line"><polyline points="583.9,46.6 605.8,46.6" fill="none" stroke="#222222" stroke-width="1"/><polyline points="583.9,50.6 605.8,50.6" fill="none" stroke="#222222" stroke-width="1"/></g>
+</g>
+<g data-layer="door-openings">
+<g data-id="protected-exit-1" data-kind="protected_exit" data-layer="door-openings" data-symbol="door-swing"><polyline points="669.17,286.61 669.17,253.39" fill="none" stroke="white" stroke-width="8"/><line x1="669.17" y1="286.61" x2="702.39" y2="286.61" stroke="#222222" stroke-width="2"/><path d="M 669.17 253.39 Q 687.441 271.661 702.39 286.61" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="protected-exit-2" data-kind="protected_exit" data-layer="door-openings" data-symbol="door-swing"><polyline points="111.0,208.02 144.21,208.02" fill="none" stroke="white" stroke-width="8"/><line x1="111.0" y1="208.02" x2="111.0" y2="241.23000000000002" stroke="#222222" stroke-width="2"/><path d="M 144.21 208.02 Q 125.9445 226.2855 111.0 241.23000000000002" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="open_work-door" data-kind="door-opening" data-layer="door-openings" data-symbol="door-swing" aria-label="open_work door clear width 0.9 m"><polyline points="351.34,252.3 384.55,252.3" fill="none" stroke="white" stroke-width="8"/><line x1="351.34" y1="252.3" x2="351.34" y2="285.51000000000005" stroke="#222222" stroke-width="2"/><path d="M 384.55 252.3 Q 366.2845 270.56550000000004 351.34 285.51000000000005" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="meeting-door" data-kind="door-opening" data-layer="door-openings" data-symbol="door-swing" aria-label="meeting door clear width 0.9 m"><polyline points="315.33,208.02 348.54,208.02" fill="none" stroke="white" stroke-width="8"/><line x1="315.33" y1="208.02" x2="315.33" y2="241.23000000000005" stroke="#222222" stroke-width="2"/><path d="M 348.54 208.02 Q 330.2745 226.28550000000004 315.33 241.23000000000005" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="reception-door" data-kind="door-opening" data-layer="door-openings" data-symbol="door-swing" aria-label="reception door clear width 0.9 m"><polyline points="383.99,208.02 417.2,208.02" fill="none" stroke="white" stroke-width="8"/><line x1="383.99" y1="208.02" x2="383.99" y2="241.23" stroke="#222222" stroke-width="2"/><path d="M 417.2 208.02 Q 398.9345 226.2855 383.99 241.23" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="focus-door" data-kind="door-opening" data-layer="door-openings" data-symbol="door-swing" aria-label="focus door clear width 0.9 m"><polyline points="440.38,208.02 473.59,208.02" fill="none" stroke="white" stroke-width="8"/><line x1="440.38" y1="208.02" x2="440.38" y2="241.23" stroke="#222222" stroke-width="2"/><path d="M 473.59 208.02 Q 455.3245 226.2855 440.38 241.23" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="pantry-door" data-kind="door-opening" data-layer="door-openings" data-symbol="door-swing" aria-label="pantry door clear width 0.9 m"><polyline points="492.23,208.02 525.44,208.02" fill="none" stroke="white" stroke-width="8"/><line x1="492.23" y1="208.02" x2="492.23" y2="241.23000000000005" stroke="#222222" stroke-width="2"/><path d="M 525.44 208.02 Q 507.1745 226.28550000000004 492.23 241.23000000000005" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="restroom-door" data-kind="door-opening" data-layer="door-openings" data-symbol="door-swing" aria-label="restroom door clear width 0.9 m"><polyline points="534.43,208.02 567.64,208.02" fill="none" stroke="white" stroke-width="8"/><line x1="534.43" y1="208.02" x2="534.43" y2="241.23000000000005" stroke="#222222" stroke-width="2"/><path d="M 567.64 208.02 Q 549.3745 226.28550000000004 534.43 241.23000000000005" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="it_storage-door" data-kind="door-opening" data-layer="door-openings" data-symbol="door-swing" aria-label="it_storage door clear width 0.9 m"><polyline points="578.25,208.02 611.46,208.02" fill="none" stroke="white" stroke-width="8"/><line x1="578.25" y1="208.02" x2="578.25" y2="241.23000000000005" stroke="#222222" stroke-width="2"/><path d="M 611.46 208.02 Q 593.1945000000001 226.28550000000004 578.25 241.23000000000005" fill="none" stroke="#777777" stroke-width="1"/></g>
+<g data-id="core-door" data-kind="door-opening" data-layer="door-openings" data-symbol="door-swing" aria-label="core door clear width 0.9 m"><polyline points="669.17,286.61 669.17,253.39" fill="none" stroke="white" stroke-width="8"/><line x1="669.17" y1="286.61" x2="702.39" y2="286.61" stroke="#222222" stroke-width="2"/><path d="M 669.17 253.39 Q 687.441 271.661 702.39 286.61" fill="none" stroke="#777777" stroke-width="1"/></g>
+</g>
+<g data-layer="furniture">
+<polygon data-id="open_work-workstation-1" data-kind="workstation" data-layer="furniture" points="133.14,469.26 158.97,469.26 158.97,443.43 133.14,443.43" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="136.14" y1="456.345" x2="155.97" y2="456.345" stroke="#777777" stroke-width="1"/><circle cx="146.055" cy="456.345" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-2" data-kind="workstation" data-layer="furniture" points="546.42,314.28 572.25,314.28 572.25,288.45 546.42,288.45" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="549.42" y1="301.365" x2="569.25" y2="301.365" stroke="#777777" stroke-width="1"/><circle cx="559.335" cy="301.365" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-3" data-kind="workstation" data-layer="furniture" points="288.12,314.28 313.95,314.28 313.95,288.45 288.12,288.45" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="291.12" y1="301.365" x2="310.95" y2="301.365" stroke="#777777" stroke-width="1"/><circle cx="301.03499999999997" cy="301.365" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-4" data-kind="workstation" data-layer="furniture" points="443.1,469.26 468.93,469.26 468.93,443.43 443.1,443.43" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="446.1" y1="456.345" x2="465.93" y2="456.345" stroke="#777777" stroke-width="1"/><circle cx="456.015" cy="456.345" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-5" data-kind="workstation" data-layer="furniture" points="133.14,314.28 158.97,314.28 158.97,288.45 133.14,288.45" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="136.14" y1="301.365" x2="155.97" y2="301.365" stroke="#777777" stroke-width="1"/><circle cx="146.055" cy="301.365" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-6" data-kind="workstation" data-layer="furniture" points="288.12,469.26 313.95,469.26 313.95,443.43 288.12,443.43" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="291.12" y1="456.345" x2="310.95" y2="456.345" stroke="#777777" stroke-width="1"/><circle cx="301.03499999999997" cy="456.345" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-7" data-kind="workstation" data-layer="furniture" points="391.44,365.94 417.27,365.94 417.27,340.11 391.44,340.11" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="394.44" y1="353.025" x2="414.27" y2="353.025" stroke="#777777" stroke-width="1"/><circle cx="404.355" cy="353.025" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-8" data-kind="workstation" data-layer="furniture" points="546.42,417.6 572.25,417.6 572.25,391.77 546.42,391.77" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="549.42" y1="404.685" x2="569.25" y2="404.685" stroke="#777777" stroke-width="1"/><circle cx="559.335" cy="404.685" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-9" data-kind="workstation" data-layer="furniture" points="236.46,365.94 262.29,365.94 262.29,340.11 236.46,340.11" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="239.46" y1="353.025" x2="259.29" y2="353.025" stroke="#777777" stroke-width="1"/><circle cx="249.375" cy="353.025" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-10" data-kind="workstation" data-layer="furniture" points="184.8,417.6 210.63,417.6 210.63,391.77 184.8,391.77" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="187.8" y1="404.685" x2="207.63" y2="404.685" stroke="#777777" stroke-width="1"/><circle cx="197.715" cy="404.685" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="open_work-workstation-11" data-kind="workstation" data-layer="furniture" points="443.1,314.28 468.93,314.28 468.93,288.45 443.1,288.45" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="446.1" y1="301.365" x2="465.93" y2="301.365" stroke="#777777" stroke-width="1"/><circle cx="456.015" cy="301.365" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="meeting-meeting_table-1" data-kind="meeting_table" data-layer="furniture" points="301.03,140.08 317.64,140.08 317.64,114.57 301.03,114.57" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="304.03" y1="127.325" x2="314.64" y2="127.325" stroke="#777777" stroke-width="1"/><circle cx="309.335" cy="127.325" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="reception-reception_desk-1" data-kind="reception_desk" data-layer="furniture" points="388.67,140.08 405.27,140.08 405.27,114.57 388.67,114.57" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="391.67" y1="127.325" x2="402.27" y2="127.325" stroke="#777777" stroke-width="1"/><circle cx="396.97" cy="127.325" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+<polygon data-id="focus-focus_desk-1" data-kind="focus_desk" data-layer="furniture" points="438.36,140.08 454.96,140.08 454.96,114.57 438.36,114.57" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="furniture"><line x1="441.36" y1="127.325" x2="451.96" y2="127.325" stroke="#777777" stroke-width="1"/><circle cx="446.65999999999997" cy="127.325" r="2.5" fill="none" stroke="#777777" stroke-width="1"/></g>
+</g>
+<g data-layer="fixtures">
+<polygon data-id="pantry-pantry_counter-1" data-kind="pantry_counter" data-layer="fixtures" points="499.61,147.6 516.21,147.6 516.21,127.78 499.61,127.78" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="fixture"><ellipse cx="507.91" cy="137.69" rx="4.648000000000007" ry="5.549599999999999" fill="none" stroke="#666666" stroke-width="1"/><line x1="507.91" y1="129.78" x2="507.91" y2="137.69" stroke="#666666" stroke-width="1"/></g>
+<polygon data-id="pantry-sink-1" data-kind="sink" data-layer="fixtures" points="501.45,115.01 518.06,115.01 518.06,95.18 501.45,95.18" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="fixture"><ellipse cx="509.755" cy="105.095" rx="4.650799999999989" ry="5.5524000000000004" fill="none" stroke="#666666" stroke-width="1"/><line x1="509.755" y1="97.18" x2="509.755" y2="105.095" stroke="#666666" stroke-width="1"/></g>
+<polygon data-id="restroom-wc-1" data-kind="wc" data-layer="fixtures" points="540.2,141.92 556.8,141.92 556.8,116.41 540.2,116.41" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="fixture"><ellipse cx="548.5" cy="129.165" rx="4.647999999999975" ry="7.1427999999999985" fill="none" stroke="#666666" stroke-width="1"/><line x1="548.5" y1="118.41" x2="548.5" y2="129.165" stroke="#666666" stroke-width="1"/></g>
+<polygon data-id="restroom-lavatory-1" data-kind="lavatory" data-layer="fixtures" points="536.51,178.5 553.11,178.5 553.11,152.99 536.51,152.99" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="fixture"><ellipse cx="544.81" cy="165.745" rx="4.648000000000007" ry="7.1427999999999985" fill="none" stroke="#666666" stroke-width="1"/><line x1="544.81" y1="154.99" x2="544.81" y2="165.745" stroke="#666666" stroke-width="1"/></g>
+<polygon data-id="it_storage-it_rack-1" data-kind="it_rack" data-layer="fixtures" points="584.01,141.92 600.62,141.92 600.62,116.41 584.01,116.41" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="fixture"><ellipse cx="592.315" cy="129.165" rx="4.650800000000004" ry="7.1427999999999985" fill="none" stroke="#666666" stroke-width="1"/><line x1="592.315" y1="118.41" x2="592.315" y2="129.165" stroke="#666666" stroke-width="1"/></g>
+<polygon data-id="it_storage-it_rack-2" data-kind="it_rack" data-layer="fixtures" points="580.32,178.5 596.93,178.5 596.93,152.99 580.32,152.99" fill="white" stroke="#666666" stroke-width="1"/><g data-symbol="fixture"><ellipse cx="588.625" cy="165.745" rx="4.650799999999973" ry="7.1427999999999985" fill="none" stroke="#666666" stroke-width="1"/><line x1="588.625" y1="154.99" x2="588.625" y2="165.745" stroke="#666666" stroke-width="1"/></g>
+</g>
+<g data-layer="egress">
+<g data-id="core-stair-door-1" data-kind="stair_door" data-layer="egress"><polyline points="691.31,367.78 691.31,334.57" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="core-lobby-route-1" data-kind="lobby_route" data-layer="egress"><polyline points="669.17,270.0 669.17,351.18 691.31,351.18" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="open_work-route-1" data-kind="egress_route" data-layer="egress"><polyline points="367.94,252.3 624.89,252.3 624.89,230.16 669.17,230.16 669.17,270.0" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="open_work-route-2" data-kind="egress_route" data-layer="egress"><polyline points="367.94,252.3 127.61,252.3 127.61,208.02" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="meeting-route-1" data-kind="egress_route" data-layer="egress"><polyline points="331.94,208.02 624.89,208.02 624.89,230.16 669.17,230.16 669.17,270.0" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="meeting-route-2" data-kind="egress_route" data-layer="egress"><polyline points="331.94,208.02 127.61,208.02" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="reception-route-1" data-kind="egress_route" data-layer="egress"><polyline points="400.6,208.02 624.89,208.02 624.89,230.16 669.17,230.16 669.17,270.0" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="reception-route-2" data-kind="egress_route" data-layer="egress"><polyline points="400.6,208.02 127.61,208.02" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="focus-route-1" data-kind="egress_route" data-layer="egress"><polyline points="456.99,208.02 624.89,208.02 624.89,230.16 669.17,230.16 669.17,270.0" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="focus-route-2" data-kind="egress_route" data-layer="egress"><polyline points="456.99,208.02 127.61,208.02" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="pantry-route-1" data-kind="egress_route" data-layer="egress"><polyline points="508.83,208.02 624.89,208.02 624.89,230.16 669.17,230.16 669.17,270.0" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="pantry-route-2" data-kind="egress_route" data-layer="egress"><polyline points="508.83,208.02 127.61,208.02" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="restroom-route-1" data-kind="egress_route" data-layer="egress"><polyline points="551.03,208.02 624.89,208.02 624.89,230.16 669.17,230.16 669.17,270.0" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="restroom-route-2" data-kind="egress_route" data-layer="egress"><polyline points="551.03,208.02 127.61,208.02" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="it_storage-route-1" data-kind="egress_route" data-layer="egress"><polyline points="594.85,208.02 624.89,208.02 624.89,230.16 669.17,230.16 669.17,270.0" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+<g data-id="it_storage-route-2" data-kind="egress_route" data-layer="egress"><polyline points="594.85,208.02 127.61,208.02" fill="none" stroke="#777777" stroke-width="1" stroke-dasharray="7 5"/></g>
+</g>
+<g data-layer="dimensions">
+<g data-id="dimension-overall-width" data-kind="overall_width" data-layer="dimensions" data-symbol="dimension-chain"><polyline points="111.0,491.4 849.0,491.4" fill="none" stroke="#333333" stroke-width="1"/><line x1="111.0" y1="486.4" x2="111.0" y2="496.4" stroke="#333333" stroke-width="1"/><line x1="849.0" y1="486.4" x2="849.0" y2="496.4" stroke="#333333" stroke-width="1"/><text x="480.0" y="515.4" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">20 m</text></g>
+<g data-id="dimension-overall-depth" data-kind="overall_depth" data-layer="dimensions" data-symbol="dimension-chain"><polyline points="111.0,491.4 111.0,48.6" fill="none" stroke="#333333" stroke-width="1"/><line x1="106.0" y1="491.4" x2="116.0" y2="491.4" stroke="#333333" stroke-width="1"/><line x1="106.0" y1="48.6" x2="116.0" y2="48.6" stroke="#333333" stroke-width="1"/><text x="83.0" y="270.0" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">12 m</text></g>
+<g data-id="dimension-circulation-width" data-kind="circulation_width" data-layer="dimensions" data-symbol="dimension-chain"><polyline points="111.0,48.6 155.28,48.6" fill="none" stroke="#333333" stroke-width="1"/><line x1="111.0" y1="43.6" x2="111.0" y2="53.6" stroke="#333333" stroke-width="1"/><line x1="155.28" y1="43.6" x2="155.28" y2="53.6" stroke="#333333" stroke-width="1"/></g>
+<g data-id="north-arrow" data-kind="north_arrow" data-layer="dimensions" data-symbol="dimension-chain"><polyline points="812.1,115.02 812.1,70.74" fill="none" stroke="#333333" stroke-width="1"/><line x1="807.1" y1="115.02" x2="817.1" y2="115.02" stroke="#333333" stroke-width="1"/><line x1="807.1" y1="70.74" x2="817.1" y2="70.74" stroke="#333333" stroke-width="1"/><text x="812.1" y="84.88" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">N</text></g>
+<g data-id="scale-line" data-kind="scale_line" data-layer="dimensions" data-symbol="dimension-chain"><polyline points="140.52,461.88 325.02,461.88" fill="none" stroke="#333333" stroke-width="1"/><line x1="140.52" y1="456.88" x2="140.52" y2="466.88" stroke="#333333" stroke-width="1"/><line x1="325.02" y1="456.88" x2="325.02" y2="466.88" stroke="#333333" stroke-width="1"/></g>
+<g data-id="street-line" data-kind="street" data-layer="dimensions" data-symbol="dimension-chain"><polyline points="111.0,491.4 849.0,491.4" fill="none" stroke="#333333" stroke-width="1"/><line x1="111.0" y1="486.4" x2="111.0" y2="496.4" stroke="#333333" stroke-width="1"/><line x1="849.0" y1="486.4" x2="849.0" y2="496.4" stroke="#333333" stroke-width="1"/><text x="480.0" y="519.4" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="9" text-anchor="middle">도로</text></g>
+</g>
+<g data-layer="text-labels">
+<text data-id="open_work-label" data-kind="room-label" data-layer="text-labels" x="367.94" y="371.85" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle"><tspan x="367.94" dy="0">업무공간</tspan><tspan x="367.94" dy="12">90.24 m2</tspan></text>
+<text data-id="meeting-label" data-kind="room-label" data-layer="text-labels" x="331.94" y="128.31" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle"><tspan x="331.94" dy="0">회의실</tspan><tspan x="331.94" dy="12">10.26 m2</tspan></text>
+<text data-id="reception-label" data-kind="room-label" data-layer="text-labels" x="400.6" y="128.31" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle"><tspan x="400.6" dy="0">접수</tspan><tspan x="400.6" dy="12">5.818 m2</tspan></text>
+<text data-id="focus-label" data-kind="room-label" data-layer="text-labels" x="456.99" y="128.31" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle"><tspan x="456.99" dy="0">집중업무실</tspan><tspan x="456.99" dy="12">7.387 m2</tspan></text>
+<text data-id="pantry-label" data-kind="room-label" data-layer="text-labels" x="508.83" y="146.07" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle"><tspan x="508.83" dy="0">탕비실</tspan><tspan x="508.83" dy="12">3.694 m2</tspan></text>
+<text data-id="restroom-label" data-kind="room-label" data-layer="text-labels" x="551.03" y="128.31" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle"><tspan x="551.03" dy="0">화장실</tspan><tspan x="551.03" dy="12">5.13 m2</tspan></text>
+<text data-id="it_storage-label" data-kind="room-label" data-layer="text-labels" x="594.85" y="128.31" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle"><tspan x="594.85" dy="0">전산·창고</tspan><tspan x="594.85" dy="12">5.13 m2</tspan></text>
+<text data-id="core-label" data-kind="room-label" data-layer="text-labels" x="759.08" y="270.0" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle"><tspan x="759.08" dy="0">코어</tspan><tspan x="759.08" dy="12">35.089 m2</tspan></text>
+<text data-id="corridor-cross-label" data-kind="circulation" data-layer="text-labels" x="203.5" y="230.16" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle">복도</text>
+<g data-id="open_work-door-width-label" data-kind="door-width" data-layer="text-labels"></g>
+<g data-id="meeting-door-width-label" data-kind="door-width" data-layer="text-labels"></g>
+<g data-id="reception-door-width-label" data-kind="door-width" data-layer="text-labels"></g>
+<g data-id="focus-door-width-label" data-kind="door-width" data-layer="text-labels"></g>
+<g data-id="pantry-door-width-label" data-kind="door-width" data-layer="text-labels"></g>
+<g data-id="restroom-door-width-label" data-kind="door-width" data-layer="text-labels"></g>
+<g data-id="it_storage-door-width-label" data-kind="door-width" data-layer="text-labels"></g>
+<g data-id="core-door-width-label" data-kind="door-width" data-layer="text-labels"></g>
+<text data-id="core-stair-1-label" data-kind="core-label" data-layer="text-labels" x="770.15" y="351.18" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle">계단실</text>
+<text data-id="remote-stair-2-label" data-kind="core-label" data-layer="text-labels" x="199.56" y="156.36" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle">계단실</text>
+<text data-id="core-elevator-label" data-kind="core-label" data-layer="text-labels" x="804.72" y="281.07" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle">승강기</text>
+<text data-id="core-shaft-label" data-kind="core-label" data-layer="text-labels" x="804.72" y="251.55" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle">샤프트</text>
+<text data-id="core-lobby-label" data-kind="core-label" data-layer="text-labels" x="703.06" y="270.0" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="10" text-anchor="middle">로비</text>
+</g>
+</svg>
           </div>
           <aside id="cad-layer-manager" aria-label="도면 레이어">
             <div class="cad-layer-header">레이어</div>
@@ -94,7 +226,7 @@
     </div>
   </main>
   <script>
-    const frame = document.getElementById("floor-plan");
+    const drawingRoot = document.querySelector(".drawing-pane svg");
     const checkboxes = Array.from(
       document.querySelectorAll('#cad-layer-manager input[type="checkbox"][data-layer]')
     );
@@ -136,16 +268,14 @@
       isolateButton.disabled = activeLayer === null;
     }
     function synchronizeLayers() {
-      const documentRoot = frame.contentDocument;
-      if (!documentRoot) return;
+      if (!drawingRoot) return;
       checkboxes.forEach((checkbox) => {
         const visible = checkbox.checked;
-        documentRoot.querySelectorAll(`[data-layer="${checkbox.dataset.layer}"]`).forEach((node) => {
+        drawingRoot.querySelectorAll(`[data-layer="${checkbox.dataset.layer}"]`).forEach((node) => {
           node.style.display = visible ? "" : "none";
         });
       });
     }
-    frame.addEventListener("load", synchronizeLayers);
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
         synchronizeLayers();
@@ -179,6 +309,7 @@
       });
     });
     updateCommandState();
+    synchronizeLayers();
   </script>
 </body>
 </html>
