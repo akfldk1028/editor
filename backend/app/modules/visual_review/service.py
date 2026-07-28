@@ -1532,7 +1532,7 @@ def _render_html(
     #working-layer-controls button[disabled] {{ opacity: 0.45; cursor: not-allowed; }}
     table {{ border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }}
     thead, tbody {{ white-space: nowrap; }}
-    td {{ border-bottom: 1px solid #ddd; padding: 8px 6px; }}
+    th, td {{ border-bottom: 1px solid #ddd; padding: 8px 10px; text-align: left; }}
     a {{ color: #0645ad; }}
     @media (max-width: 680px) {{ body {{ margin: 14px; }} .grid {{ grid-template-columns: 1fr; }} }}
   </style>

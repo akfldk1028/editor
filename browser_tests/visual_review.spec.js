@@ -102,5 +102,13 @@ test("working layer controls synchronize before and after iframe load", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(async () => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await expect(page.locator("#working-layer-controls")).toBeVisible();
+  for (const layer of layers) {
+    const button = page.locator(`#working-layer-controls [data-layer="${layer}"]`);
+    await button.click();
+    await expect(button).toHaveAttribute("aria-pressed", "false");
+    await button.click();
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+  }
+  await expect(page.locator("#room-form-report th").first()).toHaveCSS("padding-left", "10px");
   expect(errors).toEqual([]);
 });
