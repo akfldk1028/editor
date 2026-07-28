@@ -45,8 +45,10 @@ label, and the modeled count from `report["layer_completeness"]`.
 - Changing a checkbox immediately updates every matching SVG group.
 - `전체 켜기` checks every enabled row.
 - `전체 끄기` unchecks every enabled row.
-- `선택만 보기` keeps checked rows visible and hides all other enabled rows.
-  It is disabled when no enabled row is checked.
+- Clicking the row's native layer-selection button makes it the active layer
+  without changing the sibling visibility checkbox.
+- `선택만 보기` keeps the active enabled layer visible and hides every other
+  enabled layer. It is disabled until an active layer exists.
 - `초기화` restores the initial all-visible state.
 - Reloading the iframe reapplies the current manager state.
 

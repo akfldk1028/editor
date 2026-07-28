@@ -49,7 +49,10 @@ Expected: failures because the current output only contains loose buttons.
 
 Add centralized layer labels and colors, render semantic rows and commands, and
 replace the current button event code with checkbox and bulk-command handlers.
-Keep iframe-load synchronization and disabled basic-design layers.
+Each row has sibling native controls: a visibility checkbox and a layer-selection
+button. The selection button makes its layer active, and `선택만 보기` leaves
+only that active enabled layer checked. Keep iframe-load synchronization and
+disabled basic-design layers.
 
 - [ ] **Step 4: Verify GREEN**
 
