@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 
 from backend.app.schemas.layout import (
     BasicDesignFeatures,
@@ -17,17 +18,28 @@ Segment = tuple[Point, Point]
 _EPSILON = 1e-7
 
 
+@dataclass(frozen=True)
+class StructureSet:
+    lines: tuple[PlanLine, ...]
+    columns: tuple[PlanElement, ...]
+
+
 def generate_basic_design(
     layout: LayoutCandidate,
     *,
     boundary: list[Point],
     street_segments: list[Segment],
+    shared_structure: StructureSet | None = None,
 ) -> BasicDesignFeatures:
     """Generate a deterministic concept-design annotation set for a validated layout."""
     _require_finite_points(boundary, "floor boundary", 3)
-    core = next((room for room in layout.rooms if room.space_type == "core"), None)
-    if core is None:
-        raise ValueError("basic design requires one core room")
+    if len(street_segments) != 1:
+        raise ValueError("basic design requires exactly one supplied street edge")
+    cores = [room for room in layout.rooms if room.space_type == "core"]
+    if len(cores) != 1:
+        raise ValueError("basic design requires exactly one core room")
+    core = cores[0]
+    _require_rectangular_core(core)
     if not layout.circulation:
         raise ValueError("basic design requires circulation")
     if not layout.openings:
@@ -37,7 +49,10 @@ def generate_basic_design(
     exits = _protected_exits(core, layout.circulation)
     lines: list[PlanLine] = list(exits)
     lines.extend(_egress_routes(layout, exits))
-    grid_lines, columns = _structure(boundary, layout, elements, exits)
+    if shared_structure is None:
+        grid_lines, columns = _structure(boundary, (layout,), ((elements, exits),))
+    else:
+        grid_lines, columns = list(shared_structure.lines), list(shared_structure.columns)
     lines.extend(grid_lines)
     elements.extend(columns)
     envelope_lines = _envelope(layout, boundary, street_segments)
@@ -46,6 +61,26 @@ def generate_basic_design(
     elements.extend(object_elements)
     lines.extend(_dimensions_and_site(boundary, layout.circulation, street_segments))
     return BasicDesignFeatures(elements=tuple(elements), lines=tuple(lines))
+
+
+def generate_shared_structure(
+    boundary: list[Point],
+    layouts: tuple[LayoutCandidate, ...],
+) -> StructureSet:
+    if not layouts:
+        raise ValueError("shared structure requires at least one floor layout")
+    core_data = []
+    for layout in layouts:
+        cores = [room for room in layout.rooms if room.space_type == "core"]
+        if len(cores) != 1:
+            raise ValueError("shared structure requires exactly one core per floor")
+        core = cores[0]
+        _require_rectangular_core(core)
+        elements = _core_elements(core)
+        exits = _protected_exits(core, layout.circulation)
+        core_data.append((elements, exits))
+    lines, columns = _structure(boundary, layouts, tuple(core_data))
+    return StructureSet(lines=tuple(lines), columns=tuple(columns))
 
 
 def _core_elements(core: RoomPolygon) -> list[PlanElement]:
@@ -66,7 +101,7 @@ def _core_elements(core: RoomPolygon) -> list[PlanElement]:
         ("core-shaft", "shaft", "SHAFT", min_x + 2 * stair_width + elevator_width, min_y, max_x, min_y + lower_height),
         ("core-lobby", "lobby", "LOBBY", min_x, min_y + lower_height, max_x, max_y),
     )
-    return [
+    elements = [
         PlanElement(
             element_id=element_id,
             category="vertical",
@@ -77,6 +112,15 @@ def _core_elements(core: RoomPolygon) -> list[PlanElement]:
         )
         for element_id, kind, label, left, bottom, right, top in cells
     ]
+    if not all(contains_polygon(core.polygon, element.footprint) for element in elements):
+        raise ValueError("core subdivision must remain contained in the actual core")
+    if any(
+        polygon_overlap_area(left.footprint, right.footprint) > _EPSILON
+        for index, left in enumerate(elements)
+        for right in elements[index + 1 :]
+    ):
+        raise ValueError("core subdivision elements must not overlap")
+    return elements
 
 
 def _protected_exits(core: RoomPolygon, circulation: list[RoomPolygon]) -> list[PlanLine]:
@@ -134,9 +178,8 @@ def _egress_routes(layout: LayoutCandidate, exits: list[PlanLine]) -> list[PlanL
 
 def _structure(
     boundary: list[Point],
-    layout: LayoutCandidate,
-    core_elements: list[PlanElement],
-    exits: list[PlanLine],
+    layouts: tuple[LayoutCandidate, ...],
+    core_data: tuple[tuple[list[PlanElement], list[PlanLine]], ...],
 ) -> tuple[list[PlanLine], list[PlanElement]]:
     min_x, min_y, max_x, max_y = _bounds(boundary)
     x_values = _grid_values(min_x, max_x)
@@ -160,17 +203,24 @@ def _structure(
         )
         for index, y in enumerate(y_values)
     ]
-    exclusions = [*core_elements, *[
-        PlanElement(
-            element_id=path.room_id,
-            category="circulation",
-            kind="circulation",
-            host_id=path.room_id,
-            label="",
-            footprint=tuple(path.polygon),
+    exclusions = [
+        item
+        for layout, (core_elements, _) in zip(layouts, core_data)
+        for item in (
+            *core_elements,
+            *[
+                PlanElement(
+                    element_id=path.room_id,
+                    category="circulation",
+                    kind="circulation",
+                    host_id=path.room_id,
+                    label="",
+                    footprint=tuple(path.polygon),
+                )
+                for path in layout.circulation
+            ],
         )
-        for path in layout.circulation
-    ]]
+    ]
     columns: list[PlanElement] = []
     for x in x_values[1:-1]:
         for y in y_values[1:-1]:
@@ -179,9 +229,17 @@ def _structure(
                 continue
             if any(polygon_overlap_area(footprint, item.footprint) > _EPSILON for item in exclusions):
                 continue
-            if any(_rectangle_intersects_segment(footprint, opening.start, opening.end) for opening in layout.openings):
+            if any(
+                _rectangle_intersects_segment(footprint, opening.start, opening.end)
+                for layout in layouts
+                for opening in layout.openings
+            ):
                 continue
-            if any(_rectangle_intersects_segment(footprint, *exit_line.points) for exit_line in exits):
+            if any(
+                _rectangle_intersects_segment(footprint, *exit_line.points)
+                for _, exits in core_data
+                for exit_line in exits
+            ):
                 continue
             if any(polygon_overlap_area(footprint, column.footprint) > _EPSILON for column in columns):
                 continue
@@ -235,20 +293,32 @@ def _envelope(layout: LayoutCandidate, boundary: list[Point], streets: list[Segm
         candidates = _exterior_segments(room.polygon, boundary)
         if not candidates:
             continue
+        storefront_window: tuple[Point, Point] | None = None
         if room is commercial_sales and street is not None:
-            alternate = [segment for segment in candidates if not _same_segment(segment, street)]
+            alternate = [
+                segment for segment in candidates
+                if not _segment_within(segment, street)
+            ]
             if alternate:
                 candidates = alternate
+            else:
+                storefront_window = _disjoint_storefront_window(
+                    max(candidates, key=lambda segment: math.dist(*segment)),
+                    entrance,
+                )
         selected = max(candidates, key=lambda segment: math.dist(*segment))
         length = math.dist(*selected)
-        if length < 0.6:
+        if storefront_window is None and length < 0.6:
             raise ValueError(f"perimeter room '{room.room_id}' has no usable exterior wall for window")
+        window = storefront_window or _centered_segment(selected, min(1.5, length * 0.5))
+        if room is commercial_sales and _collinear_overlap_length(window, entrance) > _EPSILON:
+            raise ValueError("sales window cannot be separated from the commercial entrance")
         lines.append(
             PlanLine(
                 line_id=f"{room.room_id}-window",
                 category="envelope",
                 kind="window",
-                points=_centered_segment(selected, min(1.5, length * 0.5)),
+                points=window,
                 host_id=room.room_id,
                 label="WINDOW",
             )
@@ -407,3 +477,57 @@ def _segment_within(inner: Segment, outer: Segment) -> bool:
 
 def _same_segment(first: Segment, second: Segment) -> bool:
     return set(first) == set(second)
+
+
+def _require_rectangular_core(core: RoomPolygon) -> None:
+    if len(core.polygon) != 4:
+        raise ValueError("basic design core must be an axis-aligned rectangle")
+    min_x, min_y, max_x, max_y = _bounds(core.polygon)
+    expected = {(min_x, min_y), (max_x, min_y), (max_x, max_y), (min_x, max_y)}
+    if set(core.polygon) != expected:
+        raise ValueError("basic design core must be an axis-aligned rectangle")
+
+
+def _disjoint_storefront_window(storefront: Segment, entrance: Segment) -> tuple[Point, Point]:
+    pieces = _subtract_collinear_segment(storefront, entrance)
+    candidates = [
+        _inset_segment(piece, 0.1)
+        for piece in pieces
+        if math.dist(*piece) >= 0.8
+    ]
+    if not candidates:
+        raise ValueError("sales storefront cannot fit a window separate from the commercial entrance")
+    selected = max(candidates, key=lambda segment: math.dist(*segment))
+    return _centered_segment(selected, min(1.5, math.dist(*selected)))
+
+
+def _inset_segment(segment: Segment, inset: float) -> Segment:
+    start, end = segment
+    length = math.dist(start, end)
+    if length <= 2 * inset:
+        raise ValueError("storefront segment cannot preserve entrance separation")
+    return _segment_between(start, end, inset / length, 1 - inset / length)
+
+
+def _subtract_collinear_segment(segment: Segment, removed: Segment) -> list[Segment]:
+    (ax, ay), (bx, by) = segment
+    (cx, cy), (dx, dy) = removed
+    if ax == bx == cx == dx:
+        values = sorted((ay, by))
+        removed_values = sorted((cy, dy))
+        return [((ax, values[0]), (ax, min(values[1], removed_values[0]))), ((ax, max(values[0], removed_values[1])), (ax, values[1]))]
+    if ay == by == cy == dy:
+        values = sorted((ax, bx))
+        removed_values = sorted((cx, dx))
+        return [((values[0], ay), (min(values[1], removed_values[0]), ay)), ((max(values[0], removed_values[1]), ay), (values[1], ay))]
+    raise ValueError("sales storefront and commercial entrance must be collinear")
+
+
+def _collinear_overlap_length(first: Segment, second: Segment) -> float:
+    (ax, ay), (bx, by) = first
+    (cx, cy), (dx, dy) = second
+    if ax == bx == cx == dx:
+        return max(0.0, min(max(ay, by), max(cy, dy)) - max(min(ay, by), min(cy, dy)))
+    if ay == by == cy == dy:
+        return max(0.0, min(max(ax, bx), max(cx, dx)) - max(min(ax, bx), min(cx, dx)))
+    return 0.0

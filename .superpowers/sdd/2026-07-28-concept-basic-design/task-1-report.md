@@ -37,3 +37,29 @@ git diff --check                                                        passed
 ## Boundaries
 
 - No validator or renderer behavior was changed; strict basic-design validation and rendering remain Task 2 and Task 3 scope.
+
+## Review Fix Round
+
+Focused RED output before the fixes:
+
+```text
+FAILED test_sales_window_is_disjoint_from_the_commercial_entrance
+assert 1.5 == 0.0
+FAILED test_basic_design_rejects_duplicate_and_nonrectangular_cores
+Failed: DID NOT RAISE <class 'ValueError'>
+FAILED test_office_basic_design_requires_exactly_one_street_edge
+Failed: DID NOT RAISE <class 'ValueError'>
+```
+
+- Street-facing sales edges now use containment within the supplied street segment. Sales windows prefer a non-street exterior edge; storefront fallback reserves a 0.1 m separation from the entrance and fails descriptively when no valid segment remains.
+- Basic-design generation now requires exactly one core and one supplied street edge. Core geometry must be an axis-aligned rectangle; generated core subspaces are checked for containment and overlap.
+- Building generation derives one `StructureSet` from collision-free grid-column candidates common to every floor layout, then applies the identical set to all floors.
+- Added regressions for entrance/window separation, duplicate and nonrectangular core rejection, office-only street requirements, and shared structure over distinct commercial/office circulation geometry.
+
+```text
+pytest backend/tests/test_basic_design.py backend/tests/test_building_generation.py -q  20 passed
+pytest -q                                                               173 passed
+ruff check backend engine                                                All checks passed
+python -m compileall -q backend engine                                  passed
+git diff --check                                                        passed
+```

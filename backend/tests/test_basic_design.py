@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 import math
 
 import pytest
 
 from backend.app.modules.generation_loop.service import run_building_generation
-from backend.app.schemas.layout import BasicDesignFeatures, PlanElement, PlanLine
+from backend.app.modules.basic_design.service import generate_basic_design
+from backend.app.schemas.layout import BasicDesignFeatures, PlanElement, PlanLine, RoomPolygon
 from backend.app.schemas.mass import MassInput
 from engine.geometry.polygon import polygon_overlap_area
 
@@ -131,3 +132,107 @@ def test_building_generation_adds_complete_deterministic_basic_design_features()
             (element.element_id, element.footprint) for element in first.elements
             if element.category in {"vertical", "structure"}
         ]
+
+
+def test_sales_window_is_disjoint_from_the_commercial_entrance() -> None:
+    result = run_building_generation(_mixed_use_mass())
+    features = result.floor_results[0].layout.basic_design
+    assert features is not None
+    entrance = next(line for line in features.lines if line.kind == "entrance")
+    sales_window = next(
+        line for line in features.lines
+        if line.kind == "window" and line.host_id == "sales"
+    )
+
+    assert _collinear_overlap_length(entrance.points, sales_window.points) == pytest.approx(0.0)
+    assert min(
+        math.dist(entrance_point, window_point)
+        for entrance_point in entrance.points
+        for window_point in sales_window.points
+    ) > 0.05
+
+
+def test_basic_design_rejects_duplicate_and_nonrectangular_cores() -> None:
+    mass = _mixed_use_mass()
+    layout = run_building_generation(mass).floor_results[0].layout
+    core = next(room for room in layout.rooms if room.space_type == "core")
+    duplicate = replace(core, room_id="core-duplicate")
+
+    with pytest.raises(ValueError, match="exactly one core"):
+        generate_basic_design(
+            replace(layout, rooms=[*layout.rooms, duplicate]),
+            boundary=mass.footprint_polygon,
+            street_segments=[((0, 0), (30, 0))],
+        )
+
+    nonrectangular = RoomPolygon(
+        room_id=core.room_id,
+        space_type="core",
+        polygon=[(24, 0), (30, 0), (30, 4), (27, 4), (27, 7.2), (24, 7.2)],
+    )
+    with pytest.raises(ValueError, match="axis-aligned rectangle"):
+        generate_basic_design(
+            replace(
+                layout,
+                rooms=[nonrectangular if room.room_id == core.room_id else room for room in layout.rooms],
+            ),
+            boundary=mass.footprint_polygon,
+            street_segments=[((0, 0), (30, 0))],
+        )
+
+
+def test_office_basic_design_requires_exactly_one_street_edge() -> None:
+    mass = MassInput(
+        project_id="office-without-street",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    with pytest.raises(ValueError, match="exactly one supplied street edge"):
+        run_building_generation(mass)
+
+
+def test_building_generation_uses_one_shared_structure_for_different_circulation_layouts() -> None:
+    result = run_building_generation(_mixed_use_mass())
+    commercial, office = (item.layout for item in result.floor_results[:2])
+    assert commercial.circulation != office.circulation
+    commercial_features = commercial.basic_design
+    office_features = office.basic_design
+    assert commercial_features is not None and office_features is not None
+
+    def structure(features: BasicDesignFeatures):
+        return [
+            (element.element_id, element.footprint)
+            for element in features.elements
+            if element.category == "structure"
+        ], [
+            (line.line_id, line.points)
+            for line in features.lines
+            if line.category == "structure"
+        ]
+
+    assert structure(commercial_features) == structure(office_features)
+
+
+def _mixed_use_mass() -> MassInput:
+    return MassInput(
+        project_id="basic-design-mixed-use",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+
+
+def _collinear_overlap_length(first, second) -> float:
+    (ax, ay), (bx, by) = first
+    (cx, cy), (dx, dy) = second
+    if ax == bx == cx == dx:
+        return max(0.0, min(max(ay, by), max(cy, dy)) - max(min(ay, by), min(cy, dy)))
+    if ay == by == cy == dy:
+        return max(0.0, min(max(ax, bx), max(cx, dx)) - max(min(ax, bx), min(cx, dx)))
+    return 0.0

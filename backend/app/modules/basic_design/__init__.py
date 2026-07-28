@@ -1,3 +1,3 @@
-from .service import generate_basic_design
+from .service import generate_basic_design, generate_shared_structure
 
-__all__ = ["generate_basic_design"]
+__all__ = ["generate_basic_design", "generate_shared_structure"]
