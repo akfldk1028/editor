@@ -88,11 +88,12 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
         site_edges=[{"edge_index": 0, "kind": "street"}],
         access_candidates=[{"edge_index": 0, "position": 0.5}],
         use_mix={"neighborhood_commercial": 1 / 3, "office": 2 / 3},
-        building_code_context=BuildingCodeContext(
-            jurisdiction="KR",
-            effective_date="2025-10-31",
-            sprinklered=True,
-        ),
+            building_code_context=BuildingCodeContext(
+                jurisdiction="KR",
+                effective_date="2026-07-28",
+                sprinklered=True,
+                qualifying_sprinkler_protection=True,
+            ),
     )
 
     result = run_building_alternatives(mass)
@@ -148,7 +149,7 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
             screening = floor.validation.regulatory_screening
             assert screening is not None
             assert screening.status == "not_checked"
-            assert "sprinklered" in screening.unresolved_facts
+            assert "floor_code_context" in screening.unresolved_facts
             assert floor.validation.basic_design is not None
             assert floor.validation.basic_design.policy_checks[
                 "remote_exit_separation"

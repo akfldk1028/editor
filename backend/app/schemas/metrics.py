@@ -130,6 +130,8 @@ class BasicDesignMetric:
     exit_separation: float | None
     min_routes_per_room: int
     missing_required_kinds: tuple[str, ...]
+    exit_doorway_separation: float | None = None
+    verified_protected_exit_ids: tuple[str, ...] = ()
     modeled_stair_count: int = 0
     min_riser_height: float | None = None
     max_riser_height: float | None = None

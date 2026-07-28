@@ -4,6 +4,7 @@ import heapq
 import math
 from collections import Counter
 from collections.abc import Iterable
+from datetime import date
 
 from backend.app.schemas.layout import (
     BasicDesignFeatures,
@@ -16,7 +17,7 @@ from backend.app.schemas.layout import (
     StairLanding,
     UsePlanningMetadata,
 )
-from backend.app.schemas.mass import BuildingCodeContext
+from backend.app.schemas.mass import BuildingCodeContext, FloorCodeContext
 from backend.app.schemas.metrics import (
     BasicDesignMetric,
     PolicyCheck,
@@ -27,7 +28,11 @@ from backend.app.schemas.metrics import (
     ValidationViolation,
 )
 from backend.app.schemas.program import ProgramGraph
-from backend.app.schemas.regulatory import RegulatoryCheck, RegulatoryScreening
+from backend.app.schemas.regulatory import (
+    ExitSeparationEvidence,
+    RegulatoryCheck,
+    RegulatoryScreening,
+)
 from backend.app.modules.basic_design.stair import required_stair_enclosure
 from engine.geometry import (
     bounding_box_aspect_ratio,
@@ -132,13 +137,23 @@ _MIN_STAIR_SHORT_SIDE = 2.8
 _MIN_STAIR_LONG_SIDE = 4.8
 _MIN_STAIR_AREA = _MIN_STAIR_SHORT_SIDE * _MIN_STAIR_LONG_SIDE
 _MIN_STAIR_SEPARATION = 0.2
-_REGULATORY_RULESET = "KR-egress-2025-10-31"
-_REGULATORY_EFFECTIVE_DATE = "2025-10-31"
-_STAIR_SEPARATION_RULE_ID = "KR-EGRESS-STAIR-SEPARATION"
-_STAIR_SEPARATION_SOURCE = (
-    "https://law.go.kr/LSW/lumLsLinkPop.do?"
-    "chrClsCd=010202&lspttninfSeq=104954"
+_REGULATORY_RULESET = "KR-egress-art34-20260227-art8-20251031"
+_ARTICLE_34_EFFECTIVE_DATE = "2026-02-27"
+_ARTICLE_8_EFFECTIVE_DATE = "2025-10-31"
+_EARLIEST_SUPPORTED_ANALYSIS_DATE = date.fromisoformat(
+    _ARTICLE_34_EFFECTIVE_DATE
 )
+_LATEST_VERIFIED_ANALYSIS_DATE = date(2026, 7, 28)
+_ARTICLE_34_SOURCE = (
+    "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067"
+)
+_ARTICLE_8_SOURCE = (
+    "https://law.go.kr/lsLinkCommonInfo.do?"
+    "chrClsCd=010202&lsJoLnkSeq=1025183885"
+)
+_DIRECT_STAIR_RULE_ID = "KR-EGRESS-DIRECT-STAIR-COUNT-ART34"
+_STAIR_SEPARATION_RULE_ID = "KR-EGRESS-STAIR-SEPARATION-ART8"
+_TRAVEL_DISTANCE_RULE_ID = "KR-EGRESS-TRAVEL-DISTANCE-ART34"
 _OBJECT_CLEARANCE = 0.6
 _SMALL_ROOM_OBJECT_CLEARANCE = 0.3
 _ELEMENT_KINDS = {
@@ -195,44 +210,33 @@ def _regulatory_exit_separation_threshold(
     boundary: list[tuple[float, float]],
     context: BuildingCodeContext | None,
 ) -> float:
-    min_x, min_y, max_x, max_y = _bounds(boundary)
     denominator = (
         3.0
-        if context is not None and context.sprinklered is True
+        if (
+            context is not None
+            and context.qualifying_sprinkler_protection is True
+        )
         else 2.0
     )
-    return math.hypot(max_x - min_x, max_y - min_y) / denominator
+    diagonal = max(
+        math.dist(first, second)
+        for index, first in enumerate(boundary)
+        for second in boundary[index + 1 :]
+    )
+    return diagonal / denominator
 
 
-def _regulatory_screening(
+def _append_unresolved(items: list[str], name: str) -> None:
+    if name not in items:
+        items.append(name)
+
+
+def _supported_context(
     context: BuildingCodeContext | None,
-    basic_design: BasicDesignMetric | None,
-    threshold: float,
-) -> RegulatoryScreening:
-    unresolved = ["two_stair_applicability"]
+    unresolved: list[str],
+) -> bool:
     if context is None or context.jurisdiction is None:
-        unresolved.append("jurisdiction")
-    effective_date_supported = (
-        context is not None
-        and context.effective_date == _REGULATORY_EFFECTIVE_DATE
-    )
-    if not effective_date_supported:
-        unresolved.append("effective_date")
-    if context is None or context.sprinklered is None:
-        unresolved.append("sprinklered")
-    measured = (
-        basic_design.exit_separation
-        if basic_design is not None
-        else None
-    )
-    if measured is None:
-        unresolved.append("measured_exit_separation")
-    if (
-        basic_design is None
-        or "checked" not in basic_design.stair_headroom_statuses
-    ):
-        unresolved.append("stair_headroom")
-
+        _append_unresolved(unresolved, "jurisdiction")
     jurisdiction = (
         context.jurisdiction.strip().upper()
         if context is not None and context.jurisdiction is not None
@@ -243,60 +247,381 @@ def _regulatory_screening(
         "KOREA",
         "REPUBLIC OF KOREA",
     }
-    applicability = (
-        supported_jurisdiction
-        if jurisdiction is not None and effective_date_supported
+    if jurisdiction is not None and not supported_jurisdiction:
+        _append_unresolved(unresolved, "jurisdiction")
+    analysis_as_of = (
+        date.fromisoformat(context.effective_date)
+        if context is not None and context.effective_date is not None
         else None
     )
-    checked = (
-        applicability is True
-        and context is not None
-        and effective_date_supported
-        and context.sprinklered is not None
-        and measured is not None
+    effective_date_supported = (
+        analysis_as_of is not None
+        and _EARLIEST_SUPPORTED_ANALYSIS_DATE
+        <= analysis_as_of
+        <= _LATEST_VERIFIED_ANALYSIS_DATE
     )
-    check_status = (
-        "pass"
-        if checked and measured + _EPSILON >= threshold
-        else "fail"
-        if checked
-        else "not_checked"
+    if not effective_date_supported:
+        _append_unresolved(unresolved, "effective_date")
+    return supported_jurisdiction and effective_date_supported
+
+
+def _floor_fact(
+    context: BuildingCodeContext | None,
+    floor_index: int,
+) -> FloorCodeContext | None:
+    if context is None:
+        return None
+    return next(
+        (
+            fact
+            for fact in context.floor_facts
+            if fact.floor_index == floor_index
+        ),
+        None,
     )
-    if context is None or context.sprinklered is None:
-        sprinkler_assumption = (
-            "sprinkler protection is unknown; conservative internal "
-            "half-diagonal target used"
+
+
+def _screened_direct_stair_count(
+    fact: FloorCodeContext | None,
+) -> tuple[int | None, bool | None, tuple[str, ...], tuple[str, ...]]:
+    unresolved: list[str] = []
+    if fact is None:
+        return (
+            None,
+            None,
+            ("floor_code_context",),
+            ("no typed code context was supplied for this floor",),
         )
-    elif context.sprinklered:
-        sprinkler_assumption = (
-            "qualifying sprinkler protection was explicitly supplied; "
-            "one-third-diagonal threshold used"
+    if fact.is_evacuation_floor is None:
+        return (
+            None,
+            None,
+            ("is_evacuation_floor",),
+            ("evacuation-floor status is required",),
+        )
+    if fact.is_evacuation_floor:
+        return (
+            None,
+            False,
+            (),
+            ("Article 34 direct-stair count is not screened on evacuation floors",),
+        )
+
+    category = fact.occupancy_category
+    area = (
+        float(fact.habitable_area_m2)
+        if fact.habitable_area_m2 is not None
+        else None
+    )
+    if area is None:
+        unresolved.append("habitable_area_m2")
+    if unresolved:
+        return (
+            None,
+            None,
+            tuple(unresolved),
+            ("applicable floor area is required",),
+        )
+
+    assumptions = [f"habitable area {area:.3f} m2", "non-evacuation floor"]
+    if fact.above_grade is False:
+        assumptions.append("basement floor")
+        return (2 if area >= 200.0 else 1, True, (), tuple(assumptions))
+    if category is None:
+        return (
+            None,
+            None,
+            ("occupancy_category",),
+            tuple(assumptions)
+            + ("typed occupancy category is required",),
+        )
+    assumptions.append(f"occupancy category {category}")
+    if category == "assembly_religious_bar_funeral_200":
+        return (
+            2 if area >= 200.0 else 1,
+            True,
+            (),
+            tuple(assumptions),
+        )
+    if category in {
+        "multi_unit_housing_over_4_units_per_floor",
+        "officetel",
+    }:
+        if area >= 300.0:
+            return 2, True, (), tuple(assumptions)
+        if area < 200.0 or fact.above_grade is True:
+            return 1, True, (), tuple(assumptions)
+        return None, None, ("above_grade",), tuple(assumptions)
+    if category == "neighborhood_assembly_or_religious_meeting_300":
+        if area >= 300.0:
+            return 2, True, (), tuple(assumptions)
+        if area < 200.0 or fact.above_grade is True:
+            return 1, True, (), tuple(assumptions)
+        return None, None, ("above_grade",), tuple(assumptions)
+
+    if area < 200.0:
+        return 1, True, (), tuple(assumptions)
+    if fact.above_grade is None:
+        return None, None, ("above_grade",), tuple(assumptions)
+
+    assumptions.append("above-grade floor")
+    if category == "sales_and_similar":
+        if fact.story_number is None:
+            return None, None, ("story_number",), tuple(assumptions)
+        assumptions.append(f"story {fact.story_number}")
+        return (
+            2 if fact.story_number >= 3 else 1,
+            True,
+            (),
+            tuple(assumptions),
+        )
+    if category == "other_supported":
+        if area < 400.0:
+            return 1, True, (), tuple(assumptions)
+        if fact.story_number is None:
+            return None, None, ("story_number",), tuple(assumptions)
+        assumptions.append(f"story {fact.story_number}")
+        return (
+            2 if fact.story_number >= 3 else 1,
+            True,
+            (),
+            tuple(assumptions),
+        )
+    return None, None, ("occupancy_category",), tuple(assumptions)
+
+
+def screen_egress_requirements(
+    *,
+    context: BuildingCodeContext | None,
+    floor_index: int,
+    generated_direct_stair_count: int | None,
+    floor_diagonal: float,
+    verified_direct_stair_count: int | None = None,
+    exit_separation_evidence: ExitSeparationEvidence | None = None,
+) -> RegulatoryScreening:
+    if (
+        not isinstance(floor_index, int)
+        or isinstance(floor_index, bool)
+        or floor_index < 1
+    ):
+        raise ValueError("floor_index must be a positive integer")
+    if generated_direct_stair_count is not None and (
+        not isinstance(generated_direct_stair_count, int)
+        or isinstance(generated_direct_stair_count, bool)
+        or generated_direct_stair_count < 0
+    ):
+        raise ValueError(
+            "generated_direct_stair_count must be nonnegative or None"
+        )
+    if verified_direct_stair_count is not None and (
+        not isinstance(verified_direct_stair_count, int)
+        or isinstance(verified_direct_stair_count, bool)
+        or verified_direct_stair_count < 0
+    ):
+        raise ValueError(
+            "verified_direct_stair_count must be nonnegative or None"
+        )
+    if not math.isfinite(floor_diagonal) or floor_diagonal <= 0:
+        raise ValueError("floor_diagonal must be finite and positive")
+    if exit_separation_evidence is not None and not isinstance(
+        exit_separation_evidence,
+        ExitSeparationEvidence,
+    ):
+        raise TypeError(
+            "exit_separation_evidence must be ExitSeparationEvidence or None"
+        )
+
+    unresolved: list[str] = []
+    context_supported = _supported_context(context, unresolved)
+    fact = _floor_fact(context, floor_index)
+    (
+        candidate_count,
+        candidate_applicability,
+        count_unresolved,
+        count_assumptions,
+    ) = (
+        _screened_direct_stair_count(fact)
+    )
+    for item in count_unresolved:
+        _append_unresolved(unresolved, item)
+    if context_supported:
+        required_count = candidate_count
+        direct_applicability = candidate_applicability
+    else:
+        required_count = None
+        direct_applicability = None
+        count_assumptions += (
+            "supported KR jurisdiction and analysis date are required",
+        )
+
+    if direct_applicability is not True:
+        direct_status = "not_checked"
+    elif verified_direct_stair_count is None:
+        direct_status = "not_checked"
+        _append_unresolved(unresolved, "verified_direct_stair_count")
+        _append_unresolved(unresolved, "all_floor_stair_continuity")
+        _append_unresolved(unresolved, "ground_termination")
+    else:
+        direct_status = (
+            "pass"
+            if verified_direct_stair_count >= required_count
+            else "fail"
+        )
+    direct = RegulatoryCheck(
+        rule_id=_DIRECT_STAIR_RULE_ID,
+        status=direct_status,
+        source_url=_ARTICLE_34_SOURCE,
+        effective_date=_ARTICLE_34_EFFECTIVE_DATE,
+        measured_value=verified_direct_stair_count,
+        threshold=required_count,
+        applicability=direct_applicability,
+        assumptions=count_assumptions
+        + (
+            "generated stair count is informational and separate from verified "
+            "direct-stair count",
+        ),
+    )
+
+    measured_exit_separation = (
+        exit_separation_evidence.nearest_doorway_segment_distance_m
+        if exit_separation_evidence is not None
+        else None
+    )
+    connected_passage_verified = (
+        exit_separation_evidence.connected_passage_verified
+        if exit_separation_evidence is not None
+        else None
+    )
+    qualifying = (
+        context.qualifying_sprinkler_protection
+        if context is not None
+        else None
+    )
+    if direct_applicability is not True:
+        separation_threshold = None
+        separation_status = "not_checked"
+        separation_applicability = (
+            False if direct_applicability is False else None
+        )
+        separation_assumptions = (
+            "direct-stair applicability is unresolved",
+        )
+    elif required_count == 1:
+        separation_threshold = None
+        separation_status = "not_checked"
+        separation_applicability = False
+        separation_assumptions = (
+            "Article 8 two-stair separation is not applicable to screened "
+            "required count one",
         )
     else:
-        sprinkler_assumption = (
-            "sprinkler protection was explicitly absent; "
-            "half-diagonal threshold used"
+        denominator = 3.0 if qualifying is True else 2.0
+        separation_threshold = floor_diagonal / denominator
+        separation_applicability = True
+        if qualifying is None:
+            _append_unresolved(
+                unresolved,
+                "qualifying_sprinkler_protection",
+            )
+        if measured_exit_separation is None:
+            _append_unresolved(unresolved, "measured_exit_separation")
+        if connected_passage_verified is None:
+            _append_unresolved(unresolved, "connected_exit_passage")
+        if (
+            qualifying is None
+            or measured_exit_separation is None
+            or connected_passage_verified is None
+        ):
+            separation_status = "not_checked"
+        elif connected_passage_verified is False:
+            separation_status = "fail"
+        else:
+            separation_status = (
+                "pass"
+                if measured_exit_separation + _EPSILON
+                >= separation_threshold
+                else "fail"
+            )
+        separation_assumptions = (
+            (
+                "explicit qualifying sprinkler protection; "
+                "one-third-diagonal threshold"
+            )
+            if qualifying is True
+            else (
+                "explicit nonqualifying sprinkler state; "
+                "half-diagonal threshold"
+            )
+            if qualifying is False
+            else (
+                "qualifying sprinkler protection is unknown; conservative "
+                "internal half-diagonal target"
+            ),
         )
-    assumptions = [sprinkler_assumption]
-    if applicability is False:
-        assumptions.append(
-            "supplied jurisdiction is outside the supported KR ruleset"
-        )
-    check = RegulatoryCheck(
+    separation = RegulatoryCheck(
         rule_id=_STAIR_SEPARATION_RULE_ID,
-        status=check_status,
-        source_url=_STAIR_SEPARATION_SOURCE,
-        effective_date=_REGULATORY_EFFECTIVE_DATE,
-        measured_value=measured,
-        threshold=threshold,
-        applicability=applicability,
-        assumptions=tuple(assumptions),
+        status=separation_status,
+        source_url=_ARTICLE_8_SOURCE,
+        effective_date=_ARTICLE_8_EFFECTIVE_DATE,
+        measured_value=measured_exit_separation,
+        threshold=separation_threshold,
+        applicability=separation_applicability,
+        assumptions=separation_assumptions,
+    )
+
+    travel_limit = (
+        context.travel_limit_classification if context is not None else None
+    )
+    travel_thresholds = {
+        "general_30": 30.0,
+        "qualified_50": 50.0,
+        "highrise_residential_40": 40.0,
+    }
+    travel_threshold = travel_thresholds.get(travel_limit, 30.0)
+    _append_unresolved(unresolved, "measured_travel_distance")
+    if travel_limit is None:
+        _append_unresolved(unresolved, "travel_limit_classification")
+    travel = RegulatoryCheck(
+        rule_id=_TRAVEL_DISTANCE_RULE_ID,
+        status="not_checked",
+        source_url=_ARTICLE_34_SOURCE,
+        effective_date=_ARTICLE_34_EFFECTIVE_DATE,
+        measured_value=None,
+        threshold=travel_threshold,
+        applicability=True if context_supported else None,
+        assumptions=(
+            "traversable farthest-point travel distance is not implemented "
+            "in Task 2",
+            (
+                "explicit fully qualified 50 m travel-limit classification"
+                if travel_limit == "qualified_50"
+                else "explicit high-rise residential 40 m classification"
+                if travel_limit == "highrise_residential_40"
+                else "general 30 m threshold"
+                if travel_limit == "general_30"
+                else "travel-limit classification unknown; conservative "
+                "internal 30 m target"
+            ),
+        ),
+    )
+
+    checks = (direct, separation, travel)
+    aggregate_status = (
+        "fail" if any(check.status == "fail" for check in checks) else "not_checked"
     )
     return RegulatoryScreening(
         ruleset_id=_REGULATORY_RULESET,
-        status="not_checked",
-        checks=(check,),
+        status=aggregate_status,
+        checks=checks,
         unresolved_facts=tuple(unresolved),
+        floor_index=floor_index,
+        generated_direct_stair_count=generated_direct_stair_count,
+        verified_direct_stair_count=verified_direct_stair_count,
+        screened_required_direct_stair_count=required_count,
+        analysis_as_of_date=(
+            context.effective_date if context is not None else None
+        ),
+        exit_separation_evidence=exit_separation_evidence,
     )
 
 
@@ -504,10 +829,35 @@ def validate_layout(
             building_code_context,
             add_violation,
         )
-    regulatory_screening = _regulatory_screening(
-        building_code_context,
-        basic_design_metric,
-        regulatory_threshold,
+    exit_separation_evidence = (
+        ExitSeparationEvidence(
+            nearest_doorway_segment_distance_m=(
+                basic_design_metric.exit_doorway_separation
+            ),
+            connected_passage_verified=None,
+            exit_portal_ids=basic_design_metric.verified_protected_exit_ids,
+        )
+        if (
+            basic_design_metric is not None
+            and basic_design_metric.exit_doorway_separation is not None
+        )
+        else None
+    )
+    regulatory_screening = screen_egress_requirements(
+        context=building_code_context,
+        floor_index=layout.floor_index,
+        generated_direct_stair_count=(
+            basic_design_metric.stair_count
+            if basic_design_metric is not None
+            else None
+        ),
+        floor_diagonal=max(
+            math.dist(first, second)
+            for index, first in enumerate(boundary)
+            for second in boundary[index + 1 :]
+        ),
+        verified_direct_stair_count=None,
+        exit_separation_evidence=exit_separation_evidence,
     )
 
     circulation_score = _circulation_score(
@@ -765,6 +1115,7 @@ def _validate_basic_design(
                 valid_elements[element.element_id] = element
 
     valid_lines: dict[str, PlanLine] = {}
+    valid_exit_reference_ids: set[str] = set()
     for line in features.lines:
         if line.kind not in _LINE_KINDS.get(line.category, set()):
             add_violation(
@@ -902,6 +1253,8 @@ def _validate_basic_design(
             code = "basic_design_reference"
         if not valid_reference:
             add_violation(code, line.line_id, "line references do not resolve to the expected owner or target")
+        elif line.kind == "protected_exit" and line.line_id in valid_lines:
+            valid_exit_reference_ids.add(line.line_id)
 
     vertical = [
         element
@@ -1218,6 +1571,7 @@ def _validate_basic_design(
             "core",
             "protected exits must reference two distinct stair elements",
         )
+    verified_exit_ids: set[str] = set()
     for exit_line in exits:
         target_stair = valid_elements.get(exit_line.target_id or "")
         if target_stair is not None and target_stair.host_id == "floor":
@@ -1251,10 +1605,11 @@ def _validate_basic_design(
                 else []
             )
         actual_width = _polyline_length(exit_line.points)
-        if not any(
+        geometry_valid = any(
             _segment_contains(segment, (exit_line.points[0], exit_line.points[-1]))
             for segment in valid_boundaries
-        ) or abs(actual_width - (exit_line.clear_width or 0.0)) > 1e-7:
+        ) and abs(actual_width - (exit_line.clear_width or 0.0)) <= 1e-7
+        if not geometry_valid:
             add_violation(
                 "protected_exit_geometry",
                 exit_line.line_id,
@@ -1263,15 +1618,28 @@ def _validate_basic_design(
                     "core/circulation or remote-stair/circulation boundary"
                 ),
             )
-        if (
-            not _is_finite_number(exit_line.clear_width)
-            or exit_line.clear_width + _EPSILON < min_exit_width
-        ):
+        width_valid = (
+            _is_finite_number(exit_line.clear_width)
+            and exit_line.clear_width + _EPSILON >= min_exit_width
+        )
+        if not width_valid:
             add_violation(
                 "protected_exit_width",
                 exit_line.line_id,
                 f"protected exit clear width must be at least {min_exit_width:.3f}",
             )
+        if (
+            exit_line.line_id in valid_exit_reference_ids
+            and geometry_valid
+            and width_valid
+        ):
+            verified_exit_ids.add(exit_line.line_id)
+    if len(exits) != 2 or len({line.target_id for line in exits}) != 2:
+        verified_exit_ids.clear()
+    verified_exits = [
+        line for line in exits if line.line_id in verified_exit_ids
+    ]
+    exit_doorway_separation = _exit_doorway_separation(verified_exits)
     exit_separation = _exit_separation(exits)
     if len(exits) == 2 and (
         exit_separation is None or exit_separation + _EPSILON < min_exit_separation
@@ -1776,6 +2144,10 @@ def _validate_basic_design(
         ),
         object_clearance_violation_count=object_clearance_violation_count,
         exit_separation_threshold=min_exit_separation,
+        exit_doorway_separation=exit_doorway_separation,
+        verified_protected_exit_ids=tuple(
+            sorted(verified_exit_ids)
+        ),
         policy_checks=policy_checks,
     )
 
@@ -2395,6 +2767,8 @@ def _basic_design_metric(
     min_object_clearance: float | None = None,
     object_clearance_violation_count: int = 0,
     exit_separation_threshold: float | None = None,
+    exit_doorway_separation: float | None = None,
+    verified_protected_exit_ids: tuple[str, ...] = (),
     policy_checks: dict[str, PolicyCheck] | None = None,
 ) -> BasicDesignMetric:
     elements = features.elements if features is not None else ()
@@ -2455,6 +2829,8 @@ def _basic_design_metric(
         exit_separation=exit_separation,
         min_routes_per_room=min(route_counts) if route_counts else 0,
         missing_required_kinds=missing_required_kinds,
+        exit_doorway_separation=exit_doorway_separation,
+        verified_protected_exit_ids=verified_protected_exit_ids,
         modeled_stair_count=len(stair_geometries),
         min_riser_height=(
             min(geometry.riser_height_m for geometry in stair_geometries)
@@ -2571,6 +2947,80 @@ def _exit_separation(exits: list[PlanLine]) -> float | None:
     if len(exits) != 2:
         return None
     return math.dist(_line_midpoint(exits[0]), _line_midpoint(exits[1]))
+
+
+def _exit_doorway_separation(exits: list[PlanLine]) -> float | None:
+    if len(exits) != 2:
+        return None
+    first = (exits[0].points[0], exits[0].points[-1])
+    second = (exits[1].points[0], exits[1].points[-1])
+    return _segment_to_segment_distance(first, second)
+
+
+def _segment_to_segment_distance(left: Segment, right: Segment) -> float:
+    if _line_segments_intersect(left, right):
+        return 0.0
+    return min(
+        _point_to_segment_distance(point, segment)
+        for point, segment in (
+            (left[0], right),
+            (left[1], right),
+            (right[0], left),
+            (right[1], left),
+        )
+    )
+
+
+def _point_to_segment_distance(
+    point: tuple[float, float],
+    segment: Segment,
+) -> float:
+    start, end = segment
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+    length_squared = dx * dx + dy * dy
+    if length_squared <= _EPSILON:
+        return math.dist(point, start)
+    projection = (
+        (point[0] - start[0]) * dx + (point[1] - start[1]) * dy
+    ) / length_squared
+    clamped = min(1.0, max(0.0, projection))
+    closest = (start[0] + clamped * dx, start[1] + clamped * dy)
+    return math.dist(point, closest)
+
+
+def _line_segments_intersect(left: Segment, right: Segment) -> bool:
+    def orientation(a, b, c) -> float:
+        return (
+            (b[0] - a[0]) * (c[1] - a[1])
+            - (b[1] - a[1]) * (c[0] - a[0])
+        )
+
+    def on_segment(a, b, point) -> bool:
+        return (
+            min(a[0], b[0]) - _EPSILON
+            <= point[0]
+            <= max(a[0], b[0]) + _EPSILON
+            and min(a[1], b[1]) - _EPSILON
+            <= point[1]
+            <= max(a[1], b[1]) + _EPSILON
+        )
+
+    first = orientation(left[0], left[1], right[0])
+    second = orientation(left[0], left[1], right[1])
+    third = orientation(right[0], right[1], left[0])
+    fourth = orientation(right[0], right[1], left[1])
+    if first * second < -_EPSILON and third * fourth < -_EPSILON:
+        return True
+    return (
+        abs(first) <= _EPSILON and on_segment(left[0], left[1], right[0])
+        or abs(second) <= _EPSILON
+        and on_segment(left[0], left[1], right[1])
+        or abs(third) <= _EPSILON
+        and on_segment(right[0], right[1], left[0])
+        or abs(fourth) <= _EPSILON
+        and on_segment(right[0], right[1], left[1])
+    )
 
 
 def _door_midpoints(

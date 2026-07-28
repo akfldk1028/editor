@@ -173,22 +173,32 @@ def test_mass_rejects_mutable_or_invalid_code_context_values() -> None:
 
 
 @pytest.mark.parametrize(
-    ("sprinklered", "denominator", "check_status"),
+    ("qualifying_sprinkler", "denominator", "check_status"),
     [
         (None, 2.0, "not_checked"),
-        (False, 2.0, "pass"),
-        (True, 3.0, "pass"),
+        (False, 2.0, "not_checked"),
+        (True, 3.0, "not_checked"),
     ],
 )
-def test_sprinkler_fact_controls_internal_separation_target_without_fabricating_status(
-    sprinklered,
+def test_qualifying_sprinkler_fact_controls_internal_separation_target_without_fabricating_status(
+    qualifying_sprinkler,
     denominator,
     check_status,
 ) -> None:
     context = BuildingCodeContext(
         jurisdiction="KR",
-        effective_date="2025-10-31",
-        sprinklered=sprinklered,
+        effective_date="2026-07-28",
+        qualifying_sprinkler_protection=qualifying_sprinkler,
+        travel_construction_class="not_qualified",
+        floor_facts=(
+            FloorCodeContext(
+                floor_index=1,
+                above_grade=True,
+                is_evacuation_floor=False,
+                occupancy_category="assembly_religious_bar_funeral_200",
+                habitable_area_m2=200.0,
+            ),
+        ),
     )
     mass = MassInput(
         **_legacy_payload(),
@@ -206,24 +216,38 @@ def test_sprinkler_fact_controls_internal_separation_target_without_fabricating_
         expected
     )
     assert screening.status == "not_checked"
-    assert "two_stair_applicability" in screening.unresolved_facts
-    check = screening.checks[0]
-    assert check.rule_id == "KR-EGRESS-STAIR-SEPARATION"
+    check = next(
+        check
+        for check in screening.checks
+        if check.rule_id == "KR-EGRESS-STAIR-SEPARATION-ART8"
+    )
     assert check.threshold == pytest.approx(expected)
     assert check.status == check_status
     assert check.source_url.startswith("https://law.go.kr/")
     assert check.effective_date == "2025-10-31"
-    if sprinklered is None:
-        assert "sprinklered" in screening.unresolved_facts
-        assert any("half-diagonal" in assumption for assumption in check.assumptions)
+    if qualifying_sprinkler is None:
+        assert "qualifying_sprinkler_protection" in screening.unresolved_facts
+        assert any(
+            "half-diagonal" in assumption for assumption in check.assumptions
+        )
 
 
-def test_explicit_unsprinklered_context_can_report_regulatory_failure() -> None:
+def test_generated_exit_geometry_does_not_fabricate_regulatory_failure() -> None:
     layout, program = _office_candidate()
     context = BuildingCodeContext(
         jurisdiction="KR",
-        effective_date="2025-10-31",
-        sprinklered=False,
+        effective_date="2026-07-28",
+        qualifying_sprinkler_protection=False,
+        travel_construction_class="not_qualified",
+        floor_facts=(
+            FloorCodeContext(
+                floor_index=1,
+                above_grade=True,
+                is_evacuation_floor=False,
+                occupancy_category="assembly_religious_bar_funeral_200",
+                habitable_area_m2=200.0,
+            ),
+        ),
     )
 
     report = validate_layout(
@@ -236,10 +260,13 @@ def test_explicit_unsprinklered_context_can_report_regulatory_failure() -> None:
 
     assert report.regulatory_screening is not None
     assert report.regulatory_screening.status == "not_checked"
-    assert report.regulatory_screening.checks[0].status == "fail"
-    assert "two_stair_applicability" in (
-        report.regulatory_screening.unresolved_facts
+    separation = next(
+        check
+        for check in report.regulatory_screening.checks
+        if check.rule_id == "KR-EGRESS-STAIR-SEPARATION-ART8"
     )
+    assert separation.status == "not_checked"
+    assert "connected_exit_passage" in report.regulatory_screening.unresolved_facts
 
 
 def test_evaluation_route_forwards_optional_building_code_context(

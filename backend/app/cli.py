@@ -44,12 +44,25 @@ def _mass_input_from_payload(payload: dict) -> MassInput:
             ),
             sprinklered=context_payload.get("sprinklered"),
             fire_resistant=context_payload.get("fire_resistant"),
+            qualifying_sprinkler_protection=context_payload.get(
+                "qualifying_sprinkler_protection"
+            ),
+            travel_construction_class=context_payload.get(
+                "travel_construction_class"
+            ),
+            travel_limit_classification=context_payload.get(
+                "travel_limit_classification"
+            ),
             floor_facts=tuple(
                 FloorCodeContext(
                     floor_index=fact["floor_index"],
                     occupancy=fact.get("occupancy"),
                     occupant_load=fact.get("occupant_load"),
                     above_grade=fact.get("above_grade"),
+                    occupancy_category=fact.get("occupancy_category"),
+                    story_number=fact.get("story_number"),
+                    habitable_area_m2=fact.get("habitable_area_m2"),
+                    is_evacuation_floor=fact.get("is_evacuation_floor"),
                 )
                 for fact in floor_payloads
             ),

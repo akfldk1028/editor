@@ -11,7 +11,11 @@ from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.validator.service import validate_layout
 from backend.app.schemas import layout as layout_schema
 from backend.app.schemas.layout import RoomPolygon
-from backend.app.schemas.mass import BuildingCodeContext, MassInput
+from backend.app.schemas.mass import (
+    BuildingCodeContext,
+    FloorCodeContext,
+    MassInput,
+)
 from backend.app.schemas.metrics import PolicyCheck
 from backend.tests.test_basic_design_validation import (
     BOUNDARY,
@@ -112,8 +116,18 @@ def test_remote_floor_stair_uses_circulation_exit_without_core_lobby_door() -> N
         require_basic_design=True,
         building_code_context=BuildingCodeContext(
             jurisdiction="KR",
-            effective_date="2025-10-31",
+            effective_date="2026-07-28",
             sprinklered=True,
+            qualifying_sprinkler_protection=True,
+            floor_facts=(
+                FloorCodeContext(
+                    floor_index=1,
+                    above_grade=True,
+                    is_evacuation_floor=False,
+                    occupancy_category="assembly_religious_bar_funeral_200",
+                    habitable_area_m2=200.0,
+                ),
+            ),
         ),
     )
 
@@ -427,8 +441,18 @@ def test_sprinkler_ratio_is_not_mixed_with_old_three_meter_project_floor() -> No
         min_exit_separation=1.0,
         building_code_context=BuildingCodeContext(
             jurisdiction="KR",
-            effective_date="2025-10-31",
+            effective_date="2026-07-28",
             sprinklered=True,
+            qualifying_sprinkler_protection=True,
+            floor_facts=(
+                FloorCodeContext(
+                    floor_index=1,
+                    above_grade=True,
+                    is_evacuation_floor=False,
+                    occupancy_category="assembly_religious_bar_funeral_200",
+                    habitable_area_m2=200.0,
+                ),
+            ),
         ),
     )
 
@@ -438,9 +462,12 @@ def test_sprinkler_ratio_is_not_mixed_with_old_three_meter_project_floor() -> No
         "threshold"
     ] == pytest.approx(expected_threshold)
     assert report.regulatory_screening is not None
-    assert report.regulatory_screening.checks[0].threshold == pytest.approx(
-        expected_threshold
+    separation = next(
+        check
+        for check in report.regulatory_screening.checks
+        if check.rule_id == "KR-EGRESS-STAIR-SEPARATION-ART8"
     )
+    assert separation.threshold == pytest.approx(expected_threshold)
 
 
 def test_planning_and_policy_records_are_frozen_and_json_safe() -> None:
