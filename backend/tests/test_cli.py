@@ -229,6 +229,34 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
         assert len(list(alternative_dir.glob("floor_*/*.png"))) == 2
 
 
+def test_committed_alternative_review_json_has_no_checkout_absolute_paths():
+    checkout = str(Path(__file__).resolve().parents[2]).casefold()
+    docs_root = (
+        Path(__file__).resolve().parents[2]
+        / "docs"
+        / "plan-alternatives-architectural"
+    )
+
+    def strings(value):
+        if isinstance(value, str):
+            yield value
+        elif isinstance(value, dict):
+            for item in value.values():
+                yield from strings(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from strings(item)
+
+    offenders = [
+        f"{path.relative_to(docs_root)}: {value}"
+        for path in docs_root.rglob("*.json")
+        for value in strings(json.loads(path.read_text(encoding="utf-8")))
+        if checkout in value.casefold()
+    ]
+
+    assert offenders == []
+
+
 def test_cli_building_review_can_use_openai_planner(
     tmp_path, monkeypatch, capsys
 ):

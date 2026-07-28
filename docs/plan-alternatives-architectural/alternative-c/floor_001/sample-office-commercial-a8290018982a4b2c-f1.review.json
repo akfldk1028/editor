@@ -1,5 +1,5 @@
 {
-  "accepted": true,
+  "accepted": false,
   "artifacts": {
     "html": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.html",
     "png": "floor_001/sample-office-commercial-a8290018982a4b2c-f1.png",
@@ -8,7 +8,7 @@
   },
   "candidate_id": "sample-office-commercial-f1-side-mid",
   "checks": {
-    "area": "pass",
+    "area": "fail",
     "basic_design": "pass",
     "boundary": "pass",
     "circulation_access": "pass",
@@ -20,7 +20,7 @@
   },
   "fingerprint": null,
   "floor_index": 1,
-  "hard_failure_count": 0,
+  "hard_failure_count": 1,
   "hard_failure_count_delta": null,
   "iteration": null,
   "layer_completeness": {
@@ -60,9 +60,9 @@
       "svg": 3
     },
     "furniture": {
-      "modeled": 6,
-      "png": 6,
-      "svg": 6
+      "modeled": 8,
+      "png": 8,
+      "svg": 8
     },
     "grid": {
       "modeled": 9,
@@ -93,7 +93,7 @@
     "min_door_width": 0.9,
     "min_room_width": 2.4000000000000004
   },
-  "needs_iteration": false,
+  "needs_iteration": true,
   "operator": null,
   "operator_params": {},
   "parent_id": null,
@@ -109,6 +109,371 @@
   "program_adjusted": true,
   "program_adjustments": [
     {
+      "adjusted_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 3.0,
+          "min_area": 12.24,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 14.4,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 41.4,
+          "max_aspect_ratio": 2.5,
+          "min_area": 30.599999999999998,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 36,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.0,
+          "min_area": 15.299999999999999,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.5,
+          "min_area": 15.299999999999999,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 57.96,
+          "max_aspect_ratio": 2.0,
+          "min_area": 42.84,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 50.4,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 28.979999999999986,
+          "max_aspect_ratio": 2.5,
+          "min_area": 21.41999999999999,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 25.19999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "adjusted_targets": [
+        [
+          "sales_a",
+          99.0
+        ],
+        [
+          "sales_b",
+          99.0
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "original_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 117.98999999999998,
+          "max_aspect_ratio": 3.0,
+          "min_area": 87.21,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 102.6,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 117.98999999999998,
+          "max_aspect_ratio": 3.0,
+          "min_area": 87.21,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 102.6,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 3.0,
+          "min_area": 12.24,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 14.4,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 41.4,
+          "max_aspect_ratio": 2.5,
+          "min_area": 30.599999999999998,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 36,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.0,
+          "min_area": 15.299999999999999,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.5,
+          "min_area": 15.299999999999999,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 49.67999999999999,
+          "max_aspect_ratio": 2.0,
+          "min_area": 36.72,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 43.199999999999996,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 28.979999999999986,
+          "max_aspect_ratio": 2.5,
+          "min_area": 21.41999999999999,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 25.19999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "original_targets": [
+        [
+          "sales_a",
+          102.6
+        ],
+        [
+          "sales_b",
+          102.6
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          43.199999999999996
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "reason": "shared_core_normalization"
+    },
+    {
+      "adjusted_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 92.968421,
+          "max_aspect_ratio": 6.5,
+          "min_area": 68.715789,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 80.842105,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 92.968421,
+          "max_aspect_ratio": 6.5,
+          "min_area": 68.715789,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 80.842105,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 6.5,
+          "min_area": 12.24,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 14.4,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 41.4,
+          "max_aspect_ratio": 6.5,
+          "min_area": 30.599999999999998,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 36,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 6.5,
+          "min_area": 15.299999999999999,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 6.5,
+          "min_area": 15.299999999999999,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 57.96,
+          "max_aspect_ratio": 2.0,
+          "min_area": 42.84,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 50.4,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 28.979999999999986,
+          "max_aspect_ratio": 6.5,
+          "min_area": 21.41999999999999,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 25.19999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
       "adjusted_targets": [
         [
           "sales_a",
@@ -142,6 +507,104 @@
           "utility",
           25.19999999999999
         ]
+      ],
+      "original_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 3.0,
+          "min_area": 12.24,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 14.4,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 41.4,
+          "max_aspect_ratio": 2.5,
+          "min_area": 30.599999999999998,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 36,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.0,
+          "min_area": 15.299999999999999,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.5,
+          "min_area": 15.299999999999999,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 57.96,
+          "max_aspect_ratio": 2.0,
+          "min_area": 42.84,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 50.4,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 28.979999999999986,
+          "max_aspect_ratio": 2.5,
+          "min_area": 21.41999999999999,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 25.19999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        }
       ],
       "original_targets": [
         [
@@ -178,80 +641,9 @@
         ]
       ],
       "reason": "rear_tenant_fit"
-    },
-    {
-      "adjusted_targets": [
-        [
-          "sales_a",
-          65.254115
-        ],
-        [
-          "sales_b",
-          65.254115
-        ],
-        [
-          "checkout",
-          14.4
-        ],
-        [
-          "stock",
-          36.0
-        ],
-        [
-          "staff",
-          18.0
-        ],
-        [
-          "restroom",
-          18.0
-        ],
-        [
-          "core",
-          50.4
-        ],
-        [
-          "utility",
-          25.19999999999999
-        ]
-      ],
-      "original_targets": [
-        [
-          "sales_a",
-          80.842105
-        ],
-        [
-          "sales_b",
-          80.842105
-        ],
-        [
-          "checkout",
-          14.4
-        ],
-        [
-          "stock",
-          36.0
-        ],
-        [
-          "staff",
-          18.0
-        ],
-        [
-          "restroom",
-          18.0
-        ],
-        [
-          "core",
-          50.4
-        ],
-        [
-          "utility",
-          25.19999999999999
-        ]
-      ],
-      "reason": "side_mid_primary_fit"
     }
   ],
-  "program_source": "building_aligned_prior:rear_tenant_fit:side_mid_primary_fit",
+  "program_source": "building_aligned_prior:rear_tenant_fit",
   "project_id": "sample-office-commercial",
   "render_evidence": {
     "missing": {
@@ -372,7 +764,9 @@
         ],
         "sales_shelf": [
           "sales_a-sales_shelf-1",
-          "sales_b-sales_shelf-2"
+          "sales_a-sales_shelf-2",
+          "sales_b-sales_shelf-3",
+          "sales_b-sales_shelf-4"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -568,7 +962,9 @@
         ],
         "sales_shelf": [
           "sales_a-sales_shelf-1",
-          "sales_b-sales_shelf-2"
+          "sales_a-sales_shelf-2",
+          "sales_b-sales_shelf-3",
+          "sales_b-sales_shelf-4"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -768,7 +1164,9 @@
         ],
         "sales_shelf": [
           "sales_a-sales_shelf-1",
-          "sales_b-sales_shelf-2"
+          "sales_a-sales_shelf-2",
+          "sales_b-sales_shelf-3",
+          "sales_b-sales_shelf-4"
         ],
         "staff_table": [
           "staff-staff_table-1"
@@ -855,19 +1253,19 @@
   "room_areas": [
     {
       "actual_area": 55.7922687075,
-      "max_area": 75.042232,
-      "min_area": 55.465998,
+      "max_area": 92.968421,
+      "min_area": 68.715789,
       "room_id": "sales_a",
-      "target_area": 65.254115,
-      "within_range": true
+      "target_area": 80.842105,
+      "within_range": false
     },
     {
       "actual_area": 55.7922687075,
-      "max_area": 75.042232,
-      "min_area": 55.465998,
+      "max_area": 92.968421,
+      "min_area": 68.715789,
       "room_id": "sales_b",
-      "target_area": 65.254115,
-      "within_range": true
+      "target_area": 80.842105,
+      "within_range": false
     },
     {
       "actual_area": 12.312000000000001,
@@ -975,7 +1373,7 @@
     },
     {
       "aspect_ratio_passed": true,
-      "maximum_aspect_ratio": 4.0,
+      "maximum_aspect_ratio": 2.0,
       "measured_aspect_ratio": 1.2030075187969924,
       "measured_min_width": 5.984999999999999,
       "minimum_width_passed": true,
@@ -995,7 +1393,7 @@
   "schema_version": 1,
   "scores": {
     "adjacency_score": 0.6667,
-    "area_score": 0.855,
+    "area_score": 0.8138,
     "boundary_score": 1.0,
     "circulation_score": 1.0,
     "compactness_score": 0.7048,
@@ -1003,15 +1401,15 @@
     "efficiency_score": 0.8854,
     "frontage_score": 1.0,
     "overlap_score": 1.0,
-    "total_score": 0.8803,
-    "violation_score": 0.0
+    "total_score": 0.8757,
+    "violation_score": 0.0006
   },
   "total_score_delta": null,
   "use_type": "neighborhood_commercial",
   "validation": {
-    "accepted": true,
+    "accepted": false,
     "adjacency_score": 0.6667,
-    "area_score": 0.855,
+    "area_score": 0.8138,
     "basic_design": {
       "column_count": 7,
       "dimension_count": 3,
@@ -1020,11 +1418,11 @@
       "exit_count": 2,
       "exit_separation": 23.565175091377554,
       "fixture_count": 3,
-      "furniture_count": 6,
+      "furniture_count": 8,
       "grid_line_count": 9,
       "lobby_count": 1,
       "min_exit_width": 0.9,
-      "min_object_clearance": 0.9443394391848726,
+      "min_object_clearance": 0.8501135079505558,
       "min_routes_per_room": 2,
       "missing_required_kinds": [],
       "object_clearance_violation_count": 0,
@@ -1047,6 +1445,12 @@
           "threshold": 2,
           "value": 2
         },
+        "tenant_fixture_density": {
+          "pass": true,
+          "reason": "minimum per-tenant actual/required sales-fixture ratio",
+          "threshold": 1.0,
+          "value": 2.0
+        },
         "tenant_independent_access": {
           "pass": true,
           "reason": "tenants with unique entrance and supplied-street frontage",
@@ -1068,28 +1472,31 @@
     "coverage_score": 0.8108,
     "efficiency_score": 0.8854,
     "frontage_score": 1.0,
-    "hard_violation_count": 0,
-    "is_valid": true,
-    "messages": [],
+    "hard_violation_count": 1,
+    "is_valid": false,
+    "messages": [
+      "room 'sales_a' area 55.7923 is outside [68.7158, 92.9684]",
+      "room 'sales_b' area 55.7923 is outside [68.7158, 92.9684]"
+    ],
     "openings_checked": true,
     "overlap_score": 1.0,
     "policy_version": "exact-v1",
     "room_areas": [
       {
         "actual_area": 55.7922687075,
-        "max_area": 75.042232,
-        "min_area": 55.465998,
+        "max_area": 92.968421,
+        "min_area": 68.715789,
         "room_id": "sales_a",
-        "target_area": 65.254115,
-        "within_range": true
+        "target_area": 80.842105,
+        "within_range": false
       },
       {
         "actual_area": 55.7922687075,
-        "max_area": 75.042232,
-        "min_area": 55.465998,
+        "max_area": 92.968421,
+        "min_area": 68.715789,
         "room_id": "sales_b",
-        "target_area": 65.254115,
-        "within_range": true
+        "target_area": 80.842105,
+        "within_range": false
       },
       {
         "actual_area": 12.312000000000001,
@@ -1197,7 +1604,7 @@
       },
       {
         "aspect_ratio_passed": true,
-        "maximum_aspect_ratio": 4.0,
+        "maximum_aspect_ratio": 2.0,
         "measured_aspect_ratio": 1.2030075187969924,
         "measured_min_width": 5.984999999999999,
         "minimum_width_passed": true,
@@ -1214,9 +1621,31 @@
         "room_id": "utility"
       }
     ],
-    "total_score": 0.8803,
-    "violation_score": 0.0,
-    "violations": []
+    "total_score": 0.8757,
+    "violation_score": 0.0006,
+    "violations": [
+      {
+        "code": "room_area",
+        "message": "room 'sales_a' area 55.7923 is outside [68.7158, 92.9684]",
+        "subject": "sales_a"
+      },
+      {
+        "code": "room_area",
+        "message": "room 'sales_b' area 55.7923 is outside [68.7158, 92.9684]",
+        "subject": "sales_b"
+      }
+    ]
   },
-  "violations": []
+  "violations": [
+    {
+      "code": "room_area",
+      "message": "room 'sales_a' area 55.7923 is outside [68.7158, 92.9684]",
+      "subject": "sales_a"
+    },
+    {
+      "code": "room_area",
+      "message": "room 'sales_b' area 55.7923 is outside [68.7158, 92.9684]",
+      "subject": "sales_b"
+    }
+  ]
 }
