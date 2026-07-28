@@ -1,9 +1,11 @@
 import pytest
+import math
 
 from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.generation_loop.service import run_building_alternatives
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.program import ProgramAdjustment, ProgramNode
+from engine.geometry.polygon import polygon_area
 
 
 def _adjustment_kwargs():
@@ -154,6 +156,24 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
         assert len(footprints) == 1
         assert None not in footprints
         assert all(floor.program.adjustments for floor in alternative.floor_results)
+        commercial = next(
+            floor
+            for floor in alternative.floor_results
+            if floor.program.use_type == "neighborhood_commercial"
+        )
+        features = commercial.layout.basic_design
+        assert features is not None
+        for room in (
+            room
+            for room in commercial.layout.rooms
+            if room.space_type == "sales"
+        ):
+            actual = sum(
+                element.kind == "sales_shelf"
+                and element.host_id == room.room_id
+                for element in features.elements
+            )
+            assert actual >= math.ceil(polygon_area(room.polygon) / 30.0)
         for floor in alternative.floor_results:
             for adjustment in floor.program.adjustments:
                 assert adjustment.original_nodes != adjustment.adjusted_nodes

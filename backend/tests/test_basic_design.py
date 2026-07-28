@@ -268,7 +268,7 @@ def test_primary_room_furniture_density_scales_with_area() -> None:
         for primary in primary_rooms:
             expected_count = max(
                 1,
-                math.floor(polygon_area(primary.polygon) / 30.0),
+                math.ceil(polygon_area(primary.polygon) / 30.0),
             )
             host_objects = [
                 element

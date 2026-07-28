@@ -906,9 +906,9 @@ def _room_contents(
         if _bounds(room.polygon)[2] - _bounds(room.polygon)[0] < 1.2:
             placement_margin = 0.3
         if room.space_type in {"sales", "open_work"}:
-            # Representative density heuristic: one primary object per 30 m2,
-            # with two minimum, for concept review only.
-            count = max(2, math.floor(polygon_area(room.polygon) / 30.0))
+            # Representative density heuristic: at least one primary object
+            # for every started 30 m2 of tenant or work area.
+            count = max(1, math.ceil(polygon_area(room.polygon) / 30.0))
             primary_kind = (
                 "sales_shelf" if room.space_type == "sales" else "workstation"
             )
@@ -931,17 +931,17 @@ def _room_contents(
                 )
                 placement_margin = 0.8
                 aisle = 1.0
-            if (
-                room.space_type == "sales"
-                and room.room_id.startswith("sales_")
-                and room_max_x - room_min_x < 12.5
-            ):
-                object_size = (1.4, 0.6)
+            if room.space_type == "sales" and room.room_id.startswith("sales_"):
+                tenant_width = room_max_x - room_min_x
+                object_size = (
+                    (0.8, 0.5)
+                    if tenant_width < 8.0
+                    else (1.4, 0.6)
+                    if tenant_width < 12.5
+                    else (2.0, 0.7)
+                )
                 placement_margin = 0.3
                 aisle = 0.4
-                if room_max_x - room_min_x < 8.0:
-                    room_requirements = (("sales_shelf", "furniture"),)
-                    object_size = (0.8, 0.5)
             if room.space_type == "open_work":
                 count = math.ceil(polygon_area(room.polygon) / 9.0)
                 room_requirements = tuple(

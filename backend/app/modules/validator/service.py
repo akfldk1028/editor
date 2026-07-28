@@ -1507,7 +1507,7 @@ def _validate_use_planning(
         for node in tenant_nodes:
             room = rooms.get(node.node_id)
             room_area = polygon_area(room.polygon) if room is not None else 0.0
-            required_count = max(1, math.floor(room_area / 30.0))
+            required_count = max(1, math.ceil(room_area / 30.0))
             actual_count = sum(
                 element.category == "furniture"
                 and element.kind == "sales_shelf"
