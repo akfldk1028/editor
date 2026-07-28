@@ -176,8 +176,8 @@ def test_mass_rejects_mutable_or_invalid_code_context_values() -> None:
     ("qualifying_sprinkler", "denominator", "check_status"),
     [
         (None, 2.0, "not_checked"),
-        (False, 2.0, "not_checked"),
-        (True, 3.0, "not_checked"),
+        (False, 2.0, "pass"),
+        (True, 3.0, "pass"),
     ],
 )
 def test_qualifying_sprinkler_fact_controls_internal_separation_target_without_fabricating_status(
@@ -229,6 +229,14 @@ def test_qualifying_sprinkler_fact_controls_internal_separation_target_without_f
         assert "qualifying_sprinkler_protection" in screening.unresolved_facts
         assert any(
             "half-diagonal" in assumption for assumption in check.assumptions
+        )
+    else:
+        assert check.applicability is True
+        assert check.measured_value is not None
+        assert check.measured_value >= check.threshold
+        assert (
+            "qualifying_sprinkler_protection"
+            not in screening.unresolved_facts
         )
 
 

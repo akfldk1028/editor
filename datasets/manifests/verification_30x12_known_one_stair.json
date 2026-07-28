@@ -1,0 +1,43 @@
+{
+  "project_id": "verification-30x12-known-one-stair",
+  "floors": 3,
+  "footprint_polygon": [[0, 0], [30, 0], [30, 12], [0, 12]],
+  "site_edges": [{"edge_index": 0, "kind": "street"}],
+  "access_candidates": [{"edge_index": 0, "position": 0.5}],
+  "use_mix": {
+    "neighborhood_commercial": 0.3333333333333333,
+    "office": 0.6666666666666666
+  },
+  "building_code_context": {
+    "jurisdiction": "KR",
+    "effective_date": "2026-07-28",
+    "qualifying_sprinkler_protection": false,
+    "travel_limit_classification": "general_30",
+    "floor_facts": [
+      {
+        "floor_index": 1,
+        "above_grade": true,
+        "story_number": 1,
+        "habitable_area_m2": 100,
+        "is_evacuation_floor": false,
+        "occupancy_category": "other_supported"
+      },
+      {
+        "floor_index": 2,
+        "above_grade": true,
+        "story_number": 2,
+        "habitable_area_m2": 100,
+        "is_evacuation_floor": false,
+        "occupancy_category": "other_supported"
+      },
+      {
+        "floor_index": 3,
+        "above_grade": true,
+        "story_number": 3,
+        "habitable_area_m2": 100,
+        "is_evacuation_floor": false,
+        "occupancy_category": "other_supported"
+      }
+    ]
+  }
+}

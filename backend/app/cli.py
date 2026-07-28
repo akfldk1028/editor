@@ -344,6 +344,7 @@ def main() -> None:
         (target / "index.html").write_text(
             (
                 "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"
+                "<link rel=\"icon\" href=\"data:,\">"
                 "<title>Floor-plan alternatives</title>"
                 "<style>body{font-family:Arial,sans-serif;margin:24px;color:#171717}"
                 "table{border-collapse:collapse;width:100%}th,td{padding:9px;"

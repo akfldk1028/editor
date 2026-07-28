@@ -325,15 +325,36 @@ def test_common_core_access_rejects_entry_off_supplied_street() -> None:
 def test_common_core_access_requires_entry_component_to_contain_core_exit() -> None:
     mass, commercial = _generated_commercial_result("split-core-access")
     assert commercial.layout.basic_design is not None
+    core_exit = next(
+        line
+        for line in commercial.layout.basic_design.lines
+        if line.kind == "protected_exit" and line.host_id == "core"
+    )
+    assert core_exit.points[0][1] == pytest.approx(core_exit.points[1][1])
+    exit_min_x = min(point[0] for point in core_exit.points)
+    exit_max_x = max(point[0] for point in core_exit.points)
+    exit_y = core_exit.points[0][1]
+    entry_max_x = exit_min_x - 0.9
+    entry_min_x = entry_max_x - 1.9
     entry_component = RoomPolygon(
         "entry-core-pocket",
         "circulation",
-        [(22.0, 0.0), (23.9, 0.0), (23.9, 6.0), (22.0, 6.0)],
+        [
+            (entry_min_x, 0.0),
+            (entry_max_x, 0.0),
+            (entry_max_x, exit_y),
+            (entry_min_x, exit_y),
+        ],
     )
     exit_component = RoomPolygon(
         "exit-core-pocket",
         "circulation",
-        [(25.5, 4.8), (30.0, 4.8), (30.0, 6.0), (25.5, 6.0)],
+        [
+            (exit_min_x, exit_y - 1.2),
+            (exit_max_x + 0.3, exit_y - 1.2),
+            (exit_max_x + 0.3, exit_y),
+            (exit_min_x, exit_y),
+        ],
     )
     split = replace(
         commercial.layout,
@@ -343,7 +364,10 @@ def test_common_core_access_requires_entry_component_to_contain_core_exit() -> N
             lines=tuple(
                 replace(
                     line,
-                    points=((22.5, 0.0), (23.4, 0.0)),
+                    points=(
+                        (entry_min_x + 0.5, 0.0),
+                        (entry_min_x + 1.4, 0.0),
+                    ),
                     target_id="entry-core-pocket",
                 )
                 if line.line_id == "core-public-entrance"
