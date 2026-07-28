@@ -3,16 +3,21 @@ from __future__ import annotations
 from dataclasses import FrozenInstanceError, replace
 import hashlib
 import json
+import math
 import sys
+import time
 
 import pytest
 
+from backend.app.modules.generator_adapters import research as research_module
 from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.generator_adapters import (
     DeterministicGeneratorAdapter,
     Graph2PlanAdapter,
     HouseDiffusionAdapter,
+    LocalResearchProfile,
     MansionAdapter,
+    ResearchProbeRecord,
     RlvrAdapter,
     SubprocessGeneratorAdapter,
     validate_normalized_response,
@@ -390,6 +395,678 @@ def test_mansion_remains_downstream_only_even_with_command() -> None:
     assert response.status == "unavailable"
     assert response.reason is not None
     assert "downstream-only" in response.reason
+
+
+def test_research_probe_executes_configured_json_protocol() -> None:
+    payload = {
+        "status": "executed",
+        "backend_id": "graph2plan",
+        "backend_version": "official-a1b2c3",
+        "backend_domain": "rplan-residential",
+        "repo_revision": "a1b2c3",
+        "evidence_scope": "strict_load",
+        "environment": [
+            {"name": "python", "value": "3.8.18"},
+            {"name": "cuda_available", "value": False},
+        ],
+        "runtime_checks": [
+            {"name": "strict_checkpoint_load", "value": True},
+        ],
+        "checkpoint": "weights/model.pth",
+        "dataset": "RPLAN",
+        "license": "research-only",
+        "provenance": "official repository at pinned revision",
+        "blockers": [],
+        "reason": None,
+    }
+    adapter = Graph2PlanAdapter(
+        probe_command=(sys.executable, "-c", f"import json;print(json.dumps({payload!r}))"),
+        timeout_seconds=2.0,
+        backend_version="official-a1b2c3",
+        backend_domain="rplan-residential",
+    )
+
+    probe = adapter.probe()
+
+    assert isinstance(probe, ResearchProbeRecord)
+    assert probe.status == "executed"
+    assert probe.repo_revision == "a1b2c3"
+    assert probe.evidence_scope == "strict_load"
+    assert probe.environment == (
+        GeneratorProjectFact("python", "3.8.18"),
+        GeneratorProjectFact("cuda_available", False),
+    )
+    assert probe.runtime_checks == (
+        GeneratorProjectFact("strict_checkpoint_load", True),
+    )
+    assert probe.checkpoint == "weights/model.pth"
+    assert probe.dataset == "RPLAN"
+    assert probe.license == "research-only"
+    assert probe.provenance == "official repository at pinned revision"
+    assert probe.blockers == ()
+    with pytest.raises(FrozenInstanceError):
+        probe.status = "failed"
+
+
+@pytest.mark.parametrize(
+    ("script", "timeout", "reason_fragment"),
+    [
+        ("print('not-json')", 2.0, "invalid JSON"),
+        ("import time;time.sleep(1)", 0.01, "timed out"),
+        (
+            "import json;print(json.dumps({'status':'executed','backend_id':'wrong'}))",
+            2.0,
+            "identity",
+        ),
+    ],
+)
+def test_research_probe_reports_malformed_timeout_and_identity_mismatch(
+    script: str,
+    timeout: float,
+    reason_fragment: str,
+) -> None:
+    probe = HouseDiffusionAdapter(
+        probe_command=(sys.executable, "-c", script),
+        timeout_seconds=timeout,
+    ).probe()
+
+    assert probe.status == "failed"
+    assert probe.reason is not None
+    assert reason_fragment in probe.reason
+    assert probe.blockers
+
+
+def test_local_research_profile_requires_absolute_paths() -> None:
+    with pytest.raises(ValueError, match="absolute"):
+        LocalResearchProfile(repository_path="relative/repository")
+
+
+def test_local_research_probe_records_missing_assets(tmp_path) -> None:
+    profile = LocalResearchProfile(
+        repository_path=tmp_path / "missing-repository",
+        checkpoint_path=tmp_path / "missing-checkpoint.pt",
+        dataset_path=tmp_path / "missing-dataset",
+        license="research-only",
+        provenance="explicit local test profile",
+    )
+
+    probe = Graph2PlanAdapter(local_profile=profile).probe()
+
+    assert probe.status == "unavailable"
+    assert probe.repo_revision is None
+    assert probe.checkpoint == str(profile.checkpoint_path)
+    assert probe.dataset == str(profile.dataset_path)
+    assert probe.license == "research-only"
+    assert probe.provenance == "explicit local test profile"
+    assert any("repository does not exist" in blocker for blocker in probe.blockers)
+    assert any("checkpoint does not exist" in blocker for blocker in probe.blockers)
+    assert any("dataset does not exist" in blocker for blocker in probe.blockers)
+
+
+def test_successful_strict_load_probe_cannot_mark_generation_executed() -> None:
+    payload = {
+        "status": "executed",
+        "backend_id": "rlvr",
+        "backend_version": "paper-probe",
+        "backend_domain": "reinforcement-learning",
+        "repo_revision": "deadbeef",
+        "evidence_scope": "strict_load",
+        "environment": [{"name": "python", "value": "3.11"}],
+        "runtime_checks": [
+            {"name": "strict_model_load", "value": True},
+        ],
+        "checkpoint": "model",
+        "dataset": "paper-eval",
+        "license": "research-only",
+        "provenance": "local strict-load probe",
+        "blockers": [],
+        "reason": None,
+    }
+    adapter = RlvrAdapter(
+        probe_command=(sys.executable, "-c", f"import json;print(json.dumps({payload!r}))"),
+        timeout_seconds=2.0,
+        backend_version="paper-probe",
+    )
+
+    assert adapter.probe().status == "executed"
+    generated = adapter.generate(_request())
+    assert generated.status == "unavailable"
+    assert generated.normalized_candidate is None
+    assert generated.reason is not None
+    assert "not configured" in generated.reason
+
+
+def _successful_probe_payload() -> dict:
+    return {
+        "status": "executed",
+        "backend_id": "graph2plan",
+        "backend_version": "probe-boundary",
+        "backend_domain": "graph-to-plan",
+        "repo_revision": "abc123",
+        "evidence_scope": "runtime_preflight",
+        "environment": [{"name": "python", "value": "3.11"}],
+        "runtime_checks": [{"name": "runtime_import", "value": True}],
+        "checkpoint": None,
+        "dataset": "RPLAN",
+        "license": "research-only",
+        "provenance": "bounded probe fixture",
+        "blockers": [],
+        "reason": None,
+    }
+
+
+def test_probe_accepts_stdout_exactly_at_configured_byte_limit() -> None:
+    output = json.dumps(_successful_probe_payload()).encode("utf-8")
+    script = f"import sys;sys.stdout.buffer.write({output!r})"
+
+    probe = Graph2PlanAdapter(
+        probe_command=(sys.executable, "-c", script),
+        timeout_seconds=2.0,
+        output_limit_bytes=len(output),
+        backend_version="probe-boundary",
+    ).probe()
+
+    assert probe.status == "executed"
+
+
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_probe_rejects_output_over_configured_byte_limit(stream: str) -> None:
+    limit = 128
+    script = (
+        f"import sys;sys.{stream}.buffer.write(b'x'*{limit + 1});"
+        f"sys.{stream}.flush()"
+    )
+
+    probe = HouseDiffusionAdapter(
+        probe_command=(sys.executable, "-c", script),
+        timeout_seconds=2.0,
+        output_limit_bytes=limit,
+    ).probe()
+
+    assert probe.status == "failed"
+    assert probe.reason is not None
+    assert "output limit" in probe.reason
+
+
+def test_live_probe_over_output_limit_is_not_misreported_as_timeout() -> None:
+    limit = 128
+    script = (
+        f"import sys,time;sys.stdout.buffer.write(b'x'*{limit + 1});"
+        "sys.stdout.flush();time.sleep(5)"
+    )
+
+    probe = Graph2PlanAdapter(
+        probe_command=(sys.executable, "-c", script),
+        timeout_seconds=0.5,
+        output_limit_bytes=limit,
+    ).probe()
+
+    assert probe.status == "failed"
+    assert probe.reason == f"probe output limit exceeded ({limit} bytes)"
+
+
+@pytest.mark.parametrize(
+    ("timeout", "output_limit"),
+    [
+        (0.0, 1024),
+        (math.inf, 1024),
+        (1.0, 0),
+        (1.0, True),
+    ],
+)
+@pytest.mark.parametrize("mode", ["command", "local_profile"])
+def test_probe_invalid_resource_limits_return_failed_record(
+    tmp_path,
+    timeout: float,
+    output_limit,
+    mode: str,
+) -> None:
+    kwargs = {
+        "timeout_seconds": timeout,
+        "output_limit_bytes": output_limit,
+    }
+    if mode == "command":
+        kwargs["probe_command"] = (sys.executable, "-c", "print('{}')")
+    else:
+        kwargs["local_profile"] = LocalResearchProfile(
+            repository_path=tmp_path / "repository"
+        )
+
+    probe = Graph2PlanAdapter(**kwargs).probe()
+
+    assert probe.status == "failed"
+    assert probe.reason is not None
+    assert "timeout_seconds" in probe.reason or "output_limit_bytes" in probe.reason
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"environment": []},
+        {"backend_version": 123},
+        {"backend_version": ""},
+        {"backend_domain": "   "},
+        {"backend_domain": []},
+    ],
+)
+def test_probe_invalid_adapter_metadata_never_escapes(kwargs: dict) -> None:
+    probe = Graph2PlanAdapter(**kwargs).probe()
+
+    assert probe.status == "failed"
+    assert probe.reason is not None
+    assert "probe configuration" in probe.reason
+
+
+@pytest.mark.parametrize(
+    "payload_update",
+    [
+        {"runtime_checks": []},
+        {"runtime_checks": [{"name": "runtime_import", "value": False}]},
+        {"provenance": None},
+        {"provenance": "   "},
+        {"repo_revision": "   "},
+        {"evidence_scope": "strict_load", "checkpoint": None},
+        {
+            "evidence_scope": "strict_load",
+            "checkpoint": "model.pt",
+            "runtime_checks": [{"name": "strict_checkpoint_load", "value": False}],
+        },
+        {"evidence_scope": "candidate_generation"},
+    ],
+)
+def test_executed_probe_requires_bounded_evidence_semantics(
+    payload_update: dict,
+) -> None:
+    payload = _successful_probe_payload()
+    payload.update(payload_update)
+    output = json.dumps(payload).encode("utf-8")
+    adapter = Graph2PlanAdapter(
+        probe_command=(
+            sys.executable,
+            "-c",
+            f"import sys;sys.stdout.buffer.write({output!r})",
+        ),
+        timeout_seconds=2.0,
+        output_limit_bytes=len(output),
+        backend_version="probe-boundary",
+    )
+
+    probe = adapter.probe()
+
+    assert probe.status == "failed"
+    assert probe.reason is not None
+    assert "invalid probe response" in probe.reason
+
+
+def test_probe_invalid_utf8_returns_failed_without_reader_traceback() -> None:
+    probe = Graph2PlanAdapter(
+        probe_command=(
+            sys.executable,
+            "-c",
+            "import sys;sys.stdout.buffer.write(b'\\xff')",
+        ),
+        timeout_seconds=2.0,
+        output_limit_bytes=128,
+    ).probe()
+
+    assert probe.status == "failed"
+    assert probe.reason is not None
+    assert "UTF-8" in probe.reason
+
+
+def test_probe_timeout_kills_owned_child_process_tree(tmp_path) -> None:
+    sentinel = tmp_path / "orphan-child.txt"
+    child = (
+        "import pathlib,time;"
+        "time.sleep(0.3);"
+        f"pathlib.Path({str(sentinel)!r}).write_text('orphan',encoding='utf-8')"
+    )
+    parent = (
+        "import subprocess,sys,time;"
+        f"subprocess.Popen([sys.executable,'-c',{child!r}]);"
+        "time.sleep(5)"
+    )
+    probe = RlvrAdapter(
+        probe_command=(sys.executable, "-c", parent),
+        timeout_seconds=0.05,
+        output_limit_bytes=1024,
+    ).probe()
+
+    assert probe.status == "failed"
+    assert probe.reason is not None
+    assert "timed out" in probe.reason
+    time.sleep(0.6)
+    assert not sentinel.exists()
+
+
+def test_successful_probe_cleans_owned_child_process_tree(tmp_path) -> None:
+    sentinel = tmp_path / "successful-probe-orphan.txt"
+    child = (
+        "import pathlib,time;"
+        "time.sleep(0.3);"
+        f"pathlib.Path({str(sentinel)!r}).write_text('orphan',encoding='utf-8')"
+    )
+    output = json.dumps(_successful_probe_payload()).encode("utf-8")
+    parent = (
+        "import subprocess,sys;"
+        f"subprocess.Popen([sys.executable,'-c',{child!r}]);"
+        f"sys.stdout.buffer.write({output!r});sys.stdout.flush()"
+    )
+    probe = Graph2PlanAdapter(
+        probe_command=(sys.executable, "-c", parent),
+        timeout_seconds=2.0,
+        output_limit_bytes=len(output),
+        backend_version="probe-boundary",
+    ).probe()
+
+    assert probe.status == "executed"
+    time.sleep(0.6)
+    assert not sentinel.exists()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows Job ownership")
+@pytest.mark.parametrize("mode", ["normal_success", "timeout"])
+def test_windows_job_assignment_failure_never_runs_unowned_process_tree(
+    tmp_path,
+    monkeypatch,
+    mode: str,
+) -> None:
+    sentinel = tmp_path / f"unowned-{mode}.txt"
+    child = (
+        "import pathlib,time;"
+        "time.sleep(0.2);"
+        f"pathlib.Path({str(sentinel)!r}).write_text('orphan',encoding='utf-8')"
+    )
+    output = json.dumps(_successful_probe_payload()).encode("utf-8")
+    tail = (
+        f"sys.stdout.buffer.write({output!r});sys.stdout.flush()"
+        if mode == "normal_success"
+        else "time.sleep(5)"
+    )
+    parent = (
+        "import subprocess,sys,time;"
+        f"subprocess.Popen([sys.executable,'-c',{child!r}]);"
+        f"{tail}"
+    )
+    monkeypatch.setattr(
+        research_module,
+        "_assign_windows_kill_job",
+        lambda process: None,
+    )
+
+    probe = Graph2PlanAdapter(
+        probe_command=(sys.executable, "-c", parent),
+        timeout_seconds=0.5,
+        output_limit_bytes=max(1024, len(output)),
+        backend_version="probe-boundary",
+    ).probe()
+
+    assert probe.status == "failed"
+    assert probe.reason is not None
+    assert "ownership" in probe.reason
+    time.sleep(0.5)
+    assert not sentinel.exists()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows Job ownership")
+@pytest.mark.parametrize("failure_point", ["assign", "resume"])
+def test_windows_ownership_initialization_exception_is_contained_and_reaped(
+    monkeypatch,
+    failure_point: str,
+) -> None:
+    captured = []
+    job_closed = []
+
+    class TrackingJob:
+        def close(self):
+            job_closed.append(True)
+
+    def assign(process):
+        captured.append(process)
+        if failure_point == "assign":
+            raise OSError("forced assignment error")
+        return TrackingJob()
+
+    def resume(process):
+        raise RuntimeError("forced resume error")
+
+    monkeypatch.setattr(research_module, "_assign_windows_kill_job", assign)
+    if failure_point == "resume":
+        monkeypatch.setattr(
+            research_module,
+            "_resume_suspended_windows_process",
+            resume,
+        )
+    try:
+        probe = Graph2PlanAdapter(
+            probe_command=(sys.executable, "-c", "raise SystemExit(0)"),
+            timeout_seconds=0.5,
+            output_limit_bytes=1024,
+        ).probe()
+        assert probe.status == "failed"
+        assert probe.reason is not None
+        assert "ownership initialization" in probe.reason
+        assert len(captured) == 1
+        assert captured[0].poll() is not None
+        assert captured[0].stdout is not None and captured[0].stdout.closed
+        assert captured[0].stderr is not None and captured[0].stderr.closed
+        assert bool(job_closed) is (failure_point == "resume")
+    finally:
+        for process in captured:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=1.0)
+            if process.stdout is not None and not process.stdout.closed:
+                process.stdout.close()
+            if process.stderr is not None and not process.stderr.closed:
+                process.stderr.close()
+
+
+def test_posix_success_cleanup_kills_owned_group_before_parent_wait(
+    monkeypatch,
+) -> None:
+    events: list[str] = []
+
+    class Process:
+        pid = 4242
+
+        def wait(self, timeout=None):
+            events.append("wait")
+            return 0
+
+    monkeypatch.setattr(research_module, "_IS_WINDOWS", False, raising=False)
+    monkeypatch.setattr(
+        research_module.os,
+        "killpg",
+        lambda pid, sig: events.append("killpg"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        research_module.signal,
+        "SIGKILL",
+        9,
+        raising=False,
+    )
+
+    research_module._finalize_successful_owned_process(Process(), None)
+
+    assert events == ["killpg", "wait"]
+
+
+def test_posix_parent_exit_observation_uses_wnowait(monkeypatch) -> None:
+    seen: list[int] = []
+
+    class Process:
+        pid = 4242
+
+    monkeypatch.setattr(research_module, "_IS_WINDOWS", False, raising=False)
+
+    def waitid(idtype, pid, flags):
+        seen.append(flags)
+        return object()
+
+    monkeypatch.setattr(research_module.os, "waitid", waitid, raising=False)
+    monkeypatch.setattr(research_module.os, "P_PID", 1, raising=False)
+    monkeypatch.setattr(research_module.os, "WEXITED", 4, raising=False)
+    monkeypatch.setattr(research_module.os, "WNOHANG", 1, raising=False)
+    monkeypatch.setattr(research_module.os, "WNOWAIT", 0x01000000, raising=False)
+
+    assert research_module._owned_parent_exited_without_reap(Process())
+    assert seen[0] & research_module.os.WNOWAIT
+
+
+def test_windows_timeout_does_not_taskkill_already_terminated_owned_pid(
+    monkeypatch,
+) -> None:
+    class Process:
+        pid = 4242
+        returncode = None
+
+        def poll(self):
+            return self.returncode
+
+        def kill(self):
+            raise AssertionError("Job close already terminated the process")
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    process = Process()
+
+    class Job:
+        def close(self):
+            process.returncode = 1
+
+    monkeypatch.setattr(research_module, "_IS_WINDOWS", True)
+    monkeypatch.setattr(
+        research_module.subprocess,
+        "run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("must not taskkill a terminated PID")
+        ),
+    )
+
+    research_module._terminate_owned_process_tree(process, Job())
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows Job ownership")
+@pytest.mark.parametrize(
+    "failure_point",
+    ["reader_start", "monitor", "finalize"],
+)
+def test_post_resume_lifecycle_exception_is_contained_and_cleans_tree(
+    tmp_path,
+    monkeypatch,
+    failure_point: str,
+) -> None:
+    sentinel = tmp_path / f"lifecycle-{failure_point}.txt"
+    child = (
+        "import pathlib,time;"
+        "time.sleep(0.3);"
+        f"pathlib.Path({str(sentinel)!r}).write_text('orphan',encoding='utf-8')"
+    )
+    parent_tail = "pass" if failure_point == "finalize" else "time.sleep(5)"
+    command = (
+        "import subprocess,sys,time;"
+        f"subprocess.Popen([sys.executable,'-c',{child!r}]);"
+        f"{parent_tail}"
+    )
+    captured = []
+    job_closed = []
+    original_popen = research_module.subprocess.Popen
+    original_assign = research_module._assign_windows_kill_job
+
+    def capture_popen(*args, **kwargs):
+        process = original_popen(*args, **kwargs)
+        captured.append(process)
+        return process
+
+    class TrackingJob:
+        def __init__(self, delegate):
+            self.delegate = delegate
+
+        def close(self):
+            job_closed.append(True)
+            self.delegate.close()
+
+    def tracked_assign(process):
+        return TrackingJob(original_assign(process))
+
+    monkeypatch.setattr(research_module.subprocess, "Popen", capture_popen)
+    monkeypatch.setattr(
+        research_module,
+        "_assign_windows_kill_job",
+        tracked_assign,
+    )
+    if failure_point == "reader_start":
+        monkeypatch.setattr(
+            research_module.threading.Thread,
+            "start",
+            lambda self: (_ for _ in ()).throw(
+                RuntimeError("forced reader start error")
+            ),
+        )
+    elif failure_point == "monitor":
+        monkeypatch.setattr(
+            research_module,
+            "_owned_parent_exited_without_reap",
+            lambda process: (_ for _ in ()).throw(
+                RuntimeError("forced monitor error")
+            ),
+        )
+    else:
+        monkeypatch.setattr(
+            research_module,
+            "_finalize_successful_owned_process",
+            lambda process, job: (_ for _ in ()).throw(
+                RuntimeError("forced finalize error")
+            ),
+        )
+    try:
+        probe = Graph2PlanAdapter(
+            probe_command=(sys.executable, "-c", command),
+            timeout_seconds=1.0,
+            output_limit_bytes=1024,
+        ).probe()
+        assert probe.status == "failed"
+        assert probe.reason is not None
+        assert "lifecycle" in probe.reason
+        assert len(captured) == 1
+        assert captured[0].poll() is not None
+        assert captured[0].stdout is not None and captured[0].stdout.closed
+        assert captured[0].stderr is not None and captured[0].stderr.closed
+        assert job_closed
+        time.sleep(0.5)
+        assert not sentinel.exists()
+    finally:
+        for process in captured:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=1.0)
+            if process.stdout is not None and not process.stdout.closed:
+                process.stdout.close()
+            if process.stderr is not None and not process.stderr.closed:
+                process.stderr.close()
+
+
+@pytest.mark.parametrize(
+    ("adapter", "blocker"),
+    [
+        (Graph2PlanAdapter(), "RPLAN residential"),
+        (HouseDiffusionAdapter(), "RPLAN residential"),
+        (RlvrAdapter(), "hardware/model"),
+        (MansionAdapter(), "downstream-only"),
+    ],
+)
+def test_default_research_probes_state_exact_paper_backend_blockers(
+    adapter,
+    blocker: str,
+) -> None:
+    probe = adapter.probe()
+
+    assert probe.status == "unavailable"
+    assert probe.repo_revision is None
+    assert any(blocker in item for item in probe.blockers)
 
 
 def test_subprocess_adapter_uses_json_stdin_stdout_protocol() -> None:

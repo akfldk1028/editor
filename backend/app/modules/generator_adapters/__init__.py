@@ -4,7 +4,9 @@ from backend.app.modules.generator_adapters.deterministic import (
 from backend.app.modules.generator_adapters.research import (
     Graph2PlanAdapter,
     HouseDiffusionAdapter,
+    LocalResearchProfile,
     MansionAdapter,
+    ResearchProbeRecord,
     RlvrAdapter,
 )
 from backend.app.modules.generator_adapters.subprocess_adapter import (
@@ -19,7 +21,9 @@ __all__ = [
     "DeterministicGeneratorAdapter",
     "Graph2PlanAdapter",
     "HouseDiffusionAdapter",
+    "LocalResearchProfile",
     "MansionAdapter",
+    "ResearchProbeRecord",
     "RlvrAdapter",
     "SubprocessGeneratorAdapter",
     "normalized_candidate_to_layout",
