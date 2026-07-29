@@ -1,0 +1,348 @@
+{
+  "artifact_owner": "PLAN:graph2plan_raw",
+  "artifact_schema_version": 1,
+  "artifacts": {
+    "graph2plan-input-condition.npz": {
+      "sha256": "be873c1fedcfae550bd0f1e048e47d73b8ecaa012a4bcdbaa7901110f2376030"
+    },
+    "graph2plan-raw-forward.npz": {
+      "sha256": "0b1cf5e7db8801a1b6ad22d2bbb805c4160c6d57f2dc47d4335f1a8ee44a2a3f"
+    },
+    "graph2plan-raw-preview.png": {
+      "sha256": "16732e93a42934b44a4e7deaf3e10885c92c6ec4e04cd2e572914f80695457e7"
+    }
+  },
+  "backend": "graph2plan",
+  "candidate_emitted": false,
+  "candidate_status": "RAW_OUTPUT_NOT_VALIDATED",
+  "checkpoint": {
+    "path": "C:\\DK\\PLAN\\logs\\runs\\paper_backends\\Graph2plan\\Interface\\model\\model.pth",
+    "sha256": "08046c64b993d1c3382f5dbb37755095c372fff540f5c7502262b1abf7584140",
+    "strict_load": true
+  },
+  "dataset": {
+    "files": {
+      "data_test_converted.pkl": "50ce8844fd23b21f2febb850970e010c6422c8e50feea4a62b7e420394c31a26",
+      "data_train_converted.pkl": "4be93200fbe4a400cac903de3e0c5010da5316868651e241ab5ea74a445724e2"
+    },
+    "path": "C:\\DK\\PLAN\\logs\\runs\\paper_backends\\Graph2plan-data\\Interface\\static\\Data",
+    "sha256": "845fcf16a236b4eb568d44408676b7a6c0fb98e6719f4f5f84255f6f8a73f548"
+  },
+  "determinism": {
+    "note": "Fixed NumPy/PyTorch seeds and eval mode were requested. Repeat-run tensor equality has not been verified.",
+    "repeat_run_verified": false,
+    "seed": 0
+  },
+  "environment": {
+    "device": "cpu",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.7",
+    "torch": "2.8.0+cu128"
+  },
+  "input": {
+    "artifact_arrays": {
+      "attributes": [
+        7,
+        35
+      ],
+      "boundary": [
+        1,
+        3,
+        128,
+        128
+      ],
+      "graphBoxes": [
+        7,
+        5
+      ],
+      "graphEdges": [
+        11,
+        3
+      ],
+      "insideBox": [
+        1,
+        4
+      ],
+      "rawBoundary": [
+        9,
+        4
+      ],
+      "rooms": [
+        7
+      ],
+      "triples": [
+        11,
+        3
+      ]
+    },
+    "id": "test:0/train:24555:7526",
+    "query_record_index": 0,
+    "retrieved_record_index": 24555,
+    "shapes": {
+      "attributes": [
+        7,
+        35
+      ],
+      "boundary": [
+        1,
+        3,
+        128,
+        128
+      ],
+      "inside_box": [
+        1,
+        4
+      ],
+      "rooms": [
+        7
+      ],
+      "triples": [
+        11,
+        3
+      ]
+    }
+  },
+  "legend": {
+    "boxes": {
+      "predBox": "blue dotted",
+      "refineBox": "red solid"
+    },
+    "classes": [
+      {
+        "index": 0,
+        "name": "LivingRoom",
+        "rgb": [
+          230,
+          25,
+          75
+        ]
+      },
+      {
+        "index": 1,
+        "name": "MasterRoom",
+        "rgb": [
+          60,
+          180,
+          75
+        ]
+      },
+      {
+        "index": 2,
+        "name": "Kitchen",
+        "rgb": [
+          170,
+          255,
+          195
+        ]
+      },
+      {
+        "index": 3,
+        "name": "Bathroom",
+        "rgb": [
+          0,
+          130,
+          200
+        ]
+      },
+      {
+        "index": 4,
+        "name": "DiningRoom",
+        "rgb": [
+          245,
+          130,
+          48
+        ]
+      },
+      {
+        "index": 5,
+        "name": "ChildRoom",
+        "rgb": [
+          145,
+          30,
+          180
+        ]
+      },
+      {
+        "index": 6,
+        "name": "StudyRoom",
+        "rgb": [
+          70,
+          240,
+          240
+        ]
+      },
+      {
+        "index": 7,
+        "name": "SecondRoom",
+        "rgb": [
+          240,
+          50,
+          230
+        ]
+      },
+      {
+        "index": 8,
+        "name": "GuestRoom",
+        "rgb": [
+          210,
+          245,
+          60
+        ]
+      },
+      {
+        "index": 9,
+        "name": "Balcony",
+        "rgb": [
+          250,
+          190,
+          190
+        ]
+      },
+      {
+        "index": 10,
+        "name": "Entrance",
+        "rgb": [
+          0,
+          128,
+          128
+        ]
+      },
+      {
+        "index": 11,
+        "name": "Storage",
+        "rgb": [
+          230,
+          190,
+          255
+        ]
+      },
+      {
+        "index": 12,
+        "name": "Wall-in",
+        "rgb": [
+          170,
+          110,
+          40
+        ]
+      },
+      {
+        "index": 13,
+        "name": "External",
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "index": 14,
+        "name": "ExteriorWall",
+        "rgb": [
+          128,
+          0,
+          0
+        ]
+      },
+      {
+        "index": 15,
+        "name": "FrontDoor",
+        "rgb": [
+          255,
+          225,
+          25
+        ]
+      },
+      {
+        "index": 16,
+        "name": "InteriorWall",
+        "rgb": [
+          128,
+          128,
+          128
+        ]
+      },
+      {
+        "index": 17,
+        "name": "InteriorDoor",
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      }
+    ]
+  },
+  "normalization": {
+    "status": "not_run"
+  },
+  "outputs": {
+    "gene_shape": [
+      128,
+      128
+    ],
+    "predBox_shape": [
+      7,
+      4
+    ],
+    "refineBox_shape": [
+      7,
+      4
+    ],
+    "representation": "derived_forward_outputs: boxes converted to integer extents in 0..255 coordinates; gene is argmax class map with exterior mask"
+  },
+  "paper_pipeline_complete": false,
+  "postprocess": {
+    "stages": [
+      "align",
+      "decorate"
+    ],
+    "status": "not_run"
+  },
+  "publication": {
+    "atomic": false,
+    "crash_recovery": "owned backup restore on the next publication",
+    "method": "windows_named_mutex_or_posix_flock_directory_swap"
+  },
+  "quality_observations": {
+    "note": "Raw overlap metrics are observations only; geometry has not been aligned, decorated, normalized, or validated.",
+    "predBox_overlap": {
+      "box_count": 7,
+      "intersecting_pair_count": 7,
+      "pair_count": 21,
+      "total_intersection_area_coordinate_units2": 1224
+    },
+    "refineBox_overlap": {
+      "box_count": 7,
+      "intersecting_pair_count": 7,
+      "pair_count": 21,
+      "total_intersection_area_coordinate_units2": 1278
+    }
+  },
+  "raw_forward": {
+    "completed": true,
+    "generate": true,
+    "refine": true
+  },
+  "repository": {
+    "path": "C:\\DK\\PLAN\\logs\\runs\\paper_backends\\Graph2plan",
+    "remote_url": "https://github.com/HanHan55/Graph2plan.git",
+    "revision": "3e53c474c770535c45eadea980a0e032fbcd6e11",
+    "tracked_changes": [],
+    "tracked_source_sha256": "23fa172e3cc48742a297ad45d6fac06d67642dacad98cff3ab6448fb4e9d15d3",
+    "tracked_worktree_clean": true
+  },
+  "scope": "raw_forward_only",
+  "security": {
+    "asset_trust": "Repository, checkpoint, and dataset are trusted caller-supplied assets pinned by recorded hashes. Process isolation does not prevent filesystem or network access.",
+    "process_isolation": true,
+    "sandbox": false
+  },
+  "timing_seconds": {
+    "forward": 0.6286193998530507,
+    "model_load": 0.05510089988820255,
+    "total": 6.757999999914318
+  },
+  "validation": {
+    "status": "not_run"
+  }
+}

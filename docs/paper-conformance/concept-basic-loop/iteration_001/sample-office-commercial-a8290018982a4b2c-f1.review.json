@@ -1,0 +1,5297 @@
+{
+  "acceptance_scope": "building",
+  "accepted": true,
+  "area_ledger": {
+    "entries": [
+      {
+        "area_m2": 360.0,
+        "bucket": "gross",
+        "provenance": {
+          "classification_rule": "supplied-floor-boundary",
+          "formula": "union(gross boundary)",
+          "method": "polygon_union",
+          "source_ids": [
+            "floor-boundary"
+          ]
+        }
+      },
+      {
+        "area_m2": 50.39999999999999,
+        "bucket": "core",
+        "provenance": {
+          "classification_rule": "actual-program-room-classification-v1",
+          "formula": "union(core geometry)",
+          "method": "polygon_union",
+          "source_ids": [
+            "core"
+          ]
+        }
+      },
+      {
+        "area_m2": 41.76,
+        "bucket": "circulation",
+        "provenance": {
+          "classification_rule": "actual-program-room-classification-v1",
+          "formula": "union(circulation geometry)",
+          "method": "polygon_union",
+          "source_ids": [
+            "corridor-branch",
+            "corridor-spine"
+          ]
+        }
+      },
+      {
+        "area_m2": 13.776000000000003,
+        "bucket": "remote_stair",
+        "provenance": {
+          "classification_rule": "actual-program-room-classification-v1",
+          "formula": "union(remote_stair geometry)",
+          "method": "polygon_union",
+          "source_ids": [
+            "remote-stair-footprint"
+          ]
+        }
+      },
+      {
+        "area_m2": 69.60520200000002,
+        "bucket": "service",
+        "provenance": {
+          "classification_rule": "actual-program-room-classification-v1",
+          "formula": "union(service geometry)",
+          "method": "polygon_union",
+          "source_ids": [
+            "restroom",
+            "stock",
+            "utility"
+          ]
+        }
+      },
+      {
+        "area_m2": 167.22834600000002,
+        "bucket": "primary",
+        "provenance": {
+          "classification_rule": "actual-program-room-classification-v1",
+          "formula": "union(primary geometry)",
+          "method": "polygon_union",
+          "source_ids": [
+            "checkout",
+            "sales_a",
+            "sales_b",
+            "staff"
+          ]
+        }
+      },
+      {
+        "area_m2": 236.83354800000004,
+        "bucket": "net",
+        "provenance": {
+          "classification_rule": "actual-program-room-classification-v1",
+          "formula": "service + primary",
+          "method": "derived_sum",
+          "source_ids": [
+            "service",
+            "primary"
+          ]
+        }
+      },
+      {
+        "area_m2": 17.230451999999996,
+        "bucket": "unassigned",
+        "provenance": {
+          "classification_rule": "unclassified geometry remains unassigned",
+          "formula": "area(gross boundary minus union(classified geometry intersect gross))",
+          "method": "residual",
+          "source_ids": [
+            "floor-boundary",
+            "core",
+            "corridor-branch",
+            "corridor-spine",
+            "remote-stair-footprint",
+            "restroom",
+            "stock",
+            "utility",
+            "checkout",
+            "sales_a",
+            "sales_b",
+            "staff"
+          ]
+        }
+      }
+    ],
+    "floor_index": 1,
+    "out_of_boundary_area_m2": 0.0,
+    "overlap_area_m2": 0.0,
+    "status": "pass",
+    "tolerance_m2": 1e-06,
+    "unresolved_facts": []
+  },
+  "artifacts": {
+    "html": "iteration_001/sample-office-commercial-a8290018982a4b2c-f1.html",
+    "png": "iteration_001/sample-office-commercial-a8290018982a4b2c-f1.png",
+    "review_json": "iteration_001/sample-office-commercial-a8290018982a4b2c-f1.review.json",
+    "svg": "iteration_001/sample-office-commercial-a8290018982a4b2c-f1.svg"
+  },
+  "building_accepted": true,
+  "building_validation": {
+    "status": "pass"
+  },
+  "candidate_id": "sample-office-commercial-f1-rear-right",
+  "checks": {
+    "area": "pass",
+    "basic_design": "pass",
+    "boundary": "pass",
+    "circulation_access": "pass",
+    "corridor_width": "pass",
+    "openings": "pass",
+    "overlap": "pass",
+    "room_form": "pass"
+  },
+  "egress_graph": {
+    "common_path_distance_m": null,
+    "common_path_status": "not_checked",
+    "dead_end_distance_m": null,
+    "dead_end_status": "not_checked",
+    "edges": [
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            0.0,
+            4.8
+          ],
+          [
+            0.0,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:0:4.8",
+        "target_id": "circulation:vertex:0:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            0.45,
+            4.8
+          ],
+          [
+            0.45,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:0.45:4.8",
+        "target_id": "exit:protected-exit-2:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            6.12,
+            4.8
+          ],
+          [
+            6.12,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:6.12:4.8",
+        "target_id": "opening:checkout-door:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            7.2,
+            4.8
+          ],
+          [
+            7.2,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "opening:sales_a-door:circulation",
+        "target_id": "circulation:vertex:7.2:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            8.6480035,
+            4.8
+          ],
+          [
+            8.6480035,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:8.6480035:4.8",
+        "target_id": "opening:restroom-door:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            11.3155735,
+            4.8
+          ],
+          [
+            11.3155735,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:11.3155735:4.8",
+        "target_id": "opening:staff-door:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 4.8,
+        "polyline": [
+          [
+            14.4,
+            0.0
+          ],
+          [
+            14.4,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-spine"
+        ],
+        "source_id": "circulation:vertex:14.4:0",
+        "target_id": "circulation:vertex:14.4:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            14.4,
+            4.8
+          ],
+          [
+            14.4,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:14.4:4.8",
+        "target_id": "circulation:vertex:14.4:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 4.8,
+        "polyline": [
+          [
+            15.6,
+            0.0
+          ],
+          [
+            15.6,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-spine"
+        ],
+        "source_id": "circulation:vertex:15.6:0",
+        "target_id": "circulation:vertex:15.6:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            15.6,
+            4.8
+          ],
+          [
+            15.6,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:15.6:4.8",
+        "target_id": "circulation:vertex:15.6:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            21.6,
+            4.8
+          ],
+          [
+            21.6,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:21.6:4.8",
+        "target_id": "circulation:vertex:21.6:6"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 1.08,
+        "polyline": [
+          [
+            21.6,
+            6.0
+          ],
+          [
+            21.6,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:21.6:6",
+        "target_id": "circulation:vertex:21.6:7.08"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            22.05,
+            4.8
+          ],
+          [
+            22.05,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:22.05:4.8",
+        "target_id": "exit:protected-exit-1:circulation"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 1.08,
+        "polyline": [
+          [
+            22.05,
+            6.0
+          ],
+          [
+            22.05,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "exit:protected-exit-1:circulation",
+        "target_id": "circulation:vertex:22.05:7.08"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            22.8,
+            4.8
+          ],
+          [
+            22.8,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "opening:sales_b-door:circulation",
+        "target_id": "circulation:vertex:22.8:6"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 1.08,
+        "polyline": [
+          [
+            22.8,
+            6.0
+          ],
+          [
+            22.8,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:22.8:6",
+        "target_id": "circulation:vertex:22.8:7.08"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            24.400000000000002,
+            4.8
+          ],
+          [
+            24.400000000000002,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:24.4:4.8",
+        "target_id": "circulation:vertex:24.4:6"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 1.08,
+        "polyline": [
+          [
+            24.400000000000002,
+            6.0
+          ],
+          [
+            24.400000000000002,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:24.4:6",
+        "target_id": "circulation:vertex:24.4:7.08"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 2.5199999999999996,
+        "polyline": [
+          [
+            24.400000000000002,
+            7.08
+          ],
+          [
+            24.400000000000002,
+            9.6
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:24.4:7.08",
+        "target_id": "circulation:vertex:24.4:9.6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            27.2,
+            4.8
+          ],
+          [
+            27.2,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:27.2:4.8",
+        "target_id": "circulation:vertex:27.2:6"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 1.08,
+        "polyline": [
+          [
+            27.2,
+            6.0
+          ],
+          [
+            27.2,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:27.2:6",
+        "target_id": "circulation:vertex:27.2:7.08"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 2.5199999999999996,
+        "polyline": [
+          [
+            27.2,
+            7.08
+          ],
+          [
+            27.2,
+            9.6
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:27.2:7.08",
+        "target_id": "circulation:vertex:27.2:9.6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            30.0,
+            4.8
+          ],
+          [
+            30.0,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:30:4.8",
+        "target_id": "circulation:vertex:30:6"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 1.08,
+        "polyline": [
+          [
+            30.0,
+            6.0
+          ],
+          [
+            30.0,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:30:6",
+        "target_id": "circulation:vertex:30:7.08"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.1999999999999993,
+        "polyline": [
+          [
+            14.4,
+            0.0
+          ],
+          [
+            15.6,
+            0.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-spine"
+        ],
+        "source_id": "circulation:vertex:14.4:0",
+        "target_id": "circulation:vertex:15.6:0"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 0.45,
+        "polyline": [
+          [
+            0.0,
+            4.8
+          ],
+          [
+            0.45,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:0:4.8",
+        "target_id": "circulation:vertex:0.45:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 5.67,
+        "polyline": [
+          [
+            0.45,
+            4.8
+          ],
+          [
+            6.12,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:0.45:4.8",
+        "target_id": "circulation:vertex:6.12:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.08,
+        "polyline": [
+          [
+            6.12,
+            4.8
+          ],
+          [
+            7.2,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:6.12:4.8",
+        "target_id": "opening:sales_a-door:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.4480034999999996,
+        "polyline": [
+          [
+            7.2,
+            4.8
+          ],
+          [
+            8.6480035,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "opening:sales_a-door:circulation",
+        "target_id": "circulation:vertex:8.6480035:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 2.6675699999999996,
+        "polyline": [
+          [
+            8.6480035,
+            4.8
+          ],
+          [
+            11.3155735,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:8.6480035:4.8",
+        "target_id": "circulation:vertex:11.3155735:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 3.084426500000001,
+        "polyline": [
+          [
+            11.3155735,
+            4.8
+          ],
+          [
+            14.4,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:11.3155735:4.8",
+        "target_id": "circulation:vertex:14.4:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.1999999999999993,
+        "polyline": [
+          [
+            14.4,
+            4.8
+          ],
+          [
+            15.6,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch",
+          "corridor-spine"
+        ],
+        "source_id": "circulation:vertex:14.4:4.8",
+        "target_id": "circulation:vertex:15.6:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 6.000000000000002,
+        "polyline": [
+          [
+            15.6,
+            4.8
+          ],
+          [
+            21.6,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:15.6:4.8",
+        "target_id": "circulation:vertex:21.6:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 0.4499999999999993,
+        "polyline": [
+          [
+            21.6,
+            4.8
+          ],
+          [
+            22.05,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:21.6:4.8",
+        "target_id": "circulation:vertex:22.05:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 0.75,
+        "polyline": [
+          [
+            22.05,
+            4.8
+          ],
+          [
+            22.8,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:22.05:4.8",
+        "target_id": "opening:sales_b-door:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.6000000000000014,
+        "polyline": [
+          [
+            22.8,
+            4.8
+          ],
+          [
+            24.400000000000002,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "opening:sales_b-door:circulation",
+        "target_id": "circulation:vertex:24.4:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 2.799999999999997,
+        "polyline": [
+          [
+            24.400000000000002,
+            4.8
+          ],
+          [
+            27.2,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:24.4:4.8",
+        "target_id": "circulation:vertex:27.2:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 2.8000000000000007,
+        "polyline": [
+          [
+            27.2,
+            4.8
+          ],
+          [
+            30.0,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:27.2:4.8",
+        "target_id": "circulation:vertex:30:4.8"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 0.45,
+        "polyline": [
+          [
+            0.0,
+            6.0
+          ],
+          [
+            0.45,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:0:6",
+        "target_id": "exit:protected-exit-2:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 5.67,
+        "polyline": [
+          [
+            0.45,
+            6.0
+          ],
+          [
+            6.12,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "exit:protected-exit-2:circulation",
+        "target_id": "opening:checkout-door:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.08,
+        "polyline": [
+          [
+            6.12,
+            6.0
+          ],
+          [
+            7.2,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "opening:checkout-door:circulation",
+        "target_id": "circulation:vertex:7.2:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.4480034999999996,
+        "polyline": [
+          [
+            7.2,
+            6.0
+          ],
+          [
+            8.6480035,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:7.2:6",
+        "target_id": "opening:restroom-door:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 2.6675699999999996,
+        "polyline": [
+          [
+            8.6480035,
+            6.0
+          ],
+          [
+            11.3155735,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "opening:restroom-door:circulation",
+        "target_id": "opening:staff-door:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 3.084426500000001,
+        "polyline": [
+          [
+            11.3155735,
+            6.0
+          ],
+          [
+            14.4,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "opening:staff-door:circulation",
+        "target_id": "circulation:vertex:14.4:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.1999999999999993,
+        "polyline": [
+          [
+            14.4,
+            6.0
+          ],
+          [
+            15.6,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:14.4:6",
+        "target_id": "circulation:vertex:15.6:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 6.000000000000002,
+        "polyline": [
+          [
+            15.6,
+            6.0
+          ],
+          [
+            21.6,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:15.6:6",
+        "target_id": "circulation:vertex:21.6:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 0.4499999999999993,
+        "polyline": [
+          [
+            21.6,
+            6.0
+          ],
+          [
+            22.05,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby",
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:21.6:6",
+        "target_id": "exit:protected-exit-1:circulation"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 0.75,
+        "polyline": [
+          [
+            22.05,
+            6.0
+          ],
+          [
+            22.8,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby",
+          "corridor-branch"
+        ],
+        "source_id": "exit:protected-exit-1:circulation",
+        "target_id": "circulation:vertex:22.8:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 1.6000000000000014,
+        "polyline": [
+          [
+            22.8,
+            6.0
+          ],
+          [
+            24.400000000000002,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby",
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:22.8:6",
+        "target_id": "circulation:vertex:24.4:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 2.799999999999997,
+        "polyline": [
+          [
+            24.400000000000002,
+            6.0
+          ],
+          [
+            27.2,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby",
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:24.4:6",
+        "target_id": "circulation:vertex:27.2:6"
+      },
+      {
+        "kind": "inside_circulation",
+        "length_m": 2.8000000000000007,
+        "polyline": [
+          [
+            27.2,
+            6.0
+          ],
+          [
+            30.0,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby",
+          "corridor-branch"
+        ],
+        "source_id": "circulation:vertex:27.2:6",
+        "target_id": "circulation:vertex:30:6"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 0.4499999999999993,
+        "polyline": [
+          [
+            21.6,
+            7.08
+          ],
+          [
+            22.05,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:21.6:7.08",
+        "target_id": "circulation:vertex:22.05:7.08"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 0.75,
+        "polyline": [
+          [
+            22.05,
+            7.08
+          ],
+          [
+            22.8,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:22.05:7.08",
+        "target_id": "circulation:vertex:22.8:7.08"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 1.6000000000000014,
+        "polyline": [
+          [
+            22.8,
+            7.08
+          ],
+          [
+            24.400000000000002,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:22.8:7.08",
+        "target_id": "circulation:vertex:24.4:7.08"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 2.799999999999997,
+        "polyline": [
+          [
+            24.400000000000002,
+            7.08
+          ],
+          [
+            27.2,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:24.4:7.08",
+        "target_id": "circulation:vertex:27.2:7.08"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 2.8000000000000007,
+        "polyline": [
+          [
+            27.2,
+            7.08
+          ],
+          [
+            30.0,
+            7.08
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:27.2:7.08",
+        "target_id": "circulation:vertex:30:7.08"
+      },
+      {
+        "kind": "inside_lobby",
+        "length_m": 2.799999999999997,
+        "polyline": [
+          [
+            24.400000000000002,
+            9.6
+          ],
+          [
+            27.2,
+            9.6
+          ]
+        ],
+        "source_geometry_ids": [
+          "core-lobby"
+        ],
+        "source_id": "circulation:vertex:24.4:9.6",
+        "target_id": "circulation:vertex:27.2:9.6"
+      },
+      {
+        "kind": "through_protected_exit",
+        "length_m": 0.0,
+        "polyline": [
+          [
+            22.05,
+            6.0
+          ],
+          [
+            22.05,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "protected-exit-1",
+          "core-stair-1"
+        ],
+        "source_id": "exit:protected-exit-1:circulation",
+        "target_id": "exit:protected-exit-1"
+      },
+      {
+        "kind": "through_protected_exit",
+        "length_m": 0.0,
+        "polyline": [
+          [
+            0.45,
+            6.0
+          ],
+          [
+            0.45,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "protected-exit-2",
+          "remote-stair-2"
+        ],
+        "source_id": "exit:protected-exit-2:circulation",
+        "target_id": "exit:protected-exit-2"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 5.3806449999999995,
+        "polyline": [
+          [
+            4.92,
+            6.0
+          ],
+          [
+            4.92,
+            11.380645
+          ]
+        ],
+        "source_geometry_ids": [
+          "checkout"
+        ],
+        "source_id": "room:checkout:candidate:0",
+        "target_id": "room:checkout:candidate:3"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 5.3806449999999995,
+        "polyline": [
+          [
+            6.12,
+            6.0
+          ],
+          [
+            6.12,
+            11.380645
+          ]
+        ],
+        "source_geometry_ids": [
+          "checkout"
+        ],
+        "source_id": "opening:checkout-door:room",
+        "target_id": "room:checkout:vertex:6.12:11.380645"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 5.3806449999999995,
+        "polyline": [
+          [
+            7.32,
+            6.0
+          ],
+          [
+            7.32,
+            11.380645
+          ]
+        ],
+        "source_geometry_ids": [
+          "checkout"
+        ],
+        "source_id": "room:checkout:candidate:1",
+        "target_id": "room:checkout:candidate:2"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            4.92,
+            6.0
+          ],
+          [
+            6.12,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "checkout"
+        ],
+        "source_id": "room:checkout:candidate:0",
+        "target_id": "opening:checkout-door:room"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            6.12,
+            6.0
+          ],
+          [
+            7.32,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "checkout"
+        ],
+        "source_id": "opening:checkout-door:room",
+        "target_id": "room:checkout:candidate:1"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            4.92,
+            11.380645
+          ],
+          [
+            6.12,
+            11.380645
+          ]
+        ],
+        "source_geometry_ids": [
+          "checkout"
+        ],
+        "source_id": "room:checkout:candidate:3",
+        "target_id": "room:checkout:vertex:6.12:11.380645"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.2000000000000002,
+        "polyline": [
+          [
+            6.12,
+            11.380645
+          ],
+          [
+            7.32,
+            11.380645
+          ]
+        ],
+        "source_geometry_ids": [
+          "checkout"
+        ],
+        "source_id": "room:checkout:vertex:6.12:11.380645",
+        "target_id": "room:checkout:candidate:2"
+      },
+      {
+        "kind": "through_opening",
+        "length_m": 0.0,
+        "polyline": [
+          [
+            6.12,
+            6.0
+          ],
+          [
+            6.12,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "checkout-door"
+        ],
+        "source_id": "opening:checkout-door:room",
+        "target_id": "opening:checkout-door:circulation"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 6.0,
+        "polyline": [
+          [
+            7.32,
+            6.0
+          ],
+          [
+            7.32,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "restroom"
+        ],
+        "source_id": "room:restroom:candidate:0",
+        "target_id": "room:restroom:candidate:3"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 6.0,
+        "polyline": [
+          [
+            8.6480035,
+            6.0
+          ],
+          [
+            8.6480035,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "restroom"
+        ],
+        "source_id": "opening:restroom-door:room",
+        "target_id": "room:restroom:vertex:8.6480035:12"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 6.0,
+        "polyline": [
+          [
+            9.976007,
+            6.0
+          ],
+          [
+            9.976007,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "restroom"
+        ],
+        "source_id": "room:restroom:candidate:1",
+        "target_id": "room:restroom:candidate:2"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.3280034999999994,
+        "polyline": [
+          [
+            7.32,
+            6.0
+          ],
+          [
+            8.6480035,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "restroom"
+        ],
+        "source_id": "room:restroom:candidate:0",
+        "target_id": "opening:restroom-door:room"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.3280034999999994,
+        "polyline": [
+          [
+            8.6480035,
+            6.0
+          ],
+          [
+            9.976007,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "restroom"
+        ],
+        "source_id": "opening:restroom-door:room",
+        "target_id": "room:restroom:candidate:1"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.3280034999999994,
+        "polyline": [
+          [
+            7.32,
+            12.0
+          ],
+          [
+            8.6480035,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "restroom"
+        ],
+        "source_id": "room:restroom:candidate:3",
+        "target_id": "room:restroom:vertex:8.6480035:12"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.3280034999999994,
+        "polyline": [
+          [
+            8.6480035,
+            12.0
+          ],
+          [
+            9.976007,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "restroom"
+        ],
+        "source_id": "room:restroom:vertex:8.6480035:12",
+        "target_id": "room:restroom:candidate:2"
+      },
+      {
+        "kind": "through_opening",
+        "length_m": 0.0,
+        "polyline": [
+          [
+            8.6480035,
+            6.0
+          ],
+          [
+            8.6480035,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "restroom-door"
+        ],
+        "source_id": "opening:restroom-door:room",
+        "target_id": "opening:restroom-door:circulation"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 4.8,
+        "polyline": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_a"
+        ],
+        "source_id": "room:sales_a:candidate:0",
+        "target_id": "room:sales_a:candidate:3"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 4.8,
+        "polyline": [
+          [
+            7.2,
+            0.0
+          ],
+          [
+            7.2,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_a"
+        ],
+        "source_id": "room:sales_a:vertex:7.2:0",
+        "target_id": "opening:sales_a-door:room"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 4.8,
+        "polyline": [
+          [
+            14.4,
+            0.0
+          ],
+          [
+            14.4,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_a"
+        ],
+        "source_id": "room:sales_a:candidate:1",
+        "target_id": "room:sales_a:candidate:2"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 7.2,
+        "polyline": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            7.2,
+            0.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_a"
+        ],
+        "source_id": "room:sales_a:candidate:0",
+        "target_id": "room:sales_a:vertex:7.2:0"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 7.2,
+        "polyline": [
+          [
+            7.2,
+            0.0
+          ],
+          [
+            14.4,
+            0.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_a"
+        ],
+        "source_id": "room:sales_a:vertex:7.2:0",
+        "target_id": "room:sales_a:candidate:1"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 7.2,
+        "polyline": [
+          [
+            0.0,
+            4.8
+          ],
+          [
+            7.2,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_a"
+        ],
+        "source_id": "room:sales_a:candidate:3",
+        "target_id": "opening:sales_a-door:room"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 7.2,
+        "polyline": [
+          [
+            7.2,
+            4.8
+          ],
+          [
+            14.4,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_a"
+        ],
+        "source_id": "opening:sales_a-door:room",
+        "target_id": "room:sales_a:candidate:2"
+      },
+      {
+        "kind": "through_opening",
+        "length_m": 0.0,
+        "polyline": [
+          [
+            7.2,
+            4.8
+          ],
+          [
+            7.2,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_a-door"
+        ],
+        "source_id": "opening:sales_a-door:room",
+        "target_id": "opening:sales_a-door:circulation"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 4.8,
+        "polyline": [
+          [
+            15.6,
+            0.0
+          ],
+          [
+            15.6,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_b"
+        ],
+        "source_id": "room:sales_b:candidate:0",
+        "target_id": "room:sales_b:candidate:3"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 4.8,
+        "polyline": [
+          [
+            22.8,
+            0.0
+          ],
+          [
+            22.8,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_b"
+        ],
+        "source_id": "room:sales_b:vertex:22.8:0",
+        "target_id": "opening:sales_b-door:room"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 4.8,
+        "polyline": [
+          [
+            30.0,
+            0.0
+          ],
+          [
+            30.0,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_b"
+        ],
+        "source_id": "room:sales_b:candidate:1",
+        "target_id": "room:sales_b:candidate:2"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 7.200000000000001,
+        "polyline": [
+          [
+            15.6,
+            0.0
+          ],
+          [
+            22.8,
+            0.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_b"
+        ],
+        "source_id": "room:sales_b:candidate:0",
+        "target_id": "room:sales_b:vertex:22.8:0"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 7.199999999999999,
+        "polyline": [
+          [
+            22.8,
+            0.0
+          ],
+          [
+            30.0,
+            0.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_b"
+        ],
+        "source_id": "room:sales_b:vertex:22.8:0",
+        "target_id": "room:sales_b:candidate:1"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 7.200000000000001,
+        "polyline": [
+          [
+            15.6,
+            4.8
+          ],
+          [
+            22.8,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_b"
+        ],
+        "source_id": "room:sales_b:candidate:3",
+        "target_id": "opening:sales_b-door:room"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 7.199999999999999,
+        "polyline": [
+          [
+            22.8,
+            4.8
+          ],
+          [
+            30.0,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_b"
+        ],
+        "source_id": "opening:sales_b-door:room",
+        "target_id": "room:sales_b:candidate:2"
+      },
+      {
+        "kind": "through_opening",
+        "length_m": 0.0,
+        "polyline": [
+          [
+            22.8,
+            4.8
+          ],
+          [
+            22.8,
+            4.8
+          ]
+        ],
+        "source_geometry_ids": [
+          "sales_b-door"
+        ],
+        "source_id": "opening:sales_b-door:room",
+        "target_id": "opening:sales_b-door:circulation"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 6.0,
+        "polyline": [
+          [
+            9.976007,
+            6.0
+          ],
+          [
+            9.976007,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "staff"
+        ],
+        "source_id": "room:staff:candidate:0",
+        "target_id": "room:staff:candidate:3"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 6.0,
+        "polyline": [
+          [
+            11.3155735,
+            6.0
+          ],
+          [
+            11.3155735,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "staff"
+        ],
+        "source_id": "opening:staff-door:room",
+        "target_id": "room:staff:vertex:11.3155735:12"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 6.0,
+        "polyline": [
+          [
+            12.65514,
+            6.0
+          ],
+          [
+            12.65514,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "staff"
+        ],
+        "source_id": "room:staff:candidate:1",
+        "target_id": "room:staff:candidate:2"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.3395665,
+        "polyline": [
+          [
+            9.976007,
+            6.0
+          ],
+          [
+            11.3155735,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "staff"
+        ],
+        "source_id": "room:staff:candidate:0",
+        "target_id": "opening:staff-door:room"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.3395665,
+        "polyline": [
+          [
+            11.3155735,
+            6.0
+          ],
+          [
+            12.65514,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "staff"
+        ],
+        "source_id": "opening:staff-door:room",
+        "target_id": "room:staff:candidate:1"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.3395665,
+        "polyline": [
+          [
+            9.976007,
+            12.0
+          ],
+          [
+            11.3155735,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "staff"
+        ],
+        "source_id": "room:staff:candidate:3",
+        "target_id": "room:staff:vertex:11.3155735:12"
+      },
+      {
+        "kind": "inside_room",
+        "length_m": 1.3395665,
+        "polyline": [
+          [
+            11.3155735,
+            12.0
+          ],
+          [
+            12.65514,
+            12.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "staff"
+        ],
+        "source_id": "room:staff:vertex:11.3155735:12",
+        "target_id": "room:staff:candidate:2"
+      },
+      {
+        "kind": "through_opening",
+        "length_m": 0.0,
+        "polyline": [
+          [
+            11.3155735,
+            6.0
+          ],
+          [
+            11.3155735,
+            6.0
+          ]
+        ],
+        "source_geometry_ids": [
+          "staff-door"
+        ],
+        "source_id": "opening:staff-door:room",
+        "target_id": "opening:staff-door:circulation"
+      }
+    ],
+    "floor_index": 1,
+    "governing_distance_m": 19.95,
+    "governing_exit_id": "protected-exit-2",
+    "governing_room_id": "sales_a",
+    "nodes": [
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:0:4.8",
+        "point": [
+          0.0,
+          4.8
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:0:6",
+        "point": [
+          0.0,
+          6.0
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:0.45:4.8",
+        "point": [
+          0.45,
+          4.8
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "exit:protected-exit-2:circulation",
+        "point": [
+          0.45,
+          6.0
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:6.12:4.8",
+        "point": [
+          6.12,
+          4.8
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "room_door_portal",
+        "node_id": "opening:checkout-door:circulation",
+        "point": [
+          6.12,
+          6.0
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "room_door_portal",
+        "node_id": "opening:sales_a-door:circulation",
+        "point": [
+          7.2,
+          4.8
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:7.2:6",
+        "point": [
+          7.2,
+          6.0
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:8.6480035:4.8",
+        "point": [
+          8.6480035,
+          4.8
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "room_door_portal",
+        "node_id": "opening:restroom-door:circulation",
+        "point": [
+          8.6480035,
+          6.0
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:11.3155735:4.8",
+        "point": [
+          11.3155735,
+          4.8
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "room_door_portal",
+        "node_id": "opening:staff-door:circulation",
+        "point": [
+          11.3155735,
+          6.0
+        ]
+      },
+      {
+        "host_id": "corridor-spine",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:14.4:0",
+        "point": [
+          14.4,
+          0.0
+        ]
+      },
+      {
+        "host_id": "corridor-branch|corridor-spine",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:14.4:4.8",
+        "point": [
+          14.4,
+          4.8
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:14.4:6",
+        "point": [
+          14.4,
+          6.0
+        ]
+      },
+      {
+        "host_id": "corridor-spine",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:15.6:0",
+        "point": [
+          15.6,
+          0.0
+        ]
+      },
+      {
+        "host_id": "corridor-branch|corridor-spine",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:15.6:4.8",
+        "point": [
+          15.6,
+          4.8
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:15.6:6",
+        "point": [
+          15.6,
+          6.0
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:21.6:4.8",
+        "point": [
+          21.6,
+          4.8
+        ]
+      },
+      {
+        "host_id": "core-lobby|corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:21.6:6",
+        "point": [
+          21.6,
+          6.0
+        ]
+      },
+      {
+        "host_id": "core-lobby",
+        "kind": "lobby_vertex",
+        "node_id": "circulation:vertex:21.6:7.08",
+        "point": [
+          21.6,
+          7.08
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:22.05:4.8",
+        "point": [
+          22.05,
+          4.8
+        ]
+      },
+      {
+        "host_id": "core",
+        "kind": "circulation_vertex",
+        "node_id": "exit:protected-exit-1:circulation",
+        "point": [
+          22.05,
+          6.0
+        ]
+      },
+      {
+        "host_id": "core-lobby",
+        "kind": "lobby_vertex",
+        "node_id": "circulation:vertex:22.05:7.08",
+        "point": [
+          22.05,
+          7.08
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "room_door_portal",
+        "node_id": "opening:sales_b-door:circulation",
+        "point": [
+          22.8,
+          4.8
+        ]
+      },
+      {
+        "host_id": "core-lobby|corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:22.8:6",
+        "point": [
+          22.8,
+          6.0
+        ]
+      },
+      {
+        "host_id": "core-lobby",
+        "kind": "lobby_vertex",
+        "node_id": "circulation:vertex:22.8:7.08",
+        "point": [
+          22.8,
+          7.08
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:24.4:4.8",
+        "point": [
+          24.400000000000002,
+          4.8
+        ]
+      },
+      {
+        "host_id": "core-lobby|corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:24.4:6",
+        "point": [
+          24.400000000000002,
+          6.0
+        ]
+      },
+      {
+        "host_id": "core-lobby",
+        "kind": "lobby_vertex",
+        "node_id": "circulation:vertex:24.4:7.08",
+        "point": [
+          24.400000000000002,
+          7.08
+        ]
+      },
+      {
+        "host_id": "core-lobby",
+        "kind": "lobby_vertex",
+        "node_id": "circulation:vertex:24.4:9.6",
+        "point": [
+          24.400000000000002,
+          9.6
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:27.2:4.8",
+        "point": [
+          27.2,
+          4.8
+        ]
+      },
+      {
+        "host_id": "core-lobby|corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:27.2:6",
+        "point": [
+          27.2,
+          6.0
+        ]
+      },
+      {
+        "host_id": "core-lobby",
+        "kind": "lobby_vertex",
+        "node_id": "circulation:vertex:27.2:7.08",
+        "point": [
+          27.2,
+          7.08
+        ]
+      },
+      {
+        "host_id": "core-lobby",
+        "kind": "lobby_vertex",
+        "node_id": "circulation:vertex:27.2:9.6",
+        "point": [
+          27.2,
+          9.6
+        ]
+      },
+      {
+        "host_id": "corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:30:4.8",
+        "point": [
+          30.0,
+          4.8
+        ]
+      },
+      {
+        "host_id": "core-lobby|corridor-branch",
+        "kind": "circulation_vertex",
+        "node_id": "circulation:vertex:30:6",
+        "point": [
+          30.0,
+          6.0
+        ]
+      },
+      {
+        "host_id": "core-lobby",
+        "kind": "lobby_vertex",
+        "node_id": "circulation:vertex:30:7.08",
+        "point": [
+          30.0,
+          7.08
+        ]
+      },
+      {
+        "host_id": "core-stair-1",
+        "kind": "protected_exit_portal",
+        "node_id": "exit:protected-exit-1",
+        "point": [
+          22.05,
+          6.0
+        ]
+      },
+      {
+        "host_id": "remote-stair-2",
+        "kind": "protected_exit_portal",
+        "node_id": "exit:protected-exit-2",
+        "point": [
+          0.45,
+          6.0
+        ]
+      },
+      {
+        "host_id": "checkout",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:checkout:candidate:0",
+        "point": [
+          4.92,
+          6.0
+        ]
+      },
+      {
+        "host_id": "checkout",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:checkout:candidate:3",
+        "point": [
+          4.92,
+          11.380645
+        ]
+      },
+      {
+        "host_id": "checkout",
+        "kind": "room_door_portal",
+        "node_id": "opening:checkout-door:room",
+        "point": [
+          6.12,
+          6.0
+        ]
+      },
+      {
+        "host_id": "checkout",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:checkout:vertex:6.12:11.380645",
+        "point": [
+          6.12,
+          11.380645
+        ]
+      },
+      {
+        "host_id": "checkout",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:checkout:candidate:1",
+        "point": [
+          7.32,
+          6.0
+        ]
+      },
+      {
+        "host_id": "checkout",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:checkout:candidate:2",
+        "point": [
+          7.32,
+          11.380645
+        ]
+      },
+      {
+        "host_id": "restroom",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:restroom:candidate:0",
+        "point": [
+          7.32,
+          6.0
+        ]
+      },
+      {
+        "host_id": "restroom",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:restroom:candidate:3",
+        "point": [
+          7.32,
+          12.0
+        ]
+      },
+      {
+        "host_id": "restroom",
+        "kind": "room_door_portal",
+        "node_id": "opening:restroom-door:room",
+        "point": [
+          8.6480035,
+          6.0
+        ]
+      },
+      {
+        "host_id": "restroom",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:restroom:vertex:8.6480035:12",
+        "point": [
+          8.6480035,
+          12.0
+        ]
+      },
+      {
+        "host_id": "restroom",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:restroom:candidate:1",
+        "point": [
+          9.976007,
+          6.0
+        ]
+      },
+      {
+        "host_id": "restroom",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:restroom:candidate:2",
+        "point": [
+          9.976007,
+          12.0
+        ]
+      },
+      {
+        "host_id": "sales_a",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_a:candidate:0",
+        "point": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "host_id": "sales_a",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_a:candidate:3",
+        "point": [
+          0.0,
+          4.8
+        ]
+      },
+      {
+        "host_id": "sales_a",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_a:vertex:7.2:0",
+        "point": [
+          7.2,
+          0.0
+        ]
+      },
+      {
+        "host_id": "sales_a",
+        "kind": "room_door_portal",
+        "node_id": "opening:sales_a-door:room",
+        "point": [
+          7.2,
+          4.8
+        ]
+      },
+      {
+        "host_id": "sales_a",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_a:candidate:1",
+        "point": [
+          14.4,
+          0.0
+        ]
+      },
+      {
+        "host_id": "sales_a",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_a:candidate:2",
+        "point": [
+          14.4,
+          4.8
+        ]
+      },
+      {
+        "host_id": "sales_b",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_b:candidate:0",
+        "point": [
+          15.6,
+          0.0
+        ]
+      },
+      {
+        "host_id": "sales_b",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_b:candidate:3",
+        "point": [
+          15.6,
+          4.8
+        ]
+      },
+      {
+        "host_id": "sales_b",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_b:vertex:22.8:0",
+        "point": [
+          22.8,
+          0.0
+        ]
+      },
+      {
+        "host_id": "sales_b",
+        "kind": "room_door_portal",
+        "node_id": "opening:sales_b-door:room",
+        "point": [
+          22.8,
+          4.8
+        ]
+      },
+      {
+        "host_id": "sales_b",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_b:candidate:1",
+        "point": [
+          30.0,
+          0.0
+        ]
+      },
+      {
+        "host_id": "sales_b",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:sales_b:candidate:2",
+        "point": [
+          30.0,
+          4.8
+        ]
+      },
+      {
+        "host_id": "staff",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:staff:candidate:0",
+        "point": [
+          9.976007,
+          6.0
+        ]
+      },
+      {
+        "host_id": "staff",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:staff:candidate:3",
+        "point": [
+          9.976007,
+          12.0
+        ]
+      },
+      {
+        "host_id": "staff",
+        "kind": "room_door_portal",
+        "node_id": "opening:staff-door:room",
+        "point": [
+          11.3155735,
+          6.0
+        ]
+      },
+      {
+        "host_id": "staff",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:staff:vertex:11.3155735:12",
+        "point": [
+          11.3155735,
+          12.0
+        ]
+      },
+      {
+        "host_id": "staff",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:staff:candidate:1",
+        "point": [
+          12.65514,
+          6.0
+        ]
+      },
+      {
+        "host_id": "staff",
+        "kind": "room_farthest_candidate",
+        "node_id": "room:staff:candidate:2",
+        "point": [
+          12.65514,
+          12.0
+        ]
+      }
+    ],
+    "room_results": [
+      {
+        "distance_m": 12.250644999999999,
+        "farthest_point": [
+          4.92,
+          11.380645
+        ],
+        "floor_index": 1,
+        "nearest_exit_id": "protected-exit-2",
+        "room_id": "checkout",
+        "route_node_ids": [
+          "room:checkout:candidate:3",
+          "room:checkout:candidate:0",
+          "opening:checkout-door:room",
+          "opening:checkout-door:circulation",
+          "exit:protected-exit-2:circulation",
+          "exit:protected-exit-2"
+        ],
+        "route_polyline": [
+          [
+            4.92,
+            11.380645
+          ],
+          [
+            4.92,
+            6.0
+          ],
+          [
+            6.12,
+            6.0
+          ],
+          [
+            0.45,
+            6.0
+          ]
+        ],
+        "status": "checked",
+        "unresolved_facts": []
+      },
+      {
+        "distance_m": 15.526007,
+        "farthest_point": [
+          7.32,
+          12.0
+        ],
+        "floor_index": 1,
+        "nearest_exit_id": "protected-exit-2",
+        "room_id": "restroom",
+        "route_node_ids": [
+          "room:restroom:candidate:3",
+          "room:restroom:candidate:0",
+          "opening:restroom-door:room",
+          "opening:restroom-door:circulation",
+          "circulation:vertex:7.2:6",
+          "opening:checkout-door:circulation",
+          "exit:protected-exit-2:circulation",
+          "exit:protected-exit-2"
+        ],
+        "route_polyline": [
+          [
+            7.32,
+            12.0
+          ],
+          [
+            7.32,
+            6.0
+          ],
+          [
+            8.6480035,
+            6.0
+          ],
+          [
+            0.45,
+            6.0
+          ]
+        ],
+        "status": "checked",
+        "unresolved_facts": []
+      },
+      {
+        "distance_m": 19.95,
+        "farthest_point": [
+          0.0,
+          0.0
+        ],
+        "floor_index": 1,
+        "nearest_exit_id": "protected-exit-2",
+        "room_id": "sales_a",
+        "route_node_ids": [
+          "room:sales_a:candidate:0",
+          "room:sales_a:candidate:3",
+          "opening:sales_a-door:room",
+          "opening:sales_a-door:circulation",
+          "circulation:vertex:6.12:4.8",
+          "circulation:vertex:0.45:4.8",
+          "exit:protected-exit-2:circulation",
+          "exit:protected-exit-2"
+        ],
+        "route_polyline": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            4.8
+          ],
+          [
+            7.2,
+            4.8
+          ],
+          [
+            0.45,
+            4.8
+          ],
+          [
+            0.45,
+            6.0
+          ]
+        ],
+        "status": "checked",
+        "unresolved_facts": []
+      },
+      {
+        "distance_m": 13.95,
+        "farthest_point": [
+          15.6,
+          0.0
+        ],
+        "floor_index": 1,
+        "nearest_exit_id": "protected-exit-1",
+        "room_id": "sales_b",
+        "route_node_ids": [
+          "room:sales_b:candidate:0",
+          "room:sales_b:candidate:3",
+          "opening:sales_b-door:room",
+          "opening:sales_b-door:circulation",
+          "circulation:vertex:22.05:4.8",
+          "exit:protected-exit-1:circulation",
+          "exit:protected-exit-1"
+        ],
+        "route_polyline": [
+          [
+            15.6,
+            0.0
+          ],
+          [
+            15.6,
+            4.8
+          ],
+          [
+            22.8,
+            4.8
+          ],
+          [
+            22.05,
+            4.8
+          ],
+          [
+            22.05,
+            6.0
+          ]
+        ],
+        "status": "checked",
+        "unresolved_facts": []
+      },
+      {
+        "distance_m": 18.073993,
+        "farthest_point": [
+          9.976007,
+          12.0
+        ],
+        "floor_index": 1,
+        "nearest_exit_id": "protected-exit-1",
+        "room_id": "staff",
+        "route_node_ids": [
+          "room:staff:candidate:3",
+          "room:staff:candidate:0",
+          "opening:staff-door:room",
+          "opening:staff-door:circulation",
+          "circulation:vertex:14.4:6",
+          "circulation:vertex:15.6:6",
+          "circulation:vertex:21.6:6",
+          "exit:protected-exit-1:circulation",
+          "exit:protected-exit-1"
+        ],
+        "route_polyline": [
+          [
+            9.976007,
+            12.0
+          ],
+          [
+            9.976007,
+            6.0
+          ],
+          [
+            22.05,
+            6.0
+          ]
+        ],
+        "status": "checked",
+        "unresolved_facts": []
+      }
+    ],
+    "status": "checked",
+    "unresolved_facts": [
+      "common_path_unique_route_unverified",
+      "dead_end_topology_unresolved"
+    ]
+  },
+  "fingerprint": "6e8e696d1d3aa6b24539cd72f6b2a2d746632d778f182bf69b0d4abb8bca1fd9",
+  "floor_accepted": true,
+  "floor_index": 1,
+  "hard_failure_count": 0,
+  "hard_failure_count_delta": null,
+  "internal_validation": {
+    "policy_version": "exact-v1",
+    "status": "pass"
+  },
+  "iteration": 1,
+  "layer_completeness": {
+    "circulation": {
+      "modeled": 2,
+      "png": 2,
+      "svg": 2
+    },
+    "core": {
+      "modeled": 5,
+      "png": 5,
+      "svg": 5
+    },
+    "dimensions": {
+      "modeled": 6,
+      "png": 6,
+      "svg": 6
+    },
+    "door-openings": {
+      "modeled": 10,
+      "png": 10,
+      "svg": 10
+    },
+    "egress": {
+      "modeled": 16,
+      "png": 16,
+      "svg": 16
+    },
+    "envelope": {
+      "modeled": 9,
+      "png": 9,
+      "svg": 9
+    },
+    "fixtures": {
+      "modeled": 3,
+      "png": 3,
+      "svg": 3
+    },
+    "furniture": {
+      "modeled": 10,
+      "png": 10,
+      "svg": 10
+    },
+    "grid": {
+      "modeled": 9,
+      "png": 9,
+      "svg": 9
+    },
+    "rooms": {
+      "modeled": 9,
+      "png": 9,
+      "svg": 9
+    },
+    "structure": {
+      "modeled": 8,
+      "png": 8,
+      "svg": 8
+    },
+    "text-labels": {
+      "modeled": 22,
+      "png": 22,
+      "svg": 22
+    }
+  },
+  "measurements": {
+    "door_count": 8,
+    "failed_room_ids": [],
+    "max_room_aspect_ratio": 3.0,
+    "min_corridor_width": 1.1999999999999993,
+    "min_door_width": 0.9,
+    "min_room_width": 2.4000000000000004
+  },
+  "needs_iteration": false,
+  "operator": "concept-basic-generation",
+  "operator_params": {},
+  "parent_id": null,
+  "planner_provenance": {
+    "model": null,
+    "planner_mode": "deterministic",
+    "provider": "deterministic",
+    "response_id": null,
+    "validated_assignments": [
+      {
+        "floor_index": 1,
+        "use_type": "neighborhood_commercial"
+      },
+      {
+        "floor_index": 2,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 3,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 4,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 5,
+        "use_type": "office"
+      }
+    ]
+  },
+  "png_text": {
+    "fallback": false,
+    "font_path": null,
+    "renderer": "bitmap-ascii"
+  },
+  "program_adjusted": true,
+  "program_adjustments": [
+    {
+      "adjusted_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 3.0,
+          "min_area": 12.24,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 14.4,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 41.4,
+          "max_aspect_ratio": 2.5,
+          "min_area": 30.599999999999998,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 36,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.0,
+          "min_area": 15.299999999999999,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.5,
+          "min_area": 15.299999999999999,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 57.96,
+          "max_aspect_ratio": 2.0,
+          "min_area": 42.84,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 50.4,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 28.979999999999986,
+          "max_aspect_ratio": 2.5,
+          "min_area": 21.41999999999999,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 25.19999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "adjusted_targets": [
+        [
+          "sales_a",
+          99.0
+        ],
+        [
+          "sales_b",
+          99.0
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "original_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 117.98999999999998,
+          "max_aspect_ratio": 3.0,
+          "min_area": 87.21,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 102.6,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 117.98999999999998,
+          "max_aspect_ratio": 3.0,
+          "min_area": 87.21,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 102.6,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 3.0,
+          "min_area": 12.24,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 14.4,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 41.4,
+          "max_aspect_ratio": 2.5,
+          "min_area": 30.599999999999998,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 36,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.0,
+          "min_area": 15.299999999999999,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.5,
+          "min_area": 15.299999999999999,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 49.67999999999999,
+          "max_aspect_ratio": 2.0,
+          "min_area": 36.72,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 43.199999999999996,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 28.979999999999986,
+          "max_aspect_ratio": 2.5,
+          "min_area": 21.41999999999999,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 25.19999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "original_targets": [
+        [
+          "sales_a",
+          102.6
+        ],
+        [
+          "sales_b",
+          102.6
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          43.199999999999996
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "reason": "shared_core_normalization"
+    },
+    {
+      "adjusted_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 14.850581,
+          "max_aspect_ratio": 3.0,
+          "min_area": 10.976516,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 12.913548,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 37.126452,
+          "max_aspect_ratio": 2.5,
+          "min_area": 27.44129,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 32.283871,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 18.563226,
+          "max_aspect_ratio": 2.0,
+          "min_area": 13.720645,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 16.141935,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 18.563226,
+          "max_aspect_ratio": 2.5,
+          "min_area": 13.720645,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 16.141935,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 57.96,
+          "max_aspect_ratio": 2.0,
+          "min_area": 42.84,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 50.4,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 25.988516,
+          "max_aspect_ratio": 2.5,
+          "min_area": 19.208903,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 22.59871,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "adjusted_targets": [
+        [
+          "sales_a",
+          99.0
+        ],
+        [
+          "sales_b",
+          99.0
+        ],
+        [
+          "checkout",
+          12.913548
+        ],
+        [
+          "stock",
+          32.283871
+        ],
+        [
+          "staff",
+          16.141935
+        ],
+        [
+          "restroom",
+          16.141935
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          22.59871
+        ]
+      ],
+      "original_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 16.56,
+          "max_aspect_ratio": 3.0,
+          "min_area": 12.24,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 14.4,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 41.4,
+          "max_aspect_ratio": 2.5,
+          "min_area": 30.599999999999998,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 36,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.0,
+          "min_area": 15.299999999999999,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 20.7,
+          "max_aspect_ratio": 2.5,
+          "min_area": 15.299999999999999,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 18,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 57.96,
+          "max_aspect_ratio": 2.0,
+          "min_area": 42.84,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 50.4,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 28.979999999999986,
+          "max_aspect_ratio": 2.5,
+          "min_area": 21.41999999999999,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 25.19999999999999,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "original_targets": [
+        [
+          "sales_a",
+          99.0
+        ],
+        [
+          "sales_b",
+          99.0
+        ],
+        [
+          "checkout",
+          14.4
+        ],
+        [
+          "stock",
+          36.0
+        ],
+        [
+          "staff",
+          18.0
+        ],
+        [
+          "restroom",
+          18.0
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          25.19999999999999
+        ]
+      ],
+      "reason": "rear_service_residual_fit"
+    },
+    {
+      "adjusted_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 79.488,
+          "max_aspect_ratio": 6.5,
+          "min_area": 58.752,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 69.12,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 79.488,
+          "max_aspect_ratio": 6.5,
+          "min_area": 58.752,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 69.12,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 14.850581,
+          "max_aspect_ratio": 6.5,
+          "min_area": 10.976516,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 12.913548,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 37.126452,
+          "max_aspect_ratio": 6.5,
+          "min_area": 27.44129,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 32.283871,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 18.563226,
+          "max_aspect_ratio": 6.5,
+          "min_area": 13.720645,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 16.141935,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 18.563226,
+          "max_aspect_ratio": 6.5,
+          "min_area": 13.720645,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 16.141935,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 57.96,
+          "max_aspect_ratio": 2.0,
+          "min_area": 42.84,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 50.4,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 25.988516,
+          "max_aspect_ratio": 6.5,
+          "min_area": 19.208903,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 22.59871,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "adjusted_targets": [
+        [
+          "sales_a",
+          69.12
+        ],
+        [
+          "sales_b",
+          69.12
+        ],
+        [
+          "checkout",
+          12.913548
+        ],
+        [
+          "stock",
+          32.283871
+        ],
+        [
+          "staff",
+          16.141935
+        ],
+        [
+          "restroom",
+          16.141935
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          22.59871
+        ]
+      ],
+      "original_nodes": [
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_a",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": true,
+          "max_area": 113.85,
+          "max_aspect_ratio": 3.0,
+          "min_area": 84.15,
+          "min_width": 4.0,
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 99.0,
+          "tenant_id": "tenant_b",
+          "zone": "frontage"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 14.850581,
+          "max_aspect_ratio": 3.0,
+          "min_area": 10.976516,
+          "min_width": 2.4,
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 12.913548,
+          "tenant_id": null,
+          "zone": "public"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 37.126452,
+          "max_aspect_ratio": 2.5,
+          "min_area": 27.44129,
+          "min_width": 2.4,
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 32.283871,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 18.563226,
+          "max_aspect_ratio": 2.0,
+          "min_area": 13.720645,
+          "min_width": 2.4,
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 16.141935,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 18.563226,
+          "max_aspect_ratio": 2.5,
+          "min_area": 13.720645,
+          "min_width": 1.8,
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 16.141935,
+          "tenant_id": null,
+          "zone": "service"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 57.96,
+          "max_aspect_ratio": 2.0,
+          "min_area": 42.84,
+          "min_width": 3.0,
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 50.4,
+          "tenant_id": null,
+          "zone": "core"
+        },
+        {
+          "frontage_required": false,
+          "max_area": 25.988516,
+          "max_aspect_ratio": 2.5,
+          "min_area": 19.208903,
+          "min_width": 1.5,
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 22.59871,
+          "tenant_id": null,
+          "zone": "service"
+        }
+      ],
+      "original_targets": [
+        [
+          "sales_a",
+          99.0
+        ],
+        [
+          "sales_b",
+          99.0
+        ],
+        [
+          "checkout",
+          12.913548
+        ],
+        [
+          "stock",
+          32.283871
+        ],
+        [
+          "staff",
+          16.141935
+        ],
+        [
+          "restroom",
+          16.141935
+        ],
+        [
+          "core",
+          50.4
+        ],
+        [
+          "utility",
+          22.59871
+        ]
+      ],
+      "reason": "rear_tenant_fit"
+    }
+  ],
+  "program_source": "building_aligned_prior:rear_service_residual_fit:rear_tenant_fit",
+  "project_id": "sample-office-commercial",
+  "regulatory_screening": {
+    "analysis_as_of_date": null,
+    "checks": [
+      {
+        "applicability": null,
+        "assumptions": [
+          "no typed code context was supplied for this floor",
+          "supported KR jurisdiction and analysis date are required",
+          "generated stair count is informational and separate from verified direct-stair count"
+        ],
+        "effective_date": "2026-02-27",
+        "measured_value": null,
+        "rule_id": "KR-EGRESS-DIRECT-STAIR-COUNT-ART34",
+        "source_effective_date": "2026-02-27",
+        "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+        "status": "not_checked",
+        "threshold": null
+      },
+      {
+        "applicability": null,
+        "assumptions": [
+          "direct-stair applicability is unresolved"
+        ],
+        "effective_date": "2025-10-31",
+        "measured_value": 20.700000000000003,
+        "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
+        "source_effective_date": "2025-10-31",
+        "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
+        "status": "not_checked",
+        "threshold": null
+      },
+      {
+        "applicability": null,
+        "assumptions": [
+          "governing traversable farthest-point route is unresolved",
+          "travel-limit classification unknown; conservative internal 30 m target"
+        ],
+        "effective_date": "2026-02-27",
+        "measured_value": null,
+        "rule_id": "KR-EGRESS-TRAVEL-DISTANCE-ART34",
+        "source_effective_date": "2026-02-27",
+        "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+        "status": "not_checked",
+        "threshold": 30.0
+      }
+    ],
+    "exit_separation_evidence": {
+      "connected_passage_verified": true,
+      "exit_portal_ids": [
+        "protected-exit-1",
+        "protected-exit-2"
+      ],
+      "measurement_method": "nearest-doorway-segment-distance",
+      "nearest_doorway_segment_distance_m": 20.700000000000003
+    },
+    "floor_index": 1,
+    "generated_direct_stair_count": 2,
+    "ruleset_id": "KR-egress-art34-20260227-art8-20251031",
+    "screened_required_direct_stair_count": null,
+    "status": "not_checked",
+    "unresolved_facts": [
+      "jurisdiction",
+      "effective_date",
+      "floor_code_context",
+      "travel_limit_classification",
+      "measured_travel_distance"
+    ],
+    "verified_direct_stair_count": null
+  },
+  "render_evidence": {
+    "missing": {
+      "png": {},
+      "svg": {}
+    },
+    "modeled": {
+      "circulation": {
+        "circulation": [
+          "corridor-branch",
+          "corridor-spine"
+        ]
+      },
+      "core": {
+        "elevator": [
+          "core-elevator"
+        ],
+        "lobby": [
+          "core-lobby"
+        ],
+        "shaft": [
+          "core-shaft"
+        ],
+        "stair": [
+          "core-stair-1",
+          "remote-stair-2"
+        ]
+      },
+      "dimensions": {
+        "circulation_width": [
+          "dimension-circulation-width"
+        ],
+        "north_arrow": [
+          "north-arrow"
+        ],
+        "overall_depth": [
+          "dimension-overall-depth"
+        ],
+        "overall_width": [
+          "dimension-overall-width"
+        ],
+        "scale_line": [
+          "scale-line"
+        ],
+        "street": [
+          "street-line"
+        ]
+      },
+      "door-openings": {
+        "door-opening": [
+          "checkout-door",
+          "core-door",
+          "restroom-door",
+          "sales_a-door",
+          "sales_b-door",
+          "staff-door",
+          "stock-door",
+          "utility-door"
+        ],
+        "protected_exit": [
+          "protected-exit-1",
+          "protected-exit-2"
+        ]
+      },
+      "egress": {
+        "egress_route": [
+          "checkout-route-1",
+          "checkout-route-2",
+          "restroom-route-1",
+          "restroom-route-2",
+          "sales_a-route-1",
+          "sales_a-route-2",
+          "sales_b-route-1",
+          "sales_b-route-2",
+          "staff-route-1",
+          "staff-route-2",
+          "stock-route-1",
+          "stock-route-2",
+          "utility-route-1",
+          "utility-route-2"
+        ],
+        "lobby_route": [
+          "core-lobby-route-1"
+        ],
+        "stair_door": [
+          "core-stair-door-1"
+        ]
+      },
+      "envelope": {
+        "entrance": [
+          "core-public-entrance",
+          "sales_a-commercial-entrance",
+          "sales_b-commercial-entrance"
+        ],
+        "window": [
+          "restroom-window",
+          "sales_a-window",
+          "sales_b-window",
+          "staff-window",
+          "stock-window",
+          "utility-window"
+        ]
+      },
+      "fixtures": {
+        "lavatory": [
+          "restroom-lavatory-1"
+        ],
+        "utility_equipment": [
+          "utility-utility_equipment-1"
+        ],
+        "wc": [
+          "restroom-wc-1"
+        ]
+      },
+      "furniture": {
+        "checkout_counter": [
+          "checkout-checkout_counter-1"
+        ],
+        "sales_shelf": [
+          "sales_a-sales_shelf-1",
+          "sales_a-sales_shelf-2",
+          "sales_a-sales_shelf-3",
+          "sales_b-sales_shelf-4",
+          "sales_b-sales_shelf-5",
+          "sales_b-sales_shelf-6"
+        ],
+        "staff_table": [
+          "staff-staff_table-1"
+        ],
+        "stock_rack": [
+          "stock-stock_rack-1",
+          "stock-stock_rack-2"
+        ]
+      },
+      "grid": {
+        "grid": [
+          "grid-x-0",
+          "grid-x-1",
+          "grid-x-2",
+          "grid-x-3",
+          "grid-x-4",
+          "grid-x-5",
+          "grid-y-0",
+          "grid-y-1",
+          "grid-y-2"
+        ]
+      },
+      "rooms": {
+        "boundary": [
+          "floor-boundary"
+        ],
+        "room": [
+          "checkout",
+          "core",
+          "restroom",
+          "sales_a",
+          "sales_b",
+          "staff",
+          "stock",
+          "utility"
+        ]
+      },
+      "structure": {
+        "column": [
+          "column-1",
+          "column-2",
+          "column-3",
+          "column-4",
+          "column-5",
+          "column-6",
+          "column-7",
+          "column-8"
+        ]
+      },
+      "text-labels": {
+        "circulation": [
+          "corridor-branch-label"
+        ],
+        "core-label": [
+          "core-elevator-label",
+          "core-lobby-label",
+          "core-shaft-label",
+          "core-stair-1-label",
+          "remote-stair-2-label"
+        ],
+        "door-width": [
+          "checkout-door-width-label",
+          "core-door-width-label",
+          "restroom-door-width-label",
+          "sales_a-door-width-label",
+          "sales_b-door-width-label",
+          "staff-door-width-label",
+          "stock-door-width-label",
+          "utility-door-width-label"
+        ],
+        "room-label": [
+          "checkout-label",
+          "core-label",
+          "restroom-label",
+          "sales_a-label",
+          "sales_b-label",
+          "staff-label",
+          "stock-label",
+          "utility-label"
+        ]
+      }
+    },
+    "png": {
+      "circulation": {
+        "circulation": [
+          "corridor-branch",
+          "corridor-spine"
+        ]
+      },
+      "core": {
+        "elevator": [
+          "core-elevator"
+        ],
+        "lobby": [
+          "core-lobby"
+        ],
+        "shaft": [
+          "core-shaft"
+        ],
+        "stair": [
+          "core-stair-1",
+          "remote-stair-2"
+        ]
+      },
+      "dimensions": {
+        "circulation_width": [
+          "dimension-circulation-width"
+        ],
+        "north_arrow": [
+          "north-arrow"
+        ],
+        "overall_depth": [
+          "dimension-overall-depth"
+        ],
+        "overall_width": [
+          "dimension-overall-width"
+        ],
+        "scale_line": [
+          "scale-line"
+        ],
+        "street": [
+          "street-line"
+        ]
+      },
+      "door-openings": {
+        "door-opening": [
+          "checkout-door",
+          "core-door",
+          "restroom-door",
+          "sales_a-door",
+          "sales_b-door",
+          "staff-door",
+          "stock-door",
+          "utility-door"
+        ],
+        "protected_exit": [
+          "protected-exit-1",
+          "protected-exit-2"
+        ]
+      },
+      "egress": {
+        "egress_route": [
+          "checkout-route-1",
+          "checkout-route-2",
+          "restroom-route-1",
+          "restroom-route-2",
+          "sales_a-route-1",
+          "sales_a-route-2",
+          "sales_b-route-1",
+          "sales_b-route-2",
+          "staff-route-1",
+          "staff-route-2",
+          "stock-route-1",
+          "stock-route-2",
+          "utility-route-1",
+          "utility-route-2"
+        ],
+        "lobby_route": [
+          "core-lobby-route-1"
+        ],
+        "stair_door": [
+          "core-stair-door-1"
+        ]
+      },
+      "envelope": {
+        "entrance": [
+          "core-public-entrance",
+          "sales_a-commercial-entrance",
+          "sales_b-commercial-entrance"
+        ],
+        "window": [
+          "restroom-window",
+          "sales_a-window",
+          "sales_b-window",
+          "staff-window",
+          "stock-window",
+          "utility-window"
+        ]
+      },
+      "fixtures": {
+        "lavatory": [
+          "restroom-lavatory-1"
+        ],
+        "utility_equipment": [
+          "utility-utility_equipment-1"
+        ],
+        "wc": [
+          "restroom-wc-1"
+        ]
+      },
+      "furniture": {
+        "checkout_counter": [
+          "checkout-checkout_counter-1"
+        ],
+        "sales_shelf": [
+          "sales_a-sales_shelf-1",
+          "sales_a-sales_shelf-2",
+          "sales_a-sales_shelf-3",
+          "sales_b-sales_shelf-4",
+          "sales_b-sales_shelf-5",
+          "sales_b-sales_shelf-6"
+        ],
+        "staff_table": [
+          "staff-staff_table-1"
+        ],
+        "stock_rack": [
+          "stock-stock_rack-1",
+          "stock-stock_rack-2"
+        ]
+      },
+      "grid": {
+        "grid": [
+          "grid-x-0",
+          "grid-x-1",
+          "grid-x-2",
+          "grid-x-3",
+          "grid-x-4",
+          "grid-x-5",
+          "grid-y-0",
+          "grid-y-1",
+          "grid-y-2"
+        ]
+      },
+      "rooms": {
+        "boundary": [
+          "floor-boundary"
+        ],
+        "room": [
+          "checkout",
+          "core",
+          "restroom",
+          "sales_a",
+          "sales_b",
+          "staff",
+          "stock",
+          "utility"
+        ]
+      },
+      "structure": {
+        "column": [
+          "column-1",
+          "column-2",
+          "column-3",
+          "column-4",
+          "column-5",
+          "column-6",
+          "column-7",
+          "column-8"
+        ]
+      },
+      "text-labels": {
+        "circulation": [
+          "corridor-branch-label"
+        ],
+        "core-label": [
+          "core-elevator-label",
+          "core-lobby-label",
+          "core-shaft-label",
+          "core-stair-1-label",
+          "remote-stair-2-label"
+        ],
+        "door-width": [
+          "checkout-door-width-label",
+          "core-door-width-label",
+          "restroom-door-width-label",
+          "sales_a-door-width-label",
+          "sales_b-door-width-label",
+          "staff-door-width-label",
+          "stock-door-width-label",
+          "utility-door-width-label"
+        ],
+        "room-label": [
+          "checkout-label",
+          "core-label",
+          "restroom-label",
+          "sales_a-label",
+          "sales_b-label",
+          "staff-label",
+          "stock-label",
+          "utility-label"
+        ]
+      }
+    },
+    "skipped": {
+      "png": [],
+      "svg": []
+    },
+    "svg": {
+      "circulation": {
+        "circulation": [
+          "corridor-branch",
+          "corridor-spine"
+        ]
+      },
+      "core": {
+        "elevator": [
+          "core-elevator"
+        ],
+        "lobby": [
+          "core-lobby"
+        ],
+        "shaft": [
+          "core-shaft"
+        ],
+        "stair": [
+          "core-stair-1",
+          "remote-stair-2"
+        ]
+      },
+      "dimensions": {
+        "circulation_width": [
+          "dimension-circulation-width"
+        ],
+        "north_arrow": [
+          "north-arrow"
+        ],
+        "overall_depth": [
+          "dimension-overall-depth"
+        ],
+        "overall_width": [
+          "dimension-overall-width"
+        ],
+        "scale_line": [
+          "scale-line"
+        ],
+        "street": [
+          "street-line"
+        ]
+      },
+      "door-openings": {
+        "door-opening": [
+          "checkout-door",
+          "core-door",
+          "restroom-door",
+          "sales_a-door",
+          "sales_b-door",
+          "staff-door",
+          "stock-door",
+          "utility-door"
+        ],
+        "protected_exit": [
+          "protected-exit-1",
+          "protected-exit-2"
+        ]
+      },
+      "egress": {
+        "egress_route": [
+          "checkout-route-1",
+          "checkout-route-2",
+          "restroom-route-1",
+          "restroom-route-2",
+          "sales_a-route-1",
+          "sales_a-route-2",
+          "sales_b-route-1",
+          "sales_b-route-2",
+          "staff-route-1",
+          "staff-route-2",
+          "stock-route-1",
+          "stock-route-2",
+          "utility-route-1",
+          "utility-route-2"
+        ],
+        "lobby_route": [
+          "core-lobby-route-1"
+        ],
+        "stair_door": [
+          "core-stair-door-1"
+        ]
+      },
+      "envelope": {
+        "entrance": [
+          "core-public-entrance",
+          "sales_a-commercial-entrance",
+          "sales_b-commercial-entrance"
+        ],
+        "window": [
+          "restroom-window",
+          "sales_a-window",
+          "sales_b-window",
+          "staff-window",
+          "stock-window",
+          "utility-window"
+        ]
+      },
+      "fixtures": {
+        "lavatory": [
+          "restroom-lavatory-1"
+        ],
+        "utility_equipment": [
+          "utility-utility_equipment-1"
+        ],
+        "wc": [
+          "restroom-wc-1"
+        ]
+      },
+      "furniture": {
+        "checkout_counter": [
+          "checkout-checkout_counter-1"
+        ],
+        "sales_shelf": [
+          "sales_a-sales_shelf-1",
+          "sales_a-sales_shelf-2",
+          "sales_a-sales_shelf-3",
+          "sales_b-sales_shelf-4",
+          "sales_b-sales_shelf-5",
+          "sales_b-sales_shelf-6"
+        ],
+        "staff_table": [
+          "staff-staff_table-1"
+        ],
+        "stock_rack": [
+          "stock-stock_rack-1",
+          "stock-stock_rack-2"
+        ]
+      },
+      "grid": {
+        "grid": [
+          "grid-x-0",
+          "grid-x-1",
+          "grid-x-2",
+          "grid-x-3",
+          "grid-x-4",
+          "grid-x-5",
+          "grid-y-0",
+          "grid-y-1",
+          "grid-y-2"
+        ]
+      },
+      "rooms": {
+        "boundary": [
+          "floor-boundary"
+        ],
+        "room": [
+          "checkout",
+          "core",
+          "restroom",
+          "sales_a",
+          "sales_b",
+          "staff",
+          "stock",
+          "utility"
+        ]
+      },
+      "structure": {
+        "column": [
+          "column-1",
+          "column-2",
+          "column-3",
+          "column-4",
+          "column-5",
+          "column-6",
+          "column-7",
+          "column-8"
+        ]
+      },
+      "text-labels": {
+        "circulation": [
+          "corridor-branch-label"
+        ],
+        "core-label": [
+          "core-elevator-label",
+          "core-lobby-label",
+          "core-shaft-label",
+          "core-stair-1-label",
+          "remote-stair-2-label"
+        ],
+        "door-width": [
+          "checkout-door-width-label",
+          "core-door-width-label",
+          "restroom-door-width-label",
+          "sales_a-door-width-label",
+          "sales_b-door-width-label",
+          "staff-door-width-label",
+          "stock-door-width-label",
+          "utility-door-width-label"
+        ],
+        "room-label": [
+          "checkout-label",
+          "core-label",
+          "restroom-label",
+          "sales_a-label",
+          "sales_b-label",
+          "staff-label",
+          "stock-label",
+          "utility-label"
+        ]
+      }
+    }
+  },
+  "render_style": "review",
+  "render_validation": {
+    "missing_basic_design_ids": [],
+    "status": "pass",
+    "unresolved_label_collision_count": 0
+  },
+  "review_level": "concept-basic",
+  "room_areas": [
+    {
+      "actual_area": 69.12,
+      "max_area": 79.488,
+      "min_area": 58.752,
+      "room_id": "sales_a",
+      "target_area": 69.12,
+      "within_range": true
+    },
+    {
+      "actual_area": 69.12,
+      "max_area": 79.488,
+      "min_area": 58.752,
+      "room_id": "sales_b",
+      "target_area": 69.12,
+      "within_range": true
+    },
+    {
+      "actual_area": 12.913548,
+      "max_area": 14.850581,
+      "min_area": 10.976516,
+      "room_id": "checkout",
+      "target_area": 12.913548,
+      "within_range": true
+    },
+    {
+      "actual_area": 31.594578,
+      "max_area": 37.126452,
+      "min_area": 27.44129,
+      "room_id": "stock",
+      "target_area": 32.283871,
+      "within_range": true
+    },
+    {
+      "actual_area": 16.074798,
+      "max_area": 18.563226,
+      "min_area": 13.720645,
+      "room_id": "staff",
+      "target_area": 16.141935,
+      "within_range": true
+    },
+    {
+      "actual_area": 15.936041999999993,
+      "max_area": 18.563226,
+      "min_area": 13.720645,
+      "room_id": "restroom",
+      "target_area": 16.141935,
+      "within_range": true
+    },
+    {
+      "actual_area": 50.39999999999999,
+      "max_area": 57.96,
+      "min_area": 42.84,
+      "room_id": "core",
+      "target_area": 50.4,
+      "within_range": true
+    },
+    {
+      "actual_area": 22.074582000000014,
+      "max_area": 25.988516,
+      "min_area": 19.208903,
+      "room_id": "utility",
+      "target_area": 22.59871,
+      "within_range": true
+    }
+  ],
+  "room_shapes": [
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 3.0,
+      "measured_min_width": 4.8,
+      "minimum_width_passed": true,
+      "required_min_width": 4.0,
+      "room_id": "sales_a"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 3.0,
+      "measured_min_width": 4.8,
+      "minimum_width_passed": true,
+      "required_min_width": 4.0,
+      "room_id": "sales_b"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 2.2419354166666663,
+      "measured_min_width": 2.4000000000000004,
+      "minimum_width_passed": true,
+      "required_min_width": 2.4,
+      "room_id": "checkout"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 1.139436013356469,
+      "measured_min_width": 5.265763,
+      "minimum_width_passed": true,
+      "required_min_width": 2.4,
+      "room_id": "stock"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 2.2395304749708207,
+      "measured_min_width": 2.679133,
+      "minimum_width_passed": true,
+      "required_min_width": 2.4,
+      "room_id": "staff"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 2.259030190808986,
+      "measured_min_width": 2.656006999999999,
+      "minimum_width_passed": true,
+      "required_min_width": 1.8,
+      "room_id": "restroom"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 2.0,
+      "measured_aspect_ratio": 1.3999999999999997,
+      "measured_min_width": 6.0,
+      "minimum_width_passed": true,
+      "required_min_width": 3.0,
+      "room_id": "core"
+    },
+    {
+      "aspect_ratio_passed": true,
+      "maximum_aspect_ratio": 6.5,
+      "measured_aspect_ratio": 1.630834957599649,
+      "measured_min_width": 3.6790970000000023,
+      "minimum_width_passed": true,
+      "required_min_width": 1.5,
+      "room_id": "utility"
+    }
+  ],
+  "schema_version": 1,
+  "scores": {
+    "adjacency_score": 0.5556,
+    "area_score": 0.9923,
+    "boundary_score": 1.0,
+    "circulation_score": 1.0,
+    "compactness_score": 0.6841,
+    "coverage_score": 0.9139,
+    "efficiency_score": 0.9162,
+    "frontage_score": 1.0,
+    "overlap_score": 1.0,
+    "total_score": 0.8958,
+    "violation_score": 0.0
+  },
+  "stair_evidence": [
+    {
+      "element_id": "core-stair-1",
+      "headroom_status": "not_checked",
+      "height_provenance": "concept-default",
+      "stair_geometry": {
+        "clear_width_m": 1.2,
+        "enclosure_footprint": [
+          [
+            21.6,
+            7.08
+          ],
+          [
+            24.400000000000002,
+            7.08
+          ],
+          [
+            24.400000000000002,
+            12.0
+          ],
+          [
+            21.6,
+            12.0
+          ]
+        ],
+        "flights": [
+          {
+            "direction": "+y",
+            "end_elevation_m": 1.8,
+            "flight_index": 1,
+            "footprint": [
+              [
+                21.6,
+                8.28
+              ],
+              [
+                22.8,
+                8.28
+              ],
+              [
+                22.8,
+                10.8
+              ],
+              [
+                21.6,
+                10.8
+              ]
+            ],
+            "riser_count": 10,
+            "start_elevation_m": 0.0,
+            "tread_count": 9
+          },
+          {
+            "direction": "-y",
+            "end_elevation_m": 3.6,
+            "flight_index": 2,
+            "footprint": [
+              [
+                23.0,
+                8.28
+              ],
+              [
+                24.200000000000003,
+                8.28
+              ],
+              [
+                24.200000000000003,
+                10.8
+              ],
+              [
+                23.0,
+                10.8
+              ]
+            ],
+            "riser_count": 10,
+            "start_elevation_m": 1.8,
+            "tread_count": 9
+          }
+        ],
+        "floor_to_floor_height_m": 3.6,
+        "headroom_m": null,
+        "headroom_status": "not_checked",
+        "height_source": "concept-default",
+        "landings": [
+          {
+            "elevation_m": 0.0,
+            "footprint": [
+              [
+                21.6,
+                7.08
+              ],
+              [
+                24.400000000000002,
+                7.08
+              ],
+              [
+                24.400000000000002,
+                8.28
+              ],
+              [
+                21.6,
+                8.28
+              ]
+            ],
+            "landing_index": 1,
+            "role": "floor_lower"
+          },
+          {
+            "elevation_m": 1.8,
+            "footprint": [
+              [
+                21.6,
+                10.8
+              ],
+              [
+                24.400000000000002,
+                10.8
+              ],
+              [
+                24.400000000000002,
+                12.0
+              ],
+              [
+                21.6,
+                12.0
+              ]
+            ],
+            "landing_index": 2,
+            "role": "intermediate"
+          },
+          {
+            "elevation_m": 3.6,
+            "footprint": [
+              [
+                21.6,
+                7.08
+              ],
+              [
+                24.400000000000002,
+                7.08
+              ],
+              [
+                24.400000000000002,
+                8.28
+              ],
+              [
+                21.6,
+                8.28
+              ]
+            ],
+            "landing_index": 3,
+            "role": "floor_upper"
+          }
+        ],
+        "required_enclosure_length_m": 4.92,
+        "required_enclosure_width_m": 2.8,
+        "riser_count": 20,
+        "riser_height_m": 0.18,
+        "tread_depth_m": 0.28
+      }
+    },
+    {
+      "element_id": "remote-stair-2",
+      "headroom_status": "not_checked",
+      "height_provenance": "concept-default",
+      "stair_geometry": {
+        "clear_width_m": 1.2,
+        "enclosure_footprint": [
+          [
+            0.0,
+            6.0
+          ],
+          [
+            0.0,
+            8.8
+          ],
+          [
+            4.92,
+            8.8
+          ],
+          [
+            4.92,
+            6.0
+          ]
+        ],
+        "flights": [
+          {
+            "direction": "+x",
+            "end_elevation_m": 1.8,
+            "flight_index": 1,
+            "footprint": [
+              [
+                1.2,
+                6.0
+              ],
+              [
+                1.2,
+                7.2
+              ],
+              [
+                3.7200000000000006,
+                7.2
+              ],
+              [
+                3.7200000000000006,
+                6.0
+              ]
+            ],
+            "riser_count": 10,
+            "start_elevation_m": 0.0,
+            "tread_count": 9
+          },
+          {
+            "direction": "-x",
+            "end_elevation_m": 3.6,
+            "flight_index": 2,
+            "footprint": [
+              [
+                1.1999999999999993,
+                7.4
+              ],
+              [
+                1.1999999999999993,
+                8.6
+              ],
+              [
+                3.7199999999999998,
+                8.6
+              ],
+              [
+                3.7199999999999998,
+                7.4
+              ]
+            ],
+            "riser_count": 10,
+            "start_elevation_m": 1.8,
+            "tread_count": 9
+          }
+        ],
+        "floor_to_floor_height_m": 3.6,
+        "headroom_m": null,
+        "headroom_status": "not_checked",
+        "height_source": "concept-default",
+        "landings": [
+          {
+            "elevation_m": 0.0,
+            "footprint": [
+              [
+                0.0,
+                6.0
+              ],
+              [
+                0.0,
+                8.8
+              ],
+              [
+                1.2,
+                8.8
+              ],
+              [
+                1.2,
+                6.0
+              ]
+            ],
+            "landing_index": 1,
+            "role": "floor_lower"
+          },
+          {
+            "elevation_m": 1.8,
+            "footprint": [
+              [
+                3.7199999999999998,
+                6.0
+              ],
+              [
+                3.7199999999999998,
+                8.8
+              ],
+              [
+                4.92,
+                8.8
+              ],
+              [
+                4.92,
+                6.0
+              ]
+            ],
+            "landing_index": 2,
+            "role": "intermediate"
+          },
+          {
+            "elevation_m": 3.6,
+            "footprint": [
+              [
+                0.0,
+                6.0
+              ],
+              [
+                0.0,
+                8.8
+              ],
+              [
+                1.2,
+                8.8
+              ],
+              [
+                1.2,
+                6.0
+              ]
+            ],
+            "landing_index": 3,
+            "role": "floor_upper"
+          }
+        ],
+        "required_enclosure_length_m": 4.92,
+        "required_enclosure_width_m": 2.8,
+        "riser_count": 20,
+        "riser_height_m": 0.18,
+        "tread_depth_m": 0.28
+      }
+    }
+  ],
+  "status_footer": {
+    "png": "unavailable",
+    "png_output_size": [
+      960,
+      540
+    ],
+    "svg": "rendered",
+    "svg_output_size": [
+      960,
+      570
+    ],
+    "text": "internal=pass  render=pass  regulatory=not_checked"
+  },
+  "total_score_delta": null,
+  "use_type": "neighborhood_commercial",
+  "validation": {
+    "accepted": true,
+    "adjacency_score": 0.5556,
+    "area_score": 0.9923,
+    "basic_design": {
+      "column_count": 8,
+      "dimension_count": 3,
+      "elevator_count": 1,
+      "entrance_count": 3,
+      "exit_count": 2,
+      "exit_doorway_separation": 20.700000000000003,
+      "exit_separation": 21.6,
+      "fixture_count": 3,
+      "furniture_count": 10,
+      "grid_line_count": 9,
+      "lobby_count": 1,
+      "max_riser_height": 0.18,
+      "min_exit_width": 0.9,
+      "min_landing_depth": 1.1999999999999993,
+      "min_object_clearance": 0.7158910531638176,
+      "min_riser_height": 0.18,
+      "min_routes_per_room": 2,
+      "min_stair_clear_width": 1.2,
+      "min_tread_depth": 0.28,
+      "missing_required_kinds": [],
+      "modeled_stair_count": 2,
+      "object_clearance_violation_count": 0,
+      "policy_checks": {
+        "common_core_access": {
+          "pass": true,
+          "reason": "independent public-circulation entrance with connected topology to a protected common-core exit",
+          "threshold": 1,
+          "value": 1
+        },
+        "remote_exit_separation": {
+          "pass": true,
+          "reason": "passes internal concept separation target",
+          "threshold": 16.15549442140351,
+          "value": 21.6
+        },
+        "tenant_count": {
+          "pass": true,
+          "reason": "unique ProgramNode.tenant_id count",
+          "threshold": 2,
+          "value": 2
+        },
+        "tenant_fixture_density": {
+          "pass": true,
+          "reason": "minimum per-tenant actual/required sales-fixture ratio",
+          "threshold": 1.0,
+          "value": 1.0
+        },
+        "tenant_independent_access": {
+          "pass": true,
+          "reason": "tenants with unique entrance and supplied-street frontage",
+          "threshold": 2,
+          "value": 2
+        }
+      },
+      "policy_version": "concept-basic-v1",
+      "route_count": 14,
+      "shaft_count": 1,
+      "stair_count": 2,
+      "stair_headroom_statuses": [
+        "not_checked"
+      ],
+      "stair_height_sources": [
+        "concept-default"
+      ],
+      "verified_protected_exit_ids": [
+        "protected-exit-1",
+        "protected-exit-2"
+      ],
+      "window_count": 6
+    },
+    "basic_design_checked": true,
+    "boundary_score": 1.0,
+    "circulation_score": 1.0,
+    "compactness_score": 0.6841,
+    "corridor_width_checked": true,
+    "coverage_score": 0.9139,
+    "efficiency_score": 0.9162,
+    "frontage_score": 1.0,
+    "hard_violation_count": 0,
+    "is_valid": true,
+    "messages": [],
+    "openings_checked": true,
+    "overlap_score": 1.0,
+    "policy_version": "exact-v1",
+    "regulatory_screening": {
+      "analysis_as_of_date": null,
+      "checks": [
+        {
+          "applicability": null,
+          "assumptions": [
+            "no typed code context was supplied for this floor",
+            "supported KR jurisdiction and analysis date are required",
+            "generated stair count is informational and separate from verified direct-stair count"
+          ],
+          "effective_date": "2026-02-27",
+          "measured_value": null,
+          "rule_id": "KR-EGRESS-DIRECT-STAIR-COUNT-ART34",
+          "source_effective_date": "2026-02-27",
+          "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+          "status": "not_checked",
+          "threshold": null
+        },
+        {
+          "applicability": null,
+          "assumptions": [
+            "direct-stair applicability is unresolved"
+          ],
+          "effective_date": "2025-10-31",
+          "measured_value": 20.700000000000003,
+          "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
+          "source_effective_date": "2025-10-31",
+          "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
+          "status": "not_checked",
+          "threshold": null
+        },
+        {
+          "applicability": null,
+          "assumptions": [
+            "governing traversable farthest-point route is unresolved",
+            "travel-limit classification unknown; conservative internal 30 m target"
+          ],
+          "effective_date": "2026-02-27",
+          "measured_value": null,
+          "rule_id": "KR-EGRESS-TRAVEL-DISTANCE-ART34",
+          "source_effective_date": "2026-02-27",
+          "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+          "status": "not_checked",
+          "threshold": 30.0
+        }
+      ],
+      "exit_separation_evidence": {
+        "connected_passage_verified": true,
+        "exit_portal_ids": [
+          "protected-exit-1",
+          "protected-exit-2"
+        ],
+        "measurement_method": "nearest-doorway-segment-distance",
+        "nearest_doorway_segment_distance_m": 20.700000000000003
+      },
+      "floor_index": 1,
+      "generated_direct_stair_count": 2,
+      "ruleset_id": "KR-egress-art34-20260227-art8-20251031",
+      "screened_required_direct_stair_count": null,
+      "status": "not_checked",
+      "unresolved_facts": [
+        "jurisdiction",
+        "effective_date",
+        "floor_code_context",
+        "travel_limit_classification",
+        "measured_travel_distance"
+      ],
+      "verified_direct_stair_count": null
+    },
+    "room_areas": [
+      {
+        "actual_area": 69.12,
+        "max_area": 79.488,
+        "min_area": 58.752,
+        "room_id": "sales_a",
+        "target_area": 69.12,
+        "within_range": true
+      },
+      {
+        "actual_area": 69.12,
+        "max_area": 79.488,
+        "min_area": 58.752,
+        "room_id": "sales_b",
+        "target_area": 69.12,
+        "within_range": true
+      },
+      {
+        "actual_area": 12.913548,
+        "max_area": 14.850581,
+        "min_area": 10.976516,
+        "room_id": "checkout",
+        "target_area": 12.913548,
+        "within_range": true
+      },
+      {
+        "actual_area": 31.594578,
+        "max_area": 37.126452,
+        "min_area": 27.44129,
+        "room_id": "stock",
+        "target_area": 32.283871,
+        "within_range": true
+      },
+      {
+        "actual_area": 16.074798,
+        "max_area": 18.563226,
+        "min_area": 13.720645,
+        "room_id": "staff",
+        "target_area": 16.141935,
+        "within_range": true
+      },
+      {
+        "actual_area": 15.936041999999993,
+        "max_area": 18.563226,
+        "min_area": 13.720645,
+        "room_id": "restroom",
+        "target_area": 16.141935,
+        "within_range": true
+      },
+      {
+        "actual_area": 50.39999999999999,
+        "max_area": 57.96,
+        "min_area": 42.84,
+        "room_id": "core",
+        "target_area": 50.4,
+        "within_range": true
+      },
+      {
+        "actual_area": 22.074582000000014,
+        "max_area": 25.988516,
+        "min_area": 19.208903,
+        "room_id": "utility",
+        "target_area": 22.59871,
+        "within_range": true
+      }
+    ],
+    "room_shapes": [
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 3.0,
+        "measured_min_width": 4.8,
+        "minimum_width_passed": true,
+        "required_min_width": 4.0,
+        "room_id": "sales_a"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 3.0,
+        "measured_min_width": 4.8,
+        "minimum_width_passed": true,
+        "required_min_width": 4.0,
+        "room_id": "sales_b"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 2.2419354166666663,
+        "measured_min_width": 2.4000000000000004,
+        "minimum_width_passed": true,
+        "required_min_width": 2.4,
+        "room_id": "checkout"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 1.139436013356469,
+        "measured_min_width": 5.265763,
+        "minimum_width_passed": true,
+        "required_min_width": 2.4,
+        "room_id": "stock"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 2.2395304749708207,
+        "measured_min_width": 2.679133,
+        "minimum_width_passed": true,
+        "required_min_width": 2.4,
+        "room_id": "staff"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 2.259030190808986,
+        "measured_min_width": 2.656006999999999,
+        "minimum_width_passed": true,
+        "required_min_width": 1.8,
+        "room_id": "restroom"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 2.0,
+        "measured_aspect_ratio": 1.3999999999999997,
+        "measured_min_width": 6.0,
+        "minimum_width_passed": true,
+        "required_min_width": 3.0,
+        "room_id": "core"
+      },
+      {
+        "aspect_ratio_passed": true,
+        "maximum_aspect_ratio": 6.5,
+        "measured_aspect_ratio": 1.630834957599649,
+        "measured_min_width": 3.6790970000000023,
+        "minimum_width_passed": true,
+        "required_min_width": 1.5,
+        "room_id": "utility"
+      }
+    ],
+    "total_score": 0.8958,
+    "violation_score": 0.0,
+    "violations": []
+  },
+  "violations": []
+}

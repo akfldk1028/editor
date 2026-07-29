@@ -112,7 +112,7 @@ Current execution status:
 | Backend | Status | Current evidence |
 |---|---|---|
 | deterministic | executed | Exact program contract, normalized concept-basic geometry, and revalidation are tested |
-| Graph2Plan | unavailable | The official repository-tracked `Interface/model/model.pth` strictly loads on CPU with 109/109 state keys and 7,646,628 parameters. Extracted RPLAN retrieval data is present, but it is not installed at the repository-relative paths; Django, MATLAB Engine, and the documented MATLAB post-processing runtime are unavailable, and the repository has no project-level license file |
+| Graph2Plan | partial: raw forward executed | The official repository checkpoint and RPLAN retrieval record execute in a bounded CPU worker. The run retains exact consumed tensors, derived raster/box outputs, preview PNG, repository revision/remote/source hash, checkpoint and dataset hashes, and overlap observations. MATLAB `align`/`decorate`, PLAN normalization, and PLAN validation have not run, so no candidate is emitted |
 | HouseDiffusion | unavailable | The local checkpoint strictly loads on CPU with 186/186 state keys and 26,541,330 parameters. No usable RPLAN JSON or processed NPZ dataset is present; required runtime packages are missing, official sampling assumes CUDA, the standalone checkpoint lacks download provenance metadata, and the repository prohibits commercial use of its code and weights |
 | floor-plan RLVR | unavailable | Model/runtime are not configured; there is no deterministic fallback presented as RLVR |
 | MANSION | unavailable | Enforced as downstream multi-floor/3D evaluation only, not a 2D plan generator |
@@ -128,9 +128,14 @@ RPLAN80K residential training, raster and room-box output, and MATLAB-based
 post-processing for overlap/alignment; those domain, runtime, placement, and
 license limits must remain attached to any future benchmark result.
 
-No learned Graph2Plan or HouseDiffusion floorplan output was generated during
-the preflight. Only repository inspection, dataset inventory, hashing, and
-strict CPU checkpoint loading were executed.
+The preflight itself did not generate a learned output. A later isolated
+Graph2Plan benchmark executed the official lower-level `generate=True,
+refine=True` forward path for RPLAN test record 0 and retained the result under
+`docs/paper-conformance/graph2plan-record-0000`. The raw seven-box output has
+seven intersecting pairs in both `predBox` and `refineBox`; it remains labeled
+`RAW_OUTPUT_NOT_VALIDATED`. This is residential RPLAN evidence, not evidence
+that Graph2Plan generates PLAN's commercial or office layouts. HouseDiffusion
+still has no executed sampling result.
 
 ## Limits
 
