@@ -87,6 +87,21 @@ def test_shared_core_supports_rotated_minimum_dimension_elongated_core() -> None
     )
 
 
+def test_shared_core_samples_intermediate_feasible_dimensions() -> None:
+    floor = ((0.0, 0.0), (8.2, 0.0), (8.2, 8.8), (0.0, 8.8))
+
+    candidates = generate_shared_core_candidates(
+        (floor, floor),
+        required_area=72.0,
+        minimum_width=7.6,
+        minimum_depth=5.2,
+    )
+
+    assert candidates
+    assert all(Polygon(floor).covers(Polygon(candidate.polygon)) for candidate in candidates)
+    assert any(_dimensions(candidate.polygon) == (8.2, 8.780488) for candidate in candidates)
+
+
 def test_shared_core_revalidates_returned_decimal_boundary_coordinates() -> None:
     floor = (
         (0.0000004, 0.0),

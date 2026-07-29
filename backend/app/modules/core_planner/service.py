@@ -11,6 +11,7 @@ from backend.app.modules.core_planner.contracts import CoreCandidate
 
 _STRATEGIES = ("central", "notch_adjacent", "long_edge_adjacent")
 _GRID_STEP = 0.25
+_MAX_DIMENSION_SAMPLES = 24
 
 
 def generate_shared_core_candidates(
@@ -37,6 +38,7 @@ def generate_shared_core_candidates(
     rectangles = tuple(
         rectangle
         for width, depth in _dimension_options(
+            common,
             required_area=required_area,
             minimum_width=minimum_width,
             minimum_depth=minimum_depth,
@@ -119,23 +121,56 @@ def _round_up(value: float) -> float:
 
 
 def _dimension_options(
+    common,
     *,
     required_area: float,
     minimum_width: float,
     minimum_depth: float,
 ) -> tuple[tuple[float, float], ...]:
-    balanced_width = max(minimum_width, _round_up(math.sqrt(required_area)))
-    dimension_pairs = (
-        (balanced_width, max(minimum_depth, _round_up(required_area / balanced_width))),
-        (minimum_width, max(minimum_depth, _round_up(required_area / minimum_width))),
-        (max(minimum_width, _round_up(required_area / minimum_depth)), minimum_depth),
-    )
+    min_x, min_y, max_x, max_y = common.bounds
+    available_width = max_x - min_x
+    available_depth = max_y - min_y
     options: list[tuple[float, float]] = []
-    for width, depth in dimension_pairs:
-        for option in ((width, depth), (depth, width)):
-            if option not in options:
-                options.append(option)
+    for horizontal_minimum, vertical_minimum in (
+        (minimum_width, minimum_depth),
+        (minimum_depth, minimum_width),
+    ):
+        for width in _sample_dimension_values(
+            minimum=horizontal_minimum,
+            maximum=available_width,
+            preferred=(
+                math.sqrt(required_area),
+                required_area / available_depth,
+            ),
+        ):
+            depth = max(vertical_minimum, _round_up(required_area / width))
+            if depth <= available_depth + 1e-9:
+                option = (width, depth)
+                if option not in options:
+                    options.append(option)
     return tuple(options)
+
+
+def _sample_dimension_values(
+    *,
+    minimum: float,
+    maximum: float,
+    preferred: tuple[float, ...],
+) -> tuple[float, ...]:
+    if maximum < minimum:
+        return ()
+    values = {minimum, maximum}
+    values.update(value for value in preferred if minimum <= value <= maximum)
+    remaining = _MAX_DIMENSION_SAMPLES - len(values)
+    step_count = int(math.floor((maximum - minimum) / _GRID_STEP))
+    if step_count <= remaining:
+        values.update(minimum + index * _GRID_STEP for index in range(1, step_count + 1))
+    elif remaining > 0:
+        values.update(
+            minimum + (maximum - minimum) * index / (remaining + 1)
+            for index in range(1, remaining + 1)
+        )
+    return tuple(sorted(values))
 
 
 def _strategy_targets(common) -> dict[str, Point]:
