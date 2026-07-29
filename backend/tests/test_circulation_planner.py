@@ -150,6 +150,24 @@ def test_explicit_none_circulation_candidate_preserves_default_layout() -> None:
     assert explicit_none == default
 
 
+def test_none_circulation_candidate_rejects_slightly_non_rectangular_core() -> None:
+    boundary = ((0.0, 0.0), (30.0, 0.0), (30.0, 16.0), (0.0, 16.0))
+    slightly_non_rectangular_core = (
+        (11.0, 4.0),
+        (19.0, 4.0),
+        (19.0, 12.0000000005),
+        (11.0, 12.0),
+    )
+
+    with pytest.raises(ValueError, match="axis-aligned rectangle"):
+        generate_orthogonal_office_layout(
+            boundary,
+            _office_program(boundary),
+            core_polygon=slightly_non_rectangular_core,
+            circulation_candidate=None,
+        )
+
+
 def _office_program(boundary):
     mass = MassInput(
         project_id="circulation-adapter",

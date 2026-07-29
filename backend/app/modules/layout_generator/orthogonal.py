@@ -55,7 +55,12 @@ def generate_orthogonal_office_layout(
     boundary_shape = Polygon(boundary_points)
     core_points = tuple((float(x), float(y)) for x, y in core_polygon)
     core_shape = Polygon(core_points)
-    _validate_rectangular_core(boundary_shape, core_shape, core_points)
+    _validate_rectangular_core(
+        boundary_shape,
+        core_shape,
+        core_points,
+        allow_tolerance=circulation_candidate is not None,
+    )
     core_nodes = [node for node in program.nodes if node.space_type == "core"]
     if len(core_nodes) != 1:
         raise ValueError("orthogonal program requires exactly one core node")
@@ -787,11 +792,18 @@ def _validate_rectangular_core(
     boundary: Polygon,
     core: Polygon,
     points: tuple[Point, ...],
+    *,
+    allow_tolerance: bool = False,
 ) -> None:
     if not core.is_valid or core.area <= _TOLERANCE:
         raise ValueError("core must be a valid positive-area polygon")
     expected = Polygon(_canonical_rectangle(core.bounds))
-    if len(points) != 4 or core.symmetric_difference(expected).area > _TOLERANCE:
+    is_rectangular = (
+        core.symmetric_difference(expected).area <= _TOLERANCE
+        if allow_tolerance
+        else core.equals(expected)
+    )
+    if len(points) != 4 or not is_rectangular:
         raise ValueError("core must be an axis-aligned rectangle")
     if not boundary.covers(core):
         raise ValueError("core must be inside the floor footprint")
