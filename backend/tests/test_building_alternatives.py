@@ -2,6 +2,7 @@ from dataclasses import replace
 import pytest
 import math
 
+import backend.app.modules.generation_loop.service as generation_service
 from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.generation_loop.selector import (
     canonical_building_topology_signature,
@@ -616,6 +617,31 @@ def test_infeasible_mass_reports_conservative_family_rejection(
     rejected = result.rejected_families[0]
     assert rejected.family == "conservative_redundant_two_stair"
     assert any(reason in item for item in rejected.reasons)
+
+
+def test_conservative_family_does_not_swallow_unrelated_strategy_value_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mass = MassInput(
+        project_id="unrelated-family-error",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    def fail_unrelated(*args, **kwargs):
+        raise ValueError("unrelated strategy failure")
+
+    monkeypatch.setattr(
+        generation_service,
+        "_generate_side_mid_building",
+        fail_unrelated,
+    )
+
+    with pytest.raises(ValueError, match="unrelated strategy failure"):
+        run_building_alternatives(mass)
 
 
 def test_topology_signature_ignores_connects_order_and_tracks_circulation_edges():

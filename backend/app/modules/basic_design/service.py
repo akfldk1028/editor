@@ -34,6 +34,13 @@ _CORE_BANK_DEPTH = 2.4
 _PROTECTED_OPENING_WIDTH = 0.9
 
 
+class ConceptObjectArrangementError(ValueError):
+    def __init__(self, room_id: str, kind: str, message: str) -> None:
+        self.room_id = room_id
+        self.kind = kind
+        super().__init__(message)
+
+
 @dataclass(frozen=True)
 class StructureSet:
     lines: tuple[PlanLine, ...]
@@ -1181,6 +1188,12 @@ def _place_object(
         object_width + 2 * placement_margin > width
         or object_height + 2 * placement_margin > height
     ):
+        if object_size is not None:
+            raise ConceptObjectArrangementError(
+                room.room_id,
+                kind,
+                f"room '{room.room_id}' cannot fit required {kind}",
+            )
         raise ValueError(f"room '{room.room_id}' cannot fit required {kind}")
     y_values = _placement_values(
         min_y + placement_margin,
@@ -1232,10 +1245,12 @@ def _place_object(
                     candidates.append(footprint)
     if not candidates:
         if object_size is not None:
-                raise ValueError(
-                    f"room '{room.room_id}' cannot place concept {kind} "
-                    "arrangement on its regular grid"
-                )
+            raise ConceptObjectArrangementError(
+                room.room_id,
+                kind,
+                f"room '{room.room_id}' cannot place concept {kind} "
+                "arrangement on its regular grid",
+            )
         for y in _search_values(min_y + 0.2, max_y - object_height - 0.2):
             for x in _search_values(min_x + 0.2, max_x - object_width - 0.2):
                 footprint = _rectangle(x, y, x + object_width, y + object_height)

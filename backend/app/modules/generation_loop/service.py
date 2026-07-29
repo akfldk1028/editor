@@ -33,6 +33,7 @@ from backend.app.modules.circulation_planner.service import (
 from backend.app.modules.core_planner.contracts import CoreCandidate
 from backend.app.modules.core_planner.service import core_geometry_fingerprint
 from backend.app.modules.basic_design import (
+    ConceptObjectArrangementError,
     generate_basic_design,
     generate_room_window,
     generate_shared_structure,
@@ -1000,33 +1001,48 @@ def run_building_alternatives(
         )
     conservative = []
     for alternative_id, strategy, transform in _ALTERNATIVE_STRATEGIES:
-        if transform == "identity":
-            building = baseline
-        elif transform == "rear-right":
-            building = _generate_positioned_building(
-                baseline,
-                mass=mass,
-                generator=lambda analysis, program: generate_rear_center_layout(
-                    analysis,
-                    program,
-                    core_position="rear_right",
-                    floor_to_floor_height_m=(
-                        mass.building_code_context.floor_to_floor_height_m
-                        if mass.building_code_context is not None
-                        else None
+        try:
+            if transform == "identity":
+                building = baseline
+            elif transform == "rear-right":
+                building = _generate_positioned_building(
+                    baseline,
+                    mass=mass,
+                    generator=lambda analysis, program: generate_rear_center_layout(
+                        analysis,
+                        program,
+                        core_position="rear_right",
+                        floor_to_floor_height_m=(
+                            mass.building_code_context.floor_to_floor_height_m
+                            if mass.building_code_context is not None
+                            else None
+                        ),
+                    ),
+                )
+            elif transform == "rear-center":
+                building = _generate_rear_center_building(baseline, mass=mass)
+            elif transform == "side-mid":
+                building = _generate_side_mid_building(baseline, mass=mass)
+            else:
+                building = _transform_building_alternative(
+                    baseline,
+                    mass=mass,
+                    transform=transform,
+                    alternative_id=alternative_id,
+                )
+        except ConceptObjectArrangementError as error:
+            if error.kind != "workstation":
+                raise
+            return BuildingAlternativesResult(
+                mass=baseline.mass,
+                alternatives=(),
+                comparisons=(),
+                rejected_families=(
+                    RejectedAlternativeFamilyResult(
+                        family="conservative_redundant_two_stair",
+                        reasons=(f"concept workstation arrangement: {error}",),
                     ),
                 ),
-            )
-        elif transform == "rear-center":
-            building = _generate_rear_center_building(baseline, mass=mass)
-        elif transform == "side-mid":
-            building = _generate_side_mid_building(baseline, mass=mass)
-        else:
-            building = _transform_building_alternative(
-                baseline,
-                mass=mass,
-                transform=transform,
-                alternative_id=alternative_id,
             )
         fingerprints = tuple(
             layout_fingerprint(floor.layout) for floor in building.floor_results
