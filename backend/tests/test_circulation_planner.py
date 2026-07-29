@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+from itertools import product
 from pathlib import Path
 
 import pytest
 from shapely import union_all
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 
 from backend.app.modules.circulation_planner.service import (
     generate_circulation_candidate,
@@ -38,6 +39,7 @@ CORE_CANDIDATES = generate_shared_core_candidates(
     minimum_depth=5.2,
 )
 STREETS = ((BOUNDARIES[0][0], BOUNDARIES[0][1]),)
+FLOOR_STREETS = tuple(((boundary[0], boundary[1]),) for boundary in BOUNDARIES)
 
 
 @pytest.mark.parametrize("core_index", [0, 1])
@@ -166,6 +168,59 @@ def test_none_circulation_candidate_rejects_slightly_non_rectangular_core() -> N
             core_polygon=slightly_non_rectangular_core,
             circulation_candidate=None,
         )
+
+
+@pytest.mark.parametrize(
+    ("floor_index", "core_index"),
+    tuple(product(range(len(BOUNDARIES)), range(len(CORE_CANDIDATES)))),
+)
+def test_all_irregular_floors_and_core_families_forward_rectilinear_circulation(
+    floor_index: int,
+    core_index: int,
+) -> None:
+    boundary = Polygon(BOUNDARIES[floor_index])
+    core = CORE_CANDIDATES[core_index]
+    candidate = generate_circulation_candidate(
+        floor_boundary=BOUNDARIES[floor_index],
+        core=core,
+        street_segments=FLOOR_STREETS[floor_index],
+        minimum_width=1.2,
+        stair_dimensions=((2.8, 4.92), (4.92, 2.8)),
+    )
+    corridor = union_all([Polygon(polygon) for polygon in candidate.polygons])
+
+    assert candidate.entrance_connected
+    assert candidate.core_connected
+    assert candidate.stair_connected
+    assert all(
+        boundary.covers(Polygon(polygon))
+        and Polygon(polygon).equals(box(*Polygon(polygon).bounds))
+        and min(
+            Polygon(polygon).bounds[2] - Polygon(polygon).bounds[0],
+            Polygon(polygon).bounds[3] - Polygon(polygon).bounds[1],
+        )
+        + 1e-8
+        >= 1.2
+        for polygon in candidate.polygons
+    )
+    assert corridor.intersection(Polygon(core.polygon)).area == pytest.approx(0)
+    assert (
+        Polygon(candidate.remote_stair_polygon)
+        .boundary.intersection(corridor.boundary)
+        .length
+        >= 0.9
+    )
+
+    layout = generate_orthogonal_office_layout(
+        BOUNDARIES[floor_index],
+        _office_program(BOUNDARIES[floor_index]),
+        core_polygon=core.polygon,
+        circulation_candidate=candidate,
+        frontage_segments=FLOOR_STREETS[floor_index],
+    )
+
+    assert tuple(tuple(path.polygon) for path in layout.circulation) == candidate.polygons
+    assert layout.remote_stair_footprint == candidate.remote_stair_polygon
 
 
 def _office_program(boundary):

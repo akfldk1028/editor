@@ -99,6 +99,7 @@ def generate_orthogonal_office_layout(
             core_shape,
             fixed_remote_stair,
             circulation,
+            allow_tolerant_adjacency=circulation_candidate is not None,
         )
     free_shape = boundary_shape.difference(
         union_all(
@@ -179,7 +180,11 @@ def generate_orthogonal_office_layout(
         RoomPolygon(
             room_id=core_nodes[0].node_id,
             space_type=core_nodes[0].space_type,
-            polygon=list(_canonical_rectangle(core_shape.bounds)),
+            polygon=list(
+                core_points
+                if circulation_candidate is not None
+                else _canonical_rectangle(core_shape.bounds)
+            ),
         ),
         *[
             RoomPolygon(
@@ -814,6 +819,8 @@ def _validate_remote_stair(
     core: Polygon,
     remote_stair: Polygon,
     circulation: list[RoomPolygon],
+    *,
+    allow_tolerant_adjacency: bool = False,
 ) -> None:
     expected = Polygon(_canonical_rectangle(remote_stair.bounds))
     required_width, required_length = required_stair_enclosure(
@@ -834,14 +841,32 @@ def _validate_remote_stair(
         raise ValueError("remote stair is smaller than the required enclosure")
     if not boundary.covers(remote_stair) or remote_stair.intersects(core):
         raise ValueError("remote stair must be inside the floor and outside core")
-    if (
-        _longest_shared_edge(
-            _canonical_rectangle(remote_stair.bounds),
-            circulation,
+    shared_edge = _longest_shared_edge(
+        _canonical_rectangle(remote_stair.bounds),
+        circulation,
+    )
+    if allow_tolerant_adjacency:
+        shared_edge = max(
+            shared_edge,
+            _tolerant_shared_boundary_length(remote_stair, circulation),
         )
-        < _DOOR_WIDTH
-    ):
+    if shared_edge < _DOOR_WIDTH:
         raise ValueError("remote stair must share a circulation boundary")
+
+
+def _tolerant_shared_boundary_length(
+    polygon: Polygon,
+    circulation: list[RoomPolygon],
+) -> float:
+    return max(
+        (
+            polygon.boundary.buffer(_TOLERANCE).intersection(
+                Polygon(path.polygon).boundary
+            ).length
+            for path in circulation
+        ),
+        default=0.0,
+    )
 
 
 def _canonical_rectangle(bounds) -> tuple[Point, ...]:

@@ -43,10 +43,17 @@ def generate_circulation_candidate(
     )
     boundary = Polygon(boundary_points)
     core_shape = Polygon(core_points)
-    corridor = _t_corridor_network(boundary, core_shape, minimum_width)
+    corridor_rectangles = _corridor_rectangles(
+        boundary,
+        core_shape,
+        minimum_width,
+    )
+    corridor = union_all(corridor_rectangles)
+    if not isinstance(corridor, Polygon):
+        raise CirculationPlanningError("circulation network must be connected")
     if not boundary.covers(corridor):
         raise CirculationPlanningError("circulation crosses the floor boundary")
-    polygons = (_canonical_ring(corridor),)
+    polygons = tuple(_canonical_ring(rectangle) for rectangle in corridor_rectangles)
     remote_stair = _select_remote_stair(
         boundary=boundary,
         core=core_shape,
@@ -116,36 +123,33 @@ def _validate_inputs(
         raise CirculationPlanningError("stair dimensions must be finite and positive")
 
 
-def _t_corridor_network(boundary: Polygon, core: Polygon, width: float) -> Polygon:
-    min_x, min_y, max_x, max_y = boundary.bounds
-    core_min_x, core_min_y, core_max_x, core_max_y = core.bounds
+def _corridor_rectangles(
+    boundary: Polygon,
+    core: Polygon,
+    width: float,
+) -> tuple[Polygon, ...]:
+    _, min_y, max_x, _ = boundary.bounds
+    core_min_x, _, core_max_x, core_max_y = core.bounds
     networks = (
-        (
-            box(core_min_x - width, min_y, core_min_x, max_y),
-            box(min_x, core_min_y - width, max_x, core_min_y),
-        ),
-        (
-            box(core_max_x, min_y, core_max_x + width, max_y),
-            box(min_x, core_min_y - width, max_x, core_min_y),
-        ),
-        (
-            box(core_min_x - width, min_y, core_min_x, max_y),
-            box(min_x, core_max_y, max_x, core_max_y + width),
-        ),
-        (
-            box(core_max_x, min_y, core_max_x + width, max_y),
-            box(min_x, core_max_y, max_x, core_max_y + width),
-        ),
+        box(core_min_x - width, min_y, core_min_x, core_max_y),
+        box(core_max_x, min_y, core_max_x + width, core_max_y),
     )
-    for vertical, horizontal in networks:
-        network = union_all((vertical, horizontal)).intersection(boundary).difference(core)
+    for network in networks:
         if (
-            isinstance(network, Polygon)
-            and not network.is_empty
+            boundary.covers(network)
             and network.boundary.intersection(core.boundary).length + _TOLERANCE
             >= _DOOR_WIDTH
         ):
-            return network
+            if core.bounds[1] > min_y + _TOLERANCE:
+                return (network,)
+            crossbar = box(
+                network.bounds[0],
+                core_max_y,
+                max_x,
+                core_max_y + width,
+            )
+            if boundary.covers(crossbar):
+                return (network, crossbar)
     raise CirculationPlanningError("floor does not admit a connected corridor network")
 
 
@@ -265,7 +269,11 @@ def _points(points: Iterable[Point]) -> tuple[Point, ...]:
 
 
 def _point(point: Point) -> Point:
-    return (_clean(float(point[0])), _clean(float(point[1])))
+    x, y = float(point[0]), float(point[1])
+    return (
+        0.0 if math.isclose(x, 0.0, abs_tol=_TOLERANCE) else x,
+        0.0 if math.isclose(y, 0.0, abs_tol=_TOLERANCE) else y,
+    )
 
 
 def _clean(value: float) -> float:
