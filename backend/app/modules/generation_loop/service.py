@@ -821,6 +821,8 @@ def _validate_structural_overrides(
         raise TypeError("circulation overrides must be a floor mapping")
     else:
         supplied = dict(circulation_overrides)
+        if not supplied:
+            raise ValueError("circulation overrides must not be empty")
     if supplied and core_override is None:
         raise ValueError("circulation override identity requires a core override")
 
@@ -862,6 +864,10 @@ def _validate_structural_overrides(
         raise ValueError("core override must be contained by every floor")
 
     for floor_index, candidate in supplied.items():
+        if candidate.core_fingerprint is None:
+            raise ValueError(
+                "circulation override requires a core fingerprint binding"
+            )
         if candidate.core_fingerprint != core_override.fingerprint:
             raise ValueError(
                 "circulation override core fingerprint must match the core override"

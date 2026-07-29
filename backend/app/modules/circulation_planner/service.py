@@ -714,7 +714,7 @@ def _separation_origins(
 def circulation_geometry_fingerprint(
     *,
     strategy: str,
-    core_fingerprint: str,
+    core_fingerprint: str | None,
     polygons: tuple[tuple[Point, ...], ...],
     remote_stair: tuple[Point, ...],
 ) -> str:

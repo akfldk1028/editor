@@ -11,6 +11,7 @@ from shapely.geometry import Polygon, box
 
 import backend.app.modules.circulation_planner.service as circulation_service
 from backend.app.modules.circulation_planner.contracts import (
+    CirculationCandidate,
     CirculationPlanningError,
 )
 from backend.app.modules.circulation_planner.service import (
@@ -54,6 +55,32 @@ CORE_CANDIDATES = generate_shared_core_candidates(
 )
 STREETS = ((BOUNDARIES[0][0], BOUNDARIES[0][1]),)
 FLOOR_STREETS = tuple(((boundary[0], boundary[1]),) for boundary in BOUNDARIES)
+
+
+def test_circulation_candidate_preserves_legacy_constructor_shapes() -> None:
+    polygons = (((0.0, 0.0), (1.2, 0.0), (1.2, 2.0), (0.0, 2.0)),)
+    stair = ((1.2, 0.0), (4.0, 0.0), (4.0, 4.92), (1.2, 4.92))
+    positional = CirculationCandidate(
+        "legacy",
+        polygons,
+        stair,
+        "legacy-fingerprint",
+        True,
+        True,
+        True,
+    )
+    keyword = CirculationCandidate(
+        strategy="legacy",
+        polygons=polygons,
+        remote_stair_polygon=stair,
+        fingerprint="legacy-fingerprint",
+        entrance_connected=True,
+        core_connected=True,
+        stair_connected=True,
+    )
+
+    assert positional == keyword
+    assert positional.core_fingerprint is None
 
 
 @pytest.mark.parametrize("core_index", [0, 1])

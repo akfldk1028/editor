@@ -148,14 +148,7 @@ def test_building_generation_uses_exact_floor_circulation_overrides() -> None:
 
 
 def test_rectangular_building_uses_exact_structural_overrides() -> None:
-    mass = MassInput(
-        project_id="rectangular-structural-override",
-        floors=1,
-        footprint_polygon=[(0.0, 0.0), (40.0, 0.0), (40.0, 20.0), (0.0, 20.0)],
-        site_edges=[{"edge_index": 0, "kind": "street"}],
-        access_candidates=[{"edge_index": 0, "position": 0.5}],
-        use_mix={"office": 1.0},
-    )
+    mass = _rectangular_mass()
     boundary = mass.footprint_for_floor(1)
     core = generate_shared_core_candidates(
         (boundary,),
@@ -185,6 +178,40 @@ def test_rectangular_building_uses_exact_structural_overrides() -> None:
         circulation.polygons
     )
     assert layout.remote_stair_footprint == circulation.remote_stair_polygon
+
+
+def test_rectangular_omitted_structural_overrides_preserve_default() -> None:
+    mass = _rectangular_mass()
+
+    default = run_building_generation(mass)
+    explicit_none = run_building_generation(
+        mass,
+        core_override=None,
+        circulation_overrides=None,
+    )
+
+    assert explicit_none == default
+
+
+def test_empty_circulation_override_mapping_is_rejected() -> None:
+    with pytest.raises(ValueError, match="circulation overrides must not be empty"):
+        run_building_generation(
+            _rectangular_mass(),
+            circulation_overrides={},
+        )
+
+
+def test_structural_override_rejects_missing_core_fingerprint_binding() -> None:
+    mass = _mass()
+    core, circulation = _first_override_family()
+    missing_binding = replace(circulation[1], core_fingerprint=None)
+
+    with pytest.raises(ValueError, match="requires a core fingerprint binding"):
+        run_building_generation(
+            mass,
+            core_override=core,
+            circulation_overrides={**circulation, 1: missing_binding},
+        )
 
 
 def test_structural_override_rejects_stale_core_geometry_fingerprint() -> None:
@@ -415,4 +442,21 @@ def _mass() -> MassInput:
         site_edges=manifest["site_edges"],
         access_candidates=manifest["access_candidates"],
         use_mix=manifest["use_mix"],
+    )
+
+
+@lru_cache(maxsize=1)
+def _rectangular_mass() -> MassInput:
+    return MassInput(
+        project_id="rectangular-structural-override",
+        floors=1,
+        footprint_polygon=[
+            (0.0, 0.0),
+            (40.0, 0.0),
+            (40.0, 20.0),
+            (0.0, 20.0),
+        ],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
     )
