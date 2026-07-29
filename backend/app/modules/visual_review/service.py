@@ -124,6 +124,7 @@ LAYER_DISPLAY = {
     "text-labels": ("문자", "#24282d"),
 }
 RENDER_STYLES = {"review", "architectural"}
+_ARCHITECTURAL_LABEL_CLEARANCE_PX = 8
 ARCHITECTURAL_FONT_STACK = "Noto Sans KR, Malgun Gothic, sans-serif"
 ARCHITECTURAL_LABELS = {
     "shop_unit": "상가",
@@ -2473,6 +2474,32 @@ def _draw_architectural_png_text(
     drawing = ImageDraw.Draw(image)
     font = ImageFont.truetype(str(font_path), 12)
     occupied: list[tuple[float, float, float, float]] = []
+    for feature in features:
+        if (
+            feature.layer not in {"furniture", "fixtures"}
+            or feature.geometry != "polygon"
+            or not _finite_points(feature.points, minimum=3)
+        ):
+            continue
+        obstacle = [
+            (
+                _sx(x, min_x, scale, pad_x),
+                _sy(y, min_y, scale, pad_y, height),
+            )
+            for x, y in feature.points
+        ]
+        occupied.append(
+            (
+                min(point[0] for point in obstacle)
+                - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                min(point[1] for point in obstacle)
+                - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                max(point[0] for point in obstacle)
+                + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                max(point[1] for point in obstacle)
+                + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+            )
+        )
     adjusted_count = 0
     label_count = 0
     unresolved_collision_count = 0
@@ -2523,6 +2550,12 @@ def _draw_architectural_png_text(
                 origin[0] + offset_x + text_width,
                 origin[1] + offset_y + text_height,
             )
+            collision_box = (
+                candidate[0] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                candidate[1] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                candidate[2] + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                candidate[3] + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+            )
             inside_canvas = (
                 candidate[0] >= 2
                 and candidate[1] >= 2
@@ -2530,17 +2563,22 @@ def _draw_architectural_png_text(
                 and candidate[3] <= image.height - 2
             )
             if inside_canvas and not any(
-                _rectangles_intersect(candidate, item) for item in occupied
+                _rectangles_intersect(collision_box, item) for item in occupied
             ):
                 if offset_x or offset_y:
                     adjusted_count += 1
                 origin = (candidate[0], candidate[1])
-                occupied.append(candidate)
+                occupied.append(collision_box)
                 break
         else:
             unresolved_collision_count += 1
             occupied.append(
-                (origin[0], origin[1], origin[0] + text_width, origin[1] + text_height)
+                (
+                    origin[0] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                    origin[1] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                    origin[0] + text_width + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                    origin[1] + text_height + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                )
             )
         drawing.multiline_text(
             origin,

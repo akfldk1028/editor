@@ -299,6 +299,52 @@ def test_architectural_png_draws_korean_glyph_pixels_instead_of_question_marks()
     assert any(red == green == blue and 0 < red < 245 for red, green, blue in colors)
 
 
+def test_architectural_png_separates_adjacent_narrow_room_labels():
+    features = (
+        visual_review_service._RenderFeature(
+            "focus-desk",
+            "furniture",
+            "focus_desk",
+            "polygon",
+            ((19.7, 9.7), (20.3, 9.7), (20.3, 10.3), (19.7, 10.3)),
+        ),
+        visual_review_service._RenderFeature(
+            "reception-desk",
+            "furniture",
+            "reception_desk",
+            "polygon",
+            ((21.865, 9.7), (22.465, 9.7), (22.465, 10.3), (21.865, 10.3)),
+        ),
+        visual_review_service._RenderFeature(
+            "focus-label",
+            "text-labels",
+            "room-label",
+            "label",
+            ((20.0, 10.0),),
+            "focus|10.655 m2",
+        ),
+        visual_review_service._RenderFeature(
+            "reception-label",
+            "text-labels",
+            "room-label",
+            "label",
+            ((22.165, 10.0),),
+            "reception|10.655 m2",
+        ),
+    )
+
+    output = visual_review_service._render_png(
+        features,
+        [(0, 0), (40, 0), (40, 28), (0, 28)],
+        1920,
+        1080,
+        render_style="architectural",
+    )
+
+    assert output.metadata["adjusted_count"] >= 2
+    assert output.metadata["unresolved_collision_count"] == 0
+
+
 def test_architectural_png_reports_ascii_fallback_when_korean_font_is_missing(
     monkeypatch,
 ):

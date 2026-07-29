@@ -2,6 +2,7 @@ import json
 import subprocess
 import sys
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
 from xml.etree import ElementTree
@@ -17,6 +18,99 @@ from backend.app.schemas.visual import BuildingVisualReviewArtifacts
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_cli_irregular_review_writes_two_structurally_distinct_pngs(tmp_path):
+    output_dir = tmp_path / "irregular-review"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "backend.app.cli",
+            "irregular-alternatives-review",
+            "--input",
+            str(
+                REPOSITORY_ROOT
+                / "datasets"
+                / "manifests"
+                / "sample_mass_irregular_12v_setback_office.json"
+            ),
+            "--output-dir",
+            str(output_dir),
+            "--limit",
+            "3",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    report = json.loads(
+        (output_dir / "alternatives.review.json").read_text(encoding="utf-8")
+    )
+    assert report["accepted_count"] >= 2
+    assert report["quality_thresholds"] == {
+        "minimum_floor_coverage": 0.60,
+        "maximum_unallocated_ratio": 0.40,
+        "maximum_unresolved_label_collisions": 0,
+        "minimum_primary_share_factor": 0.75,
+    }
+    assert report["distinct_structural_count"] >= 2
+    assert report["distinct_core_count"] >= 2
+    assert report["distinct_circulation_count"] >= 2
+    assert report["distinct_candidate_png_count"] >= 2
+    assert report["unresolved_regulatory_facts"]
+    assert "rejected_strategies" in report
+    for alternative in report["alternatives"]:
+        assert set(alternative["fingerprints"]) == {
+            "core",
+            "circulation",
+            "room",
+            "structural",
+        }
+        assert alternative["validation_scores"]
+        assert alternative["quality_accepted"] is True
+        ordered_hashes = [
+            floor["png_sha256"]
+            for floor in sorted(
+                alternative["floors"],
+                key=lambda item: item["floor_index"],
+            )
+        ]
+        assert alternative["candidate_png_fingerprint"] == sha256(
+            ":".join(ordered_hashes).encode()
+        ).hexdigest()
+        assert len(alternative["floors"]) == 3
+        for floor in alternative["floors"]:
+            assert {
+                "floor_index",
+                "svg",
+                "png",
+                "html",
+                "review_json",
+                "png_sha256",
+                "coverage_score",
+                "unallocated_ratio",
+                "unresolved_label_collision_count",
+                "office_space_ratio",
+            } <= floor.keys()
+            assert floor["coverage_score"] >= 0.60
+            assert floor["unallocated_ratio"] == pytest.approx(
+                1.0 - floor["coverage_score"],
+                abs=0.0001,
+            )
+            assert floor["unresolved_label_collision_count"] == 0
+            assert floor["png_output_size"] == [1920, 1080]
+            ratio = floor["office_space_ratio"]
+            assert ratio["baseline_prior_share"] > 0
+            assert ratio["minimum_primary_share"] == pytest.approx(
+                ratio["baseline_prior_share"] * 0.75,
+            )
+            assert ratio["actual_primary_share"] >= ratio["minimum_primary_share"]
+            assert ratio["primary_is_largest_non_core"] is True
+            assert ratio["passed"] is True
+            for key in ("svg", "png", "html", "review_json"):
+                assert (output_dir / floor[key]).is_file()
 
 
 def _run_sample_loop_review(
