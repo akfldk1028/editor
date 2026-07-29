@@ -34,9 +34,15 @@ def generate_shared_core_candidates(
     if common.is_empty:
         return ()
 
-    width = max(minimum_width, _round_up(math.sqrt(required_area)))
-    depth = max(minimum_depth, _round_up(required_area / width))
-    rectangles = _contained_rectangles(common, width=width, depth=depth)
+    rectangles = tuple(
+        rectangle
+        for width, depth in _dimension_options(
+            required_area=required_area,
+            minimum_width=minimum_width,
+            minimum_depth=minimum_depth,
+        )
+        for rectangle in _contained_rectangles(common, width=width, depth=depth)
+    )
     if not rectangles:
         return ()
 
@@ -53,6 +59,12 @@ def generate_shared_core_candidates(
         )
         for rectangle in ranked:
             polygon = _rectangle_points(rectangle)
+            returned_shape = Polygon(polygon)
+            contained_floor_indices = tuple(
+                index for index, floor in enumerate(floors) if floor.covers(returned_shape)
+            )
+            if len(contained_floor_indices) != len(floors):
+                continue
             fingerprint = _geometry_fingerprint(polygon)
             if fingerprint in used:
                 continue
@@ -62,7 +74,7 @@ def generate_shared_core_candidates(
                     strategy=strategy,
                     polygon=polygon,
                     fingerprint=fingerprint,
-                    contained_floor_indices=tuple(range(len(floors))),
+                    contained_floor_indices=contained_floor_indices,
                 )
             )
             break
@@ -104,6 +116,26 @@ def _contained_rectangles(common, *, width: float, depth: float) -> tuple:
 
 def _round_up(value: float) -> float:
     return math.ceil(value * 1_000_000) / 1_000_000
+
+
+def _dimension_options(
+    *,
+    required_area: float,
+    minimum_width: float,
+    minimum_depth: float,
+) -> tuple[tuple[float, float], ...]:
+    balanced_width = max(minimum_width, _round_up(math.sqrt(required_area)))
+    dimension_pairs = (
+        (balanced_width, max(minimum_depth, _round_up(required_area / balanced_width))),
+        (minimum_width, max(minimum_depth, _round_up(required_area / minimum_width))),
+        (max(minimum_width, _round_up(required_area / minimum_depth)), minimum_depth),
+    )
+    options: list[tuple[float, float]] = []
+    for width, depth in dimension_pairs:
+        for option in ((width, depth), (depth, width)):
+            if option not in options:
+                options.append(option)
+    return tuple(options)
 
 
 def _strategy_targets(common) -> dict[str, Point]:
@@ -150,7 +182,7 @@ def _concave_vertices(coordinates: tuple[tuple[float, float], ...]) -> tuple[Poi
 
 def _rectangle_points(rectangle) -> tuple[tuple[float, float], ...]:
     return tuple(
-        (round(float(x), 6), round(float(y), 6))
+        (float(x), float(y))
         for x, y in tuple(rectangle.exterior.coords)[:-1]
     )
 
