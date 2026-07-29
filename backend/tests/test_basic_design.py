@@ -7,7 +7,11 @@ import pytest
 
 from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.basic_design.service import (
+    _CirculationCell,
+    _midpoint as _design_midpoint,
     _nearest_separated_exit_openings,
+    _place_object,
+    _route_through_circulation,
     generate_basic_design,
     generate_room_window,
 )
@@ -15,6 +19,58 @@ from backend.app.schemas.layout import BasicDesignFeatures, PlanElement, PlanLin
 from backend.app.schemas.mass import MassInput
 from engine.geometry.distance import segment_to_segment_distance
 from engine.geometry.polygon import polygon_area, polygon_overlap_area
+
+
+def test_fixed_object_placement_considers_end_aligned_regular_grid() -> None:
+    room = RoomPolygon(
+        room_id="compact-work-area",
+        space_type="open_work",
+        polygon=[(0.0, 0.0), (4.92, 0.0), (4.92, 2.903225807), (0.0, 2.903225807)],
+    )
+    blocked_start_row = PlanElement(
+        element_id="existing-fixture",
+        category="furniture",
+        kind="fixture",
+        host_id=room.room_id,
+        label="FIXED",
+        footprint=((0.0, 0.5), (4.92, 0.5), (4.92, 1.4), (0.0, 1.4)),
+    )
+
+    footprint = _place_object(
+        room,
+        "workstation",
+        [blocked_start_row],
+        [],
+        object_size=(0.7, 0.7),
+        placement_margin=0.6,
+        aisle=0.7,
+    )
+
+    assert min(y for _, y in footprint) == pytest.approx(1.603226)
+
+
+def test_egress_route_preserves_exact_shared_cell_axis() -> None:
+    shared_x = 16.50381679389313
+    cells = [
+        _CirculationCell(14.0, 0.0, shared_x, 3.0),
+        _CirculationCell(shared_x, 1.0, 20.0, 4.0),
+    ]
+
+    route = _route_through_circulation(
+        (15.0, 0.5),
+        (19.0, 3.5),
+        cells,
+    )
+
+    assert any(point[0] == shared_x for point in route)
+    assert all(
+        start[0] == end[0] or start[1] == end[1]
+        for start, end in zip(route, route[1:])
+    )
+    assert _design_midpoint(
+        (25.48028412829788, shared_x),
+        (26.38028412829788, shared_x),
+    )[1] == shared_x
 
 
 def test_basic_design_records_are_typed_frozen_and_reject_non_finite_values() -> None:

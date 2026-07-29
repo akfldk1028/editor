@@ -25,6 +25,8 @@ from backend.app.modules.layout_generator.service import (
 from backend.app.modules.layout_generator.orthogonal import (
     generate_orthogonal_office_layout,
 )
+from backend.app.modules.circulation_planner.contracts import CirculationCandidate
+from backend.app.modules.core_planner.contracts import CoreCandidate
 from backend.app.modules.basic_design import (
     generate_basic_design,
     generate_room_window,
@@ -273,6 +275,8 @@ def run_building_generation(
     floor_assignments: Iterable[FloorAssignment] | None = None,
     planner_provenance: PlannerProvenance | None = None,
     program_overrides: Mapping[int, ProgramGraph] | None = None,
+    core_override: CoreCandidate | None = None,
+    circulation_overrides: Mapping[int, CirculationCandidate] | None = None,
 ) -> BuildingGenerationResult:
     analysis = analyze_mass(mass)
     has_nonrectangular_floor = any(
@@ -314,6 +318,11 @@ def run_building_generation(
     floor_analyses = tuple(
         _analysis_for_floor(analysis, floor_index)
         for floor_index in range(1, mass.floors + 1)
+    )
+    fixed_circulation = _validate_structural_overrides(
+        mass,
+        core_override=core_override,
+        circulation_overrides=circulation_overrides,
     )
     min_x, min_y, max_x, max_y = analysis.bounds
     width = max_x - min_x
@@ -396,54 +405,63 @@ def run_building_generation(
             5.2,
             minimum_depth * 0.55,
         )
-        core_width = max(7.6, shared_core_target / core_depth)
-        core_candidates = (
-            fixed_rectangle_candidates
-            if has_nonorthogonal_floor
-            else shared_core_candidates
-        )
-        candidates = [
-            candidate
-            for candidate in core_candidates(
-                floor_boundaries,
-                width=core_width,
-                depth=core_depth,
+        if core_override is not None:
+            shared_core = core_override.polygon
+        else:
+            core_width = max(7.6, shared_core_target / core_depth)
+            core_candidates = (
+                fixed_rectangle_candidates
+                if has_nonorthogonal_floor
+                else shared_core_candidates
             )
-            if (
-                polygon_bounds(candidate)[2] - polygon_bounds(candidate)[0]
-                >= core_width - 1e-7
-                and polygon_bounds(candidate)[3] - polygon_bounds(candidate)[1]
-                >= core_depth - 1e-7
-            )
-        ]
-        if not candidates:
-            raise ValueError("common floor region cannot fit the shared vertical core")
-        if has_nonorthogonal_floor:
-            shared_core, shared_remote_stair, polygonal_layout_boundary = (
-                _select_polygonal_core_and_stair(
+            candidates = [
+                candidate
+                for candidate in core_candidates(
+                    floor_boundaries,
+                    width=core_width,
+                    depth=core_depth,
+                )
+                if (
+                    polygon_bounds(candidate)[2] - polygon_bounds(candidate)[0]
+                    >= core_width - 1e-7
+                    and polygon_bounds(candidate)[3] - polygon_bounds(candidate)[1]
+                    >= core_depth - 1e-7
+                )
+            ]
+            if not candidates:
+                raise ValueError(
+                    "common floor region cannot fit the shared vertical core"
+                )
+            if has_nonorthogonal_floor:
+                shared_core, shared_remote_stair, polygonal_layout_boundary = (
+                    _select_polygonal_core_and_stair(
+                        candidates,
+                        floor_boundaries=floor_boundaries,
+                        common_shape=Polygon(common_boundary),
+                        stair_dimensions=(
+                            (stair_short_side, stair_long_side),
+                            (stair_long_side, stair_short_side),
+                        ),
+                    )
+                )
+            else:
+                shared_core = max(
                     candidates,
-                    floor_boundaries=floor_boundaries,
-                    common_shape=Polygon(common_boundary),
-                    stair_dimensions=(
-                        (stair_short_side, stair_long_side),
-                        (stair_long_side, stair_short_side),
+                    key=lambda candidate: (
+                        polygon_bounds(candidate)[3],
+                        polygon_bounds(candidate)[2],
+                        polygon_bounds(candidate),
                     ),
                 )
-            )
-        else:
-            shared_core = max(
-                candidates,
-                key=lambda candidate: (
-                    polygon_bounds(candidate)[3],
-                    polygon_bounds(candidate)[2],
-                    polygon_bounds(candidate),
-                ),
-            )
         service_x, _, service_max_x, _ = polygon_bounds(shared_core)
         service_band_width = service_max_x - service_x
         core_height = polygon_bounds(shared_core)[3] - polygon_bounds(shared_core)[1]
         shared_core_target = polygon_area(shared_core)
-        if has_nonrectangular_floor and not has_nonorthogonal_floor:
+        if (
+            core_override is None
+            and has_nonrectangular_floor
+            and not has_nonorthogonal_floor
+        ):
             core_min_x, core_min_y, core_max_x, _ = polygon_bounds(shared_core)
             corridor_bottom = core_min_y - 1.2
             common_shape = Polygon(common_boundary)
@@ -595,13 +613,17 @@ def run_building_generation(
             layout_boundary = floor_analysis.boundary_for_floor(
                 program.floor_index
             )
-            if has_nonorthogonal_floor:
+            circulation_candidate = fixed_circulation.get(program.floor_index)
+            if has_nonorthogonal_floor and circulation_candidate is None:
                 layout_boundary = polygonal_layout_boundary
             layout = generate_orthogonal_office_layout(
                 layout_boundary,
                 program,
                 core_polygon=shared_core,
-                remote_stair_polygon=shared_remote_stair,
+                remote_stair_polygon=(
+                    None if circulation_candidate is not None else shared_remote_stair
+                ),
+                circulation_candidate=circulation_candidate,
                 frontage_segments=(
                     _street_segments_for_boundary(
                         mass,
@@ -616,6 +638,18 @@ def run_building_generation(
                     "local_qwen_topology:"
                 ),
             )
+            if core_override is not None:
+                layout = replace(
+                    layout,
+                    rooms=[
+                        (
+                            replace(room, polygon=core_override.polygon)
+                            if room.space_type == "core"
+                            else room
+                        )
+                        for room in layout.rooms
+                    ],
+                )
         elif use_role_layout:
             layout = generate_rear_center_layout(
                 floor_analysis,
@@ -640,6 +674,12 @@ def run_building_generation(
                 room_scale=room_scale,
             )
         layouts.append(layout)
+    if core_override is not None and any(
+        next(room for room in layout.rooms if room.space_type == "core").polygon
+        != core_override.polygon
+        for layout in layouts
+    ):
+        raise ValueError("generated floors must preserve shared core override equality")
 
     if has_nonrectangular_floor:
         programs = [
@@ -753,6 +793,86 @@ def run_building_generation(
             )
         ),
     )
+
+
+def _validate_structural_overrides(
+    mass: MassInput,
+    *,
+    core_override: CoreCandidate | None,
+    circulation_overrides: Mapping[int, CirculationCandidate] | None,
+) -> dict[int, CirculationCandidate]:
+    if core_override is not None and not isinstance(core_override, CoreCandidate):
+        raise TypeError("core override must be an immutable CoreCandidate")
+    if circulation_overrides is None:
+        supplied: dict[int, CirculationCandidate] = {}
+    elif not isinstance(circulation_overrides, Mapping):
+        raise TypeError("circulation overrides must be a floor mapping")
+    else:
+        supplied = dict(circulation_overrides)
+    if supplied and core_override is None:
+        raise ValueError("circulation override identity requires a core override")
+
+    expected_floor_keys = set(range(1, mass.floors + 1))
+    if supplied and set(supplied) != expected_floor_keys:
+        raise ValueError("circulation overrides must cover every floor exactly")
+    if any(
+        not isinstance(floor_index, int) or isinstance(floor_index, bool)
+        for floor_index in supplied
+    ):
+        raise ValueError("circulation override floor keys must be integers")
+    if any(
+        not isinstance(candidate, CirculationCandidate)
+        for candidate in supplied.values()
+    ):
+        raise TypeError(
+            "circulation overrides must contain immutable CirculationCandidate records"
+        )
+
+    if core_override is None:
+        return supplied
+    expected_contained_indices = tuple(range(mass.floors))
+    if core_override.contained_floor_indices != expected_contained_indices:
+        raise ValueError("core override contained floor identity must match the building")
+    core_shape = Polygon(core_override.polygon)
+    if (
+        not core_shape.is_valid
+        or core_shape.area <= 0
+        or any(
+            not Polygon(mass.footprint_for_floor(floor_index)).covers(core_shape)
+            for floor_index in expected_floor_keys
+        )
+    ):
+        raise ValueError("core override must be contained by every floor")
+
+    for floor_index, candidate in supplied.items():
+        if candidate.strategy != core_override.strategy:
+            raise ValueError(
+                "circulation override identity must match the core strategy"
+            )
+        if not (
+            candidate.entrance_connected
+            and candidate.core_connected
+            and candidate.stair_connected
+        ):
+            raise ValueError("circulation override must record connected topology")
+        floor_shape = Polygon(mass.footprint_for_floor(floor_index))
+        circulation_shapes = (
+            *(Polygon(polygon) for polygon in candidate.polygons),
+            Polygon(candidate.remote_stair_polygon),
+        )
+        if (
+            not candidate.polygons
+            or any(
+                not shape.is_valid
+                or shape.area <= 0
+                or not floor_shape.covers(shape)
+                for shape in circulation_shapes
+            )
+        ):
+            raise ValueError(
+                f"circulation override for floor {floor_index} must be contained"
+            )
+    return supplied
 
 
 _ALTERNATIVE_STRATEGIES = (

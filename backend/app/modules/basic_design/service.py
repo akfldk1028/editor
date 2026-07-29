@@ -661,7 +661,7 @@ def _cell_portal(
                 if abs(left.max_x - right.min_x) <= _EPSILON
                 else right.max_x
             )
-            return (round(x, 6), round((bottom + top) / 2, 6))
+            return (x, round((bottom + top) / 2, 6))
     if abs(left.max_y - right.min_y) <= _EPSILON or abs(
         right.max_y - left.min_y
     ) <= _EPSILON:
@@ -673,7 +673,7 @@ def _cell_portal(
                 if abs(left.max_y - right.min_y) <= _EPSILON
                 else right.max_y
             )
-            return (round((left_x + right_x) / 2, 6), round(y, 6))
+            return (round((left_x + right_x) / 2, 6), y)
     return None
 
 
@@ -701,7 +701,7 @@ def _append_orthogonal(
     ) <= _EPSILON:
         points.append(target)
         return
-    points.extend(((round(target[0], 6), round(current[1], 6)), target))
+    points.extend(((target[0], current[1]), target))
 
 
 def _simplify_polyline(points: list[Point]) -> list[Point]:
@@ -1214,6 +1214,22 @@ def _place_object(
             footprint = _rectangle(x, y, x + object_width, y + object_height)
             if available(footprint):
                 candidates.append(footprint)
+    if not candidates and object_size is not None:
+        end_y_values = _placement_values(
+            min_y + placement_margin,
+            max_y - object_height - placement_margin,
+            object_height + aisle,
+        )
+        end_x_values = _placement_values(
+            min_x + placement_margin,
+            max_x - object_width - placement_margin,
+            object_width + aisle,
+        )
+        for y in end_y_values:
+            for x in end_x_values:
+                footprint = _rectangle(x, y, x + object_width, y + object_height)
+                if available(footprint):
+                    candidates.append(footprint)
     if not candidates:
         if object_size is not None:
                 raise ValueError(
@@ -1324,7 +1340,17 @@ def _segment_between(start: Point, end: Point, start_ratio: float, end_ratio: fl
 
 
 def _midpoint(start: Point, end: Point) -> Point:
-    return (round((start[0] + end[0]) / 2, 6), round((start[1] + end[1]) / 2, 6))
+    x = (
+        start[0]
+        if abs(start[0] - end[0]) <= _EPSILON
+        else round((start[0] + end[0]) / 2, 6)
+    )
+    y = (
+        start[1]
+        if abs(start[1] - end[1]) <= _EPSILON
+        else round((start[1] + end[1]) / 2, 6)
+    )
+    return (x, y)
 
 
 def _centered_segment(segment: Segment, length: float) -> tuple[Point, Point]:

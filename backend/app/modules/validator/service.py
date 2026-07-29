@@ -2187,6 +2187,19 @@ def _validate_basic_design(
     )
 
 
+def _workpoint_count_range(
+    work_rooms: list[RoomPolygon],
+) -> tuple[int, int]:
+    work_area = sum(polygon_area(room.polygon) for room in work_rooms)
+    minimum = math.ceil(work_area / 10.0)
+    calculated_maximum = (
+        sum(math.ceil(polygon_area(room.polygon) / 8.0) for room in work_rooms)
+        if len(work_rooms) > 1
+        else math.floor(work_area / 8.0)
+    )
+    return minimum, max(minimum, calculated_maximum)
+
+
 def _validate_use_planning(
     layout: LayoutCandidate,
     features: BasicDesignFeatures,
@@ -2434,13 +2447,7 @@ def _validate_use_planning(
         )
         == "open_work"
     ]
-    work_area = sum(polygon_area(room.polygon) for room in work_rooms)
-    minimum_workpoints = math.ceil(work_area / 10.0)
-    maximum_workpoints = (
-        sum(math.ceil(polygon_area(room.polygon) / 8.0) for room in work_rooms)
-        if len(work_rooms) > 1
-        else math.floor(work_area / 8.0)
-    )
+    minimum_workpoints, maximum_workpoints = _workpoint_count_range(work_rooms)
     workpoint_count = sum(
         element.category == "furniture"
         and element.kind == "workstation"
