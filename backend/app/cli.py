@@ -13,6 +13,7 @@ from backend.app.modules.generation_loop.service import (
     run_building_generation,
     run_generation_loop,
 )
+from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.generator_adapters.graph2plan_raw import (
     Graph2PlanRawConfig,
     Graph2PlanRawError,
@@ -158,6 +159,22 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
         )
         for proposal, program in zip(proposals, programs, strict=True)
     ]
+    distinct_buildings = []
+    seen_geometry: set[str] = set()
+    discarded_duplicate_geometry: list[str] = []
+    for proposal, building in buildings:
+        floor = next(
+            result
+            for result in building.floor_results
+            if result.program.floor_index == args.floor
+        )
+        fingerprint = layout_fingerprint(floor.layout)
+        if fingerprint in seen_geometry:
+            discarded_duplicate_geometry.append(proposal.candidate_id)
+            continue
+        seen_geometry.add(fingerprint)
+        distinct_buildings.append((proposal, building))
+    buildings = distinct_buildings
     buildings.sort(
         key=lambda item: (
             0
@@ -246,6 +263,9 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
         "floor_index": args.floor,
         "use_type": args.use_type,
         "accepted_count": sum(item["accepted"] for item in summaries),
+        "requested_candidate_count": args.candidate_count,
+        "distinct_geometry_count": len(summaries),
+        "discarded_duplicate_geometry": discarded_duplicate_geometry,
         "alternatives": summaries,
     }
     report_path = target / "local-topology.review.json"

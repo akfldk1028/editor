@@ -49,7 +49,7 @@ def parse_topology_proposals_json(
         raise ValueError("allowed_node_ids must be non-empty and unique")
     allowed = set(allowed_node_ids)
     proposals: list[TopologyProposal] = []
-    fingerprints: set[tuple] = set()
+    seen_sequences: set[tuple[str, ...]] = set()
     for index, value in enumerate(candidates, start=1):
         label = f"candidates[{index - 1}]"
         if not isinstance(value, dict) or set(value) != {
@@ -67,8 +67,8 @@ def parse_topology_proposals_json(
         if (
             not isinstance(sequence, list)
             or len(sequence) != len(allowed_node_ids)
-            or set(sequence) != allowed
             or any(not isinstance(item, str) for item in sequence)
+            or set(sequence) != allowed
         ):
             raise TopologyContractError(
                 f"{label}.sequence must be an exact permutation of allowed node ids"
@@ -78,23 +78,12 @@ def parse_topology_proposals_json(
             allowed,
             label,
         )
-        fingerprint = (
-            tuple(sequence),
-            tuple(
-                sorted(
-                    (
-                        min(edge.source, edge.target),
-                        max(edge.source, edge.target),
-                        edge.relation,
-                        edge.weight,
-                    )
-                    for edge in adjacencies
-                )
-            ),
-        )
-        if fingerprint in fingerprints:
-            raise TopologyContractError("topology candidates must be distinct")
-        fingerprints.add(fingerprint)
+        sequence_key = tuple(sequence)
+        if sequence_key in seen_sequences:
+            raise TopologyContractError(
+                "topology candidate sequences must be distinct"
+            )
+        seen_sequences.add(sequence_key)
         proposals.append(
             TopologyProposal(
                 candidate_id=candidate_id,

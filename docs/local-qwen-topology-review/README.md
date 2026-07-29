@@ -32,10 +32,13 @@ Runtime:
 
 ## Scope
 
-The LLM changes ordering and optional functional/service adjacency only. It
-cannot change the fixed room set, area prior, core count, required prior edges,
-floor boundary, geometry, or validation policy. Invalid JSON and duplicate or
-out-of-domain topology are rejected.
+The LLM changes ordering and optional functional/service adjacency only. For
+geometric safety, ordering is applied within primary, support, and remaining
+room-role groups rather than as an unrestricted global permutation. It cannot
+change the fixed room set, area prior, core count, required prior edges, floor
+boundary, geometry rules, or validation policy. Invalid JSON, duplicate
+sequences, out-of-domain topology, and duplicate resulting geometry are
+rejected.
 
 The current paper-backed HypergraphFormer LoRA is residential and
 single-apartment only. Office and neighborhood-commercial topology therefore

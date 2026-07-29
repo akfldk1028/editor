@@ -72,6 +72,30 @@ def test_parse_topology_proposals_requires_exact_node_permutation():
         )
 
 
+def test_parse_topology_proposals_wraps_unhashable_sequence_item():
+    payload = _payload()
+    payload["candidates"][0]["sequence"][0] = {}
+
+    with pytest.raises(TopologyContractError, match="exact permutation"):
+        parse_topology_proposals_json(
+            json.dumps(payload),
+            allowed_node_ids=tuple(node.node_id for node in _program().nodes),
+            expected_count=2,
+        )
+
+
+def test_parse_topology_proposals_requires_distinct_sequences():
+    payload = _payload()
+    payload["candidates"][1]["sequence"] = payload["candidates"][0]["sequence"]
+
+    with pytest.raises(TopologyContractError, match="sequences must be distinct"):
+        parse_topology_proposals_json(
+            json.dumps(payload),
+            allowed_node_ids=tuple(node.node_id for node in _program().nodes),
+            expected_count=2,
+        )
+
+
 def test_apply_topology_proposals_reorders_nodes_and_preserves_prior_edges():
     program = _program()
     proposals = parse_topology_proposals_json(

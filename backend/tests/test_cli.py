@@ -240,6 +240,108 @@ def test_cli_local_topology_review_generates_ranked_png_artifacts(
         assert len(list(candidate_dir.glob("*.png"))) == 1
 
 
+def test_cli_local_topology_review_discards_duplicate_geometry(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    input_path = tmp_path / "mass.json"
+    output_dir = tmp_path / "deduplicated"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-local-deduplicate",
+                "floors": 1,
+                "footprint_polygon": [
+                    [0, 0],
+                    [42, 0],
+                    [42, 16],
+                    [36, 22],
+                    [6, 22],
+                    [0, 16],
+                ],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [{"edge_index": 0, "position": 0.5}],
+                "use_mix": {"office": 1.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def propose(_self, program, *, candidate_count):
+        ids = tuple(node.node_id for node in program.nodes)
+        return (
+            TopologyProposal(
+                "topology-1",
+                ids,
+                (
+                    TopologyAdjacency(
+                        "reception",
+                        "open_work",
+                        "functional_adjacency",
+                        1.0,
+                    ),
+                ),
+            ),
+            TopologyProposal(
+                "topology-2",
+                tuple(reversed(ids)),
+                (
+                    TopologyAdjacency(
+                        "core",
+                        "pantry",
+                        "service_adjacent",
+                        1.0,
+                    ),
+                ),
+            ),
+        )
+
+    original_generation = cli_module.run_building_generation
+    cached = None
+
+    def same_geometry(*args, **kwargs):
+        nonlocal cached
+        if cached is None:
+            cached = original_generation(*args, **kwargs)
+        return cached
+
+    monkeypatch.setattr(
+        cli_module.LocalTopologyPlannerClient,
+        "propose",
+        propose,
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "run_building_generation",
+        same_geometry,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "plan",
+            "local-topology-review",
+            "--input",
+            str(input_path),
+            "--floor",
+            "1",
+            "--use-type",
+            "office",
+            "--output-dir",
+            str(output_dir),
+            "--candidate-count",
+            "2",
+        ],
+    )
+
+    cli_module.main()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert len(payload["alternatives"]) == 1
+    assert payload["discarded_duplicate_geometry"] == ["topology-2"]
+
+
 def test_cli_building_review_generates_all_floors(tmp_path):
     input_path = tmp_path / "mass.json"
     output_dir = tmp_path / "building-review"
