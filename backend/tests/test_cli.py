@@ -9,6 +9,10 @@ from xml.etree import ElementTree
 import pytest
 
 import backend.app.cli as cli_module
+from backend.app.modules.local_topology_planner.contracts import (
+    TopologyAdjacency,
+    TopologyProposal,
+)
 from backend.app.schemas.visual import BuildingVisualReviewArtifacts
 
 
@@ -139,6 +143,101 @@ def test_cli_generate_reads_mass_json_and_prints_generation_result(tmp_path):
     assert payload["program"]["use_type"] == "neighborhood_commercial"
     assert payload["layout"]["candidate_id"] == "cli-f1-baseline"
     assert "total_score" in payload["validation"]
+
+
+def test_cli_local_topology_review_generates_ranked_png_artifacts(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    input_path = tmp_path / "mass.json"
+    output_dir = tmp_path / "local-topology"
+    input_path.write_text(
+        json.dumps(
+            {
+                "project_id": "cli-local-topology",
+                "floors": 1,
+                "footprint_polygon": [
+                    [0, 0],
+                    [30, 0],
+                    [30, 12],
+                    [18, 12],
+                    [18, 18],
+                    [0, 18],
+                ],
+                "site_edges": [{"edge_index": 0, "kind": "street"}],
+                "access_candidates": [{"edge_index": 0, "position": 0.5}],
+                "use_mix": {"office": 1.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def propose(_self, program, *, candidate_count):
+        node_ids = tuple(node.node_id for node in program.nodes)
+        assert candidate_count == 2
+        return (
+            TopologyProposal(
+                candidate_id="topology-1",
+                sequence=node_ids,
+                adjacencies=(
+                    TopologyAdjacency(
+                        "reception",
+                        "open_work",
+                        "functional_adjacency",
+                        1.0,
+                    ),
+                ),
+            ),
+            TopologyProposal(
+                candidate_id="topology-2",
+                sequence=tuple(reversed(node_ids)),
+                adjacencies=(
+                    TopologyAdjacency(
+                        "core",
+                        "pantry",
+                        "service_adjacent",
+                        1.0,
+                    ),
+                ),
+            ),
+        )
+
+    monkeypatch.setattr(
+        cli_module.LocalTopologyPlannerClient,
+        "propose",
+        propose,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "plan",
+            "local-topology-review",
+            "--input",
+            str(input_path),
+            "--floor",
+            "1",
+            "--use-type",
+            "office",
+            "--output-dir",
+            str(output_dir),
+            "--candidate-count",
+            "2",
+        ],
+    )
+
+    cli_module.main()
+
+    payload = json.loads(capsys.readouterr().out)
+    assert len(payload["alternatives"]) == 2
+    assert [item["rank"] for item in payload["alternatives"]] == [1, 2]
+    assert (output_dir / "index.html").is_file()
+    assert (output_dir / "local-topology.review.json").is_file()
+    for item in payload["alternatives"]:
+        candidate_dir = output_dir / item["candidate_id"]
+        assert (candidate_dir / "index.html").is_file()
+        assert len(list(candidate_dir.glob("*.png"))) == 1
 
 
 def test_cli_building_review_generates_all_floors(tmp_path):

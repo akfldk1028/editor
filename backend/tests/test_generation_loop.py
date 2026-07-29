@@ -6,6 +6,8 @@ from backend.app.modules.generation_loop.service import (
     run_candidate_search,
     run_generation_loop,
 )
+from backend.app.modules.mass_analyzer.service import analyze_mass
+from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.loop import CandidateProposal, LoopConfig
 from backend.app.schemas.layout import RoomPolygon
@@ -192,12 +194,44 @@ def test_candidate_search_reports_compact_commercial_infeasibility():
 
     assert not result.accepted
     assert result.termination_reason == "search_exhausted"
-    corridor = next(record for record in result.history if record.operator == "corridor-horizontal")
-    violations = {(item.code, item.subject) for item in corridor.validation.violations}
+    corridor = next(
+        record
+        for record in result.history
+        if record.operator == "corridor-horizontal"
+    )
+    violations = {
+        (item.code, item.subject)
+        for item in corridor.validation.violations
+    }
     assert {
         ("room_min_width", "checkout"),
         ("room_min_width", "staff"),
     } <= violations
+
+
+def test_candidate_search_accepts_an_injected_program():
+    mass = _sample_mass()
+    baseline = generate_program_graph(
+        analyze_mass(mass),
+        floor_index=2,
+        use_type="office",
+    )
+    injected = replace(
+        baseline,
+        nodes=list(reversed(baseline.nodes)),
+        source="local_qwen_topology:topology-1",
+    )
+
+    result = run_candidate_search(
+        mass,
+        floor_index=2,
+        use_type="office",
+        config=LoopConfig(max_iterations=1, evaluation_budget=8),
+        program=injected,
+    )
+
+    assert result.program is injected
+    assert result.program.source == "local_qwen_topology:topology-1"
 
 
 def test_search_stagnates_when_novel_refinement_does_not_improve(monkeypatch):

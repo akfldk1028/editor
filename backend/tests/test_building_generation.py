@@ -68,6 +68,40 @@ def test_building_generation_assigns_all_floors_and_aligns_vertical_core():
     assert result.planner_provenance.provider == "deterministic"
     assert result.planner_provenance.planner_mode == "deterministic"
     assert result.planner_provenance.validated_assignments == result.floor_assignments
+
+
+def test_building_generation_accepts_floor_program_override_for_polygonal_mass():
+    mass = MassInput(
+        project_id="program-override-polygon",
+        floors=1,
+        footprint_polygon=[
+            (0, 0),
+            (42, 0),
+            (42, 16),
+            (36, 22),
+            (6, 22),
+            (0, 16),
+        ],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+    )
+    baseline = generate_program_graph(analyze_mass(mass), 1, "office")
+    override = replace(
+        baseline,
+        nodes=list(reversed(baseline.nodes)),
+        source="local_qwen_topology:topology-1",
+    )
+
+    result = generation_service.run_building_generation(
+        mass,
+        program_overrides={1: override},
+    )
+
+    floor = result.floor_results[0]
+    assert "local_qwen_topology:topology-1" in floor.program.source
+    assert floor.validation.accepted
+    assert floor.floor_boundary == tuple(mass.footprint_polygon)
     assert all(floor.validation.accepted for floor in result.floor_results)
     assert all(
         len(floor.layout.openings) == len(floor.layout.rooms)

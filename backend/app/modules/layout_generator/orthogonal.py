@@ -31,6 +31,7 @@ def generate_orthogonal_office_layout(
     core_polygon: Iterable[Point],
     remote_stair_polygon: Iterable[Point] | None = None,
     min_circulation_width: float = 1.2,
+    respect_program_order: bool = False,
 ) -> LayoutCandidate:
     """Generate a deterministic rectangular-cell office layout."""
     if program.use_type != "office":
@@ -113,7 +114,11 @@ def generate_orthogonal_office_layout(
         )
     else:
         remote_stair = _canonical_rectangle(fixed_remote_stair.bounds)
-    assignments = _assign_rectangles(non_core_nodes, available)
+    assignments = _assign_rectangles(
+        non_core_nodes,
+        available,
+        respect_program_order=respect_program_order,
+    )
     rooms = [
         RoomPolygon(
             room_id=core_nodes[0].node_id,
@@ -269,6 +274,8 @@ def _rectangle_cells(shape) -> tuple[tuple[Point, ...], ...]:
 def _assign_rectangles(
     nodes: list[ProgramNode],
     rectangles: list[tuple[Point, ...]],
+    *,
+    respect_program_order: bool = False,
 ) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
     if len(rectangles) < len(nodes):
         raise ValueError(
@@ -276,6 +283,7 @@ def _assign_rectangles(
         )
     remaining = list(rectangles)
     support_types = {"pantry", "restroom", "it_storage"}
+    input_order = {node.node_id: index for index, node in enumerate(nodes)}
     ordered_nodes = sorted(
         nodes,
         key=lambda node: (
@@ -286,8 +294,12 @@ def _assign_rectangles(
                 if node.space_type in support_types
                 else 2
             ),
-            -float(node.target_area),
-            node.node_id,
+            (
+                input_order[node.node_id]
+                if respect_program_order
+                else -float(node.target_area)
+            ),
+            "" if respect_program_order else node.node_id,
         ),
     )
     assignments = []

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import replace
 
 from shapely.geometry import LineString, MultiLineString, Polygon, box
@@ -272,6 +272,7 @@ def run_building_generation(
     *,
     floor_assignments: Iterable[FloorAssignment] | None = None,
     planner_provenance: PlannerProvenance | None = None,
+    program_overrides: Mapping[int, ProgramGraph] | None = None,
 ) -> BuildingGenerationResult:
     analysis = analyze_mass(mass)
     has_nonrectangular_floor = any(
@@ -322,8 +323,28 @@ def run_building_generation(
             "concept-basic footprint requires width >= 20.0 m and depth >= 10.0 m"
         )
 
+    overrides = dict(program_overrides or {})
+    if any(
+        not isinstance(floor_index, int)
+        or floor_index < 1
+        or floor_index > mass.floors
+        for floor_index in overrides
+    ):
+        raise ValueError("program override floor indexes must be inside the building")
+    for assignment in assignments:
+        override = overrides.get(assignment.floor_index)
+        if override is not None and (
+            not isinstance(override, ProgramGraph)
+            or override.project_id != mass.project_id
+            or override.floor_index != assignment.floor_index
+            or override.use_type != assignment.use_type
+        ):
+            raise ValueError(
+                "program override identity must match project, floor, and use"
+            )
     programs = [
-        generate_program_graph(
+        overrides.get(assignment.floor_index)
+        or generate_program_graph(
             floor_analysis,
             floor_index=assignment.floor_index,
             use_type=assignment.use_type,
@@ -581,6 +602,9 @@ def run_building_generation(
                 program,
                 core_polygon=shared_core,
                 remote_stair_polygon=shared_remote_stair,
+                respect_program_order=program.source.startswith(
+                    "local_qwen_topology:"
+                ),
             )
         elif use_role_layout:
             layout = generate_rear_center_layout(
@@ -1826,7 +1850,7 @@ def _normalize_program_core(program, shared_core_target: float):
         program,
         nodes,
         reason="shared_core_normalization",
-        source="building_aligned_prior",
+        source=f"{program.source}:building_aligned_prior",
     )
 
 
@@ -1885,7 +1909,7 @@ def _compress_compact_program(
         program,
         nodes,
         reason="compact_mass_fit",
-        source="compact_building_aligned_prior",
+        source=f"{program.source}:compact_building_aligned_prior",
     )
 
 
@@ -2359,17 +2383,28 @@ def run_candidate_search(
     floor_index: int,
     use_type: str,
     config: LoopConfig | None = None,
+    *,
+    program: ProgramGraph | None = None,
 ) -> LoopResult:
     config = config or LoopConfig()
     analysis = analyze_mass(mass)
-    program = generate_program_graph(
-        analysis,
-        floor_index=floor_index,
-        use_type=use_type,
-    )
+    if program is None:
+        program = generate_program_graph(
+            analysis,
+            floor_index=floor_index,
+            use_type=use_type,
+        )
+    elif (
+        program.project_id != mass.project_id
+        or program.floor_index != floor_index
+        or program.use_type != use_type
+    ):
+        raise ValueError("injected program identity does not match search request")
+    floor_analysis = _analysis_for_floor(analysis, floor_index)
+    boundary = mass.footprint_for_floor(floor_index)
     streets = _street_segments(mass)
     try:
-        pending = generate_initial_proposals(analysis, program)
+        pending = generate_initial_proposals(floor_analysis, program)
     except Exception as error:
         return _failed_loop_result(analysis, program, error)
     seen: set[str] = set()
@@ -2395,7 +2430,7 @@ def run_candidate_search(
                 validation = validate_layout(
                     layout,
                     program,
-                    boundary=mass.footprint_polygon,
+                    boundary=boundary,
                     street_segments=streets,
                     building_code_context=mass.building_code_context,
                 )

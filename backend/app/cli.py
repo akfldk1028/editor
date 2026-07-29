@@ -3,10 +3,12 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.modules.generation_loop.service import (
+    assign_floors_from_use_mix,
     run_building_alternatives,
     run_building_generation,
     run_generation_loop,
@@ -16,15 +18,24 @@ from backend.app.modules.generator_adapters.graph2plan_raw import (
     Graph2PlanRawError,
     run_graph2plan_raw_benchmark,
 )
+from backend.app.modules.local_topology_planner.contracts import (
+    apply_topology_proposals,
+)
+from backend.app.modules.local_topology_planner.service import (
+    LocalTopologyPlannerClient,
+)
 from backend.app.modules.llm_planner.openai_client import (
     OpenAIResponsesPlannerClient,
 )
+from backend.app.modules.mass_analyzer.service import analyze_mass
+from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.llm_planner.service import run_llm_building_generation
 from backend.app.modules.visual_review.service import (
     create_building_visual_review_artifacts,
     create_visual_review_artifacts,
     run_visual_review_loop,
 )
+from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import (
     BuildingCodeContext,
     FloorCodeContext,
@@ -103,6 +114,176 @@ def _aggregate_review_status(records: list[dict], key: str) -> dict:
     return {"status": status}
 
 
+def _run_local_topology_review(args, mass: MassInput) -> None:
+    analysis = analyze_mass(mass)
+    baseline = generate_program_graph(
+        analysis,
+        floor_index=args.floor,
+        use_type=args.use_type,
+    )
+    model_path = Path(args.base_model).resolve()
+    client = LocalTopologyPlannerClient(
+        command=(
+            str(Path(args.runtime_python)),
+            "-m",
+            "backend.app.modules.local_topology_planner.worker",
+            "--model-path",
+            str(model_path),
+        ),
+    )
+    proposals = client.propose(
+        baseline,
+        candidate_count=args.candidate_count,
+    )
+    programs = apply_topology_proposals(baseline, proposals)
+    assignments = tuple(
+        FloorAssignment(
+            floor_index=assignment.floor_index,
+            use_type=(
+                args.use_type
+                if assignment.floor_index == args.floor
+                else assignment.use_type
+            ),
+        )
+        for assignment in assign_floors_from_use_mix(mass)
+    )
+    buildings = [
+        (
+            proposal,
+            run_building_generation(
+                mass,
+                floor_assignments=assignments,
+                program_overrides={args.floor: program},
+            ),
+        )
+        for proposal, program in zip(proposals, programs, strict=True)
+    ]
+    buildings.sort(
+        key=lambda item: (
+            0
+            if next(
+                floor
+                for floor in item[1].floor_results
+                if floor.program.floor_index == args.floor
+            ).validation.accepted
+            else 1,
+            next(
+                floor
+                for floor in item[1].floor_results
+                if floor.program.floor_index == args.floor
+            ).validation.hard_violation_count,
+            next(
+                floor
+                for floor in item[1].floor_results
+                if floor.program.floor_index == args.floor
+            ).validation.violation_score,
+            -next(
+                floor
+                for floor in item[1].floor_results
+                if floor.program.floor_index == args.floor
+            ).validation.total_score,
+            item[0].candidate_id,
+        )
+    )
+
+    target = Path(args.output_dir).resolve()
+    target.mkdir(parents=True, exist_ok=True)
+    boundary = mass.footprint_for_floor(args.floor)
+    summaries: list[dict] = []
+    for rank, (proposal, building) in enumerate(buildings, start=1):
+        result = next(
+            floor
+            for floor in building.floor_results
+            if floor.program.floor_index == args.floor
+        )
+        candidate_dir = target / proposal.candidate_id
+        artifacts = create_visual_review_artifacts(
+            result,
+            boundary=list(boundary),
+            output_dir=candidate_dir,
+            run_root=target,
+        )
+        candidate_index = candidate_dir / "index.html"
+        candidate_index.write_text(
+            (
+                "<!doctype html><html><head><meta charset=\"utf-8\">"
+                f"<title>{html.escape(proposal.candidate_id)}</title>"
+                "</head><body style=\"margin:0;background:#fff\">"
+                f"<iframe src=\"{html.escape(artifacts.html_path.name)}\" "
+                "style=\"width:100%;height:100vh;border:0\"></iframe>"
+                "</body></html>"
+            ),
+            encoding="utf-8",
+        )
+        summaries.append(
+            {
+                "candidate_id": proposal.candidate_id,
+                "rank": rank,
+                "accepted": result.validation.accepted,
+                "termination_reason": (
+                    "accepted" if result.validation.accepted else "rejected"
+                ),
+                "score": result.validation.total_score,
+                "hard_violation_count": (
+                    result.validation.hard_violation_count
+                ),
+                "program_source": result.program.source,
+                "sequence": list(proposal.sequence),
+                "adjacencies": to_jsonable(proposal.adjacencies),
+                "png": str(artifacts.png_path.relative_to(target)),
+                "html": str(candidate_index.relative_to(target)),
+                "review_json": str(artifacts.report_path.relative_to(target)),
+                "internal_validation": artifacts.internal_validation,
+                "render_validation": artifacts.render_validation,
+                "regulatory_screening": artifacts.regulatory_screening,
+            }
+        )
+    report = {
+        "schema_version": 1,
+        "project_id": mass.project_id,
+        "planner": "local_qwen3_4b_topology",
+        "model_path": str(model_path),
+        "floor_index": args.floor,
+        "use_type": args.use_type,
+        "accepted_count": sum(item["accepted"] for item in summaries),
+        "alternatives": summaries,
+    }
+    report_path = target / "local-topology.review.json"
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    rows = "\n".join(
+        (
+            "<section style=\"border-top:1px solid #ddd;padding:24px 0\">"
+            f"<h2 style=\"font-size:18px\">#{item['rank']} "
+            f"{html.escape(item['candidate_id'])}</h2>"
+            f"<p>accepted={str(item['accepted']).lower()} | "
+            f"score={item['score']:.4f} | "
+            f"hard violations={item['hard_violation_count']}</p>"
+            f"<a href=\"{html.escape(item['html'])}\">"
+            f"<img src=\"{html.escape(item['png'])}\" "
+            "style=\"max-width:100%;height:auto\" "
+            f"alt=\"{html.escape(item['candidate_id'])}\"></a>"
+            "</section>"
+        )
+        for item in summaries
+    )
+    (target / "index.html").write_text(
+        (
+            "<!doctype html><html><head><meta charset=\"utf-8\">"
+            "<title>Local topology review</title></head>"
+            "<body style=\"margin:0;background:#fff;color:#111;"
+            "font:14px Arial,sans-serif\"><main style=\"max-width:1100px;"
+            "margin:auto;padding:24px\"><h1 style=\"font-size:24px\">"
+            f"{html.escape(mass.project_id)} local topology review</h1>"
+            f"{rows}</main></body></html>"
+        ),
+        encoding="utf-8",
+    )
+    print(json.dumps(report, ensure_ascii=False))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="plan")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -169,6 +350,30 @@ def main() -> None:
         choices=("cpu", "cuda"),
         default="cpu",
     )
+    local_topology = subparsers.add_parser("local-topology-review")
+    local_topology.add_argument("--input", required=True)
+    local_topology.add_argument("--floor", required=True, type=int)
+    local_topology.add_argument("--use-type", required=True)
+    local_topology.add_argument("--output-dir", required=True)
+    local_topology.add_argument(
+        "--candidate-count",
+        type=int,
+        choices=range(2, 7),
+        default=4,
+    )
+    local_topology.add_argument(
+        "--runtime-python",
+        default=os.environ.get(
+            "PLAN_LOCAL_LLM_PYTHON",
+            r"C:\Users\User\anaconda3\envs\maas-qwen\python.exe",
+        ),
+    )
+    local_topology.add_argument(
+        "--base-model",
+        default=str(
+            Path("clone") / "models" / "Qwen3-4B-Instruct-2507"
+        ),
+    )
 
     args = parser.parse_args()
     if args.command == "graph2plan-raw":
@@ -215,7 +420,9 @@ def main() -> None:
         return
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
     mass = _mass_input_from_payload(payload)
-    if args.command == "generate":
+    if args.command == "local-topology-review":
+        _run_local_topology_review(args, mass)
+    elif args.command == "generate":
         result = run_generation_loop(
             mass, floor_index=args.floor, use_type=args.use_type
         )

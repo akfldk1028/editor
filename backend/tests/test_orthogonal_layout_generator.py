@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import math
 
 import pytest
@@ -169,6 +170,47 @@ def test_orthogonal_layout_rejects_core_outside_notched_boundary() -> None:
                 (20, 22),
             ],
         )
+
+
+def test_orthogonal_layout_can_respect_learned_program_order() -> None:
+    _, boundary, core, _ = CASES[0]
+    program = _program("learned-order", boundary)
+    core_nodes = [node for node in program.nodes if node.space_type == "core"]
+    non_core = [node for node in program.nodes if node.space_type != "core"]
+    reversed_program = replace(
+        program,
+        nodes=[*reversed(non_core), *core_nodes],
+    )
+
+    original = generate_orthogonal_office_layout(
+        boundary,
+        program,
+        core_polygon=core,
+        respect_program_order=True,
+    )
+    reversed_layout = generate_orthogonal_office_layout(
+        boundary,
+        reversed_program,
+        core_polygon=core,
+        respect_program_order=True,
+    )
+
+    original_rooms = {
+        room.room_id: tuple(room.polygon)
+        for room in original.rooms
+        if room.space_type != "core"
+    }
+    reversed_rooms = {
+        room.room_id: tuple(room.polygon)
+        for room in reversed_layout.rooms
+        if room.space_type != "core"
+    }
+    assert original_rooms != reversed_rooms
+    boundary_shape = Polygon(boundary)
+    assert all(
+        boundary_shape.covers(Polygon(room.polygon))
+        for room in reversed_layout.rooms
+    )
 
 
 def _is_orthogonal_polygon(shape: Polygon) -> bool:
