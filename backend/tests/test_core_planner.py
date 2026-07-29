@@ -4,7 +4,10 @@ from pathlib import Path
 from shapely.geometry import Polygon
 
 from backend.app.modules.core_planner.service import (
+    _MAX_AUXILIARY_INTERVALS_PER_AXIS,
+    _auxiliary_grid_values,
     _geometry_fingerprint,
+    _sample_values,
     generate_shared_core_candidates,
 )
 
@@ -171,6 +174,23 @@ def test_shared_core_finds_non_vertex_aligned_core_in_sloped_envelope() -> None:
     assert candidates
     assert all(Polygon(floor).covers(Polygon(candidate.polygon)) for candidate in candidates)
     assert any(_dimensions(candidate.polygon) == (5.2, 19.6) for candidate in candidates)
+
+
+def test_auxiliary_grid_search_is_bounded_for_large_coordinate_span() -> None:
+    critical_coordinates = (-999_999_999.875, 123_456_789.123456)
+
+    grid = _auxiliary_grid_values(minimum=-1_000_000_000.0, maximum=1_000_000_000.0)
+    sampled = _sample_values(
+        minimum=-1_000_000_000.0,
+        maximum=1_000_000_000.0,
+        extra=critical_coordinates,
+    )
+
+    assert len(grid) == _MAX_AUXILIARY_INTERVALS_PER_AXIS + 1
+    assert grid[0] == -1_000_000_000.0
+    assert grid[-1] == 1_000_000_000.0
+    assert set(critical_coordinates) <= set(sampled)
+    assert len(sampled) <= len(grid) + len(critical_coordinates)
 
 
 def test_shared_core_returns_no_candidates_for_line_or_point_intersection() -> None:

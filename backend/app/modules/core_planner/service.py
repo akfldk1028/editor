@@ -12,6 +12,7 @@ from backend.app.modules.core_planner.contracts import CoreCandidate
 
 _STRATEGIES = ("central", "notch_adjacent", "long_edge_adjacent")
 _GRID_STEP = 0.25
+_MAX_AUXILIARY_INTERVALS_PER_AXIS = 64
 _TOLERANCE = 1e-9
 
 
@@ -170,7 +171,13 @@ def _contained_rectangles(
         tested_origins.add(origin)
         if not prepared_common.covers(Point(x + width / 2, y + depth / 2)):
             return
-        rectangle = box(x, y, x + width, y + depth)
+        rectangle_max_x = x + width
+        rectangle_max_y = y + depth
+        if rectangle_max_x - x < width:
+            rectangle_max_x = math.nextafter(rectangle_max_x, math.inf)
+        if rectangle_max_y - y < depth:
+            rectangle_max_y = math.nextafter(rectangle_max_y, math.inf)
+        rectangle = box(x, y, rectangle_max_x, rectangle_max_y)
         if prepared_common.covers(rectangle):
             bounds = tuple(float(value) for value in rectangle.bounds)
             if bounds not in seen:
@@ -256,15 +263,8 @@ def _sample_values(
 ) -> tuple[float, ...]:
     if maximum < minimum - _TOLERANCE:
         return ()
-    count = max(0, math.floor((maximum - minimum) / _GRID_STEP + _TOLERANCE))
     values = {
-        minimum,
-        maximum,
-        *(
-            minimum + index * _GRID_STEP
-            for index in range(count + 1)
-            if minimum + index * _GRID_STEP <= maximum + _TOLERANCE
-        ),
+        *_auxiliary_grid_values(minimum=minimum, maximum=maximum),
         *(
             float(value)
             for value in extra
@@ -272,6 +272,44 @@ def _sample_values(
         ),
     }
     return tuple(sorted(values))
+
+
+def _auxiliary_grid_values(
+    *,
+    minimum: float,
+    maximum: float,
+) -> tuple[float, ...]:
+    if maximum < minimum - _TOLERANCE:
+        return ()
+    span = maximum - minimum
+    if span <= _TOLERANCE:
+        return tuple(sorted({minimum, maximum}))
+
+    natural_interval_count = max(
+        1,
+        math.ceil(span / _GRID_STEP - _TOLERANCE),
+    )
+    if natural_interval_count <= _MAX_AUXILIARY_INTERVALS_PER_AXIS:
+        return tuple(
+            (
+                minimum + index * _GRID_STEP
+                if index < natural_interval_count
+                else maximum
+            )
+            for index in range(natural_interval_count + 1)
+        )
+
+    return tuple(
+        (
+            minimum
+            if index == 0
+            else maximum
+            if index == _MAX_AUXILIARY_INTERVALS_PER_AXIS
+            else minimum
+            + span * index / _MAX_AUXILIARY_INTERVALS_PER_AXIS
+        )
+        for index in range(_MAX_AUXILIARY_INTERVALS_PER_AXIS + 1)
+    )
 
 
 def _boundary_segments(
