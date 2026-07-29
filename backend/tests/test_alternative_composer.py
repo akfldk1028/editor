@@ -30,6 +30,8 @@ from backend.app.modules.core_planner.service import (
     generate_shared_core_candidates,
 )
 from backend.app.modules.generation_loop.service import run_building_generation
+from backend.app.modules.mass_analyzer.service import analyze_mass
+from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.mass import FloorFootprint, MassInput
 
 
@@ -44,6 +46,19 @@ MANIFEST_PATH = (
 
 def test_irregular_mass_produces_two_accepted_structural_families() -> None:
     alternatives = _alternatives()
+    mass = _mass()
+    analysis = analyze_mass(mass)
+    prior_by_floor = {
+        floor_index: {
+            node.node_id: node
+            for node in generate_program_graph(
+                analysis,
+                floor_index=floor_index,
+                use_type="office",
+            ).nodes
+        }
+        for floor_index in range(1, mass.floors + 1)
+    }
 
     assert len(alternatives) >= 2
     assert all(item.building.accepted for item in alternatives)
@@ -73,6 +88,28 @@ def test_irregular_mass_produces_two_accepted_structural_families() -> None:
                 for metric in floor.validation.room_areas
                 if metric.room_id == open_work.room_id
             )
+            program_areas = {
+                metric.room_id: metric.actual_area
+                for metric in floor.validation.room_areas
+                if metric.room_id != "core"
+            }
+            assert work_area == max(program_areas.values())
+            prior = prior_by_floor[floor.program.floor_index]
+            learned_primary_share = float(prior["open_work"].target_area) / sum(
+                float(node.target_area)
+                for node in prior.values()
+                if node.space_type != "core"
+            )
+            assert (
+                work_area / sum(program_areas.values())
+                >= learned_primary_share * 0.75
+            )
+            for room_id, actual_area in program_areas.items():
+                if room_id == "open_work":
+                    continue
+                original_max = float(prior[room_id].max_area)
+                cell_tolerance = max(10.0, original_max * 0.10)
+                assert actual_area <= original_max + cell_tolerance
             features = floor.layout.basic_design
             assert features is not None
             workpoints = sum(

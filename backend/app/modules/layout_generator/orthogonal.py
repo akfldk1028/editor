@@ -26,6 +26,8 @@ Point = tuple[float, float]
 _TOLERANCE = 1e-8
 _DOOR_WIDTH = 0.9
 _MIN_FURNISHED_FRONTAGE_DEPTH = 2.8
+_MAX_ACCESSIBLE_RECTANGLE_COUNT = 512
+_MAX_RESIDUAL_CELL_COUNT = 4096
 
 
 def generate_orthogonal_office_layout(
@@ -103,15 +105,14 @@ def generate_orthogonal_office_layout(
             circulation,
             allow_tolerant_adjacency=circulation_candidate is not None,
         )
-    free_shape = boundary_shape.difference(
-        union_all(
-            [
-                core_shape,
-                corridor_shape,
-                *([fixed_remote_stair] if fixed_remote_stair is not None else []),
-            ]
-        )
+    fixed_shape = union_all(
+        [
+            core_shape,
+            corridor_shape,
+            *([fixed_remote_stair] if fixed_remote_stair is not None else []),
+        ]
     )
+    free_shape = boundary_shape.difference(fixed_shape)
     non_core_nodes = [node for node in program.nodes if node.space_type != "core"]
     minimum_room_width = min(
         max(float(node.min_width or 0), 1.1) for node in non_core_nodes
@@ -141,6 +142,19 @@ def generate_orthogonal_office_layout(
         available,
         circulation,
         required_count=len(non_core_nodes) + 1,
+        bounded_area_limits=(
+            tuple(
+                float(node.max_area or node.target_area)
+                + max(
+                    10.0,
+                    float(node.max_area or node.target_area) * 0.10,
+                )
+                for node in non_core_nodes
+                if node.space_type not in {"open_work", "sales"}
+            )
+            if circulation_candidate is not None
+            else None
+        ),
         frontage_segments=frontage_segments,
         frontage_required_count=(
             sum(node.frontage_required for node in non_core_nodes)
@@ -175,6 +189,7 @@ def generate_orthogonal_office_layout(
     assignments = _assign_rectangles(
         non_core_nodes,
         available,
+        free_shape=(free_shape if circulation_candidate is not None else None),
         frontage_segments=frontage_segments,
         respect_program_order=respect_program_order,
     )
@@ -182,6 +197,7 @@ def generate_orthogonal_office_layout(
         assignments = _absorb_residual_cells(
             assignments,
             free_shape=free_shape,
+            fixed_shape=fixed_shape,
         )
     rooms = [
         RoomPolygon(
@@ -358,6 +374,7 @@ def _assign_rectangles(
     nodes: list[ProgramNode],
     rectangles: list[tuple[Point, ...]],
     *,
+    free_shape=None,
     frontage_segments: tuple[tuple[Point, Point], ...] = (),
     respect_program_order: bool = False,
 ) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
@@ -367,17 +384,30 @@ def _assign_rectangles(
         )
     remaining = list(rectangles)
     support_types = {"pantry", "restroom", "it_storage"}
+    primary_types = {"open_work", "sales"}
     input_order = {node.node_id: index for index, node in enumerate(nodes)}
     ordered_nodes = sorted(
         nodes,
         key=lambda node: (
             (
-                0
-                if node.space_type == "open_work"
-                or (frontage_segments and node.frontage_required)
-                else 1
-                if node.space_type in support_types
-                else 2
+                (
+                    -1
+                    if frontage_segments and node.frontage_required
+                    else 0
+                    if node.space_type in support_types
+                    else 2
+                    if node.space_type in primary_types
+                    else 1
+                )
+                if free_shape is not None
+                else (
+                    0
+                    if node.space_type == "open_work"
+                    or (frontage_segments and node.frontage_required)
+                    else 1
+                    if node.space_type in support_types
+                    else 2
+                )
             ),
             (
                 input_order[node.node_id]
@@ -389,7 +419,7 @@ def _assign_rectangles(
     )
     assignments = []
     support_centers = []
-    for node in ordered_nodes:
+    for node_index, node in enumerate(ordered_nodes):
         enforce_frontage = bool(frontage_segments) and node.frontage_required
         frontage_options = (
             [
@@ -416,7 +446,84 @@ def _assign_rectangles(
             >= float(node.min_width or 0)
         ]
         candidates = width_compliant or candidates
-        if node.space_type == "open_work":
+        if free_shape is not None:
+            if node.space_type not in primary_types:
+                maximum_seed_area = float(node.max_area or node.target_area) + max(
+                    10.0,
+                    float(node.max_area or node.target_area) * 0.10,
+                )
+                bounded_candidates = [
+                    rectangle
+                    for rectangle in candidates
+                    if Polygon(rectangle).area
+                    <= maximum_seed_area + _TOLERANCE
+                ]
+                if not bounded_candidates:
+                    raise ValueError(
+                        f"orthogonal layout seed area exceeds original bound "
+                        f"for {node.node_id}"
+                    )
+                candidates = bounded_candidates
+            later_nodes = ordered_nodes[node_index + 1 :]
+            remaining_area_limits = tuple(
+                float(later.max_area or later.target_area)
+                + max(
+                    10.0,
+                    float(later.max_area or later.target_area) * 0.10,
+                )
+                for later in later_nodes
+                if later.space_type not in primary_types
+            )
+            remaining_frontage_nodes = [
+                later
+                for later in later_nodes
+                if frontage_segments and later.frontage_required
+            ]
+            capacity_preserving = []
+            for candidate in candidates:
+                next_rectangles = [
+                    rectangle for rectangle in remaining if rectangle != candidate
+                ]
+                if not _has_bounded_seed_capacity(
+                    next_rectangles,
+                    remaining_area_limits,
+                ):
+                    continue
+                if (
+                    remaining_frontage_nodes
+                    and _frontage_capacity(
+                        next_rectangles,
+                        frontage_segments=frontage_segments,
+                        minimum_width=max(
+                            float(later.min_width or 0)
+                            for later in remaining_frontage_nodes
+                        ),
+                    )
+                    < len(remaining_frontage_nodes)
+                ):
+                    continue
+                capacity_preserving.append(candidate)
+            if not capacity_preserving:
+                raise ValueError(
+                    f"orthogonal layout cannot preserve bounded seed capacity "
+                    f"after {node.node_id}"
+                )
+            candidates = capacity_preserving
+        if node.space_type in primary_types and free_shape is not None:
+            blockers = [Polygon(polygon) for _, polygon in assignments]
+            chosen = max(
+                candidates,
+                key=lambda rectangle: (
+                    _reachable_component_area(
+                        rectangle,
+                        free_shape=free_shape,
+                        blockers=blockers,
+                    ),
+                    Polygon(rectangle).area,
+                    tuple(-value for value in _rectangle_sort_key(rectangle)),
+                ),
+            )
+        elif node.space_type == "open_work":
             chosen = max(
                 candidates,
                 key=lambda rectangle: (
@@ -453,10 +560,38 @@ def _assign_rectangles(
     return sorted(assignments, key=lambda item: item[0].node_id)
 
 
+def _reachable_component_area(
+    rectangle: tuple[Point, ...],
+    *,
+    free_shape,
+    blockers: list[Polygon],
+) -> float:
+    reachable_shape = (
+        free_shape.difference(union_all(blockers))
+        if blockers
+        else free_shape
+    )
+    components = (
+        tuple(reachable_shape.geoms)
+        if isinstance(reachable_shape, MultiPolygon)
+        else (reachable_shape,)
+    )
+    seed = Polygon(rectangle).representative_point()
+    return max(
+        (
+            component.area
+            for component in components
+            if component.buffer(_TOLERANCE).covers(seed)
+        ),
+        default=0.0,
+    )
+
+
 def _absorb_residual_cells(
     assignments: list[tuple[ProgramNode, tuple[Point, ...]]],
     *,
     free_shape,
+    fixed_shape=None,
 ) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
     """Grow accessible program seeds across the fixed-circulation free cells."""
     shapes = {
@@ -473,7 +608,27 @@ def _absorb_residual_cells(
             preserve_precision=True,
         )
     ]
+    if len(residual_cells) > _MAX_RESIDUAL_CELL_COUNT:
+        raise ValueError(
+            "residual program allocation exceeds bounded cell count"
+        )
     primary_types = {"open_work", "sales"}
+    support_nodes = [
+        node for node in nodes.values() if node.space_type not in primary_types
+    ]
+    if support_nodes:
+        cell_area_budget = min(
+            max(
+                10.0,
+                float(node.max_area or node.target_area) * 0.10,
+            )
+            for node in support_nodes
+        )
+        if not any(node.space_type in primary_types for node in nodes.values()):
+            residual_cells = _subdivide_residual_cells(
+                residual_cells,
+                maximum_area=cell_area_budget,
+            )
     residual_count = len(residual_cells)
     room_ids = tuple(sorted(shapes))
     rectangle_bounds = (
@@ -494,12 +649,17 @@ def _absorb_residual_cells(
         cell_index = left_index
         room_id = room_ids[right_index - residual_count]
         node = nodes[room_id]
+        if (
+            node.space_type not in primary_types
+            and shapes[room_id].area + _TOLERANCE >= float(node.target_area)
+        ):
+            continue
         cell = residual_cells[cell_index]
         heappush(
             frontier,
             (
-                1,
                 0 if node.space_type in primary_types else 1,
+                1,
                 -shared_length,
                 room_id,
                 cell.bounds,
@@ -510,29 +670,48 @@ def _absorb_residual_cells(
         cell_neighbors.sort(key=lambda item: item[0])
 
     absorbed: set[int] = set()
+    room_areas = {
+        room_id: shape.area for room_id, shape in shapes.items()
+    }
+    claimed_cells: dict[str, list[int]] = {
+        room_id: [] for room_id in room_ids
+    }
     while frontier:
-        distance, _, _, room_id, _, cell_index = heappop(frontier)
+        _, distance, _, room_id, _, cell_index = heappop(frontier)
         if cell_index in absorbed:
             continue
+        node = nodes[room_id]
         cell = residual_cells[cell_index]
-        combined = shapes[room_id].union(cell)
         if (
-            not isinstance(combined, Polygon)
-            or not combined.is_valid
-            or combined.interiors
+            node.space_type not in primary_types
+            and (
+                room_areas[room_id] + _TOLERANCE >= float(node.target_area)
+                or room_areas[room_id] + cell.area
+                > float(node.max_area or node.target_area)
+                + max(
+                    10.0,
+                    float(node.max_area or node.target_area) * 0.10,
+                )
+                + _TOLERANCE
+            )
         ):
             continue
-        shapes[room_id] = combined
         absorbed.add(cell_index)
-        node = nodes[room_id]
+        claimed_cells[room_id].append(cell_index)
+        room_areas[room_id] += cell.area
         for neighbor_index, shared_length in neighbors[cell_index]:
             if neighbor_index in absorbed:
                 continue
+            if (
+                node.space_type not in primary_types
+                and room_areas[room_id] + _TOLERANCE >= float(node.target_area)
+            ):
+                break
             heappush(
                 frontier,
                 (
-                    distance + 1,
                     0 if node.space_type in primary_types else 1,
+                    distance + 1,
                     -shared_length,
                     room_id,
                     residual_cells[neighbor_index].bounds,
@@ -540,10 +719,173 @@ def _absorb_residual_cells(
                 ),
             )
 
-    return [
-        (node, _polygon_ring(shapes[node.node_id]))
-        for node, _ in assignments
+    for room_id in room_ids:
+        owned = claimed_cells[room_id]
+        combined = union_all(
+            (
+                shapes[room_id],
+                *(residual_cells[index] for index in owned),
+            )
+        )
+        while isinstance(combined, Polygon) and combined.interiors:
+            released = _release_minimum_hole_slit(
+                seed=shapes[room_id],
+                owned=owned,
+                cells=residual_cells,
+                neighbors=neighbors,
+                combined=combined,
+            )
+            if released is None:
+                break
+            owned[:] = released
+            combined = union_all(
+                (
+                    shapes[room_id],
+                    *(residual_cells[index] for index in owned),
+                )
+            )
+        while True:
+            if (
+                isinstance(combined, Polygon)
+                and combined.is_valid
+                and not combined.interiors
+            ):
+                shapes[room_id] = combined
+                break
+            if not owned:
+                raise ValueError(
+                    f"residual allocation invalidated room {room_id}"
+                )
+            owned.pop()
+            combined = union_all(
+                (
+                    shapes[room_id],
+                    *(residual_cells[index] for index in owned),
+                )
+            )
+
+    authoritative_axes = _geometry_axes(free_shape)
+    finalized = []
+    for node, _ in assignments:
+        ring = _polygon_ring(
+            shapes[node.node_id],
+            authoritative_axes=authoritative_axes,
+        )
+        shape = Polygon(ring)
+        if not free_shape.covers(shape):
+            raise ValueError(
+                f"residual allocation escaped free shape for {node.node_id}"
+            )
+        if (
+            fixed_shape is not None
+            and shape.intersection(fixed_shape).area > _TOLERANCE
+        ):
+            raise ValueError(
+                f"residual allocation overlaps fixed geometry for {node.node_id}"
+            )
+        finalized.append((node, ring))
+    return finalized
+
+
+def _release_minimum_hole_slit(
+    *,
+    seed: Polygon,
+    owned: list[int],
+    cells: list[Polygon],
+    neighbors: list[list[tuple[int, float]]],
+    combined: Polygon,
+) -> list[int] | None:
+    owned_set = set(owned)
+    hole_boundaries = tuple(combined.interiors)
+    starts = {
+        index
+        for index in owned
+        if any(
+            cells[index].boundary.intersection(hole).length > _TOLERANCE
+            for hole in hole_boundaries
+        )
+    }
+    targets = {
+        index
+        for index in owned
+        if cells[index].boundary.intersection(combined.exterior).length
+        > _TOLERANCE
+    }
+    frontier = sorted(
+        (cells[index].area, 1, (index,), index)
+        for index in starts
+    )
+    best: dict[int, tuple[float, int, tuple[int, ...]]] = {}
+    while frontier:
+        area, count, path, cell_index = heappop(frontier)
+        score = (area, count, path)
+        if cell_index in best and best[cell_index] <= score:
+            continue
+        best[cell_index] = score
+        if cell_index in targets:
+            released = set(path)
+            remaining = [
+                index for index in owned if index not in released
+            ]
+            trial = union_all(
+                (
+                    seed,
+                    *(cells[index] for index in remaining),
+                )
+            )
+            if (
+                isinstance(trial, Polygon)
+                and trial.is_valid
+                and len(trial.interiors) < len(combined.interiors)
+            ):
+                return remaining
+        for neighbor_index, _ in neighbors[cell_index]:
+            if neighbor_index not in owned_set or neighbor_index in path:
+                continue
+            next_path = (*path, neighbor_index)
+            heappush(
+                frontier,
+                (
+                    area + cells[neighbor_index].area,
+                    count + 1,
+                    next_path,
+                    neighbor_index,
+                ),
+            )
+    return None
+
+
+def _subdivide_residual_cells(
+    cells: list[Polygon],
+    *,
+    maximum_area: float,
+    maximum_count: int = _MAX_RESIDUAL_CELL_COUNT,
+) -> list[Polygon]:
+    piece_counts = [
+        max(1, math.ceil((cell.area - _TOLERANCE) / maximum_area))
+        for cell in cells
     ]
+    if sum(piece_counts) > maximum_count:
+        raise ValueError(
+            "residual program allocation exceeds bounded cell count"
+        )
+    pieces = []
+    for cell, piece_count in zip(cells, piece_counts):
+        min_x, min_y, max_x, max_y = cell.bounds
+        if max_x - min_x >= max_y - min_y:
+            step = (max_x - min_x) / piece_count
+            bounds = (
+                (min_x + index * step, min_y, min_x + (index + 1) * step, max_y)
+                for index in range(piece_count)
+            )
+        else:
+            step = (max_y - min_y) / piece_count
+            bounds = (
+                (min_x, min_y + index * step, max_x, min_y + (index + 1) * step)
+                for index in range(piece_count)
+            )
+        pieces.extend(Polygon(_canonical_rectangle(item)) for item in bounds)
+    return sorted(pieces, key=lambda cell: _rectangle_sort_key(_polygon_ring(cell)))
 
 
 def _rectangle_adjacencies(
@@ -624,10 +966,115 @@ def _edge_overlap_length(
     return max(0.0, min(left_end, right_end) - max(left_start, right_start))
 
 
-def _polygon_ring(polygon: Polygon) -> tuple[Point, ...]:
-    return tuple(
+def _polygon_ring(
+    polygon: Polygon,
+    *,
+    authoritative_axes: tuple[tuple[float, ...], tuple[float, ...]] | None = None,
+) -> tuple[Point, ...]:
+    raw_points = [
         (float(x), float(y))
         for x, y in tuple(polygon.exterior.coords)[:-1]
+    ]
+    x_mapping = _canonical_axis_mapping(
+        (point[0] for point in raw_points),
+        authoritative=authoritative_axes[0] if authoritative_axes else (),
+    )
+    y_mapping = _canonical_axis_mapping(
+        (point[1] for point in raw_points),
+        authoritative=authoritative_axes[1] if authoritative_axes else (),
+    )
+    points = [
+        (x_mapping[x], y_mapping[y])
+        for x, y in raw_points
+    ]
+    while len(points) > 3:
+        simplified = [
+            point
+            for index, point in enumerate(points)
+            if not _collinear_between(
+                points[index - 1],
+                point,
+                points[(index + 1) % len(points)],
+            )
+        ]
+        if len(simplified) == len(points):
+            break
+        points = simplified
+    return tuple(points)
+
+
+def _geometry_axes(
+    geometry,
+) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    coordinates = []
+    geometries = (
+        tuple(geometry.geoms)
+        if hasattr(geometry, "geoms") and not isinstance(geometry, Polygon)
+        else (geometry,)
+    )
+    for item in geometries:
+        if not isinstance(item, Polygon):
+            continue
+        coordinates.extend(tuple(item.exterior.coords)[:-1])
+        for interior in item.interiors:
+            coordinates.extend(tuple(interior.coords)[:-1])
+    return (
+        tuple(sorted({float(x) for x, _ in coordinates})),
+        tuple(sorted({float(y) for _, y in coordinates})),
+    )
+
+
+def _canonical_axis_mapping(
+    values: Iterable[float],
+    *,
+    authoritative: tuple[float, ...],
+) -> dict[float, float]:
+    unique = sorted(set(values))
+    clusters: list[list[float]] = []
+    for value in unique:
+        if not clusters or value - clusters[-1][0] > _TOLERANCE:
+            clusters.append([value])
+        else:
+            clusters[-1].append(value)
+    mapping = {}
+    for cluster in clusters:
+        candidates = [
+            axis
+            for axis in authoritative
+            if any(
+                math.isclose(
+                    axis,
+                    value,
+                    rel_tol=0.0,
+                    abs_tol=_TOLERANCE,
+                )
+                for value in cluster
+            )
+        ]
+        representative = (
+            min(
+                candidates,
+                key=lambda axis: (
+                    min(abs(axis - value) for value in cluster),
+                    axis,
+                ),
+            )
+            if candidates
+            else cluster[0]
+        )
+        mapping.update((value, representative) for value in cluster)
+    return mapping
+
+
+def _collinear_between(start: Point, middle: Point, end: Point) -> bool:
+    axis_aligned = (
+        start[0] == middle[0] == end[0]
+        or start[1] == middle[1] == end[1]
+    )
+    return (
+        axis_aligned
+        and min(start[0], end[0]) <= middle[0] <= max(start[0], end[0])
+        and min(start[1], end[1]) <= middle[1] <= max(start[1], end[1])
     )
 
 
@@ -687,12 +1134,33 @@ def _subdivide_accessible_rectangles(
     circulation: list[RoomPolygon],
     *,
     required_count: int,
+    bounded_area_limits: tuple[float, ...] | None = None,
     frontage_segments: tuple[tuple[Point, Point], ...] = (),
     frontage_required_count: int = 0,
     frontage_min_width: float = 0.0,
 ) -> list[tuple[Point, ...]]:
     result = list(rectangles)
-    while len(result) < required_count:
+    while True:
+        if (
+            bounded_area_limits is not None
+            and len(result) > _MAX_ACCESSIBLE_RECTANGLE_COUNT
+        ):
+            raise ValueError(
+                "accessible room subdivision exceeds bounded rectangle count"
+            )
+        has_bounded_capacity = (
+            bounded_area_limits is None
+            or _has_bounded_seed_capacity(result, bounded_area_limits)
+        )
+        if len(result) >= required_count and has_bounded_capacity:
+            break
+        if (
+            bounded_area_limits is not None
+            and len(result) >= _MAX_ACCESSIBLE_RECTANGLE_COUNT
+        ):
+            raise ValueError(
+                "accessible room subdivision exceeds bounded rectangle count"
+            )
         options = []
         for rectangle in result:
             shared = [
@@ -747,9 +1215,30 @@ def _subdivide_accessible_rectangles(
         if not options:
             break
         _, _, selected, pieces = max(options)
+        if (
+            bounded_area_limits is not None
+            and len(result) - 1 + len(pieces)
+            > _MAX_ACCESSIBLE_RECTANGLE_COUNT
+        ):
+            raise ValueError(
+                "accessible room subdivision exceeds bounded rectangle count"
+            )
         result.remove(selected)
         result.extend(pieces)
     return sorted(result, key=_rectangle_sort_key)
+
+
+def _has_bounded_seed_capacity(
+    rectangles: list[tuple[Point, ...]],
+    area_limits: tuple[float, ...],
+) -> bool:
+    available_areas = sorted(Polygon(rectangle).area for rectangle in rectangles)
+    for limit in sorted(area_limits):
+        eligible = [area for area in available_areas if area <= limit + _TOLERANCE]
+        if not eligible:
+            return False
+        available_areas.remove(max(eligible))
+    return True
 
 
 def _frontage_capacity(
