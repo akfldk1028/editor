@@ -42,6 +42,8 @@ def generate_orthogonal_office_layout(
         raise ValueError("orthogonal layout requires a supported use program")
     if not math.isfinite(min_circulation_width) or min_circulation_width < 1.2:
         raise ValueError("minimum circulation width must be finite and at least 1.2")
+    if circulation_candidate is not None and remote_stair_polygon is not None:
+        raise ValueError("remote_stair_polygon conflicts with circulation_candidate")
     boundary_points = tuple((float(x), float(y)) for x, y in boundary)
     frontage_segments = tuple(
         (
@@ -73,8 +75,6 @@ def generate_orthogonal_office_layout(
             else None
         )
     else:
-        if remote_stair_polygon is not None:
-            raise ValueError("remote_stair_polygon conflicts with circulation_candidate")
         circulation_rectangles = circulation_candidate.polygons
         corridor_shape = union_all(
             [Polygon(polygon) for polygon in circulation_candidate.polygons]
@@ -110,7 +110,10 @@ def generate_orthogonal_office_layout(
     )
     available = [
         rectangle
-        for rectangle in _rectangle_cells(free_shape)
+        for rectangle in _rectangle_cells(
+            free_shape,
+            require_complete=circulation_candidate is None,
+        )
         if (
             _longest_shared_edge(rectangle, circulation) >= _DOOR_WIDTH
             and min(
@@ -283,7 +286,11 @@ def _corridor_network(
     return network
 
 
-def _rectangle_cells(shape) -> tuple[tuple[Point, ...], ...]:
+def _rectangle_cells(
+    shape,
+    *,
+    require_complete: bool = True,
+) -> tuple[tuple[Point, ...], ...]:
     if shape.is_empty:
         return ()
     polygons = tuple(shape.geoms) if isinstance(shape, MultiPolygon) else (shape,)
@@ -314,7 +321,11 @@ def _rectangle_cells(shape) -> tuple[tuple[Point, ...], ...]:
             if shape.covers(candidate):
                 rectangles.append(_canonical_rectangle(candidate.bounds))
     covered = union_all([Polygon(item) for item in rectangles])
-    if rectangles and shape.symmetric_difference(covered).area > _TOLERANCE:
+    if (
+        require_complete
+        and rectangles
+        and shape.symmetric_difference(covered).area > _TOLERANCE
+    ):
         raise ValueError("rectangular decomposition lost layout area")
     return tuple(sorted(rectangles, key=_rectangle_sort_key))
 
@@ -780,7 +791,7 @@ def _validate_rectangular_core(
     if not core.is_valid or core.area <= _TOLERANCE:
         raise ValueError("core must be a valid positive-area polygon")
     expected = Polygon(_canonical_rectangle(core.bounds))
-    if len(points) != 4 or not core.equals(expected):
+    if len(points) != 4 or core.symmetric_difference(expected).area > _TOLERANCE:
         raise ValueError("core must be an axis-aligned rectangle")
     if not boundary.covers(core):
         raise ValueError("core must be inside the floor footprint")
