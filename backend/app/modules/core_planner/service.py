@@ -10,8 +10,6 @@ from backend.app.modules.core_planner.contracts import CoreCandidate
 
 
 _STRATEGIES = ("central", "notch_adjacent", "long_edge_adjacent")
-_GRID_STEP = 0.25
-_MAX_DIMENSION_SAMPLES = 24
 
 
 def generate_shared_core_candidates(
@@ -32,18 +30,28 @@ def generate_shared_core_candidates(
     common = floors[0]
     for floor in floors[1:]:
         common = common.intersection(floor)
-    if common.is_empty:
+    if common.is_empty or common.geom_type not in {"Polygon", "MultiPolygon"}:
+        return ()
+    x_coordinates, y_coordinates = _critical_coordinates(common)
+    if len(x_coordinates) < 2 or len(y_coordinates) < 2:
         return ()
 
     rectangles = tuple(
         rectangle
         for width, depth in _dimension_options(
-            common,
+            x_coordinates,
+            y_coordinates,
             required_area=required_area,
             minimum_width=minimum_width,
             minimum_depth=minimum_depth,
         )
-        for rectangle in _contained_rectangles(common, width=width, depth=depth)
+        for rectangle in _contained_rectangles(
+            common,
+            x_coordinates=x_coordinates,
+            y_coordinates=y_coordinates,
+            width=width,
+            depth=depth,
+        )
     )
     if not rectangles:
         return ()
@@ -101,76 +109,83 @@ def _validate_requirements(
             raise ValueError("floor boundaries must be valid polygons")
 
 
-def _contained_rectangles(common, *, width: float, depth: float) -> tuple:
-    min_x, min_y, max_x, max_y = common.bounds
+def _contained_rectangles(
+    common,
+    *,
+    x_coordinates: tuple[float, ...],
+    y_coordinates: tuple[float, ...],
+    width: float,
+    depth: float,
+) -> tuple:
     result = []
-    x = min_x
-    while x + width <= max_x + 1e-9:
-        y = min_y
-        while y + depth <= max_y + 1e-9:
+    seen: set[tuple[float, float, float, float]] = set()
+    x_origins = tuple(sorted({coordinate for coordinate in x_coordinates} | {
+        coordinate - width for coordinate in x_coordinates
+    }))
+    y_origins = tuple(sorted({coordinate for coordinate in y_coordinates} | {
+        coordinate - depth for coordinate in y_coordinates
+    }))
+    for x in x_origins:
+        for y in y_origins:
             rectangle = box(x, y, x + width, y + depth)
             if common.covers(rectangle):
-                result.append(rectangle)
-            y = round(y + _GRID_STEP, 8)
-        x = round(x + _GRID_STEP, 8)
+                bounds = tuple(float(value) for value in rectangle.bounds)
+                if bounds not in seen:
+                    seen.add(bounds)
+                    result.append(rectangle)
     return tuple(result)
 
 
-def _round_up(value: float) -> float:
-    return math.ceil(value * 1_000_000) / 1_000_000
-
-
 def _dimension_options(
-    common,
+    x_coordinates: tuple[float, ...],
+    y_coordinates: tuple[float, ...],
     *,
     required_area: float,
     minimum_width: float,
     minimum_depth: float,
 ) -> tuple[tuple[float, float], ...]:
-    min_x, min_y, max_x, max_y = common.bounds
-    available_width = max_x - min_x
-    available_depth = max_y - min_y
     options: list[tuple[float, float]] = []
+    horizontal_spans = _critical_spans(x_coordinates)
+    vertical_spans = _critical_spans(y_coordinates)
     for horizontal_minimum, vertical_minimum in (
         (minimum_width, minimum_depth),
         (minimum_depth, minimum_width),
     ):
-        for width in _sample_dimension_values(
-            minimum=horizontal_minimum,
-            maximum=available_width,
-            preferred=(
-                math.sqrt(required_area),
-                required_area / available_depth,
-            ),
-        ):
-            depth = max(vertical_minimum, _round_up(required_area / width))
-            if depth <= available_depth + 1e-9:
-                option = (width, depth)
-                if option not in options:
-                    options.append(option)
+        widths = {horizontal_minimum}
+        widths.update(span for span in horizontal_spans if span >= horizontal_minimum)
+        widths.update(
+            required_area / span
+            for span in vertical_spans
+            if span >= vertical_minimum
+        )
+        for width in sorted(width for width in widths if width >= horizontal_minimum):
+            depth = max(vertical_minimum, required_area / width)
+            option = (width, depth)
+            if option not in options:
+                options.append(option)
     return tuple(options)
 
 
-def _sample_dimension_values(
-    *,
-    minimum: float,
-    maximum: float,
-    preferred: tuple[float, ...],
-) -> tuple[float, ...]:
-    if maximum < minimum:
-        return ()
-    values = {minimum, maximum}
-    values.update(value for value in preferred if minimum <= value <= maximum)
-    remaining = _MAX_DIMENSION_SAMPLES - len(values)
-    step_count = int(math.floor((maximum - minimum) / _GRID_STEP))
-    if step_count <= remaining:
-        values.update(minimum + index * _GRID_STEP for index in range(1, step_count + 1))
-    elif remaining > 0:
-        values.update(
-            minimum + (maximum - minimum) * index / (remaining + 1)
-            for index in range(1, remaining + 1)
-        )
-    return tuple(sorted(values))
+def _critical_coordinates(common) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    polygons = (common,) if common.geom_type == "Polygon" else tuple(common.geoms)
+    coordinates = tuple(
+        coordinate
+        for polygon in polygons
+        for coordinate in polygon.exterior.coords[:-1]
+    )
+    return (
+        tuple(sorted({float(x) for x, _ in coordinates})),
+        tuple(sorted({float(y) for _, y in coordinates})),
+    )
+
+
+def _critical_spans(coordinates: tuple[float, ...]) -> tuple[float, ...]:
+    return tuple(
+        right - left
+        for index, left in enumerate(coordinates)
+        for right in coordinates[index + 1:]
+        if right > left
+    )
 
 
 def _strategy_targets(common) -> dict[str, Point]:

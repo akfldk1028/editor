@@ -102,6 +102,57 @@ def test_shared_core_samples_intermediate_feasible_dimensions() -> None:
     assert any(_dimensions(candidate.polygon) == (8.2, 8.780488) for candidate in candidates)
 
 
+def test_shared_core_enumerates_concave_pocket_critical_width() -> None:
+    floor = (
+        (0.0, 0.0),
+        (100.0, 0.0),
+        (100.0, 1.0),
+        (48.2, 1.0),
+        (48.2, 8.8),
+        (40.0, 8.8),
+        (40.0, 1.0),
+        (1.0, 1.0),
+        (1.0, 20.0),
+        (0.0, 20.0),
+    )
+
+    candidates = generate_shared_core_candidates(
+        (floor, floor),
+        required_area=72.0,
+        minimum_width=7.6,
+        minimum_depth=5.2,
+    )
+
+    assert candidates
+    assert all(Polygon(floor).covers(Polygon(candidate.polygon)) for candidate in candidates)
+    assert any(_dimensions(candidate.polygon) == (8.2, 8.780488) for candidate in candidates)
+
+
+def test_shared_core_returns_no_candidates_for_line_or_point_intersection() -> None:
+    base = ((0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0))
+    line_touching = ((10.0, 0.0), (20.0, 0.0), (20.0, 10.0), (10.0, 10.0))
+    point_touching = ((10.0, 10.0), (20.0, 10.0), (20.0, 20.0), (10.0, 20.0))
+
+    assert (
+        generate_shared_core_candidates(
+            (base, line_touching),
+            required_area=72.0,
+            minimum_width=7.6,
+            minimum_depth=5.2,
+        )
+        == ()
+    )
+    assert (
+        generate_shared_core_candidates(
+            (base, point_touching),
+            required_area=72.0,
+            minimum_width=7.6,
+            minimum_depth=5.2,
+        )
+        == ()
+    )
+
+
 def test_shared_core_revalidates_returned_decimal_boundary_coordinates() -> None:
     floor = (
         (0.0000004, 0.0),
