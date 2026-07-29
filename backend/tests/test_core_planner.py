@@ -128,6 +128,51 @@ def test_shared_core_enumerates_concave_pocket_critical_width() -> None:
     assert any(_dimensions(candidate.polygon) == (8.2, 8.780488) for candidate in candidates)
 
 
+def test_shared_core_finds_intermediate_core_in_concave_diagonal_pocket() -> None:
+    floor = (
+        (0.0, 0.0),
+        (32.0, 0.0),
+        (32.0, 0.1),
+        (28.2, 0.1),
+        (21.57, 10.1),
+        (14.73, 10.1),
+        (11.0, 0.1),
+        (1.0, 0.1),
+        (1.0, 15.0),
+        (0.0, 15.0),
+    )
+
+    candidates = generate_shared_core_candidates(
+        (floor, floor),
+        required_area=72.0,
+        minimum_width=7.6,
+        minimum_depth=5.2,
+    )
+
+    assert candidates
+    assert all(Polygon(floor).covers(Polygon(candidate.polygon)) for candidate in candidates)
+    assert any(
+        8.0 < _dimensions(candidate.polygon)[0] < 9.5
+        and _dimensions(candidate.polygon)[1] > 8.0
+        for candidate in candidates
+    )
+
+
+def test_shared_core_finds_non_vertex_aligned_core_in_sloped_envelope() -> None:
+    floor = ((0.0, 0.0), (30.0, 0.0), (16.0, 15.0), (14.0, 15.0))
+
+    candidates = generate_shared_core_candidates(
+        (floor, floor),
+        required_area=100.0,
+        minimum_width=19.6,
+        minimum_depth=5.2,
+    )
+
+    assert candidates
+    assert all(Polygon(floor).covers(Polygon(candidate.polygon)) for candidate in candidates)
+    assert any(_dimensions(candidate.polygon) == (5.2, 19.6) for candidate in candidates)
+
+
 def test_shared_core_returns_no_candidates_for_line_or_point_intersection() -> None:
     base = ((0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0))
     line_touching = ((10.0, 0.0), (20.0, 0.0), (20.0, 10.0), (10.0, 10.0))

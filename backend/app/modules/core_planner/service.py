@@ -5,11 +5,14 @@ import json
 import math
 
 from shapely.geometry import Point, Polygon, box
+from shapely.prepared import prep
 
 from backend.app.modules.core_planner.contracts import CoreCandidate
 
 
 _STRATEGIES = ("central", "notch_adjacent", "long_edge_adjacent")
+_GRID_STEP = 0.25
+_TOLERANCE = 1e-9
 
 
 def generate_shared_core_candidates(
@@ -30,23 +33,30 @@ def generate_shared_core_candidates(
     common = floors[0]
     for floor in floors[1:]:
         common = common.intersection(floor)
-    if common.is_empty or common.geom_type not in {"Polygon", "MultiPolygon"}:
+    if (
+        common.is_empty
+        or common.geom_type not in {"Polygon", "MultiPolygon"}
+        or common.area <= _TOLERANCE
+    ):
         return ()
     x_coordinates, y_coordinates = _critical_coordinates(common)
     if len(x_coordinates) < 2 or len(y_coordinates) < 2:
         return ()
+    boundary_segments = _boundary_segments(common)
 
     rectangles = tuple(
         rectangle
         for width, depth in _dimension_options(
             x_coordinates,
             y_coordinates,
+            bounds=common.bounds,
             required_area=required_area,
             minimum_width=minimum_width,
             minimum_depth=minimum_depth,
         )
         for rectangle in _contained_rectangles(
             common,
+            boundary_segments=boundary_segments,
             x_coordinates=x_coordinates,
             y_coordinates=y_coordinates,
             width=width,
@@ -112,27 +122,83 @@ def _validate_requirements(
 def _contained_rectangles(
     common,
     *,
+    boundary_segments: tuple[
+        tuple[tuple[float, float], tuple[float, float]], ...
+    ],
     x_coordinates: tuple[float, ...],
     y_coordinates: tuple[float, ...],
     width: float,
     depth: float,
 ) -> tuple:
+    min_x, min_y, max_x, max_y = common.bounds
+    maximum_x_origin = max_x - width
+    maximum_y_origin = max_y - depth
+    if (
+        maximum_x_origin < min_x - _TOLERANCE
+        or maximum_y_origin < min_y - _TOLERANCE
+    ):
+        return ()
+
+    x_origins = _sample_values(
+        minimum=min_x,
+        maximum=maximum_x_origin,
+        extra=(
+            coordinate
+            for coordinate in x_coordinates
+            for coordinate in (coordinate, coordinate - width)
+        ),
+    )
+    y_origins = _sample_values(
+        minimum=min_y,
+        maximum=maximum_y_origin,
+        extra=(
+            coordinate
+            for coordinate in y_coordinates
+            for coordinate in (coordinate, coordinate - depth)
+        ),
+    )
+
+    prepared_common = prep(common)
     result = []
     seen: set[tuple[float, float, float, float]] = set()
-    x_origins = tuple(sorted({coordinate for coordinate in x_coordinates} | {
-        coordinate - width for coordinate in x_coordinates
-    }))
-    y_origins = tuple(sorted({coordinate for coordinate in y_coordinates} | {
-        coordinate - depth for coordinate in y_coordinates
-    }))
+    tested_origins: set[tuple[float, float]] = set()
+
+    def test_origin(x: float, y: float) -> None:
+        origin = (x, y)
+        if origin in tested_origins:
+            return
+        tested_origins.add(origin)
+        if not prepared_common.covers(Point(x + width / 2, y + depth / 2)):
+            return
+        rectangle = box(x, y, x + width, y + depth)
+        if prepared_common.covers(rectangle):
+            bounds = tuple(float(value) for value in rectangle.bounds)
+            if bounds not in seen:
+                seen.add(bounds)
+                result.append(rectangle)
+
     for x in x_origins:
         for y in y_origins:
-            rectangle = box(x, y, x + width, y + depth)
-            if common.covers(rectangle):
-                bounds = tuple(float(value) for value in rectangle.bounds)
-                if bounds not in seen:
-                    seen.add(bounds)
-                    result.append(rectangle)
+            test_origin(x, y)
+
+    for y in y_origins:
+        for x in _edge_x_origins(
+            boundary_segments,
+            y_coordinates=(y, y + depth),
+            width=width,
+            minimum=min_x,
+            maximum=maximum_x_origin,
+        ):
+            test_origin(x, y)
+    for x in x_origins:
+        for y in _edge_y_origins(
+            boundary_segments,
+            x_coordinates=(x, x + width),
+            depth=depth,
+            minimum=min_y,
+            maximum=maximum_y_origin,
+        ):
+            test_origin(x, y)
     return tuple(result)
 
 
@@ -140,30 +206,172 @@ def _dimension_options(
     x_coordinates: tuple[float, ...],
     y_coordinates: tuple[float, ...],
     *,
+    bounds: tuple[float, float, float, float],
     required_area: float,
     minimum_width: float,
     minimum_depth: float,
 ) -> tuple[tuple[float, float], ...]:
     options: list[tuple[float, float]] = []
+    min_x, min_y, max_x, max_y = bounds
+    available_width = max_x - min_x
+    available_depth = max_y - min_y
     horizontal_spans = _critical_spans(x_coordinates)
     vertical_spans = _critical_spans(y_coordinates)
     for horizontal_minimum, vertical_minimum in (
         (minimum_width, minimum_depth),
         (minimum_depth, minimum_width),
     ):
-        widths = {horizontal_minimum}
+        if available_depth < vertical_minimum - _TOLERANCE:
+            continue
+        maximum_useful_width = min(
+            available_width,
+            max(horizontal_minimum, required_area / vertical_minimum),
+        )
+        widths = {horizontal_minimum, math.sqrt(required_area)}
         widths.update(span for span in horizontal_spans if span >= horizontal_minimum)
         widths.update(
             required_area / span
             for span in vertical_spans
             if span >= vertical_minimum
         )
-        for width in sorted(width for width in widths if width >= horizontal_minimum):
+        for width in _sample_values(
+            minimum=horizontal_minimum,
+            maximum=maximum_useful_width,
+            extra=widths,
+        ):
             depth = max(vertical_minimum, required_area / width)
+            if depth > available_depth + _TOLERANCE:
+                continue
             option = (width, depth)
             if option not in options:
                 options.append(option)
     return tuple(options)
+
+
+def _sample_values(
+    *,
+    minimum: float,
+    maximum: float,
+    extra,
+) -> tuple[float, ...]:
+    if maximum < minimum - _TOLERANCE:
+        return ()
+    count = max(0, math.floor((maximum - minimum) / _GRID_STEP + _TOLERANCE))
+    values = {
+        minimum,
+        maximum,
+        *(
+            minimum + index * _GRID_STEP
+            for index in range(count + 1)
+            if minimum + index * _GRID_STEP <= maximum + _TOLERANCE
+        ),
+        *(
+            float(value)
+            for value in extra
+            if minimum - _TOLERANCE <= float(value) <= maximum + _TOLERANCE
+        ),
+    }
+    return tuple(sorted(values))
+
+
+def _boundary_segments(
+    common,
+) -> tuple[tuple[tuple[float, float], tuple[float, float]], ...]:
+    polygons = (common,) if common.geom_type == "Polygon" else tuple(common.geoms)
+    rings = tuple(
+        ring
+        for polygon in polygons
+        for ring in (polygon.exterior, *polygon.interiors)
+    )
+    return tuple(
+        ((float(start[0]), float(start[1])), (float(end[0]), float(end[1])))
+        for ring in rings
+        for start, end in zip(ring.coords, ring.coords[1:])
+    )
+
+
+def _edge_x_origins(
+    segments: tuple[tuple[tuple[float, float], tuple[float, float]], ...],
+    *,
+    y_coordinates: tuple[float, ...],
+    width: float,
+    minimum: float,
+    maximum: float,
+) -> tuple[float, ...]:
+    intersections = {
+        x
+        for y in y_coordinates
+        for x in _horizontal_intersections(segments, y)
+    }
+    return tuple(
+        sorted(
+            {
+                origin
+                for coordinate in intersections
+                for origin in (coordinate, coordinate - width)
+                if minimum - _TOLERANCE <= origin <= maximum + _TOLERANCE
+            }
+        )
+    )
+
+
+def _edge_y_origins(
+    segments: tuple[tuple[tuple[float, float], tuple[float, float]], ...],
+    *,
+    x_coordinates: tuple[float, ...],
+    depth: float,
+    minimum: float,
+    maximum: float,
+) -> tuple[float, ...]:
+    intersections = {
+        y
+        for x in x_coordinates
+        for y in _vertical_intersections(segments, x)
+    }
+    return tuple(
+        sorted(
+            {
+                origin
+                for coordinate in intersections
+                for origin in (coordinate, coordinate - depth)
+                if minimum - _TOLERANCE <= origin <= maximum + _TOLERANCE
+            }
+        )
+    )
+
+
+def _horizontal_intersections(
+    segments: tuple[tuple[tuple[float, float], tuple[float, float]], ...],
+    y: float,
+) -> tuple[float, ...]:
+    intersections = []
+    for (start_x, start_y), (end_x, end_y) in segments:
+        if math.isclose(start_y, end_y, abs_tol=_TOLERANCE):
+            if math.isclose(y, start_y, abs_tol=_TOLERANCE):
+                intersections.extend((start_x, end_x))
+            continue
+        if min(start_y, end_y) - _TOLERANCE <= y <= max(start_y, end_y) + _TOLERANCE:
+            ratio = (y - start_y) / (end_y - start_y)
+            if -_TOLERANCE <= ratio <= 1 + _TOLERANCE:
+                intersections.append(start_x + ratio * (end_x - start_x))
+    return tuple(intersections)
+
+
+def _vertical_intersections(
+    segments: tuple[tuple[tuple[float, float], tuple[float, float]], ...],
+    x: float,
+) -> tuple[float, ...]:
+    intersections = []
+    for (start_x, start_y), (end_x, end_y) in segments:
+        if math.isclose(start_x, end_x, abs_tol=_TOLERANCE):
+            if math.isclose(x, start_x, abs_tol=_TOLERANCE):
+                intersections.extend((start_y, end_y))
+            continue
+        if min(start_x, end_x) - _TOLERANCE <= x <= max(start_x, end_x) + _TOLERANCE:
+            ratio = (x - start_x) / (end_x - start_x)
+            if -_TOLERANCE <= ratio <= 1 + _TOLERANCE:
+                intersections.append(start_y + ratio * (end_y - start_y))
+    return tuple(intersections)
 
 
 def _critical_coordinates(common) -> tuple[tuple[float, ...], tuple[float, ...]]:
