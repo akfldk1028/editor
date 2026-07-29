@@ -10,6 +10,7 @@ from backend.app.modules.basic_design.stair import (
     CONCEPT_DEFAULT_FLOOR_TO_FLOOR_HEIGHT_M,
     required_stair_enclosure,
 )
+from backend.app.modules.circulation_planner.contracts import CirculationCandidate
 from backend.app.schemas.layout import (
     LayoutCandidate,
     OpeningSegment,
@@ -31,6 +32,7 @@ def generate_orthogonal_office_layout(
     *,
     core_polygon: Iterable[Point],
     remote_stair_polygon: Iterable[Point] | None = None,
+    circulation_candidate: CirculationCandidate | None = None,
     frontage_segments: Iterable[tuple[Point, Point]] = (),
     min_circulation_width: float = 1.2,
     respect_program_order: bool = False,
@@ -48,7 +50,6 @@ def generate_orthogonal_office_layout(
         )
         for start, end in frontage_segments
     )
-    cells = orthogonal_rectangle_cells(boundary_points)
     boundary_shape = Polygon(boundary_points)
     core_points = tuple((float(x), float(y)) for x, y in core_polygon)
     core_shape = Polygon(core_points)
@@ -57,13 +58,28 @@ def generate_orthogonal_office_layout(
     if len(core_nodes) != 1:
         raise ValueError("orthogonal program requires exactly one core node")
 
-    corridor_shape = _corridor_network(
-        boundary_shape,
-        cells,
-        core_shape,
-        min_circulation_width,
-    )
-    circulation_rectangles = _rectangle_cells(corridor_shape)
+    if circulation_candidate is None:
+        cells = orthogonal_rectangle_cells(boundary_points)
+        corridor_shape = _corridor_network(
+            boundary_shape,
+            cells,
+            core_shape,
+            min_circulation_width,
+        )
+        circulation_rectangles = _rectangle_cells(corridor_shape)
+        fixed_remote_stair = (
+            Polygon(tuple((float(x), float(y)) for x, y in remote_stair_polygon))
+            if remote_stair_polygon is not None
+            else None
+        )
+    else:
+        if remote_stair_polygon is not None:
+            raise ValueError("remote_stair_polygon conflicts with circulation_candidate")
+        circulation_rectangles = circulation_candidate.polygons
+        corridor_shape = union_all(
+            [Polygon(polygon) for polygon in circulation_candidate.polygons]
+        )
+        fixed_remote_stair = Polygon(circulation_candidate.remote_stair_polygon)
     circulation = [
         RoomPolygon(
             room_id=f"corridor-{index:03d}",
@@ -72,12 +88,6 @@ def generate_orthogonal_office_layout(
         )
         for index, rectangle in enumerate(circulation_rectangles, start=1)
     ]
-
-    fixed_remote_stair = (
-        Polygon(tuple((float(x), float(y)) for x, y in remote_stair_polygon))
-        if remote_stair_polygon is not None
-        else None
-    )
     if fixed_remote_stair is not None:
         _validate_remote_stair(
             boundary_shape,
@@ -146,7 +156,11 @@ def generate_orthogonal_office_layout(
             frontage_segments=frontage_segments,
         )
     else:
-        remote_stair = _canonical_rectangle(fixed_remote_stair.bounds)
+        remote_stair = (
+            circulation_candidate.remote_stair_polygon
+            if circulation_candidate is not None
+            else _canonical_rectangle(fixed_remote_stair.bounds)
+        )
     assignments = _assign_rectangles(
         non_core_nodes,
         available,
