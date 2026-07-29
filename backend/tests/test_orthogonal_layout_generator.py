@@ -7,6 +7,7 @@ import pytest
 from shapely import union_all
 from shapely.geometry import Polygon, box
 from shapely.geometry.base import BaseGeometry
+from shapely.prepared import prep as prepare_geometry
 
 import backend.app.modules.layout_generator.orthogonal as orthogonal_service
 from backend.app.modules.basic_design.service import generate_basic_design
@@ -52,43 +53,148 @@ CASES = (
 )
 
 
-def test_residual_cell_absorption_has_linear_union_work(
+def test_rectangle_adjacency_sweep_is_bounded_by_cells_and_contacts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    cells = tuple(
-        (
-            (float(x), float(y)),
-            (float(x + 1), float(y)),
-            (float(x + 1), float(y + 1)),
-            (float(x), float(y + 1)),
-        )
-        for x in range(10)
-        for y in range(10)
+    width = 12
+    height = 10
+    bounds = tuple(
+        (float(x), float(y), float(x + 1), float(y + 1))
+        for x in range(width)
+        for y in range(height)
     )
+    expected_contacts = height * (width - 1) + width * (height - 1)
+    comparisons = 0
+    original_overlap = orthogonal_service._edge_overlap_length
+
+    def counted_overlap(*args, **kwargs):
+        nonlocal comparisons
+        comparisons += 1
+        return original_overlap(*args, **kwargs)
+
+    def forbidden_intersection(*args, **kwargs):
+        raise AssertionError("rectangle adjacency must not use Shapely intersection")
+
     monkeypatch.setattr(
         orthogonal_service,
-        "_rectangle_cells",
-        lambda *args, **kwargs: cells,
+        "_edge_overlap_length",
+        counted_overlap,
     )
+    monkeypatch.setattr(BaseGeometry, "intersection", forbidden_intersection)
+
+    adjacencies = orthogonal_service._rectangle_adjacencies(bounds)
+
+    assert len(adjacencies) == expected_contacts
+    assert all(left_index < right_index for left_index, right_index, _ in adjacencies)
+    assert comparisons <= 2 * (len(bounds) + expected_contacts)
+
+
+def test_rectangle_cells_use_prepared_covers_on_high_vertex_polygon(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    step_count = 24
+    staircase = _staircase_polygon(step_count)
+    prep_calls = 0
+    covers_calls = 0
+
+    def counted_prep(shape):
+        nonlocal prep_calls
+        prep_calls += 1
+        prepared = prepare_geometry(shape)
+
+        class CountedPrepared:
+            def covers(self, candidate):
+                nonlocal covers_calls
+                covers_calls += 1
+                return prepared.covers(candidate)
+
+        return CountedPrepared()
+
+    monkeypatch.setattr(
+        orthogonal_service,
+        "prep",
+        counted_prep,
+        raising=False,
+    )
+
+    cells = orthogonal_service._rectangle_cells(staircase)
+
+    assert prep_calls == 1
+    assert covers_calls == step_count**2
+    assert len(cells) == step_count * (step_count + 1) // 2
+    assert union_all([Polygon(cell) for cell in cells]).equals(staircase)
+
+
+def test_residual_cell_absorption_has_bounded_graph_work(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    step_count = 18
+    staircase = _staircase_polygon(step_count)
+    seed = box(-1.0, 0.0, 0.0, 1.0)
+    free_shape = union_all((seed, staircase))
+    residual_count = step_count * (step_count + 1) // 2
+    residual_contacts = step_count * (step_count - 1)
+    comparisons = 0
+    heap_pushes = 0
     union_calls = 0
+    original_overlap = orthogonal_service._edge_overlap_length
+    original_heappush = orthogonal_service.heappush
     original_union = BaseGeometry.union
+
+    def counted_overlap(*args, **kwargs):
+        nonlocal comparisons
+        comparisons += 1
+        return original_overlap(*args, **kwargs)
+
+    def counted_heappush(*args, **kwargs):
+        nonlocal heap_pushes
+        heap_pushes += 1
+        return original_heappush(*args, **kwargs)
 
     def counted_union(self, other, *args, **kwargs):
         nonlocal union_calls
         union_calls += 1
         return original_union(self, other, *args, **kwargs)
 
-    monkeypatch.setattr(BaseGeometry, "union", counted_union)
-    node = ProgramNode("open-work", "open_work", 100.0)
-    seed = ((-1.0, 0.0), (0.0, 0.0), (0.0, 1.0), (-1.0, 1.0))
+    def forbidden_intersection(*args, **kwargs):
+        raise AssertionError("residual adjacency must not use Shapely intersection")
 
-    assignments = orthogonal_service._absorb_residual_cells(
-        [(node, seed)],
-        free_shape=box(-1.0, 0.0, 10.0, 10.0),
+    monkeypatch.setattr(
+        orthogonal_service,
+        "_edge_overlap_length",
+        counted_overlap,
+    )
+    monkeypatch.setattr(orthogonal_service, "heappush", counted_heappush)
+    monkeypatch.setattr(BaseGeometry, "union", counted_union)
+    monkeypatch.setattr(BaseGeometry, "intersection", forbidden_intersection)
+    node = ProgramNode("open-work", "open_work", 100.0)
+    seed_ring = (
+        (-1.0, 0.0),
+        (0.0, 0.0),
+        (0.0, 1.0),
+        (-1.0, 1.0),
     )
 
-    assert union_calls == len(cells)
-    assert Polygon(assignments[0][1]).area == 101.0
+    assignments = orthogonal_service._absorb_residual_cells(
+        [(node, seed_ring)],
+        free_shape=free_shape,
+    )
+
+    assert union_calls == residual_count
+    assert heap_pushes <= residual_contacts + 1
+    assert comparisons <= 2 * (
+        residual_count + residual_contacts + 2
+    )
+    assert Polygon(assignments[0][1]).equals(free_shape)
+
+
+def _staircase_polygon(step_count: int) -> Polygon:
+    points = [(0.0, 0.0), (float(step_count), 0.0)]
+    for step in range(step_count):
+        x = float(step_count - step)
+        y = float(step + 1)
+        points.extend(((x, y), (x - 1.0, y)))
+    return Polygon(points)
 
 
 def _program(case: str, boundary):

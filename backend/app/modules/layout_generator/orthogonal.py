@@ -6,6 +6,7 @@ from typing import Iterable
 
 from shapely import union_all
 from shapely.geometry import LineString, MultiPolygon, Polygon, box
+from shapely.prepared import prep
 
 from backend.app.modules.basic_design.stair import (
     CONCEPT_DEFAULT_FLOOR_TO_FLOOR_HEIGHT_M,
@@ -313,6 +314,7 @@ def _rectangle_cells(
     polygons = tuple(shape.geoms) if isinstance(shape, MultiPolygon) else (shape,)
     if any(not isinstance(polygon, Polygon) for polygon in polygons):
         raise ValueError("layout residual must contain polygonal regions")
+    prepared_shape = prep(shape)
     xs = sorted(
         {
             float(x)
@@ -335,7 +337,7 @@ def _rectangle_cells(
             if max_x - min_x <= _TOLERANCE or max_y - min_y <= _TOLERANCE:
                 continue
             candidate = box(min_x, min_y, max_x, max_y)
-            if shape.covers(candidate):
+            if prepared_shape.covers(candidate):
                 rectangles.append(
                     _canonical_rectangle(
                         candidate.bounds,
@@ -472,36 +474,40 @@ def _absorb_residual_cells(
         )
     ]
     primary_types = {"open_work", "sales"}
-    neighbors: list[list[tuple[int, float]]] = [
-        [] for _ in residual_cells
-    ]
-    for left_index, left in enumerate(residual_cells):
-        for right_index in range(left_index + 1, len(residual_cells)):
-            shared_length = left.boundary.intersection(
-                residual_cells[right_index].boundary
-            ).length
-            if shared_length > _TOLERANCE:
-                neighbors[left_index].append((right_index, shared_length))
-                neighbors[right_index].append((left_index, shared_length))
-
+    residual_count = len(residual_cells)
+    room_ids = tuple(sorted(shapes))
+    rectangle_bounds = (
+        *(cell.bounds for cell in residual_cells),
+        *(shapes[room_id].bounds for room_id in room_ids),
+    )
+    neighbors: list[list[tuple[int, float]]] = [[] for _ in residual_cells]
     frontier = []
-    for cell_index, cell in enumerate(residual_cells):
-        for room_id, room in shapes.items():
-            shared_length = room.boundary.intersection(cell.boundary).length
-            if shared_length <= _TOLERANCE:
-                continue
-            node = nodes[room_id]
-            heappush(
-                frontier,
-                (
-                    1,
-                    0 if node.space_type in primary_types else 1,
-                    -shared_length,
-                    room_id,
-                    cell.bounds,
-                    cell_index,
-                ),
-            )
+    for left_index, right_index, shared_length in _rectangle_adjacencies(
+        rectangle_bounds
+    ):
+        if right_index < residual_count:
+            neighbors[left_index].append((right_index, shared_length))
+            neighbors[right_index].append((left_index, shared_length))
+            continue
+        if left_index >= residual_count:
+            continue
+        cell_index = left_index
+        room_id = room_ids[right_index - residual_count]
+        node = nodes[room_id]
+        cell = residual_cells[cell_index]
+        heappush(
+            frontier,
+            (
+                1,
+                0 if node.space_type in primary_types else 1,
+                -shared_length,
+                room_id,
+                cell.bounds,
+                cell_index,
+            ),
+        )
+    for cell_neighbors in neighbors:
+        cell_neighbors.sort(key=lambda item: item[0])
 
     absorbed: set[int] = set()
     while frontier:
@@ -538,6 +544,84 @@ def _absorb_residual_cells(
         (node, _polygon_ring(shapes[node.node_id]))
         for node, _ in assignments
     ]
+
+
+def _rectangle_adjacencies(
+    rectangles: Iterable[tuple[float, float, float, float]],
+) -> tuple[tuple[int, int, float], ...]:
+    vertical_left: dict[float, list[tuple[float, float, int]]] = {}
+    vertical_right: dict[float, list[tuple[float, float, int]]] = {}
+    horizontal_bottom: dict[float, list[tuple[float, float, int]]] = {}
+    horizontal_top: dict[float, list[tuple[float, float, int]]] = {}
+    for index, (min_x, min_y, max_x, max_y) in enumerate(rectangles):
+        vertical_left.setdefault(min_x, []).append((min_y, max_y, index))
+        vertical_right.setdefault(max_x, []).append((min_y, max_y, index))
+        horizontal_bottom.setdefault(min_y, []).append((min_x, max_x, index))
+        horizontal_top.setdefault(max_y, []).append((min_x, max_x, index))
+
+    shared_by_pair: dict[tuple[int, int], float] = {}
+    edge_groups = (
+        (vertical_right, vertical_left),
+        (horizontal_top, horizontal_bottom),
+    )
+    for ending_edges, starting_edges in edge_groups:
+        for coordinate in sorted(ending_edges.keys() & starting_edges.keys()):
+            for left_index, right_index, shared_length in _sweep_edge_intervals(
+                ending_edges[coordinate],
+                starting_edges[coordinate],
+            ):
+                if left_index == right_index:
+                    continue
+                pair = (
+                    min(left_index, right_index),
+                    max(left_index, right_index),
+                )
+                shared_by_pair[pair] = (
+                    shared_by_pair.get(pair, 0.0) + shared_length
+                )
+    return tuple(
+        (left_index, right_index, shared_by_pair[(left_index, right_index)])
+        for left_index, right_index in sorted(shared_by_pair)
+    )
+
+
+def _sweep_edge_intervals(
+    ending_edges: Iterable[tuple[float, float, int]],
+    starting_edges: Iterable[tuple[float, float, int]],
+) -> Iterable[tuple[int, int, float]]:
+    ending = sorted(ending_edges)
+    starting = sorted(starting_edges)
+    ending_index = 0
+    starting_index = 0
+    while ending_index < len(ending) and starting_index < len(starting):
+        ending_start, ending_end, ending_rectangle = ending[ending_index]
+        starting_start, starting_end, starting_rectangle = starting[
+            starting_index
+        ]
+        shared_length = _edge_overlap_length(
+            ending_start,
+            ending_end,
+            starting_start,
+            starting_end,
+        )
+        if shared_length > _TOLERANCE:
+            yield ending_rectangle, starting_rectangle, shared_length
+        if ending_end < starting_end:
+            ending_index += 1
+        elif starting_end < ending_end:
+            starting_index += 1
+        else:
+            ending_index += 1
+            starting_index += 1
+
+
+def _edge_overlap_length(
+    left_start: float,
+    left_end: float,
+    right_start: float,
+    right_end: float,
+) -> float:
+    return max(0.0, min(left_end, right_end) - max(left_start, right_start))
 
 
 def _polygon_ring(polygon: Polygon) -> tuple[Point, ...]:
