@@ -6,7 +6,9 @@ import math
 import pytest
 from shapely import union_all
 from shapely.geometry import Polygon, box
+from shapely.geometry.base import BaseGeometry
 
+import backend.app.modules.layout_generator.orthogonal as orthogonal_service
 from backend.app.modules.basic_design.service import generate_basic_design
 from backend.app.modules.layout_generator.orthogonal import (
     generate_orthogonal_office_layout,
@@ -15,6 +17,7 @@ from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
 from backend.app.schemas.mass import MassInput
+from backend.app.schemas.program import ProgramNode
 
 
 CASES = (
@@ -47,6 +50,45 @@ CASES = (
         box(10, 10, 22, 24),
     ),
 )
+
+
+def test_residual_cell_absorption_has_linear_union_work(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cells = tuple(
+        (
+            (float(x), float(y)),
+            (float(x + 1), float(y)),
+            (float(x + 1), float(y + 1)),
+            (float(x), float(y + 1)),
+        )
+        for x in range(10)
+        for y in range(10)
+    )
+    monkeypatch.setattr(
+        orthogonal_service,
+        "_rectangle_cells",
+        lambda *args, **kwargs: cells,
+    )
+    union_calls = 0
+    original_union = BaseGeometry.union
+
+    def counted_union(self, other, *args, **kwargs):
+        nonlocal union_calls
+        union_calls += 1
+        return original_union(self, other, *args, **kwargs)
+
+    monkeypatch.setattr(BaseGeometry, "union", counted_union)
+    node = ProgramNode("open-work", "open_work", 100.0)
+    seed = ((-1.0, 0.0), (0.0, 0.0), (0.0, 1.0), (-1.0, 1.0))
+
+    assignments = orthogonal_service._absorb_residual_cells(
+        [(node, seed)],
+        free_shape=box(-1.0, 0.0, 10.0, 10.0),
+    )
+
+    assert union_calls == len(cells)
+    assert Polygon(assignments[0][1]).area == 101.0
 
 
 def _program(case: str, boundary):

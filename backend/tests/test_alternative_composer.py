@@ -7,7 +7,10 @@ from functools import lru_cache
 from pathlib import Path
 
 import pytest
+from shapely import union_all
+from shapely.geometry import Polygon
 
+import backend.app.modules.alternative_composer.service as alternative_service
 from backend.app.modules.alternative_composer.contracts import (
     StructuralAlternative,
     StructuralAlternativeRejection,
@@ -52,6 +55,16 @@ def test_irregular_mass_produces_two_accepted_structural_families() -> None:
     )
     for alternative in alternatives:
         for floor in alternative.building.floor_results:
+            boundary = Polygon(floor.floor_boundary)
+            classified = union_all(
+                [
+                    Polygon(shape.polygon)
+                    for shape in (*floor.layout.rooms, *floor.layout.circulation)
+                ]
+            ).intersection(boundary)
+            unassigned_ratio = boundary.difference(classified).area / boundary.area
+            assert floor.validation.coverage_score >= 0.60
+            assert unassigned_ratio <= 0.40
             open_work = next(
                 room for room in floor.layout.rooms if room.space_type == "open_work"
             )
@@ -89,6 +102,46 @@ def test_composition_keeps_one_result_per_core_and_typed_rejections() -> None:
         and item.reason_type
         and item.reason
         for item in composition.rejections
+    )
+
+
+def test_composer_rejects_accepted_building_below_coverage_floor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    building = _alternatives()[0].building
+    first_floor, *remaining = building.floor_results
+    low_coverage = replace(
+        building,
+        floor_results=(
+            replace(
+                first_floor,
+                validation=replace(
+                    first_floor.validation,
+                    coverage_score=0.5999,
+                ),
+            ),
+            *remaining,
+        ),
+    )
+    monkeypatch.setattr(
+        alternative_service,
+        "run_building_generation",
+        lambda *args, **kwargs: low_coverage,
+    )
+
+    composition = compose_structural_alternatives(_mass(), limit=3)
+
+    assert not composition.alternatives
+    coverage_rejections = [
+        item
+        for item in composition.rejections
+        if item.reason_type == "CoverageQualityRejected"
+    ]
+    assert coverage_rejections
+    assert all(
+        item.reason_type == "CoverageQualityRejected"
+        and "0.5999" in item.reason
+        for item in coverage_rejections
     )
 
 

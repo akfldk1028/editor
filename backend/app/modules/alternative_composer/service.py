@@ -162,6 +162,26 @@ def compose_structural_alternatives(
                         )
                     )
                     continue
+                low_coverage = tuple(
+                    (
+                        floor.program.floor_index,
+                        floor.validation.coverage_score,
+                    )
+                    for floor in building.floor_results
+                    if floor.validation.coverage_score < 0.60
+                )
+                if low_coverage:
+                    core_rejections.append(
+                        StructuralAlternativeRejection(
+                            strategy=core.strategy,
+                            reason_type="CoverageQualityRejected",
+                            reason=(
+                                f"{variant}: floor coverage below 0.60: "
+                                f"{low_coverage}"
+                            ),
+                        )
+                    )
+                    continue
                 circulation_fingerprint = _circulation_fingerprint(
                     circulation.items()
                 )

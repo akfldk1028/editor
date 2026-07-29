@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from heapq import heappop, heappush
 from typing import Iterable
 
 from shapely import union_all
@@ -176,6 +177,11 @@ def generate_orthogonal_office_layout(
         frontage_segments=frontage_segments,
         respect_program_order=respect_program_order,
     )
+    if circulation_candidate is not None:
+        assignments = _absorb_residual_cells(
+            assignments,
+            free_shape=free_shape,
+        )
     rooms = [
         RoomPolygon(
             room_id=core_nodes[0].node_id,
@@ -300,6 +306,7 @@ def _rectangle_cells(
     shape,
     *,
     require_complete: bool = True,
+    preserve_precision: bool = False,
 ) -> tuple[tuple[Point, ...], ...]:
     if shape.is_empty:
         return ()
@@ -329,7 +336,12 @@ def _rectangle_cells(
                 continue
             candidate = box(min_x, min_y, max_x, max_y)
             if shape.covers(candidate):
-                rectangles.append(_canonical_rectangle(candidate.bounds))
+                rectangles.append(
+                    _canonical_rectangle(
+                        candidate.bounds,
+                        preserve_precision=preserve_precision,
+                    )
+                )
     covered = union_all([Polygon(item) for item in rectangles])
     if (
         require_complete
@@ -437,6 +449,102 @@ def _assign_rectangles(
             center = Polygon(chosen).centroid
             support_centers.append((center.x, center.y))
     return sorted(assignments, key=lambda item: item[0].node_id)
+
+
+def _absorb_residual_cells(
+    assignments: list[tuple[ProgramNode, tuple[Point, ...]]],
+    *,
+    free_shape,
+) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
+    """Grow accessible program seeds across the fixed-circulation free cells."""
+    shapes = {
+        node.node_id: Polygon(polygon)
+        for node, polygon in assignments
+    }
+    nodes = {node.node_id: node for node, _ in assignments}
+    assigned = union_all(tuple(shapes.values()))
+    residual_cells = [
+        Polygon(cell)
+        for cell in _rectangle_cells(
+            free_shape.difference(assigned),
+            require_complete=False,
+            preserve_precision=True,
+        )
+    ]
+    primary_types = {"open_work", "sales"}
+    neighbors: list[list[tuple[int, float]]] = [
+        [] for _ in residual_cells
+    ]
+    for left_index, left in enumerate(residual_cells):
+        for right_index in range(left_index + 1, len(residual_cells)):
+            shared_length = left.boundary.intersection(
+                residual_cells[right_index].boundary
+            ).length
+            if shared_length > _TOLERANCE:
+                neighbors[left_index].append((right_index, shared_length))
+                neighbors[right_index].append((left_index, shared_length))
+
+    frontier = []
+    for cell_index, cell in enumerate(residual_cells):
+        for room_id, room in shapes.items():
+            shared_length = room.boundary.intersection(cell.boundary).length
+            if shared_length <= _TOLERANCE:
+                continue
+            node = nodes[room_id]
+            heappush(
+                frontier,
+                (
+                    1,
+                    0 if node.space_type in primary_types else 1,
+                    -shared_length,
+                    room_id,
+                    cell.bounds,
+                    cell_index,
+                ),
+            )
+
+    absorbed: set[int] = set()
+    while frontier:
+        distance, _, _, room_id, _, cell_index = heappop(frontier)
+        if cell_index in absorbed:
+            continue
+        cell = residual_cells[cell_index]
+        combined = shapes[room_id].union(cell)
+        if (
+            not isinstance(combined, Polygon)
+            or not combined.is_valid
+            or combined.interiors
+        ):
+            continue
+        shapes[room_id] = combined
+        absorbed.add(cell_index)
+        node = nodes[room_id]
+        for neighbor_index, shared_length in neighbors[cell_index]:
+            if neighbor_index in absorbed:
+                continue
+            heappush(
+                frontier,
+                (
+                    distance + 1,
+                    0 if node.space_type in primary_types else 1,
+                    -shared_length,
+                    room_id,
+                    residual_cells[neighbor_index].bounds,
+                    neighbor_index,
+                ),
+            )
+
+    return [
+        (node, _polygon_ring(shapes[node.node_id]))
+        for node, _ in assignments
+    ]
+
+
+def _polygon_ring(polygon: Polygon) -> tuple[Point, ...]:
+    return tuple(
+        (float(x), float(y))
+        for x, y in tuple(polygon.exterior.coords)[:-1]
+    )
 
 
 def _touches_frontage(
@@ -869,13 +977,18 @@ def _tolerant_shared_boundary_length(
     )
 
 
-def _canonical_rectangle(bounds) -> tuple[Point, ...]:
+def _canonical_rectangle(
+    bounds,
+    *,
+    preserve_precision: bool = False,
+) -> tuple[Point, ...]:
     min_x, min_y, max_x, max_y = bounds
+    coordinate = float if preserve_precision else _clean
     return (
-        (_clean(min_x), _clean(min_y)),
-        (_clean(max_x), _clean(min_y)),
-        (_clean(max_x), _clean(max_y)),
-        (_clean(min_x), _clean(max_y)),
+        (coordinate(min_x), coordinate(min_y)),
+        (coordinate(max_x), coordinate(min_y)),
+        (coordinate(max_x), coordinate(max_y)),
+        (coordinate(min_x), coordinate(max_y)),
     )
 
 
