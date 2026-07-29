@@ -80,9 +80,10 @@ def generate_circulation_candidate(
         raise CirculationPlanningError("circulation topology is disconnected")
     return CirculationCandidate(
         strategy=core.strategy,
+        core_fingerprint=core.fingerprint,
         polygons=polygons,
         remote_stair_polygon=remote_stair,
-        fingerprint=_fingerprint(
+        fingerprint=circulation_geometry_fingerprint(
             strategy=core.strategy,
             core_fingerprint=core.fingerprint,
             polygons=polygons,
@@ -710,7 +711,7 @@ def _separation_origins(
     )
 
 
-def _fingerprint(
+def circulation_geometry_fingerprint(
     *,
     strategy: str,
     core_fingerprint: str,
@@ -727,6 +728,9 @@ def _fingerprint(
         separators=(",", ":"),
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+_fingerprint = circulation_geometry_fingerprint
 
 
 def _canonical_ring(points: Iterable[Point] | Polygon) -> tuple[Point, ...]:

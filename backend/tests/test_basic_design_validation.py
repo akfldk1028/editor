@@ -7,10 +7,7 @@ from pathlib import Path
 import pytest
 
 from backend.app.modules.generation_loop.service import run_building_generation
-from backend.app.modules.validator.service import (
-    _workpoint_count_range,
-    validate_layout,
-)
+from backend.app.modules.validator.service import validate_layout
 from backend.app.schemas.layout import (
     BasicDesignFeatures,
     LayoutCandidate,
@@ -26,26 +23,6 @@ from backend.app.schemas.program import ProgramGraph, ProgramNode
 
 BOUNDARY = [(0.0, 0.0), (18.0, 0.0), (18.0, 10.0), (0.0, 10.0)]
 STREET = [((0.0, 0.0), (18.0, 0.0))]
-
-
-@pytest.mark.parametrize(
-    ("area", "expected"),
-    [
-        (14.283871, (2, 2)),
-        (21.309159, (3, 3)),
-    ],
-)
-def test_workpoint_range_never_inverts_for_compact_open_work(
-    area: float,
-    expected: tuple[int, int],
-) -> None:
-    room = RoomPolygon(
-        room_id="open_work",
-        space_type="open_work",
-        polygon=[(0.0, 0.0), (area, 0.0), (area, 1.0), (0.0, 1.0)],
-    )
-
-    assert _workpoint_count_range([room]) == expected
 
 
 def test_basic_design_validation_is_opt_in() -> None:

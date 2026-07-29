@@ -86,7 +86,7 @@ def generate_shared_core_candidates(
             )
             if len(contained_floor_indices) != len(floors):
                 continue
-            fingerprint = _geometry_fingerprint(polygon)
+            fingerprint = core_geometry_fingerprint(polygon)
             if fingerprint in used:
                 continue
             used.add(fingerprint)
@@ -483,7 +483,9 @@ def _rectangle_points(rectangle) -> tuple[tuple[float, float], ...]:
     )
 
 
-def _geometry_fingerprint(polygon: tuple[tuple[float, float], ...]) -> str:
+def core_geometry_fingerprint(
+    polygon: tuple[tuple[float, float], ...],
+) -> str:
     normalized = tuple((0.0 if x == 0 else x, 0.0 if y == 0 else y) for x, y in polygon)
     rotations = [normalized[index:] + normalized[:index] for index in range(len(normalized))]
     reversed_polygon = tuple(reversed(normalized))
@@ -493,3 +495,6 @@ def _geometry_fingerprint(polygon: tuple[tuple[float, float], ...]) -> str:
     )
     canonical = json.dumps(min(rotations), separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+_geometry_fingerprint = core_geometry_fingerprint

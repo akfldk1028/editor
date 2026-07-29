@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
@@ -18,9 +19,13 @@ from backend.app.modules.alternative_composer.service import (
     room_structural_fingerprint,
 )
 from backend.app.modules.circulation_planner.service import (
+    circulation_geometry_fingerprint,
     generate_circulation_candidate,
 )
-from backend.app.modules.core_planner.service import generate_shared_core_candidates
+from backend.app.modules.core_planner.service import (
+    core_geometry_fingerprint,
+    generate_shared_core_candidates,
+)
 from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.schemas.mass import FloorFootprint, MassInput
 
@@ -45,6 +50,26 @@ def test_irregular_mass_produces_two_accepted_structural_families() -> None:
     assert len({item.structural_fingerprint for item in alternatives}) == len(
         alternatives
     )
+    for alternative in alternatives:
+        for floor in alternative.building.floor_results:
+            open_work = next(
+                room for room in floor.layout.rooms if room.space_type == "open_work"
+            )
+            work_area = next(
+                metric.actual_area
+                for metric in floor.validation.room_areas
+                if metric.room_id == open_work.room_id
+            )
+            features = floor.layout.basic_design
+            assert features is not None
+            workpoints = sum(
+                element.kind == "workstation"
+                and element.host_id == open_work.room_id
+                for element in features.elements
+            )
+            assert math.ceil(work_area / 10.0) <= workpoints <= math.floor(
+                work_area / 8.0
+            )
 
 
 def test_composition_keeps_one_result_per_core_and_typed_rejections() -> None:
@@ -122,6 +147,150 @@ def test_building_generation_uses_exact_floor_circulation_overrides() -> None:
         )
 
 
+def test_rectangular_building_uses_exact_structural_overrides() -> None:
+    mass = MassInput(
+        project_id="rectangular-structural-override",
+        floors=1,
+        footprint_polygon=[(0.0, 0.0), (40.0, 0.0), (40.0, 20.0), (0.0, 20.0)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+    )
+    boundary = mass.footprint_for_floor(1)
+    core = generate_shared_core_candidates(
+        (boundary,),
+        required_area=72.0,
+        minimum_width=7.6,
+        minimum_depth=5.2,
+    )[0]
+    circulation = generate_circulation_candidate(
+        floor_boundary=boundary,
+        core=core,
+        street_segments=((boundary[0], boundary[1]),),
+        minimum_width=1.2,
+        stair_dimensions=((2.8, 4.92), (4.92, 2.8)),
+    )
+
+    building = run_building_generation(
+        mass,
+        core_override=core,
+        circulation_overrides={1: circulation},
+    )
+
+    layout = building.floor_results[0].layout
+    assert next(room.polygon for room in layout.rooms if room.space_type == "core") == (
+        core.polygon
+    )
+    assert tuple(tuple(path.polygon) for path in layout.circulation) == (
+        circulation.polygons
+    )
+    assert layout.remote_stair_footprint == circulation.remote_stair_polygon
+
+
+def test_structural_override_rejects_stale_core_geometry_fingerprint() -> None:
+    mass = _mass()
+    core, circulation = _first_override_family()
+    stale = replace(
+        core,
+        polygon=tuple((x + 0.01, y) for x, y in core.polygon),
+    )
+
+    with pytest.raises(ValueError, match="core override fingerprint"):
+        run_building_generation(
+            mass,
+            core_override=stale,
+            circulation_overrides=circulation,
+        )
+
+
+def test_structural_override_rejects_same_strategy_different_core_binding() -> None:
+    mass = _mass()
+    boundaries = tuple(
+        mass.footprint_for_floor(index) for index in range(1, mass.floors + 1)
+    )
+    first, second, *_ = generate_shared_core_candidates(
+        boundaries,
+        required_area=72.0,
+        minimum_width=7.6,
+        minimum_depth=5.2,
+    )
+    circulation = {
+        floor_index: generate_circulation_candidate(
+            floor_boundary=boundary,
+            core=first,
+            street_segments=((boundary[0], boundary[1]),),
+            minimum_width=1.2,
+            stair_dimensions=((2.8, 4.92), (4.92, 2.8)),
+        )
+        for floor_index, boundary in enumerate(boundaries, start=1)
+    }
+    same_strategy_other_core = replace(second, strategy=first.strategy)
+
+    assert core_geometry_fingerprint(same_strategy_other_core.polygon) == (
+        same_strategy_other_core.fingerprint
+    )
+    with pytest.raises(ValueError, match="core fingerprint"):
+        run_building_generation(
+            mass,
+            core_override=same_strategy_other_core,
+            circulation_overrides=circulation,
+        )
+
+
+def test_structural_override_rejects_stale_circulation_fingerprint() -> None:
+    mass = _mass()
+    core, circulation = _first_override_family()
+    first = circulation[1]
+    polygon = first.polygons[0]
+    stale = replace(
+        first,
+        polygons=(
+            (
+                (polygon[0][0] + 0.01, polygon[0][1]),
+                *polygon[1:],
+            ),
+            *first.polygons[1:],
+        ),
+        entrance_connected=True,
+        core_connected=True,
+        stair_connected=True,
+    )
+
+    with pytest.raises(ValueError, match="circulation override fingerprint"):
+        run_building_generation(
+            mass,
+            core_override=core,
+            circulation_overrides={**circulation, 1: stale},
+        )
+
+
+def test_structural_override_rejects_resigned_disconnected_geometry() -> None:
+    mass = _mass()
+    core, circulation = _first_override_family()
+    first = circulation[1]
+    invalid_stair = core.polygon
+    resigned = replace(
+        first,
+        remote_stair_polygon=invalid_stair,
+        fingerprint=circulation_geometry_fingerprint(
+            strategy=first.strategy,
+            core_fingerprint=first.core_fingerprint,
+            polygons=first.polygons,
+            remote_stair=invalid_stair,
+        ),
+        entrance_connected=True,
+        core_connected=True,
+        stair_connected=True,
+    )
+
+    with pytest.raises(ValueError, match="actual connected topology"):
+        run_building_generation(
+            mass,
+            core_override=core,
+            circulation_overrides={**circulation, 1: resigned},
+        )
+
+
 @pytest.mark.parametrize(
     ("core_transform", "circulation_transform", "match"),
     [
@@ -132,7 +301,7 @@ def test_building_generation_uses_exact_floor_circulation_overrides() -> None:
                 polygon=tuple((x + 100.0, y) for x, y in core.polygon),
             ),
             lambda values: values,
-            "contained",
+            "fingerprint",
         ),
         (
             lambda core: core,
@@ -145,7 +314,7 @@ def test_building_generation_uses_exact_floor_circulation_overrides() -> None:
                 **values,
                 1: replace(values[1], strategy="different-core"),
             },
-            "identity",
+            "fingerprint",
         ),
         (
             lambda core: core,
@@ -158,7 +327,7 @@ def test_building_generation_uses_exact_floor_circulation_overrides() -> None:
                     ),
                 ),
             },
-            "contained",
+            "fingerprint",
         ),
     ],
 )

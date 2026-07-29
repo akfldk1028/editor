@@ -4,6 +4,7 @@ import math
 from collections.abc import Iterable, Mapping
 from dataclasses import replace
 
+from shapely import union_all
 from shapely.geometry import LineString, MultiLineString, Polygon, box
 from shapely.prepared import prep
 from backend.app.modules.generation_loop.operators import (
@@ -26,7 +27,11 @@ from backend.app.modules.layout_generator.orthogonal import (
     generate_orthogonal_office_layout,
 )
 from backend.app.modules.circulation_planner.contracts import CirculationCandidate
+from backend.app.modules.circulation_planner.service import (
+    circulation_geometry_fingerprint,
+)
 from backend.app.modules.core_planner.contracts import CoreCandidate
+from backend.app.modules.core_planner.service import core_geometry_fingerprint
 from backend.app.modules.basic_design import (
     generate_basic_design,
     generate_room_window,
@@ -287,7 +292,14 @@ def run_building_generation(
         not _is_axis_aligned_polygon(plate.footprint_polygon)
         for plate in analysis.floor_plates
     )
-    uses_floor_plate_geometry = bool(mass.floor_footprints or has_nonrectangular_floor)
+    has_structural_override = (
+        core_override is not None or circulation_overrides is not None
+    )
+    uses_floor_plate_geometry = bool(
+        mass.floor_footprints
+        or has_nonrectangular_floor
+        or has_structural_override
+    )
     if floor_assignments is None:
         assignments = assign_floors_from_use_mix(mass)
         assignment_source = "use_mix"
@@ -609,11 +621,11 @@ def run_building_generation(
 
     layouts = []
     for program, floor_analysis in zip(programs, floor_analyses):
-        if has_nonrectangular_floor:
+        circulation_candidate = fixed_circulation.get(program.floor_index)
+        if has_nonrectangular_floor or has_structural_override:
             layout_boundary = floor_analysis.boundary_for_floor(
                 program.floor_index
             )
-            circulation_candidate = fixed_circulation.get(program.floor_index)
             if has_nonorthogonal_floor and circulation_candidate is None:
                 layout_boundary = polygonal_layout_boundary
             layout = generate_orthogonal_office_layout(
@@ -681,7 +693,7 @@ def run_building_generation(
     ):
         raise ValueError("generated floors must preserve shared core override equality")
 
-    if has_nonrectangular_floor:
+    if has_nonrectangular_floor or has_structural_override:
         programs = [
             _fit_orthogonal_program_to_layout(program, layout)
             for program, layout in zip(programs, layouts)
@@ -831,6 +843,11 @@ def _validate_structural_overrides(
     if core_override is None:
         return supplied
     expected_contained_indices = tuple(range(mass.floors))
+    if (
+        core_geometry_fingerprint(core_override.polygon)
+        != core_override.fingerprint
+    ):
+        raise ValueError("core override fingerprint does not match its geometry")
     if core_override.contained_floor_indices != expected_contained_indices:
         raise ValueError("core override contained floor identity must match the building")
     core_shape = Polygon(core_override.polygon)
@@ -845,21 +862,36 @@ def _validate_structural_overrides(
         raise ValueError("core override must be contained by every floor")
 
     for floor_index, candidate in supplied.items():
+        if candidate.core_fingerprint != core_override.fingerprint:
+            raise ValueError(
+                "circulation override core fingerprint must match the core override"
+            )
+        expected_fingerprint = circulation_geometry_fingerprint(
+            strategy=candidate.strategy,
+            core_fingerprint=candidate.core_fingerprint,
+            polygons=candidate.polygons,
+            remote_stair=candidate.remote_stair_polygon,
+        )
+        if candidate.fingerprint != expected_fingerprint:
+            raise ValueError(
+                "circulation override fingerprint does not match its geometry"
+            )
         if candidate.strategy != core_override.strategy:
             raise ValueError(
-                "circulation override identity must match the core strategy"
+                "circulation override strategy must match the core override"
             )
-        if not (
-            candidate.entrance_connected
-            and candidate.core_connected
-            and candidate.stair_connected
+        if not all(
+            (
+                candidate.entrance_connected,
+                candidate.core_connected,
+                candidate.stair_connected,
+            )
         ):
             raise ValueError("circulation override must record connected topology")
         floor_shape = Polygon(mass.footprint_for_floor(floor_index))
-        circulation_shapes = (
-            *(Polygon(polygon) for polygon in candidate.polygons),
-            Polygon(candidate.remote_stair_polygon),
-        )
+        corridor_shapes = tuple(Polygon(polygon) for polygon in candidate.polygons)
+        remote_stair = Polygon(candidate.remote_stair_polygon)
+        circulation_shapes = (*corridor_shapes, remote_stair)
         if (
             not candidate.polygons
             or any(
@@ -872,7 +904,60 @@ def _validate_structural_overrides(
             raise ValueError(
                 f"circulation override for floor {floor_index} must be contained"
             )
+        corridor = union_all(corridor_shapes)
+        access_segments = _structural_access_segments(
+            mass,
+            mass.footprint_for_floor(floor_index),
+        )
+        entrance_connected = any(
+            corridor.boundary.intersection(LineString(segment)).length + 1e-8
+            >= 0.9
+            for segment in access_segments
+        )
+        core_connected = (
+            corridor.boundary.intersection(core_shape.boundary).length + 1e-8
+            >= 0.9
+        )
+        stair_connected = (
+            corridor.boundary.intersection(remote_stair.boundary).length + 1e-8
+            >= 0.9
+        )
+        if (
+            corridor.geom_type != "Polygon"
+            or corridor.is_empty
+            or not entrance_connected
+            or not core_connected
+            or not stair_connected
+            or corridor.intersection(core_shape).area > 1e-8
+            or remote_stair.intersects(core_shape)
+            or corridor.intersection(remote_stair).area > 1e-8
+        ):
+            raise ValueError(
+                f"circulation override for floor {floor_index} "
+                "must have actual connected topology"
+            )
     return supplied
+
+
+def _structural_access_segments(
+    mass: MassInput,
+    boundary: tuple[tuple[float, float], ...],
+) -> tuple[tuple[tuple[float, float], tuple[float, float]], ...]:
+    edge_indices = {
+        int(record["edge_index"])
+        for record in mass.site_edges
+        if "edge_index" in record and record.get("kind") == "street"
+    }
+    edge_indices.update(
+        int(record["edge_index"])
+        for record in mass.access_candidates
+        if "edge_index" in record
+    )
+    return tuple(
+        (boundary[index], boundary[(index + 1) % len(boundary)])
+        for index in sorted(edge_indices)
+        if 0 <= index < len(boundary)
+    )
 
 
 _ALTERNATIVE_STRATEGIES = (

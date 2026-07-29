@@ -9,6 +9,7 @@ Point = tuple[float, float]
 @dataclass(frozen=True)
 class CirculationCandidate:
     strategy: str
+    core_fingerprint: str
     polygons: tuple[tuple[Point, ...], ...]
     remote_stair_polygon: tuple[Point, ...]
     fingerprint: str
