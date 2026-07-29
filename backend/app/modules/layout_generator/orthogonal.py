@@ -22,6 +22,7 @@ from engine.geometry.orthogonal import orthogonal_rectangle_cells
 Point = tuple[float, float]
 _TOLERANCE = 1e-8
 _DOOR_WIDTH = 0.9
+_MIN_FURNISHED_FRONTAGE_DEPTH = 2.8
 
 
 def generate_orthogonal_office_layout(
@@ -30,15 +31,23 @@ def generate_orthogonal_office_layout(
     *,
     core_polygon: Iterable[Point],
     remote_stair_polygon: Iterable[Point] | None = None,
+    frontage_segments: Iterable[tuple[Point, Point]] = (),
     min_circulation_width: float = 1.2,
     respect_program_order: bool = False,
 ) -> LayoutCandidate:
-    """Generate a deterministic rectangular-cell office layout."""
-    if program.use_type != "office":
-        raise ValueError("orthogonal office layout requires an office program")
+    """Generate a deterministic rectangular-cell layout for supported uses."""
+    if program.use_type not in {"office", "neighborhood_commercial"}:
+        raise ValueError("orthogonal layout requires a supported use program")
     if not math.isfinite(min_circulation_width) or min_circulation_width < 1.2:
         raise ValueError("minimum circulation width must be finite and at least 1.2")
     boundary_points = tuple((float(x), float(y)) for x, y in boundary)
+    frontage_segments = tuple(
+        (
+            (float(start[0]), float(start[1])),
+            (float(end[0]), float(end[1])),
+        )
+        for start, end in frontage_segments
+    )
     cells = orthogonal_rectangle_cells(boundary_points)
     boundary_shape = Polygon(boundary_points)
     core_points = tuple((float(x), float(y)) for x, y in core_polygon)
@@ -46,7 +55,7 @@ def generate_orthogonal_office_layout(
     _validate_rectangular_core(boundary_shape, core_shape, core_points)
     core_nodes = [node for node in program.nodes if node.space_type == "core"]
     if len(core_nodes) != 1:
-        raise ValueError("office program requires exactly one core node")
+        raise ValueError("orthogonal program requires exactly one core node")
 
     corridor_shape = _corridor_network(
         boundary_shape,
@@ -101,22 +110,47 @@ def generate_orthogonal_office_layout(
             >= minimum_room_width
         )
     ]
+    if frontage_segments:
+        available = _coalesce_frontage_rectangles(
+            available,
+            circulation,
+            frontage_segments=frontage_segments,
+        )
     available = _subdivide_accessible_rectangles(
         available,
         circulation,
         required_count=len(non_core_nodes) + 1,
+        frontage_segments=frontage_segments,
+        frontage_required_count=(
+            sum(node.frontage_required for node in non_core_nodes)
+            if frontage_segments
+            else 0
+        ),
+        frontage_min_width=min(
+            _MIN_FURNISHED_FRONTAGE_DEPTH,
+            max(
+                (
+                    float(node.min_width or 0)
+                    for node in non_core_nodes
+                    if node.frontage_required
+                ),
+                default=0.0,
+            ),
+        ),
     )
     if fixed_remote_stair is None:
         remote_stair, available = _reserve_remote_stair(
             available,
             circulation,
             core_shape,
+            frontage_segments=frontage_segments,
         )
     else:
         remote_stair = _canonical_rectangle(fixed_remote_stair.bounds)
     assignments = _assign_rectangles(
         non_core_nodes,
         available,
+        frontage_segments=frontage_segments,
         respect_program_order=respect_program_order,
     )
     rooms = [
@@ -275,6 +309,7 @@ def _assign_rectangles(
     nodes: list[ProgramNode],
     rectangles: list[tuple[Point, ...]],
     *,
+    frontage_segments: tuple[tuple[Point, Point], ...] = (),
     respect_program_order: bool = False,
 ) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
     if len(rectangles) < len(nodes):
@@ -290,6 +325,7 @@ def _assign_rectangles(
             (
                 0
                 if node.space_type == "open_work"
+                or (frontage_segments and node.frontage_required)
                 else 1
                 if node.space_type in support_types
                 else 2
@@ -305,19 +341,35 @@ def _assign_rectangles(
     assignments = []
     support_centers = []
     for node in ordered_nodes:
-        if node.space_type == "open_work":
-            width_compliant = [
+        enforce_frontage = bool(frontage_segments) and node.frontage_required
+        frontage_options = (
+            [
                 rectangle
                 for rectangle in remaining
-                if min(
-                    _bounds(rectangle)[2] - _bounds(rectangle)[0],
-                    _bounds(rectangle)[3] - _bounds(rectangle)[1],
-                )
-                + _TOLERANCE
-                >= float(node.min_width or 0)
+                if _touches_frontage(rectangle, frontage_segments)
             ]
+            if enforce_frontage
+            else []
+        )
+        if enforce_frontage and not frontage_options:
+            raise ValueError(
+                f"orthogonal layout cannot place frontage room {node.node_id}"
+            )
+        candidates = frontage_options or remaining
+        width_compliant = [
+            rectangle
+            for rectangle in candidates
+            if min(
+                _bounds(rectangle)[2] - _bounds(rectangle)[0],
+                _bounds(rectangle)[3] - _bounds(rectangle)[1],
+            )
+            + _TOLERANCE
+            >= float(node.min_width or 0)
+        ]
+        candidates = width_compliant or candidates
+        if node.space_type == "open_work":
             chosen = max(
-                width_compliant or remaining,
+                candidates,
                 key=lambda rectangle: (
                     Polygon(rectangle).area,
                     tuple(-value for value in _rectangle_sort_key(rectangle)),
@@ -327,7 +379,7 @@ def _assign_rectangles(
             anchor_x = sum(point[0] for point in support_centers) / len(support_centers)
             anchor_y = sum(point[1] for point in support_centers) / len(support_centers)
             chosen = min(
-                remaining,
+                candidates,
                 key=lambda rectangle: (
                     math.dist(
                         (
@@ -341,7 +393,7 @@ def _assign_rectangles(
             )
         else:
             chosen = min(
-                remaining,
+                candidates,
                 key=lambda rectangle: _room_fit_score(node, rectangle),
             )
         remaining.remove(chosen)
@@ -352,11 +404,65 @@ def _assign_rectangles(
     return sorted(assignments, key=lambda item: item[0].node_id)
 
 
+def _touches_frontage(
+    rectangle: tuple[Point, ...],
+    frontage_segments: tuple[tuple[Point, Point], ...],
+) -> bool:
+    room_boundary = Polygon(rectangle).boundary
+    return any(
+        room_boundary.intersection(LineString(segment)).length + _TOLERANCE
+        >= _DOOR_WIDTH
+        for segment in frontage_segments
+    )
+
+
+def _coalesce_frontage_rectangles(
+    rectangles: list[tuple[Point, ...]],
+    circulation: list[RoomPolygon],
+    *,
+    frontage_segments: tuple[tuple[Point, Point], ...],
+) -> list[tuple[Point, ...]]:
+    result = list(rectangles)
+    while True:
+        merged = None
+        for left_index, left in enumerate(result):
+            if not _touches_frontage(left, frontage_segments):
+                continue
+            left_shape = Polygon(left)
+            for right in result[left_index + 1 :]:
+                combined = left_shape.union(Polygon(right))
+                if (
+                    not isinstance(combined, Polygon)
+                    or not math.isclose(
+                        combined.area,
+                        box(*combined.bounds).area,
+                        abs_tol=_TOLERANCE,
+                    )
+                ):
+                    continue
+                candidate = _canonical_rectangle(combined.bounds)
+                if _longest_shared_edge(candidate, circulation) < _DOOR_WIDTH:
+                    continue
+                merged = (left, right, candidate)
+                break
+            if merged is not None:
+                break
+        if merged is None:
+            return sorted(result, key=_rectangle_sort_key)
+        left, right, candidate = merged
+        result.remove(left)
+        result.remove(right)
+        result.append(candidate)
+
+
 def _subdivide_accessible_rectangles(
     rectangles: list[tuple[Point, ...]],
     circulation: list[RoomPolygon],
     *,
     required_count: int,
+    frontage_segments: tuple[tuple[Point, Point], ...] = (),
+    frontage_required_count: int = 0,
+    frontage_min_width: float = 0.0,
 ) -> list[tuple[Point, ...]]:
     result = list(rectangles)
     while len(result) < required_count:
@@ -391,6 +497,18 @@ def _subdivide_accessible_rectangles(
                 _longest_shared_edge(piece, circulation) >= _DOOR_WIDTH
                 for piece in pieces
             ):
+                next_rectangles = [
+                    item for item in result if item != rectangle
+                ] + list(pieces)
+                if (
+                    _frontage_capacity(
+                        next_rectangles,
+                        frontage_segments=frontage_segments,
+                        minimum_width=frontage_min_width,
+                    )
+                    < frontage_required_count
+                ):
+                    continue
                 options.append(
                     (
                         Polygon(rectangle).area,
@@ -407,10 +525,30 @@ def _subdivide_accessible_rectangles(
     return sorted(result, key=_rectangle_sort_key)
 
 
+def _frontage_capacity(
+    rectangles: list[tuple[Point, ...]],
+    *,
+    frontage_segments: tuple[tuple[Point, Point], ...],
+    minimum_width: float,
+) -> int:
+    return sum(
+        _touches_frontage(rectangle, frontage_segments)
+        and min(
+            _bounds(rectangle)[2] - _bounds(rectangle)[0],
+            _bounds(rectangle)[3] - _bounds(rectangle)[1],
+        )
+        + _TOLERANCE
+        >= minimum_width
+        for rectangle in rectangles
+    )
+
+
 def _reserve_remote_stair(
     rectangles: list[tuple[Point, ...]],
     circulation: list[RoomPolygon],
     core: Polygon,
+    *,
+    frontage_segments: tuple[tuple[Point, Point], ...] = (),
 ) -> tuple[
     tuple[Point, ...],
     list[tuple[Point, ...]],
@@ -435,6 +573,7 @@ def _reserve_remote_stair(
     selected = max(
         feasible,
         key=lambda rectangle: (
+            not _touches_frontage(rectangle, frontage_segments),
             Polygon(rectangle).centroid.distance(core.centroid),
             -Polygon(rectangle).area,
             tuple(-value for value in _rectangle_sort_key(rectangle)),

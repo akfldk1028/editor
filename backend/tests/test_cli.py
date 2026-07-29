@@ -173,7 +173,7 @@ def test_cli_local_topology_review_generates_ranked_png_artifacts(
         encoding="utf-8",
     )
 
-    def propose(_self, program, *, candidate_count):
+    def propose(_self, program, *, candidate_count, **_context):
         node_ids = tuple(node.node_id for node in program.nodes)
         assert candidate_count == 2
         return (
@@ -232,6 +232,10 @@ def test_cli_local_topology_review_generates_ranked_png_artifacts(
     payload = json.loads(capsys.readouterr().out)
     assert len(payload["alternatives"]) == 2
     assert [item["rank"] for item in payload["alternatives"]] == [1, 2]
+    assert all(item["geometry_fingerprint"] for item in payload["alternatives"])
+    assert payload["planner_input"]["core_geometry_status"] == (
+        "unresolved_pre_generation"
+    )
     assert (output_dir / "index.html").is_file()
     assert (output_dir / "local-topology.review.json").is_file()
     for item in payload["alternatives"]:
@@ -268,7 +272,7 @@ def test_cli_local_topology_review_discards_duplicate_geometry(
         encoding="utf-8",
     )
 
-    def propose(_self, program, *, candidate_count):
+    def propose(_self, program, *, candidate_count, **_context):
         ids = tuple(node.node_id for node in program.nodes)
         return (
             TopologyProposal(

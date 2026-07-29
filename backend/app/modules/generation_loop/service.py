@@ -602,6 +602,16 @@ def run_building_generation(
                 program,
                 core_polygon=shared_core,
                 remote_stair_polygon=shared_remote_stair,
+                frontage_segments=(
+                    _street_segments_for_boundary(
+                        mass,
+                        floor_analysis.boundary_for_floor(
+                            program.floor_index
+                        ),
+                    )
+                    if program.use_type == "neighborhood_commercial"
+                    else ()
+                ),
                 respect_program_order=program.source.startswith(
                     "local_qwen_topology:"
                 ),
@@ -617,6 +627,9 @@ def run_building_generation(
                     else None
                 ),
                 core_polygon=(shared_core if uses_floor_plate_geometry else None),
+                respect_program_order=program.source.startswith(
+                    "local_qwen_topology:"
+                ),
             )
         else:
             layout = generate_core_aligned_layout(
@@ -2099,10 +2112,12 @@ def _zone_orthogonal_office_program(
     *,
     expand_focus: bool = True,
 ) -> ProgramGraph:
-    if program.use_type != "office":
+    if program.use_type not in {"office", "neighborhood_commercial"}:
         raise ValueError(
-            "nonrectangular floor generation currently supports office only"
+            "nonrectangular floor generation requires a supported use"
         )
+    if program.use_type != "office":
+        return program
     adjusted_nodes = [
         (
             replace(

@@ -338,6 +338,7 @@ def generate_rear_center_layout(
     core_position: str = "rear_center",
     floor_to_floor_height_m: float | None = None,
     core_polygon: tuple[Point, ...] | list[Point] | None = None,
+    respect_program_order: bool = False,
 ) -> LayoutCandidate:
     """Generate a direct rear-center-core topology with a public access spine."""
     min_x, min_y, max_x, max_y = analysis.bounds
@@ -406,18 +407,19 @@ def generate_rear_center_layout(
         if node.space_type not in {"core", "sales", "open_work"}
     ]
     support_ids = {"pantry", "restroom", "it_storage"}
-    service_nodes.sort(
-        key=(
-            (
-                lambda node: (
-                    node.node_id in support_ids,
-                    node.node_id,
+    if not respect_program_order:
+        service_nodes.sort(
+            key=(
+                (
+                    lambda node: (
+                        node.node_id in support_ids,
+                        node.node_id,
+                    )
                 )
+                if core_polygon is not None
+                else lambda node: node.node_id
             )
-            if core_polygon is not None
-            else lambda node: node.node_id
         )
-    )
     service_widths = {
         node.node_id: max(
             _layout_area(node) / rear_height,

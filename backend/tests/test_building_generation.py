@@ -9,6 +9,7 @@ from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import FloorFootprint, MassInput
+from backend.app.modules.generation_loop.operators import layout_fingerprint
 from engine.geometry import orthogonal_min_width, shared_boundary_segments
 from engine.geometry.polygon import (
     polygon_area,
@@ -117,6 +118,86 @@ def test_building_generation_accepts_floor_program_override_for_polygonal_mass()
             and opening.connects[1] in circulation_ids
             for opening in floor.layout.openings
         )
+
+
+def test_rectangular_building_generation_respects_local_topology_order():
+    mass = MassInput(
+        project_id="rectangular-local-topology",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+    )
+    baseline = generate_program_graph(analyze_mass(mass), 1, "office")
+    reversed_program = replace(
+        baseline,
+        nodes=list(reversed(baseline.nodes)),
+        source="local_qwen_topology:topology-2",
+    )
+
+    baseline_result = generation_service.run_building_generation(
+        mass,
+        program_overrides={
+            1: replace(
+                baseline,
+                source="local_qwen_topology:topology-1",
+            )
+        },
+    )
+    reversed_result = generation_service.run_building_generation(
+        mass,
+        program_overrides={1: reversed_program},
+    )
+
+    assert layout_fingerprint(
+        baseline_result.floor_results[0].layout
+    ) != layout_fingerprint(reversed_result.floor_results[0].layout)
+    assert baseline_result.accepted
+    assert reversed_result.accepted
+
+
+def test_polygonal_commercial_building_generation_accepts_program_override():
+    mass = MassInput(
+        project_id="polygonal-commercial-topology",
+        floors=1,
+        footprint_polygon=[
+            (0, 0),
+            (30, 0),
+            (30, 12),
+            (18, 12),
+            (18, 20),
+            (0, 20),
+        ],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 1.0},
+    )
+    program = generate_program_graph(
+        analyze_mass(mass),
+        1,
+        "neighborhood_commercial",
+    )
+    override = replace(
+        program,
+        nodes=list(reversed(program.nodes)),
+        source="local_qwen_topology:topology-1",
+    )
+
+    result = generation_service.run_building_generation(
+        mass,
+        program_overrides={1: override},
+    )
+
+    assert result.accepted
+    assert result.floor_results[0].program.use_type == "neighborhood_commercial"
+    sales_rooms = [
+        room
+        for room in result.floor_results[0].layout.rooms
+        if room.space_type == "sales"
+    ]
+    assert len(sales_rooms) == 2
+    assert all(orthogonal_min_width(room.polygon) >= 2.8 for room in sales_rooms)
 
 
 def test_building_generation_uses_each_setback_floor_boundary():

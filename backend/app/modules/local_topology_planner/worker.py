@@ -8,11 +8,13 @@ from backend.app.modules.local_topology_planner.contracts import (
     TopologyContractError,
     dump_topology_proposals_json,
     parse_topology_proposals_json,
+    require_distinct_layout_sequences,
 )
 
 
 def _prompt(request: dict) -> str:
     node_ids = [node["node_id"] for node in request["nodes"]]
+    layout_node_groups = _layout_node_groups(request)
     count = request["candidate_count"]
     example = {
         "candidates": [
@@ -33,10 +35,18 @@ def _prompt(request: dict) -> str:
     return (
         f"Propose exactly {count} distinct early-design "
         f"{request['use_type']} spatial topology alternatives. "
+        "Use the supplied floor boundary, access candidates, room area and "
+        "shape constraints, frontage requirements, zones, and existing "
+        "program edges as the spatial brief. The deterministic geometry "
+        "solver will preserve mandatory constraints. Spatial brief JSON: "
+        f"{json.dumps(request, ensure_ascii=False, separators=(',', ':'))}. "
         "Return JSON only in this shape: "
         f"{json.dumps(example, ensure_ascii=False)}. "
         "Every sequence must contain each allowed node id exactly once and "
         f"no other id: {', '.join(node_ids)}. "
+        "Every candidate must change relative order inside at least one of "
+        "these solver role groups: "
+        f"{json.dumps(layout_node_groups, ensure_ascii=False)}. "
         f"candidate_id must be topology-1 through topology-{count}. "
         "Adjacency endpoints must be allowed ids and distinct. "
         "relation must be functional_adjacency or service_adjacent. "
@@ -53,6 +63,7 @@ def main() -> None:
     args = parser.parse_args()
     request = json.loads(sys.stdin.read())
     node_ids = tuple(node["node_id"] for node in request["nodes"])
+    layout_node_groups = _layout_node_groups(request)
     candidate_count = int(request["candidate_count"])
     if not 1 <= candidate_count <= 8:
         raise ValueError("candidate_count must be between 1 and 8")
@@ -111,6 +122,10 @@ def main() -> None:
                 allowed_node_ids=node_ids,
                 expected_count=candidate_count,
             )
+            require_distinct_layout_sequences(
+                proposals,
+                layout_node_groups=layout_node_groups,
+            )
         except TopologyContractError as error:
             last_error = str(error)
             prompt += (
@@ -123,6 +138,32 @@ def main() -> None:
     raise RuntimeError(
         f"model did not produce a valid topology after {args.attempts} attempts: "
         f"{last_error}"
+    )
+
+
+def _layout_node_groups(request: dict) -> tuple[tuple[str, ...], ...]:
+    support_types = {"pantry", "restroom", "it_storage"}
+    enforce_frontage = bool(request.get("street_edge_indices"))
+    nodes = request["nodes"]
+    return (
+        tuple(
+            node["node_id"]
+            for node in nodes
+            if enforce_frontage
+            and node["frontage_required"]
+            and node["space_type"] not in {"core", "open_work"}
+        ),
+        tuple(
+            node["node_id"]
+            for node in nodes
+            if node["space_type"] in support_types
+        ),
+        tuple(
+            node["node_id"]
+            for node in nodes
+            if node["space_type"] not in {"core", "open_work", *support_types}
+            and not (enforce_frontage and node["frontage_required"])
+        ),
     )
 
 

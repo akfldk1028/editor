@@ -8,6 +8,7 @@ from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.modules.generation_loop.service import (
+    _street_segments_for_boundary,
     assign_floors_from_use_mix,
     run_building_alternatives,
     run_building_generation,
@@ -135,6 +136,17 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
     proposals = client.propose(
         baseline,
         candidate_count=args.candidate_count,
+        boundary=mass.footprint_for_floor(args.floor),
+        access_candidates=mass.access_candidates,
+        street_edge_indices=tuple(
+            int(edge["edge_index"])
+            for edge in mass.site_edges
+            if edge.get("kind") == "street"
+        ),
+        street_segments=_street_segments_for_boundary(
+            mass,
+            mass.footprint_for_floor(args.floor),
+        ),
     )
     programs = apply_topology_proposals(baseline, proposals)
     assignments = tuple(
@@ -161,6 +173,7 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
     ]
     distinct_buildings = []
     seen_geometry: set[str] = set()
+    geometry_fingerprints: dict[str, str] = {}
     discarded_duplicate_geometry: list[str] = []
     for proposal, building in buildings:
         floor = next(
@@ -173,6 +186,7 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
             discarded_duplicate_geometry.append(proposal.candidate_id)
             continue
         seen_geometry.add(fingerprint)
+        geometry_fingerprints[proposal.candidate_id] = fingerprint
         distinct_buildings.append((proposal, building))
     buildings = distinct_buildings
     buildings.sort(
@@ -247,6 +261,10 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
                 "program_source": result.program.source,
                 "sequence": list(proposal.sequence),
                 "adjacencies": to_jsonable(proposal.adjacencies),
+                "effective_adjacencies": to_jsonable(result.program.edges),
+                "geometry_fingerprint": geometry_fingerprints[
+                    proposal.candidate_id
+                ],
                 "png": str(artifacts.png_path.relative_to(target)),
                 "html": str(candidate_index.relative_to(target)),
                 "review_json": str(artifacts.report_path.relative_to(target)),
@@ -260,8 +278,26 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
         "project_id": mass.project_id,
         "planner": "local_qwen3_4b_topology",
         "model_path": str(model_path),
+        "generation": {"seed": 17, "max_attempts": 3},
         "floor_index": args.floor,
         "use_type": args.use_type,
+        "planner_input": {
+            "boundary": to_jsonable(mass.footprint_for_floor(args.floor)),
+            "street_edge_indices": [
+                int(edge["edge_index"])
+                for edge in mass.site_edges
+                if edge.get("kind") == "street"
+            ],
+            "street_segments": to_jsonable(
+                _street_segments_for_boundary(
+                    mass,
+                    mass.footprint_for_floor(args.floor),
+                )
+            ),
+            "access_candidates": to_jsonable(mass.access_candidates),
+            "baseline_program": to_jsonable(baseline),
+            "core_geometry_status": "unresolved_pre_generation",
+        },
         "accepted_count": sum(item["accepted"] for item in summaries),
         "requested_candidate_count": args.candidate_count,
         "distinct_geometry_count": len(summaries),

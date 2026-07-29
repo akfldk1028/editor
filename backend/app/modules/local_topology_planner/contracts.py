@@ -116,6 +116,12 @@ def _parse_adjacencies(
         target = item["target"]
         relation = item["relation"]
         weight = item["weight"]
+        if not isinstance(source, str):
+            raise TopologyContractError(f"{edge_label} has invalid source")
+        if not isinstance(target, str):
+            raise TopologyContractError(f"{edge_label} has invalid target")
+        if not isinstance(relation, str):
+            raise TopologyContractError(f"{edge_label} has invalid relation")
         if source not in allowed or target not in allowed or source == target:
             raise TopologyContractError(f"{edge_label} has invalid endpoints")
         if relation not in _RELATIONS:
@@ -196,3 +202,22 @@ def dump_topology_proposals_json(
         ensure_ascii=False,
         separators=(",", ":"),
     )
+
+
+def require_distinct_layout_sequences(
+    proposals: tuple[TopologyProposal, ...],
+    *,
+    layout_node_groups: tuple[tuple[str, ...], ...],
+) -> None:
+    groups = tuple(set(group) for group in layout_node_groups if group)
+    signatures = {
+        tuple(
+            tuple(node_id for node_id in proposal.sequence if node_id in group)
+            for group in groups
+        )
+        for proposal in proposals
+    }
+    if len(signatures) != len(proposals):
+        raise TopologyContractError(
+            "topology candidates must vary layout-relevant room order"
+        )
