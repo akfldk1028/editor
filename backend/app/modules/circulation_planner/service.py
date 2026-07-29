@@ -19,6 +19,10 @@ from engine.geometry.distance import segment_to_segment_distance
 
 _DOOR_WIDTH = 0.9
 _GRID_STEP = 0.25
+_MAX_AUXILIARY_INTERVALS_PER_AXIS = 64
+_MAX_CORRIDOR_NETWORK_CANDIDATES = 64
+_MAX_REMOTE_STAIR_VALID_ORIGINS_PER_DIMENSION = 256
+_MAX_REMOTE_STAIR_CANDIDATES = 128
 _TOLERANCE = 1e-8
 
 
@@ -149,7 +153,12 @@ def _select_network_and_stair(
         return rectangles, stair
 
     candidates = []
-    for rectangles in _corridor_network_candidates(boundary, core, minimum_width):
+    for rectangles in _corridor_network_candidates(
+        boundary,
+        core,
+        minimum_width,
+        minimum_exit_separation=minimum_exit_separation,
+    ):
         corridor = union_all(rectangles)
         if (
             not isinstance(corridor, Polygon)
@@ -170,6 +179,7 @@ def _select_network_and_stair(
             corridor=corridor,
             corridor_rectangles=rectangles,
             stair_dimensions=stair_dimensions,
+            minimum_exit_separation=minimum_exit_separation,
         ):
             separation = _maximum_doorway_separation(core, corridor, stair)
             if separation + _TOLERANCE < minimum_exit_separation:
@@ -196,14 +206,28 @@ def _corridor_network_candidates(
     boundary: Polygon,
     core: Polygon,
     width: float,
+    *,
+    minimum_exit_separation: float | None = None,
 ) -> tuple[tuple[Polygon, ...], ...]:
-    candidates = [_legacy_corridor_rectangles(boundary, core, width)]
-    candidates.extend(_long_edge_corridor_networks(boundary, core, width))
-    unique = {}
-    for rectangles in candidates:
-        key = tuple(rectangle.bounds for rectangle in rectangles)
-        unique[key] = rectangles
-    return tuple(unique[key] for key in sorted(unique))
+    legacy = _legacy_corridor_rectangles(boundary, core, width)
+    critical_networks, auxiliary_networks = _long_edge_corridor_networks(
+        boundary,
+        core,
+        width,
+        minimum_exit_separation=minimum_exit_separation,
+    )
+    selected = []
+    seen = set()
+    for group in ((legacy, *critical_networks), auxiliary_networks):
+        for rectangles in group:
+            key = tuple(rectangle.bounds for rectangle in rectangles)
+            if key in seen:
+                continue
+            seen.add(key)
+            selected.append(rectangles)
+            if len(selected) == _MAX_CORRIDOR_NETWORK_CANDIDATES:
+                return tuple(selected)
+    return tuple(selected)
 
 
 def _legacy_corridor_rectangles(
@@ -240,27 +264,60 @@ def _long_edge_corridor_networks(
     boundary: Polygon,
     core: Polygon,
     width: float,
-) -> tuple[tuple[Polygon, ...], ...]:
+    *,
+    minimum_exit_separation: float | None,
+) -> tuple[
+    tuple[tuple[Polygon, ...], ...],
+    tuple[tuple[Polygon, ...], ...],
+]:
     min_y = boundary.bounds[1]
     core_min_x, core_min_y, core_max_x, _ = core.bounds
     route_y = _clean(core_min_y - width)
     if route_y <= min_y + _TOLERANCE:
-        return ()
-    networks = []
-    for trunk_x in _candidate_origins(boundary, axis=0, extent=width):
-        if trunk_x + width > core_max_x + _TOLERANCE:
-            continue
-        trunk = box(trunk_x, min_y, trunk_x + width, route_y)
-        crossbar = box(trunk_x, route_y, core_max_x, core_min_y)
-        if (
-            boundary.covers(trunk)
-            and boundary.covers(crossbar)
-            and crossbar.boundary.intersection(core.boundary).length
-            + _TOLERANCE
-            >= _DOOR_WIDTH
-        ):
-            networks.append((trunk, crossbar))
-    return tuple(networks)
+        return (), ()
+    critical_origins = {
+        core_min_x,
+        core_min_x - width,
+        core_max_x,
+        core_max_x - width,
+    }
+    if minimum_exit_separation is not None:
+        core_center_x = float(core.centroid.x)
+        critical_origins.update(
+            (
+                core_min_x - minimum_exit_separation,
+                core_max_x - minimum_exit_separation,
+                core_center_x - minimum_exit_separation,
+                core_min_x + minimum_exit_separation - width,
+                core_max_x + minimum_exit_separation - width,
+                core_center_x + minimum_exit_separation - width,
+            )
+        )
+    origin_groups = _candidate_origin_groups(
+        boundary,
+        axis=0,
+        extent=width,
+        extra=critical_origins,
+        bounded_auxiliary=True,
+    )
+    network_groups = []
+    for origins in origin_groups:
+        networks = []
+        for trunk_x in origins:
+            if trunk_x + width > core_max_x + _TOLERANCE:
+                continue
+            trunk = box(trunk_x, min_y, trunk_x + width, route_y)
+            crossbar = box(trunk_x, route_y, core_max_x, core_min_y)
+            if (
+                boundary.covers(trunk)
+                and boundary.covers(crossbar)
+                and crossbar.boundary.intersection(core.boundary).length
+                + _TOLERANCE
+                >= _DOOR_WIDTH
+            ):
+                networks.append((trunk, crossbar))
+        network_groups.append(tuple(networks))
+    return tuple(network_groups)
 
 
 def _select_remote_stair(
@@ -278,6 +335,8 @@ def _select_remote_stair(
         corridor=corridor,
         corridor_rectangles=corridor_rectangles,
         stair_dimensions=stair_dimensions,
+        street_segments=street_segments,
+        raise_on_empty_reserve=True,
     )
     if not candidates:
         raise CirculationPlanningError("no accessible remote stair reserve fits the floor")
@@ -300,14 +359,31 @@ def _remote_stair_candidates(
     corridor: Polygon,
     corridor_rectangles: tuple[Polygon, ...],
     stair_dimensions: tuple[tuple[float, float], ...],
+    minimum_exit_separation: float | None = None,
+    street_segments: tuple[tuple[Point, Point], ...] = (),
+    raise_on_empty_reserve: bool = False,
 ) -> tuple[Polygon, ...]:
     free = boundary.difference(union_all((core, corridor)))
     if free.is_empty:
+        if raise_on_empty_reserve:
+            raise CirculationPlanningError(
+                "circulation leaves no remote stair reserve"
+            )
         return ()
-    candidates = {}
+    candidates: dict[tuple[float, ...], tuple[bool, Polygon]] = {}
     for stair_width, stair_length in stair_dimensions:
-        grid_x = _candidate_origins(free, axis=0, extent=stair_width)
-        grid_y = _candidate_origins(free, axis=1, extent=stair_length)
+        target_x = _separation_origins(
+            core,
+            axis=0,
+            extent=stair_width,
+            minimum_exit_separation=minimum_exit_separation,
+        )
+        target_y = _separation_origins(
+            core,
+            axis=1,
+            extent=stair_length,
+            minimum_exit_separation=minimum_exit_separation,
+        )
         adjacent_x = {
             value
             for rectangle in corridor_rectangles
@@ -324,20 +400,122 @@ def _remote_stair_candidates(
                 rectangle.bounds[3],
             )
         }
-        origins = {
-            *((x, y) for x in adjacent_x for y in grid_y),
-            *((x, y) for x in grid_x for y in adjacent_y),
-        }
-        for x, y in origins:
-            stair = box(x, y, x + stair_width, y + stair_length)
+        if minimum_exit_separation is None:
+            grid_x = _candidate_origins(
+                free,
+                axis=0,
+                extent=stair_width,
+                bounded_auxiliary=False,
+            )
+            grid_y = _candidate_origins(
+                free,
+                axis=1,
+                extent=stair_length,
+                bounded_auxiliary=False,
+            )
+            origin_groups = (
+                {
+                    *((x, y) for x in adjacent_x for y in grid_y),
+                    *((x, y) for x in grid_x for y in adjacent_y),
+                },
+            )
+        else:
+            critical_x, auxiliary_x = _candidate_origin_groups(
+                free,
+                axis=0,
+                extent=stair_width,
+                extra=target_x,
+                bounded_auxiliary=True,
+            )
+            critical_y, auxiliary_y = _candidate_origin_groups(
+                free,
+                axis=1,
+                extent=stair_length,
+                extra=target_y,
+                bounded_auxiliary=True,
+            )
+            origin_groups = (
+                {
+                    *((x, y) for x in adjacent_x for y in critical_y),
+                    *((x, y) for x in critical_x for y in adjacent_y),
+                },
+                {
+                    *((x, y) for x in adjacent_x for y in auxiliary_y),
+                    *((x, y) for x in auxiliary_x for y in adjacent_y),
+                },
+            )
+        valid_origin_count = 0
+        for priority, origins in enumerate(origin_groups):
+            is_critical = priority == 0 and minimum_exit_separation is not None
+            ranked_origins = sorted(
+                origins,
+                key=lambda origin: (
+                    -math.dist(
+                        (
+                            origin[0] + stair_width / 2.0,
+                            origin[1] + stair_length / 2.0,
+                        ),
+                        (float(core.centroid.x), float(core.centroid.y)),
+                    ),
+                    origin,
+                ),
+            )
+            for x, y in ranked_origins:
+                stair = box(x, y, x + stair_width, y + stair_length)
+                if (
+                    not free.covers(stair)
+                    or stair.boundary.intersection(corridor.boundary).length
+                    + _TOLERANCE
+                    < _DOOR_WIDTH
+                ):
+                    continue
+                previous = candidates.get(stair.bounds)
+                candidates[stair.bounds] = (
+                    is_critical or (previous[0] if previous is not None else False),
+                    stair,
+                )
+                valid_origin_count += 1
+                if (
+                    minimum_exit_separation is not None
+                    and valid_origin_count
+                    == _MAX_REMOTE_STAIR_VALID_ORIGINS_PER_DIMENSION
+                ):
+                    break
             if (
-                free.covers(stair)
-                and stair.boundary.intersection(corridor.boundary).length
-                + _TOLERANCE
-                >= _DOOR_WIDTH
+                minimum_exit_separation is not None
+                and valid_origin_count
+                == _MAX_REMOTE_STAIR_VALID_ORIGINS_PER_DIMENSION
             ):
-                candidates[stair.bounds] = stair
-    return tuple(candidates[key] for key in sorted(candidates))
+                break
+    if minimum_exit_separation is None:
+        street_lines = tuple(LineString(segment) for segment in street_segments)
+        ranked_candidates = sorted(
+            (item[1] for item in candidates.values()),
+            key=lambda stair: (
+                not any(
+                    stair.boundary.intersection(line).length > _TOLERANCE
+                    for line in street_lines
+                ),
+                stair.centroid.distance(core.centroid),
+                tuple(-value for value in stair.bounds),
+            ),
+            reverse=True,
+        )
+        return tuple(sorted(ranked_candidates, key=lambda stair: stair.bounds))
+    else:
+        ranked_candidates = sorted(
+            candidates.values(),
+            key=lambda item: (
+                not item[0],
+                -item[1].centroid.distance(core.centroid),
+                item[1].bounds,
+            ),
+        )
+    selected = [
+        item[1]
+        for item in ranked_candidates[:_MAX_REMOTE_STAIR_CANDIDATES]
+    ]
+    return tuple(sorted(selected, key=lambda stair: stair.bounds))
 
 
 def _maximum_doorway_separation(
@@ -406,16 +584,79 @@ def _end_openings(line: LineString) -> tuple[tuple[Point, Point], ...]:
     )
 
 
-def _grid_values(minimum: float, maximum: float) -> tuple[float, ...]:
+def _grid_values(
+    minimum: float,
+    maximum: float,
+    *,
+    bounded: bool,
+) -> tuple[float, ...]:
     if maximum < minimum - _TOLERANCE:
         return ()
-    count = math.floor((maximum - minimum) / _GRID_STEP + _TOLERANCE)
-    values = [minimum + index * _GRID_STEP for index in range(count + 1)]
-    values.append(maximum)
+    if not bounded:
+        count = math.floor((maximum - minimum) / _GRID_STEP + _TOLERANCE)
+        values = [minimum + index * _GRID_STEP for index in range(count + 1)]
+        values.append(maximum)
+        return tuple(sorted({_clean(value) for value in values}))
+    span = maximum - minimum
+    if span <= _TOLERANCE:
+        return tuple(sorted({_clean(minimum), _clean(maximum)}))
+    natural_interval_count = max(
+        1,
+        math.ceil(span / _GRID_STEP - _TOLERANCE),
+    )
+    interval_count = min(
+        natural_interval_count,
+        _MAX_AUXILIARY_INTERVALS_PER_AXIS,
+    )
+    if natural_interval_count <= _MAX_AUXILIARY_INTERVALS_PER_AXIS:
+        values = [
+            (
+                minimum + index * _GRID_STEP
+                if index < interval_count
+                else maximum
+            )
+            for index in range(interval_count + 1)
+        ]
+    else:
+        values = [
+            (
+                minimum
+                if index == 0
+                else maximum
+                if index == interval_count
+                else minimum + span * index / interval_count
+            )
+            for index in range(interval_count + 1)
+        ]
     return tuple(sorted({_clean(value) for value in values}))
 
 
-def _candidate_origins(shape, *, axis: int, extent: float) -> tuple[float, ...]:
+def _candidate_origins(
+    shape,
+    *,
+    axis: int,
+    extent: float,
+    extra: Iterable[float] = (),
+    bounded_auxiliary: bool = True,
+) -> tuple[float, ...]:
+    critical, auxiliary = _candidate_origin_groups(
+        shape,
+        axis=axis,
+        extent=extent,
+        extra=extra,
+        bounded_auxiliary=bounded_auxiliary,
+    )
+    return tuple(sorted({*critical, *auxiliary}))
+
+
+def _candidate_origin_groups(
+    shape,
+    *,
+    axis: int,
+    extent: float,
+    extra: Iterable[float],
+    bounded_auxiliary: bool,
+) -> tuple[tuple[float, ...], tuple[float, ...]]:
     minimum = shape.bounds[axis]
     maximum = shape.bounds[axis + 2] - extent
     polygons = tuple(shape.geoms) if hasattr(shape, "geoms") else (shape,)
@@ -424,18 +665,48 @@ def _candidate_origins(shape, *, axis: int, extent: float) -> tuple[float, ...]:
         for polygon in polygons
         for coordinate in polygon.exterior.coords
     }
-    return tuple(
-        sorted(
-            {
-                *_grid_values(minimum, maximum),
-                *(
-                    origin
-                    for edge in edges
-                    for origin in (edge, edge - extent)
-                    if minimum - _TOLERANCE <= origin <= maximum + _TOLERANCE
-                ),
-            }
+    critical = {
+        *(
+            origin
+            for edge in edges
+            for origin in (edge, edge - extent)
+            if minimum - _TOLERANCE <= origin <= maximum + _TOLERANCE
+        ),
+        *(
+            float(origin)
+            for origin in extra
+            if minimum - _TOLERANCE
+            <= float(origin)
+            <= maximum + _TOLERANCE
+        ),
+    }
+    auxiliary = set(
+        _grid_values(
+            minimum,
+            maximum,
+            bounded=bounded_auxiliary,
         )
+    ).difference(critical)
+    return tuple(sorted(critical)), tuple(sorted(auxiliary))
+
+
+def _separation_origins(
+    core: Polygon,
+    *,
+    axis: int,
+    extent: float,
+    minimum_exit_separation: float | None,
+) -> tuple[float, ...]:
+    if minimum_exit_separation is None:
+        return ()
+    minimum = core.bounds[axis]
+    maximum = core.bounds[axis + 2]
+    center = float(core.centroid.coords[0][axis])
+    return tuple(
+        coordinate + direction * minimum_exit_separation - offset
+        for coordinate in (minimum, center, maximum)
+        for direction in (-1.0, 1.0)
+        for offset in (0.0, extent)
     )
 
 

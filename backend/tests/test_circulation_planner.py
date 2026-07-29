@@ -9,17 +9,29 @@ import pytest
 from shapely import union_all
 from shapely.geometry import Polygon, box
 
+import backend.app.modules.circulation_planner.service as circulation_service
+from backend.app.modules.circulation_planner.contracts import (
+    CirculationPlanningError,
+)
 from backend.app.modules.circulation_planner.service import (
+    _MAX_AUXILIARY_INTERVALS_PER_AXIS,
+    _MAX_CORRIDOR_NETWORK_CANDIDATES,
+    _MAX_REMOTE_STAIR_CANDIDATES,
+    _candidate_origins,
+    _corridor_network_candidates,
+    _maximum_doorway_separation,
+    _remote_stair_candidates,
+    _select_remote_stair,
     generate_circulation_candidate,
 )
+from backend.app.modules.core_planner.contracts import CoreCandidate
 from backend.app.modules.core_planner.service import generate_shared_core_candidates
-from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.layout_generator.orthogonal import (
     generate_orthogonal_office_layout,
 )
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
-from backend.app.schemas.mass import FloorFootprint, MassInput
+from backend.app.schemas.mass import MassInput
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -226,7 +238,6 @@ def test_all_irregular_floors_and_core_families_forward_rectilinear_circulation(
 
 
 def test_notch_core_shared_circulation_meets_governing_exit_separation() -> None:
-    mass = _irregular_mass()
     core = next(
         candidate
         for candidate in CORE_CANDIDATES
@@ -245,19 +256,10 @@ def test_notch_core_shared_circulation_meets_governing_exit_separation() -> None
         minimum_exit_separation=governing_separation,
     )
 
-    building = run_building_generation(
-        mass,
-        core_override=core,
-        circulation_overrides={
-            floor_index: candidate
-            for floor_index in range(1, mass.floors + 1)
-        },
-    )
-
-    boundary = Polygon(BOUNDARIES[-1])
     corridor = union_all([Polygon(polygon) for polygon in candidate.polygons])
+    remote_stair = Polygon(candidate.remote_stair_polygon)
     assert all(
-        boundary.covers(Polygon(polygon))
+        Polygon(BOUNDARIES[-1]).covers(Polygon(polygon))
         and Polygon(polygon).equals(box(*Polygon(polygon).bounds))
         and min(
             Polygon(polygon).bounds[2] - Polygon(polygon).bounds[0],
@@ -271,29 +273,162 @@ def test_notch_core_shared_circulation_meets_governing_exit_separation() -> None
     assert candidate.entrance_connected
     assert candidate.core_connected
     assert candidate.stair_connected
-    for floor in building.floor_results:
-        exits = [
-            line
-            for line in floor.layout.basic_design.lines
-            if line.kind == "protected_exit"
-        ]
-        separation = math.dist(
-            _midpoint(exits[0].points),
-            _midpoint(exits[1].points),
+    separation = _maximum_doorway_separation(
+        Polygon(core.polygon),
+        corridor,
+        remote_stair,
+    )
+    for boundary_points, street_segments in zip(BOUNDARIES, FLOOR_STREETS):
+        layout = generate_orthogonal_office_layout(
+            boundary_points,
+            _office_program(boundary_points),
+            core_polygon=core.polygon,
+            circulation_candidate=candidate,
+            frontage_segments=street_segments,
         )
-        required = _maximum_pairwise_distance(floor.floor_boundary) / 2.0
+        required = _maximum_pairwise_distance(boundary_points) / 2.0
+
         assert separation + 1e-8 >= required
         assert tuple(
-            tuple(path.polygon) for path in floor.layout.circulation
+            tuple(path.polygon) for path in layout.circulation
         ) == candidate.polygons
-        assert floor.layout.remote_stair_footprint == candidate.remote_stair_polygon
-        core_door = next(
-            opening
-            for opening in floor.layout.openings
-            if opening.connects[0] == "core"
-        )
+        assert layout.remote_stair_footprint == candidate.remote_stair_polygon
+        core_door = next(opening for opening in layout.openings if opening.connects[0] == "core")
         assert core_door.start[1] == core.polygon[0][1]
         assert core_door.end[1] == core.polygon[0][1]
+
+
+def test_optional_separation_candidate_search_is_coordinate_scale_bounded(
+    monkeypatch,
+) -> None:
+    boundary = box(-1_000_000_000.0, -100.0, 1_000_000_000.0, 100.0)
+    core = box(-50.0, 40.0, 50.0, 80.0)
+    critical_origins = (
+        -123.123456789123,
+        234.123456789123,
+    )
+    origins = _candidate_origins(
+        boundary,
+        axis=0,
+        extent=1.2,
+        extra=critical_origins,
+    )
+    networks = _corridor_network_candidates(
+        boundary,
+        core,
+        1.2,
+        minimum_exit_separation=1_000.0,
+    )
+    counts = {"networks": 0, "stairs": 0}
+    original_remote_stair_candidates = _remote_stair_candidates
+
+    def counted_remote_stair_candidates(**kwargs):
+        candidates = original_remote_stair_candidates(**kwargs)
+        counts["networks"] += 1
+        counts["stairs"] += len(candidates)
+        return candidates
+
+    monkeypatch.setattr(
+        circulation_service,
+        "_remote_stair_candidates",
+        counted_remote_stair_candidates,
+    )
+    candidate = generate_circulation_candidate(
+        floor_boundary=tuple(boundary.exterior.coords[:-1]),
+        core=CoreCandidate(
+            strategy="coordinate_scale_stress",
+            polygon=tuple(core.exterior.coords[:-1]),
+            fingerprint="coordinate-scale-stress",
+            contained_floor_indices=(1,),
+        ),
+        street_segments=(
+            ((-1_000_000_000.0, -100.0), (1_000_000_000.0, -100.0)),
+        ),
+        minimum_width=1.2,
+        stair_dimensions=((2.8, 4.92), (4.92, 2.8)),
+        minimum_exit_separation=1_000.0,
+    )
+
+    assert set(critical_origins) <= set(origins)
+    assert len(origins) <= (
+        _MAX_AUXILIARY_INTERVALS_PER_AXIS + 1 + len(critical_origins) + 4
+    )
+    assert len(networks) <= _MAX_CORRIDOR_NETWORK_CANDIDATES
+    assert counts["networks"] <= _MAX_CORRIDOR_NETWORK_CANDIDATES
+    assert counts["stairs"] <= (
+        _MAX_CORRIDOR_NETWORK_CANDIDATES * _MAX_REMOTE_STAIR_CANDIDATES
+    )
+    assert Polygon(boundary).covers(Polygon(candidate.remote_stair_polygon))
+    assert min(Polygon(polygon).bounds[0] for polygon in candidate.polygons) in {
+        -1_050.0,
+        -1_000.0,
+        -950.0,
+    }
+    assert Polygon(candidate.remote_stair_polygon).bounds == pytest.approx(
+        (-954.92, -100.0, -950.0, -97.2)
+    )
+
+
+def test_empty_free_reserve_restores_legacy_none_error() -> None:
+    boundary = box(0.0, 0.0, 10.0, 10.0)
+    core = box(2.0, 0.0, 10.0, 10.0)
+    corridor = box(0.0, 0.0, 2.0, 10.0)
+
+    with pytest.raises(
+        CirculationPlanningError,
+        match="^circulation leaves no remote stair reserve$",
+    ):
+        _select_remote_stair(
+            boundary=boundary,
+            core=core,
+            corridor=corridor,
+            corridor_rectangles=(corridor,),
+            street_segments=(((0.0, 0.0), (10.0, 0.0)),),
+            stair_dimensions=((2.8, 4.92),),
+        )
+
+
+def test_legacy_none_uses_pre_separation_full_quarter_meter_lattice() -> None:
+    boundary = (
+        (0.0, 0.0),
+        (30.0, 0.0),
+        (30.0, 20.0),
+        (0.0, 20.0),
+    )
+    core = CoreCandidate(
+        strategy="legacy-wide",
+        polygon=(
+            (11.0, 4.0),
+            (19.0, 4.0),
+            (19.0, 12.0),
+            (11.0, 12.0),
+        ),
+        fingerprint="legacy-wide-core",
+        contained_floor_indices=(1,),
+    )
+
+    candidate = generate_circulation_candidate(
+        floor_boundary=boundary,
+        core=core,
+        street_segments=((boundary[0], boundary[1]),),
+        minimum_width=1.2,
+        stair_dimensions=((2.8, 4.92), (4.92, 2.8)),
+        minimum_exit_separation=None,
+    )
+
+    assert candidate.polygons == (
+        ((9.8, 0.0), (9.8, 12.0), (11.0, 12.0), (11.0, 0.0)),
+    )
+    assert candidate.remote_stair_polygon == (
+        (4.880000000000001, 0.25),
+        (4.880000000000001, 3.05),
+        (9.8, 3.05),
+        (9.8, 0.25),
+    )
+    assert (
+        candidate.fingerprint
+        == "efae93c031b646dfeee4c5103f5c844425d9ccfa954a46c6b9ef4ff0bceb8750"
+    )
 
 
 def _office_program(boundary):
@@ -311,38 +446,9 @@ def _office_program(boundary):
         use_type="office",
     )
 
-
-def _irregular_mass() -> MassInput:
-    return MassInput(
-        project_id=MANIFEST["project_id"],
-        floors=MANIFEST["floors"],
-        footprint_polygon=MANIFEST["footprint_polygon"],
-        floor_footprints=tuple(
-            FloorFootprint(
-                floor_index=floor["floor_index"],
-                footprint_polygon=tuple(
-                    (float(x), float(y))
-                    for x, y in floor["footprint_polygon"]
-                ),
-            )
-            for floor in MANIFEST["floor_footprints"]
-        ),
-        site_edges=MANIFEST["site_edges"],
-        access_candidates=MANIFEST["access_candidates"],
-        use_mix=MANIFEST["use_mix"],
-    )
-
-
 def _maximum_pairwise_distance(points) -> float:
     return max(
         math.dist(first, second)
         for index, first in enumerate(points)
         for second in points[index + 1 :]
-    )
-
-
-def _midpoint(points) -> tuple[float, float]:
-    return (
-        (points[0][0] + points[-1][0]) / 2.0,
-        (points[0][1] + points[-1][1]) / 2.0,
     )
