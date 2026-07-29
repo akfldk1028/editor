@@ -6,7 +6,7 @@ import io
 import json
 import math
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
@@ -14,9 +14,11 @@ from backend.app.modules.generation_loop.service import (
     _street_segments,
     assign_floors_from_use_mix,
     build_floor_design_evidence,
+    run_building_alternatives,
     run_building_generation,
     run_candidate_search,
 )
+from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.llm_planner.service import plan_floor_assignments
 from backend.app.modules.validator.service import validate_layout
 from backend.app.schemas.llm import FloorAssignment, SUPPORTED_USE_TYPES
@@ -663,6 +665,7 @@ def run_visual_review_loop(
             floor_index=floor_index,
             use_type=use_type,
             target=target,
+            max_iterations=max_iterations,
             planner_client=planner_client,
         )
 
@@ -751,6 +754,7 @@ def _run_concept_basic_review(
     floor_index: int,
     use_type: str,
     target: Path,
+    max_iterations: int,
     planner_client: object | None,
 ) -> VisualReviewLoopResult:
     if floor_index < 1 or floor_index > mass.floors:
@@ -814,7 +818,7 @@ def _run_concept_basic_review(
                 "unresolved_facts": ["generation_failed"],
             },
             "termination_reason": "failed",
-            "evaluation_count": 1,
+            "evaluation_count": 0,
             "error": message,
             "unchecked_checks": [],
             "iterations": [],
@@ -831,7 +835,7 @@ def _run_concept_basic_review(
             index_json_path=index_json_path,
             index_html_path=index_html_path,
             termination_reason="failed",
-            evaluation_count=1,
+            evaluation_count=0,
             accepted=False,
             error=message,
             review_level="concept-basic",
@@ -841,65 +845,199 @@ def _run_concept_basic_review(
             regulatory_screening=index["regulatory_screening"],
         )
 
-    floor = next(
-        floor
-        for floor in building.floor_results
-        if floor.program.floor_index == floor_index
-    )
-    artifact = create_visual_review_artifacts(
-        floor,
-        boundary=mass.footprint_polygon,
-        output_dir=target / "iteration_001",
-        iteration_number=1,
-        run_root=target,
-    )
-    report = json.loads(artifact.report_path.read_text(encoding="utf-8"))
-    report["review_level"] = "concept-basic"
-    report["planner_provenance"] = to_jsonable(building.planner_provenance)
-    artifact.report_path.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
-    required_checks = ("openings", "corridor_width", "basic_design")
-    strict_checks_pass = all(
-        report["checks"].get(name) == "pass" for name in required_checks
-    )
-    unchecked_checks = tuple(
-        sorted(
-            name
-            for name, status in report["checks"].items()
-            if status == "not_checked"
+    proposals: list[tuple[BuildingGenerationResult, str, dict[str, object]]] = [
+        (building, "concept-basic-generation", {})
+    ]
+    artifacts: list[VisualReviewArtifacts] = []
+    iterations: list[dict] = []
+    seen: set[str] = set()
+    previous_validation: ValidationReport | None = None
+    baseline_candidate_id: str | None = None
+    mutation_loaded = False
+    mutation_error: str | None = None
+    accepted = False
+    final_building = building
+    final_report: dict | None = None
+    unchecked_checks: tuple[str, ...] = ()
+
+    while proposals and len(iterations) < max_iterations:
+        candidate_building, operator, operator_params = proposals.pop(0)
+        floor = next(
+            floor
+            for floor in candidate_building.floor_results
+            if floor.program.floor_index == floor_index
         )
-    )
-    accepted = (
-        building.accepted
-        and strict_checks_pass
-        and not unchecked_checks
-        and report["regulatory_screening"]["status"] != "fail"
-    )
-    termination_reason = "accepted" if accepted else "strict_validation_failed"
-    iteration = {
-        "iteration": 1,
-        "candidate_id": report["candidate_id"],
-        "fingerprint": None,
-        "parent_id": None,
-        "operator": "concept-basic-generation",
-        "operator_params": {},
-        "accepted": accepted,
-        "needs_iteration": not accepted,
-        "internal_validation": report["internal_validation"],
-        "render_validation": report["render_validation"],
-        "regulatory_screening": report["regulatory_screening"],
-        "hard_failure_count": report["hard_failure_count"],
-        "violations": report["violations"],
-        "scores": report["scores"],
-        "checks": report["checks"],
-        "program_source": report["program_source"],
-        "program_adjusted": report["program_adjusted"],
-        "total_score_delta": None,
-        "hard_failure_count_delta": None,
-        "artifacts": report["artifacts"],
-    }
+        fingerprint = _concept_basic_fingerprint(floor.layout)
+        if fingerprint in seen:
+            continue
+        seen.add(fingerprint)
+        iteration_number = len(iterations) + 1
+        candidate = CandidateRecord(
+            iteration=iteration_number,
+            layout=floor.layout,
+            validation=floor.validation,
+            fingerprint=fingerprint,
+            parent_id=(
+                None
+                if operator == "concept-basic-generation"
+                else baseline_candidate_id
+            ),
+            operator=operator,
+            operator_params=operator_params,
+        )
+        artifact = create_visual_review_artifacts(
+            floor,
+            boundary=mass.footprint_polygon,
+            output_dir=target / f"iteration_{iteration_number:03d}",
+            candidate=candidate,
+            iteration_number=iteration_number,
+            previous_validation=previous_validation,
+            run_root=target,
+        )
+        report = json.loads(artifact.report_path.read_text(encoding="utf-8"))
+        report["review_level"] = "concept-basic"
+        report["planner_provenance"] = to_jsonable(
+            candidate_building.planner_provenance
+        )
+        required_checks = ("openings", "corridor_width", "basic_design")
+        strict_checks_pass = all(
+            report["checks"].get(name) == "pass" for name in required_checks
+        )
+        unchecked_checks = tuple(
+            sorted(
+                name
+                for name, status in report["checks"].items()
+                if status == "not_checked"
+            )
+        )
+        accepted = (
+            candidate_building.accepted
+            and strict_checks_pass
+            and not unchecked_checks
+            and report["regulatory_screening"]["status"] != "fail"
+        )
+        report["floor_accepted"] = report["accepted"]
+        report["building_accepted"] = candidate_building.accepted
+        report["building_validation"] = {
+            "status": "pass" if candidate_building.accepted else "fail"
+        }
+        report["acceptance_scope"] = "building"
+        report["accepted"] = accepted
+        report["needs_iteration"] = not accepted
+        artifact.report_path.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+        artifact.html_path.write_text(
+            _render_html(
+                floor,
+                svg_payload=artifact.svg_path.read_text(encoding="utf-8"),
+                png_name=artifact.png_path.name,
+                report_name=artifact.report_path.name,
+                report=report,
+            ),
+            encoding="utf-8",
+        )
+        artifact = replace(artifact, needs_iteration=not accepted)
+        iteration = {
+            "iteration": iteration_number,
+            "candidate_id": report["candidate_id"],
+            "fingerprint": report["fingerprint"],
+            "parent_id": report["parent_id"],
+            "operator": report["operator"],
+            "operator_params": report["operator_params"],
+            "accepted": report["accepted"],
+            "needs_iteration": report["needs_iteration"],
+            "internal_validation": report["internal_validation"],
+            "render_validation": report["render_validation"],
+            "regulatory_screening": report["regulatory_screening"],
+            "hard_failure_count": report["hard_failure_count"],
+            "violations": report["violations"],
+            "scores": report["scores"],
+            "checks": report["checks"],
+            "program_source": report["program_source"],
+            "program_adjusted": report["program_adjusted"],
+            "total_score_delta": report["total_score_delta"],
+            "hard_failure_count_delta": report["hard_failure_count_delta"],
+            "artifacts": report["artifacts"],
+        }
+        artifacts.append(artifact)
+        iterations.append(iteration)
+        final_building = candidate_building
+        final_report = report
+        previous_validation = floor.validation
+        if baseline_candidate_id is None:
+            baseline_candidate_id = report["candidate_id"]
+        if accepted:
+            break
+
+        if not mutation_loaded and len(iterations) < max_iterations:
+            mutation_loaded = True
+            try:
+                alternatives = run_building_alternatives(
+                    mass,
+                    floor_assignments=building.floor_assignments,
+                    planner_provenance=building.planner_provenance,
+                )
+            except Exception as error:
+                mutation_error = (
+                    "concept-basic mutation generation failed: "
+                    f"{type(error).__name__}: {error}"
+                )
+            else:
+                expected_assignments = tuple(
+                    (assignment.floor_index, assignment.use_type)
+                    for assignment in building.floor_assignments
+                )
+                queued_fingerprints = set(seen)
+                for alternative in alternatives.alternatives:
+                    alternative_building = alternative.building
+                    actual_assignments = tuple(
+                        (assignment.floor_index, assignment.use_type)
+                        for assignment in alternative_building.floor_assignments
+                    )
+                    if actual_assignments != expected_assignments:
+                        continue
+                    alternative_floor = next(
+                        floor
+                        for floor in alternative_building.floor_results
+                        if floor.program.floor_index == floor_index
+                    )
+                    alternative_fingerprint = _concept_basic_fingerprint(
+                        alternative_floor.layout
+                    )
+                    if alternative_fingerprint in queued_fingerprints:
+                        continue
+                    queued_fingerprints.add(alternative_fingerprint)
+                    alternative_building = replace(
+                        alternative_building,
+                        assignment_source=building.assignment_source,
+                        planner_provenance=building.planner_provenance,
+                    )
+                    proposals.append(
+                        (
+                            alternative_building,
+                            "concept-basic-alternative",
+                            {
+                                "alternative_id": alternative.alternative_id,
+                                "strategy": alternative.strategy,
+                            },
+                        )
+                    )
+
+    assert final_report is not None
+    if accepted:
+        termination_reason = "accepted"
+        error = None
+    elif len(iterations) >= max_iterations and proposals:
+        termination_reason = "iteration_budget_exhausted"
+        error = None
+    elif len(iterations) >= max_iterations and max_iterations == 1:
+        termination_reason = "iteration_budget_exhausted"
+        error = None
+    else:
+        termination_reason = "search_exhausted"
+        error = mutation_error or "no distinct concept-basic mutation available"
     index = {
         "schema_version": 1,
         "project_id": mass.project_id,
@@ -908,49 +1046,69 @@ def _run_concept_basic_review(
         "review_level": "concept-basic",
         "accepted": accepted,
         "needs_iteration": not accepted,
-        "internal_validation": report["internal_validation"],
-        "render_validation": report["render_validation"],
-        "regulatory_screening": report["regulatory_screening"],
+        "internal_validation": final_report["internal_validation"],
+        "render_validation": final_report["render_validation"],
+        "regulatory_screening": final_report["regulatory_screening"],
         "termination_reason": termination_reason,
-        "evaluation_count": 1,
-        "error": None,
+        "evaluation_count": len(iterations),
+        "error": error,
         "unchecked_checks": list(unchecked_checks),
-        "vertical_core_aligned": building.vertical_core_aligned,
-        "vertical_basic_design_aligned": building.vertical_basic_design_aligned,
-        "vertical_structure_aligned": building.vertical_structure_aligned,
-        "planner_provenance": to_jsonable(building.planner_provenance),
-        "program_source": report["program_source"],
-        "program_adjusted": report["program_adjusted"],
-        "iterations": [iteration],
-        "score_trend": [iteration["scores"]["total_score"]],
-        "hard_failure_trend": [iteration["hard_failure_count"]],
+        "vertical_core_aligned": final_building.vertical_core_aligned,
+        "vertical_basic_design_aligned": final_building.vertical_basic_design_aligned,
+        "vertical_structure_aligned": final_building.vertical_structure_aligned,
+        "planner_provenance": to_jsonable(final_building.planner_provenance),
+        "program_source": final_report["program_source"],
+        "program_adjusted": final_report["program_adjusted"],
+        "iterations": iterations,
+        "score_trend": [
+            iteration["scores"]["total_score"] for iteration in iterations
+        ],
+        "hard_failure_trend": [
+            iteration["hard_failure_count"] for iteration in iterations
+        ],
         "lineage": [
             {
                 "candidate_id": iteration["candidate_id"],
-                "parent_id": None,
+                "parent_id": iteration["parent_id"],
                 "operator": iteration["operator"],
-                "operator_params": {},
+                "operator_params": iteration["operator_params"],
             }
+            for iteration in iterations
         ],
     }
     index_json_path, index_html_path = _write_review_index(target, index)
     return VisualReviewLoopResult(
-        iterations_run=1,
+        iterations_run=len(iterations),
         final_needs_iteration=not accepted,
-        artifacts=[artifact],
+        artifacts=artifacts,
         index_json_path=index_json_path,
         index_html_path=index_html_path,
         termination_reason=termination_reason,
-        evaluation_count=1,
+        evaluation_count=len(iterations),
         accepted=accepted,
-        error=None,
+        error=error,
         review_level="concept-basic",
         unchecked_checks=unchecked_checks,
-        planner_provenance=building.planner_provenance,
+        planner_provenance=final_building.planner_provenance,
         internal_validation=index["internal_validation"],
         render_validation=index["render_validation"],
         regulatory_screening=index["regulatory_screening"],
     )
+
+
+def _concept_basic_fingerprint(layout) -> str:
+    payload = {
+        "layout": layout_fingerprint(layout),
+        "basic_design": to_jsonable(layout.basic_design),
+        "remote_stair_footprint": to_jsonable(layout.remote_stair_footprint),
+    }
+    canonical = json.dumps(
+        payload,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _program_was_adjusted(program: ProgramGraph) -> bool:

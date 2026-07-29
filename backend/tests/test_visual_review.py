@@ -1399,6 +1399,462 @@ def test_default_review_loop_runs_one_strict_concept_basic_evaluation(tmp_path):
         assert counts["modeled"] == counts["svg"] == counts["png"]
 
 
+def test_concept_basic_review_retries_distinct_family_and_stops_when_accepted(
+    tmp_path,
+    monkeypatch,
+):
+    mass = MassInput(
+        project_id="concept-retry",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+    accepted = run_building_generation(mass)
+    accepted_floor = accepted.floor_results[0]
+    failed_validation = replace(
+        accepted_floor.validation,
+        is_valid=False,
+        accepted=False,
+        hard_violation_count=1,
+        violations=[
+            ValidationViolation(
+                "forced_concept_failure",
+                accepted_floor.layout.candidate_id,
+                "forced first-family failure",
+            )
+        ],
+    )
+    failed = replace(
+        accepted,
+        floor_results=(
+            replace(accepted_floor, validation=failed_validation),
+        ),
+    )
+    first_opening = accepted_floor.layout.openings[0]
+    distinct_failed_layout = replace(
+        accepted_floor.layout,
+        candidate_id=f"{accepted_floor.layout.candidate_id}-distinct-failed",
+        openings=[
+            replace(
+                first_opening,
+                start=(first_opening.start[0] + 0.01, first_opening.start[1]),
+            ),
+            *accepted_floor.layout.openings[1:],
+        ],
+    )
+    distinct_failed = replace(
+        failed,
+        floor_results=(
+            replace(
+                failed.floor_results[0],
+                layout=distinct_failed_layout,
+            ),
+        ),
+    )
+    distinct_accepted_layout = replace(
+        accepted_floor.layout,
+        candidate_id=f"{accepted_floor.layout.candidate_id}-distinct-accepted",
+        openings=[
+            replace(
+                first_opening,
+                start=(first_opening.start[0] + 0.02, first_opening.start[1]),
+            ),
+            *accepted_floor.layout.openings[1:],
+        ],
+    )
+    distinct_accepted = replace(
+        accepted,
+        floor_results=(
+            replace(accepted_floor, layout=distinct_accepted_layout),
+        ),
+    )
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_generation",
+        lambda *_args, **_kwargs: failed,
+    )
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_alternatives",
+        lambda *_args, **_kwargs: type(
+            "Alternatives",
+            (),
+            {
+                "alternatives": (
+                    type(
+                        "Alternative",
+                        (),
+                        {
+                            "alternative_id": "alternative-distinct",
+                            "strategy": "distinct-failing-family",
+                            "building": distinct_failed,
+                        },
+                    )(),
+                    type(
+                        "Alternative",
+                        (),
+                        {
+                            "alternative_id": "alternative-accepted",
+                            "strategy": "distinct-accepted-family",
+                            "building": distinct_accepted,
+                        },
+                    )(),
+                ),
+                "rejected_families": (),
+            },
+        )(),
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        floor_index=1,
+        use_type="office",
+        output_dir=tmp_path,
+        max_iterations=3,
+    )
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+
+    assert result.accepted is True
+    assert result.iterations_run == 3
+    assert result.evaluation_count == 3
+    assert result.termination_reason == "accepted"
+    assert [entry["operator"] for entry in index["iterations"]] == [
+        "concept-basic-generation",
+        "concept-basic-alternative",
+        "concept-basic-alternative",
+    ]
+    assert len({entry["fingerprint"] for entry in index["iterations"]}) == 3
+    assert index["iterations"][1]["parent_id"] == index["iterations"][0]["candidate_id"]
+    assert index["iterations"][2]["parent_id"] == index["iterations"][0]["candidate_id"]
+    assert (tmp_path / "iteration_001").is_dir()
+    assert (tmp_path / "iteration_002").is_dir()
+    assert (tmp_path / "iteration_003").is_dir()
+
+
+def test_concept_basic_review_reports_exhausted_without_fake_retries(
+    tmp_path,
+    monkeypatch,
+):
+    mass = MassInput(
+        project_id="concept-exhausted",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+    building = run_building_generation(mass)
+    floor = building.floor_results[0]
+    failed = replace(
+        building,
+        floor_results=(
+            replace(
+                floor,
+                validation=replace(
+                    floor.validation,
+                    is_valid=False,
+                    accepted=False,
+                    hard_violation_count=1,
+                    violations=[
+                        ValidationViolation(
+                            "forced_concept_failure",
+                            floor.layout.candidate_id,
+                            "forced failure without mutation",
+                        )
+                    ],
+                ),
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_generation",
+        lambda *_args, **_kwargs: failed,
+    )
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_alternatives",
+        lambda *_args, **_kwargs: type(
+            "Alternatives",
+            (),
+            {"alternatives": (), "rejected_families": ()},
+        )(),
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        floor_index=1,
+        use_type="office",
+        output_dir=tmp_path,
+        max_iterations=4,
+    )
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+
+    assert result.accepted is False
+    assert result.iterations_run == 1
+    assert result.evaluation_count == 1
+    assert result.termination_reason == "search_exhausted"
+    assert result.error == "no distinct concept-basic mutation available"
+    assert len(index["iterations"]) == 1
+    assert index["error"] == result.error
+    assert not (tmp_path / "iteration_002").exists()
+
+
+def test_concept_basic_report_distinguishes_floor_and_building_acceptance(
+    tmp_path,
+    monkeypatch,
+):
+    mass = MassInput(
+        project_id="concept-building-disposition",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+    building = run_building_generation(mass)
+    failed_upper = building.floor_results[1]
+    failed = replace(
+        building,
+        floor_results=(
+            building.floor_results[0],
+            replace(
+                failed_upper,
+                validation=replace(
+                    failed_upper.validation,
+                    is_valid=False,
+                    accepted=False,
+                    hard_violation_count=1,
+                    violations=[
+                        ValidationViolation(
+                            "forced_upper_floor_failure",
+                            failed_upper.layout.candidate_id,
+                            "non-selected floor failed",
+                        )
+                    ],
+                ),
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_generation",
+        lambda *_args, **_kwargs: failed,
+    )
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_alternatives",
+        lambda *_args, **_kwargs: type(
+            "Alternatives",
+            (),
+            {"alternatives": (), "rejected_families": ()},
+        )(),
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        floor_index=1,
+        use_type="office",
+        output_dir=tmp_path,
+        max_iterations=2,
+    )
+    index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
+    report = json.loads(result.artifacts[0].report_path.read_text(encoding="utf-8"))
+
+    assert report["floor_accepted"] is True
+    assert report["building_accepted"] is False
+    assert report["accepted"] is result.accepted is index["accepted"] is False
+    assert report["needs_iteration"] is result.final_needs_iteration is True
+    assert index["iterations"][0]["accepted"] is False
+
+
+def test_concept_basic_fingerprint_includes_basic_design_only_changes():
+    mass = MassInput(
+        project_id="concept-basic-fingerprint",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+    layout = run_building_generation(mass).floor_results[0].layout
+    assert layout.basic_design is not None
+    window = next(line for line in layout.basic_design.lines if line.kind == "window")
+    changed_window = replace(
+        window,
+        points=(
+            (window.points[0][0] + 0.01, window.points[0][1]),
+            window.points[1],
+        ),
+    )
+    changed = replace(
+        layout,
+        basic_design=replace(
+            layout.basic_design,
+            lines=tuple(
+                changed_window if line.line_id == window.line_id else line
+                for line in layout.basic_design.lines
+            ),
+        ),
+    )
+
+    assert layout_fingerprint(layout) == layout_fingerprint(changed)
+    assert (
+        visual_review_service._concept_basic_fingerprint(layout)
+        != visual_review_service._concept_basic_fingerprint(changed)
+    )
+
+
+def test_concept_basic_retry_preserves_requested_use_override(
+    tmp_path,
+    monkeypatch,
+):
+    mass = MassInput(
+        project_id="concept-requested-commercial",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+    assignments = (
+        visual_review_service.FloorAssignment(1, "neighborhood_commercial"),
+    )
+    building = run_building_generation(mass, floor_assignments=assignments)
+    floor = building.floor_results[0]
+    failed = replace(
+        building,
+        floor_results=(
+            replace(
+                floor,
+                validation=replace(
+                    floor.validation,
+                    accepted=False,
+                    is_valid=False,
+                    hard_violation_count=1,
+                ),
+            ),
+        ),
+    )
+    captured = {}
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_generation",
+        lambda *_args, **_kwargs: failed,
+    )
+
+    def alternatives(_mass, **kwargs):
+        captured.update(kwargs)
+        return type(
+            "Alternatives",
+            (),
+            {"alternatives": (), "rejected_families": ()},
+        )()
+
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_alternatives",
+        alternatives,
+    )
+
+    run_visual_review_loop(
+        mass,
+        floor_index=1,
+        use_type="neighborhood_commercial",
+        output_dir=tmp_path,
+        max_iterations=2,
+    )
+
+    assert captured["floor_assignments"] == assignments
+    assert captured["planner_provenance"] == failed.planner_provenance
+
+
+def test_concept_basic_retry_preserves_structured_planner_assignments(
+    tmp_path,
+    monkeypatch,
+):
+    class PlannerClient:
+        provider = "openai"
+        model = "gpt-test"
+        last_response_id = None
+
+        def complete_json(self, *, system_prompt, user_payload):
+            self.last_response_id = "resp_retry_assignments"
+            return json.dumps(
+                {
+                    "project_id": user_payload["project_id"],
+                    "assignments": [
+                        {"floor_index": 1, "use_type": "neighborhood_commercial"},
+                        {"floor_index": 2, "use_type": "office"},
+                    ],
+                }
+            )
+
+    mass = MassInput(
+        project_id="concept-planner-retry",
+        floors=2,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
+    )
+    captured = {}
+    actual_generation = visual_review_service.run_building_generation
+
+    def failing_generation(*args, **kwargs):
+        building = actual_generation(*args, **kwargs)
+        floor = building.floor_results[0]
+        return replace(
+            building,
+            floor_results=(
+                replace(
+                    floor,
+                    validation=replace(
+                        floor.validation,
+                        accepted=False,
+                        is_valid=False,
+                        hard_violation_count=1,
+                    ),
+                ),
+                *building.floor_results[1:],
+            ),
+        )
+
+    def alternatives(_mass, **kwargs):
+        captured.update(kwargs)
+        return type(
+            "Alternatives",
+            (),
+            {"alternatives": (), "rejected_families": ()},
+        )()
+
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_generation",
+        failing_generation,
+    )
+    monkeypatch.setattr(
+        visual_review_service,
+        "run_building_alternatives",
+        alternatives,
+    )
+
+    result = run_visual_review_loop(
+        mass,
+        floor_index=1,
+        use_type="neighborhood_commercial",
+        output_dir=tmp_path,
+        max_iterations=2,
+        planner_client=PlannerClient(),
+    )
+
+    assert captured["floor_assignments"] == result.planner_provenance.validated_assignments
+    assert captured["planner_provenance"] == result.planner_provenance
+    assert result.planner_provenance.provider == "openai"
+
+
 def test_failed_concept_basic_geometry_preserves_validated_planner_provenance(
     tmp_path, monkeypatch
 ):
@@ -1454,6 +1910,7 @@ def test_failed_concept_basic_geometry_preserves_validated_planner_provenance(
     }
 
     assert result.accepted is False
+    assert result.evaluation_count == 0
     assert result.planner_provenance is not None
     assert to_jsonable(result.planner_provenance) == expected
     assert index["planner_provenance"] == expected
@@ -1497,6 +1954,7 @@ def test_failed_concept_basic_planner_contract_preserves_partial_provenance(
     }
 
     assert result.accepted is False
+    assert result.evaluation_count == 0
     assert result.planner_provenance is not None
     assert to_jsonable(result.planner_provenance) == expected
     assert index["planner_provenance"] == expected

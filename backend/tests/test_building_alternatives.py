@@ -7,12 +7,14 @@ from backend.app.modules.generation_loop.selector import (
     canonical_building_topology_signature,
 )
 from backend.app.modules.generation_loop.service import run_building_alternatives
+from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import (
     BuildingCodeContext,
     FloorCodeContext,
     MassInput,
 )
 from backend.app.schemas.program import ProgramAdjustment, ProgramNode
+from backend.app.schemas.result import PlannerProvenance
 from engine.geometry.polygon import (
     polygon_area,
     polygon_overlap_area,
@@ -90,6 +92,39 @@ def test_program_adjustment_captures_all_changed_node_fields():
     assert before.max_area != after.max_area
     assert before.min_width != after.min_width
     assert before.max_aspect_ratio != after.max_aspect_ratio
+
+
+def test_building_alternatives_preserve_explicit_assignments_and_provenance():
+    mass = MassInput(
+        project_id="alternatives-explicit-commercial",
+        floors=1,
+        footprint_polygon=[(0, 0), (30, 0), (30, 12), (0, 12)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+    assignments = (FloorAssignment(1, "neighborhood_commercial"),)
+    provenance = PlannerProvenance(
+        planner_mode="structured",
+        provider="openai",
+        model="gpt-test",
+        response_id="resp-explicit",
+        validated_assignments=assignments,
+    )
+
+    result = run_building_alternatives(
+        mass,
+        floor_assignments=assignments,
+        planner_provenance=provenance,
+    )
+
+    assert result.alternatives
+    for alternative in result.alternatives:
+        assert alternative.building.floor_assignments == assignments
+        assert alternative.building.planner_provenance == provenance
+        assert {
+            floor.program.use_type for floor in alternative.building.floor_results
+        } == {"neighborhood_commercial"}
 
 
 @pytest.mark.parametrize("width,depth", [(20, 12), (30, 12), (30, 20)])

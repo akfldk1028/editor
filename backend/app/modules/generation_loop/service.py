@@ -525,10 +525,19 @@ _ALTERNATIVE_STRATEGIES = (
 )
 
 
-def run_building_alternatives(mass: MassInput) -> BuildingAlternativesResult:
+def run_building_alternatives(
+    mass: MassInput,
+    *,
+    floor_assignments: Iterable[FloorAssignment] | None = None,
+    planner_provenance: PlannerProvenance | None = None,
+) -> BuildingAlternativesResult:
     """Generate ranked, geometrically distinct concept-basic building options."""
     try:
-        baseline = run_building_generation(mass)
+        baseline = run_building_generation(
+            mass,
+            floor_assignments=floor_assignments,
+            planner_provenance=planner_provenance,
+        )
     except ValueError as error:
         return BuildingAlternativesResult(
             mass=analyze_mass(mass),
