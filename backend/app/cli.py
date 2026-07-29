@@ -11,6 +11,11 @@ from backend.app.modules.generation_loop.service import (
     run_building_generation,
     run_generation_loop,
 )
+from backend.app.modules.generator_adapters.graph2plan_raw import (
+    Graph2PlanRawConfig,
+    Graph2PlanRawError,
+    run_graph2plan_raw_benchmark,
+)
 from backend.app.modules.llm_planner.openai_client import (
     OpenAIResponsesPlannerClient,
 )
@@ -142,8 +147,65 @@ def main() -> None:
         choices=("review", "architectural"),
         default="architectural",
     )
+    graph2plan_raw = subparsers.add_parser("graph2plan-raw")
+    graph2plan_raw.add_argument("--repository", required=True)
+    graph2plan_raw.add_argument("--checkpoint", required=True)
+    graph2plan_raw.add_argument("--data", required=True)
+    graph2plan_raw.add_argument("--output-dir", required=True)
+    graph2plan_raw.add_argument(
+        "--record-index",
+        required=True,
+        type=int,
+    )
+    graph2plan_raw.add_argument(
+        "--device",
+        choices=("cpu", "cuda"),
+        default="cpu",
+    )
 
     args = parser.parse_args()
+    if args.command == "graph2plan-raw":
+        try:
+            artifacts = run_graph2plan_raw_benchmark(
+                Graph2PlanRawConfig(
+                    repository_path=Path(args.repository),
+                    checkpoint_path=Path(args.checkpoint),
+                    data_path=Path(args.data),
+                    output_path=Path(args.output_dir),
+                    record_index=args.record_index,
+                    device=args.device,
+                )
+            )
+        except (Graph2PlanRawError, ValueError) as error:
+            print(
+                json.dumps(
+                    {
+                        "backend": "graph2plan",
+                        "scope": "raw_forward_only",
+                        "candidate_status": "RAW_OUTPUT_NOT_VALIDATED",
+                        "raw_forward_completed": False,
+                        "error": str(error),
+                    },
+                    ensure_ascii=False,
+                )
+            )
+            raise SystemExit(1) from None
+        print(
+            json.dumps(
+                {
+                    "backend": "graph2plan",
+                    "scope": artifacts.scope,
+                    "candidate_status": "RAW_OUTPUT_NOT_VALIDATED",
+                    "arrays_path": str(artifacts.arrays_path),
+                    "input_path": str(artifacts.input_path),
+                    "png_path": str(artifacts.png_path),
+                    "metadata_path": str(artifacts.metadata_path),
+                    "metadata_sha256": artifacts.metadata_sha256,
+                },
+                ensure_ascii=False,
+            )
+        )
+        return
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
     mass = _mass_input_from_payload(payload)
     if args.command == "generate":
