@@ -1,0 +1,619 @@
+{
+  "schema_version": 1,
+  "project_id": "sample-l-setback-office",
+  "planner": "local_qwen3_4b_topology",
+  "model_path": "C:\\DK\\PLAN\\clone\\models\\Qwen3-4B-Instruct-2507",
+  "generation": {
+    "seed": 17,
+    "max_attempts": 3
+  },
+  "floor_index": 1,
+  "use_type": "neighborhood_commercial",
+  "planner_input": {
+    "boundary": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        30.0,
+        0.0
+      ],
+      [
+        30.0,
+        10.0
+      ],
+      [
+        14.0,
+        10.0
+      ],
+      [
+        14.0,
+        22.0
+      ],
+      [
+        0.0,
+        22.0
+      ]
+    ],
+    "street_edge_indices": [
+      0
+    ],
+    "access_candidates": [
+      {
+        "edge_index": 0,
+        "position": 0.5
+      }
+    ],
+    "baseline_program": {
+      "project_id": "sample-l-setback-office",
+      "floor_index": 1,
+      "use_type": "neighborhood_commercial",
+      "nodes": [
+        {
+          "node_id": "sales_a",
+          "space_type": "sales",
+          "target_area": 133.38,
+          "min_area": 113.37299999999999,
+          "max_area": 153.38699999999997,
+          "frontage_required": true,
+          "min_width": 4.0,
+          "max_aspect_ratio": 3.0,
+          "zone": "frontage",
+          "tenant_id": "tenant_a"
+        },
+        {
+          "node_id": "sales_b",
+          "space_type": "sales",
+          "target_area": 133.38,
+          "min_area": 113.37299999999999,
+          "max_area": 153.38699999999997,
+          "frontage_required": true,
+          "min_width": 4.0,
+          "max_aspect_ratio": 3.0,
+          "zone": "frontage",
+          "tenant_id": "tenant_b"
+        },
+        {
+          "node_id": "checkout",
+          "space_type": "checkout",
+          "target_area": 18.72,
+          "min_area": 15.911999999999999,
+          "max_area": 21.528,
+          "frontage_required": false,
+          "min_width": 2.4,
+          "max_aspect_ratio": 3.0,
+          "zone": "public",
+          "tenant_id": null
+        },
+        {
+          "node_id": "stock",
+          "space_type": "stock",
+          "target_area": 46.800000000000004,
+          "min_area": 39.78,
+          "max_area": 53.82,
+          "frontage_required": false,
+          "min_width": 2.4,
+          "max_aspect_ratio": 2.5,
+          "zone": "service",
+          "tenant_id": null
+        },
+        {
+          "node_id": "staff",
+          "space_type": "staff",
+          "target_area": 23.400000000000002,
+          "min_area": 19.89,
+          "max_area": 26.91,
+          "frontage_required": false,
+          "min_width": 2.4,
+          "max_aspect_ratio": 2.0,
+          "zone": "service",
+          "tenant_id": null
+        },
+        {
+          "node_id": "restroom",
+          "space_type": "restroom",
+          "target_area": 23.400000000000002,
+          "min_area": 19.89,
+          "max_area": 26.91,
+          "frontage_required": false,
+          "min_width": 1.8,
+          "max_aspect_ratio": 2.5,
+          "zone": "service",
+          "tenant_id": null
+        },
+        {
+          "node_id": "core",
+          "space_type": "core",
+          "target_area": 56.16,
+          "min_area": 47.736,
+          "max_area": 64.58399999999999,
+          "frontage_required": false,
+          "min_width": 3.0,
+          "max_aspect_ratio": 2.0,
+          "zone": "core",
+          "tenant_id": null
+        },
+        {
+          "node_id": "utility",
+          "space_type": "utility",
+          "target_area": 32.75999999999999,
+          "min_area": 27.845999999999993,
+          "max_area": 37.673999999999985,
+          "frontage_required": false,
+          "min_width": 1.5,
+          "max_aspect_ratio": 2.5,
+          "zone": "service",
+          "tenant_id": null
+        }
+      ],
+      "edges": [
+        {
+          "source": "sales_a",
+          "target": "street",
+          "relation": "public_access",
+          "weight": 1.0
+        },
+        {
+          "source": "sales_b",
+          "target": "street",
+          "relation": "public_access",
+          "weight": 1.0
+        },
+        {
+          "source": "checkout",
+          "target": "sales_a",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "checkout",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "sales_a",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "staff",
+          "target": "stock",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "restroom",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "utility",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        }
+      ],
+      "source": "baseline_prior",
+      "adjustments": []
+    },
+    "core_geometry_status": "unresolved_pre_generation"
+  },
+  "accepted_count": 2,
+  "requested_candidate_count": 2,
+  "distinct_geometry_count": 2,
+  "discarded_duplicate_geometry": [],
+  "alternatives": [
+    {
+      "candidate_id": "topology-1",
+      "rank": 1,
+      "accepted": true,
+      "termination_reason": "accepted",
+      "score": 0.8514,
+      "hard_violation_count": 0,
+      "program_source": "local_qwen_topology:topology-1:building_aligned_prior:orthogonal_layout_fit",
+      "sequence": [
+        "sales_a",
+        "sales_b",
+        "checkout",
+        "stock",
+        "staff",
+        "restroom",
+        "core",
+        "utility"
+      ],
+      "adjacencies": [
+        {
+          "source": "sales_a",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "checkout",
+          "target": "stock",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "staff",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "restroom",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "utility",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        }
+      ],
+      "effective_adjacencies": [
+        {
+          "source": "sales_a",
+          "target": "street",
+          "relation": "public_access",
+          "weight": 1.0
+        },
+        {
+          "source": "sales_b",
+          "target": "street",
+          "relation": "public_access",
+          "weight": 1.0
+        },
+        {
+          "source": "checkout",
+          "target": "sales_a",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "checkout",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "sales_a",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "staff",
+          "target": "stock",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "restroom",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "utility",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        },
+        {
+          "source": "sales_a",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "checkout",
+          "target": "stock",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        }
+      ],
+      "geometry_fingerprint": "fb1b540ca93a21ac635403d79da9093a23b6246b35a17485d6421e5e26b519ba",
+      "png": "topology-1\\sample-l-setback-office-ea21bbb2c3b56f20-f1.png",
+      "html": "topology-1\\index.html",
+      "review_json": "topology-1\\sample-l-setback-office-ea21bbb2c3b56f20-f1.review.json",
+      "internal_validation": {
+        "status": "pass",
+        "policy_version": "exact-v1"
+      },
+      "render_validation": {
+        "status": "pass",
+        "missing_basic_design_ids": [],
+        "unresolved_label_collision_count": 0
+      },
+      "regulatory_screening": {
+        "ruleset_id": "KR-egress-art34-20260227-art8-20251031",
+        "status": "not_checked",
+        "checks": [
+          {
+            "rule_id": "KR-EGRESS-DIRECT-STAIR-COUNT-ART34",
+            "status": "not_checked",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "threshold": null,
+            "applicability": null,
+            "assumptions": [
+              "no typed code context was supplied for this floor",
+              "supported KR jurisdiction and analysis date are required",
+              "generated stair count is informational and separate from verified direct-stair count"
+            ],
+            "source_effective_date": "2026-02-27"
+          },
+          {
+            "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
+            "status": "not_checked",
+            "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
+            "effective_date": "2025-10-31",
+            "measured_value": 18.738463117342363,
+            "threshold": null,
+            "applicability": null,
+            "assumptions": [
+              "direct-stair applicability is unresolved"
+            ],
+            "source_effective_date": "2025-10-31"
+          },
+          {
+            "rule_id": "KR-EGRESS-TRAVEL-DISTANCE-ART34",
+            "status": "not_checked",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "threshold": 30.0,
+            "applicability": null,
+            "assumptions": [
+              "governing traversable farthest-point route is unresolved",
+              "travel-limit classification unknown; conservative internal 30 m target"
+            ],
+            "source_effective_date": "2026-02-27"
+          }
+        ],
+        "unresolved_facts": [
+          "jurisdiction",
+          "effective_date",
+          "floor_code_context",
+          "travel_limit_classification",
+          "measured_travel_distance"
+        ],
+        "floor_index": 1,
+        "generated_direct_stair_count": 2,
+        "verified_direct_stair_count": null,
+        "screened_required_direct_stair_count": null,
+        "analysis_as_of_date": null,
+        "exit_separation_evidence": {
+          "nearest_doorway_segment_distance_m": 18.738463117342363,
+          "connected_passage_verified": true,
+          "exit_portal_ids": [
+            "protected-exit-1",
+            "protected-exit-2"
+          ],
+          "measurement_method": "nearest-doorway-segment-distance"
+        }
+      }
+    },
+    {
+      "candidate_id": "topology-2",
+      "rank": 2,
+      "accepted": true,
+      "termination_reason": "accepted",
+      "score": 0.8514,
+      "hard_violation_count": 0,
+      "program_source": "local_qwen_topology:topology-2:building_aligned_prior:orthogonal_layout_fit",
+      "sequence": [
+        "sales_b",
+        "sales_a",
+        "stock",
+        "checkout",
+        "staff",
+        "core",
+        "restroom",
+        "utility"
+      ],
+      "adjacencies": [
+        {
+          "source": "sales_a",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "checkout",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "staff",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "restroom",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "utility",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        }
+      ],
+      "effective_adjacencies": [
+        {
+          "source": "sales_a",
+          "target": "street",
+          "relation": "public_access",
+          "weight": 1.0
+        },
+        {
+          "source": "sales_b",
+          "target": "street",
+          "relation": "public_access",
+          "weight": 1.0
+        },
+        {
+          "source": "checkout",
+          "target": "sales_a",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "checkout",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "sales_a",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "staff",
+          "target": "stock",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "restroom",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        },
+        {
+          "source": "core",
+          "target": "utility",
+          "relation": "service_adjacent",
+          "weight": 1.0
+        },
+        {
+          "source": "sales_a",
+          "target": "sales_b",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        },
+        {
+          "source": "stock",
+          "target": "checkout",
+          "relation": "functional_adjacency",
+          "weight": 1.0
+        }
+      ],
+      "geometry_fingerprint": "333f57bb8261796b1126101c0c08ea99366e4e3af3f8d07f63e74517bb7a0dad",
+      "png": "topology-2\\sample-l-setback-office-ea21bbb2c3b56f20-f1.png",
+      "html": "topology-2\\index.html",
+      "review_json": "topology-2\\sample-l-setback-office-ea21bbb2c3b56f20-f1.review.json",
+      "internal_validation": {
+        "status": "pass",
+        "policy_version": "exact-v1"
+      },
+      "render_validation": {
+        "status": "pass",
+        "missing_basic_design_ids": [],
+        "unresolved_label_collision_count": 0
+      },
+      "regulatory_screening": {
+        "ruleset_id": "KR-egress-art34-20260227-art8-20251031",
+        "status": "not_checked",
+        "checks": [
+          {
+            "rule_id": "KR-EGRESS-DIRECT-STAIR-COUNT-ART34",
+            "status": "not_checked",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "threshold": null,
+            "applicability": null,
+            "assumptions": [
+              "no typed code context was supplied for this floor",
+              "supported KR jurisdiction and analysis date are required",
+              "generated stair count is informational and separate from verified direct-stair count"
+            ],
+            "source_effective_date": "2026-02-27"
+          },
+          {
+            "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
+            "status": "not_checked",
+            "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
+            "effective_date": "2025-10-31",
+            "measured_value": 18.738463117342363,
+            "threshold": null,
+            "applicability": null,
+            "assumptions": [
+              "direct-stair applicability is unresolved"
+            ],
+            "source_effective_date": "2025-10-31"
+          },
+          {
+            "rule_id": "KR-EGRESS-TRAVEL-DISTANCE-ART34",
+            "status": "not_checked",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "threshold": 30.0,
+            "applicability": null,
+            "assumptions": [
+              "governing traversable farthest-point route is unresolved",
+              "travel-limit classification unknown; conservative internal 30 m target"
+            ],
+            "source_effective_date": "2026-02-27"
+          }
+        ],
+        "unresolved_facts": [
+          "jurisdiction",
+          "effective_date",
+          "floor_code_context",
+          "travel_limit_classification",
+          "measured_travel_distance"
+        ],
+        "floor_index": 1,
+        "generated_direct_stair_count": 2,
+        "verified_direct_stair_count": null,
+        "screened_required_direct_stair_count": null,
+        "analysis_as_of_date": null,
+        "exit_separation_evidence": {
+          "nearest_doorway_segment_distance_m": 18.738463117342363,
+          "connected_passage_verified": true,
+          "exit_portal_ids": [
+            "protected-exit-1",
+            "protected-exit-2"
+          ],
+          "measurement_method": "nearest-doorway-segment-distance"
+        }
+      }
+    }
+  ]
+}
