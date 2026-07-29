@@ -2,6 +2,11 @@
 
 Local-only Qwen3-4B NF4 runs. No external API was used.
 
+## Before/after comparison
+
+- `office-before-after.png`
+- `commercial-before-after.png`
+
 ## Rectangular office
 
 - Input: `datasets/manifests/sample_mass_office_commercial.json`, floor 2

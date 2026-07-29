@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Office topology before and after</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { width: 1600px; margin: 0; background: #fff; color: #111; font: 18px Arial, sans-serif; }
+    main { padding: 32px; }
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    p { margin: 0 0 24px; color: #444; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    article { border: 1px solid #aaa; padding: 14px; }
+    h2 { margin: 0 0 6px; font-size: 21px; }
+    .meta { min-height: 48px; margin-bottom: 8px; color: #444; font-size: 15px; line-height: 1.45; }
+    img { display: block; width: 100%; height: auto; background: #fff; }
+    .before { border-top: 6px solid #777; }
+    .after { border-top: 6px solid #177245; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>직사각형 오피스: 이전 / 이후</h1>
+  <p>같은 mass, 같은 floor 2, 로컬 Qwen3-4B. 이전에는 2안이 동일 형상으로 제거됐고 이후에는 2개 형상이 유지됩니다.</p>
+  <div class="grid">
+    <article class="before">
+      <h2>이전</h2>
+      <div class="meta">accepted 1/2 · distinct 1/2<br>topology-2 duplicate discarded</div>
+      <img src="comparison-assets/office-before.png" alt="Office before">
+    </article>
+    <article class="after">
+      <h2>이후 1안</h2>
+      <div class="meta">score 0.9203 · hard violations 0<br>fingerprint 1e86662500118fdc</div>
+      <img src="comparison-assets/office-after-1.png" alt="Office after topology 1">
+    </article>
+    <article class="after">
+      <h2>이후 2안</h2>
+      <div class="meta">score 0.8895 · hard violations 0<br>fingerprint 1bfcb937990df8b4</div>
+      <img src="comparison-assets/office-after-2.png" alt="Office after topology 2">
+    </article>
+  </div>
+</main>
+</body>
+</html>
