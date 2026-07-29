@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from itertools import product
 from pathlib import Path
 
@@ -12,12 +13,13 @@ from backend.app.modules.circulation_planner.service import (
     generate_circulation_candidate,
 )
 from backend.app.modules.core_planner.service import generate_shared_core_candidates
+from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.layout_generator.orthogonal import (
     generate_orthogonal_office_layout,
 )
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.mass import FloorFootprint, MassInput
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -223,6 +225,77 @@ def test_all_irregular_floors_and_core_families_forward_rectilinear_circulation(
     assert layout.remote_stair_footprint == candidate.remote_stair_polygon
 
 
+def test_notch_core_shared_circulation_meets_governing_exit_separation() -> None:
+    mass = _irregular_mass()
+    core = next(
+        candidate
+        for candidate in CORE_CANDIDATES
+        if candidate.strategy == "notch_adjacent"
+    )
+    governing_separation = max(
+        _maximum_pairwise_distance(boundary) / 2.0
+        for boundary in BOUNDARIES
+    )
+    candidate = generate_circulation_candidate(
+        floor_boundary=BOUNDARIES[-1],
+        core=core,
+        street_segments=FLOOR_STREETS[-1],
+        minimum_width=1.2,
+        stair_dimensions=((2.8, 4.92), (4.92, 2.8)),
+        minimum_exit_separation=governing_separation,
+    )
+
+    building = run_building_generation(
+        mass,
+        core_override=core,
+        circulation_overrides={
+            floor_index: candidate
+            for floor_index in range(1, mass.floors + 1)
+        },
+    )
+
+    boundary = Polygon(BOUNDARIES[-1])
+    corridor = union_all([Polygon(polygon) for polygon in candidate.polygons])
+    assert all(
+        boundary.covers(Polygon(polygon))
+        and Polygon(polygon).equals(box(*Polygon(polygon).bounds))
+        and min(
+            Polygon(polygon).bounds[2] - Polygon(polygon).bounds[0],
+            Polygon(polygon).bounds[3] - Polygon(polygon).bounds[1],
+        )
+        + 1e-8
+        >= 1.2
+        for polygon in candidate.polygons
+    )
+    assert corridor.intersection(Polygon(core.polygon)).area == pytest.approx(0)
+    assert candidate.entrance_connected
+    assert candidate.core_connected
+    assert candidate.stair_connected
+    for floor in building.floor_results:
+        exits = [
+            line
+            for line in floor.layout.basic_design.lines
+            if line.kind == "protected_exit"
+        ]
+        separation = math.dist(
+            _midpoint(exits[0].points),
+            _midpoint(exits[1].points),
+        )
+        required = _maximum_pairwise_distance(floor.floor_boundary) / 2.0
+        assert separation + 1e-8 >= required
+        assert tuple(
+            tuple(path.polygon) for path in floor.layout.circulation
+        ) == candidate.polygons
+        assert floor.layout.remote_stair_footprint == candidate.remote_stair_polygon
+        core_door = next(
+            opening
+            for opening in floor.layout.openings
+            if opening.connects[0] == "core"
+        )
+        assert core_door.start[1] == core.polygon[0][1]
+        assert core_door.end[1] == core.polygon[0][1]
+
+
 def _office_program(boundary):
     mass = MassInput(
         project_id="circulation-adapter",
@@ -236,4 +309,40 @@ def _office_program(boundary):
         analyze_mass(mass),
         floor_index=1,
         use_type="office",
+    )
+
+
+def _irregular_mass() -> MassInput:
+    return MassInput(
+        project_id=MANIFEST["project_id"],
+        floors=MANIFEST["floors"],
+        footprint_polygon=MANIFEST["footprint_polygon"],
+        floor_footprints=tuple(
+            FloorFootprint(
+                floor_index=floor["floor_index"],
+                footprint_polygon=tuple(
+                    (float(x), float(y))
+                    for x, y in floor["footprint_polygon"]
+                ),
+            )
+            for floor in MANIFEST["floor_footprints"]
+        ),
+        site_edges=MANIFEST["site_edges"],
+        access_candidates=MANIFEST["access_candidates"],
+        use_mix=MANIFEST["use_mix"],
+    )
+
+
+def _maximum_pairwise_distance(points) -> float:
+    return max(
+        math.dist(first, second)
+        for index, first in enumerate(points)
+        for second in points[index + 1 :]
+    )
+
+
+def _midpoint(points) -> tuple[float, float]:
+    return (
+        (points[0][0] + points[-1][0]) / 2.0,
+        (points[0][1] + points[-1][1]) / 2.0,
     )

@@ -901,8 +901,16 @@ def _interpolate(
     ratio: float,
 ) -> Point:
     return (
-        _clean(start[0] + (end[0] - start[0]) * ratio),
-        _clean(start[1] + (end[1] - start[1]) * ratio),
+        (
+            start[0]
+            if start[0] == end[0]
+            else _clean(start[0] + (end[0] - start[0]) * ratio)
+        ),
+        (
+            start[1]
+            if start[1] == end[1]
+            else _clean(start[1] + (end[1] - start[1]) * ratio)
+        ),
     )
 
 
