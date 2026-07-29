@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, replace
 
+from shapely.geometry import LineString, Polygon
+
 from backend.app.schemas.layout import (
     BasicDesignFeatures,
     LayoutCandidate,
@@ -24,6 +26,7 @@ from engine.geometry.polygon import contains_polygon, polygon_area, polygon_over
 Point = tuple[float, float]
 Segment = tuple[Point, Point]
 _EPSILON = 1e-7
+_ROUTE_TOLERANCE = 1e-6
 _STAIR_SHORT_SIDE = 2.8
 _CORE_LOBBY_MIN_DEPTH = 0.25
 _CORE_BANK_MIN_WIDTH = 1.2
@@ -676,8 +679,12 @@ def _cell_portal(
 
 def _cell_contains_point(cell: _CirculationCell, point: Point) -> bool:
     return (
-        cell.min_x - _EPSILON <= point[0] <= cell.max_x + _EPSILON
-        and cell.min_y - _EPSILON <= point[1] <= cell.max_y + _EPSILON
+        cell.min_x - _ROUTE_TOLERANCE
+        <= point[0]
+        <= cell.max_x + _ROUTE_TOLERANCE
+        and cell.min_y - _ROUTE_TOLERANCE
+        <= point[1]
+        <= cell.max_y + _ROUTE_TOLERANCE
     )
 
 
@@ -1059,7 +1066,16 @@ def _room_contents(
                 placement_margin = 0.3
                 aisle = 0.4
             if room.space_type == "open_work":
-                count = math.ceil(polygon_area(room.polygon) / 9.0)
+                work_area = polygon_area(room.polygon)
+                minimum_count = math.ceil(work_area / 10.0)
+                maximum_count = max(
+                    minimum_count,
+                    math.floor(work_area / 8.0),
+                )
+                count = min(
+                    maximum_count,
+                    max(minimum_count, round(work_area / 9.0)),
+                )
                 room_requirements = tuple(
                     ("workstation", "furniture") for _ in range(count)
                 )
@@ -1362,14 +1378,8 @@ def _axis_segment_in_polygon(
         and abs(start[1] - end[1]) > _EPSILON
     ):
         return False
-    samples = (
-        start,
-        end,
-        ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2),
-    )
-    return all(
-        _point_in_polygon_or_boundary(point, list(polygon))
-        for point in samples
+    return Polygon(polygon).buffer(_EPSILON * 2).covers(
+        LineString((start, end))
     )
 
 

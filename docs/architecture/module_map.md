@@ -31,6 +31,20 @@ V1 contract. The important contract is that future Graph2Plan, HouseDiffusion,
 DiffPlanner, FMLM, or RLVR modules can replace the generator without changing
 the geometry, validation, search, or artifact schemas.
 
+Whole-building input may supply `floor_footprints` for every floor. When the
+field is absent, the reference `footprint_polygon` is broadcast for backward
+compatibility. The current deterministic office path supports simple
+straight-edge single-ring floor plates, including L/U shapes, sloped
+pentagons/hexagons, and floor-by-floor setbacks. Orthogonal plates use exact
+cell decomposition. Plates with diagonal edges select one shared core, remote
+stair, and axis-aligned planning region from the all-floor intersection while
+retaining each floor's actual polygon for containment, review, and regulatory
+measurements. The diagonal fringe outside that planning region can remain
+unassigned, so this is a validated concept-basic fallback rather than full
+polygon area planning. Holes, disconnected plates, curved edges, overhangs
+outside the reference envelope, and automatic 3D-mass slicing remain
+unsupported.
+
 ## Visual Review Loop
 
 Use `python -m backend.app.cli loop-review --input datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial --output-dir logs/runs/sample_review --max-iterations 5`.
@@ -65,6 +79,14 @@ acceptance.
 Use the deterministic use-mix allocator:
 
 `python -m backend.app.cli building-review --input datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review`
+
+Run the retained three-floor L-shaped setback fixture:
+
+`python -m backend.app.cli building-review --input datasets/manifests/sample_mass_l_setback_office.json --output-dir docs/l-setback-review`
+
+Run the retained two-floor sloped hexagonal setback fixture:
+
+`python -m backend.app.cli building-review --input datasets/manifests/sample_mass_polygon_setback_office.json --output-dir docs/polygon-setback-review`
 
 Use the OpenAI structured planner:
 

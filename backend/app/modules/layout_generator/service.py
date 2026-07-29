@@ -13,6 +13,8 @@ from backend.app.modules.basic_design.stair import (
 from engine.geometry import shared_boundary_segments
 from engine.geometry.polygon import polygon_area
 
+Point = tuple[float, float]
+
 
 def generate_baseline_layout(
     analysis: MassAnalysis,
@@ -171,11 +173,23 @@ def generate_core_aligned_layout(
         )
     expected_roles = {
         "neighborhood_commercial": {
-            "sales", "checkout", "stock", "staff", "restroom", "core", "utility"
+            "sales",
+            "checkout",
+            "stock",
+            "staff",
+            "restroom",
+            "core",
+            "utility",
         },
         "office": {
-            "open_work", "meeting", "reception", "focus", "pantry", "restroom",
-            "core", "it_storage",
+            "open_work",
+            "meeting",
+            "reception",
+            "focus",
+            "pantry",
+            "restroom",
+            "core",
+            "it_storage",
         },
     }
     if generation_program.use_type in expected_roles:
@@ -297,19 +311,14 @@ def generate_core_aligned_layout(
                 (_aligned_number(max_x), _aligned_number(max_y)),
             ]
         )
-    circulation_polygon.append(
-        (_aligned_number(primary_end), _aligned_number(max_y))
-    )
+    circulation_polygon.append((_aligned_number(primary_end), _aligned_number(max_y)))
 
     circulation = RoomPolygon(
         room_id="corridor",
         space_type="circulation",
         polygon=circulation_polygon,
     )
-    openings = [
-        _centered_door(room, circulation)
-        for room in rooms
-    ]
+    openings = [_centered_door(room, circulation) for room in rooms]
     return LayoutCandidate(
         candidate_id=f"{program.project_id}-f{program.floor_index}-core-aligned",
         project_id=program.project_id,
@@ -328,6 +337,7 @@ def generate_rear_center_layout(
     min_circulation_width: float = 1.2,
     core_position: str = "rear_center",
     floor_to_floor_height_m: float | None = None,
+    core_polygon: tuple[Point, ...] | list[Point] | None = None,
 ) -> LayoutCandidate:
     """Generate a direct rear-center-core topology with a public access spine."""
     min_x, min_y, max_x, max_y = analysis.bounds
@@ -335,23 +345,55 @@ def generate_rear_center_layout(
     _, stair_long_side = required_stair_enclosure(stair_height)
     depth = max_y - min_y
     core_node = next(node for node in program.nodes if node.space_type == "core")
-    rear_height = max(stair_long_side + 0.25, 5.2, depth * 0.5)
-    core_width = max(7.0, _layout_area(core_node) / rear_height)
-    if core_position == "rear_center":
-        core_min_x = (min_x + max_x - core_width) / 2
-    elif core_position == "rear_right":
-        core_min_x = max_x - core_width
+    if core_polygon is not None:
+        core_min_x, core_min_y, core_max_x, core_max_y = _polygon_bounds(core_polygon)
+        actual_core_corners = {(float(x), float(y)) for x, y in core_polygon}
+        is_axis_aligned_rectangle = len(actual_core_corners) == 4 and all(
+            (
+                math.isclose(x, core_min_x, abs_tol=1e-7)
+                or math.isclose(x, core_max_x, abs_tol=1e-7)
+            )
+            and (
+                math.isclose(y, core_min_y, abs_tol=1e-7)
+                or math.isclose(y, core_max_y, abs_tol=1e-7)
+            )
+            for x, y in actual_core_corners
+        )
+        if not is_axis_aligned_rectangle:
+            raise ValueError("fixed core polygon must be an axis-aligned rectangle")
+        if (
+            core_min_x < min_x
+            or core_max_x > max_x
+            or core_min_y < min_y
+            or core_max_y > max_y
+        ):
+            raise ValueError("fixed core polygon must be inside floor bounds")
+        rear_height = core_max_y - core_min_y
+        core_width = core_max_x - core_min_x
     else:
-        raise ValueError("core_position must be rear_center or rear_right")
-    core_max_x = core_min_x + core_width
-    core_min_y = max_y - rear_height
+        rear_height = max(stair_long_side + 0.25, 5.2, depth * 0.5)
+        core_width = max(7.0, _layout_area(core_node) / rear_height)
+        if core_position == "rear_center":
+            core_min_x = (min_x + max_x - core_width) / 2
+        elif core_position == "rear_right":
+            core_min_x = max_x - core_width
+        else:
+            raise ValueError("core_position must be rear_center or rear_right")
+        core_max_x = core_min_x + core_width
+        core_min_y = max_y - rear_height
+        core_max_y = max_y
     branch_bottom = core_min_y - min_circulation_width
     if branch_bottom <= min_y + 3.0:
         raise ValueError("rear-center core leaves insufficient front program depth")
     core_room = RoomPolygon(
         core_node.node_id,
         "core",
-        _aligned_rectangle(core_min_x, core_min_y, core_max_x, max_y),
+        _aligned_rectangle(
+            core_min_x,
+            core_min_y,
+            core_max_x,
+            core_max_y,
+        ),
     )
     branch = RoomPolygon(
         "corridor-branch",
@@ -363,10 +405,24 @@ def generate_rear_center_layout(
         for node in program.nodes
         if node.space_type not in {"core", "sales", "open_work"}
     ]
-    service_nodes.sort(key=lambda node: node.node_id)
+    support_ids = {"pantry", "restroom", "it_storage"}
+    service_nodes.sort(
+        key=(
+            (
+                lambda node: (
+                    node.node_id in support_ids,
+                    node.node_id,
+                )
+            )
+            if core_polygon is not None
+            else lambda node: node.node_id
+        )
+    )
     service_widths = {
         node.node_id: max(
             _layout_area(node) / rear_height,
+            math.sqrt(_layout_area(node) / float(node.max_aspect_ratio or math.inf))
+            * 1.000001,
             float(node.min_width or 0),
             1.1,
         )
@@ -377,7 +433,7 @@ def generate_rear_center_layout(
     right_cursor = core_max_x
     left_capacity = core_min_x - left_cursor
     right_capacity = max_x - right_cursor
-    support_ids = {"pantry", "restroom", "it_storage"} & set(service_widths)
+    support_ids &= set(service_widths)
     feasible_splits = []
     for mask in range(1 << len(service_nodes)):
         left_ids = {
@@ -391,10 +447,7 @@ def generate_rear_center_layout(
             for node_id, width in service_widths.items()
             if node_id not in left_ids
         )
-        if (
-            left_used <= left_capacity + 1e-7
-            and right_used <= right_capacity + 1e-7
-        ):
+        if left_used <= left_capacity + 1e-7 and right_used <= right_capacity + 1e-7:
             feasible_splits.append(
                 (
                     (
@@ -404,10 +457,7 @@ def generate_rear_center_layout(
                         or not (support_ids & left_ids)
                         else 1
                     ),
-                    abs(
-                        (left_capacity - left_used)
-                        - (right_capacity - right_used)
-                    ),
+                    abs((left_capacity - left_used) - (right_capacity - right_used)),
                     tuple(sorted(left_ids)),
                     left_ids,
                 )
@@ -431,14 +481,8 @@ def generate_rear_center_layout(
             fallback_splits.append(
                 (
                     sum(
-                        (
-                            node.node_id in left_ids
-                            and left_capacity <= 1e-7
-                        )
-                        or (
-                            node.node_id not in left_ids
-                            and right_capacity <= 1e-7
-                        )
+                        (node.node_id in left_ids and left_capacity <= 1e-7)
+                        or (node.node_id not in left_ids and right_capacity <= 1e-7)
                         for node in service_nodes
                     ),
                     max(0.0, left_used - left_capacity)
@@ -450,10 +494,7 @@ def generate_rear_center_layout(
                         or not (support_ids & left_ids)
                         else 1
                     ),
-                    abs(
-                        (left_capacity - left_used)
-                        - (right_capacity - right_used)
-                    ),
+                    abs((left_capacity - left_used) - (right_capacity - right_used)),
                     tuple(sorted(left_ids)),
                     left_ids,
                 ),
@@ -477,16 +518,10 @@ def generate_rear_center_layout(
                     float(nodes_by_id[node_id].min_width or 0),
                     min(
                         rear_height
-                        / float(
-                            nodes_by_id[node_id].max_aspect_ratio
-                            or math.inf
-                        ),
+                        / float(nodes_by_id[node_id].max_aspect_ratio or math.inf),
                         math.sqrt(
                             _layout_area(nodes_by_id[node_id])
-                            / float(
-                                nodes_by_id[node_id].max_aspect_ratio
-                                or math.inf
-                            )
+                            / float(nodes_by_id[node_id].max_aspect_ratio or math.inf)
                         ),
                     ),
                     1.1,
@@ -495,12 +530,9 @@ def generate_rear_center_layout(
             }
             minimum_total = sum(minimums.values())
             if minimum_total > side_capacity + 1e-7:
-                raise ValueError(
-                    "rear-center service minimum widths exceed rear bay"
-                )
+                raise ValueError("rear-center service minimum widths exceed rear bay")
             desired_excess = sum(
-                service_widths[node_id] - minimums[node_id]
-                for node_id in side_ids
+                service_widths[node_id] - minimums[node_id] for node_id in side_ids
             )
             excess_scale = (
                 (side_capacity - minimum_total) / desired_excess
@@ -508,9 +540,10 @@ def generate_rear_center_layout(
                 else 0.0
             )
             for node_id in side_ids:
-                service_widths[node_id] = minimums[node_id] + (
-                    service_widths[node_id] - minimums[node_id]
-                ) * excess_scale
+                service_widths[node_id] = (
+                    minimums[node_id]
+                    + (service_widths[node_id] - minimums[node_id]) * excess_scale
+                )
     for node in service_nodes:
         target_area = _layout_area(node)
         room_width = service_widths[node.node_id]
@@ -639,9 +672,7 @@ def generate_side_mid_layout(
     if program.use_type == "neighborhood_commercial":
         tenants = [node for node in program.nodes if node.space_type == "sales"]
         tenant_width = (branch_left - min_x) / 2
-        tenant_height = max(
-            _layout_area(node) / tenant_width for node in tenants
-        )
+        tenant_height = max(_layout_area(node) / tenant_width for node in tenants)
         rooms = [
             RoomPolygon(
                 tenants[0].node_id,
@@ -669,9 +700,7 @@ def generate_side_mid_layout(
             RoomPolygon(
                 primary.node_id,
                 primary.space_type,
-                _aligned_rectangle(
-                    min_x, min_y, branch_left, min_y + tenant_height
-                ),
+                _aligned_rectangle(min_x, min_y, branch_left, min_y + tenant_height),
             )
         ]
     cross_bottom = (
@@ -803,18 +832,20 @@ def _generate_role_driven_layout(
     nodes = {node.space_type: node for node in program.nodes}
     if len(nodes) != len(program.nodes):
         raise ValueError("role-driven layout requires unique room roles")
-    primary_role = "sales" if program.use_type == "neighborhood_commercial" else "open_work"
+    primary_role = (
+        "sales" if program.use_type == "neighborhood_commercial" else "open_work"
+    )
     if primary_role not in nodes or "core" not in nodes:
-        raise ValueError("role-driven layout is missing its required primary or core role")
+        raise ValueError(
+            "role-driven layout is missing its required primary or core role"
+        )
     core_min_x, core_min_y, core_max_x, core_max_y = _polygon_bounds(core_polygon)
     if core_max_x != max_x or core_min_y != min_y:
         raise ValueError("shared core must anchor at the rear-bottom corner")
 
     primary = nodes[primary_role]
     primary_depth = (
-        height - 1.2
-        if program.use_type == "neighborhood_commercial"
-        else height
+        height - 1.2 if program.use_type == "neighborhood_commercial" else height
     )
     primary_width = _layout_area(primary) / primary_depth
     spine_right = primary_width + min_x + 1.2
@@ -832,8 +863,14 @@ def _generate_role_driven_layout(
         raise ValueError("program leaves no room for service roles")
 
     rooms = [
-        RoomPolygon(primary.node_id, primary.space_type, _aligned_rectangle(min_x, min_y, spine_left, max_y)),
-        RoomPolygon(nodes["core"].node_id, nodes["core"].space_type, list(core_polygon)),
+        RoomPolygon(
+            primary.node_id,
+            primary.space_type,
+            _aligned_rectangle(min_x, min_y, spine_left, max_y),
+        ),
+        RoomPolygon(
+            nodes["core"].node_id, nodes["core"].space_type, list(core_polygon)
+        ),
     ]
     lower_roles, upper_roles = (
         (("checkout", "staff"), ("stock", "restroom", "utility"))
@@ -848,27 +885,48 @@ def _generate_role_driven_layout(
             if height < 12:
                 room_width = max(
                     float(node.min_width or 0),
-                    math.sqrt(
-                        target_area / float(node.max_aspect_ratio or math.inf)
-                    )
+                    math.sqrt(target_area / float(node.max_aspect_ratio or math.inf))
                     * 1.001,
                 )
                 room_height = target_area / room_width
                 if lower_cursor + room_width > core_min_x + 1e-7:
                     raise ValueError(f"role '{role}' cannot fit beside the shared core")
                 room_min_y = branch_bottom - room_height
-                rooms.append(RoomPolygon(node.node_id, node.space_type, _aligned_rectangle(lower_cursor, room_min_y, lower_cursor + room_width, branch_bottom)))
+                rooms.append(
+                    RoomPolygon(
+                        node.node_id,
+                        node.space_type,
+                        _aligned_rectangle(
+                            lower_cursor,
+                            room_min_y,
+                            lower_cursor + room_width,
+                            branch_bottom,
+                        ),
+                    )
+                )
                 lower_cursor += room_width
                 continue
             room_width = min(
                 lower_width,
-                math.sqrt(target_area * float(node.max_aspect_ratio or math.inf)) * 0.999999,
+                math.sqrt(target_area * float(node.max_aspect_ratio or math.inf))
+                * 0.999999,
                 target_area / float(node.min_width or 1),
             )
             room_height = target_area / room_width
             if lower_cursor + room_height > branch_bottom + 1e-7:
                 raise ValueError(f"role '{role}' cannot fit beside the shared core")
-            rooms.append(RoomPolygon(node.node_id, node.space_type, _aligned_rectangle(spine_right, lower_cursor, spine_right + room_width, lower_cursor + room_height)))
+            rooms.append(
+                RoomPolygon(
+                    node.node_id,
+                    node.space_type,
+                    _aligned_rectangle(
+                        spine_right,
+                        lower_cursor,
+                        spine_right + room_width,
+                        lower_cursor + room_height,
+                    ),
+                )
+            )
             lower_cursor += room_height
             continue
         target_area = _layout_area(node)
@@ -912,7 +970,18 @@ def _generate_role_driven_layout(
         room_min_y = branch_top
         if upper_cursor + room_width > max_x + 1e-7:
             raise ValueError(f"role '{role}' cannot fit above the circulation branch")
-        rooms.append(RoomPolygon(node.node_id, node.space_type, _aligned_rectangle(upper_cursor, room_min_y, upper_cursor + room_width, room_min_y + room_height)))
+        rooms.append(
+            RoomPolygon(
+                node.node_id,
+                node.space_type,
+                _aligned_rectangle(
+                    upper_cursor,
+                    room_min_y,
+                    upper_cursor + room_width,
+                    room_min_y + room_height,
+                ),
+            )
+        )
         upper_cursor += room_width
 
     branch = RoomPolygon(
@@ -1018,13 +1087,23 @@ def _validate_role_driven_core(core_polygon, program: ProgramGraph, bounds) -> N
         (core_max_x, core_max_y),
         (core_min_x, core_max_y),
     }
-    if set(core_polygon) != expected or core_min_x <= min_x or core_max_x != max_x or core_min_y != min_y or core_max_y <= min_y:
-        raise ValueError("role-driven shared core must be a rear-bottom axis-aligned rectangle")
+    if (
+        set(core_polygon) != expected
+        or core_min_x <= min_x
+        or core_max_x != max_x
+        or core_min_y != min_y
+        or core_max_y <= min_y
+    ):
+        raise ValueError(
+            "role-driven shared core must be a rear-bottom axis-aligned rectangle"
+        )
     core = next(node for node in program.nodes if node.space_type == "core")
     area = polygon_area(core_polygon)
     target = float(core.target_area)
     if not target * 0.85 <= area <= target * 1.15:
-        raise ValueError("role-driven shared core area must satisfy the core program tolerance")
+        raise ValueError(
+            "role-driven shared core area must satisfy the core program tolerance"
+        )
 
 
 def _layout_area(node) -> float:
@@ -1054,12 +1133,10 @@ def _centered_door(
         raise ValueError(f"room '{room.room_id}' shared boundary is shorter than door")
     offset = (length - width) / (2 * length)
     door_start = tuple(
-        start[index] + (end[index] - start[index]) * offset
-        for index in range(2)
+        start[index] + (end[index] - start[index]) * offset for index in range(2)
     )
     door_end = tuple(
-        end[index] - (end[index] - start[index]) * offset
-        for index in range(2)
+        end[index] - (end[index] - start[index]) * offset for index in range(2)
     )
     return OpeningSegment(
         opening_id=f"{room.room_id}-door",
@@ -1081,7 +1158,9 @@ def _balanced_split_index(nodes) -> int:
     )
 
 
-def _polygon_bounds(polygon: list[tuple[float, float]]) -> tuple[float, float, float, float]:
+def _polygon_bounds(
+    polygon: list[tuple[float, float]],
+) -> tuple[float, float, float, float]:
     return (
         min(point[0] for point in polygon),
         min(point[1] for point in polygon),

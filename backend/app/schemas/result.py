@@ -6,7 +6,7 @@ from backend.app.schemas.area import BuildingAreaLedger, FloorAreaLedger
 from backend.app.schemas.egress import FloorEgressGraphResult
 from backend.app.schemas.layout import LayoutCandidate
 from backend.app.schemas.llm import FloorAssignment
-from backend.app.schemas.mass import MassAnalysis
+from backend.app.schemas.mass import MassAnalysis, Point
 from backend.app.schemas.metrics import ValidationReport
 from backend.app.schemas.program import ProgramGraph
 
@@ -19,6 +19,8 @@ class GenerationResult:
     validation: ValidationReport
     area_ledger: FloorAreaLedger | None = None
     egress_graph: FloorEgressGraphResult | None = None
+    floor_boundary: tuple[Point, ...] | None = None
+    floor_boundary_source: str | None = None
 
     def __post_init__(self) -> None:
         evidence_indexes = [
@@ -31,9 +33,7 @@ class GenerationResult:
             evidence_indexes.append(self.area_ledger.floor_index)
         if self.egress_graph is not None:
             if not isinstance(self.egress_graph, FloorEgressGraphResult):
-                raise TypeError(
-                    "egress_graph must be FloorEgressGraphResult or None"
-                )
+                raise TypeError("egress_graph must be FloorEgressGraphResult or None")
             evidence_indexes.append(self.egress_graph.floor_index)
         screening = self.validation.regulatory_screening
         if screening is not None and screening.floor_index is not None:
@@ -42,13 +42,20 @@ class GenerationResult:
                     "validation screening floor index must match generation result"
                 )
             evidence_indexes.append(screening.floor_index)
+        if self.floor_boundary is not None:
+            if len(self.floor_boundary) < 3:
+                raise ValueError(
+                    "generation result floor boundary needs at least 3 points"
+                )
+            if self.floor_boundary_source not in {
+                "legacy_broadcast",
+                "explicit_floor_footprint",
+            }:
+                raise ValueError("generation result floor boundary source is invalid")
         if (
             self.area_ledger is not None
             or self.egress_graph is not None
-            or (
-                screening is not None
-                and screening.floor_index is not None
-            )
+            or (screening is not None and screening.floor_index is not None)
         ) and len(set(evidence_indexes)) != 1:
             raise ValueError("generation result floor indexes must match")
 
@@ -82,37 +89,23 @@ class BuildingGenerationResult:
         if not isinstance(self.area_ledger, BuildingAreaLedger):
             raise TypeError("area_ledger must be BuildingAreaLedger or None")
         if len(self.floor_results) != self.mass.floors:
-            raise ValueError(
-                "building mass floor count must match floor results"
-            )
+            raise ValueError("building mass floor count must match floor results")
         expected_indexes = tuple(range(1, self.mass.floors + 1))
         assignment_indexes = tuple(
             assignment.floor_index for assignment in self.floor_assignments
         )
         if assignment_indexes != expected_indexes:
-            raise ValueError(
-                "building floor assignments must match mass floors"
-            )
-        floor_indexes = tuple(
-            floor.program.floor_index for floor in self.floor_results
-        )
+            raise ValueError("building floor assignments must match mass floors")
+        floor_indexes = tuple(floor.program.floor_index for floor in self.floor_results)
         if floor_indexes != expected_indexes:
-            raise ValueError(
-                "building floor result indexes must match mass floors"
-            )
+            raise ValueError("building floor result indexes must match mass floors")
         if any(
             floor.area_ledger is None or floor.egress_graph is None
             for floor in self.floor_results
         ):
-            raise ValueError(
-                "building every floor requires area and egress evidence"
-            )
-        floor_ledgers = tuple(
-            floor.area_ledger for floor in self.floor_results
-        )
-        ledger_indexes = tuple(
-            floor.floor_index for floor in self.area_ledger.floors
-        )
+            raise ValueError("building every floor requires area and egress evidence")
+        floor_ledgers = tuple(floor.area_ledger for floor in self.floor_results)
+        ledger_indexes = tuple(floor.floor_index for floor in self.area_ledger.floors)
         if ledger_indexes != floor_indexes:
             raise ValueError(
                 "building area ledger floor indexes must match floor results"

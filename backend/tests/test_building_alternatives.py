@@ -136,12 +136,12 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
         site_edges=[{"edge_index": 0, "kind": "street"}],
         access_candidates=[{"edge_index": 0, "position": 0.5}],
         use_mix={"neighborhood_commercial": 1 / 3, "office": 2 / 3},
-            building_code_context=BuildingCodeContext(
-                jurisdiction="KR",
-                effective_date="2026-07-28",
-                sprinklered=True,
-                qualifying_sprinkler_protection=True,
-            ),
+        building_code_context=BuildingCodeContext(
+            jurisdiction="KR",
+            effective_date="2026-07-28",
+            sprinklered=True,
+            qualifying_sprinkler_protection=True,
+        ),
     )
 
     result = run_building_alternatives(mass)
@@ -160,17 +160,25 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
             if alternative.accepted is accepted
         ]
         assert scores == sorted(scores, reverse=True)
-    assert len(
-        {
-            tuple(layout_fingerprint(floor.layout) for floor in alternative.floor_results)
-            for alternative in result.alternatives
-        }
-    ) == 2
+    assert (
+        len(
+            {
+                tuple(
+                    layout_fingerprint(floor.layout)
+                    for floor in alternative.floor_results
+                )
+                for alternative in result.alternatives
+            }
+        )
+        == 2
+    )
     assert len({alternative.strategy for alternative in result.alternatives}) == 2
     assert len(result.comparisons) == 1
     assert all(comparison.semantic_distinct for comparison in result.comparisons)
     assert len({alternative.core_centroid for alternative in result.alternatives}) == 2
-    assert all(alternative.circulation_graph_signature for alternative in result.alternatives)
+    assert all(
+        alternative.circulation_graph_signature for alternative in result.alternatives
+    )
     assert all(
         alternative.building.vertical_core_aligned
         and alternative.building.vertical_basic_design_aligned
@@ -203,8 +211,7 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
                 "remote_exit_separation"
             ]["threshold"] == pytest.approx(math.hypot(30, 12) / 2)
     by_id = {
-        alternative.alternative_id: alternative
-        for alternative in result.alternatives
+        alternative.alternative_id: alternative for alternative in result.alternatives
     }
     min_x, min_y, max_x, max_y = result.mass.bounds
     normalized = {
@@ -218,7 +225,9 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
     assert normalized["alternative-a"][1] > 0.65
     assert normalized["alternative-c"][0] > 0.65
     assert 0.35 < normalized["alternative-c"][1] < 0.65
-    assert all("front" not in alternative.strategy for alternative in result.alternatives)
+    assert all(
+        "front" not in alternative.strategy for alternative in result.alternatives
+    )
     assert all(
         alternative.tenant_count == 2
         and len(alternative.tenant_entrance_assignments) == 2
@@ -227,8 +236,7 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
     )
     for alternative in result.alternatives:
         footprints = {
-            floor.layout.remote_stair_footprint
-            for floor in alternative.floor_results
+            floor.layout.remote_stair_footprint for floor in alternative.floor_results
         }
         assert len(footprints) == 1
         assert None not in footprints
@@ -241,22 +249,17 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
         features = commercial.layout.basic_design
         assert features is not None
         for room in (
-            room
-            for room in commercial.layout.rooms
-            if room.space_type == "sales"
+            room for room in commercial.layout.rooms if room.space_type == "sales"
         ):
             actual = sum(
-                element.kind == "sales_shelf"
-                and element.host_id == room.room_id
+                element.kind == "sales_shelf" and element.host_id == room.room_id
                 for element in features.elements
             )
             assert actual >= math.ceil(polygon_area(room.polygon) / 30.0)
         for floor in alternative.floor_results:
             for adjustment in floor.program.adjustments:
                 assert adjustment.original_nodes != adjustment.adjusted_nodes
-                assert {
-                    node.node_id for node in adjustment.original_nodes
-                } == {
+                assert {node.node_id for node in adjustment.original_nodes} == {
                     node.node_id for node in adjustment.adjusted_nodes
                 }
     assert "shared_core_normalization" in {
@@ -266,8 +269,7 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
         for adjustment in floor.program.adjustments
     }
     assert all(
-        assignment.startswith("tenant_")
-        or assignment in {"common-core-access:True"}
+        assignment.startswith("tenant_") or assignment in {"common-core-access:True"}
         for alternative in result.alternatives
         for assignment in alternative.tenant_assignment_signature
     )
@@ -336,8 +338,7 @@ def test_explicit_all_floor_one_stair_screen_emits_both_stair_families():
     result = run_building_alternatives(_explicit_one_stair_mass())
 
     families = {
-        alternative.strategy.split("/", 1)[0]
-        for alternative in result.alternatives
+        alternative.strategy.split("/", 1)[0] for alternative in result.alternatives
     }
     assert families == {
         "screened_minimum_one_stair",
@@ -345,9 +346,7 @@ def test_explicit_all_floor_one_stair_screen_emits_both_stair_families():
     }
     for alternative in result.alternatives:
         expected_count = (
-            1
-            if alternative.strategy.startswith("screened_minimum_one_stair/")
-            else 2
+            1 if alternative.strategy.startswith("screened_minimum_one_stair/") else 2
         )
         assert all(
             sum(
@@ -358,12 +357,7 @@ def test_explicit_all_floor_one_stair_screen_emits_both_stair_families():
             for floor in alternative.floor_results
         )
         assert len({id(floor.layout) for floor in alternative.floor_results}) == 2
-        assert len(
-            {
-                id(floor.validation)
-                for floor in alternative.floor_results
-            }
-        ) == 2
+        assert len({id(floor.validation) for floor in alternative.floor_results}) == 2
         stair_ids_by_floor = {
             tuple(
                 sorted(
@@ -377,15 +371,12 @@ def test_explicit_all_floor_one_stair_screen_emits_both_stair_families():
         assert len(stair_ids_by_floor) == 1
         assert {
             next(
-                room.room_id
-                for room in floor.layout.rooms
-                if room.space_type == "core"
+                room.room_id for room in floor.layout.rooms if room.space_type == "core"
             )
             for floor in alternative.floor_results
         } == {"core"}
         assert all(
-            floor.validation.regulatory_screening
-            .screened_required_direct_stair_count
+            floor.validation.regulatory_screening.screened_required_direct_stair_count
             == 1
             for floor in alternative.floor_results
         )
@@ -413,8 +404,7 @@ def test_explicit_all_floor_one_stair_screen_emits_both_stair_families():
 def test_one_stair_family_reclaims_remote_stair_reserve_into_program_space():
     result = run_building_alternatives(_explicit_one_stair_mass())
     by_id = {
-        alternative.alternative_id: alternative
-        for alternative in result.alternatives
+        alternative.alternative_id: alternative for alternative in result.alternatives
     }
     one_stair_alternatives = [
         alternative
@@ -435,16 +425,12 @@ def test_one_stair_family_reclaims_remote_stair_reserve_into_program_space():
         ):
             assert one_floor.layout.remote_stair_footprint is None
             assert all(
-                not (
-                    element.kind == "stair"
-                    and element.host_id == "floor"
-                )
+                not (element.kind == "stair" and element.host_id == "floor")
                 for element in one_floor.layout.basic_design.elements
             )
             assert all(
                 not (
-                    line.kind == "protected_exit"
-                    and line.target_id == "remote-stair-2"
+                    line.kind == "protected_exit" and line.target_id == "remote-stair-2"
                 )
                 for line in one_floor.layout.basic_design.lines
             )
@@ -452,8 +438,7 @@ def test_one_stair_family_reclaims_remote_stair_reserve_into_program_space():
             assert conservative_floor.area_ledger is not None
             assert one_floor.area_ledger.status == "pass"
             one_values = {
-                entry.bucket: entry.area_m2
-                for entry in one_floor.area_ledger.entries
+                entry.bucket: entry.area_m2 for entry in one_floor.area_ledger.entries
             }
             conservative_values = {
                 entry.bucket: entry.area_m2
@@ -464,13 +449,9 @@ def test_one_stair_family_reclaims_remote_stair_reserve_into_program_space():
                 conservative_values["circulation"]
             )
             assert one_values["net"] + 1e-7 >= (
-                conservative_values["net"]
-                + conservative_values["remote_stair"]
+                conservative_values["net"] + conservative_values["remote_stair"]
             )
-            assert (
-                one_values["unassigned"]
-                < conservative_values["unassigned"]
-            )
+            assert one_values["unassigned"] < conservative_values["unassigned"]
             assert one_floor.program.adjustments[-1].reason.startswith(
                 "one_stair_remote_reserve_reclaimed:"
             )
@@ -491,22 +472,21 @@ def test_mixed_one_stair_reclaimed_rooms_have_truthful_exterior_windows():
 
     assert result.accepted_count >= 2
     assert one_stair.accepted
-    assert [
-        floor.program.use_type for floor in one_stair.floor_results
-    ] == ["neighborhood_commercial", "office", "office"]
+    assert [floor.program.use_type for floor in one_stair.floor_results] == [
+        "neighborhood_commercial",
+        "office",
+        "office",
+    ]
     for floor in one_stair.floor_results:
         adjustment = floor.program.adjustments[-1]
         reclaimed_room_id = adjustment.reason.split(":", 1)[1]
         reclaimed_room = next(
-            room
-            for room in floor.layout.rooms
-            if room.room_id == reclaimed_room_id
+            room for room in floor.layout.rooms if room.room_id == reclaimed_room_id
         )
         windows = [
             line
             for line in floor.layout.basic_design.lines
-            if line.kind == "window"
-            and line.host_id == reclaimed_room_id
+            if line.kind == "window" and line.host_id == reclaimed_room_id
         ]
         assert len(windows) == 1
         segment = (windows[0].points[0], windows[0].points[-1])
@@ -549,14 +529,11 @@ def test_unknown_floor_applicability_only_emits_conservative_family():
 
     assert result.alternatives
     assert all(
-        alternative.strategy.startswith(
-            "conservative_redundant_two_stair/"
-        )
+        alternative.strategy.startswith("conservative_redundant_two_stair/")
         for alternative in result.alternatives
     )
     signatures = [
-        alternative.design_family_signature
-        for alternative in result.alternatives
+        alternative.design_family_signature for alternative in result.alternatives
     ]
     assert len(signatures) == len(set(signatures))
     assert all(
@@ -597,14 +574,11 @@ def test_any_floor_requiring_two_stairs_suppresses_one_stair_family():
 
     assert result.alternatives
     assert all(
-        alternative.strategy.startswith(
-            "conservative_redundant_two_stair/"
-        )
+        alternative.strategy.startswith("conservative_redundant_two_stair/")
         for alternative in result.alternatives
     )
     assert {
-        floor.validation.regulatory_screening
-        .screened_required_direct_stair_count
+        floor.validation.regulatory_screening.screened_required_direct_stair_count
         for floor in result.alternatives[0].floor_results
     } == {1, 2}
 
@@ -618,7 +592,7 @@ def test_any_floor_requiring_two_stairs_suppresses_one_stair_family():
         ),
         (
             [(0, 0), (30, 0), (30, 12), (20, 12), (20, 8), (0, 8)],
-            "rectangular",
+            "concept workstation arrangement",
         ),
     ],
 )
@@ -655,8 +629,7 @@ def test_topology_signature_ignores_connects_order_and_tracks_circulation_edges(
     )
     result = run_building_alternatives(mass)
     alternative = next(
-        item for item in result.alternatives
-        if item.alternative_id == "alternative-c"
+        item for item in result.alternatives if item.alternative_id == "alternative-c"
     )
     floor = alternative.floor_results[0]
     reversed_connects = replace(
@@ -683,10 +656,7 @@ def test_topology_signature_ignores_connects_order_and_tracks_circulation_edges(
                 first,
                 replace(
                     second,
-                    polygon=[
-                        (x + 100.0, y)
-                        for x, y in second.polygon
-                    ],
+                    polygon=[(x + 100.0, y) for x, y in second.polygon],
                 ),
             ],
         ),

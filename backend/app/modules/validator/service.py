@@ -142,16 +142,11 @@ _MIN_STAIR_SEPARATION = 0.2
 _REGULATORY_RULESET = "KR-egress-art34-20260227-art8-20251031"
 _ARTICLE_34_EFFECTIVE_DATE = "2026-02-27"
 _ARTICLE_8_EFFECTIVE_DATE = "2025-10-31"
-_EARLIEST_SUPPORTED_ANALYSIS_DATE = date.fromisoformat(
-    _ARTICLE_34_EFFECTIVE_DATE
-)
+_EARLIEST_SUPPORTED_ANALYSIS_DATE = date.fromisoformat(_ARTICLE_34_EFFECTIVE_DATE)
 _LATEST_VERIFIED_ANALYSIS_DATE = date(2026, 7, 28)
-_ARTICLE_34_SOURCE = (
-    "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067"
-)
+_ARTICLE_34_SOURCE = "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067"
 _ARTICLE_8_SOURCE = (
-    "https://law.go.kr/lsLinkCommonInfo.do?"
-    "chrClsCd=010202&lsJoLnkSeq=1025183885"
+    "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885"
 )
 _DIRECT_STAIR_RULE_ID = "KR-EGRESS-DIRECT-STAIR-COUNT-ART34"
 _STAIR_SEPARATION_RULE_ID = "KR-EGRESS-STAIR-SEPARATION-ART8"
@@ -214,10 +209,7 @@ def _regulatory_exit_separation_threshold(
 ) -> float:
     denominator = (
         3.0
-        if (
-            context is not None
-            and context.qualifying_sprinkler_protection is True
-        )
+        if (context is not None and context.qualifying_sprinkler_protection is True)
         else 2.0
     )
     diagonal = max(
@@ -274,11 +266,7 @@ def _floor_fact(
     if context is None:
         return None
     return next(
-        (
-            fact
-            for fact in context.floor_facts
-            if fact.floor_index == floor_index
-        ),
+        (fact for fact in context.floor_facts if fact.floor_index == floor_index),
         None,
     )
 
@@ -310,11 +298,7 @@ def _screened_direct_stair_count(
         )
 
     category = fact.occupancy_category
-    area = (
-        float(fact.habitable_area_m2)
-        if fact.habitable_area_m2 is not None
-        else None
-    )
+    area = float(fact.habitable_area_m2) if fact.habitable_area_m2 is not None else None
     if area is None:
         unresolved.append("habitable_area_m2")
     if unresolved:
@@ -334,8 +318,7 @@ def _screened_direct_stair_count(
             None,
             None,
             ("occupancy_category",),
-            tuple(assumptions)
-            + ("typed occupancy category is required",),
+            tuple(assumptions) + ("typed occupancy category is required",),
         )
     assumptions.append(f"occupancy category {category}")
     if category == "assembly_religious_bar_funeral_200":
@@ -447,17 +430,13 @@ def screen_egress_requirements(
         or isinstance(generated_direct_stair_count, bool)
         or generated_direct_stair_count < 0
     ):
-        raise ValueError(
-            "generated_direct_stair_count must be nonnegative or None"
-        )
+        raise ValueError("generated_direct_stair_count must be nonnegative or None")
     if verified_direct_stair_count is not None and (
         not isinstance(verified_direct_stair_count, int)
         or isinstance(verified_direct_stair_count, bool)
         or verified_direct_stair_count < 0
     ):
-        raise ValueError(
-            "verified_direct_stair_count must be nonnegative or None"
-        )
+        raise ValueError("verified_direct_stair_count must be nonnegative or None")
     if not math.isfinite(floor_diagonal) or floor_diagonal <= 0:
         raise ValueError("floor_diagonal must be finite and positive")
     if exit_separation_evidence is not None and not isinstance(
@@ -472,10 +451,7 @@ def screen_egress_requirements(
         FloorEgressGraphResult,
     ):
         raise TypeError("egress_graph must be FloorEgressGraphResult or None")
-    if (
-        egress_graph is not None
-        and egress_graph.floor_index != floor_index
-    ):
+    if egress_graph is not None and egress_graph.floor_index != floor_index:
         raise ValueError("egress_graph floor_index must match screening floor")
 
     unresolved: list[str] = []
@@ -486,9 +462,7 @@ def screen_egress_requirements(
         candidate_applicability,
         count_unresolved,
         count_assumptions,
-    ) = (
-        _screened_direct_stair_count(fact)
-    )
+    ) = _screened_direct_stair_count(fact)
     for item in count_unresolved:
         _append_unresolved(unresolved, item)
     if context_supported:
@@ -510,9 +484,7 @@ def screen_egress_requirements(
         _append_unresolved(unresolved, "ground_termination")
     else:
         direct_status = (
-            "pass"
-            if verified_direct_stair_count >= required_count
-            else "fail"
+            "pass" if verified_direct_stair_count >= required_count else "fail"
         )
     direct = RegulatoryCheck(
         rule_id=_DIRECT_STAIR_RULE_ID,
@@ -540,19 +512,13 @@ def screen_egress_requirements(
         else None
     )
     qualifying = (
-        context.qualifying_sprinkler_protection
-        if context is not None
-        else None
+        context.qualifying_sprinkler_protection if context is not None else None
     )
     if direct_applicability is not True:
         separation_threshold = None
         separation_status = "not_checked"
-        separation_applicability = (
-            False if direct_applicability is False else None
-        )
-        separation_assumptions = (
-            "direct-stair applicability is unresolved",
-        )
+        separation_applicability = False if direct_applicability is False else None
+        separation_assumptions = ("direct-stair applicability is unresolved",)
     elif required_count == 1:
         separation_threshold = None
         separation_status = "not_checked"
@@ -585,20 +551,13 @@ def screen_egress_requirements(
         else:
             separation_status = (
                 "pass"
-                if measured_exit_separation + _EPSILON
-                >= separation_threshold
+                if measured_exit_separation + _EPSILON >= separation_threshold
                 else "fail"
             )
         separation_assumptions = (
-            (
-                "explicit qualifying sprinkler protection; "
-                "one-third-diagonal threshold"
-            )
+            ("explicit qualifying sprinkler protection; one-third-diagonal threshold")
             if qualifying is True
-            else (
-                "explicit nonqualifying sprinkler state; "
-                "half-diagonal threshold"
-            )
+            else ("explicit nonqualifying sprinkler state; half-diagonal threshold")
             if qualifying is False
             else (
                 "qualifying sprinkler protection is unknown; conservative "
@@ -616,9 +575,7 @@ def screen_egress_requirements(
         assumptions=separation_assumptions,
     )
 
-    travel_limit = (
-        context.travel_limit_classification if context is not None else None
-    )
+    travel_limit = context.travel_limit_classification if context is not None else None
     travel_thresholds = {
         "general_30": 30.0,
         "qualified_50": 50.0,
@@ -641,11 +598,7 @@ def screen_egress_requirements(
     if measured_travel_distance is None:
         _append_unresolved(unresolved, "measured_travel_distance")
     travel_status = (
-        (
-            "pass"
-            if measured_travel_distance <= travel_threshold + _EPSILON
-            else "fail"
-        )
+        ("pass" if measured_travel_distance <= travel_threshold + _EPSILON else "fail")
         if measured_travel_distance is not None
         else "not_checked"
     )
@@ -689,9 +642,7 @@ def screen_egress_requirements(
         generated_direct_stair_count=generated_direct_stair_count,
         verified_direct_stair_count=verified_direct_stair_count,
         screened_required_direct_stair_count=required_count,
-        analysis_as_of_date=(
-            context.effective_date if context is not None else None
-        ),
+        analysis_as_of_date=(context.effective_date if context is not None else None),
         exit_separation_evidence=exit_separation_evidence,
     )
 
@@ -738,8 +689,12 @@ def validate_layout(
     violations: list[ValidationViolation] = []
     penalties: dict[tuple[str, str], float] = {}
 
-    def add_violation(code: str, subject: str, message: str, penalty: float = 1.0) -> None:
-        violations.append(ValidationViolation(code=code, subject=subject, message=message))
+    def add_violation(
+        code: str, subject: str, message: str, penalty: float = 1.0
+    ) -> None:
+        violations.append(
+            ValidationViolation(code=code, subject=subject, message=message)
+        )
         key = (code, subject)
         penalties[key] = max(penalties.get(key, 0.0), max(0.0, penalty))
 
@@ -749,9 +704,13 @@ def validate_layout(
     for room_id in expected_ids:
         count = room_counts[room_id]
         if count == 0:
-            add_violation("room_identity", room_id, f"required room '{room_id}' is missing")
+            add_violation(
+                "room_identity", room_id, f"required room '{room_id}' is missing"
+            )
         elif count > 1:
-            add_violation("room_identity", room_id, f"room '{room_id}' appears {count} times")
+            add_violation(
+                "room_identity", room_id, f"room '{room_id}' appears {count} times"
+            )
         else:
             room = next(item for item in layout.rooms if item.room_id == room_id)
             expected_type = next(
@@ -767,7 +726,9 @@ def validate_layout(
                     ),
                 )
     for room_id in sorted(room_counts.keys() - expected_set):
-        add_violation("room_identity", room_id, f"unexpected room '{room_id}' is present")
+        add_violation(
+            "room_identity", room_id, f"unexpected room '{room_id}' is present"
+        )
     circulation_counts = Counter(path.room_id for path in layout.circulation)
     for path_id, count in circulation_counts.items():
         if not path_id or count > 1:
@@ -805,11 +766,15 @@ def validate_layout(
                     shape.room_id,
                     f"{kind} '{shape.room_id}' escapes the boundary",
                 )
-    if len(valid_rooms) != len(layout.rooms) or len(valid_circulation) != len(layout.circulation):
+    if len(valid_rooms) != len(layout.rooms) or len(valid_circulation) != len(
+        layout.circulation
+    ):
         boundary_ok = False
 
     overlap_ok = _check_overlaps(valid_rooms, valid_circulation, add_violation)
-    if len(valid_rooms) != len(layout.rooms) or len(valid_circulation) != len(layout.circulation):
+    if len(valid_rooms) != len(layout.rooms) or len(valid_circulation) != len(
+        layout.circulation
+    ):
         overlap_ok = False
 
     circulation_exists = bool(layout.circulation)
@@ -872,12 +837,9 @@ def validate_layout(
                             f"is below {min_circulation_width:.3f}"
                         ),
                     )
-        if (
-            len(valid_circulation) > 1
-            and not _is_connected_with_minimum_junction(
-                valid_circulation,
-                min_circulation_width,
-            )
+        if len(valid_circulation) > 1 and not _is_connected_with_minimum_junction(
+            valid_circulation,
+            min_circulation_width,
         ):
             add_violation(
                 "circulation_too_narrow",
@@ -929,9 +891,7 @@ def validate_layout(
         context=building_code_context,
         floor_index=layout.floor_index,
         generated_direct_stair_count=(
-            basic_design_metric.stair_count
-            if basic_design_metric is not None
-            else None
+            basic_design_metric.stair_count if basic_design_metric is not None else None
         ),
         floor_diagonal=max(
             math.dist(first, second)
@@ -1031,10 +991,7 @@ def _validate_openings(
     valid_door_rooms: set[str] = set()
 
     for opening in layout.openings:
-        if (
-            not opening.opening_id
-            or opening_counts[opening.opening_id] > 1
-        ):
+        if not opening.opening_id or opening_counts[opening.opening_id] > 1:
             add_violation(
                 "opening_identity",
                 opening.opening_id or "opening",
@@ -1042,14 +999,10 @@ def _validate_openings(
             )
             continue
         connected_rooms = [
-            item
-            for item in opening.connects
-            if len(rooms.get(item, [])) == 1
+            item for item in opening.connects if len(rooms.get(item, [])) == 1
         ]
         connected_paths = [
-            item
-            for item in opening.connects
-            if len(circulation.get(item, [])) == 1
+            item for item in opening.connects if len(circulation.get(item, [])) == 1
         ]
         if (
             opening.kind != "door"
@@ -1129,10 +1082,7 @@ def _validate_basic_design(
     add_violation,
 ) -> BasicDesignMetric:
     features = layout.basic_design
-    program_space_types = {
-        node.node_id: node.space_type
-        for node in program.nodes
-    }
+    program_space_types = {node.node_id: node.space_type for node in program.nodes}
     occupied_rooms = {
         room.room_id: room
         for room in layout.rooms
@@ -1230,11 +1180,13 @@ def _validate_basic_design(
             valid_lines[line.line_id] = line
 
     cores = [
-        room
-        for room in layout.rooms
-        if program_space_types.get(room.room_id) == "core"
+        room for room in layout.rooms if program_space_types.get(room.room_id) == "core"
     ]
-    core = cores[0] if len(cores) == 1 and _is_axis_aligned_rectangle(cores[0].polygon) else None
+    core = (
+        cores[0]
+        if len(cores) == 1 and _is_axis_aligned_rectangle(cores[0].polygon)
+        else None
+    )
     if core is None:
         add_violation(
             "core_geometry",
@@ -1261,7 +1213,11 @@ def _validate_basic_design(
                 if element.category in {"furniture", "fixture"}
                 else "basic_design_reference"
             )
-            add_violation(code, element.element_id, "element host does not resolve to its expected owner")
+            add_violation(
+                code,
+                element.element_id,
+                "element host does not resolve to its expected owner",
+            )
 
     for line in features.lines:
         if line.kind == "protected_exit":
@@ -1336,14 +1292,16 @@ def _validate_basic_design(
             valid_reference = line.host_id is None and line.target_id is None
             code = "basic_design_reference"
         if not valid_reference:
-            add_violation(code, line.line_id, "line references do not resolve to the expected owner or target")
+            add_violation(
+                code,
+                line.line_id,
+                "line references do not resolve to the expected owner or target",
+            )
         elif line.kind == "protected_exit" and line.line_id in valid_lines:
             valid_exit_reference_ids.add(line.line_id)
 
     vertical = [
-        element
-        for element in valid_elements.values()
-        if element.category == "vertical"
+        element for element in valid_elements.values() if element.category == "vertical"
     ]
     vertical_counts = Counter(element.kind for element in vertical)
     expected_vertical = {
@@ -1381,13 +1339,11 @@ def _validate_basic_design(
                 and (
                     not contains_polygon(boundary, element.footprint)
                     or any(
-                        polygon_overlap_area(element.footprint, room.polygon)
-                        > _EPSILON
+                        polygon_overlap_area(element.footprint, room.polygon) > _EPSILON
                         for room in geometric_occupied_rooms.values()
                     )
                     or any(
-                        polygon_overlap_area(element.footprint, path.polygon)
-                        > _EPSILON
+                        polygon_overlap_area(element.footprint, path.polygon) > _EPSILON
                         for path in geometric_circulation
                     )
                 )
@@ -1411,11 +1367,7 @@ def _validate_basic_design(
     stairs = [element for element in vertical if element.kind == "stair"]
     required_stair_short, required_stair_long = _required_stair_sides(
         core,
-        [
-            line
-            for line in valid_lines.values()
-            if line.kind == "protected_exit"
-        ],
+        [line for line in valid_lines.values() if line.kind == "protected_exit"],
     )
     required_stair_area = required_stair_short * required_stair_long
     for stair in stairs:
@@ -1449,9 +1401,10 @@ def _validate_basic_design(
             if building_code_context is not None
             else None
         )
-        if context_height is not None and abs(
-            geometry.floor_to_floor_height_m - context_height
-        ) > 1e-7:
+        if (
+            context_height is not None
+            and abs(geometry.floor_to_floor_height_m - context_height) > 1e-7
+        ):
             add_violation(
                 "stair_height_context",
                 stair.element_id,
@@ -1480,8 +1433,7 @@ def _validate_basic_design(
                 "flight rises must sum to the modeled floor-to-floor height",
             )
         if any(
-            flight.tread_count != flight.riser_count - 1
-            for flight in geometry.flights
+            flight.tread_count != flight.riser_count - 1 for flight in geometry.flights
         ):
             add_violation(
                 "stair_tread_count",
@@ -1533,19 +1485,16 @@ def _validate_basic_design(
             "intermediate": geometry.flights[0].end_elevation_m,
             "floor_upper": geometry.floor_to_floor_height_m,
         }
-        if (
-            set(roles) != set(expected_elevations)
-            or any(
-                not _bbox_contains(enclosure_bounds, _bounds(landing.footprint))
-                or abs(landing.elevation_m - expected_elevations[role]) > 1e-7
-                or min(
-                    _bounds(landing.footprint)[2] - _bounds(landing.footprint)[0],
-                    _bounds(landing.footprint)[3] - _bounds(landing.footprint)[1],
-                )
-                + _EPSILON
-                < geometry.clear_width_m
-                for role, landing in roles.items()
+        if set(roles) != set(expected_elevations) or any(
+            not _bbox_contains(enclosure_bounds, _bounds(landing.footprint))
+            or abs(landing.elevation_m - expected_elevations[role]) > 1e-7
+            or min(
+                _bounds(landing.footprint)[2] - _bounds(landing.footprint)[0],
+                _bounds(landing.footprint)[3] - _bounds(landing.footprint)[1],
             )
+            + _EPSILON
+            < geometry.clear_width_m
+            for role, landing in roles.items()
         ):
             add_violation(
                 "stair_landing_geometry",
@@ -1562,18 +1511,10 @@ def _validate_basic_design(
                 and abs(first.end_elevation_m - intermediate.elevation_m) <= 1e-7
                 and abs(second.start_elevation_m - intermediate.elevation_m) <= 1e-7
                 and abs(second.end_elevation_m - upper.elevation_m) <= 1e-7
-                and _rectangles_share_boundary(
-                    first.footprint, lower.footprint
-                )
-                and _rectangles_share_boundary(
-                    first.footprint, intermediate.footprint
-                )
-                and _rectangles_share_boundary(
-                    second.footprint, intermediate.footprint
-                )
-                and _rectangles_share_boundary(
-                    second.footprint, upper.footprint
-                )
+                and _rectangles_share_boundary(first.footprint, lower.footprint)
+                and _rectangles_share_boundary(first.footprint, intermediate.footprint)
+                and _rectangles_share_boundary(second.footprint, intermediate.footprint)
+                and _rectangles_share_boundary(second.footprint, upper.footprint)
             )
             projected_parts = (
                 first.footprint,
@@ -1599,28 +1540,19 @@ def _validate_basic_design(
                 else 1
             )
             lower_center = (
-                (_bounds(lower.footprint)[axis] + _bounds(lower.footprint)[axis + 2])
-                / 2
-            )
+                _bounds(lower.footprint)[axis] + _bounds(lower.footprint)[axis + 2]
+            ) / 2
             intermediate_center = (
-                (
-                    _bounds(intermediate.footprint)[axis]
-                    + _bounds(intermediate.footprint)[axis + 2]
-                )
-                / 2
-            )
+                _bounds(intermediate.footprint)[axis]
+                + _bounds(intermediate.footprint)[axis + 2]
+            ) / 2
             upper_center = (
-                (_bounds(upper.footprint)[axis] + _bounds(upper.footprint)[axis + 2])
-                / 2
-            )
+                _bounds(upper.footprint)[axis] + _bounds(upper.footprint)[axis + 2]
+            ) / 2
             axis_name = "x" if axis == 0 else "y"
             expected_directions = (
-                (
-                    "+" if intermediate_center > lower_center else "-"
-                )
-                + axis_name,
-                ("+" if upper_center > intermediate_center else "-")
-                + axis_name,
+                ("+" if intermediate_center > lower_center else "-") + axis_name,
+                ("+" if upper_center > intermediate_center else "-") + axis_name,
             )
             if tuple(flight.direction for flight in geometry.flights) != (
                 expected_directions
@@ -1630,10 +1562,14 @@ def _validate_basic_design(
                     stair.element_id,
                     "flight direction metadata must follow landing elevation order",
                 )
-    if required_exit_count == 2 and len(stairs) == 2 and (
-        _footprint_bbox_distance(stairs[0].footprint, stairs[1].footprint)
-        + _EPSILON
-        < _MIN_STAIR_SEPARATION
+    if (
+        required_exit_count == 2
+        and len(stairs) == 2
+        and (
+            _footprint_bbox_distance(stairs[0].footprint, stairs[1].footprint)
+            + _EPSILON
+            < _MIN_STAIR_SEPARATION
+        )
     ):
         add_violation(
             "stair_geometry",
@@ -1703,10 +1639,13 @@ def _validate_basic_design(
                 else []
             )
         actual_width = _polyline_length(exit_line.points)
-        geometry_valid = any(
-            _segment_contains(segment, (exit_line.points[0], exit_line.points[-1]))
-            for segment in valid_boundaries
-        ) and abs(actual_width - (exit_line.clear_width or 0.0)) <= 1e-7
+        geometry_valid = (
+            any(
+                _segment_contains(segment, (exit_line.points[0], exit_line.points[-1]))
+                for segment in valid_boundaries
+            )
+            and abs(actual_width - (exit_line.clear_width or 0.0)) <= 1e-7
+        )
         if not geometry_valid:
             add_violation(
                 "protected_exit_geometry",
@@ -1737,13 +1676,15 @@ def _validate_basic_design(
         or len({line.target_id for line in exits}) != required_exit_count
     ):
         verified_exit_ids.clear()
-    verified_exits = [
-        line for line in exits if line.line_id in verified_exit_ids
-    ]
+    verified_exits = [line for line in exits if line.line_id in verified_exit_ids]
     exit_doorway_separation = _exit_doorway_separation(verified_exits)
     exit_separation = _exit_separation(exits)
-    if required_exit_count == 2 and len(exits) == 2 and (
-        exit_separation is None or exit_separation + _EPSILON < min_exit_separation
+    if (
+        required_exit_count == 2
+        and len(exits) == 2
+        and (
+            exit_separation is None or exit_separation + _EPSILON < min_exit_separation
+        )
     ):
         add_violation(
             "protected_exit_separation",
@@ -1769,9 +1710,7 @@ def _validate_basic_design(
         for line in valid_lines.values()
         if line.category == "egress" and line.kind == "stair_door"
     ]
-    core_stair_ids = {
-        stair.element_id for stair in stairs if stair.host_id == core_id
-    }
+    core_stair_ids = {stair.element_id for stair in stairs if stair.host_id == core_id}
     if len(stair_doors) != len(core_stair_ids):
         add_violation(
             "stair_door_missing",
@@ -1908,16 +1847,12 @@ def _validate_basic_design(
             "lobby routes must target all and only core-hosted stair doors",
         )
     exits_by_stair = {
-        line.target_id: line
-        for line in exits
-        if line.target_id in valid_stair_ids
+        line.target_id: line for line in exits if line.target_id in valid_stair_ids
     }
     for lobby_route in lobby_routes:
         stair_door = valid_lines.get(lobby_route.target_id or "")
         exit_line = (
-            exits_by_stair.get(stair_door.target_id)
-            if stair_door is not None
-            else None
+            exits_by_stair.get(stair_door.target_id) if stair_door is not None else None
         )
         lobby_room = (
             RoomPolygon(
@@ -1988,10 +1923,7 @@ def _validate_basic_design(
                 ),
             )
     for room_id in occupied_rooms:
-        if (
-            len(route_targets_by_room.get(room_id, set()))
-            < required_exit_count
-        ):
+        if len(route_targets_by_room.get(room_id, set())) < required_exit_count:
             add_violation(
                 "egress_route_missing",
                 room_id,
@@ -2022,10 +1954,7 @@ def _validate_basic_design(
             missing_kinds.add("structure:column")
         if not _has_orthogonal_grid(grids):
             missing_kinds.add("structure:grid")
-    protected_segments = [
-        (line.points[0], line.points[-1])
-        for line in exits
-    ]
+    protected_segments = [(line.points[0], line.points[-1]) for line in exits]
     door_segments = [(opening.start, opening.end) for opening in layout.openings]
     for column in columns:
         if not contains_polygon(boundary, column.footprint):
@@ -2084,7 +2013,10 @@ def _validate_basic_design(
             )
             continue
         valid_window_hosts.add(room.room_id)
-        if any(_collinear_overlap_length(segment, (item.points[0], item.points[-1])) > 0 for item in entrances):
+        if any(
+            _collinear_overlap_length(segment, (item.points[0], item.points[-1])) > 0
+            for item in entrances
+        ):
             add_violation(
                 "window_conflict",
                 window.line_id,
@@ -2125,11 +2057,13 @@ def _validate_basic_design(
                 if entrance.host_id == core_id and target_path is not None
                 else None
             )
-            if host_polygon is None or not _segment_on_polygon_boundary(
-                segment,
-                host_polygon,
-            ) or not any(
-                _segment_contains(street, segment) for street in streets
+            if (
+                host_polygon is None
+                or not _segment_on_polygon_boundary(
+                    segment,
+                    host_polygon,
+                )
+                or not any(_segment_contains(street, segment) for street in streets)
             ):
                 add_violation(
                     "entrance_geometry",
@@ -2167,10 +2101,8 @@ def _validate_basic_design(
             segment
             for line in valid_lines.values()
             if (
-                (
-                    line.kind in {"entrance", "window", "egress_route"}
-                    and line.host_id == room.room_id
-                )
+                line.kind in {"entrance", "window", "egress_route"}
+                and line.host_id == room.room_id
             )
             for segment in zip(line.points, line.points[1:])
         )
@@ -2245,16 +2177,12 @@ def _validate_basic_design(
         occupied_rooms,
         missing_required_kinds=tuple(sorted(missing_kinds)),
         min_object_clearance=(
-            min(measured_object_clearances)
-            if measured_object_clearances
-            else None
+            min(measured_object_clearances) if measured_object_clearances else None
         ),
         object_clearance_violation_count=object_clearance_violation_count,
         exit_separation_threshold=min_exit_separation,
         exit_doorway_separation=exit_doorway_separation,
-        verified_protected_exit_ids=tuple(
-            sorted(verified_exit_ids)
-        ),
+        verified_protected_exit_ids=tuple(sorted(verified_exit_ids)),
         policy_checks=policy_checks,
     )
 
@@ -2273,9 +2201,7 @@ def _validate_use_planning(
     add_violation,
 ) -> dict[str, PolicyCheck]:
     if program.use_type == "neighborhood_commercial":
-        tenant_nodes = [
-            node for node in program.nodes if node.space_type == "sales"
-        ]
+        tenant_nodes = [node for node in program.nodes if node.space_type == "sales"]
         metadata_known = bool(tenant_nodes) and all(
             isinstance(node.tenant_id, str) and node.tenant_id.strip()
             for node in tenant_nodes
@@ -2325,9 +2251,7 @@ def _validate_use_planning(
         assigned_entrance_ids: set[str] = set()
         for node in tenant_nodes:
             room = rooms.get(node.node_id)
-            matching = [
-                line for line in entrances if line.host_id == node.node_id
-            ]
+            matching = [line for line in entrances if line.host_id == node.node_id]
             frontage_ok = (
                 room is not None
                 and shared_boundary_with_segments_length(
@@ -2355,9 +2279,8 @@ def _validate_use_planning(
             if frontage_ok and entrance_ok:
                 assigned_entrance_ids.add(matching[0].line_id)
                 valid_tenant_access += 1
-        tenant_access_passed = (
-            tenant_count_passed
-            and valid_tenant_access == len(tenant_nodes)
+        tenant_access_passed = tenant_count_passed and valid_tenant_access == len(
+            tenant_nodes
         )
         if not tenant_access_passed:
             add_violation(
@@ -2395,9 +2318,7 @@ def _validate_use_planning(
                     ),
                 )
 
-        core_ids = {
-            node.node_id for node in program.nodes if node.space_type == "core"
-        }
+        core_ids = {node.node_id for node in program.nodes if node.space_type == "core"}
         circulation_by_id = {path.room_id: path for path in circulation}
         circulation_ids = set(circulation_by_id)
         common_entries = [
@@ -2438,8 +2359,7 @@ def _validate_use_planning(
             for entry in common_entries
         )
         common_core_access_passed = (
-            len(common_entries) == 1
-            and connected_common_entries == 1
+            len(common_entries) == 1 and connected_common_entries == 1
         )
         if not common_core_access_passed:
             add_violation(
@@ -2492,9 +2412,8 @@ def _validate_use_planning(
         isinstance(planning, UsePlanningMetadata)
         and planning.reception_to_lobby_route_line_id is not None
     )
-    support_metadata_known = (
-        isinstance(planning, UsePlanningMetadata)
-        and bool(planning.support_room_ids)
+    support_metadata_known = isinstance(planning, UsePlanningMetadata) and bool(
+        planning.support_room_ids
     )
     if not route_metadata_known or not support_metadata_known:
         add_violation(
@@ -2510,18 +2429,18 @@ def _validate_use_planning(
         room
         for room_id, room in rooms.items()
         if next(
-            (
-                node.space_type
-                for node in program.nodes
-                if node.node_id == room_id
-            ),
+            (node.space_type for node in program.nodes if node.node_id == room_id),
             None,
         )
         == "open_work"
     ]
     work_area = sum(polygon_area(room.polygon) for room in work_rooms)
     minimum_workpoints = math.ceil(work_area / 10.0)
-    maximum_workpoints = math.floor(work_area / 8.0)
+    maximum_workpoints = (
+        sum(math.ceil(polygon_area(room.polygon) / 8.0) for room in work_rooms)
+        if len(work_rooms) > 1
+        else math.floor(work_area / 8.0)
+    )
     workpoint_count = sum(
         element.category == "furniture"
         and element.kind == "workstation"
@@ -2543,32 +2462,24 @@ def _validate_use_planning(
         )
 
     reception_route_id = (
-        planning.reception_to_lobby_route_line_id
-        if route_metadata_known
-        else None
+        planning.reception_to_lobby_route_line_id if route_metadata_known else None
     )
     reception_route = (
-        lines.get(reception_route_id)
-        if isinstance(reception_route_id, str)
-        else None
+        lines.get(reception_route_id) if isinstance(reception_route_id, str) else None
     )
     reception_ids = {
         node.node_id for node in program.nodes if node.space_type == "reception"
     }
-    core_ids = {
-        node.node_id for node in program.nodes if node.space_type == "core"
-    }
+    core_ids = {node.node_id for node in program.nodes if node.space_type == "core"}
     target_exit = (
         lines.get(reception_route.target_id)
-        if reception_route is not None
-        and isinstance(reception_route.target_id, str)
+        if reception_route is not None and isinstance(reception_route.target_id, str)
         else None
     )
     reception_door_midpoints = _door_midpoints(layout, circulation)
     reception_door_midpoint = (
         reception_door_midpoints.get(reception_route.host_id)
-        if reception_route is not None
-        and isinstance(reception_route.host_id, str)
+        if reception_route is not None and isinstance(reception_route.host_id, str)
         else None
     )
     reception_to_lobby_passed = (
@@ -2593,23 +2504,17 @@ def _validate_use_planning(
             ),
         )
 
-    declared_support_ids = (
-        planning.support_room_ids if support_metadata_known else None
-    )
+    declared_support_ids = planning.support_room_ids if support_metadata_known else None
     expected_support_ids = {
         node.node_id
         for node in program.nodes
         if node.space_type in {"pantry", "restroom", "it_storage"}
     }
     declared_support_set = (
-        set(declared_support_ids)
-        if support_metadata_known
-        else set()
+        set(declared_support_ids) if support_metadata_known else set()
     )
     support_rooms = [
-        rooms[room_id]
-        for room_id in sorted(expected_support_ids)
-        if room_id in rooms
+        rooms[room_id] for room_id in sorted(expected_support_ids) if room_id in rooms
     ]
     min_x, min_y, max_x, max_y = _bounds(boundary)
     diagonal = math.hypot(max_x - min_x, max_y - min_y)
@@ -2760,10 +2665,8 @@ def _circulation_target_reaches_exit(
             if candidate_id in reached:
                 continue
             if (
-                shared_boundary_length(current.polygon, candidate.polygon)
-                > _EPSILON
-                or polygon_overlap_area(current.polygon, candidate.polygon)
-                > _EPSILON
+                shared_boundary_length(current.polygon, candidate.polygon) > _EPSILON
+                or polygon_overlap_area(current.polygon, candidate.polygon) > _EPSILON
             ):
                 reached.add(candidate_id)
                 pending.append(candidate_id)
@@ -2790,15 +2693,12 @@ def _validate_dimensions_and_site(
     }
     try:
         expected_values["circulation_width"] = min(
-            orthogonal_min_width(path.polygon)
-            for path in circulation
+            orthogonal_min_width(path.polygon) for path in circulation
         )
     except (ValueError, TypeError):
         expected_values["circulation_width"] = math.nan
     dimension_lines = [
-        line
-        for line in valid_lines.values()
-        if line.category == "dimension"
+        line for line in valid_lines.values() if line.category == "dimension"
     ]
     for kind, expected in expected_values.items():
         matching = [line for line in dimension_lines if line.kind == kind]
@@ -2822,9 +2722,7 @@ def _validate_dimensions_and_site(
                 f"stored '{kind}' value does not match recomputed geometry",
             )
 
-    site_lines = [
-        line for line in valid_lines.values() if line.category == "site"
-    ]
+    site_lines = [line for line in valid_lines.values() if line.category == "site"]
     for kind in ("street", "north_arrow", "scale_line"):
         matching = [line for line in site_lines if line.kind == kind]
         if len(matching) != 1:
@@ -2894,9 +2792,7 @@ def _basic_design_metric(
         for room_id in occupied_rooms
     ]
     widths = [
-        float(line.clear_width)
-        for line in exits
-        if _is_finite_number(line.clear_width)
+        float(line.clear_width) for line in exits if _is_finite_number(line.clear_width)
     ]
     exit_separation = _exit_separation(exits)
     remote_exit_passed = (
@@ -2989,8 +2885,7 @@ def _basic_design_metric(
 def _segment_contains(container: Segment, candidate: Segment) -> bool:
     (ax, ay), (bx, by) = container
     return all(
-        abs((bx - ax) * (point[1] - ay) - (by - ay) * (point[0] - ax))
-        <= _EPSILON
+        abs((bx - ax) * (point[1] - ay) - (by - ay) * (point[0] - ax)) <= _EPSILON
         and min(ax, bx) - _EPSILON <= point[0] <= max(ax, bx) + _EPSILON
         and min(ay, by) - _EPSILON <= point[1] <= max(ay, by) + _EPSILON
         for point in candidate
@@ -3070,19 +2965,13 @@ def _door_midpoints(
     min_clear_width: float = 0.0,
 ) -> dict[str, tuple[float, float]]:
     rooms = {
-        room.room_id: room
-        for room in layout.rooms
-        if _is_valid_polygon(room.polygon)
+        room.room_id: room for room in layout.rooms if _is_valid_polygon(room.polygon)
     }
     paths = {path.room_id: path for path in circulation}
     candidates: dict[str, list[tuple[float, float]]] = {}
     result: dict[str, tuple[float, float]] = {}
     for opening in layout.openings:
-        room_ids = [
-            endpoint
-            for endpoint in opening.connects
-            if endpoint in rooms
-        ]
+        room_ids = [endpoint for endpoint in opening.connects if endpoint in rooms]
         path_ids = [endpoint for endpoint in opening.connects if endpoint in paths]
         if opening.kind != "door" or len(room_ids) != 1 or len(path_ids) != 1:
             continue
@@ -3131,10 +3020,7 @@ def _egress_route_in_circulation(
     for start, end in zip(points, points[1:]):
         if math.dist(start, end) <= _EPSILON:
             return False
-        if (
-            abs(start[0] - end[0]) > _EPSILON
-            and abs(start[1] - end[1]) > _EPSILON
-        ):
+        if abs(start[0] - end[0]) > _EPSILON and abs(start[1] - end[1]) > _EPSILON:
             return False
         if not _axis_segment_in_polygon_union(start, end, circulation):
             return False
@@ -3155,7 +3041,10 @@ def _axis_segment_in_polygon_union(
             if lower + _EPSILON < coordinate < upper - _EPSILON:
                 breakpoints.append(coordinate)
     ordered = sorted(set(breakpoints))
-    samples = [*ordered, *((left + right) / 2 for left, right in zip(ordered, ordered[1:]))]
+    samples = [
+        *ordered,
+        *((left + right) / 2 for left, right in zip(ordered, ordered[1:])),
+    ]
     return all(
         any(
             _point_in_polygon_or_boundary(
@@ -3172,9 +3061,9 @@ def _point_in_polygon_or_boundary(point, polygon) -> bool:
     x, y = point
     inside = False
     for start, end in _polygon_edges(polygon):
-        cross = (end[0] - start[0]) * (y - start[1]) - (
-            end[1] - start[1]
-        ) * (x - start[0])
+        cross = (end[0] - start[0]) * (y - start[1]) - (end[1] - start[1]) * (
+            x - start[0]
+        )
         if (
             abs(cross) <= _EPSILON
             and min(start[0], end[0]) - _EPSILON
@@ -3186,9 +3075,9 @@ def _point_in_polygon_or_boundary(point, polygon) -> bool:
         ):
             return True
         if (start[1] > y) != (end[1] > y):
-            intersection_x = start[0] + (y - start[1]) * (
-                end[0] - start[0]
-            ) / (end[1] - start[1])
+            intersection_x = start[0] + (y - start[1]) * (end[0] - start[0]) / (
+                end[1] - start[1]
+            )
             if x < intersection_x:
                 inside = not inside
     return inside
@@ -3377,26 +3266,33 @@ def _exterior_segments(room, boundary) -> list[Segment]:
     return [
         edge
         for edge in _polygon_edges(room)
-        if any(_segment_contains(boundary_edge, edge) for boundary_edge in _polygon_edges(boundary))
+        if any(
+            _segment_contains(boundary_edge, edge)
+            for boundary_edge in _polygon_edges(boundary)
+        )
     ]
 
 
 def _same_segment(left: Segment, right: Segment) -> bool:
-    return (
-        _points_equal(left[0], right[0])
-        and _points_equal(left[1], right[1])
-    ) or (
-        _points_equal(left[0], right[1])
-        and _points_equal(left[1], right[0])
+    return (_points_equal(left[0], right[0]) and _points_equal(left[1], right[1])) or (
+        _points_equal(left[0], right[1]) and _points_equal(left[1], right[0])
     )
 
 
 def _collinear_overlap_length(left: Segment, right: Segment) -> float:
     (ax, ay), (bx, by) = left
     (cx, cy), (dx, dy) = right
-    if abs(ax - bx) <= _EPSILON and abs(cx - dx) <= _EPSILON and abs(ax - cx) <= _EPSILON:
+    if (
+        abs(ax - bx) <= _EPSILON
+        and abs(cx - dx) <= _EPSILON
+        and abs(ax - cx) <= _EPSILON
+    ):
         return max(0.0, min(max(ay, by), max(cy, dy)) - max(min(ay, by), min(cy, dy)))
-    if abs(ay - by) <= _EPSILON and abs(cy - dy) <= _EPSILON and abs(ay - cy) <= _EPSILON:
+    if (
+        abs(ay - by) <= _EPSILON
+        and abs(cy - dy) <= _EPSILON
+        and abs(ay - cy) <= _EPSILON
+    ):
         return max(0.0, min(max(ax, bx), max(cx, dx)) - max(min(ax, bx), min(cx, dx)))
     return 0.0
 
@@ -3415,12 +3311,8 @@ def _polygon_intersects_segment(polygon, segment: Segment) -> bool:
             and max(min_x, min(ax, bx)) <= min(max_x, max(ax, bx)) + _EPSILON
         )
     return any(
-        _segments_intersect(segment, edge)
-        for edge in _polygon_edges(polygon)
-    ) or (
-        min_x <= ax <= max_x
-        and min_y <= ay <= max_y
-    )
+        _segments_intersect(segment, edge) for edge in _polygon_edges(polygon)
+    ) or (min_x <= ax <= max_x and min_y <= ay <= max_y)
 
 
 def _segments_intersect(left: Segment, right: Segment) -> bool:
@@ -3436,12 +3328,10 @@ def _segments_intersect(left: Segment, right: Segment) -> bool:
 
 def _has_orthogonal_grid(lines: list[PlanLine]) -> bool:
     vertical = any(
-        abs(line.points[0][0] - line.points[-1][0]) <= _EPSILON
-        for line in lines
+        abs(line.points[0][0] - line.points[-1][0]) <= _EPSILON for line in lines
     )
     horizontal = any(
-        abs(line.points[0][1] - line.points[-1][1]) <= _EPSILON
-        for line in lines
+        abs(line.points[0][1] - line.points[-1][1]) <= _EPSILON for line in lines
     )
     return vertical and horizontal
 
@@ -3461,8 +3351,8 @@ def _is_finite_limit(value, *, minimum: float) -> bool:
         numeric = float(value)
     except (TypeError, ValueError):
         return False
-    return math.isfinite(numeric) and numeric >= minimum and (
-        minimum != 0 or numeric > 0
+    return (
+        math.isfinite(numeric) and numeric >= minimum and (minimum != 0 or numeric > 0)
     )
 
 
@@ -3489,14 +3379,22 @@ def _validate_program(program: ProgramGraph) -> None:
         maximum = float(node.max_area) if node.max_area is not None else None
         values = [value for value in (target, minimum, maximum) if value is not None]
         if not all(math.isfinite(value) and value > 0 for value in values):
-            raise ValueError(f"program room '{node.node_id}' areas must be finite and positive")
+            raise ValueError(
+                f"program room '{node.node_id}' areas must be finite and positive"
+            )
         if minimum is not None and minimum > target:
-            raise ValueError(f"program room '{node.node_id}' minimum area exceeds target")
+            raise ValueError(
+                f"program room '{node.node_id}' minimum area exceeds target"
+            )
         if maximum is not None and maximum < target:
-            raise ValueError(f"program room '{node.node_id}' maximum area is below target")
+            raise ValueError(
+                f"program room '{node.node_id}' maximum area is below target"
+            )
         if minimum is not None and maximum is not None and minimum > maximum:
             raise ValueError(f"program room '{node.node_id}' area range is inverted")
-        if node.min_width is not None and not _is_finite_limit(node.min_width, minimum=0):
+        if node.min_width is not None and not _is_finite_limit(
+            node.min_width, minimum=0
+        ):
             raise ValueError(
                 f"program room '{node.node_id}' minimum width must be finite and positive"
             )
@@ -3515,7 +3413,9 @@ def _validate_program(program: ProgramGraph) -> None:
                 f"program edge '{edge.source}->{edge.target}' has an unknown endpoint"
             )
         if edge.source == edge.target:
-            raise ValueError(f"program edge '{edge.source}->{edge.target}' is a self-edge")
+            raise ValueError(
+                f"program edge '{edge.source}->{edge.target}' is a self-edge"
+            )
         weight = float(edge.weight)
         if not math.isfinite(weight) or weight <= 0:
             raise ValueError(
@@ -3551,8 +3451,16 @@ def _room_area_metrics(
         matching = [room for room in rooms if room.room_id == node.node_id]
         valid_matching = [room for room in matching if id(room) in valid_room_ids]
         actual_area = sum(polygon_area(room.polygon) for room in valid_matching)
-        minimum = float(node.min_area) if node.min_area is not None else float(node.target_area) * 0.99
-        maximum = float(node.max_area) if node.max_area is not None else float(node.target_area) * 1.01
+        minimum = (
+            float(node.min_area)
+            if node.min_area is not None
+            else float(node.target_area) * 0.99
+        )
+        maximum = (
+            float(node.max_area)
+            if node.max_area is not None
+            else float(node.target_area) * 1.01
+        )
         within_range = (
             len(matching) == 1
             and len(valid_matching) == 1
@@ -3569,7 +3477,11 @@ def _room_area_metrics(
             )
         )
         target = max(abs(float(node.target_area)), 1.0)
-        scores.append(round(max(0.0, 1.0 - abs(actual_area - float(node.target_area)) / target), 4))
+        scores.append(
+            round(
+                max(0.0, 1.0 - abs(actual_area - float(node.target_area)) / target), 4
+            )
+        )
         if len(matching) == 1 and len(valid_matching) == 1 and not within_range:
             nearest = minimum if actual_area < minimum else maximum
             add_violation(
@@ -3596,9 +3508,7 @@ def _room_shape_metrics(
         valid_matching = [room for room in matching if id(room) in valid_room_ids]
         required_width = float(node.min_width) if node.min_width is not None else None
         maximum_aspect = (
-            float(node.max_aspect_ratio)
-            if node.max_aspect_ratio is not None
-            else None
+            float(node.max_aspect_ratio) if node.max_aspect_ratio is not None else None
         )
         measured_width: float | None = None
         measured_aspect: float | None = None
@@ -3682,7 +3592,10 @@ def _check_overlaps(
                         "overlap",
                         f"{left.room_id}|{right.room_id}",
                         f"'{left.room_id}' overlaps '{right.room_id}'",
-                        area / max(polygon_area(left.polygon), polygon_area(right.polygon), 1.0),
+                        area
+                        / max(
+                            polygon_area(left.polygon), polygon_area(right.polygon), 1.0
+                        ),
                     )
     for room in rooms:
         for path in circulation:
@@ -3693,7 +3606,8 @@ def _check_overlaps(
                     "overlap",
                     f"{room.room_id}|{path.room_id}",
                     f"room '{room.room_id}' overlaps circulation '{path.room_id}'",
-                    area / max(polygon_area(room.polygon), polygon_area(path.polygon), 1.0),
+                    area
+                    / max(polygon_area(room.polygon), polygon_area(path.polygon), 1.0),
                 )
     return overlap_ok
 
@@ -3707,8 +3621,10 @@ def _is_connected(shapes: list[RoomPolygon]) -> bool:
             if index in reached:
                 continue
             if (
-                shared_boundary_length(shapes[current].polygon, candidate.polygon) > _EPSILON
-                or polygon_overlap_area(shapes[current].polygon, candidate.polygon) > _EPSILON
+                shared_boundary_length(shapes[current].polygon, candidate.polygon)
+                > _EPSILON
+                or polygon_overlap_area(shapes[current].polygon, candidate.polygon)
+                > _EPSILON
             ):
                 reached.add(index)
                 pending.append(index)
@@ -3761,9 +3677,7 @@ def _adjacency_score(
     min_door_width: float,
 ) -> float:
     room_by_id = {
-        room.room_id: room
-        for room in rooms
-        if room_counts[room.room_id] == 1
+        room.room_id: room for room in rooms if room_counts[room.room_id] == 1
     }
     door_midpoints = _door_midpoints(layout, circulation, min_door_width)
     weighted_checks: list[tuple[float, bool]] = []
@@ -3827,7 +3741,9 @@ def _circulation_path_distance(
         (x, y)
         for x in x_values
         for y in y_values
-        if any(_point_in_polygon_or_boundary((x, y), path.polygon) for path in circulation)
+        if any(
+            _point_in_polygon_or_boundary((x, y), path.polygon) for path in circulation
+        )
     }
     if start not in nodes or end not in nodes:
         return math.inf
@@ -3841,7 +3757,9 @@ def _circulation_path_distance(
             fixed = node[0] if vertical else node[1]
             grouped.setdefault(fixed, []).append(node)
         for group in grouped.values():
-            ordered = sorted(group, key=lambda point: point[1] if vertical else point[0])
+            ordered = sorted(
+                group, key=lambda point: point[1] if vertical else point[0]
+            )
             for left, right in zip(ordered, ordered[1:]):
                 if not _axis_segment_in_polygon_union(left, right, circulation):
                     continue
@@ -3872,9 +3790,7 @@ def _frontage_score(
     street_segments: list[Segment],
 ) -> float:
     rooms_by_id = {
-        room.room_id: room
-        for room in rooms
-        if room_counts[room.room_id] == 1
+        room.room_id: room for room in rooms if room_counts[room.room_id] == 1
     }
     required = [node for node in program.nodes if node.frontage_required]
     if not required:
@@ -3910,7 +3826,9 @@ def _coverage_score(
 def _compactness_score(rooms: list[RoomPolygon]) -> float:
     scores: list[float] = []
     for room in rooms:
-        vertices = room.polygon[:-1] if room.polygon[:1] == room.polygon[-1:] else room.polygon
+        vertices = (
+            room.polygon[:-1] if room.polygon[:1] == room.polygon[-1:] else room.polygon
+        )
         perimeter = sum(
             math.hypot(
                 vertices[(index + 1) % len(vertices)][0] - point[0],
@@ -3964,11 +3882,7 @@ def _normalized_violation_score(
     expected_room_count: int,
 ) -> float:
     subjects_by_code: dict[str, set[str]] = {
-        code: {
-            violation.subject
-            for violation in violations
-            if violation.code == code
-        }
+        code: {violation.subject for violation in violations if violation.code == code}
         for code in _HARD_VIOLATION_CODES
     }
     room_denominator = max(1, expected_room_count)

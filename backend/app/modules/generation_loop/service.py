@@ -4,6 +4,8 @@ import math
 from collections.abc import Iterable
 from dataclasses import replace
 
+from shapely.geometry import LineString, MultiLineString, Polygon, box
+from shapely.prepared import prep
 from backend.app.modules.generation_loop.operators import (
     generate_initial_proposals,
     layout_fingerprint,
@@ -19,6 +21,9 @@ from backend.app.modules.layout_generator.service import (
     generate_core_aligned_layout,
     generate_rear_center_layout,
     generate_side_mid_layout,
+)
+from backend.app.modules.layout_generator.orthogonal import (
+    generate_orthogonal_office_layout,
 )
 from backend.app.modules.basic_design import (
     generate_basic_design,
@@ -73,6 +78,15 @@ from engine.geometry.polygon import (
     polygon_overlap_area,
     union_polygon,
 )
+from engine.geometry.orthogonal import (
+    common_floor_region,
+    shared_core_candidates,
+)
+from engine.geometry.polygonal import (
+    common_polygon_region,
+    fixed_rectangle_candidates,
+    largest_inscribed_axis_aligned_rectangle,
+)
 
 
 _SERVICE_SPACE_TYPES = {
@@ -93,14 +107,8 @@ def build_floor_design_evidence(
     boundary: list[tuple[float, float]],
 ) -> tuple[FloorAreaLedger, FloorEgressGraphResult]:
     """Build conservative area and traversable-egress evidence for one floor."""
-    floor_boundary = tuple(
-        (float(x), float(y))
-        for x, y in boundary
-    )
-    program_types = {
-        node.node_id: node.space_type
-        for node in program.nodes
-    }
+    floor_boundary = tuple((float(x), float(y)) for x, y in boundary)
+    program_types = {node.node_id: node.space_type for node in program.nodes}
     layout_room_ids = {room.room_id for room in layout.rooms}
     missing_program_reasons = tuple(
         f"missing_program_room:{node_id}"
@@ -159,19 +167,13 @@ def build_floor_design_evidence(
     )
     unresolved = (
         *missing_program_reasons,
-        *tuple(
-            f"unclassified_room:{geometry.source_id}"
-            for geometry in unclassified
-        ),
+        *tuple(f"unclassified_room:{geometry.source_id}" for geometry in unclassified),
     )
     if unresolved:
         area = replace(
             area,
             status="not_checked",
-            entries=tuple(
-                replace(entry, area_m2=None)
-                for entry in area.entries
-            ),
+            entries=tuple(replace(entry, area_m2=None) for entry in area.entries),
             unresolved_facts=tuple(
                 dict.fromkeys((*area.unresolved_facts, *unresolved))
             ),
@@ -238,7 +240,9 @@ def run_generation_loop(
     use_type: str,
 ) -> GenerationResult:
     analysis = analyze_mass(mass)
-    program = generate_program_graph(analysis, floor_index=floor_index, use_type=use_type)
+    program = generate_program_graph(
+        analysis, floor_index=floor_index, use_type=use_type
+    )
     layout = generate_baseline_layout(analysis, program)
     area_ledger, egress_graph = build_floor_design_evidence(
         layout=layout,
@@ -270,7 +274,15 @@ def run_building_generation(
     planner_provenance: PlannerProvenance | None = None,
 ) -> BuildingGenerationResult:
     analysis = analyze_mass(mass)
-    _require_rectangular_floor_plate(mass, analysis)
+    has_nonrectangular_floor = any(
+        not _is_axis_aligned_rectangle(plate.footprint_polygon, plate.bounds)
+        for plate in analysis.floor_plates
+    )
+    has_nonorthogonal_floor = any(
+        not _is_axis_aligned_polygon(plate.footprint_polygon)
+        for plate in analysis.floor_plates
+    )
+    uses_floor_plate_geometry = bool(mass.floor_footprints or has_nonrectangular_floor)
     if floor_assignments is None:
         assignments = assign_floors_from_use_mix(mass)
         assignment_source = "use_mix"
@@ -298,6 +310,10 @@ def run_building_generation(
             raise ValueError(
                 "planner provenance assignments must match validated floor assignments"
             )
+    floor_analyses = tuple(
+        _analysis_for_floor(analysis, floor_index)
+        for floor_index in range(1, mass.floors + 1)
+    )
     min_x, min_y, max_x, max_y = analysis.bounds
     width = max_x - min_x
     depth = max_y - min_y
@@ -308,14 +324,18 @@ def run_building_generation(
 
     programs = [
         generate_program_graph(
-            analysis,
+            floor_analysis,
             floor_index=assignment.floor_index,
             use_type=assignment.use_type,
         )
-        for assignment in assignments
+        for assignment, floor_analysis in zip(assignments, floor_analyses)
     ]
     shared_core_target = max(
-        float(next(node.target_area for node in program.nodes if node.space_type == "core"))
+        float(
+            next(
+                node.target_area for node in program.nodes if node.space_type == "core"
+            )
+        )
         for program in programs
     )
 
@@ -327,10 +347,137 @@ def run_building_generation(
         and any(node.space_type in {"sales", "open_work"} for node in program.nodes)
         for program in programs
     )
-    if use_role_layout:
+    shared_core: list[tuple[float, float]] | tuple[tuple[float, float], ...]
+    shared_remote_stair = None
+    polygonal_layout_boundary = None
+    if uses_floor_plate_geometry:
+        floor_boundaries = tuple(
+            plate.footprint_polygon for plate in analysis.floor_plates
+        )
+        common_boundary = (
+            common_polygon_region(floor_boundaries)
+            if has_nonorthogonal_floor
+            else common_floor_region(floor_boundaries)
+        )
+        resolved_height, _ = resolve_floor_height(
+            (
+                mass.building_code_context.floor_to_floor_height_m
+                if mass.building_code_context is not None
+                else None
+            )
+        )
+        stair_short_side, stair_long_side = required_stair_enclosure(resolved_height)
+        minimum_depth = min(
+            plate.bounds[3] - plate.bounds[1] for plate in analysis.floor_plates
+        )
+        core_depth = max(
+            stair_long_side + 0.25,
+            5.2,
+            minimum_depth * 0.55,
+        )
+        core_width = max(7.6, shared_core_target / core_depth)
+        core_candidates = (
+            fixed_rectangle_candidates
+            if has_nonorthogonal_floor
+            else shared_core_candidates
+        )
+        candidates = [
+            candidate
+            for candidate in core_candidates(
+                floor_boundaries,
+                width=core_width,
+                depth=core_depth,
+            )
+            if (
+                polygon_bounds(candidate)[2] - polygon_bounds(candidate)[0]
+                >= core_width - 1e-7
+                and polygon_bounds(candidate)[3] - polygon_bounds(candidate)[1]
+                >= core_depth - 1e-7
+            )
+        ]
+        if not candidates:
+            raise ValueError("common floor region cannot fit the shared vertical core")
+        if has_nonorthogonal_floor:
+            shared_core, shared_remote_stair, polygonal_layout_boundary = (
+                _select_polygonal_core_and_stair(
+                    candidates,
+                    floor_boundaries=floor_boundaries,
+                    common_shape=Polygon(common_boundary),
+                    stair_dimensions=(
+                        (stair_short_side, stair_long_side),
+                        (stair_long_side, stair_short_side),
+                    ),
+                )
+            )
+        else:
+            shared_core = max(
+                candidates,
+                key=lambda candidate: (
+                    polygon_bounds(candidate)[3],
+                    polygon_bounds(candidate)[2],
+                    polygon_bounds(candidate),
+                ),
+            )
+        service_x, _, service_max_x, _ = polygon_bounds(shared_core)
+        service_band_width = service_max_x - service_x
+        core_height = polygon_bounds(shared_core)[3] - polygon_bounds(shared_core)[1]
+        shared_core_target = polygon_area(shared_core)
+        if has_nonrectangular_floor and not has_nonorthogonal_floor:
+            core_min_x, core_min_y, core_max_x, _ = polygon_bounds(shared_core)
+            corridor_bottom = core_min_y - 1.2
+            common_shape = Polygon(common_boundary)
+            stair_candidates = _aligned_remote_stair_candidates(
+                common_shape,
+                corridor_bottom=corridor_bottom,
+                dimensions=(
+                    (stair_short_side, stair_long_side),
+                    (stair_long_side, stair_short_side),
+                ),
+                excluded_polygon=shared_core,
+            )
+            if has_nonorthogonal_floor:
+                feasible_stairs = []
+                for candidate in stair_candidates:
+                    try:
+                        for boundary in floor_boundaries:
+                            largest_inscribed_axis_aligned_rectangle(
+                                boundary,
+                                required_polygons=(
+                                    shared_core,
+                                    candidate,
+                                ),
+                            )
+                    except ValueError:
+                        continue
+                    feasible_stairs.append(candidate)
+                stair_candidates = feasible_stairs
+            if not stair_candidates:
+                raise ValueError(
+                    "common floor region cannot fit an aligned remote stair"
+                )
+            core_center = (
+                (core_min_x + core_max_x) / 2,
+                (core_min_y + polygon_bounds(shared_core)[3]) / 2,
+            )
+            shared_remote_stair = max(
+                stair_candidates,
+                key=lambda candidate: (
+                    math.dist(
+                        Polygon(candidate).centroid.coords[0],
+                        core_center,
+                    ),
+                    polygon_bounds(candidate),
+                ),
+            )
+    elif use_role_layout:
         streets = _street_segments(mass)
-        if any(program.use_type == "neighborhood_commercial" for program in programs) and len(streets) != 1:
-            raise ValueError("neighborhood commercial generation requires exactly one street edge")
+        if (
+            any(program.use_type == "neighborhood_commercial" for program in programs)
+            and len(streets) != 1
+        ):
+            raise ValueError(
+                "neighborhood commercial generation requires exactly one street edge"
+            )
         if any(program.use_type == "neighborhood_commercial" for program in programs):
             street_start, street_end = streets[0]
             if {street_start, street_end} != {(min_x, min_y), (max_x, min_y)}:
@@ -364,49 +511,80 @@ def run_building_generation(
         service_band_width = max_x - service_x
         core_height = room_scale * shared_core_target / service_band_width
     programs = [
-        _normalize_program_core(program, shared_core_target)
-        for program in programs
+        _normalize_program_core(program, shared_core_target) for program in programs
     ]
-    if width <= 24.0 or depth <= 10.0:
-        shallow_compact = width <= 24.0 and depth <= 12.0
+    if has_nonrectangular_floor:
         programs = [
+            _zone_orthogonal_office_program(
+                program,
+                expand_focus=not has_nonorthogonal_floor,
+            )
+            for program in programs
+        ]
+    programs = [
+        (
             _compress_compact_program(
                 program,
                 primary_factor=0.8,
                 service_factor=0.6,
                 upper_service_factor=(
-                    (0.5 if program.use_type == "neighborhood_commercial" else 0.5)
-                    if shallow_compact
+                    0.5
+                    if floor_analysis.bounds[2] - floor_analysis.bounds[0] <= 24.0
+                    and floor_analysis.bounds[3] - floor_analysis.bounds[1] <= 12.0
                     else None
                 ),
             )
-            for program in programs
-        ]
-    programs = [
-        _fit_rear_primary_program(
-            program,
-            analysis,
-            floor_to_floor_height_m=(
-                mass.building_code_context.floor_to_floor_height_m
-                if mass.building_code_context is not None
-                else None
-            ),
+            if (
+                floor_analysis.bounds[2] - floor_analysis.bounds[0] <= 24.0
+                or floor_analysis.bounds[3] - floor_analysis.bounds[1] <= 10.0
+            )
+            else program
         )
-        for program in programs
+        for program, floor_analysis in zip(programs, floor_analyses)
+    ]
+    programs = [
+        (
+            program
+            if has_nonrectangular_floor
+            else _fit_rear_primary_program(
+                program,
+                floor_analysis,
+                floor_to_floor_height_m=(
+                    mass.building_code_context.floor_to_floor_height_m
+                    if mass.building_code_context is not None
+                    else None
+                ),
+                core_polygon=(shared_core if uses_floor_plate_geometry else None),
+            )
+        )
+        for program, floor_analysis in zip(programs, floor_analyses)
     ]
     core_top = float(_clean_area(min_y + core_height))
-    shared_core = [
-        (service_x, min_y),
-        (max_x, min_y),
-        (max_x, core_top),
-        (service_x, core_top),
-    ]
+    if not uses_floor_plate_geometry:
+        shared_core = [
+            (service_x, min_y),
+            (max_x, min_y),
+            (max_x, core_top),
+            (service_x, core_top),
+        ]
 
     layouts = []
-    for program in programs:
-        if use_role_layout:
+    for program, floor_analysis in zip(programs, floor_analyses):
+        if has_nonrectangular_floor:
+            layout_boundary = floor_analysis.boundary_for_floor(
+                program.floor_index
+            )
+            if has_nonorthogonal_floor:
+                layout_boundary = polygonal_layout_boundary
+            layout = generate_orthogonal_office_layout(
+                layout_boundary,
+                program,
+                core_polygon=shared_core,
+                remote_stair_polygon=shared_remote_stair,
+            )
+        elif use_role_layout:
             layout = generate_rear_center_layout(
-                analysis,
+                floor_analysis,
                 program,
                 core_position="rear_right",
                 floor_to_floor_height_m=(
@@ -414,10 +592,11 @@ def run_building_generation(
                     if mass.building_code_context is not None
                     else None
                 ),
+                core_polygon=(shared_core if uses_floor_plate_geometry else None),
             )
         else:
             layout = generate_core_aligned_layout(
-                analysis,
+                floor_analysis,
                 program,
                 core_polygon=shared_core,
                 service_band_width=service_band_width,
@@ -425,8 +604,18 @@ def run_building_generation(
             )
         layouts.append(layout)
 
+    if has_nonrectangular_floor:
+        programs = [
+            _fit_orthogonal_program_to_layout(program, layout)
+            for program, layout in zip(programs, layouts)
+        ]
+
     shared_structure = generate_shared_structure(
-        mass.footprint_polygon,
+        list(
+            common_boundary
+            if uses_floor_plate_geometry
+            else mass.footprint_polygon
+        ),
         tuple(layouts),
         floor_to_floor_height_m=(
             mass.building_code_context.floor_to_floor_height_m
@@ -435,13 +624,23 @@ def run_building_generation(
         ),
     )
     floor_results = []
-    for program, layout in zip(programs, layouts):
+    for floor_analysis, program, layout in zip(
+        floor_analyses,
+        programs,
+        layouts,
+    ):
+        floor_plate = analysis.floor_plate(program.floor_index)
+        floor_boundary = floor_plate.footprint_polygon
+        floor_streets = _street_segments_for_boundary(
+            mass,
+            floor_boundary,
+        )
         layout = replace(
             layout,
             basic_design=generate_basic_design(
                 layout,
-                boundary=mass.footprint_polygon,
-                street_segments=_street_segments(mass),
+                boundary=floor_boundary,
+                street_segments=floor_streets,
                 shared_structure=shared_structure,
                 floor_to_floor_height_m=(
                     mass.building_code_context.floor_to_floor_height_m
@@ -453,13 +652,13 @@ def run_building_generation(
         area_ledger, egress_graph = build_floor_design_evidence(
             layout=layout,
             program=program,
-            boundary=mass.footprint_polygon,
+            boundary=floor_boundary,
         )
         validation = validate_layout(
             layout,
             program,
-            boundary=mass.footprint_polygon,
-            street_segments=_street_segments(mass),
+            boundary=floor_boundary,
+            street_segments=floor_streets,
             require_openings=True,
             min_door_width=0.8,
             min_circulation_width=1.2,
@@ -469,27 +668,28 @@ def run_building_generation(
         )
         floor_results.append(
             GenerationResult(
-                mass=analysis,
+                mass=floor_analysis,
                 program=program,
                 layout=layout,
                 validation=validation,
                 area_ledger=area_ledger,
                 egress_graph=egress_graph,
+                floor_boundary=floor_boundary,
+                floor_boundary_source=floor_plate.source,
             )
         )
 
     use_type_areas: dict[str, float] = {}
     for assignment in assignments:
-        use_type_areas[assignment.use_type] = (
-            use_type_areas.get(assignment.use_type, 0.0) + float(analysis.area)
-        )
+        use_type_areas[assignment.use_type] = use_type_areas.get(
+            assignment.use_type, 0.0
+        ) + float(analysis.area_for_floor(assignment.floor_index))
     core_polygons = [
         next(room.polygon for room in floor.layout.rooms if room.space_type == "core")
         for floor in floor_results
     ]
     vertical_core_aligned = all(
-        polygon == core_polygons[0]
-        for polygon in core_polygons[1:]
+        polygon == core_polygons[0] for polygon in core_polygons[1:]
     )
     vertical_basic_design_aligned, vertical_structure_aligned = (
         _vertical_basic_design_alignment(tuple(floor_results))
@@ -581,8 +781,7 @@ def run_building_alternatives(
                 alternative_id=alternative_id,
             )
         fingerprints = tuple(
-            layout_fingerprint(floor.layout)
-            for floor in building.floor_results
+            layout_fingerprint(floor.layout) for floor in building.floor_results
         )
         mean_score = sum(
             floor.validation.total_score for floor in building.floor_results
@@ -605,17 +804,14 @@ def run_building_alternatives(
         (
             floor.program.floor_index,
             (
-                floor.validation.regulatory_screening
-                .screened_required_direct_stair_count
+                floor.validation.regulatory_screening.screened_required_direct_stair_count
                 if floor.validation.regulatory_screening is not None
                 else None
             ),
         )
         for floor in baseline.floor_results
     )
-    if floor_required_counts and all(
-        count == 1 for _, count in floor_required_counts
-    ):
+    if floor_required_counts and all(count == 1 for _, count in floor_required_counts):
         one_stair = []
         for conservative_alternative in conservative:
             building = _screened_one_stair_building(
@@ -667,17 +863,15 @@ def run_building_alternatives(
     )
     comparisons = []
     for index, first in enumerate(ranked):
-        for second in ranked[index + 1:]:
+        for second in ranked[index + 1 :]:
             core_distance = math.dist(first.core_centroid, second.core_centroid)
             normalized_distance = core_distance / diagonal
             circulation_different = (
-                first.circulation_graph_signature
-                != second.circulation_graph_signature
+                first.circulation_graph_signature != second.circulation_graph_signature
                 or first.circulation_bounds != second.circulation_bounds
             )
             tenant_different = (
-                first.tenant_assignment_signature
-                != second.tenant_assignment_signature
+                first.tenant_assignment_signature != second.tenant_assignment_signature
             )
             comparisons.append(
                 AlternativeGeometryComparison(
@@ -710,9 +904,7 @@ def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
         round((min(core_y) + max(core_y)) / 2, 6),
     )
     circulation_points = [
-        point
-        for path in layout.circulation
-        for point in path.polygon
+        point for path in layout.circulation for point in path.polygon
     ]
     circulation_bounds = (
         round(min(point[0] for point in circulation_points), 6),
@@ -740,9 +932,7 @@ def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
         else []
     )
     tenant_room_ids = {
-        room.room_id
-        for room in layout.rooms
-        if room.room_id.startswith("sales_")
+        room.room_id for room in layout.rooms if room.room_id.startswith("sales_")
     }
     tenant_entrances = tuple(
         sorted(
@@ -752,8 +942,7 @@ def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:
         )
     )
     core_public_entrance = any(
-        line.line_id == "core-public-entrance"
-        for line in entrance_lines
+        line.line_id == "core-public-entrance" for line in entrance_lines
     )
     commercial_floor = next(
         (
@@ -848,16 +1037,12 @@ def _screened_one_stair_building(
         }
         if len(removed_stair_ids) != 1:
             raise ValueError(
-                "screened one-stair family requires exactly one removable "
-                "remote stair"
+                "screened one-stair family requires exactly one removable remote stair"
             )
         removed_exit_ids = {
             line.line_id
             for line in basic_design.lines
-            if (
-                line.kind == "protected_exit"
-                and line.target_id in removed_stair_ids
-            )
+            if (line.kind == "protected_exit" and line.target_id in removed_stair_ids)
         }
         features = replace(
             basic_design,
@@ -898,8 +1083,7 @@ def _screened_one_stair_building(
                         line
                         for line in features.lines
                         if not (
-                            line.kind == "window"
-                            and line.host_id == reclaimed_room_id
+                            line.kind == "window" and line.host_id == reclaimed_room_id
                         )
                     ),
                     *((reclaimed_window,) if reclaimed_window is not None else ()),
@@ -948,9 +1132,7 @@ def _screened_one_stair_building(
         vertical_structure_aligned=vertical_structure,
         area_ledger=build_building_area_ledger(
             tuple(
-                floor.area_ledger
-                for floor in values
-                if floor.area_ledger is not None
+                floor.area_ledger for floor in values if floor.area_ledger is not None
             )
         ),
     )
@@ -1019,13 +1201,8 @@ def _reclaim_remote_stair_reserve(
             adjusted = _with_program_adjustment(
                 program,
                 nodes,
-                reason=(
-                    "one_stair_remote_reserve_reclaimed:"
-                    f"{room.room_id}"
-                ),
-                source=(
-                    f"{program.source}:one_stair_remote_reserve_reclaimed"
-                ),
+                reason=(f"one_stair_remote_reserve_reclaimed:{room.room_id}"),
+                source=(f"{program.source}:one_stair_remote_reserve_reclaimed"),
             )
             return replace(layout, rooms=rooms), adjusted, room.room_id
 
@@ -1041,9 +1218,7 @@ def _reclaim_remote_stair_reserve(
         if shared_length > 1e-9:
             circulation_candidates.append((shared_length, path))
     if not circulation_candidates:
-        raise ValueError(
-            "remote stair reserve has no valid adjacent reclamation space"
-        )
+        raise ValueError("remote stair reserve has no valid adjacent reclamation space")
     _, target = min(
         circulation_candidates,
         key=lambda item: (-item[0], item[1].room_id),
@@ -1054,9 +1229,7 @@ def _reclaim_remote_stair_reserve(
         polygon_area(target.polygon) + polygon_area(reserve),
         abs_tol=1e-7,
     ):
-        raise ValueError(
-            "remote stair reserve must not overlap reclaimed circulation"
-        )
+        raise ValueError("remote stair reserve must not overlap reclaimed circulation")
     return (
         replace(
             layout,
@@ -1078,9 +1251,7 @@ def _room_reclamation_candidates(
     room: RoomPolygon,
     reserve: tuple[tuple[float, float], ...],
 ) -> tuple[tuple[tuple[float, float], ...], ...]:
-    min_x, min_y, max_x, max_y = polygon_bounds(
-        (*room.polygon, *reserve)
-    )
+    min_x, min_y, max_x, max_y = polygon_bounds((*room.polygon, *reserve))
     rectangle = (
         (min_x, min_y),
         (max_x, min_y),
@@ -1107,21 +1278,16 @@ def _valid_reclaimed_room(
     ):
         return False
     if max_aspect_ratio is not None and (
-        bounding_box_aspect_ratio(reclaimed) - 1e-9
-        > float(max_aspect_ratio)
+        bounding_box_aspect_ratio(reclaimed) - 1e-9 > float(max_aspect_ratio)
     ):
         return False
     obstacles = [
         candidate.polygon
         for candidate in layout.rooms
         if candidate.room_id != room.room_id
-    ] + [
-        path.polygon
-        for path in layout.circulation
-    ]
+    ] + [path.polygon for path in layout.circulation]
     return all(
-        polygon_overlap_area(reclaimed, obstacle) <= 1e-9
-        for obstacle in obstacles
+        polygon_overlap_area(reclaimed, obstacle) <= 1e-9 for obstacle in obstacles
     )
 
 
@@ -1208,9 +1374,7 @@ def _transform_building_alternative(
         vertical_structure_aligned=vertical_structure,
         area_ledger=build_building_area_ledger(
             tuple(
-                floor.area_ledger
-                for floor in values
-                if floor.area_ledger is not None
+                floor.area_ledger for floor in values if floor.area_ledger is not None
             )
         ),
     )
@@ -1282,9 +1446,7 @@ def _generate_side_mid_building(
     )
     _, stair_long_side = required_stair_enclosure(stair_height)
     for floor in baseline.floor_results:
-        core = next(
-            node for node in floor.program.nodes if node.space_type == "core"
-        )
+        core = next(node for node in floor.program.nodes if node.space_type == "core")
         core_height = max(7.2, depth * 0.6)
         core_width = max(
             float(core.target_area) / core_height,
@@ -1301,9 +1463,7 @@ def _generate_side_mid_building(
             if floor.program.use_type == "neighborhood_commercial"
             else branch_left - min_x
         )
-        cross_bottoms.append(
-            min_y + float(primary.target_area) / primary_width
-        )
+        cross_bottoms.append(min_y + float(primary.target_area) / primary_width)
         service_nodes = [
             node
             for node in floor.program.nodes
@@ -1312,8 +1472,7 @@ def _generate_side_mid_building(
         available_width = max(branch_left - min_x - stair_long_side, 1.0)
         service_height = max(
             2.4,
-            sum(float(node.target_area) for node in service_nodes)
-            / available_width,
+            sum(float(node.target_area) for node in service_nodes) / available_width,
         )
         while (
             sum(
@@ -1356,8 +1515,7 @@ def _generate_positioned_building(
     generator,
 ) -> BuildingGenerationResult:
     layouts = tuple(
-        generator(baseline.mass, floor.program)
-        for floor in baseline.floor_results
+        generator(baseline.mass, floor.program) for floor in baseline.floor_results
     )
     shared_structure = generate_shared_structure(
         mass.footprint_polygon,
@@ -1420,9 +1578,7 @@ def _generate_positioned_building(
         vertical_structure_aligned=vertical_structure,
         area_ledger=build_building_area_ledger(
             tuple(
-                floor.area_ledger
-                for floor in values
-                if floor.area_ledger is not None
+                floor.area_ledger for floor in values if floor.area_ledger is not None
             )
         ),
     )
@@ -1534,8 +1690,13 @@ def _vertical_basic_design_alignment(
             )
         )
     return (
-        all(signature == vertical_signatures[0] for signature in vertical_signatures[1:]),
-        all(signature == structure_signatures[0] for signature in structure_signatures[1:]),
+        all(
+            signature == vertical_signatures[0] for signature in vertical_signatures[1:]
+        ),
+        all(
+            signature == structure_signatures[0]
+            for signature in structure_signatures[1:]
+        ),
     )
 
 
@@ -1570,10 +1731,7 @@ def assign_floors_from_use_mix(mass: MassInput) -> tuple[FloorAssignment, ...]:
         use_type: mass.floors * positive[use_type] / total_weight
         for use_type in use_order
     }
-    counts = {
-        use_type: math.floor(raw_counts[use_type])
-        for use_type in use_order
-    }
+    counts = {use_type: math.floor(raw_counts[use_type]) for use_type in use_order}
     remaining = mass.floors - sum(counts.values())
     remainder_order = sorted(
         use_order,
@@ -1607,9 +1765,7 @@ def _validate_floor_assignments(
         raise ValueError("floor assignments contain an unsupported use type")
     indices = [item.floor_index for item in values]
     if sorted(indices) != list(range(1, floors + 1)):
-        raise ValueError(
-            "floor assignments must contain every floor exactly once"
-        )
+        raise ValueError("floor assignments must contain every floor exactly once")
     return tuple(sorted(values, key=lambda item: item.floor_index))
 
 
@@ -1698,8 +1854,7 @@ def _compress_compact_program(
         if node.space_type in primary_roles:
             factor = primary_factor
         elif (
-            upper_service_factor is not None
-            and node.space_type in upper_service_roles
+            upper_service_factor is not None and node.space_type in upper_service_roles
         ):
             factor = upper_service_factor
         else:
@@ -1716,8 +1871,7 @@ def _compress_compact_program(
                 max_area=_clean_area(target * 1.15),
                 min_width=(
                     max(1.1, float(node.min_width) * 0.5)
-                    if node.min_width is not None
-                    and node.space_type != "core"
+                    if node.min_width is not None and node.space_type != "core"
                     else node.min_width
                 ),
                 max_aspect_ratio=(
@@ -1740,28 +1894,79 @@ def _fit_rear_primary_program(
     analysis: MassAnalysis,
     *,
     floor_to_floor_height_m: float | None,
+    core_polygon: tuple[tuple[float, float], ...]
+    | list[tuple[float, float]]
+    | None = None,
 ):
     min_x, min_y, max_x, max_y = analysis.bounds
     depth = max_y - min_y
     resolved_height, _ = resolve_floor_height(floor_to_floor_height_m)
     _, stair_long_side = required_stair_enclosure(resolved_height)
-    rear_height = max(stair_long_side + 0.25, 5.2, depth * 0.5)
-    front_depth = depth - rear_height - 1.2
+    if core_polygon is None:
+        rear_height = max(stair_long_side + 0.25, 5.2, depth * 0.5)
+        front_depth = depth - rear_height - 1.2
+        fixed_core_width = None
+    else:
+        core_bounds = polygon_bounds(core_polygon)
+        rear_height = core_bounds[3] - core_bounds[1]
+        front_depth = core_bounds[1] - min_y - 1.2
+        fixed_core_width = core_bounds[2] - core_bounds[0]
     capacity = (max_x - min_x - 1.2) * front_depth
     core = next(node for node in program.nodes if node.space_type == "core")
-    core_width = max(7.0, float(core.target_area) / rear_height)
+    core_width = (
+        fixed_core_width
+        if fixed_core_width is not None
+        else max(7.0, float(core.target_area) / rear_height)
+    )
     service_nodes = [
         node
         for node in program.nodes
         if node.space_type not in {"core", "sales", "open_work"}
     ]
-    service_total = sum(float(node.target_area) for node in service_nodes)
-    service_capacity = max(
+    service_width_capacity = max(
         0.0,
-        (max_x - min_x - core_width - stair_long_side) * rear_height,
+        max_x - min_x - core_width - stair_long_side,
     )
-    if service_total > service_capacity and service_capacity > 0:
-        scale = service_capacity / service_total
+    service_width_demand = sum(
+        max(
+            float(node.target_area) / rear_height,
+            math.sqrt(
+                float(node.target_area) / float(node.max_aspect_ratio or math.inf)
+            )
+            * 1.000001,
+            float(node.min_width or 0),
+            1.1,
+        )
+        for node in service_nodes
+    )
+    if service_width_demand > service_width_capacity and service_width_capacity > 0:
+        minimum_width_demand = sum(
+            max(float(node.min_width or 0), 1.1) for node in service_nodes
+        )
+        if minimum_width_demand > service_width_capacity + 1e-7:
+            raise ValueError("rear service minimum widths exceed floor plate")
+        low, high = 0.0, 1.0
+        for _ in range(50):
+            scale = (low + high) / 2
+            scaled_width = sum(
+                max(
+                    float(node.target_area) * scale / rear_height,
+                    math.sqrt(
+                        float(node.target_area)
+                        * scale
+                        / float(node.max_aspect_ratio or math.inf)
+                    )
+                    * 1.000001,
+                    float(node.min_width or 0),
+                    1.1,
+                )
+                for node in service_nodes
+            )
+            if scaled_width <= service_width_capacity:
+                low = scale
+            else:
+                high = scale
+        scale = low
         adjusted_nodes = [
             (
                 replace(
@@ -1781,13 +1986,8 @@ def _fit_rear_primary_program(
             reason="rear_service_residual_fit",
             source=f"{program.source}:rear_service_residual_fit",
         )
-        core = next(
-            node for node in program.nodes if node.space_type == "core"
-        )
-    actual_core_area = max(
-        7.0,
-        float(core.target_area) / rear_height,
-    ) * rear_height
+        core = next(node for node in program.nodes if node.space_type == "core")
+    actual_core_area = core_width * rear_height
     fitted_core_target = (
         actual_core_area
         if (
@@ -1806,16 +2006,12 @@ def _fit_rear_primary_program(
                     target_area=_clean_area(tenant_target),
                     min_area=_clean_area(tenant_target * 0.85),
                     max_area=_clean_area(tenant_target * 1.15),
-                    max_aspect_ratio=max(
-                        6.5, float(node.max_aspect_ratio or 1.0)
-                    ),
+                    max_aspect_ratio=max(6.5, float(node.max_aspect_ratio or 1.0)),
                 )
                 if node.space_type == "sales"
                 else replace(
                     node,
-                    max_aspect_ratio=max(
-                        6.5, float(node.max_aspect_ratio or 1.0)
-                    ),
+                    max_aspect_ratio=max(6.5, float(node.max_aspect_ratio or 1.0)),
                 )
                 if node.space_type != "core"
                 else replace(
@@ -1847,16 +2043,12 @@ def _fit_rear_primary_program(
                 min_area=_clean_area(fitted_target * 0.85),
                 max_area=_clean_area(fitted_target * 1.15),
                 min_width=min(float(node.min_width or front_depth), front_depth),
-                max_aspect_ratio=max(
-                    6.5, float(node.max_aspect_ratio or 1.0)
-                ),
+                max_aspect_ratio=max(6.5, float(node.max_aspect_ratio or 1.0)),
             )
             if node.node_id == primary.node_id
             else replace(
                 node,
-                max_aspect_ratio=max(
-                    6.5, float(node.max_aspect_ratio or 1.0)
-                ),
+                max_aspect_ratio=max(6.5, float(node.max_aspect_ratio or 1.0)),
             )
             if node.space_type != "core"
             else replace(
@@ -1878,18 +2070,86 @@ def _fit_rear_primary_program(
     )
 
 
+def _zone_orthogonal_office_program(
+    program: ProgramGraph,
+    *,
+    expand_focus: bool = True,
+) -> ProgramGraph:
+    if program.use_type != "office":
+        raise ValueError(
+            "nonrectangular floor generation currently supports office only"
+        )
+    adjusted_nodes = [
+        (
+            replace(
+                node,
+                space_type="open_work",
+                zone="work",
+                frontage_required=True,
+                min_width=max(float(node.min_width or 0), 4.8),
+                max_aspect_ratio=max(
+                    float(node.max_aspect_ratio or 0),
+                    6.5,
+                ),
+            )
+            if expand_focus and node.space_type == "focus"
+            else node
+        )
+        for node in program.nodes
+    ]
+    return _with_program_adjustment(
+        program,
+        adjusted_nodes,
+        reason="orthogonal_open_work_zoning",
+        source=f"{program.source}:orthogonal_open_work_zoning",
+    )
+
+
+def _fit_orthogonal_program_to_layout(
+    program: ProgramGraph,
+    layout: LayoutCandidate,
+) -> ProgramGraph:
+    room_by_id = {room.room_id: room for room in layout.rooms}
+    adjusted_nodes = []
+    for node in program.nodes:
+        room = room_by_id[node.node_id]
+        actual_area = polygon_area(room.polygon)
+        actual_width = orthogonal_min_width(room.polygon)
+        actual_aspect = bounding_box_aspect_ratio(room.polygon)
+        adjusted_nodes.append(
+            replace(
+                node,
+                target_area=_clean_area(actual_area),
+                min_area=_clean_area(actual_area * 0.85),
+                max_area=_clean_area(actual_area * 1.15),
+                min_width=min(
+                    float(node.min_width or actual_width),
+                    actual_width,
+                ),
+                max_aspect_ratio=max(
+                    float(node.max_aspect_ratio or actual_aspect),
+                    actual_aspect,
+                ),
+            )
+        )
+    return _with_program_adjustment(
+        program,
+        adjusted_nodes,
+        reason="orthogonal_layout_fit",
+        source=f"{program.source}:orthogonal_layout_fit",
+    )
+
+
 def _program_adjustment(reason, original_nodes, adjusted_nodes):
     return ProgramAdjustment(
         reason=reason,
         original_nodes=tuple(original_nodes),
         adjusted_nodes=tuple(adjusted_nodes),
         original_targets=tuple(
-            (node.node_id, float(node.target_area))
-            for node in original_nodes
+            (node.node_id, float(node.target_area)) for node in original_nodes
         ),
         adjusted_targets=tuple(
-            (node.node_id, float(node.target_area))
-            for node in adjusted_nodes
+            (node.node_id, float(node.target_area)) for node in adjusted_nodes
         ),
     )
 
@@ -1914,22 +2174,180 @@ def _with_program_adjustment(
     )
 
 
-def _require_rectangular_floor_plate(
-    mass: MassInput,
-    analysis: MassAnalysis,
-) -> None:
-    min_x, min_y, max_x, max_y = analysis.bounds
+def _is_axis_aligned_rectangle(
+    polygon: Iterable[tuple[float, float]],
+    polygon_bounds_value: tuple[float, float, float, float],
+) -> bool:
+    points = tuple((float(x), float(y)) for x, y in polygon)
+    min_x, min_y, max_x, max_y = polygon_bounds_value
     expected = {
         (float(min_x), float(min_y)),
         (float(max_x), float(min_y)),
         (float(max_x), float(max_y)),
         (float(min_x), float(max_y)),
     }
-    actual = {(float(x), float(y)) for x, y in mass.footprint_polygon}
-    if len(mass.footprint_polygon) != 4 or actual != expected:
-        raise ValueError(
-            "building generation currently requires an axis-aligned rectangular floor plate"
+    return len(points) == 4 and set(points) == expected
+
+
+def _is_axis_aligned_polygon(
+    polygon: Iterable[tuple[float, float]],
+) -> bool:
+    points = tuple((float(x), float(y)) for x, y in polygon)
+    return all(
+        math.isclose(start[0], end[0], abs_tol=1e-8)
+        or math.isclose(start[1], end[1], abs_tol=1e-8)
+        for start, end in zip(points, (*points[1:], points[0]))
+    )
+
+
+def _aligned_remote_stair_candidates(
+    common_shape: Polygon,
+    *,
+    corridor_bottom: float,
+    dimensions: Iterable[tuple[float, float]],
+    excluded_polygon: Iterable[tuple[float, float]],
+    grid_step: float = 0.25,
+) -> list[tuple[tuple[float, float], ...]]:
+    min_x, _, max_x, _ = common_shape.bounds
+    candidates = []
+    for stair_width, stair_depth in set(dimensions):
+        stair_min_y = corridor_bottom - stair_depth
+        maximum_x = max_x - stair_width
+        count = max(0, math.ceil((maximum_x - min_x) / grid_step))
+        x_origins = {
+            min_x,
+            maximum_x,
+            *(
+                min_x + index * grid_step
+                for index in range(count + 1)
+                if min_x + index * grid_step <= maximum_x + 1e-8
+            ),
+        }
+        for stair_min_x in sorted(x_origins):
+            candidate = (
+                (stair_min_x, stair_min_y),
+                (stair_min_x + stair_width, stair_min_y),
+                (stair_min_x + stair_width, corridor_bottom),
+                (stair_min_x, corridor_bottom),
+            )
+            if (
+                common_shape.covers(Polygon(candidate))
+                and polygon_overlap_area(candidate, excluded_polygon) <= 1e-7
+            ):
+                candidates.append(candidate)
+    return candidates
+
+
+def _select_polygonal_core_and_stair(
+    core_candidates: Iterable[tuple[tuple[float, float], ...]],
+    *,
+    floor_boundaries: Iterable[Iterable[tuple[float, float]]],
+    common_shape: Polygon,
+    stair_dimensions: Iterable[tuple[float, float]],
+) -> tuple[
+    tuple[tuple[float, float], ...],
+    tuple[tuple[float, float], ...],
+    tuple[tuple[float, float], ...],
+]:
+    boundaries = tuple(tuple(boundary) for boundary in floor_boundaries)
+    cores = _representative_rectangle_candidates(tuple(core_candidates))
+    prepared_common = prep(common_shape)
+    maximum_floor_diagonal = max(
+        math.hypot(
+            polygon_bounds(boundary)[2] - polygon_bounds(boundary)[0],
+            polygon_bounds(boundary)[3] - polygon_bounds(boundary)[1],
         )
+        for boundary in boundaries
+    )
+    target_separation = maximum_floor_diagonal * 0.5
+    pairs = []
+    for core in cores:
+        core_bounds = polygon_bounds(core)
+        core_center = Polygon(core).centroid.coords[0]
+        stairs = _aligned_remote_stair_candidates(
+            common_shape,
+            corridor_bottom=core_bounds[1] - 1.2,
+            dimensions=stair_dimensions,
+            excluded_polygon=core,
+        )
+        for stair in sorted(
+            stairs,
+            key=lambda stair: math.dist(
+                Polygon(stair).centroid.coords[0],
+                core_center,
+            ),
+            reverse=True,
+        ):
+            stair_shape = Polygon(stair)
+            pair_bounds = Polygon(core).union(stair_shape).bounds
+            minimum_frame = box(*pair_bounds)
+            if not prepared_common.covers(minimum_frame):
+                continue
+            separation = math.dist(
+                stair_shape.centroid.coords[0],
+                core_center,
+            )
+            pairs.append(
+                (
+                    separation >= target_separation - 1e-7,
+                    separation,
+                    minimum_frame.area,
+                    core_bounds[3],
+                    core_bounds[2],
+                    core,
+                    stair,
+                )
+            )
+            break
+    if not pairs:
+        raise ValueError(
+            "common floor region cannot fit an aligned core and remote stair"
+        )
+    _, _, _, _, _, core, stair = max(pairs)
+    planning_boundary = largest_inscribed_axis_aligned_rectangle(
+        common_shape.exterior.coords[:-1],
+        required_polygons=(core, stair),
+    )
+    return core, stair, planning_boundary
+
+
+def _representative_rectangle_candidates(
+    candidates: tuple[tuple[tuple[float, float], ...], ...],
+) -> tuple[tuple[tuple[float, float], ...], ...]:
+    groups: dict[tuple[str, float, float, float], list] = {}
+    for candidate in candidates:
+        min_x, min_y, max_x, max_y = polygon_bounds(candidate)
+        width = round(max_x - min_x, 7)
+        height = round(max_y - min_y, 7)
+        groups.setdefault(("y", width, height, round(min_y, 7)), []).append(
+            candidate
+        )
+        groups.setdefault(("x", width, height, round(min_x, 7)), []).append(
+            candidate
+        )
+    selected = set()
+    for key, group in groups.items():
+        axis = 0 if key[0] == "y" else 1
+        ordered = sorted(group, key=lambda item: polygon_bounds(item)[axis])
+        last = len(ordered) - 1
+        selected.update(
+            ordered[round(last * fraction)]
+            for fraction in (0.0, 0.25, 0.5, 0.75, 1.0)
+        )
+    return tuple(sorted(selected, key=polygon_bounds))
+
+
+def _analysis_for_floor(
+    analysis: MassAnalysis,
+    floor_index: int,
+) -> MassAnalysis:
+    plate = analysis.floor_plate(floor_index)
+    return replace(
+        analysis,
+        area=plate.area,
+        edge_count=plate.edge_count,
+        bounds=plate.bounds,
+    )
 
 
 def _clean_area(value: float) -> float | int:
@@ -2013,7 +2431,9 @@ def run_candidate_search(
                 best,
                 iterations,
                 history,
-                "evaluation_budget_exhausted" if skipped_for_budget else "search_exhausted",
+                "evaluation_budget_exhausted"
+                if skipped_for_budget
+                else "search_exhausted",
                 evaluation_count,
             )
 
@@ -2106,6 +2526,33 @@ def _street_segments(
                 raise ValueError("street edge points must be finite")
             segment.append(normalized)
         segments.append((segment[0], segment[1]))
+    return segments
+
+
+def _street_segments_for_boundary(
+    mass: MassInput,
+    boundary: Iterable[tuple[float, float]],
+) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+    floor_boundary = Polygon(tuple(boundary))
+    segments = []
+    for start, end in _street_segments(mass):
+        clipped = floor_boundary.boundary.intersection(LineString((start, end)))
+        lines = (
+            [clipped]
+            if isinstance(clipped, LineString)
+            else list(clipped.geoms)
+            if isinstance(clipped, MultiLineString)
+            else []
+        )
+        for line in lines:
+            coordinates = tuple(line.coords)
+            if len(coordinates) >= 2 and line.length > 1e-9:
+                segments.append(
+                    (
+                        tuple(float(value) for value in coordinates[0]),
+                        tuple(float(value) for value in coordinates[-1]),
+                    )
+                )
     return segments
 
 

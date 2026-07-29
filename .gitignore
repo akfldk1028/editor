@@ -13,3 +13,4 @@ logs/security/.security-key
 logs/runs/
 logs/evaluation/
 experiments/**/outputs/
+clone/

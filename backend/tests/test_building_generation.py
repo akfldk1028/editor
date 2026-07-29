@@ -8,7 +8,7 @@ from backend.app.modules.layout_generator.service import generate_core_aligned_l
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.llm import FloorAssignment
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.mass import FloorFootprint, MassInput
 from engine.geometry import orthogonal_min_width, shared_boundary_segments
 from engine.geometry.polygon import (
     polygon_area,
@@ -52,11 +52,7 @@ def test_building_generation_assigns_all_floors_and_aligns_vertical_core():
     ]
 
     core_polygons = [
-        next(
-            room.polygon
-            for room in floor.layout.rooms
-            if room.space_type == "core"
-        )
+        next(room.polygon for room in floor.layout.rooms if room.space_type == "core")
         for floor in result.floor_results
     ]
     assert all(polygon == core_polygons[0] for polygon in core_polygons[1:])
@@ -80,16 +76,171 @@ def test_building_generation_assigns_all_floors_and_aligns_vertical_core():
     for floor in result.floor_results:
         room_ids = {room.room_id for room in floor.layout.rooms}
         circulation_ids = {path.room_id for path in floor.layout.circulation}
-        assert {
-            opening.connects[0]
-            for opening in floor.layout.openings
-        } == room_ids
+        assert {opening.connects[0] for opening in floor.layout.openings} == room_ids
         assert all(
             opening.kind == "door"
             and opening.clear_width == pytest.approx(0.9)
             and opening.connects[1] in circulation_ids
             for opening in floor.layout.openings
         )
+
+
+def test_building_generation_uses_each_setback_floor_boundary():
+    floor_boundaries = (
+        ((0, 0), (30, 0), (30, 18), (0, 18)),
+        ((0, 0), (28, 0), (28, 17), (0, 17)),
+        ((0, 0), (26, 0), (26, 16), (0, 16)),
+    )
+    mass = MassInput(
+        project_id="three-floor-setback-office",
+        floors=3,
+        footprint_polygon=list(floor_boundaries[0]),
+        floor_footprints=tuple(
+            FloorFootprint(
+                floor_index=index,
+                footprint_polygon=boundary,
+            )
+            for index, boundary in enumerate(floor_boundaries, start=1)
+        ),
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    result = generation_service.run_building_generation(mass)
+
+    assert result.total_area == 1432
+    assert result.use_type_areas == {"office": 1432}
+    assert result.vertical_core_aligned
+    assert result.accepted
+    cores = []
+    for floor, expected_boundary in zip(
+        result.floor_results,
+        floor_boundaries,
+    ):
+        assert floor.floor_boundary == expected_boundary
+        assert floor.floor_boundary_source == "explicit_floor_footprint"
+        for shape in (*floor.layout.rooms, *floor.layout.circulation):
+            assert generation_service.contains_polygon(
+                expected_boundary,
+                shape.polygon,
+            )
+        cores.append(
+            next(
+                room.polygon for room in floor.layout.rooms if room.space_type == "core"
+            )
+        )
+    assert all(core == cores[0] for core in cores[1:])
+
+
+def test_building_generation_supports_l_shaped_floor_setbacks():
+    floor_boundaries = (
+        ((0, 0), (30, 0), (30, 10), (14, 10), (14, 22), (0, 22)),
+        ((0, 0), (28, 0), (28, 10), (14, 10), (14, 20), (0, 20)),
+        ((0, 0), (26, 0), (26, 10), (14, 10), (14, 18), (0, 18)),
+    )
+    mass = MassInput(
+        project_id="three-floor-l-setback-office",
+        floors=3,
+        footprint_polygon=list(floor_boundaries[0]),
+        floor_footprints=tuple(
+            FloorFootprint(floor_index=index, footprint_polygon=boundary)
+            for index, boundary in enumerate(floor_boundaries, start=1)
+        ),
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    result = generation_service.run_building_generation(mass)
+
+    assert result.total_area == 1260
+    assert result.use_type_areas == {"office": 1260}
+    assert result.accepted
+    assert result.vertical_core_aligned
+    assert result.vertical_basic_design_aligned
+    assert result.vertical_structure_aligned
+    cores = []
+    remote_stairs = []
+    for floor, expected_boundary in zip(
+        result.floor_results,
+        floor_boundaries,
+    ):
+        assert floor.floor_boundary == expected_boundary
+        assert floor.validation.accepted
+        for shape in (*floor.layout.rooms, *floor.layout.circulation):
+            assert generation_service.contains_polygon(
+                expected_boundary,
+                shape.polygon,
+            )
+        cores.append(
+            next(
+                room.polygon for room in floor.layout.rooms if room.space_type == "core"
+            )
+        )
+        remote_stairs.append(floor.layout.remote_stair_footprint)
+    assert all(core == cores[0] for core in cores[1:])
+    assert all(stair == remote_stairs[0] for stair in remote_stairs[1:])
+
+
+@pytest.mark.parametrize(
+    "floor_boundaries",
+    [
+        (
+            ((0, 0), (42, 0), (39, 24), (6, 24), (0, 12)),
+            ((1, 0), (40, 0), (37, 22), (7, 22), (2, 11)),
+        ),
+        (
+            ((0, 0), (42, 0), (42, 16), (36, 22), (6, 22), (0, 16)),
+            ((1, 0), (40, 0), (40, 15), (35, 20), (7, 20), (1, 15)),
+        ),
+    ],
+)
+def test_building_generation_supports_sloped_polygon_floor_setbacks(
+    floor_boundaries,
+):
+    mass = MassInput(
+        project_id="two-floor-polygon-setback-office",
+        floors=2,
+        footprint_polygon=list(floor_boundaries[0]),
+        floor_footprints=tuple(
+            FloorFootprint(floor_index=index, footprint_polygon=boundary)
+            for index, boundary in enumerate(floor_boundaries, start=1)
+        ),
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    result = generation_service.run_building_generation(mass)
+
+    assert result.accepted
+    assert result.vertical_core_aligned
+    assert result.vertical_basic_design_aligned
+    assert result.vertical_structure_aligned
+    cores = []
+    remote_stairs = []
+    for floor, expected_boundary in zip(
+        result.floor_results,
+        floor_boundaries,
+    ):
+        assert floor.floor_boundary == expected_boundary
+        assert floor.validation.accepted
+        for shape in (*floor.layout.rooms, *floor.layout.circulation):
+            assert generation_service.contains_polygon(
+                expected_boundary,
+                shape.polygon,
+            )
+        cores.append(
+            next(
+                room.polygon
+                for room in floor.layout.rooms
+                if room.space_type == "core"
+            )
+        )
+        remote_stairs.append(floor.layout.remote_stair_footprint)
+    assert all(core == cores[0] for core in cores[1:])
+    assert all(stair == remote_stairs[0] for stair in remote_stairs[1:])
 
 
 def test_vertical_alignment_detects_changed_core_subspace_and_structure():
@@ -107,8 +258,7 @@ def test_vertical_alignment_detects_changed_core_subspace_and_structure():
     assert basic_design is not None
     elements = list(basic_design.elements)
     stair_index = next(
-        index for index, element in enumerate(elements)
-        if element.kind == "stair"
+        index for index, element in enumerate(elements) if element.kind == "stair"
     )
     stair = elements[stair_index]
     elements[stair_index] = replace(
@@ -117,7 +267,8 @@ def test_vertical_alignment_detects_changed_core_subspace_and_structure():
     )
     lines = list(basic_design.lines)
     grid_index = next(
-        index for index, line in enumerate(lines)
+        index
+        for index, line in enumerate(lines)
         if line.category == "structure" and line.kind == "grid"
     )
     grid = lines[grid_index]
@@ -181,19 +332,37 @@ def test_building_generation_accepts_complete_structured_floor_assignments():
     commercial = result.floor_results[0]
     rooms = {room.room_id: room for room in commercial.layout.rooms}
     assert set(rooms) == {
-        "sales_a", "sales_b", "checkout", "stock", "staff",
-        "restroom", "core", "utility",
+        "sales_a",
+        "sales_b",
+        "checkout",
+        "stock",
+        "staff",
+        "restroom",
+        "core",
+        "utility",
     }
     assert all(metric.within_range for metric in commercial.validation.room_areas)
-    assert all(metric.minimum_width_passed and metric.aspect_ratio_passed for metric in commercial.validation.room_shapes)
     assert all(
-        shared_boundary_with_segments_length(
-            rooms[tenant].polygon, [((0, 0), (24, 0))]
-        ) > 0
+        metric.minimum_width_passed and metric.aspect_ratio_passed
+        for metric in commercial.validation.room_shapes
+    )
+    assert all(
+        shared_boundary_with_segments_length(rooms[tenant].polygon, [((0, 0), (24, 0))])
+        > 0
         for tenant in ("sales_a", "sales_b")
     )
-    assert shared_boundary_with_segments_length(rooms["stock"].polygon, [((0, 0), (24, 0))]) == 0
-    assert shared_boundary_with_segments_length(rooms["staff"].polygon, [((0, 0), (24, 0))]) == 0
+    assert (
+        shared_boundary_with_segments_length(
+            rooms["stock"].polygon, [((0, 0), (24, 0))]
+        )
+        == 0
+    )
+    assert (
+        shared_boundary_with_segments_length(
+            rooms["staff"].polygon, [((0, 0), (24, 0))]
+        )
+        == 0
+    )
     assert len(commercial.layout.openings) == len(rooms)
     assert len(commercial.layout.circulation) == 2
     circulation = {path.room_id: path for path in commercial.layout.circulation}
@@ -212,7 +381,9 @@ def test_building_generation_accepts_complete_structured_floor_assignments():
         segments = shared_boundary_segments(room.polygon, path.polygon)
         start, end = max(segments, key=lambda segment: (math.dist(*segment), segment))
         midpoint = tuple((start[index] + end[index]) / 2 for index in range(2))
-        door_midpoint = tuple((opening.start[index] + opening.end[index]) / 2 for index in range(2))
+        door_midpoint = tuple(
+            (opening.start[index] + opening.end[index]) / 2 for index in range(2)
+        )
         assert door_midpoint == pytest.approx(midpoint)
         assert math.dist(opening.start, opening.end) == pytest.approx(0.9)
         assert math.dist(start, opening.start) == pytest.approx(
@@ -286,12 +457,24 @@ def test_role_driven_profiles_generate_exact_rooms_and_valid_30x12_layouts():
 
     expected = {
         "neighborhood_commercial": {
-            "sales_a", "sales_b", "checkout", "stock", "staff",
-            "restroom", "core", "utility",
+            "sales_a",
+            "sales_b",
+            "checkout",
+            "stock",
+            "staff",
+            "restroom",
+            "core",
+            "utility",
         },
         "office": {
-            "open_work", "meeting", "reception", "focus", "pantry", "restroom",
-            "core", "it_storage",
+            "open_work",
+            "meeting",
+            "reception",
+            "focus",
+            "pantry",
+            "restroom",
+            "core",
+            "it_storage",
         },
     }
     street = [((0, 0), (30, 0))]
@@ -300,7 +483,10 @@ def test_role_driven_profiles_generate_exact_rooms_and_valid_30x12_layouts():
         assert set(rooms) == expected[floor.program.use_type]
         assert floor.validation.accepted
         assert len(floor.layout.openings) == len(rooms)
-        assert all(opening.clear_width == pytest.approx(0.9) for opening in floor.layout.openings)
+        assert all(
+            opening.clear_width == pytest.approx(0.9)
+            for opening in floor.layout.openings
+        )
         assert all(metric.within_range for metric in floor.validation.room_areas)
         assert all(
             metric.minimum_width_passed and metric.aspect_ratio_passed
@@ -309,15 +495,21 @@ def test_role_driven_profiles_generate_exact_rooms_and_valid_30x12_layouts():
 
         if floor.program.use_type == "neighborhood_commercial":
             assert all(
-                shared_boundary_with_segments_length(
-                    rooms[tenant].polygon, street
-                ) > 0
+                shared_boundary_with_segments_length(rooms[tenant].polygon, street) > 0
                 for tenant in ("sales_a", "sales_b")
             )
-            assert shared_boundary_with_segments_length(rooms["stock"].polygon, street) == 0
-            assert shared_boundary_with_segments_length(rooms["staff"].polygon, street) == 0
+            assert (
+                shared_boundary_with_segments_length(rooms["stock"].polygon, street)
+                == 0
+            )
+            assert (
+                shared_boundary_with_segments_length(rooms["staff"].polygon, street)
+                == 0
+            )
         else:
-            areas = {room_id: polygon_area(room.polygon) for room_id, room in rooms.items()}
+            areas = {
+                room_id: polygon_area(room.polygon) for room_id, room in rooms.items()
+            }
             assert areas["open_work"] == max(areas.values())
 
 
@@ -355,7 +547,7 @@ def test_role_driven_generation_rejects_non_bottom_street_frontage():
         (lambda nodes: nodes[1:], "missing="),
         (lambda nodes: [*nodes, nodes[0]], "duplicate="),
         (
-            lambda nodes: [replace(nodes[0], space_type="unexpected") , *nodes[1:]],
+            lambda nodes: [replace(nodes[0], space_type="unexpected"), *nodes[1:]],
             "extra=",
         ),
     ],

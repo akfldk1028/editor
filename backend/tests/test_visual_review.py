@@ -24,7 +24,7 @@ from backend.app.modules.visual_review.service import (
 )
 from backend.app.schemas.layout import OpeningSegment, RoomPolygon
 from backend.app.schemas.loop import CandidateRecord, IterationRecord, LoopResult
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.mass import FloorFootprint, MassInput
 from backend.app.schemas.metrics import ValidationViolation
 
 
@@ -37,7 +37,9 @@ def _sample_result():
         access_candidates=[{"edge_index": 0, "position": 0.5}],
         use_mix={"neighborhood_commercial": 0.5, "office": 0.5},
     )
-    return run_generation_loop(mass, floor_index=1, use_type="neighborhood_commercial"), mass.footprint_polygon
+    return run_generation_loop(
+        mass, floor_index=1, use_type="neighborhood_commercial"
+    ), mass.footprint_polygon
 
 
 def _strict_building_floor():
@@ -61,7 +63,9 @@ def _l_shaped_result(project_id: str = "visual"):
         polygon=[(0, 0), (20, 0), (20, 4), (8, 4), (8, 10), (0, 10)],
     )
     layout = replace(result.layout, rooms=[room])
-    return replace(result, mass=replace(result.mass, project_id=project_id), layout=layout), boundary
+    return replace(
+        result, mass=replace(result.mass, project_id=project_id), layout=layout
+    ), boundary
 
 
 def _png_pixel(data: bytes, x: int, y: int) -> tuple[int, int, int]:
@@ -95,7 +99,9 @@ def _png_colors(data: bytes) -> set[tuple[int, int, int]]:
     width, height = struct.unpack(">II", data[16:24])
     row_stride = width * 3 + 1
     return {
-        tuple(raw[row * row_stride + 1 + column * 3 : row * row_stride + 4 + column * 3])
+        tuple(
+            raw[row * row_stride + 1 + column * 3 : row * row_stride + 4 + column * 3]
+        )
         for row in range(height)
         for column in range(width)
     }
@@ -104,7 +110,9 @@ def _png_colors(data: bytes) -> set[tuple[int, int, int]]:
 def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
     result, boundary = _sample_result()
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path
+    )
 
     assert review.svg_path.exists()
     assert review.png_path.exists()
@@ -380,8 +388,7 @@ def test_strict_review_renders_complete_basic_design_evidence_in_fixed_layer_ord
         for kind, identifiers in kinds.items():
             for identifier in identifiers:
                 metadata = (
-                    f'data-id="{identifier}" data-kind="{kind}" '
-                    f'data-layer="{layer}"'
+                    f'data-id="{identifier}" data-kind="{kind}" data-layer="{layer}"'
                 )
                 assert metadata in svg
     for layer in expected_layers:
@@ -447,9 +454,7 @@ def test_svg_keeps_exit_and_bottom_annotations_inside_separate_readable_lanes(
     namespace = "{http://www.w3.org/2000/svg}"
     texts = root.findall(f".//{namespace}text")
     assert sum(text.attrib.get("data-kind") == "circulation" for text in texts) == 1
-    boundary_polygon = root.find(
-        f".//{namespace}polygon[@data-kind='boundary']"
-    )
+    boundary_polygon = root.find(f".//{namespace}polygon[@data-kind='boundary']")
     assert boundary_polygon is not None
     max_boundary_x = max(
         float(point.split(",")[0])
@@ -493,9 +498,9 @@ def test_svg_keeps_exit_and_bottom_annotations_inside_separate_readable_lanes(
         for second_kind in bottom_kinds[index + 1 :]:
             second_x, second_y, second_text = positions[second_kind]
             same_lane = abs(first_y - second_y) < 10
-            overlaps = abs(first_x - second_x) < (
-                len(first_text) + len(second_text)
-            ) * 3
+            overlaps = (
+                abs(first_x - second_x) < (len(first_text) + len(second_text)) * 3
+            )
             assert not (same_lane and overlaps)
 
 
@@ -571,9 +576,9 @@ def test_strict_review_rejects_finite_basic_design_features_with_no_visible_outp
             if item["id"] == grid.line_id
         )
         assert skipped["reason"] == reason
-        assert grid.line_id in report["render_evidence"]["missing"][output]["grid"][
-            "grid"
-        ]
+        assert (
+            grid.line_id in report["render_evidence"]["missing"][output]["grid"]["grid"]
+        )
 
 
 def test_unchecked_review_does_not_fabricate_basic_design_layers_and_disables_controls(
@@ -659,6 +664,44 @@ def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
     assert [floor["floor_index"] for floor in report["floors"]] == [1, 2, 3, 4, 5]
     assert all(floor["program_adjusted"] is True for floor in report["floors"])
     assert all(floor["program_adjustments"] for floor in report["floors"])
+    assert all(
+        floor["floor_boundary"]["source"] == "legacy_broadcast"
+        for floor in report["floors"]
+    )
+
+
+def test_building_review_uses_each_stored_setback_boundary(tmp_path):
+    floor_boundaries = (
+        ((0, 0), (30, 0), (30, 18), (0, 18)),
+        ((0, 0), (28, 0), (28, 17), (0, 17)),
+        ((0, 0), (26, 0), (26, 16), (0, 16)),
+    )
+    mass = MassInput(
+        project_id="setback-review",
+        floors=3,
+        footprint_polygon=list(floor_boundaries[0]),
+        floor_footprints=tuple(
+            FloorFootprint(floor_index=index, footprint_polygon=boundary)
+            for index, boundary in enumerate(floor_boundaries, start=1)
+        ),
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[],
+        use_mix={"office": 1.0},
+    )
+
+    artifacts = create_building_visual_review_artifacts(
+        run_building_generation(mass),
+        boundary=mass.footprint_polygon,
+        output_dir=tmp_path,
+    )
+
+    report = json.loads(artifacts.report_path.read_text(encoding="utf-8"))
+    evidence = [floor["floor_boundary"] for floor in report["floors"]]
+    assert [item["polygon"] for item in evidence] == [
+        [[float(x), float(y)] for x, y in boundary] for boundary in floor_boundaries
+    ]
+    assert len({item["sha256"] for item in evidence}) == 3
+    assert all(item["source"] == "explicit_floor_footprint" for item in evidence)
 
 
 def test_compact_building_review_discloses_program_adjustment(tmp_path):
@@ -720,16 +763,20 @@ def test_png_artifact_has_requested_pixel_size(tmp_path):
     assert (width, height) == (640, 320)
 
 
-def test_polygon_artifacts_render_an_l_shape_without_filling_its_missing_corner(tmp_path):
+def test_polygon_artifacts_render_an_l_shape_without_filling_its_missing_corner(
+    tmp_path,
+):
     result, boundary = _l_shaped_result()
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path, width=200, height=100)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path, width=200, height=100
+    )
 
     png = review.png_path.read_bytes()
     assert _png_pixel(png, 50, 26) == (217, 234, 211)
     assert _png_pixel(png, 141, 26) == (255, 255, 255)
     svg = review.svg_path.read_text(encoding="utf-8")
-    assert '18.0,91.0 182.0,91.0 182.0,58.2 83.6,58.2 83.6,9.0 18.0,9.0' in svg
+    assert "18.0,91.0 182.0,91.0 182.0,58.2 83.6,58.2 83.6,9.0 18.0,9.0" in svg
 
 
 def test_artifacts_render_circulation_in_svg_and_png(tmp_path):
@@ -867,7 +914,9 @@ def test_review_exposes_validator_room_form_measurements_and_layer_controls(tmp_
         ),
     )
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path
+    )
     report = json.loads(review.report_path.read_text(encoding="utf-8"))
     page = review.html_path.read_text(encoding="utf-8")
     svg = review.svg_path.read_text(encoding="utf-8")
@@ -900,10 +949,14 @@ def test_review_exposes_validator_room_form_measurements_and_layer_controls(tmp_
 def test_room_form_table_joins_validator_area_metric_by_room_id(tmp_path):
     result, boundary = _strict_building_floor()
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path
+    )
     page = review.html_path.read_text(encoding="utf-8")
     open_work_area = next(
-        metric.actual_area for metric in result.validation.room_areas if metric.room_id == "open_work"
+        metric.actual_area
+        for metric in result.validation.room_areas
+        if metric.room_id == "open_work"
     )
 
     assert '<th scope="col">Area m2</th>' in page
@@ -913,7 +966,9 @@ def test_room_form_table_joins_validator_area_metric_by_room_id(tmp_path):
 def test_layer_control_script_targets_inline_svg_without_iframe_dependency(tmp_path):
     result, boundary = _strict_building_floor()
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path
+    )
     page = review.html_path.read_text(encoding="utf-8")
     standalone_svg = review.svg_path.read_text(encoding="utf-8")
 
@@ -933,7 +988,9 @@ def test_cad_layer_manager_exposes_korean_checkbox_contract_and_bulk_commands(
 ):
     result, boundary = _strict_building_floor()
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path
+    )
     page = review.html_path.read_text(encoding="utf-8")
 
     assert 'id="cad-layer-manager"' in page
@@ -957,9 +1014,7 @@ def test_cad_layer_manager_exposes_korean_checkbox_contract_and_bulk_commands(
     assert len(re.findall(r'<input type="checkbox"', page)) == len(
         visual_review_service.LAYER_ORDER
     )
-    assert page.count('class="layer-swatch"') == len(
-        visual_review_service.LAYER_ORDER
-    )
+    assert page.count('class="layer-swatch"') == len(visual_review_service.LAYER_ORDER)
     assert page.count('class="layer-modeled-count"') == len(
         visual_review_service.LAYER_ORDER
     )
@@ -980,7 +1035,9 @@ def test_cad_layer_manager_exposes_korean_checkbox_contract_and_bulk_commands(
 def test_cad_layer_manager_disables_unmodeled_basic_design_layers(tmp_path):
     result, boundary = _sample_result()
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path
+    )
     page = review.html_path.read_text(encoding="utf-8")
 
     for layer in visual_review_service._BASIC_DESIGN_LAYERS:
@@ -997,14 +1054,15 @@ def test_cad_layer_manager_disables_unmodeled_basic_design_layers(tmp_path):
 def test_cad_layer_isolate_uses_active_row_without_checkbox_side_effects(tmp_path):
     result, boundary = _strict_building_floor()
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path
+    )
     page = review.html_path.read_text(encoding="utf-8")
 
     assert '<div class="cad-layer-row" data-layer="rooms">' in page
     assert (
         '<button type="button" class="layer-select" data-layer="rooms" '
-        'aria-pressed="false">'
-        in page
+        'aria-pressed="false">' in page
     )
     assert 'class="cad-layer-row" data-layer="rooms" role="button"' not in page
     assert "let activeLayer = null;" in page
@@ -1012,23 +1070,33 @@ def test_cad_layer_isolate_uses_active_row_without_checkbox_side_effects(tmp_pat
     assert 'selectButton.addEventListener("click", () =>' in page
     assert "setActiveLayer(selectButton.dataset.layer);" in page
     assert 'row.addEventListener("keydown"' not in page
-    assert (
-        'button.dataset.command === "isolate" && activeLayer !== null'
-        in page
-    )
+    assert 'button.dataset.command === "isolate" && activeLayer !== null' in page
     assert "checkbox.checked = checkbox.dataset.layer === activeLayer;" in page
     assert "isolateButton.disabled = activeLayer === null;" in page
 
 
 def test_use_specific_room_palette_has_svg_and_png_entries_for_each_role():
     room_types = {
-        "open_work", "meeting", "reception", "focus", "pantry", "restroom", "core", "it_storage",
-        "sales", "checkout", "stock", "staff", "utility",
+        "open_work",
+        "meeting",
+        "reception",
+        "focus",
+        "pantry",
+        "restroom",
+        "core",
+        "it_storage",
+        "sales",
+        "checkout",
+        "stock",
+        "staff",
+        "utility",
     }
 
     assert room_types <= visual_review_service.PALETTE.keys()
     assert room_types <= visual_review_service.PNG_PALETTE.keys()
-    assert len({visual_review_service.PALETTE[room_type] for room_type in room_types}) == len(room_types)
+    assert len(
+        {visual_review_service.PALETTE[room_type] for room_type in room_types}
+    ) == len(room_types)
 
 
 @pytest.mark.parametrize(
@@ -1119,21 +1187,34 @@ def test_present_but_unchecked_openings_are_not_reported_as_pass(tmp_path):
     assert report["checks"]["corridor_width"] == "not_checked"
 
 
-def test_artifacts_escape_text_use_safe_stems_and_keep_links_under_output_root(tmp_path):
-    result, boundary = _l_shaped_result(project_id='../../Project <script>alert(1)</script>')
+def test_artifacts_escape_text_use_safe_stems_and_keep_links_under_output_root(
+    tmp_path,
+):
+    result, boundary = _l_shaped_result(
+        project_id="../../Project <script>alert(1)</script>"
+    )
     room = replace(result.layout.rooms[0], space_type='<svg onload="alert(1)">')
     result = replace(result, layout=replace(result.layout, rooms=[room]))
 
-    review = create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path)
+    review = create_visual_review_artifacts(
+        result, boundary=boundary, output_dir=tmp_path
+    )
 
-    for path in (review.svg_path, review.png_path, review.html_path, review.report_path):
+    for path in (
+        review.svg_path,
+        review.png_path,
+        review.html_path,
+        review.report_path,
+    ):
         assert path.resolve().is_relative_to(tmp_path.resolve())
         assert "/" not in path.name
         assert "<" not in path.name
     assert review.svg_path.stem.startswith("project-script-alert-1-script-")
     assert review.svg_path.stem.endswith("-f1")
     assert '<svg onload="alert(1)">' not in review.svg_path.read_text(encoding="utf-8")
-    assert "&lt;svg onload=&quot;alert(1)&quot;&gt;" in review.svg_path.read_text(encoding="utf-8")
+    assert "&lt;svg onload=&quot;alert(1)&quot;&gt;" in review.svg_path.read_text(
+        encoding="utf-8"
+    )
     html = review.html_path.read_text(encoding="utf-8")
     assert "Project &lt;script&gt;alert(1)&lt;/script&gt;" in html
     report = json.loads(review.report_path.read_text(encoding="utf-8"))
@@ -1155,9 +1236,15 @@ def test_distinct_project_ids_have_distinct_deterministic_artifact_stems(
     first_result, boundary = _l_shaped_result(project_id=first_project_id)
     second_result, _ = _l_shaped_result(project_id=second_project_id)
 
-    first_review = create_visual_review_artifacts(first_result, boundary=boundary, output_dir=tmp_path)
-    repeated_review = create_visual_review_artifacts(first_result, boundary=boundary, output_dir=tmp_path)
-    second_review = create_visual_review_artifacts(second_result, boundary=boundary, output_dir=tmp_path)
+    first_review = create_visual_review_artifacts(
+        first_result, boundary=boundary, output_dir=tmp_path
+    )
+    repeated_review = create_visual_review_artifacts(
+        first_result, boundary=boundary, output_dir=tmp_path
+    )
+    second_review = create_visual_review_artifacts(
+        second_result, boundary=boundary, output_dir=tmp_path
+    )
 
     assert first_review.svg_path == repeated_review.svg_path
     assert first_review.svg_path != second_review.svg_path
@@ -1165,12 +1252,16 @@ def test_distinct_project_ids_have_distinct_deterministic_artifact_stems(
     assert len(second_review.svg_path.stem) <= 96
 
 
-@pytest.mark.parametrize(("width", "height"), [(0, 100), (100, 0), (-1, 100), (100, -1)])
+@pytest.mark.parametrize(
+    ("width", "height"), [(0, 100), (100, 0), (-1, 100), (100, -1)]
+)
 def test_artifact_viewport_dimensions_must_be_positive(tmp_path, width, height):
     result, boundary = _sample_result()
 
     with pytest.raises(ValueError, match="viewport width and height must be positive"):
-        create_visual_review_artifacts(result, boundary=boundary, output_dir=tmp_path, width=width, height=height)
+        create_visual_review_artifacts(
+            result, boundary=boundary, output_dir=tmp_path, width=width, height=height
+        )
 
 
 def test_cli_review_generates_visual_artifacts(tmp_path):
@@ -1277,10 +1368,10 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
         "basic_design": "not_checked",
         "boundary": "pass",
         "circulation_access": "pass",
-            "corridor_width": "not_checked",
-            "openings": "not_checked",
-            "overlap": "pass",
-            "room_form": "fail",
+        "corridor_width": "not_checked",
+        "openings": "not_checked",
+        "overlap": "pass",
+        "room_form": "fail",
     }
     assert reports[1]["scores"]["area_score"] < 1
     assert all(
@@ -1331,9 +1422,9 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
         }
         for report in reports
     ]
-    assert [
-        entry["fingerprint"] for entry in index["iterations"]
-    ] == [report["fingerprint"] for report in reports]
+    assert [entry["fingerprint"] for entry in index["iterations"]] == [
+        report["fingerprint"] for report in reports
+    ]
     assert str(tmp_path.resolve()) not in json.dumps(index)
     for entry in index["iterations"]:
         for relative_path in entry["artifacts"].values():
@@ -1428,9 +1519,7 @@ def test_concept_basic_review_retries_distinct_family_and_stops_when_accepted(
     )
     failed = replace(
         accepted,
-        floor_results=(
-            replace(accepted_floor, validation=failed_validation),
-        ),
+        floor_results=(replace(accepted_floor, validation=failed_validation),),
     )
     first_opening = accepted_floor.layout.openings[0]
     distinct_failed_layout = replace(
@@ -1466,9 +1555,7 @@ def test_concept_basic_review_retries_distinct_family_and_stops_when_accepted(
     )
     distinct_accepted = replace(
         accepted,
-        floor_results=(
-            replace(accepted_floor, layout=distinct_accepted_layout),
-        ),
+        floor_results=(replace(accepted_floor, layout=distinct_accepted_layout),),
     )
     monkeypatch.setattr(
         visual_review_service,
@@ -1701,10 +1788,9 @@ def test_concept_basic_fingerprint_includes_basic_design_only_changes():
     )
 
     assert layout_fingerprint(layout) == layout_fingerprint(changed)
-    assert (
-        visual_review_service._concept_basic_fingerprint(layout)
-        != visual_review_service._concept_basic_fingerprint(changed)
-    )
+    assert visual_review_service._concept_basic_fingerprint(
+        layout
+    ) != visual_review_service._concept_basic_fingerprint(changed)
 
 
 def test_concept_basic_retry_preserves_requested_use_override(
@@ -1719,9 +1805,7 @@ def test_concept_basic_retry_preserves_requested_use_override(
         access_candidates=[],
         use_mix={"office": 1.0},
     )
-    assignments = (
-        visual_review_service.FloorAssignment(1, "neighborhood_commercial"),
-    )
+    assignments = (visual_review_service.FloorAssignment(1, "neighborhood_commercial"),)
     building = run_building_generation(mass, floor_assignments=assignments)
     floor = building.floor_results[0]
     failed = replace(
@@ -1850,7 +1934,9 @@ def test_concept_basic_retry_preserves_structured_planner_assignments(
         planner_client=PlannerClient(),
     )
 
-    assert captured["floor_assignments"] == result.planner_provenance.validated_assignments
+    assert (
+        captured["floor_assignments"] == result.planner_provenance.validated_assignments
+    )
     assert captured["planner_provenance"] == result.planner_provenance
     assert result.planner_provenance.provider == "openai"
 
@@ -1878,9 +1964,7 @@ def test_failed_concept_basic_geometry_preserves_validated_planner_provenance(
     def fail_geometry(*args, **kwargs):
         raise RuntimeError("geometry generation failed")
 
-    monkeypatch.setattr(
-        visual_review_service, "run_building_generation", fail_geometry
-    )
+    monkeypatch.setattr(visual_review_service, "run_building_generation", fail_geometry)
     mass = MassInput(
         project_id="failed-openai-geometry",
         floors=2,
@@ -1971,12 +2055,20 @@ def test_review_index_is_identical_across_output_roots(tmp_path):
     )
 
     first = run_visual_review_loop(
-        mass, 1, "neighborhood_commercial", tmp_path / "first",
-        max_iterations=5, review_level="zoning",
+        mass,
+        1,
+        "neighborhood_commercial",
+        tmp_path / "first",
+        max_iterations=5,
+        review_level="zoning",
     )
     second = run_visual_review_loop(
-        mass, 1, "neighborhood_commercial", tmp_path / "second",
-        max_iterations=5, review_level="zoning",
+        mass,
+        1,
+        "neighborhood_commercial",
+        tmp_path / "second",
+        max_iterations=5,
+        review_level="zoning",
     )
 
     first_index = json.loads(first.index_json_path.read_text(encoding="utf-8"))
@@ -1995,8 +2087,12 @@ def test_review_loop_iteration_budget_exhaustion_is_not_accepted(tmp_path):
     )
 
     result = run_visual_review_loop(
-        mass, 1, "neighborhood_commercial", tmp_path,
-        max_iterations=1, review_level="zoning",
+        mass,
+        1,
+        "neighborhood_commercial",
+        tmp_path,
+        max_iterations=1,
+        review_level="zoning",
     )
     index = json.loads((tmp_path / "review.index.json").read_text(encoding="utf-8"))
 
@@ -2085,8 +2181,12 @@ def test_review_report_uses_search_iteration_when_best_candidate_is_unchanged(
     )
 
     result = run_visual_review_loop(
-        mass, 1, "neighborhood_commercial", tmp_path,
-        max_iterations=2, review_level="zoning",
+        mass,
+        1,
+        "neighborhood_commercial",
+        tmp_path,
+        max_iterations=2,
+        review_level="zoning",
     )
     reports = [
         json.loads(artifact.report_path.read_text(encoding="utf-8"))
@@ -2099,12 +2199,8 @@ def test_review_report_uses_search_iteration_when_best_candidate_is_unchanged(
     assert reports[1]["hard_failure_count_delta"] == 0
     assert reports[0]["operator_params"] == {"output": "relative-artifact"}
     index = json.loads(result.index_json_path.read_text(encoding="utf-8"))
-    assert index["iterations"][0]["operator_params"] == {
-        "output": "relative-artifact"
-    }
-    assert index["lineage"][0]["operator_params"] == {
-        "output": "relative-artifact"
-    }
+    assert index["iterations"][0]["operator_params"] == {"output": "relative-artifact"}
+    assert index["lineage"][0]["operator_params"] == {"output": "relative-artifact"}
     assert "relative-artifact" in result.index_html_path.read_text(encoding="utf-8")
 
 
@@ -2157,4 +2253,6 @@ def test_cli_loop_review_runs_iterations_and_prints_final_state(tmp_path):
     assert payload["unchecked_checks"] == []
     assert Path(payload["index_json_path"]).exists()
     assert Path(payload["index_html_path"]).exists()
-    assert all(Path(artifact["html_path"]).exists() for artifact in payload["artifacts"])
+    assert all(
+        Path(artifact["html_path"]).exists() for artifact in payload["artifacts"]
+    )

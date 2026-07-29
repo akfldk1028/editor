@@ -3,7 +3,7 @@ import math
 import pytest
 
 from backend.app.modules.program_prior.service import generate_program_graph
-from backend.app.schemas.mass import MassAnalysis
+from backend.app.schemas.mass import FloorPlateAnalysis, MassAnalysis
 
 
 OFFICE_PROFILE = {
@@ -74,8 +74,7 @@ def test_generate_program_graph_for_typical_office_floor():
     assert sum(areas.values()) == 400
     assert any(edge.relation == "service_adjacent" for edge in graph.edges)
     assert all(
-        edge.source in node_ids
-        and (edge.target in node_ids or edge.target == "street")
+        edge.source in node_ids and (edge.target in node_ids or edge.target == "street")
         for edge in graph.edges
     )
 
@@ -146,6 +145,49 @@ def test_program_profiles_emit_exact_ratios_and_form_metadata(
     assert sum(node.target_area for node in graph.nodes) == analysis.area
     assert all(node.min_area == node.target_area * 0.85 for node in graph.nodes)
     assert all(node.max_area == node.target_area * 1.15 for node in graph.nodes)
+
+
+def test_generate_program_graph_uses_floor_specific_plate_area():
+    analysis = MassAnalysis(
+        project_id="stepped-office",
+        area=600,
+        floor_area=1200,
+        floors=3,
+        edge_count=4,
+        street_edge_indices=[0],
+        access_edge_indices=[],
+        bounds=(0, 0, 30, 20),
+        floor_plates=(
+            FloorPlateAnalysis(
+                1,
+                600,
+                4,
+                (0, 0, 30, 20),
+                ((0, 0), (30, 0), (30, 20), (0, 20)),
+                "explicit_floor_footprint",
+            ),
+            FloorPlateAnalysis(
+                2,
+                384,
+                4,
+                (0, 0, 24, 16),
+                ((0, 0), (24, 0), (24, 16), (0, 16)),
+                "explicit_floor_footprint",
+            ),
+            FloorPlateAnalysis(
+                3,
+                216,
+                4,
+                (0, 0, 18, 12),
+                ((0, 0), (18, 0), (18, 12), (0, 12)),
+                "explicit_floor_footprint",
+            ),
+        ),
+    )
+
+    graph = generate_program_graph(analysis, floor_index=2, use_type="office")
+
+    assert sum(float(node.target_area) for node in graph.nodes) == 384
 
 
 @pytest.mark.parametrize(

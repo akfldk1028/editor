@@ -8,6 +8,17 @@
 | Graph2Plan | raw forward only | no | no |
 | HouseDiffusion | checkpoint load only | no | no |
 
+The L/U-shaped, sloped-polygon, and floor-setback implementation in PLAN is not
+a claim that Graph2Plan or HouseDiffusion is paper-complete. It is a separate
+deterministic concept-basic path using exact orthogonal decomposition or an
+axis-aligned planning region inside a diagonal boundary, per-floor boundaries,
+an all-floor shared core/stair intersection, explicit program adjustments, and
+the existing validator/render loop. The retained
+`sample_mass_l_setback_office.json` and
+`sample_mass_polygon_setback_office.json` runs pass internal and render
+validation. Diagonal fringe outside the planning region may remain unassigned,
+and regulatory screening remains `not_checked`.
+
 Graph2Plan record 0 ran the official repository's lower-level model path with
 `generate=True`, `refine=True`, and strict checkpoint loading in a bounded
 subprocess. The worker retains exact tensors consumed by the model and the

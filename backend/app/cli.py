@@ -28,6 +28,7 @@ from backend.app.modules.visual_review.service import (
 from backend.app.schemas.mass import (
     BuildingCodeContext,
     FloorCodeContext,
+    FloorFootprint,
     MassInput,
 )
 
@@ -44,17 +45,13 @@ def _mass_input_from_payload(payload: dict) -> MassInput:
         context = BuildingCodeContext(
             jurisdiction=context_payload.get("jurisdiction"),
             effective_date=context_payload.get("effective_date"),
-            floor_to_floor_height_m=context_payload.get(
-                "floor_to_floor_height_m"
-            ),
+            floor_to_floor_height_m=context_payload.get("floor_to_floor_height_m"),
             sprinklered=context_payload.get("sprinklered"),
             fire_resistant=context_payload.get("fire_resistant"),
             qualifying_sprinkler_protection=context_payload.get(
                 "qualifying_sprinkler_protection"
             ),
-            travel_construction_class=context_payload.get(
-                "travel_construction_class"
-            ),
+            travel_construction_class=context_payload.get("travel_construction_class"),
             travel_limit_classification=context_payload.get(
                 "travel_limit_classification"
             ),
@@ -72,16 +69,26 @@ def _mass_input_from_payload(payload: dict) -> MassInput:
                 for fact in floor_payloads
             ),
         )
+    floor_footprint_payloads = payload.get("floor_footprints", [])
+    if not isinstance(floor_footprint_payloads, list):
+        raise TypeError("floor_footprints must be a list")
     return MassInput(
         project_id=payload["project_id"],
         floors=int(payload["floors"]),
-        footprint_polygon=[
-            tuple(point) for point in payload["footprint_polygon"]
-        ],
+        footprint_polygon=[tuple(point) for point in payload["footprint_polygon"]],
         site_edges=list(payload.get("site_edges", [])),
         access_candidates=list(payload.get("access_candidates", [])),
         use_mix=dict(payload.get("use_mix", {})),
         building_code_context=context,
+        floor_footprints=tuple(
+            FloorFootprint(
+                floor_index=int(record["floor_index"]),
+                footprint_polygon=tuple(
+                    tuple(point) for point in record["footprint_polygon"]
+                ),
+            )
+            for record in floor_footprint_payloads
+        ),
     )
 
 
@@ -209,10 +216,14 @@ def main() -> None:
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
     mass = _mass_input_from_payload(payload)
     if args.command == "generate":
-        result = run_generation_loop(mass, floor_index=args.floor, use_type=args.use_type)
+        result = run_generation_loop(
+            mass, floor_index=args.floor, use_type=args.use_type
+        )
         print(json.dumps(to_jsonable(result), ensure_ascii=False))
     elif args.command == "review":
-        result = run_generation_loop(mass, floor_index=args.floor, use_type=args.use_type)
+        result = run_generation_loop(
+            mass, floor_index=args.floor, use_type=args.use_type
+        )
         artifacts = create_visual_review_artifacts(
             result,
             boundary=mass.footprint_polygon,
@@ -304,13 +315,9 @@ def main() -> None:
                     "rank": alternative.rank,
                     "score": alternative.score,
                     "accepted": artifacts.accepted,
-                    "internal_validation": building_report[
-                        "internal_validation"
-                    ],
+                    "internal_validation": building_report["internal_validation"],
                     "render_validation": building_report["render_validation"],
-                    "regulatory_screening": building_report[
-                        "regulatory_screening"
-                    ],
+                    "regulatory_screening": building_report["regulatory_screening"],
                     "fingerprints": alternative.fingerprints,
                     "core_centroid": alternative.core_centroid,
                     "circulation_orientation": alternative.circulation_orientation,
@@ -329,20 +336,12 @@ def main() -> None:
                     "design_family_signature": alternative.design_family_signature,
                     "render_style": args.render_style,
                     "floor_count": len(alternative.floor_results),
-                    "index_html": str(
-                        artifacts.index_html_path.relative_to(target)
-                    ),
-                    "report_json": str(
-                        artifacts.report_path.relative_to(target)
-                    ),
+                    "index_html": str(artifacts.index_html_path.relative_to(target)),
+                    "report_json": str(artifacts.report_path.relative_to(target)),
                 }
             )
-        accepted_count = sum(
-            summary["accepted"] for summary in summaries
-        )
-        rejected_families = to_jsonable(
-            getattr(result, "rejected_families", ())
-        )
+        accepted_count = sum(summary["accepted"] for summary in summaries)
+        rejected_families = to_jsonable(getattr(result, "rejected_families", ()))
         payload = {
             "schema_version": 1,
             "project_id": mass.project_id,
@@ -372,7 +371,7 @@ def main() -> None:
             (
                 "<tr>"
                 f"<td>{summary['rank']}</td>"
-                f"<td><a href=\"{summary['alternative_id']}/index.html\">"
+                f'<td><a href="{summary["alternative_id"]}/index.html">'
                 f"{html.escape(summary['alternative_id'])}</a></td>"
                 f"<td>{html.escape(summary['strategy'])}</td>"
                 f"<td>{summary['score']:.4f}</td>"
@@ -392,8 +391,7 @@ def main() -> None:
                     f"<li><strong>{html.escape(item['family'])}</strong>"
                     "<ul>"
                     + "".join(
-                        f"<li>{html.escape(reason)}</li>"
-                        for reason in item["reasons"]
+                        f"<li>{html.escape(reason)}</li>" for reason in item["reasons"]
                     )
                     + "</ul></li>"
                 )
@@ -405,8 +403,8 @@ def main() -> None:
         )
         (target / "index.html").write_text(
             (
-                "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"
-                "<link rel=\"icon\" href=\"data:,\">"
+                '<!doctype html><html lang="ko"><head><meta charset="utf-8">'
+                '<link rel="icon" href="data:,">'
                 "<title>Floor-plan alternatives</title>"
                 "<style>body{font-family:Arial,sans-serif;margin:24px;color:#171717}"
                 "table{border-collapse:collapse;width:100%}th,td{padding:9px;"

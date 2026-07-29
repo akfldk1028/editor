@@ -184,6 +184,61 @@ def test_cli_building_review_generates_all_floors(tmp_path):
     assert (output_dir / "building.review.json").is_file()
 
 
+def test_cli_parses_floor_specific_footprints():
+    mass = cli_module._mass_input_from_payload(
+        {
+            "project_id": "cli-stepped",
+            "floors": 3,
+            "footprint_polygon": [[0, 0], [30, 0], [30, 20], [0, 20]],
+            "floor_footprints": [
+                {
+                    "floor_index": 1,
+                    "footprint_polygon": [
+                        [0, 0],
+                        [30, 0],
+                        [30, 20],
+                        [0, 20],
+                    ],
+                },
+                {
+                    "floor_index": 2,
+                    "footprint_polygon": [
+                        [0, 0],
+                        [24, 0],
+                        [24, 16],
+                        [0, 16],
+                    ],
+                },
+                {
+                    "floor_index": 3,
+                    "footprint_polygon": [
+                        [0, 0],
+                        [18, 0],
+                        [18, 12],
+                        [0, 12],
+                    ],
+                },
+            ],
+            "site_edges": [{"edge_index": 0, "kind": "street"}],
+            "access_candidates": [],
+            "use_mix": {"office": 1.0},
+        }
+    )
+
+    assert mass.footprint_for_floor(1) == (
+        (0, 0),
+        (30, 0),
+        (30, 20),
+        (0, 20),
+    )
+    assert mass.footprint_for_floor(2) == (
+        (0, 0),
+        (24, 0),
+        (24, 16),
+        (0, 16),
+    )
+
+
 def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tmp_path):
     input_path = tmp_path / "mass.json"
     output_dir = tmp_path / "alternatives-review"
@@ -225,9 +280,7 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
     assert payload["accepted_count"] == sum(
         alternative["accepted"] for alternative in payload["alternatives"]
     )
-    assert completed.returncode == (
-        0 if payload["accepted_count"] >= 2 else 1
-    )
+    assert completed.returncode == (0 if payload["accepted_count"] >= 2 else 1)
     assert len(payload["alternatives"]) == 2
     assert payload["internal_validation"]["status"] in {"pass", "fail"}
     assert payload["render_validation"]["status"] in {"pass", "fail"}
@@ -248,8 +301,10 @@ def test_cli_alternatives_review_generates_comparison_and_all_floor_artifacts(tm
         assert not Path(alternative["index_html"]).is_absolute()
         assert not Path(alternative["report_json"]).is_absolute()
         assert (
-            output_dir / alternative["index_html"]
-        ).resolve().is_relative_to(output_dir.resolve())
+            (output_dir / alternative["index_html"])
+            .resolve()
+            .is_relative_to(output_dir.resolve())
+        )
         assert (alternative_dir / "index.html").is_file()
         assert (alternative_dir / "building.review.json").is_file()
         assert len(list(alternative_dir.glob("floor_*/*.png"))) == 2
@@ -294,10 +349,7 @@ def test_cli_alternatives_review_preserves_infeasible_family_rejection(tmp_path)
         {
             "family": "conservative_redundant_two_stair",
             "reasons": [
-                (
-                    "concept-basic footprint requires width >= 20.0 m "
-                    "and depth >= 10.0 m"
-                )
+                ("concept-basic footprint requires width >= 20.0 m and depth >= 10.0 m")
             ],
         }
     ]
@@ -428,9 +480,7 @@ def test_cli_alternatives_count_and_exit_include_render_validation(
 def test_committed_alternative_review_json_has_no_checkout_absolute_paths():
     checkout = str(Path(__file__).resolve().parents[2]).casefold()
     docs_root = (
-        Path(__file__).resolve().parents[2]
-        / "docs"
-        / "plan-alternatives-architectural"
+        Path(__file__).resolve().parents[2] / "docs" / "plan-alternatives-architectural"
     )
 
     def strings(value):
@@ -453,9 +503,7 @@ def test_committed_alternative_review_json_has_no_checkout_absolute_paths():
     assert offenders == []
 
 
-def test_cli_building_review_can_use_openai_planner(
-    tmp_path, monkeypatch, capsys
-):
+def test_cli_building_review_can_use_openai_planner(tmp_path, monkeypatch, capsys):
     input_path = tmp_path / "mass.json"
     output_dir = tmp_path / "llm-building-review"
     input_path.write_text(
@@ -929,7 +977,9 @@ def test_cli_rectangular_sample_accepts_after_distinct_review_iterations(tmp_pat
     assert _rendered_svg_text(root, "circulation") == "circulation"
 
 
-def test_cli_concave_sample_reports_truthful_non_acceptance_and_polygon_boundary(tmp_path):
+def test_cli_concave_sample_reports_truthful_non_acceptance_and_polygon_boundary(
+    tmp_path,
+):
     output_dir = tmp_path / "concave"
 
     payload, index = _run_sample_loop_review(
@@ -949,9 +999,9 @@ def test_cli_concave_sample_reports_truthful_non_acceptance_and_polygon_boundary
     _assert_index_artifacts_resolve(output_dir, index)
 
     manifest = json.loads(
-        (REPOSITORY_ROOT / "datasets" / "manifests" / "sample_mass_concave.json").read_text(
-            encoding="utf-8"
-        )
+        (
+            REPOSITORY_ROOT / "datasets" / "manifests" / "sample_mass_concave.json"
+        ).read_text(encoding="utf-8")
     )
     final_svg = output_dir / index["iterations"][-1]["artifacts"]["svg"]
     boundary_points = _rendered_boundary_points(final_svg)

@@ -81,7 +81,10 @@ def generate_program_graph(
         raise ValueError("floor_index must be inside analyzed floor range")
 
     profile = _profile_for(use_type)
-    nodes = _nodes_from_profile(analysis.area, profile)
+    nodes = _nodes_from_profile(
+        analysis.area_for_floor(floor_index),
+        profile,
+    )
     if use_type == "neighborhood_commercial":
         nodes = _split_commercial_tenants(nodes)
 
@@ -103,7 +106,9 @@ def _profile_for(use_type: str) -> ProgramProfile:
     raise ValueError(f"unsupported use_type: {use_type}")
 
 
-def _nodes_from_profile(total_area: float, profile: ProgramProfile) -> list[ProgramNode]:
+def _nodes_from_profile(
+    total_area: float, profile: ProgramProfile
+) -> list[ProgramNode]:
     areas = [total_area * space.ratio for space in profile.spaces]
     areas[-1] = total_area - sum(areas[:-1])
     return [
@@ -134,9 +139,7 @@ def _relationship_edges(
         exact = [node.node_id for node in nodes if node.node_id == endpoint]
         if exact:
             return exact
-        role_matches = [
-            node.node_id for node in nodes if node.space_type == endpoint
-        ]
+        role_matches = [node.node_id for node in nodes if node.space_type == endpoint]
         return role_matches or ([endpoint] if endpoint == "street" else [])
 
     return [

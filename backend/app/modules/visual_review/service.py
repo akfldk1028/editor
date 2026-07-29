@@ -237,7 +237,11 @@ def create_building_visual_review_artifacts(
         floor_dir = target / f"floor_{floor.program.floor_index:03d}"
         artifacts = create_visual_review_artifacts(
             floor,
-            boundary=boundary,
+            boundary=(
+                list(floor.floor_boundary)
+                if floor.floor_boundary is not None
+                else boundary
+            ),
             output_dir=floor_dir,
             width=width,
             height=height,
@@ -252,19 +256,21 @@ def create_building_visual_review_artifacts(
                 "program_source": floor.program.source,
                 "program_adjusted": _program_was_adjusted(floor.program),
                 "program_adjustments": to_jsonable(floor.program.adjustments),
+                "floor_boundary": _boundary_evidence(
+                    list(floor.floor_boundary)
+                    if floor.floor_boundary is not None
+                    else boundary,
+                    floor.floor_boundary_source,
+                ),
                 "accepted": not artifacts.needs_iteration,
                 "internal_validation": {
-                    "status": (
-                        "pass" if floor.validation.accepted else "fail"
-                    ),
+                    "status": ("pass" if floor.validation.accepted else "fail"),
                     "policy_version": floor.validation.policy_version,
                 },
                 "render_validation": {
                     "status": artifacts.render_validation["status"],
                 },
-                "regulatory_screening": _regulatory_screening_payload(
-                    floor.validation
-                ),
+                "regulatory_screening": _regulatory_screening_payload(floor.validation),
                 "area_ledger": to_jsonable(floor.area_ledger),
                 "egress_graph": to_jsonable(floor.egress_graph),
                 "room_count": len(floor.layout.rooms),
@@ -275,8 +281,7 @@ def create_building_visual_review_artifacts(
     report_path = target / "building.review.json"
     index_html_path = target / "index.html"
     render_accepted = all(
-        artifact.render_validation["status"] == "pass"
-        for artifact in floor_artifacts
+        artifact.render_validation["status"] == "pass" for artifact in floor_artifacts
     )
     internal_validation = {
         "status": "pass" if result.accepted else "fail",
@@ -286,9 +291,7 @@ def create_building_visual_review_artifacts(
     }
     regulatory_screening = _aggregate_regulatory_screening(floor_reports)
     building_accepted = (
-        result.accepted
-        and render_accepted
-        and regulatory_screening["status"] != "fail"
+        result.accepted and render_accepted and regulatory_screening["status"] != "fail"
     )
     report = {
         "schema_version": 1,
@@ -343,6 +346,8 @@ def create_visual_review_artifacts(
     if width <= 0 or height <= 0:
         raise ValueError("viewport width and height must be positive")
     _validate_render_style(render_style)
+    if result.floor_boundary is not None:
+        boundary = list(result.floor_boundary)
 
     target = Path(output_dir).resolve()
     target.mkdir(parents=True, exist_ok=True)
@@ -391,22 +396,14 @@ def create_visual_review_artifacts(
         png_output.metadata.get("unresolved_collision_count", 0)
     )
     if render_style == "architectural":
-        checks["label_overlap"] = (
-            "pass" if unresolved_label_collisions == 0 else "fail"
-        )
+        checks["label_overlap"] = "pass" if unresolved_label_collisions == 0 else "fail"
     measurements = _layout_measurements(result)
     room_shapes = to_jsonable(result.validation.room_shapes)
     room_areas = to_jsonable(result.validation.room_areas)
-    render_passed = (
-        not missing_basic_design
-        and (
-            render_style != "architectural"
-            or unresolved_label_collisions == 0
-        )
+    render_passed = not missing_basic_design and (
+        render_style != "architectural" or unresolved_label_collisions == 0
     )
-    regulatory_screening = _regulatory_screening_payload(
-        result.validation
-    )
+    regulatory_screening = _regulatory_screening_payload(result.validation)
     accepted = (
         result.validation.accepted
         and render_passed
@@ -430,12 +427,18 @@ def create_visual_review_artifacts(
         "program_source": result.program.source,
         "program_adjusted": _program_was_adjusted(result.program),
         "program_adjustments": to_jsonable(result.program.adjustments),
+        "floor_boundary": _boundary_evidence(
+            boundary,
+            result.floor_boundary_source,
+        ),
         "render_style": render_style,
         "png_text": png_output.metadata,
         "iteration": (
             iteration_number
             if iteration_number is not None
-            else candidate.iteration if candidate is not None else None
+            else candidate.iteration
+            if candidate is not None
+            else None
         ),
         "candidate_id": result.layout.candidate_id,
         "fingerprint": candidate.fingerprint if candidate is not None else None,
@@ -447,9 +450,7 @@ def create_visual_review_artifacts(
         "accepted": accepted,
         "needs_iteration": needs_iteration,
         "internal_validation": {
-            "status": (
-                "pass" if result.validation.accepted else "fail"
-            ),
+            "status": ("pass" if result.validation.accepted else "fail"),
             "policy_version": result.validation.policy_version,
         },
         "render_validation": {
@@ -555,7 +556,9 @@ def _stair_evidence(result: GenerationResult) -> list[dict[str, object]]:
 def _validate_render_style(render_style: str) -> None:
     if render_style not in RENDER_STYLES:
         supported = ", ".join(sorted(RENDER_STYLES))
-        raise ValueError(f"unsupported render style: {render_style}; expected {supported}")
+        raise ValueError(
+            f"unsupported render style: {render_style}; expected {supported}"
+        )
 
 
 def _render_building_index(
@@ -564,10 +567,7 @@ def _render_building_index(
 ) -> str:
     floor_sections = []
     for floor in floors:
-        title = (
-            f"F{floor['floor_index']} | "
-            f"{html.escape(str(floor['use_type']))}"
-        )
+        title = f"F{floor['floor_index']} | {html.escape(str(floor['use_type']))}"
         png = html.escape(floor["artifacts"]["png"], quote=True)
         review = html.escape(floor["artifacts"]["html"], quote=True)
         internal_status = floor["internal_validation"]["status"]
@@ -586,7 +586,7 @@ def _render_building_index(
         floor_sections.append(
             f"""
             <section>
-              <header><h2>{title}</h2><span>{status} | {floor['room_count']} rooms</span></header>
+              <header><h2>{title}</h2><span>{status} | {floor["room_count"]} rooms</span></header>
               <a href="{review}"><img src="{png}" alt="{title} floor plan"></a>
             </section>
             """
@@ -597,9 +597,9 @@ def _render_building_index(
         if all(floor["render_validation"]["status"] == "pass" for floor in floors)
         else "fail"
     )
-    regulatory_status = _aggregate_regulatory_screening(floors)[
-        "status"
-    ].replace("_", " ")
+    regulatory_status = _aggregate_regulatory_screening(floors)["status"].replace(
+        "_", " "
+    )
     status = (
         f"internal concept validation: {internal_status} | "
         f"render validation: {render_status} | "
@@ -634,7 +634,7 @@ def _render_building_index(
       <div><h1>{html.escape(result.mass.project_id)}</h1><p>{len(floors)} floors | {result.total_area:g} total area</p></div>
       <span class="status">{status}</span>
     </div>
-    {''.join(floor_sections)}
+    {"".join(floor_sections)}
   </main>
 </body>
 </html>
@@ -715,9 +715,7 @@ def run_visual_review_loop(
         report = json.loads(review.report_path.read_text(encoding="utf-8"))
         report["review_level"] = "zoning"
         report["unchecked_checks"] = sorted(
-            name
-            for name, status in report["checks"].items()
-            if status == "not_checked"
+            name for name, status in report["checks"].items() if status == "not_checked"
         )
         review.report_path.write_text(
             json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
@@ -781,9 +779,7 @@ def _run_concept_basic_review(
         else:
             plan = plan_floor_assignments(mass, planner_client)
             assignments = plan.assignments
-            planner_provenance = _review_planner_provenance(
-                planner_client, assignments
-            )
+            planner_provenance = _review_planner_provenance(planner_client, assignments)
         building = run_building_generation(
             mass,
             floor_assignments=assignments,
@@ -799,9 +795,7 @@ def _run_concept_basic_review(
                 "planner assignment does not match requested floor/use type"
             )
     except Exception as error:
-        planner_provenance = _review_planner_provenance(
-            planner_client, assignments
-        )
+        planner_provenance = _review_planner_provenance(planner_client, assignments)
         message = f"{type(error).__name__}: {error}"
         index = {
             "schema_version": 1,
@@ -1060,9 +1054,7 @@ def _run_concept_basic_review(
         "program_source": final_report["program_source"],
         "program_adjusted": final_report["program_adjusted"],
         "iterations": iterations,
-        "score_trend": [
-            iteration["scores"]["total_score"] for iteration in iterations
-        ],
+        "score_trend": [iteration["scores"]["total_score"] for iteration in iterations],
         "hard_failure_trend": [
             iteration["hard_failure_count"] for iteration in iterations
         ],
@@ -1111,6 +1103,23 @@ def _concept_basic_fingerprint(layout) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _boundary_evidence(
+    boundary: list[tuple[float, float]],
+    source: str | None,
+) -> dict[str, object]:
+    coordinates = [[float(x), float(y)] for x, y in boundary]
+    canonical = json.dumps(
+        coordinates,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+    return {
+        "polygon": coordinates,
+        "source": source or "caller_boundary",
+        "sha256": hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
+    }
+
+
 def _program_was_adjusted(program: ProgramGraph) -> bool:
     return bool(program.adjustments)
 
@@ -1155,13 +1164,10 @@ def _review_planner_provenance(
         )
     return PlannerProvenance(
         planner_mode="structured",
-        provider=_nonempty_string(
-            getattr(planner_client, "provider", None)
-        ) or "manual",
+        provider=_nonempty_string(getattr(planner_client, "provider", None))
+        or "manual",
         model=_nonempty_string(getattr(planner_client, "model", None)),
-        response_id=_nonempty_string(
-            getattr(planner_client, "last_response_id", None)
-        ),
+        response_id=_nonempty_string(getattr(planner_client, "last_response_id", None)),
         validated_assignments=assignments,
     )
 
@@ -1207,9 +1213,7 @@ def _review_index(search, reports: list[dict], *, review_level: str) -> dict:
         for report in reports
     ]
     final_report = reports[-1] if reports else None
-    final_accepted = bool(
-        final_report is not None and final_report["accepted"]
-    )
+    final_accepted = bool(final_report is not None and final_report["accepted"])
     return {
         "schema_version": 1,
         "project_id": search.mass.project_id,
@@ -1249,9 +1253,7 @@ def _review_index(search, reports: list[dict], *, review_level: str) -> dict:
         ),
         "iterations": iterations,
         "score_trend": [entry["scores"]["total_score"] for entry in iterations],
-        "hard_failure_trend": [
-            entry["hard_failure_count"] for entry in iterations
-        ],
+        "hard_failure_trend": [entry["hard_failure_count"] for entry in iterations],
         "lineage": [
             {
                 "candidate_id": entry["candidate_id"],
@@ -1341,7 +1343,7 @@ def _render_index_html(index: dict) -> str:
         <th scope="col">Render validation</th>
         <th scope="col">Regulatory screening</th>
         <th scope="col">Artifacts</th></tr></thead>
-        <tbody>{''.join(rows)}</tbody>
+        <tbody>{"".join(rows)}</tbody>
       </table>
     </section>
   </main>
@@ -1401,16 +1403,14 @@ def _normalize_render_features(
                     room_label,
                 )
             )
-    labeled_circulation = (
-        max(
-            (
-                path
-                for path in result.layout.circulation
-                if _finite_points(path.polygon, minimum=3)
-            ),
-            key=lambda path: polygon_area(path.polygon),
-            default=None,
-        )
+    labeled_circulation = max(
+        (
+            path
+            for path in result.layout.circulation
+            if _finite_points(path.polygon, minimum=3)
+        ),
+        key=lambda path: polygon_area(path.polygon),
+        default=None,
     )
     for path in result.layout.circulation:
         points = tuple(path.polygon)
@@ -1581,9 +1581,7 @@ def _render_svg(
     render_style: str = "review",
 ) -> _RenderedOutput:
     min_x, min_y, max_x, max_y = bounds(boundary)
-    scale, pad_x, pad_y = _fit_transform(
-        min_x, min_y, max_x, max_y, width, height
-    )
+    scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="white"/>',
@@ -1702,26 +1700,24 @@ def _svg_feature(
     ]
     if feature.geometry == "label":
         x, y = raster[0]
-        if (
-            render_style == "architectural"
-            and not _architectural_label_visible(feature)
+        if render_style == "architectural" and not _architectural_label_visible(
+            feature
         ):
             return f"<g {metadata}></g>"
         rows = _display_label(feature, render_style).split("|")
         if len(rows) == 1:
             return (
-                f"<text {metadata} x=\"{x}\" y=\"{y}\" "
+                f'<text {metadata} x="{x}" y="{y}" '
                 f'font-family="{ARCHITECTURAL_FONT_STACK if render_style == "architectural" else "Arial"}" '
                 f'font-size="10" text-anchor="middle">'
                 f"{html.escape(rows[0])}</text>"
             )
         tspans = "".join(
-            f'<tspan x="{x}" dy="{0 if index == 0 else 12}">'
-            f"{html.escape(row)}</tspan>"
+            f'<tspan x="{x}" dy="{0 if index == 0 else 12}">{html.escape(row)}</tspan>'
             for index, row in enumerate(rows)
         )
         return (
-            f"<text {metadata} x=\"{x}\" y=\"{y}\" "
+            f'<text {metadata} x="{x}" y="{y}" '
             f'font-family="{ARCHITECTURAL_FONT_STACK if render_style == "architectural" else "Arial"}" '
             f'font-size="10" text-anchor="middle">{tspans}</text>'
         )
@@ -1772,10 +1768,7 @@ def _svg_feature(
     if (
         feature.label
         and feature.kind != "door-opening"
-        and (
-            render_style != "architectural"
-            or _architectural_label_visible(feature)
-        )
+        and (render_style != "architectural" or _architectural_label_visible(feature))
     ):
         x, y = _line_label_position(feature, raster)
         display_label = _display_label(feature, render_style)
@@ -1814,12 +1807,16 @@ def _svg_polygon_style(
     if feature.layer == "circulation":
         return CIRCULATION_FILL, CIRCULATION_STROKE, 2
     if feature.layer == "core":
-        return {
-            "stair": "#f7d6d0",
-            "elevator": "#d8d0e8",
-            "lobby": "#e7e9ec",
-            "shaft": "#c9cdd2",
-        }.get(feature.kind, "#e7e9ec"), "#28323c", 2
+        return (
+            {
+                "stair": "#f7d6d0",
+                "elevator": "#d8d0e8",
+                "lobby": "#e7e9ec",
+                "shaft": "#c9cdd2",
+            }.get(feature.kind, "#e7e9ec"),
+            "#28323c",
+            2,
+        )
     if feature.layer == "structure":
         return "#424b54", "#111111", 2
     if feature.layer == "furniture":
@@ -1846,10 +1843,14 @@ def _svg_line_style(
     if feature.layer == "grid":
         return "#aeb7bf", 1, ' stroke-dasharray="5 5"'
     if feature.layer == "envelope":
-        return ("#0b6e99", 6, "") if feature.kind == "window" else (
-            "#0087a8",
-            8,
-            "",
+        return (
+            ("#0b6e99", 6, "")
+            if feature.kind == "window"
+            else (
+                "#0087a8",
+                8,
+                "",
+            )
         )
     if feature.layer == "door-openings":
         return DOOR_STROKE, 4, ""
@@ -1869,8 +1870,7 @@ def _svg_window_symbol(
     rails = []
     for direction in (-1, 1):
         points = " ".join(
-            f"{x + offset_x * direction},{y + offset_y * direction}"
-            for x, y in raster
+            f"{x + offset_x * direction},{y + offset_y * direction}" for x, y in raster
         )
         rails.append(
             f'<polyline points="{points}" fill="none" stroke="#222222" stroke-width="1"/>'
@@ -1914,7 +1914,7 @@ def _svg_door_symbol(
         label = (
             f'<text x="{x}" y="{y}" font-family="{ARCHITECTURAL_FONT_STACK}" '
             f'font-size="9" text-anchor="middle">'
-            f'{html.escape(_display_label(feature, "architectural"))}</text>'
+            f"{html.escape(_display_label(feature, 'architectural'))}</text>"
         )
     return (
         f'<g {metadata} data-symbol="{symbol_name}"{aria}>'
@@ -2072,7 +2072,7 @@ def _svg_dimension_chain(
     label = (
         f'<text x="{x}" y="{y}" font-family="{ARCHITECTURAL_FONT_STACK}" '
         f'font-size="9" text-anchor="middle">'
-        f'{html.escape(_display_label(feature, "architectural"))}</text>'
+        f"{html.escape(_display_label(feature, 'architectural'))}</text>"
         if feature.label and _architectural_label_visible(feature)
         else ""
     )
@@ -2092,9 +2092,7 @@ def _render_png(
     render_style: str = "review",
 ) -> _RenderedOutput:
     min_x, min_y, max_x, max_y = bounds(boundary)
-    scale, pad_x, pad_y = _fit_transform(
-        min_x, min_y, max_x, max_y, width, height
-    )
+    scale, pad_x, pad_y = _fit_transform(min_x, min_y, max_x, max_y, width, height)
     canvas = SimplePngCanvas(width, height)
     rendered: list[_RenderFeature] = []
     skipped: list[dict[str, str]] = []
@@ -2249,8 +2247,10 @@ def _png_polygon_style(
         if feature.kind == "boundary":
             return None, (17, 17, 17), 6
         if feature.layer in {"rooms", "circulation", "core"}:
-            return (255, 255, 255), (32, 32, 32), (
-                4 if feature.layer != "circulation" else 2
+            return (
+                (255, 255, 255),
+                (32, 32, 32),
+                (4 if feature.layer != "circulation" else 2),
             )
         if feature.layer == "structure":
             return (85, 85, 85), (17, 17, 17), 2
@@ -2264,12 +2264,16 @@ def _png_polygon_style(
     if feature.layer == "circulation":
         return PNG_CIRCULATION_FILL, PNG_CIRCULATION_STROKE, 2
     if feature.layer == "core":
-        return {
-            "stair": (247, 214, 208),
-            "elevator": (216, 208, 232),
-            "lobby": (231, 233, 236),
-            "shaft": (201, 205, 210),
-        }.get(feature.kind, (231, 233, 236)), (40, 50, 60), 2
+        return (
+            {
+                "stair": (247, 214, 208),
+                "elevator": (216, 208, 232),
+                "lobby": (231, 233, 236),
+                "shaft": (201, 205, 210),
+            }.get(feature.kind, (231, 233, 236)),
+            (40, 50, 60),
+            2,
+        )
     if feature.layer == "structure":
         return (66, 75, 84), (17, 17, 17), 2
     if feature.layer == "furniture":
@@ -2492,7 +2496,9 @@ def _draw_architectural_png_text(
         else:
             x, y = _architectural_line_label_position(feature, raster)
         text = _display_label(feature, "architectural").replace("|", "\n")
-        box = drawing.multiline_textbbox((0, 0), text, font=font, spacing=1, align="center")
+        box = drawing.multiline_textbbox(
+            (0, 0), text, font=font, spacing=1, align="center"
+        )
         text_width = box[2] - box[0]
         text_height = box[3] - box[1]
         origin = (x - text_width / 2, y - text_height / 2)
@@ -2644,11 +2650,7 @@ def _display_label(feature: _RenderFeature, render_style: str) -> str:
     if feature.kind == "street":
         return "도로"
     if feature.kind == "entrance":
-        return (
-            "공용 출입"
-            if feature.style_key == "common-entrance"
-            else "임대 출입"
-        )
+        return "공용 출입" if feature.style_key == "common-entrance" else "임대 출입"
     key = feature.style_key
     rows = feature.label.split("|")
     if not key and feature.kind == "room-label":
@@ -2720,7 +2722,9 @@ def _feature_skip_reason(feature: _RenderFeature) -> str | None:
         return feature.invalid_reason
     if feature.layer not in LAYER_ORDER:
         return "unsupported_layer"
-    minimum = 3 if feature.geometry == "polygon" else 1 if feature.geometry == "label" else 2
+    minimum = (
+        3 if feature.geometry == "polygon" else 1 if feature.geometry == "label" else 2
+    )
     if feature.geometry not in {"polygon", "polyline", "label"}:
         return "unsupported_geometry"
     if not _finite_points(feature.points, minimum=minimum):
@@ -2947,8 +2951,7 @@ def _group_feature_ids(features: tuple[_RenderFeature, ...]) -> dict:
         )
     return {
         layer: {
-            kind: sorted(identifiers)
-            for kind, identifiers in sorted(kinds.items())
+            kind: sorted(identifiers) for kind, identifiers in sorted(kinds.items())
         }
         for layer, kinds in grouped.items()
     }
@@ -2958,7 +2961,9 @@ def _missing_groups(modeled: dict, rendered: dict) -> dict:
     missing: dict[str, dict[str, list[str]]] = {}
     for layer, kinds in modeled.items():
         for kind, identifiers in kinds.items():
-            absent = sorted(set(identifiers) - set(rendered.get(layer, {}).get(kind, [])))
+            absent = sorted(
+                set(identifiers) - set(rendered.get(layer, {}).get(kind, []))
+            )
             if absent:
                 missing.setdefault(layer, {})[kind] = absent
     return missing
@@ -2998,8 +3003,7 @@ def _layer_completeness(evidence: dict) -> dict[str, dict[str, int]]:
 
 def _bounded_ascii(value: str, limit: int) -> str:
     return "".join(
-        character if 32 <= ord(character) <= 126 else "?"
-        for character in value
+        character if 32 <= ord(character) <= 126 else "?" for character in value
     )[:limit]
 
 
@@ -3058,16 +3062,14 @@ def _render_html(
             ]
         )
     )
-    unresolved_items = "".join(
-        f"<li>{html.escape(str(item))}</li>"
-        for item in unresolved
-    ) or "<li>none</li>"
+    unresolved_items = (
+        "".join(f"<li>{html.escape(str(item))}</li>" for item in unresolved)
+        or "<li>none</li>"
+    )
     area_by_room_id = {
         metric["room_id"]: metric["actual_area"] for metric in report["room_areas"]
     }
-    adjustment_by_room = _adjustment_display_by_room(
-        report["program_adjustments"]
-    )
+    adjustment_by_room = _adjustment_display_by_room(report["program_adjustments"])
     room_form_rows = "".join(
         "<tr>"
         f'<th scope="row">{html.escape(shape["room_id"])}</th>'
@@ -3087,9 +3089,13 @@ def _render_html(
     for layer in LAYER_ORDER:
         disabled = layer in _BASIC_DESIGN_LAYERS and not basic_design_present
         label, color = LAYER_DISPLAY[layer]
-        modeled_count = report["layer_completeness"].get(layer, {}).get(
-            "modeled",
-            0,
+        modeled_count = (
+            report["layer_completeness"]
+            .get(layer, {})
+            .get(
+                "modeled",
+                0,
+            )
         )
         layer_rows.append(
             f'<div class="cad-layer-row" data-layer="{layer}">'
@@ -3112,8 +3118,8 @@ def _render_html(
     controls = "".join(layer_rows)
     completeness_rows = "".join(
         f'<tr><th scope="row">{html.escape(layer)}</th>'
-        f'<td>{counts["modeled"]}</td><td>{counts["svg"]}</td>'
-        f'<td>{counts["png"]}</td></tr>'
+        f"<td>{counts['modeled']}</td><td>{counts['svg']}</td>"
+        f"<td>{counts['png']}</td></tr>"
         for layer, counts in report["layer_completeness"].items()
     )
     project_id = html.escape(result.mass.project_id)
@@ -3374,9 +3380,7 @@ def _line_label_position(
     midpoint_x = sum(point[0] for point in points) / len(points)
     midpoint_y = sum(point[1] for point in points) / len(points)
     if feature.kind == "grid":
-        if abs(points[0][0] - points[-1][0]) < abs(
-            points[0][1] - points[-1][1]
-        ):
+        if abs(points[0][0] - points[-1][0]) < abs(points[0][1] - points[-1][1]):
             return points[0][0], max(point[1] for point in points) + 12
         return min(point[0] for point in points) - 12, points[0][1]
     if feature.kind == "overall_width":
@@ -3416,7 +3420,8 @@ def _raster_points(
     height: int,
 ) -> list[tuple[int, int]]:
     return [
-        (round(_sx(x, min_x, scale, pad_x)), round(_sy(y, min_y, scale, pad_y, height))) for x, y in points
+        (round(_sx(x, min_x, scale, pad_x)), round(_sy(y, min_y, scale, pad_y, height)))
+        for x, y in points
     ]
 
 
@@ -3428,11 +3433,7 @@ def _slug(value: str) -> str:
 
 def _validation_scores(validation: ValidationReport) -> dict[str, float]:
     payload = to_jsonable(validation)
-    return {
-        name: value
-        for name, value in payload.items()
-        if name.endswith("_score")
-    }
+    return {name: value for name, value in payload.items() if name.endswith("_score")}
 
 
 def _regulatory_screening_payload(validation: ValidationReport) -> dict:
@@ -3503,14 +3504,14 @@ def _hard_validation_checks(
         checks["basic_design"] = "not_checked"
     else:
         checks["basic_design"] = (
-            "fail"
-            if violation_codes & _BASIC_DESIGN_VIOLATION_CODES
-            else "pass"
+            "fail" if violation_codes & _BASIC_DESIGN_VIOLATION_CODES else "pass"
         )
     return checks
 
 
-def _layout_measurements(result: GenerationResult) -> dict[str, int | float | list[str] | None]:
+def _layout_measurements(
+    result: GenerationResult,
+) -> dict[str, int | float | list[str] | None]:
     door_widths = [
         float(opening.clear_width)
         for opening in result.layout.openings
@@ -3555,7 +3556,9 @@ def _layout_measurements(result: GenerationResult) -> dict[str, int | float | li
 
 def _is_renderable_opening(opening: OpeningSegment) -> bool:
     values = (*opening.start, *opening.end, opening.clear_width)
-    return all(isinstance(value, (int, float)) and math.isfinite(value) for value in values)
+    return all(
+        isinstance(value, (int, float)) and math.isfinite(value) for value in values
+    )
 
 
 def _format_measurement(value: float) -> str:

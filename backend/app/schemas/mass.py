@@ -43,6 +43,36 @@ _TRAVEL_LIMIT_CLASSIFICATIONS = {
 
 
 @dataclass(frozen=True)
+class FloorFootprint:
+    floor_index: int
+    footprint_polygon: tuple[Point, ...]
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.floor_index, int)
+            or isinstance(self.floor_index, bool)
+            or self.floor_index < 1
+        ):
+            raise ValueError("floor_index must be a positive integer")
+        if len(self.footprint_polygon) < 3:
+            raise ValueError("floor footprint polygon needs at least 3 points")
+        normalized: list[Point] = []
+        for point in self.footprint_polygon:
+            if not isinstance(point, (tuple, list)) or len(point) != 2:
+                raise TypeError("floor footprint points must be coordinate pairs")
+            x, y = point
+            if any(
+                not isinstance(value, (int, float))
+                or isinstance(value, bool)
+                or not math.isfinite(float(value))
+                for value in (x, y)
+            ):
+                raise ValueError("floor footprint coordinates must be finite")
+            normalized.append((float(x), float(y)))
+        object.__setattr__(self, "footprint_polygon", tuple(normalized))
+
+
+@dataclass(frozen=True)
 class FloorCodeContext:
     floor_index: int
     occupancy: str | None = None
@@ -72,9 +102,8 @@ class FloorCodeContext:
             raise ValueError("occupant_load must be a positive integer or None")
         if self.above_grade is not None and not isinstance(self.above_grade, bool):
             raise TypeError("above_grade must be bool or None")
-        if (
-            self.is_evacuation_floor is not None
-            and not isinstance(self.is_evacuation_floor, bool)
+        if self.is_evacuation_floor is not None and not isinstance(
+            self.is_evacuation_floor, bool
         ):
             raise TypeError("is_evacuation_floor must be bool or None")
         if (
@@ -97,9 +126,7 @@ class FloorCodeContext:
             or not math.isfinite(float(area))
             or float(area) < 0
         ):
-            raise ValueError(
-                "habitable_area_m2 must be finite and nonnegative or None"
-            )
+            raise ValueError("habitable_area_m2 must be finite and nonnegative or None")
 
 
 @dataclass(frozen=True)
@@ -117,9 +144,7 @@ class BuildingCodeContext:
     def __post_init__(self) -> None:
         for name in ("jurisdiction", "effective_date"):
             value = getattr(self, name)
-            if value is not None and (
-                not isinstance(value, str) or not value.strip()
-            ):
+            if value is not None and (not isinstance(value, str) or not value.strip()):
                 raise TypeError(f"{name} must be a non-empty string or None")
         if self.effective_date is not None:
             try:
@@ -146,14 +171,12 @@ class BuildingCodeContext:
                 raise TypeError(f"{name} must be bool or None")
         if (
             self.travel_construction_class is not None
-            and self.travel_construction_class
-            not in _TRAVEL_CONSTRUCTION_CLASSES
+            and self.travel_construction_class not in _TRAVEL_CONSTRUCTION_CLASSES
         ):
             raise ValueError("travel_construction_class is not supported")
         if (
             self.travel_limit_classification is not None
-            and self.travel_limit_classification
-            not in _TRAVEL_LIMIT_CLASSIFICATIONS
+            and self.travel_limit_classification not in _TRAVEL_LIMIT_CLASSIFICATIONS
         ):
             raise ValueError("travel_limit_classification is not supported")
         if not isinstance(self.floor_facts, tuple) or any(
@@ -174,6 +197,7 @@ class MassInput:
     access_candidates: list[dict]
     use_mix: dict[str, float]
     building_code_context: BuildingCodeContext | None = None
+    floor_footprints: tuple[FloorFootprint, ...] = ()
 
     def __post_init__(self) -> None:
         if self.building_code_context is not None and not isinstance(
@@ -194,6 +218,63 @@ class MassInput:
                     "building_code_context floor facts outside supplied floors: "
                     + ", ".join(str(index) for index in outside)
                 )
+        if not isinstance(self.floor_footprints, tuple) or any(
+            not isinstance(footprint, FloorFootprint)
+            for footprint in self.floor_footprints
+        ):
+            raise TypeError("floor_footprints must be a tuple of FloorFootprint")
+        floor_indices = [footprint.floor_index for footprint in self.floor_footprints]
+        if len(set(floor_indices)) != len(floor_indices):
+            raise ValueError("floor_footprints floor_index values must be unique")
+        outside = [
+            floor_index for floor_index in floor_indices if floor_index > self.floors
+        ]
+        if outside:
+            raise ValueError(
+                "floor_footprints outside supplied floors: "
+                + ", ".join(str(index) for index in outside)
+            )
+        if self.floor_footprints:
+            expected = set(range(1, self.floors + 1))
+            supplied = set(floor_indices)
+            if supplied != expected:
+                missing = sorted(expected - supplied)
+                raise ValueError(
+                    "floor_footprints must cover every supplied floor; missing: "
+                    + ", ".join(str(index) for index in missing)
+                )
+
+    def footprint_for_floor(self, floor_index: int) -> tuple[Point, ...]:
+        if (
+            not isinstance(floor_index, int)
+            or isinstance(floor_index, bool)
+            or floor_index < 1
+            or floor_index > self.floors
+        ):
+            raise ValueError("floor_index must be inside supplied floor range")
+        override = next(
+            (
+                footprint
+                for footprint in self.floor_footprints
+                if footprint.floor_index == floor_index
+            ),
+            None,
+        )
+        if override is not None:
+            return override.footprint_polygon
+        if self.floor_footprints:
+            raise ValueError(f"floor_footprints has no record for floor {floor_index}")
+        return tuple((float(x), float(y)) for x, y in self.footprint_polygon)
+
+
+@dataclass(frozen=True)
+class FloorPlateAnalysis:
+    floor_index: int
+    area: float
+    edge_count: int
+    bounds: tuple[float, float, float, float]
+    footprint_polygon: tuple[Point, ...]
+    source: str
 
 
 @dataclass(frozen=True)
@@ -207,3 +288,41 @@ class MassAnalysis:
     access_edge_indices: list[int]
     bounds: tuple[float, float, float, float]
     building_code_context: BuildingCodeContext | None = None
+    floor_plates: tuple[FloorPlateAnalysis, ...] = ()
+
+    def floor_plate(self, floor_index: int) -> FloorPlateAnalysis:
+        if floor_index < 1 or floor_index > self.floors:
+            raise ValueError("floor_index must be inside analyzed floor range")
+        if self.floor_plates:
+            return next(
+                plate for plate in self.floor_plates if plate.floor_index == floor_index
+            )
+        return FloorPlateAnalysis(
+            floor_index=floor_index,
+            area=self.area,
+            edge_count=self.edge_count,
+            bounds=self.bounds,
+            footprint_polygon=(),
+            source="legacy_mass_analysis",
+        )
+
+    def area_for_floor(self, floor_index: int) -> float:
+        return self.floor_plate(floor_index).area
+
+    def bounds_for_floor(
+        self,
+        floor_index: int,
+    ) -> tuple[float, float, float, float]:
+        return self.floor_plate(floor_index).bounds
+
+    def boundary_for_floor(self, floor_index: int) -> tuple[Point, ...]:
+        plate = self.floor_plate(floor_index)
+        if plate.footprint_polygon:
+            return plate.footprint_polygon
+        min_x, min_y, max_x, max_y = plate.bounds
+        return (
+            (min_x, min_y),
+            (max_x, min_y),
+            (max_x, max_y),
+            (min_x, max_y),
+        )
