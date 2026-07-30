@@ -300,7 +300,10 @@ def test_generator_repair_attempt_rejects_evidence_for_wrong_outcome(
 def _rejection_repair(
     *,
     floor_index: int = 1,
+    subject_id: str = "open_work",
     room_ids: tuple[str, ...] = ("meeting",),
+    before_value: float = 0.69,
+    threshold: float = 0.70,
     after_value: float = 0.75,
 ) -> GeneratorRepairProvenance:
     return GeneratorRepairProvenance(
@@ -308,10 +311,10 @@ def _rejection_repair(
         issue_code="primary_daylight_ratio",
         policy_version="building-quality/v1",
         floor_index=floor_index,
-        subject_id="open_work",
+        subject_id=subject_id,
         room_ids=room_ids,
-        before_value=0.69,
-        threshold=0.70,
+        before_value=before_value,
+        threshold=threshold,
         after_value=after_value,
     )
 
@@ -366,14 +369,10 @@ def test_repair_attempt_outcome_requires_matching_rejection_reason(
 
 
 @pytest.mark.parametrize(
-    ("outcome", "reason_type"),
-    [
-        ("generation_failed", "GeneratorRepairFailed"),
-        ("validation_rejected", "BuildingValidationRetryRejected"),
-    ],
+    "reason_type",
+    ["GeneratorRepairFailed"],
 )
-def test_unevaluated_repair_attempt_cannot_carry_repair_provenance(
-    outcome: str,
+def test_generation_failed_attempt_cannot_carry_repair_provenance(
     reason_type: str,
 ) -> None:
     with pytest.raises(ValueError, match="cannot have generator repairs"):
@@ -383,7 +382,50 @@ def test_unevaluated_repair_attempt_cannot_carry_repair_provenance(
             reason="unevaluated repair rejection",
             quality_report=_quality_report(hard_pass=False),
             generator_repairs=(_rejection_repair(),),
-            generator_repair_attempt=_rejection_attempt(outcome),
+            generator_repair_attempt=_rejection_attempt("generation_failed"),
+        )
+
+
+@pytest.mark.parametrize(
+    "repairs",
+    [
+        (),
+        (_rejection_repair(after_value=0.76),),
+        (_rejection_repair(room_ids=("focus",)),),
+        (_rejection_repair(floor_index=2),),
+        (_rejection_repair(subject_id="floor-1"),),
+        (_rejection_repair(before_value=0.68),),
+        (_rejection_repair(threshold=0.71),),
+    ],
+)
+def test_validation_rejection_requires_lossless_matching_provenance(
+    repairs: tuple[GeneratorRepairProvenance, ...],
+) -> None:
+    original = _quality_report(
+        hard_pass=False,
+        hard_issue=("primary_daylight_ratio", 0.69, 0.70),
+    )
+
+    with pytest.raises(ValueError, match="validation.*repair|repair.*validation"):
+        StructuralAlternativeRejection(
+            strategy="test",
+            reason_type="BuildingValidationRetryRejected",
+            reason="inconsistent validation rejection",
+            quality_report=original,
+            generator_repairs=repairs,
+            generator_repair_attempt=_rejection_attempt("validation_rejected"),
+        )
+
+
+def test_validation_rejection_requires_original_structured_hard_issue() -> None:
+    with pytest.raises(ValueError, match="structured hard issue"):
+        StructuralAlternativeRejection(
+            strategy="test",
+            reason_type="BuildingValidationRetryRejected",
+            reason="missing original issue",
+            quality_report=_quality_report(hard_pass=False),
+            generator_repairs=(_rejection_repair(),),
+            generator_repair_attempt=_rejection_attempt("validation_rejected"),
         )
 
 
@@ -422,7 +464,10 @@ def test_evaluated_rejection_requires_exact_request_and_repair_evidence(
 
 
 def test_repair_rejection_truth_table_accepts_coherent_combinations() -> None:
-    report = _quality_report(hard_pass=False)
+    report = _quality_report(
+        hard_pass=False,
+        hard_issue=("primary_daylight_ratio", 0.69, 0.70),
+    )
     evaluated = StructuralAlternativeRejection(
         strategy="evaluated",
         reason_type="BuildingQualityRejected",
@@ -436,6 +481,7 @@ def test_repair_rejection_truth_table_accepts_coherent_combinations() -> None:
         reason_type="BuildingValidationRetryRejected",
         reason="validation rejection",
         quality_report=report,
+        generator_repairs=(_rejection_repair(),),
         generator_repair_attempt=_rejection_attempt("validation_rejected"),
     )
     generation = StructuralAlternativeRejection(
@@ -453,7 +499,7 @@ def test_repair_rejection_truth_table_accepts_coherent_combinations() -> None:
     )
 
     assert evaluated.generator_repairs
-    assert validation.generator_repairs == ()
+    assert validation.generator_repairs
     assert generation.generator_repairs == ()
     assert legacy.generator_repair_attempt is None
 
@@ -677,7 +723,7 @@ def test_primary_daylight_retry_is_one_shot_and_re_evaluated(
     )
 
 
-def test_invalid_daylight_retry_keeps_attempt_without_evaluated_provenance(
+def test_invalid_daylight_retry_keeps_lossless_after_provenance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     before = _quality_report(
@@ -747,7 +793,15 @@ def test_invalid_daylight_retry_keeps_attempt_without_evaluated_provenance(
     assert rejection.reason == (
         "legacy primary_daylight_retry: coverage_below_minimum"
     )
-    assert rejection.generator_repairs == ()
+    repair, = rejection.generator_repairs
+    assert repair.issue_code == "primary_daylight_ratio"
+    assert repair.policy_version == before.policy_version
+    assert repair.floor_index == 1
+    assert repair.subject_id == "floor-1"
+    assert repair.room_ids == ("meeting",)
+    assert repair.before_value == pytest.approx(0.69)
+    assert repair.threshold == pytest.approx(0.70)
+    assert repair.after_value == pytest.approx(0.75)
     assert rejection.generator_repair_attempt == GeneratorRepairAttempt(
         operator_id="primary_daylight_exterior_allocation/v1",
         requests=(request,),

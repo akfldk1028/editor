@@ -517,10 +517,16 @@ def _evaluate_with_primary_daylight_retry(
             repaired_building,
             requests,
         )
+        repairs = _generator_repair_provenance(
+            quality_report,
+            requests,
+            after_values=after_values,
+            policy_version=quality_report.policy_version,
+        )
         return _PrimaryDaylightRetryResult(
             building=repaired_building,
             quality_report=None,
-            generator_repairs=(),
+            generator_repairs=repairs,
             attempt=GeneratorRepairAttempt(
                 operator_id="primary_daylight_exterior_allocation/v1",
                 requests=requests,
@@ -676,6 +682,7 @@ def _primary_daylight_retry_rejection(
                 f"{','.join(retry.attempt.validation_codes)}"
             ),
             quality_report=original_quality_report,
+            generator_repairs=retry.generator_repairs,
             generator_repair_attempt=retry.attempt,
         )
     if retry.quality_report is None:

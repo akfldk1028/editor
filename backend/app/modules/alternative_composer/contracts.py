@@ -228,17 +228,20 @@ class StructuralAlternativeRejection:
                 raise ValueError(
                     "generator repair attempt outcome must match rejection reason"
                 )
-            if attempt.outcome != "evaluated" and self.generator_repairs:
+            if attempt.outcome == "generation_failed" and self.generator_repairs:
                 raise ValueError(
-                    "unevaluated repair attempt cannot have generator repairs"
+                    "generation failed repair attempt cannot have generator repairs"
                 )
             if attempt.outcome == "validation_rejected" and self.quality_report is None:
                 raise ValueError(
                     "validation repair rejection requires a quality report"
                 )
-            if attempt.outcome == "evaluated" and not self.generator_repairs:
+            if (
+                attempt.outcome in {"evaluated", "validation_rejected"}
+                and not self.generator_repairs
+            ):
                 raise ValueError(
-                    "evaluated repair attempt requires generator repairs"
+                    f"{attempt.outcome} repair attempt requires generator repairs"
                 )
         _validate_generator_repairs(
             self.generator_repairs,
@@ -259,10 +262,13 @@ def _validate_generator_repairs(
         raise TypeError("generator repairs must be immutable provenance records")
     if repairs and quality_report is None:
         raise ValueError("generator repairs require a quality report")
-    if attempt is not None and attempt.outcome == "evaluated":
+    if attempt is not None and attempt.outcome in {
+        "evaluated",
+        "validation_rejected",
+    }:
         if len(repairs) != len(attempt.requests):
             raise ValueError(
-                "generator repairs must exactly match evaluated repair attempt"
+                f"generator repairs must exactly match {attempt.outcome} repair attempt"
             )
         after_by_floor = dict(attempt.after_primary_daylight)
         for repair, request in zip(repairs, attempt.requests, strict=True):
@@ -278,14 +284,47 @@ def _validate_generator_repairs(
                 )
             ):
                 raise ValueError(
-                    "generator repairs must exactly match evaluated repair attempt"
+                    f"generator repairs must exactly match "
+                    f"{attempt.outcome} repair attempt"
                 )
     if quality_report is None:
         return
     floors_by_index = {floor.floor_index: floor for floor in quality_report.floors}
+    validation_issues_by_floor = {
+        issue.floor_index: issue
+        for issue in quality_report.issues
+        if issue.code == "primary_daylight_ratio" and issue.severity == "hard"
+    }
     for repair in repairs:
         if repair.policy_version != quality_report.policy_version:
             raise ValueError("generator repair policy_version must match quality report")
+        if attempt is not None and attempt.outcome == "validation_rejected":
+            issue = validation_issues_by_floor.get(repair.floor_index)
+            if (
+                issue is None
+                or issue.subject_id is None
+                or issue.measured_value is None
+                or issue.threshold is None
+                or repair.issue_code != issue.code
+                or repair.subject_id != issue.subject_id
+                or not math.isclose(
+                    repair.before_value,
+                    issue.measured_value,
+                    rel_tol=0.0,
+                    abs_tol=1e-12,
+                )
+                or not math.isclose(
+                    repair.threshold,
+                    issue.threshold,
+                    rel_tol=0.0,
+                    abs_tol=1e-12,
+                )
+            ):
+                raise ValueError(
+                    "validation repair provenance requires its original "
+                    "structured hard issue"
+                )
+            continue
         floor = floors_by_index.get(repair.floor_index)
         if floor is None:
             raise ValueError("generator repair floor_index must match quality report")

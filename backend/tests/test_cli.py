@@ -1,7 +1,7 @@
 import json
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
@@ -20,6 +20,7 @@ from backend.app.modules.building_quality.contracts import (
     AlternativeDiversityReport,
     BuildingQualityReport,
     FloorQualityMetrics,
+    QualityIssue,
     VerticalQualityMetrics,
 )
 from backend.app.modules.local_topology_planner.contracts import (
@@ -542,6 +543,21 @@ def test_cli_irregular_review_quality_gate_fast(
         error_type="ValueError",
         error_message="cannot split requested exterior seed",
     )
+    validation_original_report = replace(
+        alternatives[0].quality_report,
+        hard_pass=False,
+        issues=(
+            QualityIssue(
+                code="primary_daylight_ratio",
+                severity="hard",
+                floor_index=1,
+                subject_id="floor-1",
+                measured_value=0.69,
+                threshold=0.7,
+                message="primary daylight is below policy",
+            ),
+        ),
+    )
     attempt_rejections = (
         StructuralAlternativeRejection(
             strategy="evaluated",
@@ -555,7 +571,8 @@ def test_cli_irregular_review_quality_gate_fast(
             strategy="validation-rejected",
             reason_type="BuildingValidationRetryRejected",
             reason="validation rejected test rejection",
-            quality_report=alternatives[0].quality_report,
+            quality_report=validation_original_report,
+            generator_repairs=(repair_evidence(0.7123456789),),
             generator_repair_attempt=validation_rejected_attempt,
         ),
         StructuralAlternativeRejection(
@@ -569,6 +586,22 @@ def test_cli_irregular_review_quality_gate_fast(
         item["strategy"]: item["generator_repair_attempt"]
         for item in map(cli_module._serialize_rejected_strategy, attempt_rejections)
     }
+    serialized_validation = cli_module._serialize_rejected_strategy(
+        attempt_rejections[1]
+    )
+    assert serialized_validation["generator_repairs"] == [
+        {
+            "operator_id": "primary_daylight_exterior_allocation/v1",
+            "issue_code": "primary_daylight_ratio",
+            "policy_version": "building-quality/v1",
+            "floor_index": 1,
+            "subject_id": "floor-1",
+            "room_ids": ["focus", "meeting"],
+            "before_value": 0.69,
+            "threshold": 0.7,
+            "after_value": 0.7123456789,
+        }
+    ]
     assert serialized_attempts == {
         "evaluated": {
             "operator_id": "primary_daylight_exterior_allocation/v1",
