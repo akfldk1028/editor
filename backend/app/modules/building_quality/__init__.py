@@ -7,11 +7,13 @@ from backend.app.modules.building_quality.contracts import (
     VerticalQualityMetrics,
 )
 from backend.app.modules.building_quality.policy import DEFAULT_QUALITY_POLICY
+from backend.app.modules.building_quality.diversity import compare_building_diversity
 from backend.app.modules.building_quality.service import evaluate_building_quality
 
 __all__ = [
     "AlternativeDiversityReport",
     "BuildingQualityReport",
+    "compare_building_diversity",
     "DEFAULT_QUALITY_POLICY",
     "FloorQualityMetrics",
     "QualityIssue",
