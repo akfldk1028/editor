@@ -50,15 +50,15 @@ def test_interior_window_does_not_serve_primary_room():
 def test_mis_hosted_exterior_window_does_not_serve_primary_room():
     floor = _office_floor(
         primary_areas={"open_work": 70, "meeting": 20, "focus": 10},
-        exterior_windows={"open_work"},
-        mis_hosted_windows={"focus": "open_work"},
+        exterior_windows={"focus"},
+        mis_hosted_windows={"open_work": "focus"},
     )
 
     measured = measure_primary_daylight(floor)
 
-    assert measured.served_room_ids == ("open_work",)
-    assert measured.ratio == pytest.approx(0.70)
-    assert measured.unserved_room_ids == ("focus", "meeting")
+    assert measured.served_room_ids == ("focus",)
+    assert measured.ratio == pytest.approx(0.10)
+    assert measured.unserved_room_ids == ("meeting", "open_work")
 
 
 def test_missing_primary_program_area_is_rejected():
@@ -105,7 +105,7 @@ def _office_floor(
     )
     lines.extend(
         _window(exterior_room_id, valid=True, host_id=host_id)
-        for host_id, exterior_room_id in sorted((mis_hosted_windows or {}).items())
+        for exterior_room_id, host_id in sorted((mis_hosted_windows or {}).items())
     )
     return _generation_result(rooms, lines)
 
