@@ -11,6 +11,7 @@ from shapely.prepared import prep as prepare_geometry
 
 import backend.app.modules.layout_generator.orthogonal as orthogonal_service
 from backend.app.modules.basic_design.service import generate_basic_design
+from backend.app.modules.circulation_planner.contracts import CirculationCandidate
 from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
 from backend.app.modules.layout_generator.orthogonal import (
     generate_orthogonal_office_layout,
@@ -406,6 +407,128 @@ def test_exterior_priority_rooms_receive_window_bearing_boundary_cells() -> None
         exterior_priority_room_ids=("focus", "meeting"),
     )
     assert first == second
+
+
+def test_exterior_priority_matching_reserves_frontage_cell_for_hall_conflict() -> None:
+    alpha = ProgramNode("alpha", "meeting", 8.0, min_width=2.0)
+    bravo = ProgramNode(
+        "bravo",
+        "meeting",
+        8.0,
+        min_width=2.0,
+        frontage_required=True,
+    )
+    frontage_cell = orthogonal_service._canonical_rectangle((0, 0, 4, 2))
+    exterior_only_cell = orthogonal_service._canonical_rectangle((4, 0, 8, 2))
+    exterior_segments = (((0.0, 0.0), (8.0, 0.0)),)
+
+    assignments = orthogonal_service._assign_rectangles(
+        [alpha, bravo],
+        [frontage_cell, exterior_only_cell],
+        frontage_segments=(((0.0, 0.0), (4.0, 0.0)),),
+        exterior_segments=exterior_segments,
+        exterior_priority_room_ids=("alpha", "bravo"),
+    )
+
+    polygons = {node.node_id: Polygon(points) for node, points in assignments}
+    assert polygons["alpha"].bounds == (4.0, 0.0, 8.0, 2.0)
+    assert polygons["bravo"].bounds == (0.0, 0.0, 4.0, 2.0)
+
+
+def test_exterior_priority_matching_finds_an_augmenting_path() -> None:
+    alpha = ProgramNode("alpha", "meeting", 100.0, min_width=2.0)
+    bravo = ProgramNode("bravo", "meeting", 1.0, max_area=1.0)
+    charlie = ProgramNode("charlie", "meeting", 100.0, min_width=2.0)
+    first = orthogonal_service._canonical_rectangle((0, 0, 6, 2))
+    second = orthogonal_service._canonical_rectangle((6, 0, 8, 2))
+    third = orthogonal_service._canonical_rectangle((8, 0, 10, 1))
+    exterior_segments = (((0.0, 0.0), (10.0, 0.0)),)
+
+    assignments = orthogonal_service._assign_rectangles(
+        [alpha, bravo, charlie],
+        [first, second, third],
+        free_shape=box(0, 0, 10, 2),
+        exterior_segments=exterior_segments,
+        exterior_priority_room_ids=("alpha", "bravo", "charlie"),
+    )
+
+    polygons = {node.node_id: Polygon(points) for node, points in assignments}
+    assert polygons["alpha"].bounds == (0.0, 0.0, 6.0, 2.0)
+    assert polygons["bravo"].bounds == (8.0, 0.0, 10.0, 1.0)
+    assert polygons["charlie"].bounds == (6.0, 0.0, 8.0, 2.0)
+
+
+def test_exterior_priority_matching_reserves_bounded_seed_for_later_room() -> None:
+    alpha = ProgramNode("alpha", "meeting", 8.0, min_width=2.0)
+    bravo = ProgramNode(
+        "bravo",
+        "meeting",
+        1.0,
+        max_area=1.0,
+        min_width=2.0,
+    )
+    bounded_seed = orthogonal_service._canonical_rectangle((0, 0, 4, 2))
+    oversized_seed = orthogonal_service._canonical_rectangle((4, 0, 10, 2))
+    exterior_segments = (((0.0, 0.0), (10.0, 0.0)),)
+
+    assignments = orthogonal_service._assign_rectangles(
+        [alpha, bravo],
+        [bounded_seed, oversized_seed],
+        free_shape=box(0, 0, 10, 2),
+        exterior_segments=exterior_segments,
+        exterior_priority_room_ids=("alpha", "bravo"),
+    )
+
+    polygons = {node.node_id: Polygon(points) for node, points in assignments}
+    assert polygons["alpha"].bounds == (4.0, 0.0, 10.0, 2.0)
+    assert polygons["bravo"].bounds == (0.0, 0.0, 4.0, 2.0)
+
+
+def test_exterior_priority_room_ids_fail_in_sorted_order_when_unknown() -> None:
+    node = ProgramNode("known", "meeting", 4.0)
+    rectangle = orthogonal_service._canonical_rectangle((0, 0, 2, 2))
+
+    with pytest.raises(
+        ValueError,
+        match="exterior priority room ids are absent from program: missing-a, missing-z",
+    ):
+        orthogonal_service._assign_rectangles(
+            [node],
+            [rectangle],
+            exterior_priority_room_ids=("missing-a", "missing-z"),
+        )
+
+
+def test_full_layout_retains_requested_exterior_contact_after_absorption() -> None:
+    _, boundary, core, _ = CASES[0]
+    program = _program("exterior-absorption", boundary)
+    baseline = generate_orthogonal_office_layout(
+        boundary,
+        program,
+        core_polygon=core,
+    )
+    circulation_candidate = CirculationCandidate(
+        strategy="test",
+        polygons=tuple(tuple(path.polygon) for path in baseline.circulation),
+        remote_stair_polygon=tuple(baseline.remote_stair_footprint or ()),
+        fingerprint="test",
+        entrance_connected=True,
+        core_connected=True,
+        stair_connected=True,
+    )
+
+    layout = generate_orthogonal_office_layout(
+        boundary,
+        program,
+        core_polygon=core,
+        circulation_candidate=circulation_candidate,
+        exterior_priority_room_ids=("focus", "meeting"),
+    )
+    floor_exterior = Polygon(boundary).boundary
+    rooms = {room.room_id: Polygon(room.polygon) for room in layout.rooms}
+
+    assert rooms["focus"].boundary.intersection(floor_exterior).length >= 0.6
+    assert rooms["meeting"].boundary.intersection(floor_exterior).length >= 0.6
 
 
 def test_non_primary_seed_rejects_only_candidate_above_original_area_bound() -> None:

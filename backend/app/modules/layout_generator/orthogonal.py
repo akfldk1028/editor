@@ -28,6 +28,7 @@ _DOOR_WIDTH = 0.9
 _MIN_FURNISHED_FRONTAGE_DEPTH = 2.8
 _MAX_ACCESSIBLE_RECTANGLE_COUNT = 512
 _MAX_RESIDUAL_CELL_COUNT = 4096
+_PRIMARY_SPACE_TYPES = frozenset({"open_work", "sales"})
 
 
 def generate_orthogonal_office_layout(
@@ -220,6 +221,18 @@ def generate_orthogonal_office_layout(
             assignments,
             free_shape=free_shape,
             fixed_shape=fixed_shape,
+        )
+    unmet_exterior_room_ids = sorted(
+        node.node_id
+        for node, rectangle in assignments
+        if node.node_id in exterior_priority_room_ids
+        and _exterior_contact_length(rectangle, exterior_segments) + _TOLERANCE
+        < 0.6
+    )
+    if unmet_exterior_room_ids:
+        raise ValueError(
+            "orthogonal layout lost exterior allocation for "
+            + ", ".join(unmet_exterior_room_ids)
         )
     rooms = [
         RoomPolygon(
@@ -419,9 +432,17 @@ def _assign_rectangles(
             + ", ".join(unknown_room_ids)
         )
     exterior_priority_room_id_set = set(exterior_priority_room_ids)
+    exterior_contact_lengths = (
+        {
+            rectangle: _exterior_contact_length(rectangle, exterior_segments)
+            for rectangle in rectangles
+        }
+        if exterior_priority_room_id_set
+        else {}
+    )
     remaining = list(rectangles)
     support_types = {"pantry", "restroom", "it_storage"}
-    primary_types = {"open_work", "sales"}
+    primary_types = _PRIMARY_SPACE_TYPES
     input_order = {node.node_id: index for index, node in enumerate(nodes)}
     ordered_nodes = sorted(
         nodes,
@@ -461,53 +482,44 @@ def _assign_rectangles(
     for node_index, node in enumerate(ordered_nodes):
         enforce_frontage = bool(frontage_segments) and node.frontage_required
         requires_exterior = node.node_id in exterior_priority_room_id_set
-        frontage_options = (
-            [
-                rectangle
-                for rectangle in remaining
-                if _touches_frontage(rectangle, frontage_segments)
-            ]
-            if enforce_frontage
-            else []
-        )
-        if enforce_frontage and not frontage_options:
-            if requires_exterior:
-                raise ValueError(
-                    "orthogonal layout cannot reserve exterior allocation for "
-                    f"{node.node_id}"
-                )
-            raise ValueError(
-                f"orthogonal layout cannot place frontage room {node.node_id}"
-            )
-        candidates = frontage_options if enforce_frontage else remaining
         if requires_exterior:
-            candidates = [
-                rectangle
-                for rectangle in candidates
-                if _exterior_contact_length(rectangle, exterior_segments) >= 0.6
-            ]
+            candidates = _exterior_assignment_options(
+                node,
+                remaining,
+                exterior_contact_lengths=exterior_contact_lengths,
+                frontage_segments=frontage_segments,
+                free_shape=free_shape,
+            )
             if not candidates:
                 raise ValueError(
                     "orthogonal layout cannot reserve exterior allocation for "
                     f"{node.node_id}"
                 )
-        width_compliant = [
-            rectangle
-            for rectangle in candidates
-            if min(
-                _bounds(rectangle)[2] - _bounds(rectangle)[0],
-                _bounds(rectangle)[3] - _bounds(rectangle)[1],
+        else:
+            frontage_options = (
+                [
+                    rectangle
+                    for rectangle in remaining
+                    if _touches_frontage(rectangle, frontage_segments)
+                ]
+                if enforce_frontage
+                else []
             )
-            + _TOLERANCE
-            >= float(node.min_width or 0)
-        ]
-        candidates = width_compliant or candidates
-        if free_shape is not None:
-            if node.space_type not in primary_types:
-                maximum_seed_area = float(node.max_area or node.target_area) + max(
-                    10.0,
-                    float(node.max_area or node.target_area) * 0.10,
+            if enforce_frontage and not frontage_options:
+                raise ValueError(
+                    f"orthogonal layout cannot place frontage room {node.node_id}"
                 )
+            candidates = frontage_options if enforce_frontage else remaining
+            width_compliant = [
+                rectangle
+                for rectangle in candidates
+                if _rectangle_minimum_width(rectangle) + _TOLERANCE
+                >= float(node.min_width or 0)
+            ]
+            candidates = width_compliant or candidates
+        if free_shape is not None:
+            if node.space_type not in primary_types and not requires_exterior:
+                maximum_seed_area = _maximum_seed_area(node)
                 bounded_candidates = [
                     rectangle
                     for rectangle in candidates
@@ -527,11 +539,7 @@ def _assign_rectangles(
                 candidates = bounded_candidates
             later_nodes = ordered_nodes[node_index + 1 :]
             remaining_area_limits = tuple(
-                float(later.max_area or later.target_area)
-                + max(
-                    10.0,
-                    float(later.max_area or later.target_area) * 0.10,
-                )
+                _maximum_seed_area(later)
                 for later in later_nodes
                 if later.space_type not in primary_types
             )
@@ -589,7 +597,9 @@ def _assign_rectangles(
                 if remaining_exterior_nodes and not _has_exterior_seed_capacity(
                     remaining_exterior_nodes,
                     next_rectangles,
-                    exterior_segments=exterior_segments,
+                    exterior_contact_lengths=exterior_contact_lengths,
+                    frontage_segments=frontage_segments,
+                    free_shape=free_shape,
                 ):
                     continue
                 capacity_preserving.append(candidate)
@@ -604,7 +614,7 @@ def _assign_rectangles(
                 candidates,
                 key=lambda rectangle: (
                     _room_fit_score(node, rectangle),
-                    -_exterior_contact_length(rectangle, exterior_segments),
+                    -exterior_contact_lengths[rectangle],
                     _rectangle_sort_key(rectangle),
                 ),
             )
@@ -674,7 +684,9 @@ def _has_exterior_seed_capacity(
     nodes: list[ProgramNode],
     rectangles: list[tuple[Point, ...]],
     *,
-    exterior_segments: tuple[tuple[Point, Point], ...],
+    exterior_contact_lengths: dict[tuple[Point, ...], float],
+    frontage_segments: tuple[tuple[Point, Point], ...],
+    free_shape,
 ) -> bool:
     ordered_rectangle_indexes = sorted(
         range(len(rectangles)),
@@ -684,17 +696,13 @@ def _has_exterior_seed_capacity(
         node.node_id: tuple(
             index
             for index in ordered_rectangle_indexes
-            if _exterior_contact_length(
+            if _is_exterior_assignment_eligible(
+                node,
                 rectangles[index],
-                exterior_segments,
+                exterior_contact_lengths=exterior_contact_lengths,
+                frontage_segments=frontage_segments,
+                free_shape=free_shape,
             )
-            >= 0.6
-            and min(
-                _bounds(rectangles[index])[2] - _bounds(rectangles[index])[0],
-                _bounds(rectangles[index])[3] - _bounds(rectangles[index])[1],
-            )
-            + _TOLERANCE
-            >= float(node.min_width or 0)
         )
         for node in nodes
     }
@@ -716,6 +724,64 @@ def _has_exterior_seed_capacity(
         key=lambda room_id: (len(options[room_id]), room_id),
     )
     return all(assign(room_id, set()) for room_id in ordered_room_ids)
+
+
+def _exterior_assignment_options(
+    node: ProgramNode,
+    rectangles: list[tuple[Point, ...]],
+    *,
+    exterior_contact_lengths: dict[tuple[Point, ...], float],
+    frontage_segments: tuple[tuple[Point, Point], ...],
+    free_shape,
+) -> list[tuple[Point, ...]]:
+    return [
+        rectangle
+        for rectangle in rectangles
+        if _is_exterior_assignment_eligible(
+            node,
+            rectangle,
+            exterior_contact_lengths=exterior_contact_lengths,
+            frontage_segments=frontage_segments,
+            free_shape=free_shape,
+        )
+    ]
+
+
+def _is_exterior_assignment_eligible(
+    node: ProgramNode,
+    rectangle: tuple[Point, ...],
+    *,
+    exterior_contact_lengths: dict[tuple[Point, ...], float],
+    frontage_segments: tuple[tuple[Point, Point], ...],
+    free_shape,
+) -> bool:
+    if exterior_contact_lengths[rectangle] < 0.6:
+        return False
+    if (
+        frontage_segments
+        and node.frontage_required
+        and not _touches_frontage(rectangle, frontage_segments)
+    ):
+        return False
+    if _rectangle_minimum_width(rectangle) + _TOLERANCE < float(
+        node.min_width or 0
+    ):
+        return False
+    return (
+        free_shape is None
+        or node.space_type in _PRIMARY_SPACE_TYPES
+        or Polygon(rectangle).area <= _maximum_seed_area(node) + _TOLERANCE
+    )
+
+
+def _rectangle_minimum_width(rectangle: tuple[Point, ...]) -> float:
+    min_x, min_y, max_x, max_y = _bounds(rectangle)
+    return min(max_x - min_x, max_y - min_y)
+
+
+def _maximum_seed_area(node: ProgramNode) -> float:
+    maximum_area = float(node.max_area or node.target_area)
+    return maximum_area + max(10.0, maximum_area * 0.10)
 
 
 def _reachable_component_area(
