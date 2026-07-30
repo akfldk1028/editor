@@ -7,6 +7,7 @@ from backend.app.modules.building_quality.contracts import (
     VerticalQualityMetrics,
 )
 from backend.app.modules.building_quality.policy import DEFAULT_QUALITY_POLICY
+from backend.app.modules.building_quality.service import evaluate_building_quality
 
 __all__ = [
     "AlternativeDiversityReport",
@@ -16,4 +17,5 @@ __all__ = [
     "QualityIssue",
     "QualityPolicy",
     "VerticalQualityMetrics",
+    "evaluate_building_quality",
 ]
