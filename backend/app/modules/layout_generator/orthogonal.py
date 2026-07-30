@@ -193,6 +193,12 @@ def generate_orthogonal_office_layout(
                 default=0.0,
             ),
         ),
+        exterior_priority_nodes=tuple(
+            node
+            for node in non_core_nodes
+            if node.node_id in exterior_priority_room_ids
+        ),
+        exterior_segments=exterior_segments,
     )
     if fixed_remote_stair is None:
         remote_stair, available = _reserve_remote_stair(
@@ -207,12 +213,22 @@ def generate_orthogonal_office_layout(
             if circulation_candidate is not None
             else _canonical_rectangle(fixed_remote_stair.bounds)
         )
+    exterior_path_areas = (
+        _exterior_seed_path_areas(
+            available,
+            free_shape=free_shape,
+            exterior_segments=exterior_segments,
+        )
+        if exterior_priority_room_ids
+        else {}
+    )
     assignments = _assign_rectangles(
         non_core_nodes,
         available,
         free_shape=(free_shape if circulation_candidate is not None else None),
         frontage_segments=frontage_segments,
         exterior_segments=exterior_segments,
+        exterior_path_areas=exterior_path_areas,
         exterior_priority_room_ids=exterior_priority_room_ids,
         respect_program_order=respect_program_order,
     )
@@ -221,6 +237,8 @@ def generate_orthogonal_office_layout(
             assignments,
             free_shape=free_shape,
             fixed_shape=fixed_shape,
+            exterior_priority_room_ids=exterior_priority_room_ids,
+            exterior_segments=exterior_segments,
         )
     unmet_exterior_room_ids = sorted(
         node.node_id
@@ -412,6 +430,7 @@ def _assign_rectangles(
     free_shape=None,
     frontage_segments: tuple[tuple[Point, Point], ...] = (),
     exterior_segments: tuple[tuple[Point, Point], ...] = (),
+    exterior_path_areas: dict[tuple[Point, ...], float] | None = None,
     exterior_priority_room_ids: Iterable[str] = (),
     respect_program_order: bool = False,
 ) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
@@ -432,6 +451,7 @@ def _assign_rectangles(
             + ", ".join(unknown_room_ids)
         )
     exterior_priority_room_id_set = set(exterior_priority_room_ids)
+    exterior_path_areas = exterior_path_areas or {}
     exterior_contact_lengths = (
         {
             rectangle: _exterior_contact_length(rectangle, exterior_segments)
@@ -489,12 +509,29 @@ def _assign_rectangles(
                 exterior_contact_lengths=exterior_contact_lengths,
                 frontage_segments=frontage_segments,
                 free_shape=free_shape,
+                exterior_path_areas=exterior_path_areas,
             )
             if not candidates:
-                raise ValueError(
-                    "orthogonal layout cannot reserve exterior allocation for "
-                    f"{node.node_id}"
-                )
+                candidates = [
+                    rectangle
+                    for rectangle in remaining
+                    if (
+                        _rectangle_minimum_width(rectangle) + _TOLERANCE
+                        >= float(node.min_width or 0)
+                        and Polygon(rectangle).area
+                        <= _maximum_seed_area(node) + _TOLERANCE
+                        and (
+                            not frontage_segments
+                            or not node.frontage_required
+                            or _touches_frontage(rectangle, frontage_segments)
+                        )
+                    )
+                ]
+                if not candidates:
+                    raise ValueError(
+                        "orthogonal layout cannot reserve exterior allocation for "
+                        f"{node.node_id}"
+                    )
         else:
             frontage_options = (
                 [
@@ -600,6 +637,7 @@ def _assign_rectangles(
                     exterior_contact_lengths=exterior_contact_lengths,
                     frontage_segments=frontage_segments,
                     free_shape=free_shape,
+                    exterior_path_areas=exterior_path_areas,
                 ):
                     continue
                 capacity_preserving.append(candidate)
@@ -613,6 +651,7 @@ def _assign_rectangles(
             chosen = min(
                 candidates,
                 key=lambda rectangle: (
+                    exterior_path_areas.get(rectangle, math.inf),
                     _room_fit_score(node, rectangle),
                     -exterior_contact_lengths[rectangle],
                     _rectangle_sort_key(rectangle),
@@ -680,6 +719,86 @@ def _exterior_contact_length(
     )
 
 
+def _exterior_seed_path_areas(
+    rectangles: list[tuple[Point, ...]],
+    *,
+    free_shape,
+    exterior_segments: tuple[tuple[Point, Point], ...],
+) -> dict[tuple[Point, ...], float]:
+    assigned = union_all([Polygon(rectangle) for rectangle in rectangles])
+    residual_cells = [
+        Polygon(cell)
+        for cell in _rectangle_cells(
+            free_shape.difference(assigned),
+            require_complete=False,
+            preserve_precision=True,
+        )
+    ]
+    residual_count = len(residual_cells)
+    bounds = (
+        *(cell.bounds for cell in residual_cells),
+        *(_bounds(rectangle) for rectangle in rectangles),
+    )
+    neighbors: list[list[int]] = [[] for _ in residual_cells]
+    seed_neighbors: list[list[int]] = [[] for _ in rectangles]
+    for left_index, right_index, _ in _rectangle_adjacencies(bounds):
+        if right_index < residual_count:
+            neighbors[left_index].append(right_index)
+            neighbors[right_index].append(left_index)
+        elif left_index < residual_count:
+            seed_neighbors[right_index - residual_count].append(left_index)
+
+    distances = _residual_exterior_path_areas(
+        residual_cells,
+        neighbors,
+        exterior_segments=exterior_segments,
+    )
+    return {
+        rectangle: (
+            0.0
+            if _exterior_contact_length(rectangle, exterior_segments)
+            + _TOLERANCE
+            >= 0.6
+            else min(
+                (distances[index] for index in seed_neighbors[seed_index]),
+                default=math.inf,
+            )
+        )
+        for seed_index, rectangle in enumerate(rectangles)
+    }
+
+
+def _residual_exterior_path_areas(
+    residual_cells: list[Polygon],
+    neighbors: list[list[int] | list[tuple[int, float]]],
+    *,
+    exterior_segments: tuple[tuple[Point, Point], ...],
+) -> tuple[float, ...]:
+    distances = [math.inf] * len(residual_cells)
+    frontier = []
+    for index, cell in enumerate(residual_cells):
+        if not any(
+            cell.boundary.intersection(LineString(segment)).length + _TOLERANCE
+            >= 0.6
+            for segment in exterior_segments
+        ):
+            continue
+        distances[index] = cell.area
+        heappush(frontier, (cell.area, index))
+    while frontier:
+        distance, cell_index = heappop(frontier)
+        if distance != distances[cell_index]:
+            continue
+        for neighbor in neighbors[cell_index]:
+            neighbor_index = neighbor[0] if isinstance(neighbor, tuple) else neighbor
+            next_distance = distance + residual_cells[neighbor_index].area
+            if next_distance + _TOLERANCE >= distances[neighbor_index]:
+                continue
+            distances[neighbor_index] = next_distance
+            heappush(frontier, (next_distance, neighbor_index))
+    return tuple(distances)
+
+
 def _has_exterior_seed_capacity(
     nodes: list[ProgramNode],
     rectangles: list[tuple[Point, ...]],
@@ -687,6 +806,7 @@ def _has_exterior_seed_capacity(
     exterior_contact_lengths: dict[tuple[Point, ...], float],
     frontage_segments: tuple[tuple[Point, Point], ...],
     free_shape,
+    exterior_path_areas: dict[tuple[Point, ...], float] | None = None,
 ) -> bool:
     ordered_rectangle_indexes = sorted(
         range(len(rectangles)),
@@ -702,6 +822,7 @@ def _has_exterior_seed_capacity(
                 exterior_contact_lengths=exterior_contact_lengths,
                 frontage_segments=frontage_segments,
                 free_shape=free_shape,
+                exterior_path_areas=exterior_path_areas,
             )
         )
         for node in nodes
@@ -733,6 +854,7 @@ def _exterior_assignment_options(
     exterior_contact_lengths: dict[tuple[Point, ...], float],
     frontage_segments: tuple[tuple[Point, Point], ...],
     free_shape,
+    exterior_path_areas: dict[tuple[Point, ...], float] | None = None,
 ) -> list[tuple[Point, ...]]:
     return [
         rectangle
@@ -743,6 +865,7 @@ def _exterior_assignment_options(
             exterior_contact_lengths=exterior_contact_lengths,
             frontage_segments=frontage_segments,
             free_shape=free_shape,
+            exterior_path_areas=exterior_path_areas,
         )
     ]
 
@@ -754,8 +877,14 @@ def _is_exterior_assignment_eligible(
     exterior_contact_lengths: dict[tuple[Point, ...], float],
     frontage_segments: tuple[tuple[Point, Point], ...],
     free_shape,
+    exterior_path_areas: dict[tuple[Point, ...], float] | None = None,
 ) -> bool:
-    if exterior_contact_lengths[rectangle] < 0.6:
+    path_area = (exterior_path_areas or {}).get(rectangle, math.inf)
+    if (
+        exterior_contact_lengths[rectangle] < 0.6
+        and Polygon(rectangle).area + path_area
+        > _maximum_seed_area(node) + _TOLERANCE
+    ):
         return False
     if (
         frontage_segments
@@ -816,6 +945,8 @@ def _absorb_residual_cells(
     *,
     free_shape,
     fixed_shape=None,
+    exterior_priority_room_ids: tuple[str, ...] = (),
+    exterior_segments: tuple[tuple[Point, Point], ...] = (),
 ) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
     """Grow accessible program seeds across the fixed-circulation free cells."""
     shapes = {
@@ -860,7 +991,7 @@ def _absorb_residual_cells(
         *(shapes[room_id].bounds for room_id in room_ids),
     )
     neighbors: list[list[tuple[int, float]]] = [[] for _ in residual_cells]
-    frontier = []
+    room_frontiers = []
     for left_index, right_index, shared_length in _rectangle_adjacencies(
         rectangle_bounds
     ):
@@ -876,22 +1007,50 @@ def _absorb_residual_cells(
         if (
             node.space_type not in primary_types
             and shapes[room_id].area + _TOLERANCE >= float(node.target_area)
+            and room_id not in exterior_priority_room_ids
         ):
             continue
         cell = residual_cells[cell_index]
-        heappush(
-            frontier,
-            (
-                0 if node.space_type in primary_types else 1,
-                1,
-                -shared_length,
-                room_id,
-                cell.bounds,
-                cell_index,
-            ),
+        room_frontiers.append(
+            (room_id, cell_index, shared_length)
         )
     for cell_neighbors in neighbors:
         cell_neighbors.sort(key=lambda item: item[0])
+
+    exterior_distances = _residual_exterior_path_areas(
+        residual_cells,
+        neighbors,
+        exterior_segments=exterior_segments,
+    )
+    room_has_exterior = {
+        room_id: any(
+            shapes[room_id].boundary.intersection(LineString(segment)).length
+            + _TOLERANCE
+            >= 0.6
+            for segment in exterior_segments
+        )
+        for room_id in room_ids
+    }
+    frontier = []
+    for room_id, cell_index, shared_length in room_frontiers:
+        node = nodes[room_id]
+        requested = room_id in exterior_priority_room_ids
+        heappush(
+            frontier,
+            (
+                -1
+                if requested
+                else 0
+                if node.space_type in primary_types
+                else 1,
+                exterior_distances[cell_index] if requested else 1,
+                1,
+                -shared_length,
+                room_id,
+                residual_cells[cell_index].bounds,
+                cell_index,
+            ),
+        )
 
     absorbed: set[int] = set()
     room_areas = {
@@ -901,15 +1060,20 @@ def _absorb_residual_cells(
         room_id: [] for room_id in room_ids
     }
     while frontier:
-        _, distance, _, room_id, _, cell_index = heappop(frontier)
+        _, _, distance, _, room_id, _, cell_index = heappop(frontier)
         if cell_index in absorbed:
             continue
         node = nodes[room_id]
         cell = residual_cells[cell_index]
+        requested = room_id in exterior_priority_room_ids
         if (
             node.space_type not in primary_types
             and (
-                room_areas[room_id] + _TOLERANCE >= float(node.target_area)
+                (
+                    room_areas[room_id] + _TOLERANCE
+                    >= float(node.target_area)
+                    and (not requested or room_has_exterior[room_id])
+                )
                 or room_areas[room_id] + cell.area
                 > float(node.max_area or node.target_area)
                 + max(
@@ -923,18 +1087,34 @@ def _absorb_residual_cells(
         absorbed.add(cell_index)
         claimed_cells[room_id].append(cell_index)
         room_areas[room_id] += cell.area
+        if requested and any(
+            cell.boundary.intersection(LineString(segment)).length + _TOLERANCE
+            >= 0.6
+            for segment in exterior_segments
+        ):
+            room_has_exterior[room_id] = True
         for neighbor_index, shared_length in neighbors[cell_index]:
             if neighbor_index in absorbed:
                 continue
             if (
                 node.space_type not in primary_types
                 and room_areas[room_id] + _TOLERANCE >= float(node.target_area)
+                and (not requested or room_has_exterior[room_id])
             ):
                 break
             heappush(
                 frontier,
                 (
-                    0 if node.space_type in primary_types else 1,
+                    -1
+                    if requested
+                    else 0
+                    if node.space_type in primary_types
+                    else 1,
+                    (
+                        exterior_distances[neighbor_index]
+                        if requested
+                        else distance + 1
+                    ),
                     distance + 1,
                     -shared_length,
                     room_id,
@@ -1362,8 +1542,16 @@ def _subdivide_accessible_rectangles(
     frontage_segments: tuple[tuple[Point, Point], ...] = (),
     frontage_required_count: int = 0,
     frontage_min_width: float = 0.0,
+    exterior_priority_nodes: tuple[ProgramNode, ...] = (),
+    exterior_segments: tuple[tuple[Point, Point], ...] = (),
 ) -> list[tuple[Point, ...]]:
-    result = list(rectangles)
+    result = _split_exterior_allocation_seeds(
+        rectangles,
+        circulation,
+        nodes=exterior_priority_nodes,
+        exterior_segments=exterior_segments,
+        frontage_segments=frontage_segments,
+    )
     while True:
         if (
             bounded_area_limits is not None
@@ -1450,6 +1638,215 @@ def _subdivide_accessible_rectangles(
         result.remove(selected)
         result.extend(pieces)
     return sorted(result, key=_rectangle_sort_key)
+
+
+def _split_exterior_allocation_seeds(
+    rectangles: list[tuple[Point, ...]],
+    circulation: list[RoomPolygon],
+    *,
+    nodes: tuple[ProgramNode, ...],
+    exterior_segments: tuple[tuple[Point, Point], ...],
+    frontage_segments: tuple[tuple[Point, Point], ...],
+) -> list[tuple[Point, ...]]:
+    result = list(rectangles)
+    if not nodes:
+        return result
+
+    ordered_nodes = tuple(sorted(nodes, key=lambda node: node.node_id))
+    while True:
+        current_capacity = _exterior_seed_capacity(
+            ordered_nodes,
+            result,
+            exterior_segments=exterior_segments,
+            frontage_segments=frontage_segments,
+        )
+        if current_capacity == len(ordered_nodes):
+            return result
+
+        options = []
+        for node in ordered_nodes:
+            for rectangle in sorted(result, key=_rectangle_sort_key):
+                for seed, residual in _target_exterior_seed_splits(
+                    node,
+                    rectangle,
+                    circulation=circulation,
+                    exterior_segments=exterior_segments,
+                    frontage_segments=frontage_segments,
+                ):
+                    next_rectangles = [
+                        item for item in result if item != rectangle
+                    ] + [seed, residual]
+                    next_capacity = _exterior_seed_capacity(
+                        ordered_nodes,
+                        next_rectangles,
+                        exterior_segments=exterior_segments,
+                        frontage_segments=frontage_segments,
+                    )
+                    if next_capacity <= current_capacity:
+                        continue
+                    options.append(
+                        (
+                            -next_capacity,
+                            node.node_id,
+                            _rectangle_sort_key(rectangle),
+                            _rectangle_sort_key(seed),
+                            rectangle,
+                            seed,
+                            residual,
+                        )
+                    )
+        if not options:
+            return result
+        _, _, _, _, selected, seed, residual = min(options)
+        result.remove(selected)
+        result.extend((seed, residual))
+
+
+def _target_exterior_seed_splits(
+    node: ProgramNode,
+    rectangle: tuple[Point, ...],
+    *,
+    circulation: list[RoomPolygon],
+    exterior_segments: tuple[tuple[Point, Point], ...],
+    frontage_segments: tuple[tuple[Point, Point], ...],
+) -> tuple[tuple[tuple[Point, ...], tuple[Point, ...]], ...]:
+    target_area = float(node.target_area)
+    maximum_area = float(node.max_area or node.target_area)
+    if (
+        target_area <= _TOLERANCE
+        or target_area > maximum_area + _TOLERANCE
+        or Polygon(rectangle).area <= maximum_area + _TOLERANCE
+    ):
+        return ()
+
+    min_x, min_y, max_x, max_y = _bounds(rectangle)
+    width = max_x - min_x
+    height = max_y - min_y
+    candidates = []
+    if height > _TOLERANCE:
+        seed_width = target_area / height
+        if _TOLERANCE < seed_width < width - _TOLERANCE:
+            candidates.extend(
+                (
+                    (
+                        _canonical_rectangle(
+                            (min_x, min_y, min_x + seed_width, max_y)
+                        ),
+                        _canonical_rectangle(
+                            (min_x + seed_width, min_y, max_x, max_y)
+                        ),
+                    ),
+                    (
+                        _canonical_rectangle(
+                            (max_x - seed_width, min_y, max_x, max_y)
+                        ),
+                        _canonical_rectangle(
+                            (min_x, min_y, max_x - seed_width, max_y)
+                        ),
+                    ),
+                )
+            )
+    if width > _TOLERANCE:
+        seed_height = target_area / width
+        if _TOLERANCE < seed_height < height - _TOLERANCE:
+            candidates.extend(
+                (
+                    (
+                        _canonical_rectangle(
+                            (min_x, min_y, max_x, min_y + seed_height)
+                        ),
+                        _canonical_rectangle(
+                            (min_x, min_y + seed_height, max_x, max_y)
+                        ),
+                    ),
+                    (
+                        _canonical_rectangle(
+                            (min_x, max_y - seed_height, max_x, max_y)
+                        ),
+                        _canonical_rectangle(
+                            (min_x, min_y, max_x, max_y - seed_height)
+                        ),
+                    ),
+                )
+            )
+
+    exterior_contact_lengths = {
+        piece: _exterior_contact_length(piece, exterior_segments)
+        for pair in candidates
+        for piece in pair
+    }
+    valid = []
+    for seed, residual in candidates:
+        if not _is_exterior_assignment_eligible(
+            node,
+            seed,
+            exterior_contact_lengths=exterior_contact_lengths,
+            frontage_segments=frontage_segments,
+            free_shape=Polygon(rectangle),
+        ):
+            continue
+        if (
+            _longest_shared_edge(seed, circulation) + _TOLERANCE < _DOOR_WIDTH
+            or _longest_shared_edge(residual, circulation) + _TOLERANCE
+            < _DOOR_WIDTH
+        ):
+            continue
+        valid.append((seed, residual))
+    return tuple(
+        sorted(
+            set(valid),
+            key=lambda pair: (
+                _rectangle_sort_key(pair[0]),
+                _rectangle_sort_key(pair[1]),
+            ),
+        )
+    )
+
+
+def _exterior_seed_capacity(
+    nodes: tuple[ProgramNode, ...],
+    rectangles: list[tuple[Point, ...]],
+    *,
+    exterior_segments: tuple[tuple[Point, Point], ...],
+    frontage_segments: tuple[tuple[Point, Point], ...],
+) -> int:
+    exterior_contact_lengths = {
+        rectangle: _exterior_contact_length(rectangle, exterior_segments)
+        for rectangle in rectangles
+    }
+    options = {
+        node.node_id: tuple(
+            index
+            for index, rectangle in enumerate(rectangles)
+            if _is_exterior_assignment_eligible(
+                node,
+                rectangle,
+                exterior_contact_lengths=exterior_contact_lengths,
+                frontage_segments=frontage_segments,
+                free_shape=True,
+            )
+            and Polygon(rectangle).area
+            <= float(node.max_area or node.target_area) + _TOLERANCE
+        )
+        for node in nodes
+    }
+    assigned: dict[int, str] = {}
+
+    def assign(room_id: str, visited: set[int]) -> bool:
+        for rectangle_index in options[room_id]:
+            if rectangle_index in visited:
+                continue
+            visited.add(rectangle_index)
+            occupied = assigned.get(rectangle_index)
+            if occupied is None or assign(occupied, visited):
+                assigned[rectangle_index] = room_id
+                return True
+        return False
+
+    matched = 0
+    for room_id in sorted(options, key=lambda value: (len(options[value]), value)):
+        matched += assign(room_id, set())
+    return matched
 
 
 def _has_bounded_seed_capacity(

@@ -1,8 +1,19 @@
+import json
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
+from shapely.geometry import Polygon
 
 import backend.app.modules.generation_loop.service as generation_service
+from backend.app.modules.basic_design.stair import (
+    required_stair_enclosure,
+    resolve_floor_height,
+)
+from backend.app.modules.circulation_planner.service import (
+    generate_circulation_candidate,
+)
+from backend.app.modules.core_planner.service import generate_shared_core_candidates
 from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
 from backend.app.modules.generation_loop.selector import rank_candidate
 from backend.app.modules.generation_loop.service import (
@@ -12,7 +23,8 @@ from backend.app.modules.generation_loop.service import (
 )
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
-from backend.app.schemas.mass import MassInput
+from backend.app.schemas.llm import FloorAssignment
+from backend.app.schemas.mass import FloorFootprint, MassInput
 from backend.app.schemas.loop import CandidateProposal, LoopConfig
 from backend.app.schemas.layout import RoomPolygon
 from engine.geometry.polygon import shared_boundary_length
@@ -62,6 +74,44 @@ def test_building_generation_routes_exterior_allocation_to_requested_floor(
     assert observed == [("focus", "meeting")]
 
 
+def test_long_edge_floor_three_splits_exterior_seeds_for_each_request_set() -> None:
+    mass, assignments, programs, core, circulation = _long_edge_fixture_inputs()
+    generation_kwargs = {
+        "floor_assignments": assignments,
+        "program_overrides": programs,
+        "core_override": core,
+        "circulation_overrides": circulation,
+    }
+    baseline = run_building_generation(mass, **generation_kwargs)
+    explicit_empty = run_building_generation(
+        mass,
+        **generation_kwargs,
+        exterior_allocation_requests=(),
+    )
+
+    assert explicit_empty == baseline
+    for room_ids in (("focus",), ("meeting",), ("focus", "meeting")):
+        building = run_building_generation(
+            mass,
+            **generation_kwargs,
+            exterior_allocation_requests=(
+                ExteriorAllocationRequest(3, room_ids),
+            ),
+        )
+        floor = building.floor_results[2]
+        exterior = Polygon(floor.floor_boundary).boundary
+        rooms = {
+            room.room_id: Polygon(room.polygon)
+            for room in floor.layout.rooms
+        }
+
+        assert building.accepted
+        assert all(
+            rooms[room_id].boundary.intersection(exterior).length >= 0.6
+            for room_id in room_ids
+        )
+
+
 def test_building_generation_rejects_duplicate_or_unknown_exterior_requests() -> None:
     mass = _exterior_routing_mass()
     request = ExteriorAllocationRequest(1, ("focus",))
@@ -83,6 +133,96 @@ def test_building_generation_rejects_duplicate_or_unknown_exterior_requests() ->
             mass,
             exterior_allocation_requests=(ExteriorAllocationRequest(2, ("focus",)),),
         )
+
+
+def _long_edge_fixture_inputs():
+    manifest_path = (
+        Path(__file__).resolve().parents[2]
+        / "datasets"
+        / "manifests"
+        / "sample_mass_irregular_12v_setback_office.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    mass = MassInput(
+        project_id=manifest["project_id"],
+        floors=manifest["floors"],
+        footprint_polygon=manifest["footprint_polygon"],
+        floor_footprints=tuple(
+            FloorFootprint(
+                floor_index=floor["floor_index"],
+                footprint_polygon=tuple(
+                    (float(x), float(y)) for x, y in floor["footprint_polygon"]
+                ),
+            )
+            for floor in manifest["floor_footprints"]
+        ),
+        site_edges=manifest["site_edges"],
+        access_candidates=manifest["access_candidates"],
+        use_mix=manifest["use_mix"],
+    )
+    analysis = analyze_mass(mass)
+    boundaries = tuple(
+        mass.footprint_for_floor(index)
+        for index in range(1, mass.floors + 1)
+    )
+    assignments = tuple(
+        FloorAssignment(index, "office")
+        for index in range(1, mass.floors + 1)
+    )
+    programs = {
+        index: generate_program_graph(
+            analysis,
+            floor_index=index,
+            use_type="office",
+        )
+        for index in range(1, mass.floors + 1)
+    }
+    requested_core_area = min(
+        72.0,
+        max(
+            float(
+                next(
+                    node.target_area
+                    for node in program.nodes
+                    if node.space_type == "core"
+                )
+            )
+            for program in programs.values()
+        ),
+    )
+    core = next(
+        candidate
+        for candidate in generate_shared_core_candidates(
+            boundaries,
+            required_area=requested_core_area,
+            minimum_width=7.6,
+            minimum_depth=5.2,
+        )
+        if candidate.strategy == "long_edge_adjacent"
+    )
+    circulation_boundary = min(
+        boundaries,
+        key=lambda boundary: (Polygon(boundary).area, boundary),
+    )
+    stair_short_side, stair_long_side = required_stair_enclosure(
+        resolve_floor_height(None)[0]
+    )
+    shared_circulation = generate_circulation_candidate(
+        floor_boundary=circulation_boundary,
+        core=core,
+        street_segments=((circulation_boundary[0], circulation_boundary[1]),),
+        minimum_width=1.2,
+        stair_dimensions=(
+            (stair_short_side, stair_long_side),
+            (stair_long_side, stair_short_side),
+        ),
+        minimum_exit_separation=None,
+    )
+    circulation = {
+        index: shared_circulation
+        for index in range(1, mass.floors + 1)
+    }
+    return mass, assignments, programs, core, circulation
 
 
 def test_generation_loop_returns_program_layout_and_validation_report():

@@ -511,6 +511,47 @@ def test_exterior_priority_matching_reserves_bounded_seed_for_later_room() -> No
     assert polygons["bravo"].bounds == (0.0, 0.0, 4.0, 2.0)
 
 
+def test_exterior_priority_subdivision_splits_target_seed_and_preserves_residual() -> None:
+    meeting = ProgramNode(
+        "meeting",
+        "meeting",
+        8.0,
+        max_area=10.0,
+        min_width=2.0,
+    )
+    oversized = orthogonal_service._canonical_rectangle((0, 0, 10, 2))
+    circulation = [
+        RoomPolygon(
+            room_id="corridor",
+            space_type="circulation",
+            polygon=[(0, -1), (10, -1), (10, 0), (0, 0)],
+        )
+    ]
+
+    subdivided = orthogonal_service._subdivide_accessible_rectangles(
+        [oversized],
+        circulation,
+        required_count=1,
+        exterior_priority_nodes=(meeting,),
+        exterior_segments=(((0.0, 2.0), (10.0, 2.0)),),
+    )
+
+    shapes = [Polygon(rectangle) for rectangle in subdivided]
+    target_seed, = [
+        shape
+        for shape in shapes
+        if shape.area == pytest.approx(8.0)
+        and shape.boundary.intersection(LineString(((0, 2), (10, 2)))).length
+        >= 0.6
+    ]
+    assert min(
+        target_seed.bounds[2] - target_seed.bounds[0],
+        target_seed.bounds[3] - target_seed.bounds[1],
+    ) >= 2.0
+    assert union_all(shapes).equals(Polygon(oversized))
+    assert sum(shape.area for shape in shapes) == pytest.approx(20.0)
+
+
 def test_exterior_priority_room_ids_fail_in_sorted_order_when_unknown() -> None:
     node = ProgramNode("known", "meeting", 4.0)
     rectangle = orthogonal_service._canonical_rectangle((0, 0, 2, 2))
