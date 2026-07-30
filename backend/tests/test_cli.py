@@ -123,10 +123,11 @@ def test_cli_irregular_review_emits_two_repaired_quality_distinct_alternatives(
     repair, = long_edge["generator_repairs"]
 
     assert long_edge["building_quality"]["hard_pass"] is True
-    assert floor_3["primary_daylight_ratio"] >= 0.70
-    assert repair["room_ids"] == ["focus", "meeting"]
+    assert floor_3["primary_daylight_ratio"] == pytest.approx(0.8459560292236058)
+    assert repair["room_ids"] == ["meeting"]
     assert repair["before_value"] == pytest.approx(0.6625309657157782)
     assert repair["threshold"] == pytest.approx(0.70)
+    assert repair["after_value"] == pytest.approx(0.8459560292236058)
     assert repair["after_value"] == pytest.approx(
         floor_3["primary_daylight_ratio"]
     )
