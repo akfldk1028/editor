@@ -1,17 +1,20 @@
 ﻿{
-    "schema_version":  1,
-    "source_run":  "logs/runs/building_quality_irregular",
-    "retained_at_utc":  "2026-07-30T08:19:50.0441378Z",
+    "schema_version":  2,
+    "source_commit":  "d095f4a",
+    "source_run":  "logs/runs/building_quality_irregular_refresh_d095f4a",
+    "cli_exit_code":  1,
+    "accepted_count":  1,
+    "retained_at_utc":  "2026-07-30T09:57:44.5184173Z",
     "comparison_png":  {
                            "status":  "not_emitted",
                            "note":  "The CLI source run did not emit a comparison PNG."
                        },
     "git_whitespace_qualification":  {
-                                        "attribute_file":  ".gitattributes",
-                                        "path":  "source-run/alternative-01/index.html",
-                                        "setting":  "-whitespace",
-                                        "reason":  "Retained generated HTML contains source trailing whitespace and must remain byte-for-byte identical."
-                                    },
+                                         "attribute_file":  ".gitattributes",
+                                         "path":  "source-run/alternative-01/index.html",
+                                         "setting":  "-whitespace",
+                                         "reason":  "Retained generated HTML contains source trailing whitespace and must remain byte-for-byte identical."
+                                     },
     "files":  [
                   {
                       "relative_path":  "alternative-01/building.review.json",
@@ -134,16 +137,16 @@
                   },
                   {
                       "relative_path":  "alternatives.review.json",
-                      "bytes":  15857,
-                      "source_sha256":  "8a88e333cdd1c83a9769127c4324331f34c4b132364809126f2ed67d2d71a81f",
-                      "retained_sha256":  "8a88e333cdd1c83a9769127c4324331f34c4b132364809126f2ed67d2d71a81f",
+                      "bytes":  20445,
+                      "source_sha256":  "1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69",
+                      "retained_sha256":  "1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69",
                       "hashes_match":  true
                   },
                   {
                       "relative_path":  "index.html",
                       "bytes":  2507,
-                      "source_sha256":  "20458d3fb2711788670c4dc4a18f30fc6f759a25feb3cc54b33ec6effde3339e",
-                      "retained_sha256":  "20458d3fb2711788670c4dc4a18f30fc6f759a25feb3cc54b33ec6effde3339e",
+                      "source_sha256":  "12e923bfb900a4204c89b5af9f5494d633128a43654668b173290c9f9c788b5a",
+                      "retained_sha256":  "12e923bfb900a4204c89b5af9f5494d633128a43654668b173290c9f9c788b5a",
                       "hashes_match":  true
                   }
               ]

@@ -2,13 +2,14 @@
 
 ## Result
 
-`irregular-alternatives-review` exited `1` after 209.2 seconds. This is the
+Refreshed against commit `d095f4a` after the Task 9 scoring and rejection-JSON
+changes. `irregular-alternatives-review` exited `1` after 205.4 seconds. This is the
 expected phase-boundary result: only one quality-distinct hard-pass alternative
 was produced (`accepted_count=1`), so the command did not return success with
 fewer than two alternatives.
 
 Input: `datasets/manifests/sample_mass_irregular_12v_setback_office.json`.
-Source run: `logs/runs/building_quality_irregular`.
+Source run: `logs/runs/building_quality_irregular_refresh_d095f4a`.
 
 ## Focused And Repository Verification
 
@@ -22,6 +23,11 @@ Source run: `logs/runs/building_quality_irregular`.
 
 All pytest invocations emitted the pre-existing `requests` urllib3/charset
 dependency compatibility warning. No test failed.
+
+Those suites are the initial Task 8 verification. The `d095f4a` refresh reran
+the requested real irregular CLI, retained-artifact hash checks, PNG inspection,
+Playwright layer flow, and Git diff checks; production code and tests were not
+changed or rerun for this docs-only refresh.
 
 `python -m ruff check backend` and the required working-tree `git diff --check`
 were run after this report and the measured-failure plan were added; both
@@ -44,6 +50,9 @@ source and retained SHA-256. All 19 source/retained pairs matched.
 It also records the narrowly scoped Git whitespace qualification for the one
 immutable generated HTML file.
 
+The refreshed aggregate JSON SHA-256 is
+`1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69`.
+
 The CLI did not emit a comparison PNG. The manifest records this explicitly;
 no synthetic comparison image was created.
 
@@ -58,8 +67,8 @@ Top-level candidate PNG hashes:
 ## Measured Quality Evidence
 
 The accepted `notch_adjacent` alternative is hard-pass quality-accepted with
-score `0.7779`. Component scores: daylight `0.9227`, room form `1.0`, vertical
-stacking `0.6667`, egress `0.5`, and coverage/efficiency `0.7596`.
+score `0.7935`. Component scores: daylight `0.9227`, room form `1.0`, vertical
+stacking `0.6667`, egress `0.5`, and coverage/efficiency `0.8632`.
 
 | Floor | Coverage | Primary daylight ratio | Room form pass ratio | Worst aspect ratio | Narrowest width |
 | --- | --- | --- | --- | --- |
@@ -70,6 +79,11 @@ stacking `0.6667`, egress `0.5`, and coverage/efficiency `0.7596`.
 Confirmed quality issues:
 
 - `long_edge_adjacent` was rejected by `primary_daylight_ratio:0.662530965716/0.7`.
+  Its retained structured rejection report identifies hard issue
+  `primary_daylight_ratio`, floor `3`, subject `floor-3`, measured value
+  `0.6625309657157782`, and threshold `0.7`. The rejected candidate score is
+  `0.77`; component scores are daylight `0.8716`, room form `1.0`, vertical
+  stacking `0.6667`, egress `0.5`, and coverage/efficiency `0.792`.
 - The accepted alternative reports `wet_service_stack_ratio=0.0` against `0.7` (soft issue); core and shaft stack ratios are both `1.0`, with maximum service centroid shift `3.9999999999999964m`.
 - `egress_unresolved` subjects are `effective_date`, `floor_code_context`, `jurisdiction`, `measured_travel_distance`, `non_axis_aligned_polygon`, and `travel_limit_classification`. This is unresolved screening, not a checked egress failure.
 - No room-form failure code or subject was reported; all three room-form ratios are `1.0`.
@@ -78,7 +92,8 @@ Confirmed quality issues:
 
 ## Visual Inspection
 
-Viewed retained floor PNGs at original resolution:
+Viewed all three unique retained floor PNG hashes at original resolution (the
+three nested PNG copies have matching hashes):
 
 - Floors 1-3 have explicit, heavy irregular exterior boundaries and readable
   room labels.
@@ -95,8 +110,7 @@ Viewed retained floor PNGs at original resolution:
 ## Interactive HTML Verification
 
 Served retained `alternative-01/floor_001/...-f1.html` locally and used
-Playwright. The visible Korean control labels were `전체 끄기`, `전체 켜기`, and
-`선택만 보기`.
+Playwright with the stable `all-off`, layer, `isolate`, and `all-on` controls.
 
 - all-off: `[]`
 - enable rooms/core/envelope: `[rooms, core, envelope]`

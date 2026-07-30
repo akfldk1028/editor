@@ -8,6 +8,11 @@ is `long_edge_adjacent: primary_daylight_ratio 0.662530965716 < 0.7`. Preserve
 the policy threshold `0.7`; the goal is to produce at least two hard-pass,
 quality-distinct alternatives on this fixture.
 
+At commit `d095f4a`, the rejection already retains a structured quality report:
+hard issue `primary_daylight_ratio`, floor `3`, subject `floor-3`, measured value
+`0.6625309657157782`, threshold `0.7`, and candidate score `0.77`. The next work
+consumes this report; it must not add a parallel rejection schema.
+
 The feedback loop must consume structured evaluator failures, alter the next
 candidate deterministically, and re-run the same evaluator. It must not infer
 geometry from prose or turn hard failures into warnings.
@@ -15,13 +20,14 @@ geometry from prose or turn hard failures into warnings.
 ## Implementation Order
 
 1. Primary daylight feedback
-   - Map `primary_daylight_ratio` failure subjects to the affected floor and
+   - Consume the retained `quality_report` and map `floor-3` to the affected
      primary-space allocation before candidate acceptance.
    - Reserve a valid window-bearing exterior edge for the primary space and
      deterministically grow, move, or split adjacent secondary allocation until
      the primary space visibly contacts that edge.
-   - Re-evaluate the candidate and require ratio `>= 0.7`; retain the measured
-     before/after ratio and affected subject in the candidate rejection record.
+   - Re-evaluate the candidate and require ratio `>= 0.7`; append deterministic
+     repair provenance and the measured before/after ratio to the existing
+     rejection/report contract.
    - Cover the measured `long_edge_adjacent` failure in a regression test using
      the unchanged irregular fixture.
 
@@ -63,8 +69,8 @@ geometry from prose or turn hard failures into warnings.
 
 - The irregular CLI exits `0` only with at least two hard-pass,
   quality-distinct alternatives.
-- Every rejected candidate retains structured failure code, subject, measured
-  value, threshold, and deterministic repair provenance.
+- The existing structured rejection report remains backward-compatible and the
+  repaired retry adds deterministic provenance plus before/after measurements.
 - The existing quality policy version and thresholds remain unchanged.
 - Focused quality, composer, CLI, visual-review, and full repository suites
   pass after implementation.

@@ -81,13 +81,13 @@
       "building_quality": {
         "policy_version": "building-quality/v1",
         "hard_pass": true,
-        "score": 0.7779,
+        "score": 0.7935,
         "component_scores": {
           "daylight": 0.9227,
           "room_form": 1.0,
           "vertical_stacking": 0.6667,
           "egress": 0.5,
-          "coverage_efficiency": 0.7596
+          "coverage_efficiency": 0.8632
         },
         "floors": [
           {
@@ -470,7 +470,136 @@
     {
       "strategy": "long_edge_adjacent",
       "reason_type": "BuildingQualityRejected",
-      "reason": "legacy: primary_daylight_ratio:0.662530965716/0.7"
+      "reason": "legacy: primary_daylight_ratio:0.662530965716/0.7",
+      "quality_report": {
+        "policy_version": "building-quality/v1",
+        "hard_pass": false,
+        "score": 0.77,
+        "component_scores": {
+          "daylight": 0.8716,
+          "room_form": 1.0,
+          "vertical_stacking": 0.6667,
+          "egress": 0.5,
+          "coverage_efficiency": 0.792
+        },
+        "floors": [
+          {
+            "floor_index": 1,
+            "coverage": 0.6596,
+            "primary_daylight_ratio": 0.9766151723543345,
+            "room_form_pass_ratio": 1.0,
+            "worst_aspect_ratio": 8.268497072645998,
+            "narrowest_room_width_m": 1.0,
+            "egress_status": "not_checked"
+          },
+          {
+            "floor_index": 2,
+            "coverage": 0.6821,
+            "primary_daylight_ratio": 0.9756863096715561,
+            "room_form_pass_ratio": 1.0,
+            "worst_aspect_ratio": 7.567776981743795,
+            "narrowest_room_width_m": 1.3377403846153832,
+            "egress_status": "not_checked"
+          },
+          {
+            "floor_index": 3,
+            "coverage": 0.6278,
+            "primary_daylight_ratio": 0.6625309657157782,
+            "room_form_pass_ratio": 1.0,
+            "worst_aspect_ratio": 3.5498666660251836,
+            "narrowest_room_width_m": 1.3377403846153832,
+            "egress_status": "not_checked"
+          }
+        ],
+        "vertical": {
+          "core_stack_ratio": 1.0,
+          "shaft_stack_ratio": 1.0,
+          "wet_service_stack_ratio": 0.0,
+          "maximum_service_centroid_shift_m": 17.282729822267047
+        },
+        "issues": [
+          {
+            "code": "primary_daylight_ratio",
+            "severity": "hard",
+            "floor_index": 3,
+            "subject_id": "floor-3",
+            "measured_value": 0.6625309657157782,
+            "threshold": 0.7,
+            "message": "primary daylight ratio is below policy"
+          },
+          {
+            "code": "wet_service_stack_ratio",
+            "severity": "soft",
+            "floor_index": null,
+            "subject_id": null,
+            "measured_value": 0.0,
+            "threshold": 0.7,
+            "message": "wet service stack ratio is below policy"
+          },
+          {
+            "code": "egress_unresolved",
+            "severity": "unresolved",
+            "floor_index": null,
+            "subject_id": "effective_date",
+            "measured_value": null,
+            "threshold": null,
+            "message": "egress fact remains unresolved: effective_date"
+          },
+          {
+            "code": "egress_unresolved",
+            "severity": "unresolved",
+            "floor_index": null,
+            "subject_id": "floor_code_context",
+            "measured_value": null,
+            "threshold": null,
+            "message": "egress fact remains unresolved: floor_code_context"
+          },
+          {
+            "code": "egress_unresolved",
+            "severity": "unresolved",
+            "floor_index": null,
+            "subject_id": "jurisdiction",
+            "measured_value": null,
+            "threshold": null,
+            "message": "egress fact remains unresolved: jurisdiction"
+          },
+          {
+            "code": "egress_unresolved",
+            "severity": "unresolved",
+            "floor_index": null,
+            "subject_id": "measured_travel_distance",
+            "measured_value": null,
+            "threshold": null,
+            "message": "egress fact remains unresolved: measured_travel_distance"
+          },
+          {
+            "code": "egress_unresolved",
+            "severity": "unresolved",
+            "floor_index": null,
+            "subject_id": "non_axis_aligned_polygon",
+            "measured_value": null,
+            "threshold": null,
+            "message": "egress fact remains unresolved: non_axis_aligned_polygon"
+          },
+          {
+            "code": "egress_unresolved",
+            "severity": "unresolved",
+            "floor_index": null,
+            "subject_id": "travel_limit_classification",
+            "measured_value": null,
+            "threshold": null,
+            "message": "egress fact remains unresolved: travel_limit_classification"
+          }
+        ],
+        "unresolved_facts": [
+          "effective_date",
+          "floor_code_context",
+          "jurisdiction",
+          "measured_travel_distance",
+          "non_axis_aligned_polygon",
+          "travel_limit_classification"
+        ]
+      }
     },
     {
       "strategy": "long_edge_adjacent",
