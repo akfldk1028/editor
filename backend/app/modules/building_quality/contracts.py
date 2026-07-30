@@ -10,6 +10,17 @@ from backend.app.modules.building_quality.constants import (
 )
 
 
+QUALITY_COMPONENT_KEYS = frozenset(
+    {
+        "daylight",
+        "room_form",
+        "vertical_stacking",
+        "egress",
+        "coverage_efficiency",
+    }
+)
+
+
 class _ImmutableJsonDict(dict):
     def _immutable(self, *args, **kwargs):
         raise TypeError(f"{type(self).__name__} is immutable")
@@ -99,6 +110,8 @@ class QualityPolicy:
         ):
             _require_number(getattr(self, name), name, minimum=0.0, maximum=1.0)
         weights = _immutable_scores(self.weights, "weights")
+        if set(weights) != QUALITY_COMPONENT_KEYS:
+            raise ValueError("weights must contain exactly the quality components")
         if not math.isclose(sum(weights.values()), 1.0, rel_tol=0.0, abs_tol=1e-9):
             raise ValueError("weights must sum to 1.0")
         object.__setattr__(self, "weights", weights)

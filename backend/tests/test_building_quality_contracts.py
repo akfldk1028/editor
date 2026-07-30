@@ -50,6 +50,33 @@ def test_policy_copies_and_freezes_weights() -> None:
     assert json.dumps(policy.weights) == json.dumps(dict(policy.weights))
 
 
+@pytest.mark.parametrize(
+    "weights",
+    (
+        {
+            "daylight": 0.25,
+            "room_form": 0.20,
+            "vertical_stacking": 0.20,
+            "egress": 0.35,
+        },
+        {
+            "daylight": 0.15,
+            "room_form": 0.20,
+            "vertical_stacking": 0.20,
+            "egress": 0.20,
+            "coverage_efficiency": 0.15,
+            "unexpected": 0.10,
+        },
+    ),
+    ids=("missing-component", "extra-component"),
+)
+def test_policy_requires_exact_evaluator_component_weights(
+    weights: dict[str, float],
+) -> None:
+    with pytest.raises(ValueError, match="weights"):
+        replace(DEFAULT_QUALITY_POLICY, weights=weights)
+
+
 def test_quality_issue_rejects_invalid_members() -> None:
     with pytest.raises(ValueError, match="severity"):
         replace(quality_issue(), severity="warning")

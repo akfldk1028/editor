@@ -78,12 +78,20 @@ def test_custom_policy_controls_thresholds_and_rounds_public_scores(
         DEFAULT_QUALITY_POLICY,
         version="test/v1",
         minimum_primary_daylight_ratio=0.88,
+        weights={
+            "daylight": 0.40,
+            "room_form": 0.10,
+            "vertical_stacking": 0.20,
+            "egress": 0.20,
+            "coverage_efficiency": 0.10,
+        },
     )
 
     report = evaluate_building_quality(_building(), policy=policy)
 
     assert report.policy_version == "test/v1"
     assert report.component_scores["daylight"] == 0.8765
+    assert report.score == 0.9189
     assert report.hard_pass is False
     assert any(
         issue.code == "primary_daylight_ratio" and issue.threshold == 0.88
