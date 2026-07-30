@@ -6,11 +6,18 @@ import html
 import json
 import os
 import shutil
+from itertools import combinations
 from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.modules.alternative_composer.service import (
     compose_structural_alternatives,
+)
+from backend.app.modules.building_quality import (
+    AlternativeDiversityReport,
+    BuildingQualityReport,
+    DEFAULT_QUALITY_POLICY,
+    compare_building_diversity,
 )
 from backend.app.modules.generation_loop.service import (
     _street_segments_for_boundary,
@@ -124,6 +131,47 @@ def _aggregate_review_status(records: list[dict], key: str) -> dict:
     else:
         status = "not_checked"
     return {"status": status}
+
+
+def _serialize_quality_evidence(
+    report: BuildingQualityReport | AlternativeDiversityReport,
+) -> dict:
+    """Convert immutable quality reports into JSON-safe review evidence."""
+    serialized = to_jsonable(report)
+    if not isinstance(serialized, dict):
+        raise TypeError("quality evidence must serialize to an object")
+    return serialized
+
+
+def _quality_table_html(item: dict) -> str:
+    quality = item["building_quality"]
+    components = quality["component_scores"]
+    vertical = quality["vertical"]
+    regulatory = item["regulatory_screening"]
+    unresolved_facts = ", ".join(regulatory.get("unresolved_facts", ())) or "-"
+    rows = (
+        ("Quality policy", quality["policy_version"]),
+        ("Hard pass", str(quality["hard_pass"]).lower()),
+        ("Total score", f"{quality['score']:.4f}"),
+        ("Daylight proxy", f"{components['daylight']:.4f}"),
+        ("Room form", f"{components['room_form']:.4f}"),
+        ("Vertical stacking", f"{components['vertical_stacking']:.4f}"),
+        ("Egress", f"{components['egress']:.4f}"),
+        ("Coverage/efficiency", f"{components['coverage_efficiency']:.4f}"),
+        ("Core stack", f"{vertical['core_stack_ratio']:.4f}"),
+        ("Shaft stack", f"{vertical['shaft_stack_ratio']:.4f}"),
+        ("Wet-service stack", f"{vertical['wet_service_stack_ratio']:.4f}"),
+        ("Regulatory", f"Regulatory: {regulatory['status']}"),
+        ("Unresolved regulatory facts", unresolved_facts),
+    )
+    return (
+        '<table class="quality"><tbody>'
+        + "".join(
+            f"<tr><th>{html.escape(label)}</th><td>{html.escape(value)}</td></tr>"
+            for label, value in rows
+        )
+        + "</tbody></table>"
+    )
 
 
 def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
@@ -308,6 +356,9 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
                         item["total_score"] for item in floor_scores
                     ),
                 },
+                "building_quality": _serialize_quality_evidence(
+                    alternative.quality_report
+                ),
                 "internal_validation": artifacts.internal_validation,
                 "render_validation": artifacts.render_validation,
                 "regulatory_screening": artifacts.regulatory_screening,
@@ -335,9 +386,20 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
     distinct_candidate_png_count = len(
         {item["candidate_png_fingerprint"] for item in accepted}
     )
+    pairwise_diversity = [
+        _serialize_quality_evidence(
+            compare_building_diversity(first.building, second.building)
+        )
+        for first, second in combinations(composition.alternatives, 2)
+    ]
     payload = {
         "schema_version": 1,
         "project_id": mass.project_id,
+        "quality_policy_version": (
+            composition.alternatives[0].quality_report.policy_version
+            if composition.alternatives
+            else DEFAULT_QUALITY_POLICY.version
+        ),
         "accepted_count": len(accepted),
         "distinct_structural_count": distinct_structural_count,
         "distinct_core_count": distinct_core_count,
@@ -357,6 +419,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
             ),
         },
         "alternatives": summaries,
+        "pairwise_diversity": pairwise_diversity,
         "rejected_strategies": to_jsonable(composition.rejections),
         "unresolved_regulatory_facts": sorted(unresolved_regulatory_facts),
     }
@@ -372,7 +435,8 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
             f"<p>accepted={str(item['accepted']).lower()} | "
             f"quality accepted={str(item['quality_accepted']).lower()} | "
             f"score={item['validation_scores']['total_score']:.4f}</p>"
-            '<div class="floors">'
+            + _quality_table_html(item)
+            + '<div class="floors">'
             + "".join(
                 (
                     "<figure>"
@@ -403,6 +467,9 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
             "margin:auto;padding:24px}h1{font-size:24px}.alternative{"
             "border-top:1px solid #bbb;padding:20px 0}.floors{display:grid;"
             "grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}"
+            ".quality{border-collapse:collapse;margin:12px 0;max-width:720px}"
+            ".quality th,.quality td{border:1px solid #bbb;padding:5px 8px;"
+            "text-align:left}.quality th{background:#f5f5f5}"
             "figure{margin:0}img{display:block;width:100%;height:auto;"
             "background:#fff;border:1px solid #bbb}figcaption{padding:6px 0;"
             "font-weight:700}@media(max-width:900px){.floors{"

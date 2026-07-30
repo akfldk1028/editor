@@ -61,7 +61,24 @@ def test_cli_irregular_review_writes_two_structurally_distinct_pngs(tmp_path):
     assert report["distinct_candidate_png_count"] >= 2
     assert report["unresolved_regulatory_facts"]
     assert "rejected_strategies" in report
+    assert report["quality_policy_version"] == "building-quality/v1"
+    assert report["pairwise_diversity"]
     for alternative in report["alternatives"]:
+        quality = alternative["building_quality"]
+        assert quality["hard_pass"] is True
+        assert 0 <= quality["score"] <= 1
+        assert set(quality["component_scores"]) == {
+            "daylight",
+            "room_form",
+            "vertical_stacking",
+            "egress",
+            "coverage_efficiency",
+        }
+        assert quality["vertical"]["core_stack_ratio"] >= 0.95
+        assert quality["vertical"]["shaft_stack_ratio"] >= 0.90
+        for floor in quality["floors"]:
+            assert floor["primary_daylight_ratio"] >= 0.70
+            assert floor["room_form_pass_ratio"] >= 0.90
         assert set(alternative["fingerprints"]) == {
             "core",
             "circulation",
@@ -111,6 +128,13 @@ def test_cli_irregular_review_writes_two_structurally_distinct_pngs(tmp_path):
             assert ratio["passed"] is True
             for key in ("svg", "png", "html", "review_json"):
                 assert (output_dir / floor[key]).is_file()
+    index_html = (output_dir / "index.html").read_text(encoding="utf-8")
+    assert "building-quality/v1" in index_html
+    assert "Daylight proxy" in index_html
+    assert "Room form" in index_html
+    assert "Core stack" in index_html
+    assert "Shaft stack" in index_html
+    assert "Regulatory: not_checked" in index_html
 
 
 def _run_sample_loop_review(
