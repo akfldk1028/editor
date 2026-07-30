@@ -10,7 +10,11 @@ from xml.etree import ElementTree
 import pytest
 
 import backend.app.cli as cli_module
-from backend.app.modules.alternative_composer.contracts import StructuralAlternative
+from backend.app.modules.alternative_composer.contracts import (
+    GeneratorRepairProvenance,
+    StructuralAlternative,
+    StructuralAlternativeRejection,
+)
 from backend.app.modules.building_quality.contracts import (
     AlternativeDiversityReport,
     BuildingQualityReport,
@@ -30,7 +34,23 @@ from backend.app.schemas.visual import VisualReviewArtifacts
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_cli_irregular_review_records_task_8_quality_phase_boundary(tmp_path):
+def repair_evidence(after_value: float) -> GeneratorRepairProvenance:
+    return GeneratorRepairProvenance(
+        operator_id="primary_daylight_exterior_allocation/v1",
+        issue_code="primary_daylight_ratio",
+        policy_version="building-quality/v1",
+        floor_index=1,
+        subject_id="floor-1",
+        room_ids=("focus", "meeting"),
+        before_value=0.69,
+        threshold=0.7,
+        after_value=after_value,
+    )
+
+
+def test_cli_irregular_review_emits_two_repaired_quality_distinct_alternatives(
+    tmp_path,
+):
     output_dir = tmp_path / "irregular-review"
     completed = subprocess.run(
         [
@@ -52,47 +72,54 @@ def test_cli_irregular_review_records_task_8_quality_phase_boundary(tmp_path):
         ],
         capture_output=True,
         text=True,
+        timeout=300,
     )
 
-    assert completed.returncode == 1, completed.stderr
+    assert completed.returncode == 0, completed.stderr
     report = json.loads(
         (output_dir / "alternatives.review.json").read_text(encoding="utf-8")
     )
-    assert report["accepted_count"] == 1
-    assert report["quality_thresholds"] == {
-        "minimum_floor_coverage": 0.60,
-        "maximum_unallocated_ratio": 0.40,
-        "maximum_unresolved_label_collisions": 0,
-        "minimum_primary_share_factor": 0.75,
-    }
-    assert report["distinct_structural_count"] == 1
-    assert report["distinct_core_count"] == 1
-    assert report["distinct_circulation_count"] == 1
-    assert report["distinct_candidate_png_count"] == 1
-    assert report["unresolved_regulatory_facts"]
-    assert "rejected_strategies" in report
+    assert report["schema_version"] == 1
     assert report["quality_policy_version"] == "building-quality/v1"
-    assert report["pairwise_diversity"] == []
+    assert report["accepted_count"] >= 2
+    assert report["distinct_structural_count"] >= 2
+    assert report["distinct_core_count"] >= 2
+    assert report["distinct_circulation_count"] >= 2
+    assert report["distinct_candidate_png_count"] >= 2
+    assert report["pairwise_diversity"]
+    assert any(item["quality_distinct"] for item in report["pairwise_diversity"])
+
+    long_edge = next(
+        item
+        for item in report["alternatives"]
+        if item["strategy"] == "long_edge_adjacent"
+    )
+    floor_3 = next(
+        floor
+        for floor in long_edge["building_quality"]["floors"]
+        if floor["floor_index"] == 3
+    )
+    repair, = long_edge["generator_repairs"]
+
+    assert long_edge["building_quality"]["hard_pass"] is True
+    assert floor_3["primary_daylight_ratio"] >= 0.70
+    assert repair["room_ids"] == ["focus", "meeting"]
+    assert repair["before_value"] == pytest.approx(0.6625309657157782)
+    assert repair["threshold"] == pytest.approx(0.70)
+    assert repair["after_value"] == pytest.approx(
+        floor_3["primary_daylight_ratio"]
+    )
+
     quality_rejections = [
         item
         for item in report["rejected_strategies"]
         if item["reason_type"] == "BuildingQualityRejected"
     ]
-    assert len(quality_rejections) == 1
-    rejection = quality_rejections[0]
-    assert rejection["strategy"] == "long_edge_adjacent"
-    assert rejection["reason"] == "legacy: primary_daylight_ratio:0.662530965716/0.7"
-    assert rejection["quality_report"]["issues"] == [
-        {
-            "code": "primary_daylight_ratio",
-            "severity": "hard",
-            "floor_index": 1,
-            "subject_id": "floor-1",
-            "measured_value": pytest.approx(0.662530965716),
-            "threshold": 0.7,
-            "message": "primary daylight ratio is below policy",
-        }
-    ]
+    assert any(
+        item["quality_report"]["floors"][2]["primary_daylight_ratio"]
+        == pytest.approx(0.6625309657157782)
+        for item in quality_rejections
+    )
     for alternative in report["alternatives"]:
         quality = alternative["building_quality"]
         assert quality["hard_pass"] is True
@@ -185,6 +212,7 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
         daylight: float,
         room_form: float,
         fingerprint_identity: str | None = None,
+        generator_repairs: tuple[GeneratorRepairProvenance, ...] = (),
     ) -> StructuralAlternative:
         floor_result = SimpleNamespace(
             program=SimpleNamespace(floor_index=1),
@@ -244,6 +272,7 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
             circulation_fingerprint=components[1],
             room_fingerprint=components[2],
             structural_fingerprint=sha256(":".join(components).encode()).hexdigest(),
+            generator_repairs=generator_repairs,
         )
 
     alternatives = (
@@ -252,6 +281,7 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
             score=0.8123456789,
             daylight=0.7123456789,
             room_form=0.9123456789,
+            generator_repairs=(repair_evidence(0.7123456789),),
         ),
         alternative(
             "second",
@@ -414,12 +444,38 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
         "wet_service_stack_ratio": 0.9,
         "maximum_service_centroid_shift_m": 0.2,
     }
+    assert report["alternatives"][0]["generator_repairs"] == [
+        {
+            "operator_id": "primary_daylight_exterior_allocation/v1",
+            "issue_code": "primary_daylight_ratio",
+            "policy_version": "building-quality/v1",
+            "floor_index": 1,
+            "subject_id": "floor-1",
+            "room_ids": ["focus", "meeting"],
+            "before_value": 0.69,
+            "threshold": 0.7,
+            "after_value": 0.7123456789,
+        }
+    ]
+    rejection = StructuralAlternativeRejection(
+        strategy="test",
+        reason_type="BuildingQualityRejected",
+        reason="structured test rejection",
+        quality_report=alternatives[0].quality_report,
+        generator_repairs=(repair_evidence(0.7123456789),),
+    )
+    serialized_rejection = cli_module._serialize_rejected_strategy(rejection)
+    assert serialized_rejection["generator_repairs"][0]["before_value"] == 0.69
+    assert serialized_rejection["generator_repairs"][0]["after_value"] == 0.7123456789
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     assert "first &amp; &lt;two&gt;" in index_html
     assert "needs &lt;authority&gt;" in index_html
     assert "Total score</th><td>0.8123" in index_html
     assert "daylight proxy=0.7123 | room form=0.9123" in index_html
     assert "daylight proxy=0.7235 | room form=0.9235" in index_html
+    assert "primary_daylight_exterior_allocation/v1" in index_html
+    assert "0.69" in index_html
+    assert "0.7123456789" in index_html
 
 
 def _run_sample_loop_review(

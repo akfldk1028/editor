@@ -153,6 +153,8 @@ def _serialize_rejected_strategy(rejection) -> dict:
         serialized["quality_report"] = _serialize_quality_evidence(
             rejection.quality_report
         )
+    if rejection.generator_repairs:
+        serialized["generator_repairs"] = to_jsonable(rejection.generator_repairs)
     return serialized
 
 
@@ -184,6 +186,30 @@ def _quality_table_html(item: dict) -> str:
             for label, value in rows
         )
         + "</tbody></table>"
+    )
+
+
+def _generator_repairs_table_html(item: dict) -> str:
+    repairs = item["generator_repairs"]
+    if not repairs:
+        return ""
+    headers = ("operator", "issue", "floor", "rooms", "before", "threshold", "after")
+    rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(repair['operator_id'])}</td>"
+        f"<td>{html.escape(repair['issue_code'])}</td>"
+        f"<td>{html.escape(str(repair['floor_index']))}</td>"
+        f"<td>{html.escape(', '.join(repair['room_ids']))}</td>"
+        f"<td>{repr(float(repair['before_value']))}</td>"
+        f"<td>{repr(float(repair['threshold']))}</td>"
+        f"<td>{repr(float(repair['after_value']))}</td>"
+        "</tr>"
+        for repair in repairs
+    )
+    return (
+        '<table class="generator-repairs"><thead><tr>'
+        + "".join(f"<th>{html.escape(header)}</th>" for header in headers)
+        + f"</tr></thead><tbody>{rows}</tbody></table>"
     )
 
 
@@ -371,6 +397,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
                 "building_quality": _serialize_quality_evidence(
                     alternative.quality_report
                 ),
+                "generator_repairs": to_jsonable(alternative.generator_repairs),
                 "internal_validation": artifacts.internal_validation,
                 "render_validation": artifacts.render_validation,
                 "regulatory_screening": artifacts.regulatory_screening,
@@ -448,6 +475,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
             f"quality accepted={str(item['quality_accepted']).lower()} | "
             f"score={item['validation_scores']['total_score']:.4f}</p>"
             + _quality_table_html(item)
+            + _generator_repairs_table_html(item)
             + '<div class="floors">'
             + "".join(
                 (
@@ -477,6 +505,10 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
             ".quality{border-collapse:collapse;margin:12px 0;max-width:720px}"
             ".quality th,.quality td{border:1px solid #bbb;padding:5px 8px;"
             "text-align:left}.quality th{background:#f5f5f5}"
+            ".generator-repairs{border-collapse:collapse;margin:12px 0;"
+            "max-width:720px}.generator-repairs th,.generator-repairs td{"
+            "border:1px solid #bbb;padding:5px 8px;text-align:left}"
+            ".generator-repairs th{background:#f5f5f5}"
             "figure{margin:0}img{display:block;width:100%;height:auto;"
             "background:#fff;border:1px solid #bbb}figcaption{padding:6px 0;"
             "font-weight:700}@media(max-width:900px){.floors{"
