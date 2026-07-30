@@ -413,7 +413,6 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
         "shaft_stack_ratio": 1.0,
         "wet_service_stack_ratio": 0.9,
         "maximum_service_centroid_shift_m": 0.2,
-        "unmeasurable_geometry": [],
     }
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     assert "first &amp; &lt;two&gt;" in index_html

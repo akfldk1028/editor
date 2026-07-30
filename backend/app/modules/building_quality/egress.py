@@ -42,11 +42,14 @@ def aggregate_egress_quality(
             all_floors_pass = False
         else:
             unresolved_facts.update(graph.unresolved_facts)
-            hard_failure_facts.update(
+            floor_hard_failure_facts = {
                 (floor_index, fact)
                 for fact in graph.unresolved_facts
                 if _is_internal_graph_failure(fact)
-            )
+            }
+            hard_failure_facts.update(floor_hard_failure_facts)
+            if floor_hard_failure_facts:
+                failed_floor_indexes.append(floor_index)
             if graph.status != "checked" or graph.unresolved_facts:
                 all_floors_pass = False
         if screening is None or not screening.checks:
@@ -62,9 +65,7 @@ def aggregate_egress_quality(
             and all(status == "pass" for status in statuses)
         ):
             checked_floor_indexes.append(floor_index)
-        if any(status == "fail" for status in statuses) or any(
-            failed_floor == floor_index for failed_floor, _ in hard_failure_facts
-        ):
+        if any(status == "fail" for status in statuses):
             failed_floor_indexes.append(floor_index)
         if any(status != "pass" for status in statuses) or screening.unresolved_facts:
             all_floors_pass = False

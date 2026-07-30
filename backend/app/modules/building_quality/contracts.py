@@ -185,7 +185,6 @@ class VerticalQualityMetrics:
     shaft_stack_ratio: float
     wet_service_stack_ratio: float
     maximum_service_centroid_shift_m: float | None
-    unmeasurable_geometry: tuple[tuple[int, str], ...] = ()
 
     def __post_init__(self) -> None:
         _require_number(
@@ -206,13 +205,6 @@ class VerticalQualityMetrics:
             minimum=0.0,
             optional=True,
         )
-        if not isinstance(self.unmeasurable_geometry, tuple):
-            raise TypeError("unmeasurable_geometry must be a tuple")
-        for floor_index, subject_id in self.unmeasurable_geometry:
-            _require_integer(floor_index, "unmeasurable geometry floor_index")
-            _require_string(subject_id, "unmeasurable geometry subject_id")
-        if self.unmeasurable_geometry != tuple(sorted(set(self.unmeasurable_geometry))):
-            raise ValueError("unmeasurable_geometry must be unique and ordered")
 
 
 @dataclass(frozen=True)

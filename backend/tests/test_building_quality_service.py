@@ -177,7 +177,9 @@ def _stub_measurements(
     )
     monkeypatch.setattr(
         service,
-        "measure_vertical_quality",
-        lambda building: vertical
-        or VerticalQualityMetrics(1.0, 1.0, 0.9, 0.2),
+        "measure_vertical_quality_evidence",
+        lambda building: SimpleNamespace(
+            metrics=vertical or VerticalQualityMetrics(1.0, 1.0, 0.9, 0.2),
+            unmeasurable_geometry=(),
+        ),
     )

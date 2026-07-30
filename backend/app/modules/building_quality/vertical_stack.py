@@ -21,10 +21,23 @@ class _StackItem:
     polygon: Polygon
 
 
+@dataclass(frozen=True)
+class VerticalQualityEvidence:
+    metrics: VerticalQualityMetrics
+    unmeasurable_geometry: tuple[tuple[int, str], ...]
+
+
 def measure_vertical_quality(
     building: BuildingGenerationResult,
 ) -> VerticalQualityMetrics:
     """Measure the worst adjacent-floor overlap for vertically repeated services."""
+    return measure_vertical_quality_evidence(building).metrics
+
+
+def measure_vertical_quality_evidence(
+    building: BuildingGenerationResult,
+) -> VerticalQualityEvidence:
+    """Measure stack ratios with internal evidence for invalid service geometry."""
     floors = tuple(
         sorted(building.floor_results, key=lambda floor: floor.program.floor_index)
     )
@@ -38,11 +51,13 @@ def measure_vertical_quality(
         tuple(_wet_service_items(floor) for floor in floors),
         exclude_when_absent=True,
     )
-    return VerticalQualityMetrics(
-        core_stack_ratio=core_ratio,
-        shaft_stack_ratio=shaft_ratio,
-        wet_service_stack_ratio=wet_ratio,
-        maximum_service_centroid_shift_m=wet_shift,
+    return VerticalQualityEvidence(
+        metrics=VerticalQualityMetrics(
+            core_stack_ratio=core_ratio,
+            shaft_stack_ratio=shaft_ratio,
+            wet_service_stack_ratio=wet_ratio,
+            maximum_service_centroid_shift_m=wet_shift,
+        ),
         unmeasurable_geometry=_unmeasurable_geometry(floors),
     )
 

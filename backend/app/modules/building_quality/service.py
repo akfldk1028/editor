@@ -17,7 +17,9 @@ from backend.app.modules.building_quality.egress import (
 )
 from backend.app.modules.building_quality.policy import DEFAULT_QUALITY_POLICY
 from backend.app.modules.building_quality.room_form import measure_room_form
-from backend.app.modules.building_quality.vertical_stack import measure_vertical_quality
+from backend.app.modules.building_quality.vertical_stack import (
+    measure_vertical_quality_evidence,
+)
 from backend.app.schemas.result import BuildingGenerationResult
 
 
@@ -54,9 +56,10 @@ def evaluate_building_quality(
         issues.extend(_floor_issues(metrics, policy))
         issues.extend(_room_form_geometry_issues(floor_index, room_form))
 
-    vertical = measure_vertical_quality(building)
+    vertical_evidence = measure_vertical_quality_evidence(building)
+    vertical = vertical_evidence.metrics
     issues.extend(_vertical_issues(vertical, policy))
-    issues.extend(_vertical_geometry_issues(vertical))
+    issues.extend(_vertical_geometry_issues(vertical_evidence.unmeasurable_geometry))
     issues.extend(_egress_hard_failure_issues(egress.hard_failure_facts))
     issues.extend(_egress_unresolved_issues(egress.unresolved_facts))
 
@@ -209,7 +212,7 @@ def _vertical_issues(
 
 
 def _vertical_geometry_issues(
-    vertical: VerticalQualityMetrics,
+    unmeasurable_geometry: tuple[tuple[int, str], ...],
 ) -> tuple[QualityIssue, ...]:
     return tuple(
         QualityIssue(
@@ -221,7 +224,7 @@ def _vertical_geometry_issues(
             threshold=None,
             message="vertical stack geometry cannot be measured",
         )
-        for floor_index, subject_id in vertical.unmeasurable_geometry
+        for floor_index, subject_id in unmeasurable_geometry
     )
 
 

@@ -4,6 +4,10 @@
 
 Completed on base `91b41e5`.
 
+Review hardening follow-up completed: internal graph failures are recorded
+before absent regulatory evidence can short-circuit aggregation, and the v1
+`VerticalQualityMetrics` wire schema remains unchanged.
+
 ## Changes
 
 - Classified protected-exit and disconnected-route graph facts as checked hard
@@ -19,15 +23,17 @@ Completed on base `91b41e5`.
   fingerprints and PNG fingerprints remain reported evidence only.
 - Sorted set-derived diversity inputs before float summation and excluded wet
   services absent on both adjacent floors from the stack ratio.
+- Kept vertical geometry evidence in `VerticalQualityEvidence`, consumed only
+  by the evaluator, rather than adding it to public vertical metrics.
 
 ## Verification
 
 - `pytest -q backend/tests/test_building_quality_hardening.py backend/tests/test_building_quality_service.py backend/tests/test_building_quality_floor.py backend/tests/test_building_quality_building.py backend/tests/test_building_quality_diversity.py backend/tests/test_building_quality_contracts.py`
-  - `52 passed in 28.65s`
+  - `55 passed in 31.57s`
 - `pytest -q backend/tests/test_alternative_composer.py`
   - `26 passed in 826.10s`
 - `pytest -q backend/tests/test_traversable_egress.py backend/tests/test_egress_applicability.py backend/tests/test_cli.py -k 'not test_cli_irregular_review_records_task_8_quality_phase_boundary'`
-  - `132 passed, 1 deselected in 40.07s`
+  - `132 passed, 1 deselected in 40.58s`
 - `ruff check ...` and `git diff --check`
   - passed
 

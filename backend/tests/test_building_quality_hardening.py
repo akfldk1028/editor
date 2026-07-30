@@ -18,6 +18,7 @@ from backend.app.modules.building_quality.contracts import (
 )
 from backend.app.modules.building_quality.egress import aggregate_egress_quality
 from backend.app.modules.building_quality.service import evaluate_building_quality
+from backend.app.core.serialization import to_jsonable
 
 
 def test_internal_egress_graph_failure_is_hard_while_legal_fact_remains_unresolved():
@@ -50,6 +51,27 @@ def test_internal_egress_graph_failure_is_hard_while_legal_fact_remains_unresolv
     assert measured.checked_floor_indexes == ()
 
 
+@pytest.mark.parametrize("screening", (None, SimpleNamespace(checks=(), unresolved_facts=())))
+def test_internal_egress_failure_survives_missing_or_empty_regulatory_screening(
+    screening,
+) -> None:
+    floor = SimpleNamespace(
+        program=SimpleNamespace(floor_index=4),
+        validation=SimpleNamespace(regulatory_screening=screening),
+        egress_graph=SimpleNamespace(
+            status="not_checked",
+            unresolved_facts=("protected_exit_portal_missing",),
+        ),
+    )
+
+    measured = aggregate_egress_quality(SimpleNamespace(floor_results=(floor,)))
+
+    assert measured.status == "fail"
+    assert measured.failed_floor_indexes == (4,)
+    assert measured.hard_failure_facts == ((4, "protected_exit_portal_missing"),)
+    assert measured.unresolved_facts == ("protected_exit_portal_missing",)
+
+
 def test_quality_evaluator_hard_fails_unmeasurable_geometry_with_floor_and_subject(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -66,12 +88,9 @@ def test_quality_evaluator_hard_fails_unmeasurable_geometry_with_floor_and_subje
     )
     monkeypatch.setattr(
         service,
-        "measure_vertical_quality",
-        lambda building: VerticalQualityMetrics(
-            1.0,
-            1.0,
-            1.0,
-            None,
+        "measure_vertical_quality_evidence",
+        lambda building: SimpleNamespace(
+            metrics=VerticalQualityMetrics(1.0, 1.0, 1.0, None),
             unmeasurable_geometry=((1, "shaft:shaft-west"),),
         ),
     )
@@ -151,6 +170,17 @@ def test_legal_unresolved_fact_forces_floor_not_checked_without_hard_failure(
     assert report.hard_pass is True
 
 
+def test_vertical_metrics_v1_serialization_has_no_geometry_evidence_field() -> None:
+    serialized = to_jsonable(VerticalQualityMetrics(1.0, 1.0, 1.0, None))
+
+    assert serialized == {
+        "core_stack_ratio": 1.0,
+        "shaft_stack_ratio": 1.0,
+        "wet_service_stack_ratio": 1.0,
+        "maximum_service_centroid_shift_m": None,
+    }
+
+
 def _building(*, efficiency: float = 0.8) -> SimpleNamespace:
     return SimpleNamespace(
         floor_results=(
@@ -197,8 +227,11 @@ def _stub_measurements(
     )
     monkeypatch.setattr(
         service,
-        "measure_vertical_quality",
-        lambda building: VerticalQualityMetrics(1.0, 1.0, 1.0, None),
+        "measure_vertical_quality_evidence",
+        lambda building: SimpleNamespace(
+            metrics=VerticalQualityMetrics(1.0, 1.0, 1.0, None),
+            unmeasurable_geometry=(),
+        ),
     )
 
 
