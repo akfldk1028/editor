@@ -423,19 +423,34 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
     distinct_candidate_png_count = len(
         {item["candidate_png_fingerprint"] for item in accepted}
     )
+    alternative_summaries = tuple(
+        zip(composition.alternatives, summaries, strict=True)
+    )
     comparisons = tuple(
-        (first, second, compare_building_diversity(first.building, second.building))
-        for first, second in combinations(composition.alternatives, 2)
+        (
+            first,
+            second,
+            first_summary,
+            second_summary,
+            compare_building_diversity(first.building, second.building),
+        )
+        for (first, first_summary), (second, second_summary) in combinations(
+            alternative_summaries,
+            2,
+        )
     )
     pairwise_diversity = [
-        _serialize_quality_evidence(comparison) for _, _, comparison in comparisons
+        _serialize_quality_evidence(comparison)
+        for _, _, _, _, comparison in comparisons
     ]
-    quality_distinct_pair_count = sum(
-        comparison.quality_distinct
+    accepted_pairwise_diversity = [
+        _serialize_quality_evidence(comparison)
+        for first, second, first_summary, second_summary, comparison in comparisons
+        if first_summary["quality_accepted"]
+        and second_summary["quality_accepted"]
         and first.quality_report.hard_pass
         and second.quality_report.hard_pass
-        for first, second, comparison in comparisons
-    )
+    ]
     payload = {
         "schema_version": 1,
         "project_id": mass.project_id,
@@ -460,6 +475,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
         },
         "alternatives": summaries,
         "pairwise_diversity": pairwise_diversity,
+        "accepted_pairwise_diversity": accepted_pairwise_diversity,
         "rejected_strategies": [
             _serialize_rejected_strategy(rejection)
             for rejection in composition.rejections
@@ -523,7 +539,10 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
         encoding="utf-8",
     )
     print(json.dumps(payload, ensure_ascii=False))
-    exit_ready = quality_distinct_pair_count >= 1
+    exit_ready = len(accepted) >= 2 and any(
+        comparison["quality_distinct"]
+        for comparison in accepted_pairwise_diversity
+    )
     if not exit_ready:
         raise SystemExit(1)
 

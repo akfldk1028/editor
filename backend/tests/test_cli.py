@@ -109,6 +109,10 @@ def test_cli_irregular_review_emits_two_repaired_quality_distinct_alternatives(
     assert report["distinct_candidate_png_count"] >= 2
     assert report["pairwise_diversity"]
     assert any(item["quality_distinct"] for item in report["pairwise_diversity"])
+    assert report["accepted_pairwise_diversity"]
+    assert any(
+        item["quality_distinct"] for item in report["accepted_pairwise_diversity"]
+    )
 
     long_edge = next(
         item
@@ -223,7 +227,20 @@ def test_cli_irregular_review_emits_two_repaired_quality_distinct_alternatives(
     assert "Regulatory: not_checked" in index_html
 
 
-def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    ("cli_rejected_strategy", "expected_accepted_count", "expect_exit"),
+    (
+        pytest.param("second", 1, True, id="cli-quality-rejected-candidate"),
+        pytest.param(None, 2, False, id="accepted-quality-distinct-pair"),
+    ),
+)
+def test_cli_irregular_review_quality_gate_fast(
+    tmp_path,
+    monkeypatch,
+    cli_rejected_strategy,
+    expected_accepted_count,
+    expect_exit,
+):
     mass = MassInput(
         project_id="fast-quality-evidence",
         floors=1,
@@ -359,7 +376,11 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
                     "floor_index": 1,
                     "floor_boundary": [[0, 0], [20, 0], [20, 10], [0, 10]],
                     "scores": {"coverage_score": 0.8, "total_score": 0.4567891234},
-                    "render_validation": {"unresolved_label_collision_count": 0},
+                    "render_validation": {
+                        "unresolved_label_collision_count": (
+                            1 if marker == cli_rejected_strategy else 0
+                        )
+                    },
                     "status_footer": {"png_output_size": [1920, 1080]},
                 }
             ),
@@ -418,20 +439,28 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
     )
 
     output_dir = tmp_path / "quality-evidence"
-    cli_module._run_irregular_alternatives_review(
-        SimpleNamespace(output_dir=output_dir, limit=2),
-        mass,
-    )
+    if expect_exit:
+        with pytest.raises(SystemExit) as raised:
+            cli_module._run_irregular_alternatives_review(
+                SimpleNamespace(output_dir=output_dir, limit=2),
+                mass,
+            )
+        assert raised.value.code == 1
+    else:
+        cli_module._run_irregular_alternatives_review(
+            SimpleNamespace(output_dir=output_dir, limit=2),
+            mass,
+        )
 
     report = json.loads(
         (output_dir / "alternatives.review.json").read_text(encoding="utf-8")
     )
     assert render_sizes == [(1920, 1080), (1920, 1080)]
-    assert report["accepted_count"] == 2
+    assert report["accepted_count"] == expected_accepted_count
     assert report["distinct_structural_count"] == 1
     assert report["distinct_core_count"] == 1
     assert report["distinct_circulation_count"] == 1
-    assert report["distinct_candidate_png_count"] == 2
+    assert report["distinct_candidate_png_count"] == expected_accepted_count
     assert len(report["pairwise_diversity"]) == 2 * (2 - 1) // 2
     assert report["pairwise_diversity"] == [
         {
@@ -446,6 +475,11 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
             "quality_distinct": True,
         }
     ]
+    if expect_exit:
+        assert report["accepted_pairwise_diversity"] == []
+        assert report["alternatives"][1]["quality_accepted"] is False
+        return
+    assert report["accepted_pairwise_diversity"] == report["pairwise_diversity"]
     first_quality = report["alternatives"][0]["building_quality"]
     assert first_quality["score"] == 0.8123456789
     assert first_quality["component_scores"] == {
