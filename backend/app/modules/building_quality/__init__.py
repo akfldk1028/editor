@@ -8,6 +8,10 @@ from backend.app.modules.building_quality.contracts import (
 )
 from backend.app.modules.building_quality.policy import DEFAULT_QUALITY_POLICY
 from backend.app.modules.building_quality.diversity import compare_building_diversity
+from backend.app.modules.building_quality.daylight import (
+    PrimaryDaylightMeasurement,
+    measure_primary_daylight,
+)
 from backend.app.modules.building_quality.service import evaluate_building_quality
 
 __all__ = [
@@ -16,6 +20,8 @@ __all__ = [
     "compare_building_diversity",
     "DEFAULT_QUALITY_POLICY",
     "FloorQualityMetrics",
+    "measure_primary_daylight",
+    "PrimaryDaylightMeasurement",
     "QualityIssue",
     "QualityPolicy",
     "VerticalQualityMetrics",

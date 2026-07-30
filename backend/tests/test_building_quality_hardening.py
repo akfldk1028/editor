@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import fields
 from types import SimpleNamespace
 
 import pytest
 
+from backend.app.modules.building_quality import (
+    PrimaryDaylightMeasurement,
+    measure_primary_daylight,
+)
 from backend.app.modules.alternative_composer.contracts import (
     StructuralAlternativeRejection,
 )
@@ -19,6 +24,39 @@ from backend.app.modules.building_quality.contracts import (
 from backend.app.modules.building_quality.egress import aggregate_egress_quality
 from backend.app.modules.building_quality.service import evaluate_building_quality
 from backend.app.core.serialization import to_jsonable
+
+
+def test_daylight_measurement_is_public_feedback_evidence() -> None:
+    assert PrimaryDaylightMeasurement.__module__.endswith(".daylight")
+    assert callable(measure_primary_daylight)
+
+
+def test_building_quality_v1_wire_fields_remain_frozen() -> None:
+    assert tuple(field.name for field in fields(FloorQualityMetrics)) == (
+        "floor_index",
+        "coverage",
+        "primary_daylight_ratio",
+        "room_form_pass_ratio",
+        "worst_aspect_ratio",
+        "narrowest_room_width_m",
+        "egress_status",
+    )
+    assert tuple(field.name for field in fields(VerticalQualityMetrics)) == (
+        "core_stack_ratio",
+        "shaft_stack_ratio",
+        "wet_service_stack_ratio",
+        "maximum_service_centroid_shift_m",
+    )
+    assert tuple(field.name for field in fields(BuildingQualityReport)) == (
+        "policy_version",
+        "hard_pass",
+        "score",
+        "component_scores",
+        "floors",
+        "vertical",
+        "issues",
+        "unresolved_facts",
+    )
 
 
 def test_internal_egress_graph_failure_is_hard_while_legal_fact_remains_unresolved():
