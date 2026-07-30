@@ -385,6 +385,91 @@ def test_primary_daylight_request_uses_typed_unserved_room_ids(
     )
 
 
+@pytest.mark.parametrize(
+    (
+        "served_area",
+        "threshold",
+        "unserved_areas",
+        "expected_room_ids",
+    ),
+    [
+        (
+            50.0,
+            0.70,
+            (("alpha", 15.0), ("beta", 16.0), ("gamma", 19.0)),
+            ("beta", "gamma"),
+        ),
+        (
+            80.0,
+            0.90,
+            (("focus", 10.0), ("meeting", 10.0)),
+            ("focus",),
+        ),
+    ],
+    ids=("three-room-minimum-prefix", "equal-area-room-id-tie"),
+)
+def test_primary_daylight_request_uses_minimum_area_ranked_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+    served_area: float,
+    threshold: float,
+    unserved_areas: tuple[tuple[str, float], ...],
+    expected_room_ids: tuple[str, ...],
+) -> None:
+    floor = SimpleNamespace(
+        program=SimpleNamespace(floor_index=1),
+        validation=SimpleNamespace(
+            room_areas=(
+                SimpleNamespace(room_id="open_work", actual_area=served_area),
+                *(
+                    SimpleNamespace(room_id=room_id, actual_area=area)
+                    for room_id, area in unserved_areas
+                ),
+            ),
+        ),
+    )
+    report = _quality_report(
+        hard_pass=False,
+        hard_issue=(
+            "primary_daylight_ratio",
+            served_area / 100.0,
+            threshold,
+        ),
+    )
+    report = replace(
+        report,
+        issues=(
+            replace(
+                report.issues[0],
+                floor_index=1,
+                subject_id="floor-1",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        alternative_service,
+        "measure_primary_daylight",
+        lambda _floor: PrimaryDaylightMeasurement(
+            total_primary_area=100.0,
+            served_primary_area=served_area,
+            ratio=served_area / 100.0,
+            served_room_ids=("open_work",),
+            unserved_room_ids=tuple(
+                sorted(room_id for room_id, _ in unserved_areas)
+            ),
+        ),
+    )
+
+    request, = alternative_service._primary_daylight_requests(
+        SimpleNamespace(floor_results=(floor,)),
+        report,
+    )
+
+    assert request == ExteriorAllocationRequest(
+        floor_index=1,
+        room_ids=expected_room_ids,
+    )
+
+
 def test_primary_daylight_retry_is_one_shot_and_re_evaluated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

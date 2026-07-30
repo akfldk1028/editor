@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-import math
 
 from shapely.geometry import LineString, Polygon
 
@@ -32,7 +31,6 @@ def room_has_usable_daylight_frontage(
         or boundary_shape.is_empty
     ):
         return False
-    exterior_host = room_shape.boundary.intersection(boundary_shape.boundary)
     for line in features.lines:
         if (
             line.kind != "window"
@@ -44,7 +42,8 @@ def room_has_usable_daylight_frontage(
         if (
             window.length + _TOLERANCE
             < MINIMUM_USABLE_DAYLIGHT_WINDOW_FRONTAGE_M
-            or not exterior_host.buffer(_TOLERANCE).covers(window)
+            or not room_shape.boundary.buffer(_TOLERANCE).covers(window)
+            or not boundary_shape.boundary.buffer(_TOLERANCE).covers(window)
         ):
             continue
         if any(
@@ -125,38 +124,37 @@ def polygon_has_usable_daylight_frontage(
     *,
     exterior_segments: tuple[tuple[Point, Point], ...],
 ) -> bool:
-    room_edges = tuple(
-        LineString((start, end))
-        for start, end in zip(
-            room_shape.exterior.coords,
-            room_shape.exterior.coords[1:],
-        )
-        if any(
-            LineString(segment).buffer(_TOLERANCE).covers(
-                LineString((start, end))
-            )
-            for segment in exterior_segments
-        )
-    )
-    if not room_edges:
-        return False
-    maximum_length = max(edge.length for edge in room_edges)
-    longest_edges = tuple(
-        edge
-        for edge in room_edges
-        if math.isclose(
-            edge.length,
-            maximum_length,
-            rel_tol=0.0,
-            abs_tol=_TOLERANCE,
+    edge_points = tuple(
+        sorted(
+            {
+                tuple(
+                    sorted(
+                        (
+                            (float(start[0]), float(start[1])),
+                            (float(end[0]), float(end[1])),
+                        )
+                    )
+                )
+                for start, end in zip(
+                    room_shape.exterior.coords,
+                    room_shape.exterior.coords[1:],
+                )
+                if any(
+                    LineString(segment).buffer(_TOLERANCE).covers(
+                        LineString((start, end))
+                    )
+                    for segment in exterior_segments
+                )
+            }
         )
     )
-    return all(
+    room_edges = tuple(LineString(points) for points in edge_points)
+    return any(
         edge.length + _TOLERANCE
         >= MINIMUM_USABLE_DAYLIGHT_WINDOW_FRONTAGE_M
         and any(
             room_shape.buffer(_TOLERANCE).covers(zone)
             for zone in daylight_frontage_zones(edge)
         )
-        for edge in longest_edges
+        for edge in room_edges
     )

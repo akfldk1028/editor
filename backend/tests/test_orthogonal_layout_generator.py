@@ -4,6 +4,7 @@ from dataclasses import replace
 import math
 
 import pytest
+from shapely.affinity import rotate
 from shapely import union_all
 from shapely.geometry import LineString, Polygon, box
 from shapely.geometry.base import BaseGeometry
@@ -115,6 +116,89 @@ def test_requested_daylight_frontage_rejects_ribbon_and_accepts_deep_room() -> N
         layout,
         boundary=boundary,
         room_ids=("meeting",),
+    )
+
+
+@pytest.mark.parametrize(
+    "room_points",
+    [
+        [(0, 0), (8, 0), (8, 1), (3, 1), (3, 4), (0, 4)],
+        [(0, 4), (3, 4), (3, 1), (8, 1), (8, 0), (0, 0)],
+    ],
+)
+def test_polygon_daylight_frontage_accepts_shorter_valid_exterior_edge(
+    room_points: list[tuple[float, float]],
+) -> None:
+    boundary = ((0, 0), (20, 0), (20, 20), (0, 20))
+
+    assert daylight_service.polygon_has_usable_daylight_frontage(
+        Polygon(room_points),
+        exterior_segments=tuple(
+            zip(boundary, (*boundary[1:], boundary[0]))
+        ),
+    )
+
+
+def test_polygon_daylight_frontage_accepts_one_valid_equal_length_edge() -> None:
+    boundary = ((0, 0), (20, 0), (20, 20), (0, 20))
+    room = Polygon([(0, 0), (6, 0), (6, 1), (3, 1), (3, 6), (0, 6)])
+
+    assert daylight_service.polygon_has_usable_daylight_frontage(
+        room,
+        exterior_segments=tuple(
+            zip(boundary, (*boundary[1:], boundary[0]))
+        ),
+    )
+
+
+def test_room_daylight_frontage_supports_rotated_boundary_and_window() -> None:
+    boundary_shape = rotate(
+        Polygon([(0, 0), (10, 0), (10, 10), (0, 10)]),
+        30,
+        origin=(0, 0),
+    )
+    room_shape = rotate(
+        Polygon([(0, 0), (6, 0), (6, 4), (0, 4)]),
+        30,
+        origin=(0, 0),
+    )
+    window_shape = rotate(
+        LineString([(2.25, 0), (3.75, 0)]),
+        30,
+        origin=(0, 0),
+    )
+    boundary = list(boundary_shape.exterior.coords)[:-1]
+    layout = LayoutCandidate(
+        candidate_id="rotated-daylight",
+        project_id="rotated-daylight",
+        floor_index=1,
+        rooms=[
+            RoomPolygon(
+                room_id="meeting",
+                space_type="meeting",
+                polygon=list(room_shape.exterior.coords)[:-1],
+            ),
+        ],
+        circulation=[],
+        score=0.0,
+        basic_design=BasicDesignFeatures(
+            elements=(),
+            lines=(
+                PlanLine(
+                    line_id="meeting-window",
+                    category="envelope",
+                    kind="window",
+                    points=tuple(window_shape.coords),
+                    host_id="meeting",
+                ),
+            ),
+        ),
+    )
+
+    assert daylight_service.room_has_usable_daylight_frontage(
+        layout,
+        boundary=boundary,
+        room_id="meeting",
     )
 
 
