@@ -26,15 +26,23 @@ def aggregate_egress_quality(
     for floor in building.floor_results:
         floor_index = floor.program.floor_index
         screening = floor.validation.regulatory_screening
-        if floor.egress_graph is None:
+        graph = floor.egress_graph
+        if graph is None:
             unresolved_facts.add("measured_travel_distance")
+            all_floors_pass = False
+        else:
+            unresolved_facts.update(graph.unresolved_facts)
+            if graph.status != "checked" or graph.unresolved_facts:
+                all_floors_pass = False
         if screening is None or not screening.checks:
             all_floors_pass = False
             continue
 
         unresolved_facts.update(screening.unresolved_facts)
         statuses = tuple(check.status for check in screening.checks)
-        if all(status in {"pass", "fail"} for status in statuses):
+        if graph is not None and graph.status == "checked" and all(
+            status in {"pass", "fail"} for status in statuses
+        ):
             checked_floor_indexes.append(floor_index)
         if any(status == "fail" for status in statuses):
             failed_floor_indexes.append(floor_index)

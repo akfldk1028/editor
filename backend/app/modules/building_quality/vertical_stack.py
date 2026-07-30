@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import pairwise
-import math
 
 from shapely.geometry import Polygon
 
@@ -18,6 +17,7 @@ _WET_SERVICE_TYPES = frozenset({"restroom", "utility", "pantry"})
 @dataclass(frozen=True)
 class _StackItem:
     space_type: str
+    item_id: str
     polygon: Polygon
 
 
@@ -27,18 +27,15 @@ def measure_vertical_quality(building: BuildingGenerationResult) -> VerticalQual
     core_ratio, _ = _measure_adjacent_stack(
         tuple(_core_items(floor) for floor in floors)
     )
-    shaft_ratio, shaft_shift = _measure_adjacent_stack(
-        tuple(_shaft_items(floor) for floor in floors)
-    )
+    shaft_ratio, _ = _measure_adjacent_stack(tuple(_shaft_items(floor) for floor in floors))
     wet_ratio, wet_shift = _measure_adjacent_stack(
         tuple(_wet_service_items(floor) for floor in floors)
     )
-    shifts = tuple(shift for shift in (shaft_shift, wet_shift) if shift is not None)
     return VerticalQualityMetrics(
         core_stack_ratio=core_ratio,
         shaft_stack_ratio=shaft_ratio,
         wet_service_stack_ratio=wet_ratio,
-        maximum_service_centroid_shift_m=max(shifts, default=None),
+        maximum_service_centroid_shift_m=wet_shift,
     )
 
 
@@ -76,27 +73,31 @@ def _shaft_items(floor: GenerationResult) -> tuple[_StackItem, ...]:
 
 
 def _item_from_room(room: RoomPolygon) -> _StackItem | None:
-    return _item_from_points(room.space_type, room.polygon)
+    return _item_from_points(room.space_type, room.room_id, room.polygon)
 
 
 def _item_from_element(element: PlanElement) -> _StackItem | None:
-    return _item_from_points("shaft", element.footprint)
+    return _item_from_points("shaft", element.element_id, element.footprint)
 
 
 def _item_from_points(
-    space_type: str, points: tuple[tuple[float, float], ...] | list[tuple[float, float]]
+    space_type: str,
+    item_id: str,
+    points: tuple[tuple[float, float], ...] | list[tuple[float, float]],
 ) -> _StackItem | None:
     polygon = Polygon(points)
     if polygon.is_empty or not polygon.is_valid or polygon.area <= 0:
         return None
-    return _StackItem(space_type=space_type, polygon=polygon)
+    return _StackItem(space_type=space_type, item_id=item_id, polygon=polygon)
 
 
 def _measure_adjacent_stack(
     floor_items: tuple[tuple[_StackItem, ...], ...],
 ) -> tuple[float, float | None]:
-    if len(floor_items) < 2:
+    if not floor_items:
         return 0.0, None
+    if len(floor_items) == 1:
+        return 1.0, None
 
     ratios: list[float] = []
     shifts: list[float] = []
@@ -140,7 +141,7 @@ def _items_by_type(
     for item in items:
         grouped[item.space_type].append(item)
     return {
-        space_type: tuple(values)
+        space_type: tuple(sorted(values, key=_stack_item_sort_key))
         for space_type, values in grouped.items()
     }
 
@@ -148,24 +149,81 @@ def _items_by_type(
 def _minimum_distance_pairs(
     first: tuple[_StackItem, ...], second: tuple[_StackItem, ...]
 ) -> tuple[tuple[_StackItem, _StackItem], ...]:
-    unmatched_first = set(range(len(first)))
-    unmatched_second = set(range(len(second)))
-    pairs: list[tuple[_StackItem, _StackItem]] = []
-    while unmatched_first and unmatched_second:
-        distance, first_index, second_index = min(
-            (
-                first[first_index].polygon.centroid.distance(
-                    second[second_index].polygon.centroid
-                ),
-                first_index,
-                second_index,
-            )
-            for first_index in unmatched_first
-            for second_index in unmatched_second
+    if len(first) <= len(second):
+        assignments = _minimum_cost_assignment(first, second)
+        return tuple((first[index], second[match]) for index, match in assignments)
+    assignments = _minimum_cost_assignment(second, first)
+    return tuple((first[match], second[index]) for index, match in assignments)
+
+
+def _minimum_cost_assignment(
+    rows: tuple[_StackItem, ...], columns: tuple[_StackItem, ...]
+) -> tuple[tuple[int, int], ...]:
+    """Return a deterministic minimum-total-distance rectangular assignment."""
+    row_count = len(rows)
+    column_count = len(columns)
+    if not row_count:
+        return ()
+
+    costs = tuple(
+        tuple(
+            row.polygon.centroid.distance(column.polygon.centroid)
+            for column in columns
         )
-        if not math.isfinite(distance):
-            break
-        pairs.append((first[first_index], second[second_index]))
-        unmatched_first.remove(first_index)
-        unmatched_second.remove(second_index)
-    return tuple(pairs)
+        for row in rows
+    )
+    potentials_by_row = [0.0] * (row_count + 1)
+    potentials_by_column = [0.0] * (column_count + 1)
+    matched_row_by_column = [0] * (column_count + 1)
+    path = [0] * (column_count + 1)
+
+    for row_index in range(1, row_count + 1):
+        matched_row_by_column[0] = row_index
+        current_column = 0
+        minimums = [float("inf")] * (column_count + 1)
+        used = [False] * (column_count + 1)
+        while True:
+            used[current_column] = True
+            current_row = matched_row_by_column[current_column]
+            delta = float("inf")
+            next_column = 0
+            for column_index in range(1, column_count + 1):
+                if used[column_index]:
+                    continue
+                reduced_cost = (
+                    costs[current_row - 1][column_index - 1]
+                    - potentials_by_row[current_row]
+                    - potentials_by_column[column_index]
+                )
+                if reduced_cost < minimums[column_index]:
+                    minimums[column_index] = reduced_cost
+                    path[column_index] = current_column
+                if minimums[column_index] < delta:
+                    delta = minimums[column_index]
+                    next_column = column_index
+            for column_index in range(column_count + 1):
+                if used[column_index]:
+                    potentials_by_row[matched_row_by_column[column_index]] += delta
+                    potentials_by_column[column_index] -= delta
+                else:
+                    minimums[column_index] -= delta
+            current_column = next_column
+            if matched_row_by_column[current_column] == 0:
+                break
+        while True:
+            previous_column = path[current_column]
+            matched_row_by_column[current_column] = matched_row_by_column[previous_column]
+            current_column = previous_column
+            if current_column == 0:
+                break
+
+    matched_column_by_row = [0] * row_count
+    for column_index in range(1, column_count + 1):
+        row_index = matched_row_by_column[column_index]
+        if row_index:
+            matched_column_by_row[row_index - 1] = column_index - 1
+    return tuple(enumerate(matched_column_by_row))
+
+
+def _stack_item_sort_key(item: _StackItem) -> tuple[str, str]:
+    return item.item_id, item.polygon.wkb_hex

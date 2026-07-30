@@ -31,6 +31,38 @@ def test_missing_required_shaft_scores_zero():
     assert measure_vertical_quality(building).shaft_stack_ratio == 0.0
 
 
+def test_vertical_service_shift_uses_wet_services_not_shafts():
+    building = _three_floor_building(
+        core_offsets=((0, 0), (0, 0), (0, 0)),
+        shaft_offsets=((0, 0), (10, 0), (20, 0)),
+        restroom_offsets=((0, 0), (0, 0), (0, 0)),
+    )
+
+    measured = measure_vertical_quality(building)
+
+    assert measured.maximum_service_centroid_shift_m == pytest.approx(0.0)
+
+
+def test_one_floor_vertical_stack_is_vacuously_aligned():
+    measured = measure_vertical_quality(_building(floors=1))
+
+    assert measured.core_stack_ratio == 1.0
+    assert measured.shaft_stack_ratio == 1.0
+    assert measured.wet_service_stack_ratio == 1.0
+    assert measured.maximum_service_centroid_shift_m is None
+
+
+def test_vertical_stack_uses_global_minimum_distance_matching():
+    building = _building_with_wet_service_offsets(
+        ((0, 0), (5, 0)),
+        ((4, 0), (6, 0)),
+    )
+
+    measured = measure_vertical_quality(building)
+
+    assert measured.maximum_service_centroid_shift_m == pytest.approx(4.0)
+
+
 def test_checked_egress_failure_is_preserved():
     building = _building_with_screening(
         checks=("pass", "fail", "pass"),
@@ -70,6 +102,45 @@ def test_missing_egress_graph_is_unresolved():
     assert measured.unresolved_facts == ("measured_travel_distance",)
 
 
+def test_not_checked_egress_graph_blocks_pass_and_preserves_facts():
+    building = _building_with_screening(checks=("pass",), unresolved=())
+    floor = building.floor_results[0]
+    graph = replace(
+        floor.egress_graph,
+        status="not_checked",
+        nodes=(),
+        edges=(),
+        room_results=(),
+        governing_room_id=None,
+        governing_distance_m=None,
+        governing_exit_id=None,
+        unresolved_facts=("route_connectivity",),
+    )
+
+    measured = aggregate_egress_quality(
+        replace(building, floor_results=(replace(floor, egress_graph=graph),))
+    )
+
+    assert measured.status == "not_checked"
+    assert measured.unresolved_facts == ("route_connectivity",)
+
+
+def test_egress_aggregation_sorts_unsorted_floor_results():
+    building = _building(floors=2)
+    floors = tuple(_floor_with_screening(floor, checks=("pass",), unresolved=()) for floor in building.floor_results)
+
+    measured = aggregate_egress_quality(
+        replace(
+            building,
+            floor_results=tuple(reversed(floors)),
+            area_ledger=None,
+        )
+    )
+
+    assert measured.status == "pass"
+    assert measured.checked_floor_indexes == (1, 2)
+
+
 def _three_floor_building(
     *,
     core_offsets: tuple[tuple[float, float], ...],
@@ -104,6 +175,34 @@ def _three_floor_building(
     return replace(building, floor_results=floors)
 
 
+def _building_with_wet_service_offsets(
+    *floor_offsets: tuple[tuple[float, float], ...],
+):
+    building = _building(floors=len(floor_offsets))
+    floors = tuple(
+        replace(
+            floor,
+            layout=replace(
+                floor.layout,
+                rooms=[
+                    *_non_service_rooms(floor.layout.rooms),
+                    _room("core", "core", (0, 0)),
+                    *(
+                        _room(f"restroom-{index}", "restroom", offset)
+                        for index, offset in enumerate(offsets)
+                    ),
+                ],
+            ),
+        )
+        for floor, offsets in zip(
+            building.floor_results,
+            floor_offsets,
+            strict=True,
+        )
+    )
+    return replace(building, floor_results=floors)
+
+
 def _building_with_missing_shaft_on_floor(floor_index: int):
     building = _three_floor_building(
         core_offsets=((0, 0), (0, 0), (0, 0)),
@@ -130,6 +229,12 @@ def _building_with_screening(
 ):
     building = _building(floors=1)
     floor = building.floor_results[0]
+    return replace(building, floor_results=(_floor_with_screening(floor, checks=checks, unresolved=unresolved),))
+
+
+def _floor_with_screening(floor, *, checks: tuple[str, ...], unresolved: tuple[str, ...]):
+    graph = floor.egress_graph
+    assert graph is not None
     screening = RegulatoryScreening(
         ruleset_id="test-ruleset",
         status=(
@@ -144,8 +249,9 @@ def _building_with_screening(
         floor_index=floor.program.floor_index,
     )
     return replace(
-        building,
-        floor_results=(replace(floor, validation=replace(floor.validation, regulatory_screening=screening)),),
+        floor,
+        validation=replace(floor.validation, regulatory_screening=screening),
+        egress_graph=replace(graph, unresolved_facts=()),
     )
 
 
