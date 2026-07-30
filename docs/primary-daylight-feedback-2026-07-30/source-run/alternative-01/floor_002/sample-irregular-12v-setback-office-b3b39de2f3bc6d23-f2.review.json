@@ -330,9 +330,9 @@
       "svg": 16
     },
     "envelope": {
-      "modeled": 3,
-      "png": 3,
-      "svg": 3
+      "modeled": 1,
+      "png": 1,
+      "svg": 1
     },
     "fixtures": {
       "modeled": 6,
@@ -340,9 +340,9 @@
       "svg": 6
     },
     "furniture": {
-      "modeled": 39,
-      "png": 39,
-      "svg": 39
+      "modeled": 57,
+      "png": 57,
+      "svg": 57
     },
     "grid": {
       "modeled": 14,
@@ -355,9 +355,9 @@
       "svg": 9
     },
     "structure": {
-      "modeled": 17,
-      "png": 17,
-      "svg": 17
+      "modeled": 18,
+      "png": 18,
+      "svg": 18
     },
     "text-labels": {
       "modeled": 22,
@@ -368,17 +368,17 @@
   "measurements": {
     "door_count": 8,
     "failed_room_ids": [],
-    "max_room_aspect_ratio": 7.567776981743795,
+    "max_room_aspect_ratio": 3.8390991267569334,
     "min_corridor_width": 1.1999999999999993,
     "min_door_width": 0.9,
-    "min_room_width": 1.3377403846153832
+    "min_room_width": 2.0
   },
   "needs_iteration": false,
   "operator": null,
   "operator_params": {},
   "parent_id": null,
   "png_text": {
-    "adjusted_count": 5,
+    "adjusted_count": 3,
     "collision_strategy": "offset",
     "fallback": false,
     "font_path": "C:\\Windows\\Fonts\\malgun.ttf",
@@ -659,80 +659,80 @@
       "adjusted_nodes": [
         {
           "frontage_required": false,
-          "max_area": 368.302909,
+          "max_area": 561.297031,
           "max_aspect_ratio": 2.5,
-          "min_area": 272.223889,
+          "min_area": 414.871719,
           "min_width": 2.0,
           "node_id": "open_work",
           "space_type": "open_work",
-          "target_area": 320.263399,
+          "target_area": 488.084375,
           "tenant_id": null,
           "zone": "workplace"
         },
         {
           "frontage_required": false,
-          "max_area": 123.389471,
-          "max_aspect_ratio": 2.313193461191917,
-          "min_area": 91.200913,
-          "min_width": 1.3377403846153832,
+          "max_area": 27.408826,
+          "max_aspect_ratio": 2.0,
+          "min_area": 20.258698,
+          "min_width": 2.7,
           "node_id": "meeting",
           "space_type": "meeting",
-          "target_area": 107.295192,
+          "target_area": 23.833762,
           "tenant_id": null,
           "zone": "public"
         },
         {
           "frontage_required": false,
-          "max_area": 12.252766,
-          "max_aspect_ratio": 2.5,
-          "min_area": 9.056392,
-          "min_width": 2.165564904,
+          "max_area": 25.929301,
+          "max_aspect_ratio": 3.8390991267569334,
+          "min_area": 19.165136,
+          "min_width": 2.4,
           "node_id": "reception",
           "space_type": "reception",
-          "target_area": 10.654579,
+          "target_area": 22.547219,
           "tenant_id": null,
           "zone": "public"
         },
         {
           "frontage_required": false,
-          "max_area": 12.252766,
-          "max_aspect_ratio": 2.2719245172649787,
-          "min_area": 9.056392,
+          "max_area": 27.408826,
+          "max_aspect_ratio": 1.8,
+          "min_area": 20.258698,
           "min_width": 1.8,
           "node_id": "focus",
           "space_type": "focus",
-          "target_area": 10.654579,
+          "target_area": 23.833762,
           "tenant_id": null,
           "zone": "workplace"
         },
         {
           "frontage_required": false,
-          "max_area": 40.430898,
-          "max_aspect_ratio": 2.0,
-          "min_area": 29.883707,
+          "max_area": 42.797557,
+          "max_aspect_ratio": 2.3259541975,
+          "min_area": 31.632977,
           "min_width": 1.8,
           "node_id": "pantry",
           "space_type": "pantry",
-          "target_area": 35.157303,
+          "target_area": 37.215267,
           "tenant_id": null,
           "zone": "service"
         },
         {
           "frontage_required": false,
-          "max_area": 70.898495,
-          "max_aspect_ratio": 7.567776981743795,
-          "min_area": 52.403236,
+          "max_area": 28.637584,
+          "max_aspect_ratio": 3.4760319589025093,
+          "min_area": 21.16691,
           "min_width": 1.8,
           "node_id": "restroom",
           "space_type": "restroom",
-          "target_area": 61.650865,
+          "target_area": 24.902247,
           "tenant_id": null,
           "zone": "service"
         },
         {
           "frontage_required": false,
           "max_area": 82.8,
-          "max_aspect_ratio": 2.662721893491124,
+          "max_aspect_ratio": 2.383472222222222,
           "min_area": 61.2,
           "min_width": 3.0,
           "node_id": "core",
@@ -743,13 +743,13 @@
         },
         {
           "frontage_required": false,
-          "max_area": 71.76,
-          "max_aspect_ratio": 3.9,
-          "min_area": 53.04,
+          "max_area": 42.797557,
+          "max_aspect_ratio": 2.5,
+          "min_area": 31.632977,
           "min_width": 1.5,
           "node_id": "it_storage",
           "space_type": "it_storage",
-          "target_area": 62.4,
+          "target_area": 37.215267,
           "tenant_id": null,
           "zone": "service"
         }
@@ -757,27 +757,27 @@
       "adjusted_targets": [
         [
           "open_work",
-          320.263399
+          488.084375
         ],
         [
           "meeting",
-          107.295192
+          23.833762
         ],
         [
           "reception",
-          10.654579
+          22.547219
         ],
         [
           "focus",
-          10.654579
+          23.833762
         ],
         [
           "pantry",
-          35.157303
+          37.215267
         ],
         [
           "restroom",
-          61.650865
+          24.902247
         ],
         [
           "core",
@@ -785,7 +785,7 @@
         ],
         [
           "it_storage",
-          62.4
+          37.215267
         ]
       ],
       "original_nodes": [
@@ -949,7 +949,7 @@
           "direct-stair applicability is unresolved"
         ],
         "effective_date": "2025-10-31",
-        "measured_value": 22.83995894550796,
+        "measured_value": 21.95449840010015,
         "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
         "source_effective_date": "2025-10-31",
         "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
@@ -978,7 +978,7 @@
         "protected-exit-2"
       ],
       "measurement_method": "nearest-doorway-segment-distance",
-      "nearest_doorway_segment_distance_m": 22.83995894550796
+      "nearest_doorway_segment_distance_m": 21.95449840010015
     },
     "floor_index": 2,
     "generated_direct_stair_count": 2,
@@ -1083,9 +1083,7 @@
       },
       "envelope": {
         "window": [
-          "meeting-window",
-          "open_work-window",
-          "restroom-window"
+          "open_work-window"
         ]
       },
       "fixtures": {
@@ -1147,8 +1145,26 @@
           "open_work-workstation-34",
           "open_work-workstation-35",
           "open_work-workstation-36",
+          "open_work-workstation-37",
+          "open_work-workstation-38",
+          "open_work-workstation-39",
           "open_work-workstation-4",
+          "open_work-workstation-40",
+          "open_work-workstation-41",
+          "open_work-workstation-42",
+          "open_work-workstation-43",
+          "open_work-workstation-44",
+          "open_work-workstation-45",
+          "open_work-workstation-46",
+          "open_work-workstation-47",
+          "open_work-workstation-48",
+          "open_work-workstation-49",
           "open_work-workstation-5",
+          "open_work-workstation-50",
+          "open_work-workstation-51",
+          "open_work-workstation-52",
+          "open_work-workstation-53",
+          "open_work-workstation-54",
           "open_work-workstation-6",
           "open_work-workstation-7",
           "open_work-workstation-8",
@@ -1199,6 +1215,7 @@
           "column-15",
           "column-16",
           "column-17",
+          "column-18",
           "column-2",
           "column-3",
           "column-4",
@@ -1326,9 +1343,7 @@
       },
       "envelope": {
         "window": [
-          "meeting-window",
-          "open_work-window",
-          "restroom-window"
+          "open_work-window"
         ]
       },
       "fixtures": {
@@ -1390,8 +1405,26 @@
           "open_work-workstation-34",
           "open_work-workstation-35",
           "open_work-workstation-36",
+          "open_work-workstation-37",
+          "open_work-workstation-38",
+          "open_work-workstation-39",
           "open_work-workstation-4",
+          "open_work-workstation-40",
+          "open_work-workstation-41",
+          "open_work-workstation-42",
+          "open_work-workstation-43",
+          "open_work-workstation-44",
+          "open_work-workstation-45",
+          "open_work-workstation-46",
+          "open_work-workstation-47",
+          "open_work-workstation-48",
+          "open_work-workstation-49",
           "open_work-workstation-5",
+          "open_work-workstation-50",
+          "open_work-workstation-51",
+          "open_work-workstation-52",
+          "open_work-workstation-53",
+          "open_work-workstation-54",
           "open_work-workstation-6",
           "open_work-workstation-7",
           "open_work-workstation-8",
@@ -1442,6 +1475,7 @@
           "column-15",
           "column-16",
           "column-17",
+          "column-18",
           "column-2",
           "column-3",
           "column-4",
@@ -1573,9 +1607,7 @@
       },
       "envelope": {
         "window": [
-          "meeting-window",
-          "open_work-window",
-          "restroom-window"
+          "open_work-window"
         ]
       },
       "fixtures": {
@@ -1637,8 +1669,26 @@
           "open_work-workstation-34",
           "open_work-workstation-35",
           "open_work-workstation-36",
+          "open_work-workstation-37",
+          "open_work-workstation-38",
+          "open_work-workstation-39",
           "open_work-workstation-4",
+          "open_work-workstation-40",
+          "open_work-workstation-41",
+          "open_work-workstation-42",
+          "open_work-workstation-43",
+          "open_work-workstation-44",
+          "open_work-workstation-45",
+          "open_work-workstation-46",
+          "open_work-workstation-47",
+          "open_work-workstation-48",
+          "open_work-workstation-49",
           "open_work-workstation-5",
+          "open_work-workstation-50",
+          "open_work-workstation-51",
+          "open_work-workstation-52",
+          "open_work-workstation-53",
+          "open_work-workstation-54",
           "open_work-workstation-6",
           "open_work-workstation-7",
           "open_work-workstation-8",
@@ -1689,6 +1739,7 @@
           "column-15",
           "column-16",
           "column-17",
+          "column-18",
           "column-2",
           "column-3",
           "column-4",
@@ -1741,51 +1792,51 @@
   },
   "room_areas": [
     {
-      "actual_area": 320.2633990350554,
-      "max_area": 368.302909,
-      "min_area": 272.223889,
+      "actual_area": 488.084375,
+      "max_area": 561.297031,
+      "min_area": 414.871719,
       "room_id": "open_work",
-      "target_area": 320.263399,
+      "target_area": 488.084375,
       "within_range": true
     },
     {
-      "actual_area": 107.29519230769229,
-      "max_area": 123.389471,
-      "min_area": 91.200913,
+      "actual_area": 23.833761917507818,
+      "max_area": 27.408826,
+      "min_area": 20.258698,
       "room_id": "meeting",
-      "target_area": 107.295192,
+      "target_area": 23.833762,
       "within_range": true
     },
     {
-      "actual_area": 10.65457932768,
-      "max_area": 12.252766,
-      "min_area": 9.056392,
+      "actual_area": 22.547218502015614,
+      "max_area": 25.929301,
+      "min_area": 19.165136,
       "room_id": "reception",
-      "target_area": 10.654579,
+      "target_area": 22.547219,
       "within_range": true
     },
     {
-      "actual_area": 10.654579329572314,
-      "max_area": 12.252766,
-      "min_area": 9.056392,
+      "actual_area": 23.833761917507807,
+      "max_area": 27.408826,
+      "min_area": 20.258698,
       "room_id": "focus",
-      "target_area": 10.654579,
+      "target_area": 23.833762,
       "within_range": true
     },
     {
-      "actual_area": 35.15730288348,
-      "max_area": 40.430898,
-      "min_area": 29.883707,
+      "actual_area": 37.21526716,
+      "max_area": 42.797557,
+      "min_area": 31.632977,
       "room_id": "pantry",
-      "target_area": 35.157303,
+      "target_area": 37.215267,
       "within_range": true
     },
     {
-      "actual_area": 61.6508653896,
-      "max_area": 70.898495,
-      "min_area": 52.403236,
+      "actual_area": 24.90224712698439,
+      "max_area": 28.637584,
+      "min_area": 21.16691,
       "room_id": "restroom",
-      "target_area": 61.650865,
+      "target_area": 24.902247,
       "within_range": true
     },
     {
@@ -1797,11 +1848,11 @@
       "within_range": true
     },
     {
-      "actual_area": 62.4,
-      "max_area": 71.76,
-      "min_area": 53.04,
+      "actual_area": 37.21526716,
+      "max_area": 42.797557,
+      "min_area": 31.632977,
       "room_id": "it_storage",
-      "target_area": 62.4,
+      "target_area": 37.215267,
       "within_range": true
     }
   ],
@@ -1809,7 +1860,7 @@
     {
       "aspect_ratio_passed": true,
       "maximum_aspect_ratio": 2.5,
-      "measured_aspect_ratio": 1.9096647266169355,
+      "measured_aspect_ratio": 1.1357142857142857,
       "measured_min_width": 2.0,
       "minimum_width_passed": true,
       "required_min_width": 2.0,
@@ -1817,62 +1868,62 @@
     },
     {
       "aspect_ratio_passed": true,
-      "maximum_aspect_ratio": 2.313193461191917,
-      "measured_aspect_ratio": 2.313193461191917,
-      "measured_min_width": 1.3377403846153832,
+      "maximum_aspect_ratio": 2.0,
+      "measured_aspect_ratio": 1.1013625086656502,
+      "measured_min_width": 4.651908395000001,
       "minimum_width_passed": true,
-      "required_min_width": 1.3377403846153832,
+      "required_min_width": 2.7,
       "room_id": "meeting"
     },
     {
       "aspect_ratio_passed": true,
-      "maximum_aspect_ratio": 2.5,
-      "measured_aspect_ratio": 2.2719245176684852,
-      "measured_min_width": 2.165564904,
+      "maximum_aspect_ratio": 3.8390991267569334,
+      "measured_aspect_ratio": 3.8390991267569334,
+      "measured_min_width": 2.4234374999999986,
       "minimum_width_passed": true,
-      "required_min_width": 2.165564904,
+      "required_min_width": 2.4,
       "room_id": "reception"
     },
     {
       "aspect_ratio_passed": true,
-      "maximum_aspect_ratio": 2.2719245172649787,
-      "measured_aspect_ratio": 2.2719245172649787,
-      "measured_min_width": 2.165564904384617,
+      "maximum_aspect_ratio": 1.8,
+      "measured_aspect_ratio": 1.1013625086656507,
+      "measured_min_width": 4.6519083949999995,
       "minimum_width_passed": true,
       "required_min_width": 1.8,
       "room_id": "focus"
     },
     {
       "aspect_ratio_passed": true,
-      "maximum_aspect_ratio": 2.0,
-      "measured_aspect_ratio": 1.452397005894309,
-      "measured_min_width": 4.92,
+      "maximum_aspect_ratio": 2.3259541975,
+      "measured_aspect_ratio": 2.3259541975,
+      "measured_min_width": 4.0,
       "minimum_width_passed": true,
       "required_min_width": 1.8,
       "room_id": "pantry"
     },
     {
       "aspect_ratio_passed": true,
-      "maximum_aspect_ratio": 7.567776981743795,
-      "measured_aspect_ratio": 7.567776981743795,
-      "measured_min_width": 2.8542067309999997,
+      "maximum_aspect_ratio": 3.4760319589025093,
+      "measured_aspect_ratio": 3.4760319589025093,
+      "measured_min_width": 2.676562500000001,
       "minimum_width_passed": true,
       "required_min_width": 1.8,
       "room_id": "restroom"
     },
     {
       "aspect_ratio_passed": true,
-      "maximum_aspect_ratio": 2.662721893491124,
-      "measured_aspect_ratio": 2.662721893491124,
-      "measured_min_width": 5.2,
+      "maximum_aspect_ratio": 2.383472222222222,
+      "measured_aspect_ratio": 2.383472222222222,
+      "measured_min_width": 5.4961832061068705,
       "minimum_width_passed": true,
       "required_min_width": 3.0,
       "room_id": "core"
     },
     {
       "aspect_ratio_passed": true,
-      "maximum_aspect_ratio": 3.9,
-      "measured_aspect_ratio": 3.9,
+      "maximum_aspect_ratio": 2.5,
+      "measured_aspect_ratio": 2.3259541975,
       "measured_min_width": 4.0,
       "minimum_width_passed": true,
       "required_min_width": 1.5,
@@ -1881,16 +1932,16 @@
   ],
   "schema_version": 1,
   "scores": {
-    "adjacency_score": 0.8333,
+    "adjacency_score": 0.5,
     "area_score": 1.0,
     "boundary_score": 1.0,
     "circulation_score": 1.0,
-    "compactness_score": 0.5224,
-    "coverage_score": 0.6821,
-    "efficiency_score": 0.93,
+    "compactness_score": 0.6077,
+    "coverage_score": 0.7311,
+    "efficiency_score": 0.9648,
     "frontage_score": 1.0,
     "overlap_score": 1.0,
-    "total_score": 0.8853,
+    "total_score": 0.8671,
     "violation_score": 0.0
   },
   "stair_evidence": [
@@ -1902,43 +1953,43 @@
         "clear_width_m": 1.2,
         "enclosure_footprint": [
           [
-            11.491586538461538,
-            4.92
+            13.323437499999999,
+            17.08
           ],
           [
-            14.291586538461537,
-            4.92
+            16.123437499999998,
+            17.08
           ],
           [
-            14.291586538461537,
-            0.0
+            16.123437499999998,
+            22.0
           ],
           [
-            11.491586538461538,
-            0.0
+            13.323437499999999,
+            22.0
           ]
         ],
         "flights": [
           {
-            "direction": "-y",
+            "direction": "+y",
             "end_elevation_m": 1.8,
             "flight_index": 1,
             "footprint": [
               [
-                11.491586538461538,
-                3.7199999999999998
+                13.323437499999999,
+                18.279999999999998
               ],
               [
-                12.691586538461538,
-                3.7199999999999998
+                14.523437499999998,
+                18.279999999999998
               ],
               [
-                12.691586538461538,
-                1.1999999999999993
+                14.523437499999998,
+                20.799999999999997
               ],
               [
-                11.491586538461538,
-                1.1999999999999993
+                13.323437499999999,
+                20.799999999999997
               ]
             ],
             "riser_count": 10,
@@ -1946,25 +1997,25 @@
             "tread_count": 9
           },
           {
-            "direction": "+y",
+            "direction": "-y",
             "end_elevation_m": 3.6,
             "flight_index": 2,
             "footprint": [
               [
-                12.891586538461539,
-                3.7200000000000006
+                14.7234375,
+                18.279999999999998
               ],
               [
-                14.091586538461538,
-                3.7200000000000006
+                15.923437499999999,
+                18.279999999999998
               ],
               [
-                14.091586538461538,
-                1.2000000000000002
+                15.923437499999999,
+                20.799999999999997
               ],
               [
-                12.891586538461539,
-                1.2000000000000002
+                14.7234375,
+                20.799999999999997
               ]
             ],
             "riser_count": 10,
@@ -1981,20 +2032,20 @@
             "elevation_m": 0.0,
             "footprint": [
               [
-                11.491586538461538,
-                4.92
+                13.323437499999999,
+                17.08
               ],
               [
-                14.291586538461537,
-                4.92
+                16.123437499999998,
+                17.08
               ],
               [
-                14.291586538461537,
-                3.7199999999999998
+                16.123437499999998,
+                18.279999999999998
               ],
               [
-                11.491586538461538,
-                3.7199999999999998
+                13.323437499999999,
+                18.279999999999998
               ]
             ],
             "landing_index": 1,
@@ -2004,20 +2055,20 @@
             "elevation_m": 1.8,
             "footprint": [
               [
-                11.491586538461538,
-                1.2000000000000002
+                13.323437499999999,
+                20.799999999999997
               ],
               [
-                14.291586538461537,
-                1.2000000000000002
+                16.123437499999998,
+                20.799999999999997
               ],
               [
-                14.291586538461537,
-                0.0
+                16.123437499999998,
+                22.0
               ],
               [
-                11.491586538461538,
-                0.0
+                13.323437499999999,
+                22.0
               ]
             ],
             "landing_index": 2,
@@ -2027,20 +2078,20 @@
             "elevation_m": 3.6,
             "footprint": [
               [
-                11.491586538461538,
-                4.92
+                13.323437499999999,
+                17.08
               ],
               [
-                14.291586538461537,
-                4.92
+                16.123437499999998,
+                17.08
               ],
               [
-                14.291586538461537,
-                3.7199999999999998
+                16.123437499999998,
+                18.279999999999998
               ],
               [
-                11.491586538461538,
-                3.7199999999999998
+                13.323437499999999,
+                18.279999999999998
               ]
             ],
             "landing_index": 3,
@@ -2062,20 +2113,20 @@
         "clear_width_m": 1.2,
         "enclosure_footprint": [
           [
-            35.2,
-            6.4
+            4.2,
+            0.0
           ],
           [
-            38.0,
-            6.4
+            7.0,
+            0.0
           ],
           [
-            38.0,
-            11.32
+            7.0,
+            4.92
           ],
           [
-            35.2,
-            11.32
+            4.2,
+            4.92
           ]
         ],
         "flights": [
@@ -2085,20 +2136,20 @@
             "flight_index": 1,
             "footprint": [
               [
-                35.2,
-                7.6000000000000005
+                4.2,
+                1.2
               ],
               [
-                36.400000000000006,
-                7.6000000000000005
+                5.4,
+                1.2
               ],
               [
-                36.400000000000006,
-                10.120000000000001
+                5.4,
+                3.7200000000000006
               ],
               [
-                35.2,
-                10.120000000000001
+                4.2,
+                3.7200000000000006
               ]
             ],
             "riser_count": 10,
@@ -2111,20 +2162,20 @@
             "flight_index": 2,
             "footprint": [
               [
-                36.6,
-                7.6
+                5.6,
+                1.1999999999999993
               ],
               [
-                37.800000000000004,
-                7.6
+                6.8,
+                1.1999999999999993
               ],
               [
-                37.800000000000004,
-                10.120000000000001
+                6.8,
+                3.7199999999999998
               ],
               [
-                36.6,
-                10.120000000000001
+                5.6,
+                3.7199999999999998
               ]
             ],
             "riser_count": 10,
@@ -2141,20 +2192,20 @@
             "elevation_m": 0.0,
             "footprint": [
               [
-                35.2,
-                6.4
+                4.2,
+                0.0
               ],
               [
-                38.0,
-                6.4
+                7.0,
+                0.0
               ],
               [
-                38.0,
-                7.6000000000000005
+                7.0,
+                1.2
               ],
               [
-                35.2,
-                7.6000000000000005
+                4.2,
+                1.2
               ]
             ],
             "landing_index": 1,
@@ -2164,20 +2215,20 @@
             "elevation_m": 1.8,
             "footprint": [
               [
-                35.2,
-                10.120000000000001
+                4.2,
+                3.7199999999999998
               ],
               [
-                38.0,
-                10.120000000000001
+                7.0,
+                3.7199999999999998
               ],
               [
-                38.0,
-                11.32
+                7.0,
+                4.92
               ],
               [
-                35.2,
-                11.32
+                4.2,
+                4.92
               ]
             ],
             "landing_index": 2,
@@ -2187,20 +2238,20 @@
             "elevation_m": 3.6,
             "footprint": [
               [
-                35.2,
-                6.4
+                4.2,
+                0.0
               ],
               [
-                38.0,
-                6.4
+                7.0,
+                0.0
               ],
               [
-                38.0,
-                7.6000000000000005
+                7.0,
+                1.2
               ],
               [
-                35.2,
-                7.6000000000000005
+                4.2,
+                1.2
               ]
             ],
             "landing_index": 3,
@@ -2232,24 +2283,24 @@
   "use_type": "office",
   "validation": {
     "accepted": true,
-    "adjacency_score": 0.8333,
+    "adjacency_score": 0.5,
     "area_score": 1.0,
     "basic_design": {
-      "column_count": 17,
+      "column_count": 18,
       "dimension_count": 3,
       "elevator_count": 1,
       "entrance_count": 0,
       "exit_count": 2,
-      "exit_doorway_separation": 22.83995894550796,
-      "exit_separation": 23.738763001960702,
+      "exit_doorway_separation": 21.95449840010015,
+      "exit_separation": 22.59088632237229,
       "fixture_count": 6,
-      "furniture_count": 39,
+      "furniture_count": 57,
       "grid_line_count": 14,
       "lobby_count": 1,
       "max_riser_height": 0.18,
       "min_exit_width": 0.9,
       "min_landing_depth": 1.1999999999999993,
-      "min_object_clearance": 1.0500000000000007,
+      "min_object_clearance": 0.7538167900000001,
       "min_riser_height": 0.18,
       "min_routes_per_room": 2,
       "min_stair_clear_width": 1.2,
@@ -2268,19 +2319,19 @@
           "pass": true,
           "reason": "passes internal concept separation target",
           "threshold": 21.95449840010015,
-          "value": 23.738763001960702
+          "value": 22.59088632237229
         },
         "support_clustering": {
           "pass": true,
           "reason": "declared support rooms cluster on circulation",
           "threshold": "<=0.5 floor diagonal",
-          "value": 0.204328
+          "value": 0.150294
         },
         "workpoint_count": {
           "pass": true,
           "reason": "project heuristic one workpoint per 8 to 10 m2",
-          "threshold": "33..40",
-          "value": 36
+          "threshold": "49..61",
+          "value": 54
         }
       },
       "policy_version": "concept-basic-v1",
@@ -2297,15 +2348,15 @@
         "protected-exit-1",
         "protected-exit-2"
       ],
-      "window_count": 3
+      "window_count": 1
     },
     "basic_design_checked": true,
     "boundary_score": 1.0,
     "circulation_score": 1.0,
-    "compactness_score": 0.5224,
+    "compactness_score": 0.6077,
     "corridor_width_checked": true,
-    "coverage_score": 0.6821,
-    "efficiency_score": 0.93,
+    "coverage_score": 0.7311,
+    "efficiency_score": 0.9648,
     "frontage_score": 1.0,
     "hard_violation_count": 0,
     "is_valid": true,
@@ -2337,7 +2388,7 @@
             "direct-stair applicability is unresolved"
           ],
           "effective_date": "2025-10-31",
-          "measured_value": 22.83995894550796,
+          "measured_value": 21.95449840010015,
           "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
           "source_effective_date": "2025-10-31",
           "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
@@ -2366,7 +2417,7 @@
           "protected-exit-2"
         ],
         "measurement_method": "nearest-doorway-segment-distance",
-        "nearest_doorway_segment_distance_m": 22.83995894550796
+        "nearest_doorway_segment_distance_m": 21.95449840010015
       },
       "floor_index": 2,
       "generated_direct_stair_count": 2,
@@ -2384,51 +2435,51 @@
     },
     "room_areas": [
       {
-        "actual_area": 320.2633990350554,
-        "max_area": 368.302909,
-        "min_area": 272.223889,
+        "actual_area": 488.084375,
+        "max_area": 561.297031,
+        "min_area": 414.871719,
         "room_id": "open_work",
-        "target_area": 320.263399,
+        "target_area": 488.084375,
         "within_range": true
       },
       {
-        "actual_area": 107.29519230769229,
-        "max_area": 123.389471,
-        "min_area": 91.200913,
+        "actual_area": 23.833761917507818,
+        "max_area": 27.408826,
+        "min_area": 20.258698,
         "room_id": "meeting",
-        "target_area": 107.295192,
+        "target_area": 23.833762,
         "within_range": true
       },
       {
-        "actual_area": 10.65457932768,
-        "max_area": 12.252766,
-        "min_area": 9.056392,
+        "actual_area": 22.547218502015614,
+        "max_area": 25.929301,
+        "min_area": 19.165136,
         "room_id": "reception",
-        "target_area": 10.654579,
+        "target_area": 22.547219,
         "within_range": true
       },
       {
-        "actual_area": 10.654579329572314,
-        "max_area": 12.252766,
-        "min_area": 9.056392,
+        "actual_area": 23.833761917507807,
+        "max_area": 27.408826,
+        "min_area": 20.258698,
         "room_id": "focus",
-        "target_area": 10.654579,
+        "target_area": 23.833762,
         "within_range": true
       },
       {
-        "actual_area": 35.15730288348,
-        "max_area": 40.430898,
-        "min_area": 29.883707,
+        "actual_area": 37.21526716,
+        "max_area": 42.797557,
+        "min_area": 31.632977,
         "room_id": "pantry",
-        "target_area": 35.157303,
+        "target_area": 37.215267,
         "within_range": true
       },
       {
-        "actual_area": 61.6508653896,
-        "max_area": 70.898495,
-        "min_area": 52.403236,
+        "actual_area": 24.90224712698439,
+        "max_area": 28.637584,
+        "min_area": 21.16691,
         "room_id": "restroom",
-        "target_area": 61.650865,
+        "target_area": 24.902247,
         "within_range": true
       },
       {
@@ -2440,11 +2491,11 @@
         "within_range": true
       },
       {
-        "actual_area": 62.4,
-        "max_area": 71.76,
-        "min_area": 53.04,
+        "actual_area": 37.21526716,
+        "max_area": 42.797557,
+        "min_area": 31.632977,
         "room_id": "it_storage",
-        "target_area": 62.4,
+        "target_area": 37.215267,
         "within_range": true
       }
     ],
@@ -2452,7 +2503,7 @@
       {
         "aspect_ratio_passed": true,
         "maximum_aspect_ratio": 2.5,
-        "measured_aspect_ratio": 1.9096647266169355,
+        "measured_aspect_ratio": 1.1357142857142857,
         "measured_min_width": 2.0,
         "minimum_width_passed": true,
         "required_min_width": 2.0,
@@ -2460,69 +2511,69 @@
       },
       {
         "aspect_ratio_passed": true,
-        "maximum_aspect_ratio": 2.313193461191917,
-        "measured_aspect_ratio": 2.313193461191917,
-        "measured_min_width": 1.3377403846153832,
+        "maximum_aspect_ratio": 2.0,
+        "measured_aspect_ratio": 1.1013625086656502,
+        "measured_min_width": 4.651908395000001,
         "minimum_width_passed": true,
-        "required_min_width": 1.3377403846153832,
+        "required_min_width": 2.7,
         "room_id": "meeting"
       },
       {
         "aspect_ratio_passed": true,
-        "maximum_aspect_ratio": 2.5,
-        "measured_aspect_ratio": 2.2719245176684852,
-        "measured_min_width": 2.165564904,
+        "maximum_aspect_ratio": 3.8390991267569334,
+        "measured_aspect_ratio": 3.8390991267569334,
+        "measured_min_width": 2.4234374999999986,
         "minimum_width_passed": true,
-        "required_min_width": 2.165564904,
+        "required_min_width": 2.4,
         "room_id": "reception"
       },
       {
         "aspect_ratio_passed": true,
-        "maximum_aspect_ratio": 2.2719245172649787,
-        "measured_aspect_ratio": 2.2719245172649787,
-        "measured_min_width": 2.165564904384617,
+        "maximum_aspect_ratio": 1.8,
+        "measured_aspect_ratio": 1.1013625086656507,
+        "measured_min_width": 4.6519083949999995,
         "minimum_width_passed": true,
         "required_min_width": 1.8,
         "room_id": "focus"
       },
       {
         "aspect_ratio_passed": true,
-        "maximum_aspect_ratio": 2.0,
-        "measured_aspect_ratio": 1.452397005894309,
-        "measured_min_width": 4.92,
+        "maximum_aspect_ratio": 2.3259541975,
+        "measured_aspect_ratio": 2.3259541975,
+        "measured_min_width": 4.0,
         "minimum_width_passed": true,
         "required_min_width": 1.8,
         "room_id": "pantry"
       },
       {
         "aspect_ratio_passed": true,
-        "maximum_aspect_ratio": 7.567776981743795,
-        "measured_aspect_ratio": 7.567776981743795,
-        "measured_min_width": 2.8542067309999997,
+        "maximum_aspect_ratio": 3.4760319589025093,
+        "measured_aspect_ratio": 3.4760319589025093,
+        "measured_min_width": 2.676562500000001,
         "minimum_width_passed": true,
         "required_min_width": 1.8,
         "room_id": "restroom"
       },
       {
         "aspect_ratio_passed": true,
-        "maximum_aspect_ratio": 2.662721893491124,
-        "measured_aspect_ratio": 2.662721893491124,
-        "measured_min_width": 5.2,
+        "maximum_aspect_ratio": 2.383472222222222,
+        "measured_aspect_ratio": 2.383472222222222,
+        "measured_min_width": 5.4961832061068705,
         "minimum_width_passed": true,
         "required_min_width": 3.0,
         "room_id": "core"
       },
       {
         "aspect_ratio_passed": true,
-        "maximum_aspect_ratio": 3.9,
-        "measured_aspect_ratio": 3.9,
+        "maximum_aspect_ratio": 2.5,
+        "measured_aspect_ratio": 2.3259541975,
         "measured_min_width": 4.0,
         "minimum_width_passed": true,
         "required_min_width": 1.5,
         "room_id": "it_storage"
       }
     ],
-    "total_score": 0.8853,
+    "total_score": 0.8671,
     "violation_score": 0.0,
     "violations": []
   },

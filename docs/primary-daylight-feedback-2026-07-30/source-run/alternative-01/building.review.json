@@ -922,11 +922,11 @@
             {
               "node_id": "open_work",
               "space_type": "open_work",
-              "target_area": 396.635918,
-              "min_area": 337.140531,
-              "max_area": 456.131306,
+              "target_area": 583.244094,
+              "min_area": 495.757479,
+              "max_area": 670.730708,
               "frontage_required": false,
-              "min_width": 4.0,
+              "min_width": 2.676562500000001,
               "max_aspect_ratio": 2.5,
               "zone": "workplace",
               "tenant_id": null
@@ -934,21 +934,21 @@
             {
               "node_id": "meeting",
               "space_type": "meeting",
-              "target_area": 109.970673,
-              "min_area": 93.475072,
-              "max_area": 126.466274,
+              "target_area": 37.215267,
+              "min_area": 31.632977,
+              "max_area": 42.797557,
               "frontage_required": false,
-              "min_width": 1.0,
-              "max_aspect_ratio": 2.5273780409319095,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.3259541975,
               "zone": "public",
               "tenant_id": null
             },
             {
               "node_id": "reception",
               "space_type": "reception",
-              "target_area": 12.130579,
-              "min_area": 10.310992,
-              "max_area": 13.950166,
+              "target_area": 71.510718,
+              "min_area": 60.78411,
+              "max_area": 82.237325,
               "frontage_required": false,
               "min_width": 2.4,
               "max_aspect_ratio": 2.5,
@@ -958,36 +958,36 @@
             {
               "node_id": "focus",
               "space_type": "focus",
-              "target_area": 12.130579,
-              "min_area": 10.310992,
-              "max_area": 13.950166,
+              "target_area": 25.207312,
+              "min_area": 21.426216,
+              "max_area": 28.988409,
               "frontage_required": false,
               "min_width": 1.8,
-              "max_aspect_ratio": 1.9954858990937767,
+              "max_aspect_ratio": 1.8,
               "zone": "workplace",
               "tenant_id": null
             },
             {
               "node_id": "pantry",
               "space_type": "pantry",
-              "target_area": 44.997303,
-              "min_area": 38.247707,
-              "max_area": 51.746898,
+              "target_area": 37.215267,
+              "min_area": 31.632977,
+              "max_area": 42.797557,
               "frontage_required": false,
               "min_width": 1.8,
-              "max_aspect_ratio": 2.0,
+              "max_aspect_ratio": 2.3259541975,
               "zone": "service",
               "tenant_id": null
             },
             {
               "node_id": "restroom",
               "space_type": "restroom",
-              "target_area": 70.4,
-              "min_area": 59.84,
-              "max_area": 80.96,
+              "target_area": 53.200836,
+              "min_area": 45.220711,
+              "max_area": 61.180962,
               "frontage_required": false,
               "min_width": 1.8,
-              "max_aspect_ratio": 4.4,
+              "max_aspect_ratio": 2.5,
               "zone": "service",
               "tenant_id": null
             },
@@ -999,19 +999,19 @@
               "max_area": 82.8,
               "frontage_required": false,
               "min_width": 3.0,
-              "max_aspect_ratio": 2.662721893491124,
+              "max_aspect_ratio": 2.383472222222222,
               "zone": "core",
               "tenant_id": null
             },
             {
               "node_id": "it_storage",
               "space_type": "it_storage",
-              "target_area": 67.359279,
-              "min_area": 57.255387,
-              "max_area": 77.463171,
+              "target_area": 24.902247,
+              "min_area": 21.16691,
+              "max_area": 28.637584,
               "frontage_required": false,
               "min_width": 1.5,
-              "max_aspect_ratio": 8.268497072645998,
+              "max_aspect_ratio": 3.4760319589025093,
               "zone": "service",
               "tenant_id": null
             }
@@ -1053,27 +1053,27 @@
           "adjusted_targets": [
             [
               "open_work",
-              396.635918
+              583.244094
             ],
             [
               "meeting",
-              109.970673
+              37.215267
             ],
             [
               "reception",
-              12.130579
+              71.510718
             ],
             [
               "focus",
-              12.130579
+              25.207312
             ],
             [
               "pantry",
-              44.997303
+              37.215267
             ],
             [
               "restroom",
-              70.4
+              53.200836
             ],
             [
               "core",
@@ -1081,7 +1081,7 @@
             ],
             [
               "it_storage",
-              67.359279
+              24.902247
             ]
           ]
         }
@@ -1172,7 +1172,7 @@
             "status": "not_checked",
             "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
             "effective_date": "2025-10-31",
-            "measured_value": 24.73753617049069,
+            "measured_value": 24.186773244895647,
             "threshold": null,
             "applicability": null,
             "assumptions": [
@@ -1208,7 +1208,7 @@
         "screened_required_direct_stair_count": null,
         "analysis_as_of_date": null,
         "exit_separation_evidence": {
-          "nearest_doorway_segment_distance_m": 24.73753617049069,
+          "nearest_doorway_segment_distance_m": 24.186773244895647,
           "connected_passage_verified": null,
           "exit_portal_ids": [
             "protected-exit-1",
@@ -1824,9 +1824,9 @@
             {
               "node_id": "open_work",
               "space_type": "open_work",
-              "target_area": 320.263399,
-              "min_area": 272.223889,
-              "max_area": 368.302909,
+              "target_area": 488.084375,
+              "min_area": 414.871719,
+              "max_area": 561.297031,
               "frontage_required": false,
               "min_width": 2.0,
               "max_aspect_ratio": 2.5,
@@ -1836,60 +1836,60 @@
             {
               "node_id": "meeting",
               "space_type": "meeting",
-              "target_area": 107.295192,
-              "min_area": 91.200913,
-              "max_area": 123.389471,
+              "target_area": 23.833762,
+              "min_area": 20.258698,
+              "max_area": 27.408826,
               "frontage_required": false,
-              "min_width": 1.3377403846153832,
-              "max_aspect_ratio": 2.313193461191917,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
               "zone": "public",
               "tenant_id": null
             },
             {
               "node_id": "reception",
               "space_type": "reception",
-              "target_area": 10.654579,
-              "min_area": 9.056392,
-              "max_area": 12.252766,
+              "target_area": 22.547219,
+              "min_area": 19.165136,
+              "max_area": 25.929301,
               "frontage_required": false,
-              "min_width": 2.165564904,
-              "max_aspect_ratio": 2.5,
+              "min_width": 2.4,
+              "max_aspect_ratio": 3.8390991267569334,
               "zone": "public",
               "tenant_id": null
             },
             {
               "node_id": "focus",
               "space_type": "focus",
-              "target_area": 10.654579,
-              "min_area": 9.056392,
-              "max_area": 12.252766,
+              "target_area": 23.833762,
+              "min_area": 20.258698,
+              "max_area": 27.408826,
               "frontage_required": false,
               "min_width": 1.8,
-              "max_aspect_ratio": 2.2719245172649787,
+              "max_aspect_ratio": 1.8,
               "zone": "workplace",
               "tenant_id": null
             },
             {
               "node_id": "pantry",
               "space_type": "pantry",
-              "target_area": 35.157303,
-              "min_area": 29.883707,
-              "max_area": 40.430898,
+              "target_area": 37.215267,
+              "min_area": 31.632977,
+              "max_area": 42.797557,
               "frontage_required": false,
               "min_width": 1.8,
-              "max_aspect_ratio": 2.0,
+              "max_aspect_ratio": 2.3259541975,
               "zone": "service",
               "tenant_id": null
             },
             {
               "node_id": "restroom",
               "space_type": "restroom",
-              "target_area": 61.650865,
-              "min_area": 52.403236,
-              "max_area": 70.898495,
+              "target_area": 24.902247,
+              "min_area": 21.16691,
+              "max_area": 28.637584,
               "frontage_required": false,
               "min_width": 1.8,
-              "max_aspect_ratio": 7.567776981743795,
+              "max_aspect_ratio": 3.4760319589025093,
               "zone": "service",
               "tenant_id": null
             },
@@ -1901,19 +1901,19 @@
               "max_area": 82.8,
               "frontage_required": false,
               "min_width": 3.0,
-              "max_aspect_ratio": 2.662721893491124,
+              "max_aspect_ratio": 2.383472222222222,
               "zone": "core",
               "tenant_id": null
             },
             {
               "node_id": "it_storage",
               "space_type": "it_storage",
-              "target_area": 62.4,
-              "min_area": 53.04,
-              "max_area": 71.76,
+              "target_area": 37.215267,
+              "min_area": 31.632977,
+              "max_area": 42.797557,
               "frontage_required": false,
               "min_width": 1.5,
-              "max_aspect_ratio": 3.9,
+              "max_aspect_ratio": 2.5,
               "zone": "service",
               "tenant_id": null
             }
@@ -1955,27 +1955,27 @@
           "adjusted_targets": [
             [
               "open_work",
-              320.263399
+              488.084375
             ],
             [
               "meeting",
-              107.295192
+              23.833762
             ],
             [
               "reception",
-              10.654579
+              22.547219
             ],
             [
               "focus",
-              10.654579
+              23.833762
             ],
             [
               "pantry",
-              35.157303
+              37.215267
             ],
             [
               "restroom",
-              61.650865
+              24.902247
             ],
             [
               "core",
@@ -1983,7 +1983,7 @@
             ],
             [
               "it_storage",
-              62.4
+              37.215267
             ]
           ]
         }
@@ -2074,7 +2074,7 @@
             "status": "not_checked",
             "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
             "effective_date": "2025-10-31",
-            "measured_value": 22.83995894550796,
+            "measured_value": 21.95449840010015,
             "threshold": null,
             "applicability": null,
             "assumptions": [
@@ -2110,7 +2110,7 @@
         "screened_required_direct_stair_count": null,
         "analysis_as_of_date": null,
         "exit_separation_evidence": {
-          "nearest_doorway_segment_distance_m": 22.83995894550796,
+          "nearest_doorway_segment_distance_m": 21.95449840010015,
           "connected_passage_verified": null,
           "exit_portal_ids": [
             "protected-exit-1",
@@ -2726,11 +2726,11 @@
             {
               "node_id": "open_work",
               "space_type": "open_work",
-              "target_area": 215.139221,
-              "min_area": 182.868338,
-              "max_area": 247.410104,
+              "target_area": 367.831594,
+              "min_area": 312.656854,
+              "max_area": 423.006333,
               "frontage_required": false,
-              "min_width": 1.3377403846153832,
+              "min_width": 4.0,
               "max_aspect_ratio": 2.5,
               "zone": "workplace",
               "tenant_id": null
@@ -2738,21 +2738,21 @@
             {
               "node_id": "meeting",
               "space_type": "meeting",
-              "target_area": 93.238716,
-              "min_area": 79.252909,
-              "max_area": 107.224524,
+              "target_area": 37.215267,
+              "min_area": 31.632977,
+              "max_area": 42.797557,
               "frontage_required": false,
-              "min_width": 2.200000000000003,
-              "max_aspect_ratio": 2.0,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.3259541975,
               "zone": "public",
               "tenant_id": null
             },
             {
               "node_id": "reception",
               "space_type": "reception",
-              "target_area": 14.042697,
-              "min_area": 11.936293,
-              "max_area": 16.149102,
+              "target_area": 52.903084,
+              "min_area": 44.967621,
+              "max_area": 60.838547,
               "frontage_required": false,
               "min_width": 2.4,
               "max_aspect_ratio": 2.5,
@@ -2762,11 +2762,11 @@
             {
               "node_id": "focus",
               "space_type": "focus",
-              "target_area": 54.753937,
-              "min_area": 46.540847,
-              "max_area": 62.967028,
+              "target_area": 30.740625,
+              "min_area": 26.129531,
+              "max_area": 35.351719,
               "frontage_required": false,
-              "min_width": 1.0,
+              "min_width": 1.8,
               "max_aspect_ratio": 1.8,
               "zone": "workplace",
               "tenant_id": null
@@ -2774,24 +2774,24 @@
             {
               "node_id": "pantry",
               "space_type": "pantry",
-              "target_area": 9.84,
-              "min_area": 8.364,
-              "max_area": 11.316,
+              "target_area": 37.215267,
+              "min_area": 31.632977,
+              "max_area": 42.797557,
               "frontage_required": false,
               "min_width": 1.8,
-              "max_aspect_ratio": 2.46,
+              "max_aspect_ratio": 2.3259541975,
               "zone": "service",
               "tenant_id": null
             },
             {
               "node_id": "restroom",
               "space_type": "restroom",
-              "target_area": 9.84,
-              "min_area": 8.364,
-              "max_area": 11.316,
+              "target_area": 24.902247,
+              "min_area": 21.16691,
+              "max_area": 28.637584,
               "frontage_required": false,
               "min_width": 1.8,
-              "max_aspect_ratio": 2.5,
+              "max_aspect_ratio": 3.4760319589025093,
               "zone": "service",
               "tenant_id": null
             },
@@ -2803,19 +2803,19 @@
               "max_area": 82.8,
               "frontage_required": false,
               "min_width": 3.0,
-              "max_aspect_ratio": 2.662721893491124,
+              "max_aspect_ratio": 2.383472222222222,
               "zone": "core",
               "tenant_id": null
             },
             {
               "node_id": "it_storage",
               "space_type": "it_storage",
-              "target_area": 52.103365,
-              "min_area": 44.287861,
-              "max_area": 59.91887,
+              "target_area": 47.667524,
+              "min_area": 40.517395,
+              "max_area": 54.817652,
               "frontage_required": false,
               "min_width": 1.5,
-              "max_aspect_ratio": 3.5498666660251836,
+              "max_aspect_ratio": 2.5,
               "zone": "service",
               "tenant_id": null
             }
@@ -2857,27 +2857,27 @@
           "adjusted_targets": [
             [
               "open_work",
-              215.139221
+              367.831594
             ],
             [
               "meeting",
-              93.238716
+              37.215267
             ],
             [
               "reception",
-              14.042697
+              52.903084
             ],
             [
               "focus",
-              54.753937
+              30.740625
             ],
             [
               "pantry",
-              9.84
+              37.215267
             ],
             [
               "restroom",
-              9.84
+              24.902247
             ],
             [
               "core",
@@ -2885,7 +2885,7 @@
             ],
             [
               "it_storage",
-              52.103365
+              47.667524
             ]
           ]
         }
@@ -2976,7 +2976,7 @@
             "status": "not_checked",
             "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
             "effective_date": "2025-10-31",
-            "measured_value": 22.83995894550796,
+            "measured_value": 20.155644370746373,
             "threshold": null,
             "applicability": null,
             "assumptions": [
@@ -3012,7 +3012,7 @@
         "screened_required_direct_stair_count": null,
         "analysis_as_of_date": null,
         "exit_separation_evidence": {
-          "nearest_doorway_segment_distance_m": 22.83995894550796,
+          "nearest_doorway_segment_distance_m": 20.155644370746373,
           "connected_passage_verified": null,
           "exit_portal_ids": [
             "protected-exit-1",
