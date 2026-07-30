@@ -5,12 +5,13 @@ import math
 
 import pytest
 from shapely import union_all
-from shapely.geometry import Polygon, box
+from shapely.geometry import LineString, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.prepared import prep as prepare_geometry
 
 import backend.app.modules.layout_generator.orthogonal as orthogonal_service
 from backend.app.modules.basic_design.service import generate_basic_design
+from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
 from backend.app.modules.layout_generator.orthogonal import (
     generate_orthogonal_office_layout,
 )
@@ -20,6 +21,22 @@ from backend.app.modules.validator.service import validate_layout
 from backend.app.schemas.layout import RoomPolygon
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.program import ProgramNode
+
+
+def test_exterior_allocation_request_requires_sorted_unique_room_ids() -> None:
+    request = ExteriorAllocationRequest(
+        floor_index=3,
+        room_ids=("focus", "meeting"),
+    )
+
+    assert request.floor_index == 3
+    assert request.room_ids == ("focus", "meeting")
+    with pytest.raises(ValueError, match="sorted and unique"):
+        ExteriorAllocationRequest(3, ("meeting", "focus"))
+    with pytest.raises(ValueError, match="room_ids"):
+        ExteriorAllocationRequest(3, ())
+    with pytest.raises((TypeError, ValueError), match="floor_index"):
+        ExteriorAllocationRequest(True, ("focus",))
 
 
 CASES = (
@@ -348,6 +365,47 @@ def test_commercial_frontage_seed_is_reserved_for_frontage_required_primary() ->
     polygons = {node.node_id: Polygon(polygon) for node, polygon in assignments}
     assert polygons["sales"].bounds == (0.0, 0.0, 3.0, 2.0)
     assert polygons["restroom"].bounds == (0.0, 2.0, 3.0, 4.0)
+
+
+def test_exterior_priority_rooms_receive_window_bearing_boundary_cells() -> None:
+    nodes = [
+        ProgramNode("meeting", "meeting", 8.0, max_area=10.0, min_width=2.0),
+        ProgramNode("focus", "focus", 8.0, max_area=10.0, min_width=2.0),
+        ProgramNode("reception", "reception", 8.0, max_area=10.0, min_width=2.0),
+    ]
+    rectangles = [
+        orthogonal_service._canonical_rectangle((0, 0, 4, 2)),
+        orthogonal_service._canonical_rectangle((4, 0, 8, 2)),
+        orthogonal_service._canonical_rectangle((0, 2, 4, 4)),
+    ]
+    exterior_segments = (((0.0, 0.0), (8.0, 0.0)),)
+
+    assigned = orthogonal_service._assign_rectangles(
+        nodes,
+        rectangles,
+        exterior_segments=exterior_segments,
+        exterior_priority_room_ids=("focus", "meeting"),
+    )
+    polygons = {node.node_id: Polygon(points) for node, points in assigned}
+    exterior = LineString(exterior_segments[0])
+
+    assert polygons["focus"].boundary.intersection(exterior).length >= 0.6
+    assert polygons["meeting"].boundary.intersection(exterior).length >= 0.6
+    assert polygons["reception"].boundary.intersection(exterior).length == 0.0
+
+    first = orthogonal_service._assign_rectangles(
+        nodes,
+        rectangles,
+        exterior_segments=exterior_segments,
+        exterior_priority_room_ids=("focus", "meeting"),
+    )
+    second = orthogonal_service._assign_rectangles(
+        nodes,
+        rectangles,
+        exterior_segments=tuple(reversed(exterior_segments)),
+        exterior_priority_room_ids=("focus", "meeting"),
+    )
+    assert first == second
 
 
 def test_non_primary_seed_rejects_only_candidate_above_original_area_bound() -> None:
