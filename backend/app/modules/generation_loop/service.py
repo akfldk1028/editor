@@ -12,6 +12,7 @@ from backend.app.modules.generation_loop.operators import (
     layout_fingerprint,
     refine_proposals,
 )
+from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
 from backend.app.modules.generation_loop.selector import (
     canonical_building_topology_signature,
     rank_candidate,
@@ -283,7 +284,17 @@ def run_building_generation(
     program_overrides: Mapping[int, ProgramGraph] | None = None,
     core_override: CoreCandidate | None = None,
     circulation_overrides: Mapping[int, CirculationCandidate] | None = None,
+    exterior_allocation_requests: Iterable[ExteriorAllocationRequest] = (),
 ) -> BuildingGenerationResult:
+    requests = tuple(exterior_allocation_requests)
+    if not all(isinstance(item, ExteriorAllocationRequest) for item in requests):
+        raise TypeError(
+            "exterior allocation requests must be ExteriorAllocationRequest records"
+        )
+    if len({item.floor_index for item in requests}) != len(requests):
+        raise ValueError("one exterior allocation request per floor is required")
+    requests_by_floor = {item.floor_index: item for item in requests}
+
     analysis = analyze_mass(mass)
     has_nonrectangular_floor = any(
         not _is_axis_aligned_rectangle(plate.footprint_polygon, plate.bounds)
@@ -296,6 +307,10 @@ def run_building_generation(
     has_structural_override = (
         core_override is not None or circulation_overrides is not None
     )
+    if requests and not (has_nonrectangular_floor or has_structural_override):
+        raise ValueError(
+            "exterior allocation requests require orthogonal building generation"
+        )
     uses_floor_plate_geometry = bool(
         mass.floor_footprints
         or has_nonrectangular_floor
@@ -373,6 +388,21 @@ def run_building_generation(
         )
         for assignment, floor_analysis in zip(assignments, floor_analyses)
     ]
+    if set(requests_by_floor) - {
+        program.floor_index for program in programs
+    }:
+        raise ValueError("exterior allocation request floor is outside building")
+    for program in programs:
+        request = requests_by_floor.get(program.floor_index)
+        if request is None:
+            continue
+        known = {node.node_id for node in program.nodes if node.space_type != "core"}
+        missing = sorted(set(request.room_ids) - known)
+        if missing:
+            raise ValueError(
+                "exterior allocation room ids are absent from floor program: "
+                + ", ".join(missing)
+            )
     shared_core_target = max(
         float(
             next(
@@ -624,6 +654,7 @@ def run_building_generation(
     for program, floor_analysis in zip(programs, floor_analyses):
         circulation_candidate = fixed_circulation.get(program.floor_index)
         if has_nonrectangular_floor or has_structural_override:
+            request = requests_by_floor.get(program.floor_index)
             layout_boundary = floor_analysis.boundary_for_floor(
                 program.floor_index
             )
@@ -649,6 +680,9 @@ def run_building_generation(
                 ),
                 respect_program_order=program.source.startswith(
                     "local_qwen_topology:"
+                ),
+                exterior_priority_room_ids=(
+                    request.room_ids if request is not None else ()
                 ),
             )
             if core_override is not None:

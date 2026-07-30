@@ -1,8 +1,12 @@
 from dataclasses import replace
 
-import backend.app.modules.generation_loop.service as search_service
+import pytest
+
+import backend.app.modules.generation_loop.service as generation_service
+from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
 from backend.app.modules.generation_loop.selector import rank_candidate
 from backend.app.modules.generation_loop.service import (
+    run_building_generation,
     run_candidate_search,
     run_generation_loop,
 )
@@ -12,6 +16,73 @@ from backend.app.schemas.mass import MassInput
 from backend.app.schemas.loop import CandidateProposal, LoopConfig
 from backend.app.schemas.layout import RoomPolygon
 from engine.geometry.polygon import shared_boundary_length
+
+
+def _exterior_routing_mass() -> MassInput:
+    return MassInput(
+        project_id="exterior-routing",
+        floors=1,
+        footprint_polygon=[
+            (0.0, 0.0),
+            (30.0, 0.0),
+            (30.0, 20.0),
+            (20.0, 20.0),
+            (20.0, 12.0),
+            (0.0, 12.0),
+        ],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+    )
+
+
+def test_building_generation_routes_exterior_allocation_to_requested_floor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed = []
+    original = generation_service.generate_orthogonal_office_layout
+
+    def capture(*args, **kwargs):
+        observed.append(tuple(kwargs["exterior_priority_room_ids"]))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(
+        generation_service,
+        "generate_orthogonal_office_layout",
+        capture,
+    )
+    mass = _exterior_routing_mass()
+    run_building_generation(
+        mass,
+        exterior_allocation_requests=(
+            ExteriorAllocationRequest(1, ("focus", "meeting")),
+        ),
+    )
+
+    assert observed == [("focus", "meeting")]
+
+
+def test_building_generation_rejects_duplicate_or_unknown_exterior_requests() -> None:
+    mass = _exterior_routing_mass()
+    request = ExteriorAllocationRequest(1, ("focus",))
+
+    with pytest.raises(ValueError, match="one exterior allocation request per floor"):
+        run_building_generation(
+            mass,
+            exterior_allocation_requests=(request, request),
+        )
+    with pytest.raises(ValueError, match="absent from floor program"):
+        run_building_generation(
+            mass,
+            exterior_allocation_requests=(
+                ExteriorAllocationRequest(1, ("fixture-only-room",)),
+            ),
+        )
+    with pytest.raises(ValueError, match="floor is outside building"):
+        run_building_generation(
+            mass,
+            exterior_allocation_requests=(ExteriorAllocationRequest(2, ("focus",)),),
+        )
 
 
 def test_generation_loop_returns_program_layout_and_validation_report():
@@ -264,7 +335,7 @@ def test_search_stagnates_when_novel_refinement_does_not_improve(monkeypatch):
             )
         ]
 
-    monkeypatch.setattr(search_service, "refine_proposals", refine_once)
+    monkeypatch.setattr(generation_service, "refine_proposals", refine_once)
 
     result = run_candidate_search(
         _sample_mass(),
@@ -285,7 +356,7 @@ def test_unexpected_evaluation_error_returns_failed_result(monkeypatch):
     def fail_validation(*args, **kwargs):
         raise RuntimeError("evaluator failed")
 
-    monkeypatch.setattr(search_service, "validate_layout", fail_validation)
+    monkeypatch.setattr(generation_service, "validate_layout", fail_validation)
 
     result = run_candidate_search(
         _sample_mass(),
