@@ -4,6 +4,12 @@ from dataclasses import dataclass
 import math
 from typing import Literal, Mapping
 
+from backend.app.modules.building_quality.constants import (
+    DEFAULT_MINIMUM_PAIRWISE_DIVERSITY,
+    DIVERSITY_COMPONENT_WEIGHTS,
+    MATERIAL_DIVERSITY_DISTANCE,
+)
+
 
 class _ImmutableJsonDict(dict):
     def _immutable(self, *args, **kwargs):
@@ -262,17 +268,30 @@ class AlternativeDiversityReport:
             components,
             strict=True,
         ):
-            _require_number(value, name, minimum=0.0)
-        _require_number(self.total_distance, "total_distance", minimum=0.0)
+            _require_number(value, name, minimum=0.0, maximum=1.0)
+        _require_number(
+            self.total_distance, "total_distance", minimum=0.0, maximum=1.0
+        )
+        weighted_total = sum(
+            weight * component
+            for weight, component in zip(DIVERSITY_COMPONENT_WEIGHTS, components, strict=True)
+        )
         if not math.isclose(
-            self.total_distance, sum(components), rel_tol=0.0, abs_tol=1e-9
+            self.total_distance, weighted_total, rel_tol=0.0, abs_tol=1e-9
         ):
-            raise ValueError("total_distance must equal the component distance sum")
+            raise ValueError("total_distance must equal the weighted component distance")
         _require_integer(self.nonzero_component_count, "nonzero_component_count")
         nonzero_component_count = sum(component > 0.0 for component in components)
         if self.nonzero_component_count != nonzero_component_count:
             raise ValueError("nonzero_component_count must match component distances")
         if not isinstance(self.quality_distinct, bool):
             raise TypeError("quality_distinct must be a bool")
-        if self.quality_distinct != (self.nonzero_component_count > 0):
+        material_component_count = sum(
+            component > MATERIAL_DIVERSITY_DISTANCE for component in components
+        )
+        expected_quality_distinct = (
+            self.total_distance >= DEFAULT_MINIMUM_PAIRWISE_DIVERSITY
+            and material_component_count >= 2
+        )
+        if self.quality_distinct != expected_quality_distinct:
             raise ValueError("quality_distinct must match component distances")

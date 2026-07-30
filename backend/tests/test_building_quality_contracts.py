@@ -110,10 +110,10 @@ def test_diversity_report_validates_distances_and_consistency() -> None:
     report = AlternativeDiversityReport(
         first_fingerprint="first",
         second_fingerprint="second",
-        core_distance=0.1,
-        circulation_distance=0.2,
-        topology_distance=0.3,
-        area_distribution_distance=0.4,
+        core_distance=1.0,
+        circulation_distance=1.0,
+        topology_distance=1.0,
+        area_distribution_distance=1.0,
         total_distance=1.0,
         nonzero_component_count=4,
         quality_distinct=True,
@@ -122,7 +122,63 @@ def test_diversity_report_validates_distances_and_consistency() -> None:
     assert report.total_distance == 1.0
     with pytest.raises(ValueError, match="total_distance"):
         replace(report, total_distance=math.nan)
+    with pytest.raises(ValueError, match="core_distance"):
+        replace(report, core_distance=1.1)
+    with pytest.raises(ValueError, match="total_distance"):
+        replace(report, total_distance=1.1)
     with pytest.raises(ValueError, match="nonzero_component_count"):
         replace(report, nonzero_component_count=2)
     with pytest.raises(ValueError, match="quality_distinct"):
         replace(report, quality_distinct=False)
+
+
+def test_diversity_report_uses_weighted_total_distance() -> None:
+    report = AlternativeDiversityReport(
+        first_fingerprint="first",
+        second_fingerprint="second",
+        core_distance=0.5,
+        circulation_distance=0.5,
+        topology_distance=0.0,
+        area_distribution_distance=0.0,
+        total_distance=0.275,
+        nonzero_component_count=2,
+        quality_distinct=True,
+    )
+
+    assert report.total_distance == 0.275
+
+
+def test_diversity_report_allows_small_differences_without_quality_distinction() -> None:
+    report = AlternativeDiversityReport(
+        first_fingerprint="first",
+        second_fingerprint="second",
+        core_distance=0.1,
+        circulation_distance=0.1,
+        topology_distance=0.0,
+        area_distribution_distance=0.0,
+        total_distance=0.055,
+        nonzero_component_count=2,
+        quality_distinct=False,
+    )
+
+    assert not report.quality_distinct
+    with pytest.raises(ValueError, match="quality_distinct"):
+        replace(report, quality_distinct=True)
+
+
+def test_diversity_report_requires_multiple_material_differences_for_distinction() -> None:
+    report = AlternativeDiversityReport(
+        first_fingerprint="first",
+        second_fingerprint="second",
+        core_distance=0.9,
+        circulation_distance=0.0,
+        topology_distance=0.0,
+        area_distribution_distance=0.0,
+        total_distance=0.27,
+        nonzero_component_count=1,
+        quality_distinct=False,
+    )
+
+    assert not report.quality_distinct
+    with pytest.raises(ValueError, match="quality_distinct"):
+        replace(report, quality_distinct=True)
