@@ -13,6 +13,12 @@ from backend.app.modules.alternative_composer.contracts import (
     StructuralAlternative,
     StructuralAlternativeRejection,
 )
+from backend.app.modules.building_quality import (
+    AlternativeDiversityReport,
+    BuildingQualityReport,
+    compare_building_diversity,
+    evaluate_building_quality,
+)
 from backend.app.modules.basic_design.stair import (
     required_stair_enclosure,
     resolve_floor_height,
@@ -162,22 +168,14 @@ def compose_structural_alternatives(
                         )
                     )
                     continue
-                low_coverage = tuple(
-                    (
-                        floor.program.floor_index,
-                        floor.validation.coverage_score,
-                    )
-                    for floor in building.floor_results
-                    if floor.validation.coverage_score < 0.60
-                )
-                if low_coverage:
+                quality_report = evaluate_building_quality(building)
+                if not quality_report.hard_pass:
                     core_rejections.append(
                         StructuralAlternativeRejection(
                             strategy=core.strategy,
-                            reason_type="CoverageQualityRejected",
+                            reason_type="BuildingQualityRejected",
                             reason=(
-                                f"{variant}: floor coverage below 0.60: "
-                                f"{low_coverage}"
+                                f"{variant}: {_quality_rejection_reason(quality_report)}"
                             ),
                         )
                     )
@@ -196,6 +194,7 @@ def compose_structural_alternatives(
                     StructuralAlternative(
                         strategy=core.strategy,
                         building=building,
+                        quality_report=quality_report,
                         core_fingerprint=core.fingerprint,
                         circulation_fingerprint=circulation_fingerprint,
                         room_fingerprint=room_fingerprint,
@@ -212,12 +211,18 @@ def compose_structural_alternatives(
                 )
         if core_alternatives:
             accepted.append(min(core_alternatives, key=_rank_key))
-        else:
-            rejected.extend(core_rejections)
+        rejected.extend(core_rejections)
 
     alternatives = deduplicate_structural_alternatives(accepted)
-    alternatives = tuple(sorted(alternatives, key=_rank_key)[:limit])
-    return StructuralComposition(alternatives, tuple(rejected))
+    alternatives, diversity_rejections = _select_quality_distinct_alternatives(
+        alternatives,
+        limit=limit,
+    )
+    rejected.extend(diversity_rejections)
+    return StructuralComposition(
+        alternatives,
+        tuple(sorted(rejected, key=_rejection_key)),
+    )
 
 
 def deduplicate_structural_alternatives(
@@ -319,15 +324,122 @@ def _validation_reason(building: BuildingGenerationResult) -> str:
     return ",".join(reasons) or "building acceptance gates failed"
 
 
+def _quality_rejection_reason(report: BuildingQualityReport) -> str:
+    evidence = tuple(
+        sorted(
+            (
+                f"{issue.code}:{_quality_value(issue.measured_value)}/"
+                f"{_quality_value(issue.threshold)}"
+                for issue in report.issues
+                if issue.severity == "hard"
+            )
+        )
+    )
+    return ", ".join(evidence) or "quality hard-pass gate failed"
+
+
+def _quality_value(value: float | None) -> str:
+    return "unknown" if value is None else format(value, ".12g")
+
+
+def _select_quality_distinct_alternatives(
+    alternatives: Iterable[StructuralAlternative],
+    *,
+    limit: int,
+) -> tuple[
+    tuple[StructuralAlternative, ...],
+    tuple[StructuralAlternativeRejection, ...],
+]:
+    pending = list(sorted(alternatives, key=_rank_key))
+    if not pending:
+        return (), ()
+
+    selected = [pending.pop(0)]
+    rejections: list[StructuralAlternativeRejection] = []
+    diversity_cache = {}
+    while pending and len(selected) < limit:
+        distinct: list[tuple[StructuralAlternative, float]] = []
+        for candidate in pending:
+            comparisons = tuple(
+                _cached_diversity_comparison(
+                    candidate,
+                    prior,
+                    diversity_cache,
+                )
+                for prior in selected
+            )
+            if all(comparison.quality_distinct for comparison in comparisons):
+                distinct.append(
+                    (candidate, min(comparison.total_distance for comparison in comparisons))
+                )
+                continue
+            rejections.append(
+                StructuralAlternativeRejection(
+                    strategy=candidate.strategy,
+                    reason_type="AlternativeDiversityRejected",
+                    reason=_diversity_rejection_reason(candidate, selected, comparisons),
+                )
+            )
+        pending = [candidate for candidate, _ in distinct]
+        if not distinct:
+            break
+        next_candidate, _ = min(
+            distinct,
+            key=lambda item: (-item[1], item[0].structural_fingerprint),
+        )
+        selected.append(next_candidate)
+        pending.remove(next_candidate)
+
+    return tuple(selected), tuple(rejections)
+
+
+def _cached_diversity_comparison(
+    first: StructuralAlternative,
+    second: StructuralAlternative,
+    cache: dict[tuple[str, str], AlternativeDiversityReport],
+) -> AlternativeDiversityReport:
+    key = tuple(
+        sorted((first.structural_fingerprint, second.structural_fingerprint))
+    )
+    if key not in cache:
+        cache[key] = compare_building_diversity(first.building, second.building)
+    return cache[key]
+
+
+def _diversity_rejection_reason(
+    candidate: StructuralAlternative,
+    selected: Iterable[StructuralAlternative],
+    comparisons,
+) -> str:
+    evidence = tuple(
+        sorted(
+            (
+                f"{prior.structural_fingerprint}:{comparison.total_distance:.12g}"
+                for prior, comparison in zip(selected, comparisons, strict=True)
+                if not comparison.quality_distinct
+            )
+        )
+    )
+    return (
+        f"{candidate.structural_fingerprint} is not quality-distinct from "
+        f"{', '.join(evidence)}"
+    )
+
+
+def _rejection_key(
+    rejection: StructuralAlternativeRejection,
+) -> tuple[str, str, str]:
+    return rejection.strategy, rejection.reason_type, rejection.reason
+
+
 def _rank_key(
     alternative: StructuralAlternative,
-) -> tuple[int, float, float, str]:
+) -> tuple[float, float, str]:
     validations = [
         floor.validation for floor in alternative.building.floor_results
     ]
     return (
-        sum(report.hard_violation_count for report in validations),
-        sum(report.violation_score for report in validations),
+        -alternative.quality_report.score,
         -sum(report.total_score for report in validations),
-        alternative.strategy,
+        alternative.structural_fingerprint,
     )

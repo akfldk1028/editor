@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 
+from backend.app.modules.building_quality import BuildingQualityReport
 from backend.app.schemas.result import BuildingGenerationResult
 
 
@@ -10,6 +11,7 @@ from backend.app.schemas.result import BuildingGenerationResult
 class StructuralAlternative:
     strategy: str
     building: BuildingGenerationResult
+    quality_report: BuildingQualityReport
     core_fingerprint: str
     circulation_fingerprint: str
     room_fingerprint: str
@@ -20,6 +22,10 @@ class StructuralAlternative:
             raise ValueError("structural alternative strategy must be non-empty")
         if not isinstance(self.building, BuildingGenerationResult):
             raise TypeError("structural alternative building is invalid")
+        if not isinstance(self.quality_report, BuildingQualityReport):
+            raise TypeError("structural alternative quality report is invalid")
+        if not self.quality_report.hard_pass:
+            raise ValueError("structural alternative quality report must hard-pass")
         components = (
             self.core_fingerprint,
             self.circulation_fingerprint,

@@ -21,6 +21,13 @@ from backend.app.modules.alternative_composer.service import (
     deduplicate_structural_alternatives,
     room_structural_fingerprint,
 )
+from backend.app.modules.building_quality.contracts import (
+    AlternativeDiversityReport,
+    BuildingQualityReport,
+    FloorQualityMetrics,
+    QualityIssue,
+    VerticalQualityMetrics,
+)
 from backend.app.modules.circulation_planner.service import (
     circulation_geometry_fingerprint,
     generate_circulation_candidate,
@@ -44,7 +51,7 @@ MANIFEST_PATH = (
 )
 
 
-def test_irregular_mass_produces_two_accepted_structural_families() -> None:
+def test_irregular_mass_produces_quality_passed_structural_families() -> None:
     alternatives = _alternatives()
     mass = _mass()
     analysis = analyze_mass(mass)
@@ -60,11 +67,14 @@ def test_irregular_mass_produces_two_accepted_structural_families() -> None:
         for floor_index in range(1, mass.floors + 1)
     }
 
-    assert len(alternatives) >= 2
+    assert alternatives
     assert all(item.building.accepted for item in alternatives)
-    assert len({item.core_fingerprint for item in alternatives}) >= 2
-    assert len({item.circulation_fingerprint for item in alternatives}) >= 2
-    assert len({item.room_fingerprint for item in alternatives}) >= 2
+    assert all(item.quality_report.hard_pass for item in alternatives)
+    assert len({item.core_fingerprint for item in alternatives}) == len(alternatives)
+    assert len({item.circulation_fingerprint for item in alternatives}) == len(
+        alternatives
+    )
+    assert len({item.room_fingerprint for item in alternatives}) == len(alternatives)
     assert len({item.structural_fingerprint for item in alternatives}) == len(
         alternatives
     )
@@ -125,61 +135,76 @@ def test_irregular_mass_produces_two_accepted_structural_families() -> None:
 def test_composition_keeps_one_result_per_core_and_typed_rejections() -> None:
     composition = _composition()
 
-    assert {item.strategy for item in composition.alternatives} == {
-        "notch_adjacent",
-        "long_edge_adjacent",
-    }
+    assert {item.strategy for item in composition.alternatives} == {"notch_adjacent"}
     assert len({item.strategy for item in composition.alternatives}) == len(
         composition.alternatives
     )
     assert composition.rejections
     assert all(
-        isinstance(item, StructuralAlternativeRejection)
-        and item.strategy == "central"
-        and item.reason_type
-        and item.reason
+        isinstance(item, StructuralAlternativeRejection) and item.reason_type and item.reason
+        for item in composition.rejections
+    )
+    assert any(item.strategy == "central" for item in composition.rejections)
+    assert any(
+        item.strategy == "long_edge_adjacent"
+        and item.reason_type == "BuildingQualityRejected"
+        and "primary_daylight_ratio" in item.reason
         for item in composition.rejections
     )
 
 
-def test_composer_rejects_accepted_building_below_coverage_floor(
+def test_composer_rejects_building_quality_hard_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    building = _alternatives()[0].building
-    first_floor, *remaining = building.floor_results
-    low_coverage = replace(
-        building,
-        floor_results=(
-            replace(
-                first_floor,
-                validation=replace(
-                    first_floor.validation,
-                    coverage_score=0.5999,
-                ),
-            ),
-            *remaining,
-        ),
+    failing = _quality_report(
+        hard_pass=False,
+        hard_issue=("primary_daylight_ratio", 0.69, 0.70),
     )
     monkeypatch.setattr(
         alternative_service,
-        "run_building_generation",
-        lambda *args, **kwargs: low_coverage,
+        "evaluate_building_quality",
+        lambda building: failing,
     )
 
     composition = compose_structural_alternatives(_mass(), limit=3)
 
     assert not composition.alternatives
-    coverage_rejections = [
-        item
-        for item in composition.rejections
-        if item.reason_type == "CoverageQualityRejected"
-    ]
-    assert coverage_rejections
-    assert all(
-        item.reason_type == "CoverageQualityRejected"
-        and "0.5999" in item.reason
-        for item in coverage_rejections
+    assert any(
+        rejection.reason_type == "BuildingQualityRejected"
+        and "primary_daylight_ratio" in rejection.reason
+        for rejection in composition.rejections
     )
+
+
+def test_composer_ranks_quality_before_structural_tie_breaker() -> None:
+    original = _alternatives()[0]
+    lower = replace(original, quality_report=_quality_report(score=0.71))
+    higher = replace(original, quality_report=_quality_report(score=0.88))
+
+    assert sorted((lower, higher), key=alternative_service._rank_key) == [
+        higher,
+        lower,
+    ]
+
+
+def test_composer_keeps_only_pairwise_quality_distinct_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        alternative_service,
+        "evaluate_building_quality",
+        lambda building: _quality_report(),
+    )
+    monkeypatch.setattr(
+        alternative_service,
+        "compare_building_diversity",
+        _controlled_diversity,
+    )
+
+    composition = compose_structural_alternatives(_mass(), limit=3)
+
+    assert len(composition.alternatives) == 2
+    assert all(item.quality_report.hard_pass for item in composition.alternatives)
 
 
 def test_room_label_swap_does_not_create_structural_family() -> None:
@@ -471,6 +496,7 @@ def test_structural_alternative_contract_rejects_mismatched_hash() -> None:
         StructuralAlternative(
             strategy=original.strategy,
             building=original.building,
+            quality_report=original.quality_report,
             core_fingerprint=original.core_fingerprint,
             circulation_fingerprint=original.circulation_fingerprint,
             room_fingerprint=original.room_fingerprint,
@@ -549,4 +575,68 @@ def _rectangular_mass() -> MassInput:
         site_edges=[{"edge_index": 0, "kind": "street"}],
         access_candidates=[{"edge_index": 0, "position": 0.5}],
         use_mix={"office": 1.0},
+    )
+
+
+def _quality_report(
+    *,
+    hard_pass: bool = True,
+    score: float = 0.8,
+    hard_issue: tuple[str, float, float] | None = None,
+) -> BuildingQualityReport:
+    issues = ()
+    if hard_issue is not None:
+        code, measured_value, threshold = hard_issue
+        issues = (
+            QualityIssue(
+                code=code,
+                severity="hard",
+                floor_index=1,
+                subject_id="open_work",
+                measured_value=measured_value,
+                threshold=threshold,
+                message="quality policy failure",
+            ),
+        )
+    return BuildingQualityReport(
+        policy_version="building-quality/v1",
+        hard_pass=hard_pass,
+        score=score,
+        component_scores={"daylight": score},
+        floors=(
+            FloorQualityMetrics(
+                floor_index=1,
+                coverage=0.8,
+                primary_daylight_ratio=0.8,
+                room_form_pass_ratio=0.9,
+                worst_aspect_ratio=2.0,
+                narrowest_room_width_m=2.4,
+                egress_status="pass",
+            ),
+        ),
+        vertical=VerticalQualityMetrics(
+            core_stack_ratio=1.0,
+            shaft_stack_ratio=1.0,
+            wet_service_stack_ratio=0.9,
+            maximum_service_centroid_shift_m=0.2,
+        ),
+        issues=issues,
+        unresolved_facts=(),
+    )
+
+
+def _controlled_diversity(
+    first,
+    second,
+) -> AlternativeDiversityReport:
+    return AlternativeDiversityReport(
+        first_fingerprint="first",
+        second_fingerprint="second",
+        core_distance=0.5,
+        circulation_distance=0.5,
+        topology_distance=0.5,
+        area_distribution_distance=0.5,
+        total_distance=0.5,
+        nonzero_component_count=4,
+        quality_distinct=True,
     )
