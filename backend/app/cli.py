@@ -155,6 +155,10 @@ def _serialize_rejected_strategy(rejection) -> dict:
         )
     if rejection.generator_repairs:
         serialized["generator_repairs"] = to_jsonable(rejection.generator_repairs)
+    if rejection.generator_repair_attempt is not None:
+        serialized["generator_repair_attempt"] = to_jsonable(
+            rejection.generator_repair_attempt
+        )
     return serialized
 
 

@@ -11,6 +11,7 @@ import pytest
 
 import backend.app.cli as cli_module
 from backend.app.modules.alternative_composer.contracts import (
+    GeneratorRepairAttempt,
     GeneratorRepairProvenance,
     StructuralAlternative,
     StructuralAlternativeRejection,
@@ -25,6 +26,7 @@ from backend.app.modules.local_topology_planner.contracts import (
     TopologyAdjacency,
     TopologyProposal,
 )
+from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.result import BuildingGenerationResult
 from backend.app.schemas.visual import BuildingVisualReviewArtifacts
@@ -45,6 +47,25 @@ def repair_evidence(after_value: float) -> GeneratorRepairProvenance:
         before_value=0.69,
         threshold=0.7,
         after_value=after_value,
+    )
+
+
+def repair_attempt(
+    *,
+    outcome: str,
+    after_primary_daylight: tuple[tuple[int, float], ...],
+    validation_codes: tuple[str, ...] = (),
+    error_type: str | None = None,
+    error_message: str | None = None,
+) -> GeneratorRepairAttempt:
+    return GeneratorRepairAttempt(
+        operator_id="primary_daylight_exterior_allocation/v1",
+        requests=(ExteriorAllocationRequest(1, ("focus", "meeting")),),
+        outcome=outcome,
+        after_primary_daylight=after_primary_daylight,
+        validation_codes=validation_codes,
+        error_type=error_type,
+        error_message=error_message,
     )
 
 
@@ -110,16 +131,22 @@ def test_cli_irregular_review_emits_two_repaired_quality_distinct_alternatives(
         floor_3["primary_daylight_ratio"]
     )
 
-    quality_rejections = [
+    original_rejection = next(
         item
         for item in report["rejected_strategies"]
-        if item["reason_type"] == "BuildingQualityRejected"
-    ]
-    assert any(
-        item["quality_report"]["floors"][2]["primary_daylight_ratio"]
-        == pytest.approx(0.6625309657157782)
-        for item in quality_rejections
+        if item["strategy"] == "long_edge_adjacent"
+        and item["reason_type"] == "BuildingQualityRejected"
     )
+    original_issue = next(
+        issue
+        for issue in original_rejection["quality_report"]["issues"]
+        if issue["code"] == "primary_daylight_ratio"
+    )
+    assert original_issue["severity"] == "hard"
+    assert original_issue["floor_index"] == 3
+    assert original_issue["subject_id"] == "floor-3"
+    assert original_issue["measured_value"] == pytest.approx(0.6625309657157782)
+    assert original_issue["threshold"] == pytest.approx(0.70)
     for alternative in report["alternatives"]:
         quality = alternative["building_quality"]
         assert quality["hard_pass"] is True
@@ -467,6 +494,79 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
     serialized_rejection = cli_module._serialize_rejected_strategy(rejection)
     assert serialized_rejection["generator_repairs"][0]["before_value"] == 0.69
     assert serialized_rejection["generator_repairs"][0]["after_value"] == 0.7123456789
+    evaluated_attempt = repair_attempt(
+        outcome="evaluated",
+        after_primary_daylight=((1, 0.7123456789),),
+    )
+    validation_rejected_attempt = repair_attempt(
+        outcome="validation_rejected",
+        after_primary_daylight=((1, 0.7123456789),),
+        validation_codes=("coverage_below_minimum",),
+    )
+    generation_failed_attempt = repair_attempt(
+        outcome="generation_failed",
+        after_primary_daylight=(),
+        error_type="ValueError",
+        error_message="cannot split requested exterior seed",
+    )
+    attempt_rejections = (
+        StructuralAlternativeRejection(
+            strategy="evaluated",
+            reason_type="BuildingQualityRejected",
+            reason="evaluated test rejection",
+            quality_report=alternatives[0].quality_report,
+            generator_repairs=(repair_evidence(0.7123456789),),
+            generator_repair_attempt=evaluated_attempt,
+        ),
+        StructuralAlternativeRejection(
+            strategy="validation-rejected",
+            reason_type="BuildingValidationRetryRejected",
+            reason="validation rejected test rejection",
+            quality_report=alternatives[0].quality_report,
+            generator_repairs=(repair_evidence(0.7123456789),),
+            generator_repair_attempt=validation_rejected_attempt,
+        ),
+        StructuralAlternativeRejection(
+            strategy="generation-failed",
+            reason_type="GeneratorRepairFailed",
+            reason="generation failed test rejection",
+            generator_repair_attempt=generation_failed_attempt,
+        ),
+    )
+    serialized_attempts = {
+        item["strategy"]: item["generator_repair_attempt"]
+        for item in map(cli_module._serialize_rejected_strategy, attempt_rejections)
+    }
+    assert serialized_attempts == {
+        "evaluated": {
+            "operator_id": "primary_daylight_exterior_allocation/v1",
+            "requests": [{"floor_index": 1, "room_ids": ["focus", "meeting"]}],
+            "outcome": "evaluated",
+            "after_primary_daylight": [[1, 0.7123456789]],
+            "validation_codes": [],
+            "error_type": None,
+            "error_message": None,
+        },
+        "validation-rejected": {
+            "operator_id": "primary_daylight_exterior_allocation/v1",
+            "requests": [{"floor_index": 1, "room_ids": ["focus", "meeting"]}],
+            "outcome": "validation_rejected",
+            "after_primary_daylight": [[1, 0.7123456789]],
+            "validation_codes": ["coverage_below_minimum"],
+            "error_type": None,
+            "error_message": None,
+        },
+        "generation-failed": {
+            "operator_id": "primary_daylight_exterior_allocation/v1",
+            "requests": [{"floor_index": 1, "room_ids": ["focus", "meeting"]}],
+            "outcome": "generation_failed",
+            "after_primary_daylight": [],
+            "validation_codes": [],
+            "error_type": "ValueError",
+            "error_message": "cannot split requested exterior seed",
+        },
+    }
+    assert "generator_repair_attempt" not in serialized_rejection
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     assert "first &amp; &lt;two&gt;" in index_html
     assert "needs &lt;authority&gt;" in index_html
