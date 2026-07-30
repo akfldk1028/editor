@@ -1,34 +1,25 @@
-# Usable Daylight Evidence Refresh
+# Final Daylight Feedback Evidence
 
 ## Provenance
 
-- Source commit: `a7cdcf0a5da3ae19a45d3b413a80d32b1ffc863e`.
-- Final verification HEAD: `030b9069d9c5223a99f0d40c9ec3a0fa632df532` (`test: align daylight repair CLI evidence`).
+- Source commit: `06953d6447979039c78122f171d1c3888af6d905` (`fix: retain validation retry provenance`).
 - Initial dirty-state check: clean.
 - Fixture: `datasets/manifests/sample_mass_irregular_12v_setback_office.json`, SHA-256 `6b59bfea90ed15aea10a9e2814fc14a8561cba1fd90e5cc2c7acee945a1c143c`.
-- CLI command: `python -m backend.app.cli irregular-alternatives-review --input datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/primary_daylight_feedback_usable_a7cdcf0 --limit 3`.
-- CLI result: exit `0` in `240.3s`.
+- CLI command: `python -m backend.app.cli irregular-alternatives-review --input datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/primary_daylight_feedback_final_06953d6 --limit 3`.
+- CLI result: exit `0` in `235.2s`.
 - Retained output: 36 source/retained file pairs with equal SHA-256 and byte count. See `sha256-manifest.json`.
 - Before aggregate remains immutable at `docs/building-quality-baseline-2026-07-30/source-run/alternatives.review.json`, SHA-256 `1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69`.
 
-## Focused Verification
-
-| Command | Exit | Result |
-| --- | ---: | --- |
-| `python -m pytest -q backend/tests/test_orthogonal_layout_generator.py` | 0 | 38 passed in 1.51s |
-| `python -m pytest -q backend/tests/test_generation_loop.py` | 0 | 15 passed in 193.46s |
-| `python -m pytest -q backend/tests/test_alternative_composer.py` | 0 | 44 passed in 756.66s |
-
-Focused total: `97 passed`. The environment emitted the pre-existing `RequestsDependencyWarning`.
-
 ## Aggregate Evidence
 
-- Schema `1`; policy `building-quality/v1`; accepted `2`.
+- Schema `1`; policy `building-quality/v1`; accepted `2`; rejected `0`.
 - Distinct structural/core/circulation/candidate-PNG/PNG counts: `2/2/2/2/2`.
 - `alternative-01`, `notch_adjacent`: validation score `2.6152`; building-quality score `0.7935`; floor daylight ratios `0.9423614866510824`, `0.911026869081252`, `0.9146022582464355`.
 - `alternative-02`, `long_edge_adjacent`: validation score `2.6220999999999997`; building-quality score `0.7874`; floor daylight ratios `0.9766151723543345`, `0.9756863096715561`, `0.8459560292236058`.
 - Repair operator `primary_daylight_exterior_allocation/v1`; floor `3`; requested/served room IDs exactly `["meeting"]`; before `0.6625309657157782`; threshold `0.7`; after/re-evaluated `0.8459560292236058`.
-- Pairwise diversity: core `0.6709791024774004`; circulation `0.5`; topology `0.0`; area distribution `0.19612151615637516`; total `0.3655180339744951`; nonzero components `3`; `quality_distinct=true`.
+- `accepted_pairwise_diversity` contains one accepted pair and records `quality_distinct=true`.
+- Pair metrics: core `0.6709791024774004`; circulation `0.5`; topology `0.0`; area distribution `0.19612151615637516`; total `0.3655180339744951`; nonzero components `3`.
+- Source commit `06953d6` requires validation-rejected retries to retain matching lossless `generator_repairs` provenance and covers that contract in the current test suite. This accepted fixture has no rejected alternatives, so it does not manufacture a validation-retry rejection example.
 
 ## Usable Frontage Proof
 
@@ -42,7 +33,7 @@ The retained `alternative-02` floor-3 SVG was mapped back to the explicit floor 
 - `polygon_has_usable_daylight_frontage(focus)=false`.
 - Focus exterior contact: `0.0m`; minimum rendered distance to the exterior: `0.999952259024251m`.
 - Retained window IDs are exactly `meeting-window` and `open_work-window`; `focus-window` is absent.
-- The prior focus tendril/window geometry is not present in the refreshed floor-3 SVG, HTML, PNG, or manifest.
+- The prior focus tendril/window geometry is absent from the refreshed floor-3 SVG, HTML, PNG, and manifest.
 
 ## Visual Inspection
 
@@ -75,25 +66,26 @@ Every retained PNG SHA-256:
 
 ## HTML Interaction
 
-The retained tree was served at `http://127.0.0.1:8771/index.html`.
+The retained tree was served at `http://127.0.0.1:8772/index.html` and tested with an isolated Playwright Chromium process.
 
 - Two accepted alternative sections rendered.
 - All six top-level images loaded with natural dimensions `1920x1080`.
 - The long-edge repair table displayed operator, `meeting`, exact before, threshold, and after values.
-- Both accepted floor-3 pages passed `all-off -> rooms/core/envelope -> isolate core -> all-on`; all 12 modeled layers changed and restored.
+- Both accepted floor-3 pages passed `all-off -> rooms/core/envelope -> isolate core -> all-on`.
+- Each page exposed 12 unique modeled layers across 13 top-level SVG nodes because the `rooms` layer has separate room and boundary groups; all layer states changed and restored.
 - Long-edge floor-3 DOM contained one `meeting-window` and zero `focus-window` elements.
 - Console errors: `0`; page errors: `0`.
 - The owned HTTP server and listener were stopped after verification.
 
 ## Repository Verification
 
-- First `python -m pytest -q` at production HEAD `a7cdcf0`: exit `1`; `1 failed, 847 passed, 2 skipped` in `1714.22s`. The sole failure was the stale `backend/tests/test_cli.py:127` expectation `["focus", "meeting"]`.
-- Task 5 independently aligned that CLI evidence and committed `030b906`; Task 6 did not edit or stage production/tests.
-- Final `python -m pytest -q` at `030b906`: exit `0`; `848 passed, 2 skipped` in `1711.73s`.
+- `python -m pytest -q`: exit `0`; `873 passed, 2 skipped` in `1778.50s`.
+- The environment emitted the pre-existing `RequestsDependencyWarning`.
 - `python -m ruff check backend`: exit `0`; all checks passed.
 - `git diff --check`: exit `0`.
 - Generator ownership: no `modules.building_quality` imports in `generation_loop` or `layout_generator`.
 - Frozen contracts/policy/service/daylight evaluator, fixture, and baseline docs emit no diff from `480640d`.
+- Task 6 changed no production or test files.
 
 ## Remaining Issues
 

@@ -923,6 +923,19 @@
       "quality_distinct": true
     }
   ],
+  "accepted_pairwise_diversity": [
+    {
+      "first_fingerprint": "9085cc5dc74f96f1443664451249a0e9af6266eb96d8953b6897995d4e22fff5",
+      "second_fingerprint": "2055ac83fad4383239be3ad43f3ca8f77987bed3506ef22fd7bfec9f7f33841b",
+      "core_distance": 0.6709791024774004,
+      "circulation_distance": 0.5,
+      "topology_distance": 0.0,
+      "area_distribution_distance": 0.19612151615637516,
+      "total_distance": 0.3655180339744951,
+      "nonzero_component_count": 3,
+      "quality_distinct": true
+    }
+  ],
   "rejected_strategies": [
     {
       "strategy": "central",
