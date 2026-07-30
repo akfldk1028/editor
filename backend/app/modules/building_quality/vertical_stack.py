@@ -21,21 +21,29 @@ class _StackItem:
     polygon: Polygon
 
 
-def measure_vertical_quality(building: BuildingGenerationResult) -> VerticalQualityMetrics:
+def measure_vertical_quality(
+    building: BuildingGenerationResult,
+) -> VerticalQualityMetrics:
     """Measure the worst adjacent-floor overlap for vertically repeated services."""
-    floors = tuple(sorted(building.floor_results, key=lambda floor: floor.program.floor_index))
+    floors = tuple(
+        sorted(building.floor_results, key=lambda floor: floor.program.floor_index)
+    )
     core_ratio, _ = _measure_adjacent_stack(
         tuple(_core_items(floor) for floor in floors)
     )
-    shaft_ratio, _ = _measure_adjacent_stack(tuple(_shaft_items(floor) for floor in floors))
+    shaft_ratio, _ = _measure_adjacent_stack(
+        tuple(_shaft_items(floor) for floor in floors)
+    )
     wet_ratio, wet_shift = _measure_adjacent_stack(
-        tuple(_wet_service_items(floor) for floor in floors)
+        tuple(_wet_service_items(floor) for floor in floors),
+        exclude_when_absent=True,
     )
     return VerticalQualityMetrics(
         core_stack_ratio=core_ratio,
         shaft_stack_ratio=shaft_ratio,
         wet_service_stack_ratio=wet_ratio,
         maximum_service_centroid_shift_m=wet_shift,
+        unmeasurable_geometry=_unmeasurable_geometry(floors),
     )
 
 
@@ -85,7 +93,10 @@ def _item_from_points(
     item_id: str,
     points: tuple[tuple[float, float], ...] | list[tuple[float, float]],
 ) -> _StackItem | None:
-    polygon = Polygon(points)
+    try:
+        polygon = Polygon(points)
+    except (TypeError, ValueError):
+        return None
     if polygon.is_empty or not polygon.is_valid or polygon.area <= 0:
         return None
     return _StackItem(space_type=space_type, item_id=item_id, polygon=polygon)
@@ -93,6 +104,8 @@ def _item_from_points(
 
 def _measure_adjacent_stack(
     floor_items: tuple[tuple[_StackItem, ...], ...],
+    *,
+    exclude_when_absent: bool = False,
 ) -> tuple[float, float | None]:
     if not floor_items:
         return 0.0, None
@@ -102,6 +115,8 @@ def _measure_adjacent_stack(
     ratios: list[float] = []
     shifts: list[float] = []
     for first, second in pairwise(floor_items):
+        if exclude_when_absent and not first and not second:
+            continue
         pair_ratios, pair_shifts, has_unmatched_items = _match_adjacent_items(
             first, second
         )
@@ -110,7 +125,29 @@ def _measure_adjacent_stack(
         else:
             ratios.append(min(pair_ratios))
         shifts.extend(pair_shifts)
-    return min(ratios, default=0.0), max(shifts, default=None)
+    return min(ratios, default=1.0 if exclude_when_absent else 0.0), max(
+        shifts, default=None
+    )
+
+
+def _unmeasurable_geometry(
+    floors: tuple[GenerationResult, ...],
+) -> tuple[tuple[int, str], ...]:
+    invalid: set[tuple[int, str]] = set()
+    for floor in floors:
+        floor_index = floor.program.floor_index
+        for room in floor.layout.rooms:
+            if (
+                room.space_type in _WET_SERVICE_TYPES | {"core"}
+                and _item_from_room(room) is None
+            ):
+                invalid.add((floor_index, f"{room.space_type}:{room.room_id}"))
+        features = floor.layout.basic_design
+        if features is not None:
+            for element in features.elements:
+                if element.kind == "shaft" and _item_from_element(element) is None:
+                    invalid.add((floor_index, f"shaft:{element.element_id}"))
+    return tuple(sorted(invalid))
 
 
 def _match_adjacent_items(
@@ -134,9 +171,7 @@ def _match_adjacent_items(
     return ratios, shifts, has_unmatched_items
 
 
-def _items_by_type(
-    items: tuple[_StackItem, ...]
-) -> dict[str, tuple[_StackItem, ...]]:
+def _items_by_type(items: tuple[_StackItem, ...]) -> dict[str, tuple[_StackItem, ...]]:
     grouped: defaultdict[str, list[_StackItem]] = defaultdict(list)
     for item in items:
         grouped[item.space_type].append(item)
@@ -167,8 +202,7 @@ def _minimum_cost_assignment(
 
     costs = tuple(
         tuple(
-            row.polygon.centroid.distance(column.polygon.centroid)
-            for column in columns
+            row.polygon.centroid.distance(column.polygon.centroid) for column in columns
         )
         for row in rows
     )
@@ -212,7 +246,9 @@ def _minimum_cost_assignment(
                 break
         while True:
             previous_column = path[current_column]
-            matched_row_by_column[current_column] = matched_row_by_column[previous_column]
+            matched_row_by_column[current_column] = matched_row_by_column[
+                previous_column
+            ]
             current_column = previous_column
             if current_column == 0:
                 break

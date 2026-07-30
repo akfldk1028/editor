@@ -185,9 +185,12 @@ class VerticalQualityMetrics:
     shaft_stack_ratio: float
     wet_service_stack_ratio: float
     maximum_service_centroid_shift_m: float | None
+    unmeasurable_geometry: tuple[tuple[int, str], ...] = ()
 
     def __post_init__(self) -> None:
-        _require_number(self.core_stack_ratio, "core_stack_ratio", minimum=0.0, maximum=1.0)
+        _require_number(
+            self.core_stack_ratio, "core_stack_ratio", minimum=0.0, maximum=1.0
+        )
         _require_number(
             self.shaft_stack_ratio, "shaft_stack_ratio", minimum=0.0, maximum=1.0
         )
@@ -203,6 +206,13 @@ class VerticalQualityMetrics:
             minimum=0.0,
             optional=True,
         )
+        if not isinstance(self.unmeasurable_geometry, tuple):
+            raise TypeError("unmeasurable_geometry must be a tuple")
+        for floor_index, subject_id in self.unmeasurable_geometry:
+            _require_integer(floor_index, "unmeasurable geometry floor_index")
+            _require_string(subject_id, "unmeasurable geometry subject_id")
+        if self.unmeasurable_geometry != tuple(sorted(set(self.unmeasurable_geometry))):
+            raise ValueError("unmeasurable_geometry must be unique and ordered")
 
 
 @dataclass(frozen=True)
@@ -231,9 +241,9 @@ class BuildingQualityReport:
         if not all(isinstance(floor, FloorQualityMetrics) for floor in self.floors):
             raise TypeError("floors must contain FloorQualityMetrics")
         floor_indexes = tuple(floor.floor_index for floor in self.floors)
-        if floor_indexes != tuple(sorted(floor_indexes)) or len(set(floor_indexes)) != len(
-            floor_indexes
-        ):
+        if floor_indexes != tuple(sorted(floor_indexes)) or len(
+            set(floor_indexes)
+        ) != len(floor_indexes):
             raise ValueError("floors must be strictly ordered by floor_index")
         if not isinstance(self.vertical, VerticalQualityMetrics):
             raise TypeError("vertical must be VerticalQualityMetrics")
@@ -281,17 +291,19 @@ class AlternativeDiversityReport:
             strict=True,
         ):
             _require_number(value, name, minimum=0.0, maximum=1.0)
-        _require_number(
-            self.total_distance, "total_distance", minimum=0.0, maximum=1.0
-        )
+        _require_number(self.total_distance, "total_distance", minimum=0.0, maximum=1.0)
         weighted_total = sum(
             weight * component
-            for weight, component in zip(DIVERSITY_COMPONENT_WEIGHTS, components, strict=True)
+            for weight, component in zip(
+                DIVERSITY_COMPONENT_WEIGHTS, components, strict=True
+            )
         )
         if not math.isclose(
             self.total_distance, weighted_total, rel_tol=0.0, abs_tol=1e-9
         ):
-            raise ValueError("total_distance must equal the weighted component distance")
+            raise ValueError(
+                "total_distance must equal the weighted component distance"
+            )
         _require_integer(self.nonzero_component_count, "nonzero_component_count")
         nonzero_component_count = sum(component > 0.0 for component in components)
         if self.nonzero_component_count != nonzero_component_count:
@@ -302,4 +314,6 @@ class AlternativeDiversityReport:
             component > MATERIAL_DIVERSITY_DISTANCE for component in components
         )
         if self.quality_distinct and material_component_count < 2:
-            raise ValueError("quality_distinct requires two material component distances")
+            raise ValueError(
+                "quality_distinct requires two material component distances"
+            )

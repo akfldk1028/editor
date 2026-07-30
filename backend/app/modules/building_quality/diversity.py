@@ -51,14 +51,15 @@ def compare_building_diversity(
     )
     total_distance = sum(
         weight * component
-        for weight, component in zip(DIVERSITY_COMPONENT_WEIGHTS, components, strict=True)
+        for weight, component in zip(
+            DIVERSITY_COMPONENT_WEIGHTS, components, strict=True
+        )
     )
-    nonzero_component_count = sum(
-        component > 0.0 for component in components
-    )
+    nonzero_component_count = sum(component > 0.0 for component in components)
     quality_distinct = (
         total_distance >= policy.minimum_pairwise_diversity
-        and sum(component > MATERIAL_DIVERSITY_DISTANCE for component in components) >= 2
+        and sum(component > MATERIAL_DIVERSITY_DISTANCE for component in components)
+        >= 2
     )
 
     return AlternativeDiversityReport(
@@ -108,9 +109,7 @@ def _building_features(building: BuildingGenerationResult) -> _BuildingFeatures:
     for floor_index, floor in floors.items():
         layout = floor.layout
         core_polygons = [
-            _polygon(room.polygon)
-            for room in layout.rooms
-            if room.space_type == "core"
+            _polygon(room.polygon) for room in layout.rooms if room.space_type == "core"
         ]
         cores[floor_index] = _combined_geometry(core_polygons)
         floor_diagonals[floor_index] = _floor_diagonal(building, floor)
@@ -192,7 +191,9 @@ def _core_distance(first: _BuildingFeatures, second: _BuildingFeatures) -> float
     return sum(distances) / len(distances)
 
 
-def _floor_core_distance(first: object | None, second: object | None, diagonal: float) -> float:
+def _floor_core_distance(
+    first: object | None, second: object | None, diagonal: float
+) -> float:
     first_is_empty = first is None or first.is_empty
     second_is_empty = second is None or second.is_empty
     if first_is_empty and second_is_empty:
@@ -272,7 +273,7 @@ def _topology_edges(
 
 
 def _area_distribution(areas_by_type: dict[str, float]) -> dict[str, float]:
-    total_area = sum(areas_by_type.values())
+    total_area = sum(areas_by_type[space_type] for space_type in sorted(areas_by_type))
     if total_area <= 0.0:
         return {}
     return {
@@ -286,19 +287,26 @@ def _total_variation_distance(
     first: dict[str, float],
     second: dict[str, float],
 ) -> float:
-    return sum(
-        abs(first.get(space_type, 0.0) - second.get(space_type, 0.0))
-        for space_type in set(first) | set(second)
-    ) / 2.0
+    return (
+        sum(
+            abs(first.get(space_type, 0.0) - second.get(space_type, 0.0))
+            for space_type in sorted(set(first) | set(second))
+        )
+        / 2.0
+    )
 
 
-def _jaccard_distance(first: frozenset[tuple[object, ...]], second: frozenset[tuple[object, ...]]) -> float:
+def _jaccard_distance(
+    first: frozenset[tuple[object, ...]], second: frozenset[tuple[object, ...]]
+) -> float:
     if not first and not second:
         return 0.0
     return 1.0 - len(first & second) / len(first | second)
 
 
-def _floor_diagonal(building: BuildingGenerationResult, floor: GenerationResult) -> float:
+def _floor_diagonal(
+    building: BuildingGenerationResult, floor: GenerationResult
+) -> float:
     bounds = building.mass.bounds_for_floor(floor.program.floor_index)
     diagonal = math.dist((bounds[0], bounds[1]), (bounds[2], bounds[3]))
     if diagonal > 0.0:
@@ -322,7 +330,9 @@ def _polygon(points: list[tuple[float, float]]) -> Polygon:
     return Polygon(points)
 
 
-def _canonical_polygon(points: list[tuple[float, float]]) -> tuple[tuple[float, float], ...]:
+def _canonical_polygon(
+    points: list[tuple[float, float]],
+) -> tuple[tuple[float, float], ...]:
     ring = tuple(_rounded_point(point) for point in points)
     if len(ring) > 1 and ring[0] == ring[-1]:
         ring = ring[:-1]

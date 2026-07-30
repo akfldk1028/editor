@@ -29,12 +29,17 @@ def evaluate_building_quality(
     egress = aggregate_egress_quality(building)
     floors: list[FloorQualityMetrics] = []
     issues: list[QualityIssue] = []
+    coverage_efficiency_scores: list[float] = []
 
-    for floor in sorted(building.floor_results, key=lambda item: item.program.floor_index):
+    for floor in sorted(
+        building.floor_results, key=lambda item: item.program.floor_index
+    ):
         floor_index = floor.program.floor_index
         daylight = measure_primary_daylight(floor)
         room_form = measure_room_form(floor)
         coverage = float(floor.validation.coverage_score)
+        efficiency = float(getattr(floor.validation, "efficiency_score", coverage))
+        coverage_efficiency_scores.append((coverage + efficiency) / 2.0)
         egress_status = _floor_egress_status(floor_index, egress)
         metrics = FloorQualityMetrics(
             floor_index=floor_index,
@@ -47,12 +52,17 @@ def evaluate_building_quality(
         )
         floors.append(metrics)
         issues.extend(_floor_issues(metrics, policy))
+        issues.extend(_room_form_geometry_issues(floor_index, room_form))
 
     vertical = measure_vertical_quality(building)
     issues.extend(_vertical_issues(vertical, policy))
+    issues.extend(_vertical_geometry_issues(vertical))
+    issues.extend(_egress_hard_failure_issues(egress.hard_failure_facts))
     issues.extend(_egress_unresolved_issues(egress.unresolved_facts))
 
-    raw_component_scores = _component_scores(tuple(floors), vertical, egress.status)
+    raw_component_scores = _component_scores(
+        tuple(floors), vertical, egress.status, coverage_efficiency_scores
+    )
     hard_pass = not any(issue.severity == "hard" for issue in issues)
     return BuildingQualityReport(
         policy_version=policy.version,
@@ -116,7 +126,7 @@ def _floor_issues(
                     code=code,
                     severity="hard",
                     floor_index=metrics.floor_index,
-                    subject_id=None,
+                    subject_id=f"floor-{metrics.floor_index}",
                     measured_value=measured_value,
                     threshold=threshold,
                     message=message,
@@ -135,6 +145,24 @@ def _floor_issues(
             )
         )
     return tuple(issues)
+
+
+def _room_form_geometry_issues(
+    floor_index: int,
+    room_form,
+) -> tuple[QualityIssue, ...]:
+    return tuple(
+        QualityIssue(
+            code="geometry_unmeasurable",
+            severity="hard",
+            floor_index=floor_index,
+            subject_id=room_id,
+            measured_value=None,
+            threshold=None,
+            message="room form geometry cannot be measured",
+        )
+        for room_id in sorted(set(getattr(room_form, "unmeasurable_room_ids", ())))
+    )
 
 
 def _vertical_issues(
@@ -180,6 +208,40 @@ def _vertical_issues(
     return tuple(issues)
 
 
+def _vertical_geometry_issues(
+    vertical: VerticalQualityMetrics,
+) -> tuple[QualityIssue, ...]:
+    return tuple(
+        QualityIssue(
+            code="geometry_unmeasurable",
+            severity="hard",
+            floor_index=floor_index,
+            subject_id=subject_id,
+            measured_value=None,
+            threshold=None,
+            message="vertical stack geometry cannot be measured",
+        )
+        for floor_index, subject_id in vertical.unmeasurable_geometry
+    )
+
+
+def _egress_hard_failure_issues(
+    hard_failure_facts: tuple[tuple[int, str], ...],
+) -> tuple[QualityIssue, ...]:
+    return tuple(
+        QualityIssue(
+            code="egress_graph_failure",
+            severity="hard",
+            floor_index=floor_index,
+            subject_id=fact,
+            measured_value=0.0,
+            threshold=1.0,
+            message="egress graph contains an internal failure",
+        )
+        for floor_index, fact in sorted(set(hard_failure_facts))
+    )
+
+
 def _egress_unresolved_issues(
     unresolved_facts: tuple[str, ...],
 ) -> tuple[QualityIssue, ...]:
@@ -201,6 +263,7 @@ def _component_scores(
     floors: tuple[FloorQualityMetrics, ...],
     vertical: VerticalQualityMetrics,
     egress_status: Literal["pass", "fail", "not_checked"],
+    coverage_efficiency_scores: Iterable[float],
 ) -> dict[str, float]:
     scores = {
         "daylight": _mean(floor.primary_daylight_ratio for floor in floors),
@@ -212,7 +275,7 @@ def _component_scores(
         )
         / 3,
         "egress": {"pass": 1.0, "fail": 0.0, "not_checked": 0.5}[egress_status],
-        "coverage_efficiency": _mean(floor.coverage for floor in floors),
+        "coverage_efficiency": _mean(coverage_efficiency_scores),
     }
     return scores
 

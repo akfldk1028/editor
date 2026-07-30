@@ -73,15 +73,24 @@ def test_cli_irregular_review_records_task_8_quality_phase_boundary(tmp_path):
     assert "rejected_strategies" in report
     assert report["quality_policy_version"] == "building-quality/v1"
     assert report["pairwise_diversity"] == []
-    assert [
+    quality_rejections = [
         item
         for item in report["rejected_strategies"]
         if item["reason_type"] == "BuildingQualityRejected"
-    ] == [
+    ]
+    assert len(quality_rejections) == 1
+    rejection = quality_rejections[0]
+    assert rejection["strategy"] == "long_edge_adjacent"
+    assert rejection["reason"] == "legacy: primary_daylight_ratio:0.662530965716/0.7"
+    assert rejection["quality_report"]["issues"] == [
         {
-            "strategy": "long_edge_adjacent",
-            "reason_type": "BuildingQualityRejected",
-            "reason": "legacy: primary_daylight_ratio:0.662530965716/0.7",
+            "code": "primary_daylight_ratio",
+            "severity": "hard",
+            "floor_index": 1,
+            "subject_id": "floor-1",
+            "measured_value": pytest.approx(0.662530965716),
+            "threshold": 0.7,
+            "message": "primary daylight ratio is below policy",
         }
     ]
     for alternative in report["alternatives"]:
@@ -115,9 +124,10 @@ def test_cli_irregular_review_records_task_8_quality_phase_boundary(tmp_path):
                 key=lambda item: item["floor_index"],
             )
         ]
-        assert alternative["candidate_png_fingerprint"] == sha256(
-            ":".join(ordered_hashes).encode()
-        ).hexdigest()
+        assert (
+            alternative["candidate_png_fingerprint"]
+            == sha256(":".join(ordered_hashes).encode()).hexdigest()
+        )
         assert len(alternative["floors"]) == 3
         for floor in alternative["floors"]:
             assert {
@@ -174,6 +184,7 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
         score: float,
         daylight: float,
         room_form: float,
+        fingerprint_identity: str | None = None,
     ) -> StructuralAlternative:
         floor_result = SimpleNamespace(
             program=SimpleNamespace(floor_index=1),
@@ -192,7 +203,7 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
         object.__setattr__(building, "floor_results", (floor_result,))
         object.__setattr__(building, "marker", strategy)
         components = tuple(
-            sha256(f"{strategy}:{label}".encode()).hexdigest()
+            sha256(f"{fingerprint_identity or strategy}:{label}".encode()).hexdigest()
             for label in ("core", "circulation", "room")
         )
         return StructuralAlternative(
@@ -247,6 +258,7 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
             score=0.8234567891,
             daylight=0.7234567891,
             room_form=0.9234567891,
+            fingerprint_identity="first & <two>",
         ),
     )
     monkeypatch.setattr(
@@ -282,7 +294,7 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
         report_path = target / "building.review.json"
         svg_path.write_text("<svg/>", encoding="utf-8")
         png_path.write_bytes(marker.encode())
-        html_path.write_text("<div id=\"cad-layer-manager\"></div>", encoding="utf-8")
+        html_path.write_text('<div id="cad-layer-manager"></div>', encoding="utf-8")
         floor_report_path.write_text(
             json.dumps(
                 {
@@ -358,6 +370,10 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
     )
     assert render_sizes == [(1920, 1080), (1920, 1080)]
     assert report["accepted_count"] == 2
+    assert report["distinct_structural_count"] == 1
+    assert report["distinct_core_count"] == 1
+    assert report["distinct_circulation_count"] == 1
+    assert report["distinct_candidate_png_count"] == 2
     assert len(report["pairwise_diversity"]) == 2 * (2 - 1) // 2
     assert report["pairwise_diversity"] == [
         {
@@ -397,6 +413,7 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
         "shaft_stack_ratio": 1.0,
         "wet_service_stack_ratio": 0.9,
         "maximum_service_centroid_shift_m": 0.2,
+        "unmeasurable_geometry": [],
     }
     index_html = (output_dir / "index.html").read_text(encoding="utf-8")
     assert "first &amp; &lt;two&gt;" in index_html

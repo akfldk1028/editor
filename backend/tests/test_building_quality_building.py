@@ -121,13 +121,26 @@ def test_not_checked_egress_graph_blocks_pass_and_preserves_facts():
         replace(building, floor_results=(replace(floor, egress_graph=graph),))
     )
 
-    assert measured.status == "not_checked"
+    assert measured.status == "fail"
+    assert measured.failed_floor_indexes == (1,)
+    assert measured.hard_failure_facts == ((1, "route_connectivity"),)
     assert measured.unresolved_facts == ("route_connectivity",)
+
+
+def test_adjacent_floors_without_wet_services_do_not_force_zero_ratio():
+    building = _building(floors=2)
+
+    measured = measure_vertical_quality(building)
+
+    assert measured.wet_service_stack_ratio == 1.0
 
 
 def test_egress_aggregation_sorts_unsorted_floor_results():
     building = _building(floors=2)
-    floors = tuple(_floor_with_screening(floor, checks=("pass",), unresolved=()) for floor in building.floor_results)
+    floors = tuple(
+        _floor_with_screening(floor, checks=("pass",), unresolved=())
+        for floor in building.floor_results
+    )
 
     measured = aggregate_egress_quality(
         replace(
@@ -224,15 +237,20 @@ def _building_with_missing_shaft_on_floor(floor_index: int):
     return replace(building, floor_results=floors)
 
 
-def _building_with_screening(
-    *, checks: tuple[str, ...], unresolved: tuple[str, ...]
-):
+def _building_with_screening(*, checks: tuple[str, ...], unresolved: tuple[str, ...]):
     building = _building(floors=1)
     floor = building.floor_results[0]
-    return replace(building, floor_results=(_floor_with_screening(floor, checks=checks, unresolved=unresolved),))
+    return replace(
+        building,
+        floor_results=(
+            _floor_with_screening(floor, checks=checks, unresolved=unresolved),
+        ),
+    )
 
 
-def _floor_with_screening(floor, *, checks: tuple[str, ...], unresolved: tuple[str, ...]):
+def _floor_with_screening(
+    floor, *, checks: tuple[str, ...], unresolved: tuple[str, ...]
+):
     graph = floor.egress_graph
     assert graph is not None
     screening = RegulatoryScreening(
@@ -272,9 +290,7 @@ def _non_service_rooms(rooms: list[RoomPolygon]) -> list[RoomPolygon]:
     return [room for room in rooms if room.space_type not in {"core", "restroom"}]
 
 
-def _room(
-    room_id: str, space_type: str, offset: tuple[float, float]
-) -> RoomPolygon:
+def _room(room_id: str, space_type: str, offset: tuple[float, float]) -> RoomPolygon:
     x, y = offset
     return RoomPolygon(
         room_id,

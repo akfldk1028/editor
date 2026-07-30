@@ -177,12 +177,11 @@ def compose_structural_alternatives(
                             reason=(
                                 f"{variant}: {_quality_rejection_reason(quality_report)}"
                             ),
+                            quality_report=quality_report,
                         )
                     )
                     continue
-                circulation_fingerprint = _circulation_fingerprint(
-                    circulation.items()
-                )
+                circulation_fingerprint = _circulation_fingerprint(circulation.items())
                 room_fingerprint = room_structural_fingerprint(building)
                 structural_fingerprint = hashlib.sha256(
                     (
@@ -295,8 +294,7 @@ def _access_segments(
     edge_indices = {
         int(record["edge_index"])
         for record in mass.site_edges
-        if "edge_index" in record
-        and record.get("kind") == "street"
+        if "edge_index" in record and record.get("kind") == "street"
     }
     edge_indices.update(
         int(record["edge_index"])
@@ -370,14 +368,19 @@ def _select_quality_distinct_alternatives(
             )
             if all(comparison.quality_distinct for comparison in comparisons):
                 distinct.append(
-                    (candidate, min(comparison.total_distance for comparison in comparisons))
+                    (
+                        candidate,
+                        min(comparison.total_distance for comparison in comparisons),
+                    )
                 )
                 continue
             rejections.append(
                 StructuralAlternativeRejection(
                     strategy=candidate.strategy,
                     reason_type="AlternativeDiversityRejected",
-                    reason=_diversity_rejection_reason(candidate, selected, comparisons),
+                    reason=_diversity_rejection_reason(
+                        candidate, selected, comparisons
+                    ),
                 )
             )
         pending = [candidate for candidate, _ in distinct]
@@ -398,9 +401,7 @@ def _cached_diversity_comparison(
     second: StructuralAlternative,
     cache: dict[tuple[str, str], AlternativeDiversityReport],
 ) -> AlternativeDiversityReport:
-    key = tuple(
-        sorted((first.structural_fingerprint, second.structural_fingerprint))
-    )
+    key = tuple(sorted((first.structural_fingerprint, second.structural_fingerprint)))
     if key not in cache:
         cache[key] = compare_building_diversity(first.building, second.building)
     return cache[key]
@@ -435,9 +436,7 @@ def _rejection_key(
 def _rank_key(
     alternative: StructuralAlternative,
 ) -> tuple[float, float, str]:
-    validations = [
-        floor.validation for floor in alternative.building.floor_results
-    ]
+    validations = [floor.validation for floor in alternative.building.floor_results]
     return (
         -alternative.quality_report.score,
         -sum(report.total_score for report in validations),

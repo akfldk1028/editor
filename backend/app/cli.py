@@ -143,6 +143,19 @@ def _serialize_quality_evidence(
     return serialized
 
 
+def _serialize_rejected_strategy(rejection) -> dict:
+    serialized = {
+        "strategy": rejection.strategy,
+        "reason_type": rejection.reason_type,
+        "reason": rejection.reason,
+    }
+    if rejection.quality_report is not None:
+        serialized["quality_report"] = _serialize_quality_evidence(
+            rejection.quality_report
+        )
+    return serialized
+
+
 def _quality_table_html(item: dict) -> str:
     quality = item["building_quality"]
     components = quality["component_scores"]
@@ -209,18 +222,14 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
             use_type="office",
         )
         non_core_targets = [
-            float(node.target_area)
-            for node in prior.nodes
-            if node.space_type != "core"
+            float(node.target_area) for node in prior.nodes if node.space_type != "core"
         ]
         primary_target = next(
             float(node.target_area)
             for node in prior.nodes
             if node.space_type == "open_work"
         )
-        baseline_primary_shares[floor_index] = (
-            primary_target / sum(non_core_targets)
-        )
+        baseline_primary_shares[floor_index] = primary_target / sum(non_core_targets)
     target = Path(args.output_dir).resolve()
     target.mkdir(parents=True, exist_ok=True)
     summaries = []
@@ -236,9 +245,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
             height=1080,
             render_style="architectural",
         )
-        building_report = json.loads(
-            artifacts.report_path.read_text(encoding="utf-8")
-        )
+        building_report = json.loads(artifacts.report_path.read_text(encoding="utf-8"))
         unresolved_regulatory_facts.update(
             building_report["regulatory_screening"].get("unresolved_facts", [])
         )
@@ -254,17 +261,13 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
                 for floor in alternative.building.floor_results
                 if floor.program.floor_index == floor_index
             )
-            copied_png = target / (
-                f"{candidate_id}-floor-{floor_index:03d}.png"
-            )
+            copied_png = target / (f"{candidate_id}-floor-{floor_index:03d}.png")
             shutil.copyfile(floor_artifact.png_path, copied_png)
             png_sha256 = hashlib.sha256(copied_png.read_bytes()).hexdigest()
             scores = floor_report["scores"]
             coverage_score = float(scores["coverage_score"])
             unresolved_label_collisions = int(
-                floor_report["render_validation"][
-                    "unresolved_label_collision_count"
-                ]
+                floor_report["render_validation"]["unresolved_label_collision_count"]
             )
             primary_room = next(
                 room
@@ -285,36 +288,26 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
             actual_primary_share = primary_area / non_core_total
             baseline_primary_share = baseline_primary_shares[floor_index]
             minimum_primary_share = (
-                baseline_primary_share
-                * _IRREGULAR_MINIMUM_PRIMARY_SHARE_FACTOR
+                baseline_primary_share * _IRREGULAR_MINIMUM_PRIMARY_SHARE_FACTOR
             )
             primary_is_largest = primary_area == max(non_core_areas.values())
             office_space_ratio_passed = (
-                primary_is_largest
-                and actual_primary_share >= minimum_primary_share
+                primary_is_largest and actual_primary_share >= minimum_primary_share
             )
-            floor_scores.append(
-                {"floor_index": floor_index, **scores}
-            )
+            floor_scores.append({"floor_index": floor_index, **scores})
             floors.append(
                 {
                     "floor_index": floor_index,
                     "svg": str(floor_artifact.svg_path.relative_to(target)),
                     "png": str(copied_png.relative_to(target)),
                     "html": str(floor_artifact.html_path.relative_to(target)),
-                    "review_json": str(
-                        floor_artifact.report_path.relative_to(target)
-                    ),
+                    "review_json": str(floor_artifact.report_path.relative_to(target)),
                     "png_sha256": png_sha256,
                     "floor_boundary": floor_report["floor_boundary"],
                     "coverage_score": coverage_score,
                     "unallocated_ratio": round(1.0 - coverage_score, 4),
-                    "unresolved_label_collision_count": (
-                        unresolved_label_collisions
-                    ),
-                    "png_output_size": floor_report["status_footer"][
-                        "png_output_size"
-                    ],
+                    "unresolved_label_collision_count": (unresolved_label_collisions),
+                    "png_output_size": floor_report["status_footer"]["png_output_size"],
                     "office_space_ratio": {
                         "baseline_prior_share": baseline_primary_share,
                         "minimum_primary_share": minimum_primary_share,
@@ -335,8 +328,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
         ).hexdigest()
         coverage_passed = all(
             floor["coverage_score"] >= _IRREGULAR_MINIMUM_FLOOR_COVERAGE
-            and floor["unallocated_ratio"]
-            <= _IRREGULAR_MAXIMUM_UNALLOCATED_RATIO
+            and floor["unallocated_ratio"] <= _IRREGULAR_MAXIMUM_UNALLOCATED_RATIO
             for floor in floors
         )
         label_collision_passed = all(
@@ -361,9 +353,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
                 "quality_accepted": quality_accepted,
                 "quality_checks": {
                     "floor_coverage": "pass" if coverage_passed else "fail",
-                    "label_overlap": (
-                        "pass" if label_collision_passed else "fail"
-                    ),
+                    "label_overlap": ("pass" if label_collision_passed else "fail"),
                     "office_space_ratio": (
                         "pass" if office_space_ratio_passed else "fail"
                     ),
@@ -376,9 +366,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
                 },
                 "validation_scores": {
                     "floors": floor_scores,
-                    "total_score": sum(
-                        item["total_score"] for item in floor_scores
-                    ),
+                    "total_score": sum(item["total_score"] for item in floor_scores),
                 },
                 "building_quality": _serialize_quality_evidence(
                     alternative.quality_report
@@ -386,12 +374,8 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
                 "internal_validation": artifacts.internal_validation,
                 "render_validation": artifacts.render_validation,
                 "regulatory_screening": artifacts.regulatory_screening,
-                "index_html": str(
-                    artifacts.index_html_path.relative_to(target)
-                ),
-                "building_review_json": str(
-                    artifacts.report_path.relative_to(target)
-                ),
+                "index_html": str(artifacts.index_html_path.relative_to(target)),
+                "building_review_json": str(artifacts.report_path.relative_to(target)),
                 "candidate_png_fingerprint": candidate_png_fingerprint,
                 "floors": floors,
             }
@@ -401,21 +385,26 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
     distinct_structural_count = len(
         {item["fingerprints"]["structural"] for item in accepted}
     )
-    distinct_core_count = len(
-        {item["fingerprints"]["core"] for item in accepted}
-    )
+    distinct_core_count = len({item["fingerprints"]["core"] for item in accepted})
     distinct_circulation_count = len(
         {item["fingerprints"]["circulation"] for item in accepted}
     )
     distinct_candidate_png_count = len(
         {item["candidate_png_fingerprint"] for item in accepted}
     )
-    pairwise_diversity = [
-        _serialize_quality_evidence(
-            compare_building_diversity(first.building, second.building)
-        )
+    comparisons = tuple(
+        (first, second, compare_building_diversity(first.building, second.building))
         for first, second in combinations(composition.alternatives, 2)
+    )
+    pairwise_diversity = [
+        _serialize_quality_evidence(comparison) for _, _, comparison in comparisons
     ]
+    quality_distinct_pair_count = sum(
+        comparison.quality_distinct
+        and first.quality_report.hard_pass
+        and second.quality_report.hard_pass
+        for first, second, comparison in comparisons
+    )
     payload = {
         "schema_version": 1,
         "project_id": mass.project_id,
@@ -432,19 +421,18 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
         "distinct_png_count": distinct_candidate_png_count,
         "quality_thresholds": {
             "minimum_floor_coverage": _IRREGULAR_MINIMUM_FLOOR_COVERAGE,
-            "maximum_unallocated_ratio": (
-                _IRREGULAR_MAXIMUM_UNALLOCATED_RATIO
-            ),
+            "maximum_unallocated_ratio": (_IRREGULAR_MAXIMUM_UNALLOCATED_RATIO),
             "maximum_unresolved_label_collisions": (
                 _IRREGULAR_MAXIMUM_LABEL_COLLISIONS
             ),
-            "minimum_primary_share_factor": (
-                _IRREGULAR_MINIMUM_PRIMARY_SHARE_FACTOR
-            ),
+            "minimum_primary_share_factor": (_IRREGULAR_MINIMUM_PRIMARY_SHARE_FACTOR),
         },
         "alternatives": summaries,
         "pairwise_diversity": pairwise_diversity,
-        "rejected_strategies": to_jsonable(composition.rejections),
+        "rejected_strategies": [
+            _serialize_rejected_strategy(rejection)
+            for rejection in composition.rejections
+        ],
         "unresolved_regulatory_facts": sorted(unresolved_regulatory_facts),
     }
     (target / "alternatives.review.json").write_text(
@@ -499,13 +487,7 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
         encoding="utf-8",
     )
     print(json.dumps(payload, ensure_ascii=False))
-    exit_ready = (
-        len(accepted) >= 2
-        and distinct_structural_count >= 2
-        and distinct_core_count >= 2
-        and distinct_circulation_count >= 2
-        and distinct_candidate_png_count >= 2
-    )
+    exit_ready = quality_distinct_pair_count >= 1
     if not exit_ready:
         raise SystemExit(1)
 
@@ -631,11 +613,11 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
         candidate_index = candidate_dir / "index.html"
         candidate_index.write_text(
             (
-                "<!doctype html><html><head><meta charset=\"utf-8\">"
+                '<!doctype html><html><head><meta charset="utf-8">'
                 f"<title>{html.escape(proposal.candidate_id)}</title>"
-                "</head><body style=\"margin:0;background:#fff\">"
-                f"<iframe src=\"{html.escape(artifacts.html_path.name)}\" "
-                "style=\"width:100%;height:100vh;border:0\"></iframe>"
+                '</head><body style="margin:0;background:#fff">'
+                f'<iframe src="{html.escape(artifacts.html_path.name)}" '
+                'style="width:100%;height:100vh;border:0"></iframe>'
                 "</body></html>"
             ),
             encoding="utf-8",
@@ -649,16 +631,12 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
                     "accepted" if result.validation.accepted else "rejected"
                 ),
                 "score": result.validation.total_score,
-                "hard_violation_count": (
-                    result.validation.hard_violation_count
-                ),
+                "hard_violation_count": (result.validation.hard_violation_count),
                 "program_source": result.program.source,
                 "sequence": list(proposal.sequence),
                 "adjacencies": to_jsonable(proposal.adjacencies),
                 "effective_adjacencies": to_jsonable(result.program.edges),
-                "geometry_fingerprint": geometry_fingerprints[
-                    proposal.candidate_id
-                ],
+                "geometry_fingerprint": geometry_fingerprints[proposal.candidate_id],
                 "png": str(artifacts.png_path.relative_to(target)),
                 "html": str(candidate_index.relative_to(target)),
                 "review_json": str(artifacts.report_path.relative_to(target)),
@@ -705,27 +683,27 @@ def _run_local_topology_review(args, mass: MassInput) -> None:
     )
     rows = "\n".join(
         (
-            "<section style=\"border-top:1px solid #ddd;padding:24px 0\">"
-            f"<h2 style=\"font-size:18px\">#{item['rank']} "
+            '<section style="border-top:1px solid #ddd;padding:24px 0">'
+            f'<h2 style="font-size:18px">#{item["rank"]} '
             f"{html.escape(item['candidate_id'])}</h2>"
             f"<p>accepted={str(item['accepted']).lower()} | "
             f"score={item['score']:.4f} | "
             f"hard violations={item['hard_violation_count']}</p>"
-            f"<a href=\"{html.escape(item['html'])}\">"
-            f"<img src=\"{html.escape(item['png'])}\" "
-            "style=\"max-width:100%;height:auto\" "
-            f"alt=\"{html.escape(item['candidate_id'])}\"></a>"
+            f'<a href="{html.escape(item["html"])}">'
+            f'<img src="{html.escape(item["png"])}" '
+            'style="max-width:100%;height:auto" '
+            f'alt="{html.escape(item["candidate_id"])}"></a>'
             "</section>"
         )
         for item in summaries
     )
     (target / "index.html").write_text(
         (
-            "<!doctype html><html><head><meta charset=\"utf-8\">"
+            '<!doctype html><html><head><meta charset="utf-8">'
             "<title>Local topology review</title></head>"
-            "<body style=\"margin:0;background:#fff;color:#111;"
-            "font:14px Arial,sans-serif\"><main style=\"max-width:1100px;"
-            "margin:auto;padding:24px\"><h1 style=\"font-size:24px\">"
+            '<body style="margin:0;background:#fff;color:#111;'
+            'font:14px Arial,sans-serif"><main style="max-width:1100px;'
+            'margin:auto;padding:24px"><h1 style="font-size:24px">'
             f"{html.escape(mass.project_id)} local topology review</h1>"
             f"{rows}</main></body></html>"
         ),
@@ -826,9 +804,7 @@ def main() -> None:
     )
     local_topology.add_argument(
         "--base-model",
-        default=str(
-            Path("clone") / "models" / "Qwen3-4B-Instruct-2507"
-        ),
+        default=str(Path("clone") / "models" / "Qwen3-4B-Instruct-2507"),
     )
 
     args = parser.parse_args()

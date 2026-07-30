@@ -43,6 +43,7 @@ class StructuralAlternativeRejection:
     strategy: str
     reason_type: str
     reason: str
+    quality_report: BuildingQualityReport | None = None
 
     def __post_init__(self) -> None:
         if any(
@@ -50,6 +51,15 @@ class StructuralAlternativeRejection:
             for value in (self.strategy, self.reason_type, self.reason)
         ):
             raise ValueError("structural rejection fields must be non-empty")
+        if self.quality_report is not None and not isinstance(
+            self.quality_report, BuildingQualityReport
+        ):
+            raise TypeError("structural rejection quality report is invalid")
+        if (
+            self.reason_type == "BuildingQualityRejected"
+            and self.quality_report is None
+        ):
+            raise ValueError("building quality rejection requires a quality report")
 
 
 def _is_sha256(value: object) -> bool:
