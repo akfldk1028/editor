@@ -167,7 +167,11 @@ def _building_features(building: BuildingGenerationResult) -> _BuildingFeatures:
 def _floors_by_index(
     floors: tuple[GenerationResult, ...],
 ) -> dict[int, GenerationResult]:
-    return {floor.program.floor_index: floor for floor in floors}
+    ordered_floors = tuple(sorted(floors, key=lambda floor: floor.program.floor_index))
+    floor_indexes = tuple(floor.program.floor_index for floor in ordered_floors)
+    if len(set(floor_indexes)) != len(floor_indexes):
+        raise ValueError("building diversity requires unique floor indexes")
+    return {floor.program.floor_index: floor for floor in ordered_floors}
 
 
 def _core_distance(first: _BuildingFeatures, second: _BuildingFeatures) -> float:

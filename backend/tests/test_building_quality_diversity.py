@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import pytest
+
 from backend.app.modules.building_quality import (
     DEFAULT_QUALITY_POLICY,
     compare_building_diversity,
@@ -62,6 +64,36 @@ def test_program_room_ids_do_not_change_topology_or_diversity() -> None:
 
     assert report.topology_distance == 0.0
     assert report.total_distance == 0.0
+
+
+def test_floor_result_order_does_not_change_semantic_diversity() -> None:
+    first = _two_floor_building()
+    second = replace(first, floor_results=tuple(reversed(first.floor_results)))
+
+    report = compare_building_diversity(first, second)
+
+    assert report.first_fingerprint == report.second_fingerprint
+    assert report.core_distance == 0.0
+    assert report.circulation_distance == 0.0
+    assert report.topology_distance == 0.0
+    assert report.area_distribution_distance == 0.0
+    assert report.total_distance == 0.0
+
+
+def test_duplicate_floor_indexes_are_rejected() -> None:
+    building = _two_floor_building()
+    first_floor, second_floor = building.floor_results
+    duplicate_floor = replace(
+        second_floor,
+        program=replace(second_floor.program, floor_index=1),
+        layout=replace(second_floor.layout, floor_index=1),
+    )
+
+    with pytest.raises(ValueError, match="unique floor indexes"):
+        compare_building_diversity(
+            replace(building, floor_results=(first_floor, duplicate_floor)),
+            building,
+        )
 
 
 def _building(
@@ -172,6 +204,21 @@ def _same_building_with_reversed_polygon_rings(
         ],
     )
     return replace(building, floor_results=(replace(floor, layout=layout),))
+
+
+def _two_floor_building() -> BuildingGenerationResult:
+    building = _building()
+    first_floor = building.floor_results[0]
+    second_floor = replace(
+        first_floor,
+        program=replace(first_floor.program, floor_index=2),
+        layout=replace(first_floor.layout, floor_index=2),
+    )
+    return replace(
+        building,
+        mass=replace(building.mass, floors=2),
+        floor_results=(first_floor, second_floor),
+    )
 
 
 def _same_building_with_renamed_room_ids(
