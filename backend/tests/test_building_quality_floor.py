@@ -34,7 +34,7 @@ def test_daylight_proxy_is_area_weighted_and_requires_valid_exterior_window():
     assert measured.unserved_room_ids == ("meeting",)
 
 
-def test_interior_or_mis_hosted_window_does_not_serve_primary_room():
+def test_interior_window_does_not_serve_primary_room():
     floor = _office_floor(
         primary_areas={"open_work": 70, "meeting": 20, "focus": 10},
         exterior_windows={"open_work"},
@@ -43,6 +43,20 @@ def test_interior_or_mis_hosted_window_does_not_serve_primary_room():
 
     measured = measure_primary_daylight(floor)
 
+    assert measured.ratio == pytest.approx(0.70)
+    assert measured.unserved_room_ids == ("focus", "meeting")
+
+
+def test_mis_hosted_exterior_window_does_not_serve_primary_room():
+    floor = _office_floor(
+        primary_areas={"open_work": 70, "meeting": 20, "focus": 10},
+        exterior_windows={"open_work"},
+        mis_hosted_windows={"focus": "open_work"},
+    )
+
+    measured = measure_primary_daylight(floor)
+
+    assert measured.served_room_ids == ("open_work",)
     assert measured.ratio == pytest.approx(0.70)
     assert measured.unserved_room_ids == ("focus", "meeting")
 
@@ -63,6 +77,8 @@ def test_room_form_ratio_uses_actual_room_area_weighting():
     assert measured.measured_area == pytest.approx(100)
     assert measured.passing_area == pytest.approx(80)
     assert measured.ratio == pytest.approx(0.80)
+    assert measured.worst_aspect_ratio == pytest.approx(5.0)
+    assert measured.narrowest_width_m == pytest.approx(2.0)
     assert measured.failing_room_ids == ("meeting",)
 
 
@@ -78,12 +94,19 @@ def test_unmeasurable_non_core_room_fails_room_form_measurement():
 def _office_floor(
     *,
     primary_areas: dict[str, float],
-    exterior_windows: set[str] = set(),
-    invalid_windows: set[str] = set(),
+    exterior_windows: set[str] | None = None,
+    invalid_windows: set[str] | None = None,
+    mis_hosted_windows: dict[str, str] | None = None,
 ) -> GenerationResult:
     rooms = _rooms(primary_areas)
-    lines = [_window(room_id, valid=True) for room_id in sorted(exterior_windows)]
-    lines.extend(_window(room_id, valid=False) for room_id in sorted(invalid_windows))
+    lines = [_window(room_id, valid=True) for room_id in sorted(exterior_windows or ())]
+    lines.extend(
+        _window(room_id, valid=False) for room_id in sorted(invalid_windows or ())
+    )
+    lines.extend(
+        _window(exterior_room_id, valid=True, host_id=host_id)
+        for host_id, exterior_room_id in sorted((mis_hosted_windows or {}).items())
+    )
     return _generation_result(rooms, lines)
 
 
@@ -172,7 +195,7 @@ def _rooms(
     ]
 
 
-def _window(room_id: str, *, valid: bool) -> PlanLine:
+def _window(room_id: str, *, valid: bool, host_id: str | None = None) -> PlanLine:
     valid_segments = {
         "open_work": ((0.0, 2.0), (0.0, 4.0)),
         "meeting": ((0.0, 7.25), (0.0, 8.75)),
@@ -180,11 +203,11 @@ def _window(room_id: str, *, valid: bool) -> PlanLine:
     }
     segment = valid_segments[room_id] if valid else ((2.0, 8.0), (8.0, 8.0))
     return PlanLine(
-        line_id=f"{room_id}-window",
+        line_id=f"{room_id}-window-for-{host_id or room_id}",
         category="envelope",
         kind="window",
         points=segment,
-        host_id=room_id,
+        host_id=host_id or room_id,
     )
 
 
