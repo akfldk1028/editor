@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from dataclasses import replace
@@ -40,6 +41,7 @@ from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.mass import FloorFootprint, MassInput
+from backend.app.schemas.result import BuildingGenerationResult
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -205,6 +207,123 @@ def test_composer_keeps_only_pairwise_quality_distinct_results(
 
     assert len(composition.alternatives) == 2
     assert all(item.quality_report.hard_pass for item in composition.alternatives)
+
+
+def test_select_quality_distinct_alternatives_rejects_non_distinct_pair(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = _lightweight_alternative("first", score=0.9)
+    second = _lightweight_alternative("second", score=0.8)
+    monkeypatch.setattr(
+        alternative_service,
+        "compare_building_diversity",
+        lambda first, second: _diversity_report(total_distance=0.0, quality_distinct=False),
+    )
+
+    selected, rejections = alternative_service._select_quality_distinct_alternatives(
+        (second, first),
+        limit=3,
+    )
+
+    assert selected == (first,)
+    assert len(rejections) == 1
+    assert rejections[0].strategy == "second"
+    assert rejections[0].reason_type == "AlternativeDiversityRejected"
+    assert first.structural_fingerprint in rejections[0].reason
+
+
+def test_select_quality_distinct_alternatives_uses_max_min_and_fingerprint_tie_breaker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = _lightweight_alternative("first", score=0.9)
+    second = _lightweight_alternative("second", score=0.8)
+    third = _lightweight_alternative("third", score=0.7)
+    fourth = _lightweight_alternative("fourth", score=0.6)
+    distances = {
+        frozenset(("first", "second")): 0.4,
+        frozenset(("first", "third")): 0.8,
+        frozenset(("first", "fourth")): 0.8,
+        frozenset(("second", "third")): 0.4,
+        frozenset(("second", "fourth")): 0.4,
+        frozenset(("third", "fourth")): 0.9,
+    }
+    calls: list[frozenset[str]] = []
+
+    def compare(
+        first: BuildingGenerationResult,
+        second: BuildingGenerationResult,
+    ) -> AlternativeDiversityReport:
+        pair = frozenset((first.marker, second.marker))
+        calls.append(pair)
+        return _diversity_report(total_distance=distances[pair], quality_distinct=True)
+
+    monkeypatch.setattr(alternative_service, "compare_building_diversity", compare)
+
+    selected, rejections = alternative_service._select_quality_distinct_alternatives(
+        (fourth, second, third, first),
+        limit=3,
+    )
+
+    tie_winner, remaining = sorted(
+        (third, fourth),
+        key=lambda alternative: alternative.structural_fingerprint,
+    )
+    assert selected == (first, tie_winner, remaining)
+    assert not rejections
+    assert set(calls) == {
+        frozenset(("first", "second")),
+        frozenset(("first", "third")),
+        frozenset(("first", "fourth")),
+        frozenset(("second", tie_winner.strategy)),
+        frozenset((tie_winner.strategy, remaining.strategy)),
+    }
+
+
+def test_cached_diversity_comparison_reuses_symmetric_pair(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first = _lightweight_alternative("first")
+    second = _lightweight_alternative("second")
+    calls = 0
+
+    def compare(
+        first: BuildingGenerationResult,
+        second: BuildingGenerationResult,
+    ) -> AlternativeDiversityReport:
+        nonlocal calls
+        calls += 1
+        return _diversity_report(total_distance=0.5, quality_distinct=True)
+
+    monkeypatch.setattr(alternative_service, "compare_building_diversity", compare)
+    cache = {}
+
+    assert alternative_service._cached_diversity_comparison(first, second, cache) is (
+        alternative_service._cached_diversity_comparison(second, first, cache)
+    )
+    assert calls == 1
+
+
+def test_quality_rejection_reason_sorts_hard_issue_evidence() -> None:
+    report = _quality_report(
+        hard_pass=False,
+        hard_issues=(
+            ("zoning_ratio", 0.9, 1.0),
+            ("daylight_ratio", 0.1, 0.2),
+        ),
+    )
+
+    assert alternative_service._quality_rejection_reason(report) == (
+        "daylight_ratio:0.1/0.2, zoning_ratio:0.9/1"
+    )
+
+
+def test_structural_alternative_requires_hard_passing_quality_report() -> None:
+    alternative = _lightweight_alternative("contract")
+
+    with pytest.raises(TypeError, match="quality report"):
+        replace(alternative, quality_report=object())
+    with pytest.raises(ValueError, match="hard-pass"):
+        replace(alternative, quality_report=_quality_report(hard_pass=False))
 
 
 def test_room_label_swap_does_not_create_structural_family() -> None:
@@ -583,21 +702,24 @@ def _quality_report(
     hard_pass: bool = True,
     score: float = 0.8,
     hard_issue: tuple[str, float, float] | None = None,
+    hard_issues: tuple[tuple[str, float, float], ...] = (),
 ) -> BuildingQualityReport:
-    issues = ()
-    if hard_issue is not None:
-        code, measured_value, threshold = hard_issue
-        issues = (
-            QualityIssue(
-                code=code,
-                severity="hard",
-                floor_index=1,
-                subject_id="open_work",
-                measured_value=measured_value,
-                threshold=threshold,
-                message="quality policy failure",
-            ),
+    issue_values = (
+        *hard_issues,
+        *((hard_issue,) if hard_issue is not None else ()),
+    )
+    issues = tuple(
+        QualityIssue(
+            code=code,
+            severity="hard",
+            floor_index=1,
+            subject_id="open_work",
+            measured_value=measured_value,
+            threshold=threshold,
+            message="quality policy failure",
         )
+        for code, measured_value, threshold in issue_values
+    )
     return BuildingQualityReport(
         policy_version="building-quality/v1",
         hard_pass=hard_pass,
@@ -622,6 +744,48 @@ def _quality_report(
         ),
         issues=issues,
         unresolved_facts=(),
+    )
+
+
+def _lightweight_alternative(
+    strategy: str,
+    *,
+    score: float = 0.8,
+) -> StructuralAlternative:
+    building = object.__new__(BuildingGenerationResult)
+    object.__setattr__(building, "floor_results", ())
+    object.__setattr__(building, "marker", strategy)
+    components = tuple(
+        hashlib.sha256(f"{strategy}:{label}".encode()).hexdigest()
+        for label in ("core", "circulation", "rooms")
+    )
+    structural_fingerprint = hashlib.sha256(":".join(components).encode()).hexdigest()
+    return StructuralAlternative(
+        strategy=strategy,
+        building=building,
+        quality_report=_quality_report(score=score),
+        core_fingerprint=components[0],
+        circulation_fingerprint=components[1],
+        room_fingerprint=components[2],
+        structural_fingerprint=structural_fingerprint,
+    )
+
+
+def _diversity_report(
+    *,
+    total_distance: float,
+    quality_distinct: bool,
+) -> AlternativeDiversityReport:
+    return AlternativeDiversityReport(
+        first_fingerprint="first",
+        second_fingerprint="second",
+        core_distance=total_distance,
+        circulation_distance=total_distance,
+        topology_distance=total_distance,
+        area_distribution_distance=total_distance,
+        total_distance=total_distance,
+        nonzero_component_count=4 if total_distance else 0,
+        quality_distinct=quality_distinct,
     )
 
 
