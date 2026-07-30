@@ -87,10 +87,14 @@ class GeneratorRepairAttempt:
             ):
                 raise ValueError("failed generator repair requires typed error evidence")
             return
-        if not self.after_primary_daylight:
-            raise ValueError("generator repair attempt requires after evidence")
+        if after_indexes != floor_indexes:
+            raise ValueError(
+                "generator repair attempt after evidence must cover requested floors"
+            )
         if self.error_type is not None or self.error_message is not None:
             raise ValueError("completed generator repair cannot have error evidence")
+        if self.outcome == "validation_rejected" and not self.validation_codes:
+            raise ValueError("validation rejection requires validation codes")
         if self.outcome == "evaluated" and self.validation_codes:
             raise ValueError("evaluated generator repair cannot have validation codes")
 

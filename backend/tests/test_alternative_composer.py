@@ -198,6 +198,99 @@ def test_generator_repair_provenance_is_typed_and_immutable() -> None:
         replace(evidence, before_value=math.nan)
 
 
+@pytest.mark.parametrize("outcome", ["evaluated", "validation_rejected"])
+@pytest.mark.parametrize(
+    "after_primary_daylight",
+    [
+        ((1, 0.75),),
+        ((1, 0.75), (2, 0.80), (3, 0.85)),
+    ],
+)
+def test_generator_repair_attempt_requires_exact_requested_floor_evidence(
+    outcome: str,
+    after_primary_daylight: tuple[tuple[int, float], ...],
+) -> None:
+    requests = (
+        ExteriorAllocationRequest(1, ("focus",)),
+        ExteriorAllocationRequest(2, ("meeting",)),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="after evidence must cover requested floors",
+    ):
+        GeneratorRepairAttempt(
+            operator_id="primary_daylight_exterior_allocation/v1",
+            requests=requests,
+            outcome=outcome,
+            after_primary_daylight=after_primary_daylight,
+            validation_codes=(
+                ("coverage_below_minimum",)
+                if outcome == "validation_rejected"
+                else ()
+            ),
+            error_type=None,
+            error_message=None,
+        )
+
+
+@pytest.mark.parametrize(
+    "validation_codes",
+    [
+        (),
+        ("z_code", "a_code"),
+        ("coverage_below_minimum", "coverage_below_minimum"),
+    ],
+)
+def test_validation_rejected_attempt_requires_deterministic_validation_codes(
+    validation_codes: tuple[str, ...],
+) -> None:
+    request = ExteriorAllocationRequest(1, ("focus",))
+
+    with pytest.raises(
+        ValueError,
+        match="validation codes",
+    ):
+        GeneratorRepairAttempt(
+            operator_id="primary_daylight_exterior_allocation/v1",
+            requests=(request,),
+            outcome="validation_rejected",
+            after_primary_daylight=((1, 0.75),),
+            validation_codes=validation_codes,
+            error_type=None,
+            error_message=None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("outcome", "after_primary_daylight", "validation_codes"),
+    [
+        ("generation_failed", ((1, 0.75),), ()),
+        ("generation_failed", (), ("coverage_below_minimum",)),
+        ("evaluated", ((1, 0.75),), ("coverage_below_minimum",)),
+    ],
+)
+def test_generator_repair_attempt_rejects_evidence_for_wrong_outcome(
+    outcome: str,
+    after_primary_daylight: tuple[tuple[int, float], ...],
+    validation_codes: tuple[str, ...],
+) -> None:
+    request = ExteriorAllocationRequest(1, ("focus",))
+
+    with pytest.raises(ValueError):
+        GeneratorRepairAttempt(
+            operator_id="primary_daylight_exterior_allocation/v1",
+            requests=(request,),
+            outcome=outcome,
+            after_primary_daylight=after_primary_daylight,
+            validation_codes=validation_codes,
+            error_type="ValueError" if outcome == "generation_failed" else None,
+            error_message=(
+                "generation failed" if outcome == "generation_failed" else None
+            ),
+        )
+
+
 def test_daylight_feedback_uses_issue_code_not_reason_or_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
