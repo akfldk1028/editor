@@ -297,6 +297,167 @@ def test_generator_repair_attempt_rejects_evidence_for_wrong_outcome(
         )
 
 
+def _rejection_repair(
+    *,
+    floor_index: int = 1,
+    room_ids: tuple[str, ...] = ("meeting",),
+    after_value: float = 0.75,
+) -> GeneratorRepairProvenance:
+    return GeneratorRepairProvenance(
+        operator_id="primary_daylight_exterior_allocation/v1",
+        issue_code="primary_daylight_ratio",
+        policy_version="building-quality/v1",
+        floor_index=floor_index,
+        subject_id="open_work",
+        room_ids=room_ids,
+        before_value=0.69,
+        threshold=0.70,
+        after_value=after_value,
+    )
+
+
+def _rejection_attempt(
+    outcome: str,
+    *,
+    room_ids: tuple[str, ...] = ("meeting",),
+    after_value: float = 0.75,
+) -> GeneratorRepairAttempt:
+    return GeneratorRepairAttempt(
+        operator_id="primary_daylight_exterior_allocation/v1",
+        requests=(ExteriorAllocationRequest(1, room_ids),),
+        outcome=outcome,
+        after_primary_daylight=(
+            () if outcome == "generation_failed" else ((1, after_value),)
+        ),
+        validation_codes=(
+            ("coverage_below_minimum",)
+            if outcome == "validation_rejected"
+            else ()
+        ),
+        error_type="ValueError" if outcome == "generation_failed" else None,
+        error_message="generation failed" if outcome == "generation_failed" else None,
+    )
+
+
+@pytest.mark.parametrize(
+    ("outcome", "reason_type"),
+    [
+        ("generation_failed", "BuildingQualityRejected"),
+        ("validation_rejected", "BuildingQualityRejected"),
+        ("evaluated", "GeneratorRepairFailed"),
+        ("evaluated", "BuildingValidationRetryRejected"),
+    ],
+)
+def test_repair_attempt_outcome_requires_matching_rejection_reason(
+    outcome: str,
+    reason_type: str,
+) -> None:
+    with pytest.raises(ValueError, match="outcome.*reason|reason.*outcome"):
+        StructuralAlternativeRejection(
+            strategy="test",
+            reason_type=reason_type,
+            reason="contradictory repair rejection",
+            quality_report=_quality_report(hard_pass=False),
+            generator_repairs=(
+                (_rejection_repair(),) if outcome == "evaluated" else ()
+            ),
+            generator_repair_attempt=_rejection_attempt(outcome),
+        )
+
+
+@pytest.mark.parametrize(
+    ("outcome", "reason_type"),
+    [
+        ("generation_failed", "GeneratorRepairFailed"),
+        ("validation_rejected", "BuildingValidationRetryRejected"),
+    ],
+)
+def test_unevaluated_repair_attempt_cannot_carry_repair_provenance(
+    outcome: str,
+    reason_type: str,
+) -> None:
+    with pytest.raises(ValueError, match="cannot have generator repairs"):
+        StructuralAlternativeRejection(
+            strategy="test",
+            reason_type=reason_type,
+            reason="unevaluated repair rejection",
+            quality_report=_quality_report(hard_pass=False),
+            generator_repairs=(_rejection_repair(),),
+            generator_repair_attempt=_rejection_attempt(outcome),
+        )
+
+
+@pytest.mark.parametrize(
+    ("repairs", "attempt"),
+    [
+        ((), _rejection_attempt("evaluated")),
+        (
+            (_rejection_repair(after_value=0.76),),
+            _rejection_attempt("evaluated", after_value=0.75),
+        ),
+        (
+            (_rejection_repair(room_ids=("focus",)),),
+            _rejection_attempt("evaluated", room_ids=("meeting",)),
+        ),
+        (
+            (_rejection_repair(floor_index=2),),
+            _rejection_attempt("evaluated"),
+        ),
+        ((_rejection_repair(),), None),
+    ],
+)
+def test_evaluated_rejection_requires_exact_request_and_repair_evidence(
+    repairs: tuple[GeneratorRepairProvenance, ...],
+    attempt: GeneratorRepairAttempt | None,
+) -> None:
+    with pytest.raises(ValueError, match="repair.*attempt|attempt.*repair"):
+        StructuralAlternativeRejection(
+            strategy="test",
+            reason_type="BuildingQualityRejected",
+            reason="inconsistent evaluated rejection",
+            quality_report=_quality_report(hard_pass=False),
+            generator_repairs=repairs,
+            generator_repair_attempt=attempt,
+        )
+
+
+def test_repair_rejection_truth_table_accepts_coherent_combinations() -> None:
+    report = _quality_report(hard_pass=False)
+    evaluated = StructuralAlternativeRejection(
+        strategy="evaluated",
+        reason_type="BuildingQualityRejected",
+        reason="post-evaluation quality rejection",
+        quality_report=report,
+        generator_repairs=(_rejection_repair(after_value=0.8),),
+        generator_repair_attempt=_rejection_attempt("evaluated", after_value=0.8),
+    )
+    validation = StructuralAlternativeRejection(
+        strategy="validation",
+        reason_type="BuildingValidationRetryRejected",
+        reason="validation rejection",
+        quality_report=report,
+        generator_repair_attempt=_rejection_attempt("validation_rejected"),
+    )
+    generation = StructuralAlternativeRejection(
+        strategy="generation",
+        reason_type="GeneratorRepairFailed",
+        reason="generation failure",
+        quality_report=report,
+        generator_repair_attempt=_rejection_attempt("generation_failed"),
+    )
+    legacy = StructuralAlternativeRejection(
+        strategy="legacy",
+        reason_type="BuildingQualityRejected",
+        reason="legacy quality rejection",
+        quality_report=report,
+    )
+
+    assert evaluated.generator_repairs
+    assert validation.generator_repairs == ()
+    assert generation.generator_repairs == ()
+    assert legacy.generator_repair_attempt is None
+
+
 def test_daylight_feedback_uses_issue_code_not_reason_or_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -516,7 +677,7 @@ def test_primary_daylight_retry_is_one_shot_and_re_evaluated(
     )
 
 
-def test_invalid_daylight_retry_keeps_after_provenance_on_typed_rejection(
+def test_invalid_daylight_retry_keeps_attempt_without_evaluated_provenance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     before = _quality_report(
@@ -582,12 +743,11 @@ def test_invalid_daylight_retry_keeps_after_provenance_on_typed_rejection(
         retry=retry,
     )
 
-    repair, = rejection.generator_repairs
     assert rejection.reason_type == "BuildingValidationRetryRejected"
     assert rejection.reason == (
         "legacy primary_daylight_retry: coverage_below_minimum"
     )
-    assert repair.after_value == pytest.approx(0.75)
+    assert rejection.generator_repairs == ()
     assert rejection.generator_repair_attempt == GeneratorRepairAttempt(
         operator_id="primary_daylight_exterior_allocation/v1",
         requests=(request,),

@@ -490,11 +490,9 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
         reason_type="BuildingQualityRejected",
         reason="structured test rejection",
         quality_report=alternatives[0].quality_report,
-        generator_repairs=(repair_evidence(0.7123456789),),
     )
     serialized_rejection = cli_module._serialize_rejected_strategy(rejection)
-    assert serialized_rejection["generator_repairs"][0]["before_value"] == 0.69
-    assert serialized_rejection["generator_repairs"][0]["after_value"] == 0.7123456789
+    assert "generator_repairs" not in serialized_rejection
     evaluated_attempt = repair_attempt(
         outcome="evaluated",
         after_primary_daylight=((1, 0.7123456789),),
@@ -524,7 +522,6 @@ def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
             reason_type="BuildingValidationRetryRejected",
             reason="validation rejected test rejection",
             quality_report=alternatives[0].quality_report,
-            generator_repairs=(repair_evidence(0.7123456789),),
             generator_repair_attempt=validation_rejected_attempt,
         ),
         StructuralAlternativeRejection(

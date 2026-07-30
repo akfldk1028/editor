@@ -151,6 +151,74 @@ def test_polygon_daylight_frontage_accepts_one_valid_equal_length_edge() -> None
     )
 
 
+@pytest.mark.parametrize("reverse_room_ring", [False, True])
+def test_polygon_daylight_frontage_unions_contiguous_exterior_segments(
+    reverse_room_ring: bool,
+) -> None:
+    room_points = [(0.0, 0.0), (4.0, 0.0), (4.0, 3.0), (0.0, 3.0)]
+    if reverse_room_ring:
+        room_points.reverse()
+    exterior_segments = (
+        ((4.0, 0.0), (2.0, 0.0)),
+        ((0.0, 0.0), (2.0, 0.0)),
+    )
+
+    assert daylight_service.polygon_has_usable_daylight_frontage(
+        Polygon(room_points),
+        exterior_segments=exterior_segments,
+    )
+
+
+def test_polygon_daylight_frontage_unions_overlapping_exterior_segments() -> None:
+    room = Polygon([(0.0, 0.0), (1.5, 0.0), (1.5, 3.0), (0.0, 3.0)])
+
+    assert daylight_service.polygon_has_usable_daylight_frontage(
+        room,
+        exterior_segments=(
+            ((0.0, 0.0), (0.8, 0.0)),
+            ((0.7, 0.0), (1.5, 0.0)),
+        ),
+    )
+
+
+def test_polygon_daylight_frontage_unions_rotated_exterior_segments() -> None:
+    room = rotate(
+        Polygon([(0.0, 0.0), (4.0, 0.0), (4.0, 3.0), (0.0, 3.0)]),
+        30,
+        origin=(0.0, 0.0),
+    )
+    first = rotate(
+        LineString([(0.0, 0.0), (2.0, 0.0)]),
+        30,
+        origin=(0.0, 0.0),
+    )
+    second = rotate(
+        LineString([(2.0, 0.0), (4.0, 0.0)]),
+        30,
+        origin=(0.0, 0.0),
+    )
+
+    assert daylight_service.polygon_has_usable_daylight_frontage(
+        room,
+        exterior_segments=(
+            tuple(second.coords),
+            tuple(reversed(first.coords)),
+        ),
+    )
+
+
+def test_polygon_daylight_frontage_preserves_exterior_segment_gap() -> None:
+    room = Polygon([(0.0, 0.0), (1.5, 0.0), (1.5, 3.0), (0.0, 3.0)])
+
+    assert not daylight_service.polygon_has_usable_daylight_frontage(
+        room,
+        exterior_segments=(
+            ((0.0, 0.0), (0.7, 0.0)),
+            ((0.8, 0.0), (1.5, 0.0)),
+        ),
+    )
+
+
 def test_room_daylight_frontage_supports_rotated_boundary_and_window() -> None:
     boundary_shape = rotate(
         Polygon([(0, 0), (10, 0), (10, 10), (0, 10)]),

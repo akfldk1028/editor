@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from shapely.geometry import LineString, Polygon
+from shapely.ops import linemerge, unary_union
 
 from backend.app.schemas.layout import LayoutCandidate
 
@@ -124,9 +125,11 @@ def polygon_has_usable_daylight_frontage(
     *,
     exterior_segments: tuple[tuple[Point, Point], ...],
 ) -> bool:
-    edge_points = tuple(
-        sorted(
-            {
+    exterior_lines = tuple(
+        line
+        for start, end in exterior_segments
+        if (
+            line := LineString(
                 tuple(
                     sorted(
                         (
@@ -135,20 +138,40 @@ def polygon_has_usable_daylight_frontage(
                         )
                     )
                 )
+            )
+        )
+        .length
+        > _TOLERANCE
+    )
+    if not exterior_lines:
+        return False
+    exterior_linework = _merged_line_strings(unary_union(exterior_lines))
+    normalized_exterior = unary_union(exterior_linework)
+    room_edges = tuple(
+        sorted(
+            (
+                LineString((geometry.coords[0], geometry.coords[-1]))
                 for start, end in zip(
                     room_shape.exterior.coords,
                     room_shape.exterior.coords[1:],
                 )
-                if any(
-                    LineString(segment).buffer(_TOLERANCE).covers(
-                        LineString((start, end))
+                for geometry in _merged_line_strings(
+                    LineString((start, end)).intersection(
+                        normalized_exterior
                     )
-                    for segment in exterior_segments
                 )
-            }
+                if geometry.length > _TOLERANCE
+            ),
+            key=lambda edge: tuple(
+                sorted(
+                    (
+                        tuple(map(float, edge.coords[0])),
+                        tuple(map(float, edge.coords[-1])),
+                    )
+                )
+            ),
         )
     )
-    room_edges = tuple(LineString(points) for points in edge_points)
     return any(
         edge.length + _TOLERANCE
         >= MINIMUM_USABLE_DAYLIGHT_WINDOW_FRONTAGE_M
@@ -158,3 +181,26 @@ def polygon_has_usable_daylight_frontage(
         )
         for edge in room_edges
     )
+
+
+def _line_strings(geometry) -> tuple[LineString, ...]:
+    if geometry.is_empty:
+        return ()
+    if geometry.geom_type == "LineString":
+        return (geometry,)
+    if geometry.geom_type in {"MultiLineString", "GeometryCollection"}:
+        return tuple(
+            line
+            for item in geometry.geoms
+            for line in _line_strings(item)
+        )
+    return ()
+
+
+def _merged_line_strings(geometry) -> tuple[LineString, ...]:
+    lines = _line_strings(geometry)
+    if not lines:
+        return ()
+    if len(lines) == 1:
+        return lines
+    return _line_strings(linemerge(unary_union(lines)))
