@@ -435,27 +435,54 @@ def test_exterior_priority_matching_reserves_frontage_cell_for_hall_conflict() -
     assert polygons["bravo"].bounds == (0.0, 0.0, 4.0, 2.0)
 
 
-def test_exterior_priority_matching_finds_an_augmenting_path() -> None:
-    alpha = ProgramNode("alpha", "meeting", 100.0, min_width=2.0)
-    bravo = ProgramNode("bravo", "meeting", 1.0, max_area=1.0)
-    charlie = ProgramNode("charlie", "meeting", 100.0, min_width=2.0)
-    first = orthogonal_service._canonical_rectangle((0, 0, 6, 2))
-    second = orthogonal_service._canonical_rectangle((6, 0, 8, 2))
-    third = orthogonal_service._canonical_rectangle((8, 0, 10, 1))
-    exterior_segments = (((0.0, 0.0), (10.0, 0.0)),)
+def test_exterior_priority_matching_reassigns_an_occupied_later_room_cell() -> None:
+    alpha = ProgramNode("alpha", "meeting", 20.0, min_width=2.0)
+    bravo = ProgramNode("bravo", "meeting", 100.0, min_width=2.0)
+    charlie = ProgramNode("charlie", "meeting", 1.0, max_area=1.0)
+    delta = ProgramNode("delta", "meeting", 100.0, min_width=2.0)
+    alpha_seed = orthogonal_service._canonical_rectangle((0, 0, 10, 2))
+    first = orthogonal_service._canonical_rectangle((10, 0, 16, 2))
+    second = orthogonal_service._canonical_rectangle((16, 0, 18, 2))
+    third = orthogonal_service._canonical_rectangle((18, 0, 20, 1))
+    exterior_segments = (((0.0, 0.0), (20.0, 0.0)),)
+    remaining = [first, second, third]
+    exterior_contact_lengths = {
+        rectangle: orthogonal_service._exterior_contact_length(
+            rectangle,
+            exterior_segments,
+        )
+        for rectangle in remaining
+    }
+
+    greedy_remaining = list(remaining)
+    greedy_failed = False
+    for node in (bravo, charlie, delta):
+        candidates = orthogonal_service._exterior_assignment_options(
+            node,
+            greedy_remaining,
+            exterior_contact_lengths=exterior_contact_lengths,
+            frontage_segments=(),
+            free_shape=box(0, 0, 20, 2),
+        )
+        if not candidates:
+            greedy_failed = True
+            break
+        greedy_remaining.remove(candidates[0])
+    assert greedy_failed
 
     assignments = orthogonal_service._assign_rectangles(
-        [alpha, bravo, charlie],
-        [first, second, third],
-        free_shape=box(0, 0, 10, 2),
+        [alpha, bravo, charlie, delta],
+        [alpha_seed, *remaining],
+        free_shape=box(0, 0, 20, 2),
         exterior_segments=exterior_segments,
-        exterior_priority_room_ids=("alpha", "bravo", "charlie"),
+        exterior_priority_room_ids=("alpha", "bravo", "charlie", "delta"),
     )
 
     polygons = {node.node_id: Polygon(points) for node, points in assignments}
-    assert polygons["alpha"].bounds == (0.0, 0.0, 6.0, 2.0)
-    assert polygons["bravo"].bounds == (8.0, 0.0, 10.0, 1.0)
-    assert polygons["charlie"].bounds == (6.0, 0.0, 8.0, 2.0)
+    assert polygons["alpha"].bounds == (0.0, 0.0, 10.0, 2.0)
+    assert polygons["bravo"].bounds == (10.0, 0.0, 16.0, 2.0)
+    assert polygons["charlie"].bounds == (18.0, 0.0, 20.0, 1.0)
+    assert polygons["delta"].bounds == (16.0, 0.0, 18.0, 2.0)
 
 
 def test_exterior_priority_matching_reserves_bounded_seed_for_later_room() -> None:
