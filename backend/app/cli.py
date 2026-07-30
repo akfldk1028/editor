@@ -174,6 +174,30 @@ def _quality_table_html(item: dict) -> str:
     )
 
 
+def _floor_caption_html(item: dict, floor: dict) -> str:
+    quality_floor = next(
+        (
+            candidate
+            for candidate in item["building_quality"]["floors"]
+            if candidate["floor_index"] == floor["floor_index"]
+        ),
+        None,
+    )
+    if quality_floor is None:
+        raise ValueError("floor quality evidence is missing")
+    return (
+        f"<figcaption>Floor {floor['floor_index']} | "
+        f"coverage={floor['coverage_score']:.4f} | "
+        f"unallocated={floor['unallocated_ratio']:.4f} | "
+        "open work share="
+        f"{floor['office_space_ratio']['actual_primary_share']:.4f} | "
+        "daylight proxy="
+        f"{quality_floor['primary_daylight_ratio']:.4f} | "
+        f"room form={quality_floor['room_form_pass_ratio']:.4f}"
+        "</figcaption>"
+    )
+
+
 def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
     composition = compose_structural_alternatives(mass, limit=args.limit)
     analysis = analyze_mass(mass)
@@ -443,13 +467,8 @@ def _run_irregular_alternatives_review(args, mass: MassInput) -> None:
                     f'<img src="{html.escape(floor["png"], quote=True)}" '
                     f'alt="{html.escape(item["alternative_id"])} '
                     f'floor {floor["floor_index"]}">'
-                    f"<figcaption>Floor {floor['floor_index']} | "
-                    f"coverage={floor['coverage_score']:.4f} | "
-                    f"unallocated={floor['unallocated_ratio']:.4f} | "
-                    "open work share="
-                    f"{floor['office_space_ratio']['actual_primary_share']:.4f}"
-                    "</figcaption>"
-                    "</figure>"
+                    + _floor_caption_html(item, floor)
+                    + "</figure>"
                 )
                 for floor in item["floors"]
             )

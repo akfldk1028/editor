@@ -10,17 +10,27 @@ from xml.etree import ElementTree
 import pytest
 
 import backend.app.cli as cli_module
+from backend.app.modules.alternative_composer.contracts import StructuralAlternative
+from backend.app.modules.building_quality.contracts import (
+    AlternativeDiversityReport,
+    BuildingQualityReport,
+    FloorQualityMetrics,
+    VerticalQualityMetrics,
+)
 from backend.app.modules.local_topology_planner.contracts import (
     TopologyAdjacency,
     TopologyProposal,
 )
+from backend.app.schemas.mass import MassInput
+from backend.app.schemas.result import BuildingGenerationResult
 from backend.app.schemas.visual import BuildingVisualReviewArtifacts
+from backend.app.schemas.visual import VisualReviewArtifacts
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_cli_irregular_review_writes_two_structurally_distinct_pngs(tmp_path):
+def test_cli_irregular_review_records_task_8_quality_phase_boundary(tmp_path):
     output_dir = tmp_path / "irregular-review"
     completed = subprocess.run(
         [
@@ -44,25 +54,36 @@ def test_cli_irregular_review_writes_two_structurally_distinct_pngs(tmp_path):
         text=True,
     )
 
-    assert completed.returncode == 0, completed.stderr
+    assert completed.returncode == 1, completed.stderr
     report = json.loads(
         (output_dir / "alternatives.review.json").read_text(encoding="utf-8")
     )
-    assert report["accepted_count"] >= 2
+    assert report["accepted_count"] == 1
     assert report["quality_thresholds"] == {
         "minimum_floor_coverage": 0.60,
         "maximum_unallocated_ratio": 0.40,
         "maximum_unresolved_label_collisions": 0,
         "minimum_primary_share_factor": 0.75,
     }
-    assert report["distinct_structural_count"] >= 2
-    assert report["distinct_core_count"] >= 2
-    assert report["distinct_circulation_count"] >= 2
-    assert report["distinct_candidate_png_count"] >= 2
+    assert report["distinct_structural_count"] == 1
+    assert report["distinct_core_count"] == 1
+    assert report["distinct_circulation_count"] == 1
+    assert report["distinct_candidate_png_count"] == 1
     assert report["unresolved_regulatory_facts"]
     assert "rejected_strategies" in report
     assert report["quality_policy_version"] == "building-quality/v1"
-    assert report["pairwise_diversity"]
+    assert report["pairwise_diversity"] == []
+    assert [
+        item
+        for item in report["rejected_strategies"]
+        if item["reason_type"] == "BuildingQualityRejected"
+    ] == [
+        {
+            "strategy": "long_edge_adjacent",
+            "reason_type": "BuildingQualityRejected",
+            "reason": "legacy: primary_daylight_ratio:0.662530965716/0.7",
+        }
+    ]
     for alternative in report["alternatives"]:
         quality = alternative["building_quality"]
         assert quality["hard_pass"] is True
@@ -135,6 +156,254 @@ def test_cli_irregular_review_writes_two_structurally_distinct_pngs(tmp_path):
     assert "Core stack" in index_html
     assert "Shaft stack" in index_html
     assert "Regulatory: not_checked" in index_html
+
+
+def test_cli_irregular_review_quality_evidence_fast(tmp_path, monkeypatch):
+    mass = MassInput(
+        project_id="fast-quality-evidence",
+        floors=1,
+        footprint_polygon=[(0.0, 0.0), (20.0, 0.0), (20.0, 10.0), (0.0, 10.0)],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"office": 1.0},
+    )
+
+    def alternative(
+        strategy: str,
+        *,
+        score: float,
+        daylight: float,
+        room_form: float,
+    ) -> StructuralAlternative:
+        floor_result = SimpleNamespace(
+            program=SimpleNamespace(floor_index=1),
+            layout=SimpleNamespace(
+                rooms=(SimpleNamespace(space_type="open_work", room_id="open-work"),)
+            ),
+            validation=SimpleNamespace(
+                room_areas=(
+                    SimpleNamespace(room_id="open-work", actual_area=60.0),
+                    SimpleNamespace(room_id="tenant", actual_area=40.0),
+                    SimpleNamespace(room_id="core", actual_area=20.0),
+                )
+            ),
+        )
+        building = object.__new__(BuildingGenerationResult)
+        object.__setattr__(building, "floor_results", (floor_result,))
+        object.__setattr__(building, "marker", strategy)
+        components = tuple(
+            sha256(f"{strategy}:{label}".encode()).hexdigest()
+            for label in ("core", "circulation", "room")
+        )
+        return StructuralAlternative(
+            strategy=strategy,
+            building=building,
+            quality_report=BuildingQualityReport(
+                policy_version="building-quality/v1",
+                hard_pass=True,
+                score=score,
+                component_scores={
+                    "daylight": 0.8123456789,
+                    "room_form": 0.9234567891,
+                    "vertical_stacking": 0.9456789123,
+                    "egress": 1.0,
+                    "coverage_efficiency": 0.8345678912,
+                },
+                floors=(
+                    FloorQualityMetrics(
+                        floor_index=1,
+                        coverage=0.8,
+                        primary_daylight_ratio=daylight,
+                        room_form_pass_ratio=room_form,
+                        worst_aspect_ratio=2.0,
+                        narrowest_room_width_m=2.4,
+                        egress_status="pass",
+                    ),
+                ),
+                vertical=VerticalQualityMetrics(
+                    core_stack_ratio=1.0,
+                    shaft_stack_ratio=1.0,
+                    wet_service_stack_ratio=0.9,
+                    maximum_service_centroid_shift_m=0.2,
+                ),
+                issues=(),
+                unresolved_facts=(),
+            ),
+            core_fingerprint=components[0],
+            circulation_fingerprint=components[1],
+            room_fingerprint=components[2],
+            structural_fingerprint=sha256(":".join(components).encode()).hexdigest(),
+        )
+
+    alternatives = (
+        alternative(
+            "first & <two>",
+            score=0.8123456789,
+            daylight=0.7123456789,
+            room_form=0.9123456789,
+        ),
+        alternative(
+            "second",
+            score=0.8234567891,
+            daylight=0.7234567891,
+            room_form=0.9234567891,
+        ),
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "compose_structural_alternatives",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            alternatives=alternatives,
+            rejections=(),
+        ),
+    )
+    monkeypatch.setattr(cli_module, "analyze_mass", lambda _mass: object())
+    monkeypatch.setattr(
+        cli_module,
+        "generate_program_graph",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            nodes=(
+                SimpleNamespace(space_type="open_work", target_area=60.0),
+                SimpleNamespace(space_type="tenant", target_area=40.0),
+            )
+        ),
+    )
+    render_sizes = []
+
+    def fake_artifacts(building, *, output_dir, width, height, **_kwargs):
+        render_sizes.append((width, height))
+        target = Path(output_dir)
+        target.mkdir(parents=True, exist_ok=True)
+        marker = building.marker
+        svg_path = target / "floor.svg"
+        png_path = target / "floor.png"
+        html_path = target / "floor.html"
+        floor_report_path = target / "floor.review.json"
+        report_path = target / "building.review.json"
+        svg_path.write_text("<svg/>", encoding="utf-8")
+        png_path.write_bytes(marker.encode())
+        html_path.write_text("<div id=\"cad-layer-manager\"></div>", encoding="utf-8")
+        floor_report_path.write_text(
+            json.dumps(
+                {
+                    "floor_index": 1,
+                    "floor_boundary": [[0, 0], [20, 0], [20, 10], [0, 10]],
+                    "scores": {"coverage_score": 0.8, "total_score": 0.4567891234},
+                    "render_validation": {"unresolved_label_collision_count": 0},
+                    "status_footer": {"png_output_size": [1920, 1080]},
+                }
+            ),
+            encoding="utf-8",
+        )
+        regulatory = {
+            "status": "not_checked",
+            "unresolved_facts": ["needs <authority>"],
+        }
+        report_path.write_text(
+            json.dumps({"regulatory_screening": regulatory}),
+            encoding="utf-8",
+        )
+        floor_artifact = VisualReviewArtifacts(
+            svg_path=svg_path,
+            png_path=png_path,
+            html_path=html_path,
+            report_path=floor_report_path,
+            artifact_links={},
+            needs_iteration=False,
+            checks={},
+            internal_validation={"status": "pass"},
+            render_validation={"status": "pass"},
+            regulatory_screening=regulatory,
+        )
+        return BuildingVisualReviewArtifacts(
+            index_html_path=target / "index.html",
+            report_path=report_path,
+            floor_artifacts=(floor_artifact,),
+            accepted=True,
+            internal_validation={"status": "pass"},
+            render_validation={"status": "pass"},
+            regulatory_screening=regulatory,
+        )
+
+    monkeypatch.setattr(
+        cli_module,
+        "create_building_visual_review_artifacts",
+        fake_artifacts,
+    )
+    diversity_value = 0.4567891234
+    monkeypatch.setattr(
+        cli_module,
+        "compare_building_diversity",
+        lambda first, second: AlternativeDiversityReport(
+            first_fingerprint=first.marker,
+            second_fingerprint=second.marker,
+            core_distance=diversity_value,
+            circulation_distance=diversity_value,
+            topology_distance=diversity_value,
+            area_distribution_distance=diversity_value,
+            total_distance=diversity_value,
+            nonzero_component_count=4,
+            quality_distinct=True,
+        ),
+    )
+
+    output_dir = tmp_path / "quality-evidence"
+    cli_module._run_irregular_alternatives_review(
+        SimpleNamespace(output_dir=output_dir, limit=2),
+        mass,
+    )
+
+    report = json.loads(
+        (output_dir / "alternatives.review.json").read_text(encoding="utf-8")
+    )
+    assert render_sizes == [(1920, 1080), (1920, 1080)]
+    assert report["accepted_count"] == 2
+    assert len(report["pairwise_diversity"]) == 2 * (2 - 1) // 2
+    assert report["pairwise_diversity"] == [
+        {
+            "first_fingerprint": "first & <two>",
+            "second_fingerprint": "second",
+            "core_distance": diversity_value,
+            "circulation_distance": diversity_value,
+            "topology_distance": diversity_value,
+            "area_distribution_distance": diversity_value,
+            "total_distance": diversity_value,
+            "nonzero_component_count": 4,
+            "quality_distinct": True,
+        }
+    ]
+    first_quality = report["alternatives"][0]["building_quality"]
+    assert first_quality["score"] == 0.8123456789
+    assert first_quality["component_scores"] == {
+        "daylight": 0.8123456789,
+        "room_form": 0.9234567891,
+        "vertical_stacking": 0.9456789123,
+        "egress": 1.0,
+        "coverage_efficiency": 0.8345678912,
+    }
+    assert first_quality["floors"] == [
+        {
+            "floor_index": 1,
+            "coverage": 0.8,
+            "primary_daylight_ratio": 0.7123456789,
+            "room_form_pass_ratio": 0.9123456789,
+            "worst_aspect_ratio": 2.0,
+            "narrowest_room_width_m": 2.4,
+            "egress_status": "pass",
+        }
+    ]
+    assert first_quality["vertical"] == {
+        "core_stack_ratio": 1.0,
+        "shaft_stack_ratio": 1.0,
+        "wet_service_stack_ratio": 0.9,
+        "maximum_service_centroid_shift_m": 0.2,
+    }
+    index_html = (output_dir / "index.html").read_text(encoding="utf-8")
+    assert "first &amp; &lt;two&gt;" in index_html
+    assert "needs &lt;authority&gt;" in index_html
+    assert "Total score</th><td>0.8123" in index_html
+    assert "daylight proxy=0.7123 | room form=0.9123" in index_html
+    assert "daylight proxy=0.7235 | room form=0.9235" in index_html
 
 
 def _run_sample_loop_review(
