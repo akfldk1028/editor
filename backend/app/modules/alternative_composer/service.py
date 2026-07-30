@@ -3,21 +3,24 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import combinations
 
 from shapely.geometry import Polygon
 
 from backend.app.modules.alternative_composer.contracts import (
+    GeneratorRepairProvenance,
     StructuralAlternative,
     StructuralAlternativeRejection,
 )
 from backend.app.modules.building_quality import (
     AlternativeDiversityReport,
     BuildingQualityReport,
+    PrimaryDaylightMeasurement,
     compare_building_diversity,
     evaluate_building_quality,
+    measure_primary_daylight,
 )
 from backend.app.modules.basic_design.stair import (
     required_stair_enclosure,
@@ -28,11 +31,14 @@ from backend.app.modules.circulation_planner.service import (
 )
 from backend.app.modules.circulation_planner.contracts import CirculationCandidate
 from backend.app.modules.core_planner.service import generate_shared_core_candidates
+from backend.app.modules.core_planner.contracts import CoreCandidate
 from backend.app.modules.generation_loop.service import run_building_generation
+from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.llm import FloorAssignment, SUPPORTED_USE_TYPES
 from backend.app.schemas.mass import MassInput
+from backend.app.schemas.program import ProgramGraph
 from backend.app.schemas.result import BuildingGenerationResult
 
 
@@ -169,6 +175,7 @@ def compose_structural_alternatives(
                     )
                     continue
                 quality_report = evaluate_building_quality(building)
+                generator_repairs: tuple[GeneratorRepairProvenance, ...] = ()
                 if not quality_report.hard_pass:
                     core_rejections.append(
                         StructuralAlternativeRejection(
@@ -180,7 +187,32 @@ def compose_structural_alternatives(
                             quality_report=quality_report,
                         )
                     )
-                    continue
+                    repaired = _evaluate_with_primary_daylight_retry(
+                        mass,
+                        assignments=assignments,
+                        programs=programs,
+                        core=core,
+                        circulation=circulation,
+                        building=building,
+                        quality_report=quality_report,
+                    )
+                    if repaired is None:
+                        continue
+                    building, quality_report, generator_repairs = repaired
+                    if not quality_report.hard_pass:
+                        core_rejections.append(
+                            StructuralAlternativeRejection(
+                                strategy=core.strategy,
+                                reason_type="BuildingQualityRejected",
+                                reason=(
+                                    f"{variant} primary_daylight_retry: "
+                                    f"{_quality_rejection_reason(quality_report)}"
+                                ),
+                                quality_report=quality_report,
+                                generator_repairs=generator_repairs,
+                            )
+                        )
+                        continue
                 circulation_fingerprint = _circulation_fingerprint(circulation.items())
                 room_fingerprint = room_structural_fingerprint(building)
                 structural_fingerprint = hashlib.sha256(
@@ -198,6 +230,7 @@ def compose_structural_alternatives(
                         circulation_fingerprint=circulation_fingerprint,
                         room_fingerprint=room_fingerprint,
                         structural_fingerprint=structural_fingerprint,
+                        generator_repairs=generator_repairs,
                     )
                 )
             except (TypeError, ValueError) as error:
@@ -338,6 +371,127 @@ def _quality_rejection_reason(report: BuildingQualityReport) -> str:
 
 def _quality_value(value: float | None) -> str:
     return "unknown" if value is None else format(value, ".12g")
+
+
+def _primary_daylight_requests(
+    building: BuildingGenerationResult,
+    report: BuildingQualityReport,
+) -> tuple[ExteriorAllocationRequest, ...]:
+    issues = tuple(
+        issue
+        for issue in report.issues
+        if issue.code == "primary_daylight_ratio" and issue.severity == "hard"
+    )
+    if not issues:
+        return ()
+
+    floors_by_index = {
+        floor.program.floor_index: floor for floor in building.floor_results
+    }
+    issue_floor_indexes = tuple(issue.floor_index for issue in issues)
+    if len(set(issue_floor_indexes)) != len(issue_floor_indexes):
+        raise ValueError("one primary daylight issue per floor is required")
+    requests: list[ExteriorAllocationRequest] = []
+    for issue in sorted(issues, key=lambda item: item.floor_index or 0):
+        if (
+            issue.floor_index is None
+            or issue.subject_id is None
+            or issue.measured_value is None
+            or issue.threshold is None
+        ):
+            raise ValueError("primary daylight issue requires structured evidence")
+        floor = floors_by_index.get(issue.floor_index)
+        if floor is None:
+            raise ValueError("primary daylight issue floor_index does not match building")
+        if issue.subject_id != f"floor-{issue.floor_index}":
+            raise ValueError("primary daylight issue subject_id does not match floor")
+        measurement: PrimaryDaylightMeasurement = measure_primary_daylight(floor)
+        if not math.isclose(
+            measurement.ratio,
+            issue.measured_value,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                "primary daylight issue measured_value does not match measurement"
+            )
+        requests.append(
+            ExteriorAllocationRequest(
+                floor_index=issue.floor_index,
+                room_ids=measurement.unserved_room_ids,
+            )
+        )
+    return tuple(requests)
+
+
+def _evaluate_with_primary_daylight_retry(
+    mass: MassInput,
+    *,
+    assignments: tuple[FloorAssignment, ...],
+    programs: Mapping[int, ProgramGraph],
+    core: CoreCandidate,
+    circulation: Mapping[int, CirculationCandidate],
+    building: BuildingGenerationResult,
+    quality_report: BuildingQualityReport,
+) -> (
+    tuple[
+        BuildingGenerationResult,
+        BuildingQualityReport,
+        tuple[GeneratorRepairProvenance, ...],
+    ]
+    | None
+):
+    requests = _primary_daylight_requests(building, quality_report)
+    if not requests:
+        return None
+
+    repaired_building = run_building_generation(
+        mass,
+        floor_assignments=assignments,
+        program_overrides=programs,
+        core_override=core,
+        circulation_overrides=circulation,
+        exterior_allocation_requests=requests,
+    )
+    if not repaired_building.accepted:
+        return None
+    repaired_report = evaluate_building_quality(repaired_building)
+    issues_by_floor = {
+        issue.floor_index: issue
+        for issue in quality_report.issues
+        if issue.code == "primary_daylight_ratio" and issue.severity == "hard"
+    }
+    metrics_by_floor = {
+        floor.floor_index: floor for floor in repaired_report.floors
+    }
+    repairs = []
+    for request in requests:
+        issue = issues_by_floor.get(request.floor_index)
+        metric = metrics_by_floor.get(request.floor_index)
+        if issue is None or metric is None:
+            raise ValueError("primary daylight repair evidence is inconsistent")
+        if (
+            issue.subject_id is None
+            or issue.measured_value is None
+            or issue.threshold is None
+        ):
+            raise ValueError("primary daylight repair requires structured evidence")
+        if quality_report.policy_version != repaired_report.policy_version:
+            raise ValueError("primary daylight repair policy version changed")
+        repairs.append(
+            GeneratorRepairProvenance(
+                operator_id="primary_daylight_exterior_allocation/v1",
+                issue_code=issue.code,
+                policy_version=repaired_report.policy_version,
+                floor_index=request.floor_index,
+                subject_id=issue.subject_id,
+                room_ids=request.room_ids,
+                before_value=issue.measured_value,
+                threshold=issue.threshold,
+                after_value=metric.primary_daylight_ratio,
+            )
+        )
+    return repaired_building, repaired_report, tuple(repairs)
 
 
 def _select_quality_distinct_alternatives(

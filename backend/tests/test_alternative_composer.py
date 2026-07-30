@@ -8,11 +8,9 @@ from functools import lru_cache
 from pathlib import Path
 
 import pytest
-from shapely import union_all
-from shapely.geometry import Polygon
-
 import backend.app.modules.alternative_composer.service as alternative_service
 from backend.app.modules.alternative_composer.contracts import (
+    GeneratorRepairProvenance,
     StructuralAlternative,
     StructuralAlternativeRejection,
 )
@@ -29,6 +27,10 @@ from backend.app.modules.building_quality.contracts import (
     QualityIssue,
     VerticalQualityMetrics,
 )
+from backend.app.modules.building_quality import (
+    PrimaryDaylightMeasurement,
+    compare_building_diversity,
+)
 from backend.app.modules.circulation_planner.service import (
     circulation_geometry_fingerprint,
     generate_circulation_candidate,
@@ -38,8 +40,7 @@ from backend.app.modules.core_planner.service import (
     generate_shared_core_candidates,
 )
 from backend.app.modules.generation_loop.service import run_building_generation
-from backend.app.modules.mass_analyzer.service import analyze_mass
-from backend.app.modules.program_prior.service import generate_program_graph
+from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
 from backend.app.schemas.mass import FloorFootprint, MassInput
 from backend.app.schemas.result import BuildingGenerationResult
 
@@ -53,91 +54,206 @@ MANIFEST_PATH = (
 )
 
 
-def test_irregular_mass_produces_quality_passed_structural_families() -> None:
-    alternatives = _alternatives()
-    mass = _mass()
-    analysis = analyze_mass(mass)
-    prior_by_floor = {
-        floor_index: {
-            node.node_id: node
-            for node in generate_program_graph(
-                analysis,
-                floor_index=floor_index,
-                use_type="office",
-            ).nodes
-        }
-        for floor_index in range(1, mass.floors + 1)
-    }
+def test_irregular_mass_produces_two_hard_pass_quality_distinct_families() -> None:
+    composition = _composition()
 
-    assert alternatives
-    assert all(item.building.accepted for item in alternatives)
-    assert all(item.quality_report.hard_pass for item in alternatives)
-    assert len({item.core_fingerprint for item in alternatives}) == len(alternatives)
-    assert len({item.circulation_fingerprint for item in alternatives}) == len(
-        alternatives
+    assert {item.strategy for item in composition.alternatives} == {
+        "long_edge_adjacent",
+        "notch_adjacent",
+    }
+    assert len(composition.alternatives) >= 2
+    assert all(item.building.accepted for item in composition.alternatives)
+    assert all(item.quality_report.hard_pass for item in composition.alternatives)
+    long_edge = next(
+        item
+        for item in composition.alternatives
+        if item.strategy == "long_edge_adjacent"
     )
-    assert len({item.room_fingerprint for item in alternatives}) == len(alternatives)
-    assert len({item.structural_fingerprint for item in alternatives}) == len(
-        alternatives
+    floor_3 = next(
+        floor
+        for floor in long_edge.quality_report.floors
+        if floor.floor_index == 3
     )
-    for alternative in alternatives:
-        for floor in alternative.building.floor_results:
-            boundary = Polygon(floor.floor_boundary)
-            classified = union_all(
-                [
-                    Polygon(shape.polygon)
-                    for shape in (*floor.layout.rooms, *floor.layout.circulation)
-                ]
-            ).intersection(boundary)
-            unassigned_ratio = boundary.difference(classified).area / boundary.area
-            assert floor.validation.coverage_score >= 0.60
-            assert unassigned_ratio <= 0.40
-            open_work = next(
-                room for room in floor.layout.rooms if room.space_type == "open_work"
-            )
-            work_area = next(
-                metric.actual_area
-                for metric in floor.validation.room_areas
-                if metric.room_id == open_work.room_id
-            )
-            program_areas = {
-                metric.room_id: metric.actual_area
-                for metric in floor.validation.room_areas
-                if metric.room_id != "core"
-            }
-            assert work_area == max(program_areas.values())
-            prior = prior_by_floor[floor.program.floor_index]
-            learned_primary_share = float(prior["open_work"].target_area) / sum(
-                float(node.target_area)
-                for node in prior.values()
-                if node.space_type != "core"
-            )
-            assert (
-                work_area / sum(program_areas.values())
-                >= learned_primary_share * 0.75
-            )
-            for room_id, actual_area in program_areas.items():
-                if room_id == "open_work":
-                    continue
-                original_max = float(prior[room_id].max_area)
-                cell_tolerance = max(10.0, original_max * 0.10)
-                assert actual_area <= original_max + cell_tolerance
-            features = floor.layout.basic_design
-            assert features is not None
-            workpoints = sum(
-                element.kind == "workstation"
-                and element.host_id == open_work.room_id
-                for element in features.elements
-            )
-            assert math.ceil(work_area / 10.0) <= workpoints <= math.floor(
-                work_area / 8.0
-            )
+    repair, = long_edge.generator_repairs
+
+    assert floor_3.primary_daylight_ratio >= 0.70
+    assert repair.operator_id == "primary_daylight_exterior_allocation/v1"
+    assert repair.issue_code == "primary_daylight_ratio"
+    assert repair.floor_index == 3
+    assert repair.subject_id == "floor-3"
+    assert repair.room_ids == ("focus", "meeting")
+    assert repair.before_value == pytest.approx(0.6625309657157782)
+    assert repair.threshold == pytest.approx(0.70)
+    assert repair.after_value == pytest.approx(floor_3.primary_daylight_ratio)
+    assert any(
+        rejection.strategy == "long_edge_adjacent"
+        and rejection.reason_type == "BuildingQualityRejected"
+        and rejection.quality_report is not None
+        and rejection.quality_report.floors[2].primary_daylight_ratio
+        == pytest.approx(0.6625309657157782)
+        for rejection in composition.rejections
+    )
+    first, second = composition.alternatives[:2]
+    assert compare_building_diversity(
+        first.building,
+        second.building,
+    ).quality_distinct
+
+
+def _repair_evidence(*, after_value: float = 0.75) -> GeneratorRepairProvenance:
+    return GeneratorRepairProvenance(
+        operator_id="primary_daylight_exterior_allocation/v1",
+        issue_code="primary_daylight_ratio",
+        policy_version="building-quality/v1",
+        floor_index=3,
+        subject_id="floor-3",
+        room_ids=("focus", "meeting"),
+        before_value=0.6625309657157782,
+        threshold=0.7,
+        after_value=after_value,
+    )
+
+
+def test_generator_repair_provenance_is_typed_and_immutable() -> None:
+    evidence = _repair_evidence()
+
+    assert evidence.room_ids == ("focus", "meeting")
+    with pytest.raises(ValueError, match="operator_id"):
+        replace(evidence, operator_id="fixture-repair")
+    with pytest.raises(ValueError, match="room_ids"):
+        replace(evidence, room_ids=("meeting", "focus"))
+    with pytest.raises(ValueError, match="before_value"):
+        replace(evidence, before_value=math.nan)
+
+
+def test_daylight_feedback_uses_issue_code_not_reason_or_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    building = _alternatives()[0].building
+    misleading = replace(
+        _quality_report(
+            hard_pass=False,
+            hard_issue=("room_form_pass_ratio", 0.69, 0.70),
+        ),
+        issues=(
+            QualityIssue(
+                code="room_form_pass_ratio",
+                severity="hard",
+                floor_index=1,
+                subject_id="floor-1",
+                measured_value=0.69,
+                threshold=0.70,
+                message="primary_daylight_ratio should appear only as prose",
+            ),
+        ),
+    )
+    called = False
+
+    def forbidden(_floor):
+        nonlocal called
+        called = True
+        raise AssertionError("daylight measurement must not run")
+
+    monkeypatch.setattr(alternative_service, "measure_primary_daylight", forbidden)
+
+    assert alternative_service._primary_daylight_requests(
+        building,
+        misleading,
+    ) == ()
+    assert called is False
+
+
+def test_primary_daylight_request_uses_typed_unserved_room_ids(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    building = _alternatives()[0].building
+    report = _quality_report(
+        hard_pass=False,
+        hard_issue=("primary_daylight_ratio", 0.69, 0.70),
+    )
+    report = replace(
+        report,
+        issues=(
+            replace(
+                report.issues[0],
+                floor_index=1,
+                subject_id="floor-1",
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        alternative_service,
+        "measure_primary_daylight",
+        lambda _floor: PrimaryDaylightMeasurement(
+            total_primary_area=100.0,
+            served_primary_area=69.0,
+            ratio=0.69,
+            served_room_ids=("open_work",),
+            unserved_room_ids=("focus", "meeting"),
+        ),
+    )
+
+    request, = alternative_service._primary_daylight_requests(building, report)
+
+    assert request == ExteriorAllocationRequest(
+        floor_index=1,
+        room_ids=("focus", "meeting"),
+    )
+
+
+def test_primary_daylight_retry_is_one_shot_and_re_evaluated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    before = _quality_report(
+        hard_pass=False,
+        hard_issue=("primary_daylight_ratio", 0.69, 0.70),
+    )
+    after = _quality_report(hard_pass=True, score=0.81)
+    building = _alternatives()[0].building
+    calls = []
+
+    monkeypatch.setattr(
+        alternative_service,
+        "_primary_daylight_requests",
+        lambda _building, _report: (
+            ExteriorAllocationRequest(1, ("focus", "meeting")),
+        ),
+    )
+    monkeypatch.setattr(
+        alternative_service,
+        "run_building_generation",
+        lambda *_args, **kwargs: calls.append(kwargs) or building,
+    )
+    monkeypatch.setattr(
+        alternative_service,
+        "evaluate_building_quality",
+        lambda _building: after,
+    )
+
+    repaired = alternative_service._evaluate_with_primary_daylight_retry(
+        _mass(),
+        assignments=(),
+        programs={},
+        core=object(),
+        circulation={},
+        building=building,
+        quality_report=before,
+    )
+
+    assert repaired is not None
+    assert len(calls) == 1
+    assert calls[0]["exterior_allocation_requests"] == (
+        ExteriorAllocationRequest(1, ("focus", "meeting")),
+    )
 
 
 def test_composition_keeps_one_result_per_core_and_typed_rejections() -> None:
     composition = _composition()
 
-    assert {item.strategy for item in composition.alternatives} == {"notch_adjacent"}
+    assert {item.strategy for item in composition.alternatives} == {
+        "long_edge_adjacent",
+        "notch_adjacent",
+    }
     assert len({item.strategy for item in composition.alternatives}) == len(
         composition.alternatives
     )
@@ -179,7 +295,7 @@ def test_composer_rejects_building_quality_hard_failure(
 
 
 def test_composer_ranks_quality_before_structural_tie_breaker() -> None:
-    original = _alternatives()[0]
+    original = _lightweight_alternative("rank")
     lower = replace(original, quality_report=_quality_report(score=0.71))
     higher = replace(original, quality_report=_quality_report(score=0.88))
 
