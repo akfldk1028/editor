@@ -5,7 +5,6 @@ import math
 from typing import Literal, Mapping
 
 from backend.app.modules.building_quality.constants import (
-    DEFAULT_MINIMUM_PAIRWISE_DIVERSITY,
     DIVERSITY_COMPONENT_WEIGHTS,
     MATERIAL_DIVERSITY_DISTANCE,
 )
@@ -289,9 +288,5 @@ class AlternativeDiversityReport:
         material_component_count = sum(
             component > MATERIAL_DIVERSITY_DISTANCE for component in components
         )
-        expected_quality_distinct = (
-            self.total_distance >= DEFAULT_MINIMUM_PAIRWISE_DIVERSITY
-            and material_component_count >= 2
-        )
-        if self.quality_distinct != expected_quality_distinct:
-            raise ValueError("quality_distinct must match component distances")
+        if self.quality_distinct and material_component_count < 2:
+            raise ValueError("quality_distinct requires two material component distances")

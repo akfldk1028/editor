@@ -128,8 +128,6 @@ def test_diversity_report_validates_distances_and_consistency() -> None:
         replace(report, total_distance=1.1)
     with pytest.raises(ValueError, match="nonzero_component_count"):
         replace(report, nonzero_component_count=2)
-    with pytest.raises(ValueError, match="quality_distinct"):
-        replace(report, quality_distinct=False)
 
 
 def test_diversity_report_uses_weighted_total_distance() -> None:
@@ -162,8 +160,22 @@ def test_diversity_report_allows_small_differences_without_quality_distinction()
     )
 
     assert not report.quality_distinct
-    with pytest.raises(ValueError, match="quality_distinct"):
-        replace(report, quality_distinct=True)
+
+
+def test_diversity_report_allows_policy_to_reject_a_distinct_candidate() -> None:
+    report = AlternativeDiversityReport(
+        first_fingerprint="first",
+        second_fingerprint="second",
+        core_distance=0.5,
+        circulation_distance=0.6,
+        topology_distance=0.0,
+        area_distribution_distance=0.0,
+        total_distance=0.3,
+        nonzero_component_count=2,
+        quality_distinct=False,
+    )
+
+    assert not report.quality_distinct
 
 
 def test_diversity_report_requires_multiple_material_differences_for_distinction() -> None:

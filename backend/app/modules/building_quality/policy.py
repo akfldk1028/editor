@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from backend.app.modules.building_quality.constants import (
-    DEFAULT_MINIMUM_PAIRWISE_DIVERSITY,
-)
 from backend.app.modules.building_quality.contracts import QualityPolicy
 
 
@@ -14,7 +11,7 @@ DEFAULT_QUALITY_POLICY = QualityPolicy(
     minimum_core_stack_ratio=0.95,
     minimum_shaft_stack_ratio=0.90,
     minimum_service_stack_ratio=0.70,
-    minimum_pairwise_diversity=DEFAULT_MINIMUM_PAIRWISE_DIVERSITY,
+    minimum_pairwise_diversity=0.25,
     weights={
         "daylight": 0.25,
         "room_form": 0.20,
