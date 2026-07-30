@@ -6,10 +6,15 @@ import math
 from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from shapely import union_all
+from shapely.geometry import Polygon
+
 import backend.app.modules.alternative_composer.service as alternative_service
 from backend.app.modules.alternative_composer.contracts import (
+    GeneratorRepairAttempt,
     GeneratorRepairProvenance,
     StructuralAlternative,
     StructuralAlternativeRejection,
@@ -41,6 +46,8 @@ from backend.app.modules.core_planner.service import (
 )
 from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
+from backend.app.modules.mass_analyzer.service import analyze_mass
+from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.mass import FloorFootprint, MassInput
 from backend.app.schemas.result import BuildingGenerationResult
 
@@ -98,6 +105,71 @@ def test_irregular_mass_produces_two_hard_pass_quality_distinct_families() -> No
         first.building,
         second.building,
     ).quality_distinct
+    mass = _mass()
+    analysis = analyze_mass(mass)
+    prior_by_floor = {
+        floor_index: {
+            node.node_id: node
+            for node in generate_program_graph(
+                analysis,
+                floor_index=floor_index,
+                use_type="office",
+            ).nodes
+        }
+        for floor_index in range(1, mass.floors + 1)
+    }
+    for alternative in composition.alternatives:
+        for floor in alternative.building.floor_results:
+            boundary = Polygon(floor.floor_boundary)
+            classified = union_all(
+                [
+                    Polygon(shape.polygon)
+                    for shape in (*floor.layout.rooms, *floor.layout.circulation)
+                ]
+            ).intersection(boundary)
+            unassigned_ratio = boundary.difference(classified).area / boundary.area
+            assert floor.validation.coverage_score >= 0.60
+            assert unassigned_ratio <= 0.40
+            open_work = next(
+                room for room in floor.layout.rooms if room.space_type == "open_work"
+            )
+            work_area = next(
+                metric.actual_area
+                for metric in floor.validation.room_areas
+                if metric.room_id == open_work.room_id
+            )
+            program_areas = {
+                metric.room_id: metric.actual_area
+                for metric in floor.validation.room_areas
+                if metric.room_id != "core"
+            }
+            assert work_area == max(program_areas.values())
+            prior = prior_by_floor[floor.program.floor_index]
+            learned_primary_share = float(prior["open_work"].target_area) / sum(
+                float(node.target_area)
+                for node in prior.values()
+                if node.space_type != "core"
+            )
+            assert (
+                work_area / sum(program_areas.values())
+                >= learned_primary_share * 0.75
+            )
+            for room_id, actual_area in program_areas.items():
+                if room_id == "open_work":
+                    continue
+                original_max = float(prior[room_id].max_area)
+                cell_tolerance = max(10.0, original_max * 0.10)
+                assert actual_area <= original_max + cell_tolerance
+            features = floor.layout.basic_design
+            assert features is not None
+            workpoints = sum(
+                element.kind == "workstation"
+                and element.host_id == open_work.room_id
+                for element in features.elements
+            )
+            assert math.ceil(work_area / 10.0) <= workpoints <= math.floor(
+                work_area / 8.0
+            )
 
 
 def _repair_evidence(*, after_value: float = 0.75) -> GeneratorRepairProvenance:
@@ -129,7 +201,7 @@ def test_generator_repair_provenance_is_typed_and_immutable() -> None:
 def test_daylight_feedback_uses_issue_code_not_reason_or_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    building = _alternatives()[0].building
+    building = SimpleNamespace(floor_results=())
     misleading = replace(
         _quality_report(
             hard_pass=False,
@@ -166,7 +238,13 @@ def test_daylight_feedback_uses_issue_code_not_reason_or_message(
 def test_primary_daylight_request_uses_typed_unserved_room_ids(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    building = _alternatives()[0].building
+    building = SimpleNamespace(
+        floor_results=(
+            SimpleNamespace(
+                program=SimpleNamespace(floor_index=1),
+            ),
+        ),
+    )
     report = _quality_report(
         hard_pass=False,
         hard_issue=("primary_daylight_ratio", 0.69, 0.70),
@@ -209,7 +287,7 @@ def test_primary_daylight_retry_is_one_shot_and_re_evaluated(
         hard_issue=("primary_daylight_ratio", 0.69, 0.70),
     )
     after = _quality_report(hard_pass=True, score=0.81)
-    building = _alternatives()[0].building
+    building = SimpleNamespace(accepted=True)
     calls = []
 
     monkeypatch.setattr(
@@ -244,6 +322,145 @@ def test_primary_daylight_retry_is_one_shot_and_re_evaluated(
     assert len(calls) == 1
     assert calls[0]["exterior_allocation_requests"] == (
         ExteriorAllocationRequest(1, ("focus", "meeting")),
+    )
+
+
+def test_invalid_daylight_retry_keeps_after_provenance_on_typed_rejection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    before = _quality_report(
+        hard_pass=False,
+        hard_issue=("primary_daylight_ratio", 0.69, 0.70),
+    )
+    before = replace(
+        before,
+        issues=(
+            replace(
+                before.issues[0],
+                subject_id="floor-1",
+            ),
+        ),
+    )
+    floor = SimpleNamespace(
+        program=SimpleNamespace(floor_index=1),
+        layout=SimpleNamespace(rooms=()),
+        validation=SimpleNamespace(
+            violations=(SimpleNamespace(code="coverage_below_minimum"),),
+        ),
+    )
+    invalid = SimpleNamespace(
+        accepted=False,
+        floor_results=(floor,),
+    )
+    request = ExteriorAllocationRequest(1, ("focus", "meeting"))
+    monkeypatch.setattr(
+        alternative_service,
+        "_primary_daylight_requests",
+        lambda _building, _report: (request,),
+    )
+    monkeypatch.setattr(
+        alternative_service,
+        "run_building_generation",
+        lambda *_args, **_kwargs: invalid,
+    )
+    monkeypatch.setattr(
+        alternative_service,
+        "measure_primary_daylight",
+        lambda _floor: PrimaryDaylightMeasurement(
+            total_primary_area=100.0,
+            served_primary_area=75.0,
+            ratio=0.75,
+            served_room_ids=("focus", "open_work"),
+            unserved_room_ids=("meeting",),
+        ),
+    )
+
+    retry = alternative_service._evaluate_with_primary_daylight_retry(
+        _mass(),
+        assignments=(),
+        programs={},
+        core=object(),
+        circulation={},
+        building=SimpleNamespace(),
+        quality_report=before,
+    )
+    rejection = alternative_service._primary_daylight_retry_rejection(
+        strategy="long_edge_adjacent",
+        variant="legacy",
+        original_quality_report=before,
+        retry=retry,
+    )
+
+    repair, = rejection.generator_repairs
+    assert rejection.reason_type == "BuildingValidationRetryRejected"
+    assert rejection.reason == (
+        "legacy primary_daylight_retry: coverage_below_minimum"
+    )
+    assert repair.after_value == pytest.approx(0.75)
+    assert rejection.generator_repair_attempt == GeneratorRepairAttempt(
+        operator_id="primary_daylight_exterior_allocation/v1",
+        requests=(request,),
+        outcome="validation_rejected",
+        after_primary_daylight=((1, 0.75),),
+        validation_codes=("coverage_below_minimum",),
+        error_type=None,
+        error_message=None,
+    )
+
+
+def test_daylight_generation_error_keeps_structured_attempt_without_fake_after(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    before = _quality_report(
+        hard_pass=False,
+        hard_issue=("primary_daylight_ratio", 0.69, 0.70),
+    )
+    request = ExteriorAllocationRequest(1, ("focus", "meeting"))
+    monkeypatch.setattr(
+        alternative_service,
+        "_primary_daylight_requests",
+        lambda _building, _report: (request,),
+    )
+
+    def fail_generation(*_args, **_kwargs):
+        raise ValueError("cannot split requested exterior seed")
+
+    monkeypatch.setattr(
+        alternative_service,
+        "run_building_generation",
+        fail_generation,
+    )
+
+    retry = alternative_service._evaluate_with_primary_daylight_retry(
+        _mass(),
+        assignments=(),
+        programs={},
+        core=object(),
+        circulation={},
+        building=SimpleNamespace(),
+        quality_report=before,
+    )
+    rejection = alternative_service._primary_daylight_retry_rejection(
+        strategy="long_edge_adjacent",
+        variant="legacy",
+        original_quality_report=before,
+        retry=retry,
+    )
+
+    assert rejection.reason_type == "GeneratorRepairFailed"
+    assert rejection.reason == (
+        "legacy primary_daylight_retry: ValueError: "
+        "cannot split requested exterior seed"
+    )
+    assert rejection.generator_repairs == ()
+    assert rejection.generator_repair_attempt == GeneratorRepairAttempt(
+        operator_id="primary_daylight_exterior_allocation/v1",
+        requests=(request,),
+        outcome="generation_failed",
+        after_primary_daylight=(),
+        validation_codes=(),
+        error_type="ValueError",
+        error_message="cannot split requested exterior seed",
     )
 
 

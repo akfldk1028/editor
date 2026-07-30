@@ -1770,19 +1770,12 @@ def _target_exterior_seed_splits(
                 )
             )
 
-    exterior_contact_lengths = {
-        piece: _exterior_contact_length(piece, exterior_segments)
-        for pair in candidates
-        for piece in pair
-    }
     valid = []
     for seed, residual in candidates:
-        if not _is_exterior_assignment_eligible(
+        if not _requested_seed_within_bounds(
             node,
             seed,
-            exterior_contact_lengths=exterior_contact_lengths,
             frontage_segments=frontage_segments,
-            free_shape=Polygon(rectangle),
         ):
             continue
         if (
@@ -1810,23 +1803,15 @@ def _exterior_seed_capacity(
     exterior_segments: tuple[tuple[Point, Point], ...],
     frontage_segments: tuple[tuple[Point, Point], ...],
 ) -> int:
-    exterior_contact_lengths = {
-        rectangle: _exterior_contact_length(rectangle, exterior_segments)
-        for rectangle in rectangles
-    }
     options = {
         node.node_id: tuple(
             index
             for index, rectangle in enumerate(rectangles)
-            if _is_exterior_assignment_eligible(
+            if _requested_seed_within_bounds(
                 node,
                 rectangle,
-                exterior_contact_lengths=exterior_contact_lengths,
                 frontage_segments=frontage_segments,
-                free_shape=True,
             )
-            and Polygon(rectangle).area
-            <= float(node.max_area or node.target_area) + _TOLERANCE
         )
         for node in nodes
     }
@@ -1847,6 +1832,25 @@ def _exterior_seed_capacity(
     for room_id in sorted(options, key=lambda value: (len(options[value]), value)):
         matched += assign(room_id, set())
     return matched
+
+
+def _requested_seed_within_bounds(
+    node: ProgramNode,
+    rectangle: tuple[Point, ...],
+    *,
+    frontage_segments: tuple[tuple[Point, Point], ...],
+) -> bool:
+    return (
+        Polygon(rectangle).area
+        <= float(node.max_area or node.target_area) + _TOLERANCE
+        and _rectangle_minimum_width(rectangle) + _TOLERANCE
+        >= float(node.min_width or 0)
+        and (
+            not frontage_segments
+            or not node.frontage_required
+            or _touches_frontage(rectangle, frontage_segments)
+        )
+    )
 
 
 def _has_bounded_seed_capacity(

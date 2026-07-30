@@ -10,6 +10,7 @@ from itertools import combinations
 from shapely.geometry import Polygon
 
 from backend.app.modules.alternative_composer.contracts import (
+    GeneratorRepairAttempt,
     GeneratorRepairProvenance,
     StructuralAlternative,
     StructuralAlternativeRejection,
@@ -46,6 +47,14 @@ from backend.app.schemas.result import BuildingGenerationResult
 class StructuralComposition:
     alternatives: tuple[StructuralAlternative, ...]
     rejections: tuple[StructuralAlternativeRejection, ...]
+
+
+@dataclass(frozen=True)
+class _PrimaryDaylightRetryResult:
+    building: BuildingGenerationResult | None
+    quality_report: BuildingQualityReport | None
+    generator_repairs: tuple[GeneratorRepairProvenance, ...]
+    attempt: GeneratorRepairAttempt
 
 
 def generate_structural_alternatives(
@@ -198,21 +207,22 @@ def compose_structural_alternatives(
                     )
                     if repaired is None:
                         continue
-                    building, quality_report, generator_repairs = repaired
-                    if not quality_report.hard_pass:
-                        core_rejections.append(
-                            StructuralAlternativeRejection(
-                                strategy=core.strategy,
-                                reason_type="BuildingQualityRejected",
-                                reason=(
-                                    f"{variant} primary_daylight_retry: "
-                                    f"{_quality_rejection_reason(quality_report)}"
-                                ),
-                                quality_report=quality_report,
-                                generator_repairs=generator_repairs,
-                            )
-                        )
+                    retry_rejection = _primary_daylight_retry_rejection(
+                        strategy=core.strategy,
+                        variant=variant,
+                        original_quality_report=quality_report,
+                        retry=repaired,
+                    )
+                    if retry_rejection is not None:
+                        core_rejections.append(retry_rejection)
                         continue
+                    if repaired.building is None or repaired.quality_report is None:
+                        raise ValueError(
+                            "successful primary daylight retry evidence is incomplete"
+                        )
+                    building = repaired.building
+                    quality_report = repaired.quality_report
+                    generator_repairs = repaired.generator_repairs
                 circulation_fingerprint = _circulation_fingerprint(circulation.items())
                 room_fingerprint = room_structural_fingerprint(building)
                 structural_fingerprint = hashlib.sha256(
@@ -434,41 +444,138 @@ def _evaluate_with_primary_daylight_retry(
     building: BuildingGenerationResult,
     quality_report: BuildingQualityReport,
 ) -> (
-    tuple[
-        BuildingGenerationResult,
-        BuildingQualityReport,
-        tuple[GeneratorRepairProvenance, ...],
-    ]
-    | None
+    _PrimaryDaylightRetryResult | None
 ):
     requests = _primary_daylight_requests(building, quality_report)
     if not requests:
         return None
 
-    repaired_building = run_building_generation(
-        mass,
-        floor_assignments=assignments,
-        program_overrides=programs,
-        core_override=core,
-        circulation_overrides=circulation,
-        exterior_allocation_requests=requests,
-    )
+    try:
+        repaired_building = run_building_generation(
+            mass,
+            floor_assignments=assignments,
+            program_overrides=programs,
+            core_override=core,
+            circulation_overrides=circulation,
+            exterior_allocation_requests=requests,
+        )
+    except Exception as error:
+        return _PrimaryDaylightRetryResult(
+            building=None,
+            quality_report=None,
+            generator_repairs=(),
+            attempt=GeneratorRepairAttempt(
+                operator_id="primary_daylight_exterior_allocation/v1",
+                requests=requests,
+                outcome="generation_failed",
+                after_primary_daylight=(),
+                validation_codes=(),
+                error_type=type(error).__name__,
+                error_message=str(error) or "generation failed without a message",
+            ),
+        )
     if not repaired_building.accepted:
-        return None
+        after_values = _measure_primary_daylight_after_values(
+            repaired_building,
+            requests,
+        )
+        repairs = _generator_repair_provenance(
+            quality_report,
+            requests,
+            after_values=after_values,
+            policy_version=quality_report.policy_version,
+        )
+        return _PrimaryDaylightRetryResult(
+            building=repaired_building,
+            quality_report=None,
+            generator_repairs=repairs,
+            attempt=GeneratorRepairAttempt(
+                operator_id="primary_daylight_exterior_allocation/v1",
+                requests=requests,
+                outcome="validation_rejected",
+                after_primary_daylight=after_values,
+                validation_codes=_validation_codes(repaired_building),
+                error_type=None,
+                error_message=None,
+            ),
+        )
     repaired_report = evaluate_building_quality(repaired_building)
+    after_values = tuple(
+        (
+            request.floor_index,
+            next(
+                floor.primary_daylight_ratio
+                for floor in repaired_report.floors
+                if floor.floor_index == request.floor_index
+            ),
+        )
+        for request in requests
+    )
+    repairs = _generator_repair_provenance(
+        quality_report,
+        requests,
+        after_values=after_values,
+        policy_version=repaired_report.policy_version,
+    )
+    if quality_report.policy_version != repaired_report.policy_version:
+        raise ValueError("primary daylight repair policy version changed")
+    return _PrimaryDaylightRetryResult(
+        building=repaired_building,
+        quality_report=repaired_report,
+        generator_repairs=repairs,
+        attempt=GeneratorRepairAttempt(
+            operator_id="primary_daylight_exterior_allocation/v1",
+            requests=requests,
+            outcome="evaluated",
+            after_primary_daylight=after_values,
+            validation_codes=(),
+            error_type=None,
+            error_message=None,
+        ),
+    )
+
+
+def _measure_primary_daylight_after_values(
+    building: BuildingGenerationResult,
+    requests: tuple[ExteriorAllocationRequest, ...],
+) -> tuple[tuple[int, float], ...]:
+    floors_by_index = {
+        floor.program.floor_index: floor for floor in building.floor_results
+    }
+    values = []
+    for request in requests:
+        floor = floors_by_index.get(request.floor_index)
+        if floor is None or getattr(floor, "layout", None) is None:
+            raise ValueError(
+                "primary daylight retry floor layout evidence is unavailable"
+            )
+        values.append(
+            (
+                request.floor_index,
+                measure_primary_daylight(floor).ratio,
+            )
+        )
+    return tuple(values)
+
+
+def _generator_repair_provenance(
+    quality_report: BuildingQualityReport,
+    requests: tuple[ExteriorAllocationRequest, ...],
+    *,
+    after_values: tuple[tuple[int, float], ...],
+    policy_version: str,
+) -> tuple[GeneratorRepairProvenance, ...]:
     issues_by_floor = {
         issue.floor_index: issue
         for issue in quality_report.issues
         if issue.code == "primary_daylight_ratio" and issue.severity == "hard"
     }
-    metrics_by_floor = {
-        floor.floor_index: floor for floor in repaired_report.floors
-    }
+    after_by_floor = dict(after_values)
     repairs = []
     for request in requests:
         issue = issues_by_floor.get(request.floor_index)
-        metric = metrics_by_floor.get(request.floor_index)
-        if issue is None or metric is None:
+        after_value = after_by_floor.get(request.floor_index)
+        if issue is None or after_value is None:
             raise ValueError("primary daylight repair evidence is inconsistent")
         if (
             issue.subject_id is None
@@ -476,22 +583,85 @@ def _evaluate_with_primary_daylight_retry(
             or issue.threshold is None
         ):
             raise ValueError("primary daylight repair requires structured evidence")
-        if quality_report.policy_version != repaired_report.policy_version:
-            raise ValueError("primary daylight repair policy version changed")
         repairs.append(
             GeneratorRepairProvenance(
                 operator_id="primary_daylight_exterior_allocation/v1",
                 issue_code=issue.code,
-                policy_version=repaired_report.policy_version,
+                policy_version=policy_version,
                 floor_index=request.floor_index,
                 subject_id=issue.subject_id,
                 room_ids=request.room_ids,
                 before_value=issue.measured_value,
                 threshold=issue.threshold,
-                after_value=metric.primary_daylight_ratio,
+                after_value=after_value,
             )
         )
-    return repaired_building, repaired_report, tuple(repairs)
+    return tuple(repairs)
+
+
+def _validation_codes(building: BuildingGenerationResult) -> tuple[str, ...]:
+    codes = {
+        violation.code
+        for floor in building.floor_results
+        for violation in floor.validation.violations
+    }
+    for field_name, code in (
+        ("vertical_core_aligned", "vertical_core_alignment_failed"),
+        ("vertical_basic_design_aligned", "vertical_basic_design_alignment_failed"),
+        ("vertical_structure_aligned", "vertical_structure_alignment_failed"),
+    ):
+        if getattr(building, field_name, True) is False:
+            codes.add(code)
+    return tuple(sorted(codes)) or ("building_acceptance_gate_failed",)
+
+
+def _primary_daylight_retry_rejection(
+    *,
+    strategy: str,
+    variant: str,
+    original_quality_report: BuildingQualityReport,
+    retry: _PrimaryDaylightRetryResult | None,
+) -> StructuralAlternativeRejection | None:
+    if retry is None:
+        return None
+    if retry.attempt.outcome == "generation_failed":
+        return StructuralAlternativeRejection(
+            strategy=strategy,
+            reason_type="GeneratorRepairFailed",
+            reason=(
+                f"{variant} primary_daylight_retry: "
+                f"{retry.attempt.error_type}: {retry.attempt.error_message}"
+            ),
+            quality_report=original_quality_report,
+            generator_repair_attempt=retry.attempt,
+        )
+    if retry.attempt.outcome == "validation_rejected":
+        return StructuralAlternativeRejection(
+            strategy=strategy,
+            reason_type="BuildingValidationRetryRejected",
+            reason=(
+                f"{variant} primary_daylight_retry: "
+                f"{','.join(retry.attempt.validation_codes)}"
+            ),
+            quality_report=original_quality_report,
+            generator_repairs=retry.generator_repairs,
+            generator_repair_attempt=retry.attempt,
+        )
+    if retry.quality_report is None:
+        raise ValueError("evaluated primary daylight retry requires a quality report")
+    if retry.quality_report.hard_pass:
+        return None
+    return StructuralAlternativeRejection(
+        strategy=strategy,
+        reason_type="BuildingQualityRejected",
+        reason=(
+            f"{variant} primary_daylight_retry: "
+            f"{_quality_rejection_reason(retry.quality_report)}"
+        ),
+        quality_report=retry.quality_report,
+        generator_repairs=retry.generator_repairs,
+        generator_repair_attempt=retry.attempt,
+    )
 
 
 def _select_quality_distinct_alternatives(

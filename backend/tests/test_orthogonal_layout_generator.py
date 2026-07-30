@@ -552,6 +552,78 @@ def test_exterior_priority_subdivision_splits_target_seed_and_preserves_residual
     assert sum(shape.area for shape in shapes) == pytest.approx(20.0)
 
 
+def test_interior_oversized_seed_splits_before_exterior_residual_growth() -> None:
+    meeting = ProgramNode(
+        "meeting",
+        "meeting",
+        16.0,
+        max_area=18.0,
+        min_width=2.0,
+    )
+    oversized = orthogonal_service._canonical_rectangle((0, 0, 8, 4))
+    free_shape = box(0, 0, 10, 4)
+    exterior_segments = (((10.0, 0.0), (10.0, 4.0)),)
+    circulation = [
+        RoomPolygon(
+            room_id="corridor",
+            space_type="circulation",
+            polygon=[(0, -1), (10, -1), (10, 0), (0, 0)],
+        )
+    ]
+
+    unchanged = orthogonal_service._subdivide_accessible_rectangles(
+        [oversized],
+        circulation,
+        required_count=1,
+    )
+    subdivided = orthogonal_service._subdivide_accessible_rectangles(
+        [oversized],
+        circulation,
+        required_count=1,
+        exterior_priority_nodes=(meeting,),
+        exterior_segments=exterior_segments,
+    )
+
+    assert unchanged == [oversized]
+    assert sorted(Polygon(seed).area for seed in subdivided) == [16.0, 16.0]
+    assert union_all([Polygon(seed) for seed in subdivided]).equals(
+        Polygon(oversized)
+    )
+    assert all(
+        orthogonal_service._exterior_contact_length(seed, exterior_segments)
+        == pytest.approx(0.0)
+        for seed in subdivided
+    )
+
+    path_areas = orthogonal_service._exterior_seed_path_areas(
+        subdivided,
+        free_shape=free_shape,
+        exterior_segments=exterior_segments,
+    )
+    assignments = orthogonal_service._assign_rectangles(
+        [meeting],
+        subdivided,
+        free_shape=free_shape,
+        exterior_segments=exterior_segments,
+        exterior_path_areas=path_areas,
+        exterior_priority_room_ids=("meeting",),
+    )
+    final = orthogonal_service._absorb_residual_cells(
+        assignments,
+        free_shape=free_shape,
+        exterior_priority_room_ids=("meeting",),
+        exterior_segments=exterior_segments,
+    )
+    final_shape = Polygon(final[0][1])
+
+    assert final_shape.area == pytest.approx(24.0)
+    assert final_shape.area <= 28.0
+    assert final_shape.boundary.intersection(
+        LineString(exterior_segments[0])
+    ).length >= 0.6
+    assert free_shape.covers(final_shape)
+
+
 def test_exterior_priority_room_ids_fail_in_sorted_order_when_unknown() -> None:
     node = ProgramNode("known", "meeting", 4.0)
     rectangle = orthogonal_service._canonical_rectangle((0, 0, 2, 2))
