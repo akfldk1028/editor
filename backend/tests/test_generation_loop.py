@@ -21,8 +21,12 @@ from backend.app.modules.generation_loop.service import (
     run_candidate_search,
     run_generation_loop,
 )
+from backend.app.modules.layout_generator.daylight import (
+    room_has_usable_daylight_frontage,
+)
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
+from backend.app.modules.visual_review.service import create_visual_review_artifacts
 from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import FloorFootprint, MassInput
 from backend.app.schemas.loop import CandidateProposal, LoopConfig
@@ -74,7 +78,45 @@ def test_building_generation_routes_exterior_allocation_to_requested_floor(
     assert observed == [("focus", "meeting")]
 
 
-def test_long_edge_floor_three_splits_exterior_seeds_for_each_request_set() -> None:
+def test_building_generation_checks_usable_frontage_after_basic_design(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed = []
+
+    def capture(layout, *, boundary, room_ids):
+        observed.append(
+            (
+                layout.basic_design is not None,
+                tuple(boundary),
+                room_ids,
+            )
+        )
+
+    monkeypatch.setattr(
+        generation_service,
+        "require_usable_daylight_frontage",
+        capture,
+    )
+    mass = _exterior_routing_mass()
+    building = run_building_generation(
+        mass,
+        exterior_allocation_requests=(
+            ExteriorAllocationRequest(1, ("focus",)),
+        ),
+    )
+
+    assert observed == [
+        (
+            True,
+            building.floor_results[0].floor_boundary,
+            ("focus",),
+        )
+    ]
+
+
+def test_long_edge_floor_three_accepts_only_usable_daylight_frontage(
+    tmp_path: Path,
+) -> None:
     mass, assignments, programs, core, circulation = _long_edge_fixture_inputs()
     generation_kwargs = {
         "floor_assignments": assignments,
@@ -90,26 +132,46 @@ def test_long_edge_floor_three_splits_exterior_seeds_for_each_request_set() -> N
     )
 
     assert explicit_empty == baseline
-    for room_ids in (("focus",), ("meeting",), ("focus", "meeting")):
-        building = run_building_generation(
-            mass,
-            **generation_kwargs,
-            exterior_allocation_requests=(
-                ExteriorAllocationRequest(3, room_ids),
-            ),
-        )
-        floor = building.floor_results[2]
-        exterior = Polygon(floor.floor_boundary).boundary
-        rooms = {
-            room.room_id: Polygon(room.polygon)
-            for room in floor.layout.rooms
-        }
+    meeting_building = run_building_generation(
+        mass,
+        **generation_kwargs,
+        exterior_allocation_requests=(
+            ExteriorAllocationRequest(3, ("meeting",)),
+        ),
+    )
+    floor = meeting_building.floor_results[2]
+    exterior = Polygon(floor.floor_boundary).boundary
+    meeting = next(room for room in floor.layout.rooms if room.room_id == "meeting")
 
-        assert building.accepted
-        assert all(
-            rooms[room_id].boundary.intersection(exterior).length >= 0.6
-            for room_id in room_ids
-        )
+    assert meeting_building.accepted
+    assert Polygon(meeting.polygon).boundary.intersection(exterior).length >= 0.6
+    assert room_has_usable_daylight_frontage(
+        floor.layout,
+        boundary=floor.floor_boundary,
+        room_id="meeting",
+    )
+    review = create_visual_review_artifacts(
+        floor,
+        boundary=list(floor.floor_boundary),
+        output_dir=tmp_path,
+        render_style="architectural",
+    )
+    svg = review.svg_path.read_text(encoding="utf-8")
+    assert 'data-id="meeting"' in svg
+    assert 'data-id="meeting-window"' in svg
+
+    for room_ids in (("focus",), ("focus", "meeting")):
+        with pytest.raises(
+            ValueError,
+            match="focus.*usable daylight frontage",
+        ):
+            run_building_generation(
+                mass,
+                **generation_kwargs,
+                exterior_allocation_requests=(
+                    ExteriorAllocationRequest(3, room_ids),
+                ),
+            )
 
 
 def test_building_generation_rejects_duplicate_or_unknown_exterior_requests() -> None:

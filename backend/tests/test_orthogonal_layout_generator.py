@@ -10,6 +10,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.prepared import prep as prepare_geometry
 
 import backend.app.modules.layout_generator.orthogonal as orthogonal_service
+import backend.app.modules.layout_generator.daylight as daylight_service
 from backend.app.modules.basic_design.service import generate_basic_design
 from backend.app.modules.circulation_planner.contracts import CirculationCandidate
 from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
@@ -19,7 +20,12 @@ from backend.app.modules.layout_generator.orthogonal import (
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
-from backend.app.schemas.layout import RoomPolygon
+from backend.app.schemas.layout import (
+    BasicDesignFeatures,
+    LayoutCandidate,
+    PlanLine,
+    RoomPolygon,
+)
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.program import ProgramNode
 
@@ -38,6 +44,78 @@ def test_exterior_allocation_request_requires_sorted_unique_room_ids() -> None:
         ExteriorAllocationRequest(3, ())
     with pytest.raises((TypeError, ValueError), match="floor_index"):
         ExteriorAllocationRequest(True, ("focus",))
+
+
+def test_requested_daylight_frontage_rejects_ribbon_and_accepts_deep_room() -> None:
+    boundary = [(0.0, 0.0), (20.0, 0.0), (20.0, 10.0), (0.0, 10.0)]
+    layout = LayoutCandidate(
+        candidate_id="daylight-frontage",
+        project_id="daylight-frontage",
+        floor_index=1,
+        rooms=[
+            RoomPolygon(
+                room_id="focus",
+                space_type="focus",
+                polygon=[(0.0, 0.0), (14.0, 0.0), (14.0, 1.0), (0.0, 1.0)],
+            ),
+            RoomPolygon(
+                room_id="meeting",
+                space_type="meeting",
+                polygon=[(14.0, 0.0), (20.0, 0.0), (20.0, 6.0), (14.0, 6.0)],
+            ),
+        ],
+        circulation=[],
+        score=0.0,
+        basic_design=BasicDesignFeatures(
+            elements=(),
+            lines=(
+                PlanLine(
+                    line_id="focus-window",
+                    category="envelope",
+                    kind="window",
+                    points=((6.25, 0.0), (7.75, 0.0)),
+                    host_id="focus",
+                ),
+                PlanLine(
+                    line_id="meeting-window",
+                    category="envelope",
+                    kind="window",
+                    points=((16.25, 0.0), (17.75, 0.0)),
+                    host_id="meeting",
+                ),
+            ),
+        ),
+    )
+
+    assert (
+        daylight_service.MINIMUM_USABLE_DAYLIGHT_WINDOW_FRONTAGE_M
+        == pytest.approx(1.2)
+    )
+    assert (
+        daylight_service.MINIMUM_USABLE_DAYLIGHT_INWARD_DEPTH_M
+        == pytest.approx(2.4)
+    )
+    assert not daylight_service.room_has_usable_daylight_frontage(
+        layout,
+        boundary=boundary,
+        room_id="focus",
+    )
+    assert daylight_service.room_has_usable_daylight_frontage(
+        layout,
+        boundary=boundary,
+        room_id="meeting",
+    )
+    with pytest.raises(ValueError, match="focus.*usable daylight frontage"):
+        daylight_service.require_usable_daylight_frontage(
+            layout,
+            boundary=boundary,
+            room_ids=("focus",),
+        )
+    daylight_service.require_usable_daylight_frontage(
+        layout,
+        boundary=boundary,
+        room_ids=("meeting",),
+    )
 
 
 CASES = (
@@ -561,8 +639,8 @@ def test_interior_oversized_seed_splits_before_exterior_residual_growth() -> Non
         min_width=2.0,
     )
     oversized = orthogonal_service._canonical_rectangle((0, 0, 8, 4))
-    free_shape = box(0, 0, 10, 4)
-    exterior_segments = (((10.0, 0.0), (10.0, 4.0)),)
+    free_shape = box(0, 0, 10.4, 4)
+    exterior_segments = (((10.4, 0.0), (10.4, 4.0)),)
     circulation = [
         RoomPolygon(
             room_id="corridor",
@@ -616,7 +694,7 @@ def test_interior_oversized_seed_splits_before_exterior_residual_growth() -> Non
     )
     final_shape = Polygon(final[0][1])
 
-    assert final_shape.area == pytest.approx(24.0)
+    assert final_shape.area == pytest.approx(25.6)
     assert final_shape.area <= 28.0
     assert final_shape.boundary.intersection(
         LineString(exterior_segments[0])

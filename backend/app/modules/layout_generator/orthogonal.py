@@ -13,6 +13,9 @@ from backend.app.modules.basic_design.stair import (
     required_stair_enclosure,
 )
 from backend.app.modules.circulation_planner.contracts import CirculationCandidate
+from backend.app.modules.layout_generator.daylight import (
+    polygon_has_usable_daylight_frontage,
+)
 from backend.app.schemas.layout import (
     LayoutCandidate,
     OpeningSegment,
@@ -752,13 +755,15 @@ def _exterior_seed_path_areas(
         residual_cells,
         neighbors,
         exterior_segments=exterior_segments,
+        require_usable_daylight_frontage=True,
     )
     return {
         rectangle: (
             0.0
-            if _exterior_contact_length(rectangle, exterior_segments)
-            + _TOLERANCE
-            >= 0.6
+            if polygon_has_usable_daylight_frontage(
+                Polygon(rectangle),
+                exterior_segments=exterior_segments,
+            )
             else min(
                 (distances[index] for index in seed_neighbors[seed_index]),
                 default=math.inf,
@@ -773,15 +778,23 @@ def _residual_exterior_path_areas(
     neighbors: list[list[int] | list[tuple[int, float]]],
     *,
     exterior_segments: tuple[tuple[Point, Point], ...],
+    require_usable_daylight_frontage: bool = False,
 ) -> tuple[float, ...]:
     distances = [math.inf] * len(residual_cells)
     frontier = []
     for index, cell in enumerate(residual_cells):
-        if not any(
-            cell.boundary.intersection(LineString(segment)).length + _TOLERANCE
-            >= 0.6
-            for segment in exterior_segments
-        ):
+        if require_usable_daylight_frontage:
+            reaches_exterior = polygon_has_usable_daylight_frontage(
+                cell,
+                exterior_segments=exterior_segments,
+            )
+        else:
+            reaches_exterior = any(
+                cell.boundary.intersection(LineString(segment)).length + _TOLERANCE
+                >= 0.6
+                for segment in exterior_segments
+            )
+        if not reaches_exterior:
             continue
         distances[index] = cell.area
         heappush(frontier, (cell.area, index))
@@ -1021,13 +1034,12 @@ def _absorb_residual_cells(
         residual_cells,
         neighbors,
         exterior_segments=exterior_segments,
+        require_usable_daylight_frontage=True,
     )
-    room_has_exterior = {
-        room_id: any(
-            shapes[room_id].boundary.intersection(LineString(segment)).length
-            + _TOLERANCE
-            >= 0.6
-            for segment in exterior_segments
+    room_has_usable_frontage = {
+        room_id: polygon_has_usable_daylight_frontage(
+            shapes[room_id],
+            exterior_segments=exterior_segments,
         )
         for room_id in room_ids
     }
@@ -1072,7 +1084,7 @@ def _absorb_residual_cells(
                 (
                     room_areas[room_id] + _TOLERANCE
                     >= float(node.target_area)
-                    and (not requested or room_has_exterior[room_id])
+                    and (not requested or room_has_usable_frontage[room_id])
                 )
                 or room_areas[room_id] + cell.area
                 > float(node.max_area or node.target_area)
@@ -1087,19 +1099,28 @@ def _absorb_residual_cells(
         absorbed.add(cell_index)
         claimed_cells[room_id].append(cell_index)
         room_areas[room_id] += cell.area
-        if requested and any(
-            cell.boundary.intersection(LineString(segment)).length + _TOLERANCE
-            >= 0.6
-            for segment in exterior_segments
-        ):
-            room_has_exterior[room_id] = True
+        if requested:
+            room_has_usable_frontage[room_id] = (
+                polygon_has_usable_daylight_frontage(
+                    union_all(
+                        (
+                            shapes[room_id],
+                            *(
+                                residual_cells[index]
+                                for index in claimed_cells[room_id]
+                            ),
+                        )
+                    ),
+                    exterior_segments=exterior_segments,
+                )
+            )
         for neighbor_index, shared_length in neighbors[cell_index]:
             if neighbor_index in absorbed:
                 continue
             if (
                 node.space_type not in primary_types
                 and room_areas[room_id] + _TOLERANCE >= float(node.target_area)
-                and (not requested or room_has_exterior[room_id])
+                and (not requested or room_has_usable_frontage[room_id])
             ):
                 break
             heappush(

@@ -24,6 +24,9 @@ from backend.app.modules.layout_generator.service import (
     generate_rear_center_layout,
     generate_side_mid_layout,
 )
+from backend.app.modules.layout_generator.daylight import (
+    require_usable_daylight_frontage,
+)
 from backend.app.modules.layout_generator.orthogonal import (
     generate_orthogonal_office_layout,
 )
@@ -773,6 +776,13 @@ def run_building_generation(
                 ),
             ),
         )
+        request = requests_by_floor.get(program.floor_index)
+        if request is not None:
+            require_usable_daylight_frontage(
+                layout,
+                boundary=floor_boundary,
+                room_ids=request.room_ids,
+            )
         area_ledger, egress_graph = build_floor_design_evidence(
             layout=layout,
             program=program,

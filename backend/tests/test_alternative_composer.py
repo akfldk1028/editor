@@ -35,6 +35,7 @@ from backend.app.modules.building_quality.contracts import (
 from backend.app.modules.building_quality import (
     PrimaryDaylightMeasurement,
     compare_building_diversity,
+    measure_primary_daylight,
 )
 from backend.app.modules.circulation_planner.service import (
     circulation_geometry_fingerprint,
@@ -81,14 +82,19 @@ def test_irregular_mass_produces_two_hard_pass_quality_distinct_families() -> No
         for floor in long_edge.quality_report.floors
         if floor.floor_index == 3
     )
+    generated_floor_3 = long_edge.building.floor_results[2]
+    daylight = measure_primary_daylight(generated_floor_3)
     repair, = long_edge.generator_repairs
 
     assert floor_3.primary_daylight_ratio >= 0.70
+    assert floor_3.primary_daylight_ratio == pytest.approx(daylight.ratio)
+    assert daylight.served_room_ids == ("meeting", "open_work")
+    assert daylight.unserved_room_ids == ("focus",)
     assert repair.operator_id == "primary_daylight_exterior_allocation/v1"
     assert repair.issue_code == "primary_daylight_ratio"
     assert repair.floor_index == 3
     assert repair.subject_id == "floor-3"
-    assert repair.room_ids == ("focus", "meeting")
+    assert repair.room_ids == ("meeting",)
     assert repair.before_value == pytest.approx(0.6625309657157782)
     assert repair.threshold == pytest.approx(0.70)
     assert repair.after_value == pytest.approx(floor_3.primary_daylight_ratio)
@@ -179,7 +185,7 @@ def _repair_evidence(*, after_value: float = 0.75) -> GeneratorRepairProvenance:
         policy_version="building-quality/v1",
         floor_index=3,
         subject_id="floor-3",
-        room_ids=("focus", "meeting"),
+        room_ids=("meeting",),
         before_value=0.6625309657157782,
         threshold=0.7,
         after_value=after_value,
@@ -189,7 +195,7 @@ def _repair_evidence(*, after_value: float = 0.75) -> GeneratorRepairProvenance:
 def test_generator_repair_provenance_is_typed_and_immutable() -> None:
     evidence = _repair_evidence()
 
-    assert evidence.room_ids == ("focus", "meeting")
+    assert evidence.room_ids == ("meeting",)
     with pytest.raises(ValueError, match="operator_id"):
         replace(evidence, operator_id="fixture-repair")
     with pytest.raises(ValueError, match="room_ids"):
@@ -335,6 +341,13 @@ def test_primary_daylight_request_uses_typed_unserved_room_ids(
         floor_results=(
             SimpleNamespace(
                 program=SimpleNamespace(floor_index=1),
+                validation=SimpleNamespace(
+                    room_areas=(
+                        SimpleNamespace(room_id="open_work", actual_area=69.0),
+                        SimpleNamespace(room_id="focus", actual_area=10.0),
+                        SimpleNamespace(room_id="meeting", actual_area=21.0),
+                    ),
+                ),
             ),
         ),
     )
@@ -368,7 +381,7 @@ def test_primary_daylight_request_uses_typed_unserved_room_ids(
 
     assert request == ExteriorAllocationRequest(
         floor_index=1,
-        room_ids=("focus", "meeting"),
+        room_ids=("meeting",),
     )
 
 
@@ -387,7 +400,7 @@ def test_primary_daylight_retry_is_one_shot_and_re_evaluated(
         alternative_service,
         "_primary_daylight_requests",
         lambda _building, _report: (
-            ExteriorAllocationRequest(1, ("focus", "meeting")),
+            ExteriorAllocationRequest(1, ("meeting",)),
         ),
     )
     monkeypatch.setattr(
@@ -414,7 +427,7 @@ def test_primary_daylight_retry_is_one_shot_and_re_evaluated(
     assert repaired is not None
     assert len(calls) == 1
     assert calls[0]["exterior_allocation_requests"] == (
-        ExteriorAllocationRequest(1, ("focus", "meeting")),
+        ExteriorAllocationRequest(1, ("meeting",)),
     )
 
 
@@ -445,7 +458,7 @@ def test_invalid_daylight_retry_keeps_after_provenance_on_typed_rejection(
         accepted=False,
         floor_results=(floor,),
     )
-    request = ExteriorAllocationRequest(1, ("focus", "meeting"))
+    request = ExteriorAllocationRequest(1, ("meeting",))
     monkeypatch.setattr(
         alternative_service,
         "_primary_daylight_requests",
@@ -508,7 +521,7 @@ def test_daylight_generation_error_keeps_structured_attempt_without_fake_after(
         hard_pass=False,
         hard_issue=("primary_daylight_ratio", 0.69, 0.70),
     )
-    request = ExteriorAllocationRequest(1, ("focus", "meeting"))
+    request = ExteriorAllocationRequest(1, ("meeting",))
     monkeypatch.setattr(
         alternative_service,
         "_primary_daylight_requests",

@@ -425,13 +425,51 @@ def _primary_daylight_requests(
             raise ValueError(
                 "primary daylight issue measured_value does not match measurement"
             )
+        room_ids = _minimum_primary_daylight_room_ids(
+            floor,
+            measurement,
+            threshold=issue.threshold,
+        )
         requests.append(
             ExteriorAllocationRequest(
                 floor_index=issue.floor_index,
-                room_ids=measurement.unserved_room_ids,
+                room_ids=room_ids,
             )
         )
     return tuple(requests)
+
+
+def _minimum_primary_daylight_room_ids(
+    floor,
+    measurement: PrimaryDaylightMeasurement,
+    *,
+    threshold: float,
+) -> tuple[str, ...]:
+    areas_by_room_id = {
+        metric.room_id: float(metric.actual_area)
+        for metric in floor.validation.room_areas
+    }
+    missing = sorted(set(measurement.unserved_room_ids) - areas_by_room_id.keys())
+    if missing:
+        raise ValueError(
+            "primary daylight request room area is unavailable: "
+            + ", ".join(missing)
+        )
+    ranked = sorted(
+        measurement.unserved_room_ids,
+        key=lambda room_id: (-areas_by_room_id[room_id], room_id),
+    )
+    selected = []
+    projected_served_area = measurement.served_primary_area
+    required_served_area = measurement.total_primary_area * threshold
+    for room_id in ranked:
+        selected.append(room_id)
+        projected_served_area += areas_by_room_id[room_id]
+        if projected_served_area + 1e-12 >= required_served_area:
+            break
+    if projected_served_area + 1e-12 < required_served_area:
+        raise ValueError("primary daylight request cannot reach issue threshold")
+    return tuple(sorted(selected))
 
 
 def _evaluate_with_primary_daylight_retry(
