@@ -8,9 +8,17 @@ venv/
 env/
 .worktrees/
 node_modules/
+dist/
+*.tsbuildinfo
 test-results/
+playwright-report/
 logs/security/.security-key
 logs/runs/
 logs/evaluation/
+logs/migration-backups/
+logs/security/
 experiments/**/outputs/
 clone/
+.playwright-mcp/
+/frontend/vite.config.js
+/frontend/vite.config.d.ts
