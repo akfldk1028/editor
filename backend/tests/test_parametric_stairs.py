@@ -261,7 +261,7 @@ def test_stair_mutation_is_rejected_and_svg_uses_modeled_tread_count(tmp_path) -
     with Image.open(artifacts.floor_artifacts[0].png_path) as image:
         assert image.size == (960, 540)
     report = artifacts.floor_artifacts[0].report_path.read_text(encoding="utf-8")
-    assert '"png": "unavailable"' in report
+    assert '"png": "rendered"' in report
     assert '"stair_geometry"' in report
     assert '"headroom_status": "not_checked"' in report
 

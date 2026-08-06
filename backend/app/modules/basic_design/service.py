@@ -1207,13 +1207,16 @@ def _place_object(
         object_width + aisle,
         include_end=object_size is None,
     )
+    room_shape = Polygon(room.polygon)
+    occupied_shapes = tuple(Polygon(item.footprint) for item in occupied)
 
     def available(footprint: tuple[Point, ...]) -> bool:
+        footprint_shape = Polygon(footprint)
         return (
-            contains_polygon(room.polygon, footprint)
+            room_shape.covers(footprint_shape)
             and not any(
-                polygon_overlap_area(footprint, item.footprint) > _EPSILON
-                for item in occupied
+                footprint_shape.intersection(shape).area > _EPSILON
+                for shape in occupied_shapes
             )
             and not any(
                 _rectangle_near_segment(footprint, segment, clearance=0.6)

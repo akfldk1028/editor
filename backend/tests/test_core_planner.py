@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 from shapely.geometry import Polygon
@@ -35,14 +36,17 @@ def test_irregular_setback_office_has_shared_structural_core_candidates() -> Non
         for floor in manifest["floor_footprints"]
     )
 
+    started = time.perf_counter()
     candidates = generate_shared_core_candidates(
         boundaries,
         required_area=72.0,
         minimum_width=7.6,
         minimum_depth=5.2,
     )
+    elapsed = time.perf_counter() - started
 
     assert len(boundaries) == 3
+    assert elapsed < 10.0
     assert all(len(boundary) == 12 for boundary in boundaries)
     assert all(len(set(boundary)) == 12 for boundary in boundaries)
     assert all(not _is_axis_aligned(boundary) for boundary in boundaries)

@@ -31,7 +31,7 @@ test.beforeAll(async () => {
 
 test.afterAll(() => server?.kill());
 
-test("working layer controls synchronize before and after iframe load", async ({ page }) => {
+test("CAD layer manager controls inline drawing layers", async ({ page }) => {
   const errors = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -45,11 +45,10 @@ test("working layer controls synchronize before and after iframe load", async ({
   const floorHtml = readdirSync(floorDir).find((name) => name.endsWith(".html"));
   await page.goto(`http://127.0.0.1:${port}/floor_001/${floorHtml}`, { waitUntil: "domcontentloaded" });
 
-  const rooms = page.locator('[data-layer="rooms"]');
+  const rooms = page.locator('#cad-layer-manager input[data-layer="rooms"]');
   await rooms.click();
-  await expect(rooms).toHaveAttribute("aria-pressed", "false");
-  const frame = page.frameLocator("#floor-plan");
-  await expect(frame.locator('[data-layer="rooms"]').first()).toHaveCSS("display", "none");
+  await expect(rooms).not.toBeChecked();
+  await expect(page.locator('.drawing-pane [data-layer="rooms"]').first()).toHaveCSS("display", "none");
 
   const layers = [
     "grid",
@@ -66,26 +65,24 @@ test("working layer controls synchronize before and after iframe load", async ({
     "text-labels",
   ];
   for (const layer of layers) {
-    const button = page.locator(`#working-layer-controls [data-layer="${layer}"]`);
-    if (layer !== "rooms") await button.click();
-    await expect(button).toHaveAttribute("aria-pressed", "false");
-    await expect(frame.locator(`[data-layer="${layer}"]`).first()).toHaveCSS("display", "none");
-    await button.click();
-    await expect(button).toHaveAttribute("aria-pressed", "true");
-    await expect(frame.locator(`[data-layer="${layer}"]`).first()).not.toHaveCSS("display", "none");
+    const checkbox = page.locator(`#cad-layer-manager input[data-layer="${layer}"]`);
+    if (layer !== "rooms") await checkbox.click();
+    await expect(checkbox).not.toBeChecked();
+    await expect(page.locator(`.drawing-pane [data-layer="${layer}"]`).first()).toHaveCSS("display", "none");
+    await checkbox.click();
+    await expect(checkbox).toBeChecked();
+    await expect(page.locator(`.drawing-pane [data-layer="${layer}"]`).first()).not.toHaveCSS("display", "none");
   }
 
-  await page.locator('#working-layer-controls [data-layer="egress"]').click();
-  await expect(page.locator('#working-layer-controls [data-layer="egress"]')).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  const selectedRooms = page.locator('#cad-layer-manager .layer-select[data-layer="rooms"]');
+  await selectedRooms.click();
+  await expect(selectedRooms).toHaveAttribute("aria-pressed", "true");
+
+  await page.locator('#cad-layer-manager input[data-layer="egress"]').click();
+  await expect(page.locator('#cad-layer-manager input[data-layer="egress"]')).not.toBeChecked();
   await page.reload();
-  await expect(page.locator('#working-layer-controls [data-layer="egress"]')).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(page.frameLocator("#floor-plan").locator('[data-layer="egress"]').first()).not.toHaveCSS(
+  await expect(page.locator('#cad-layer-manager input[data-layer="egress"]')).toBeChecked();
+  await expect(page.locator('.drawing-pane [data-layer="egress"]').first()).not.toHaveCSS(
     "display",
     "none",
   );
@@ -93,26 +90,23 @@ test("working layer controls synchronize before and after iframe load", async ({
   const floorTwoDir = join(outputDir, "floor_002");
   const floorTwoHtml = readdirSync(floorTwoDir).find((name) => name.endsWith(".html"));
   await page.goto(`http://127.0.0.1:${port}/floor_002/${floorTwoHtml}`);
-  await expect(page.locator('#working-layer-controls [data-layer="egress"]')).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(page.frameLocator("#floor-plan").locator('[data-layer="egress"]').first()).toBeVisible();
+  await expect(page.locator('#cad-layer-manager input[data-layer="egress"]')).toBeChecked();
+  await expect(page.locator('.drawing-pane [data-layer="egress"]').first()).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(async () => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-  await expect(page.locator("#working-layer-controls")).toBeVisible();
+  await expect(page.locator("#cad-layer-manager")).toBeVisible();
   for (const layer of layers) {
-    const button = page.locator(`#working-layer-controls [data-layer="${layer}"]`);
-    await button.click();
-    await expect(button).toHaveAttribute("aria-pressed", "false");
-    await button.click();
-    await expect(button).toHaveAttribute("aria-pressed", "true");
+    const checkbox = page.locator(`#cad-layer-manager input[data-layer="${layer}"]`);
+    await checkbox.click();
+    await expect(checkbox).not.toBeChecked();
+    await checkbox.click();
+    await expect(checkbox).toBeChecked();
   }
-  const controlBounds = await page.locator("#working-layer-controls").boundingBox();
+  const controlBounds = await page.locator("#cad-layer-manager").boundingBox();
   expect(controlBounds).not.toBeNull();
   expect(controlBounds.x + controlBounds.width).toBeLessThanOrEqual(376.5);
-  for (const button of await page.locator("#working-layer-controls button").all()) {
+  for (const button of await page.locator("#cad-layer-manager button").all()) {
     const bounds = await button.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds.x).toBeGreaterThanOrEqual(controlBounds.x);

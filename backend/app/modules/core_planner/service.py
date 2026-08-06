@@ -45,16 +45,22 @@ def generate_shared_core_candidates(
         return ()
     boundary_segments = _boundary_segments(common)
 
-    rectangles = tuple(
-        rectangle
-        for width, depth in _dimension_options(
-            x_coordinates,
-            y_coordinates,
-            bounds=common.bounds,
-            required_area=required_area,
-            minimum_width=minimum_width,
-            minimum_depth=minimum_depth,
-        )
+    targets = _strategy_targets(common)
+    target_coordinates = {
+        strategy: (target.x, target.y)
+        for strategy, target in targets.items()
+    }
+    ranked_by_strategy: dict[str, list[tuple[tuple, object]]] = {
+        strategy: [] for strategy in _STRATEGIES
+    }
+    for width, depth in _dimension_options(
+        x_coordinates,
+        y_coordinates,
+        bounds=common.bounds,
+        required_area=required_area,
+        minimum_width=minimum_width,
+        minimum_depth=minimum_depth,
+    ):
         for rectangle in _contained_rectangles(
             common,
             boundary_segments=boundary_segments,
@@ -62,27 +68,35 @@ def generate_shared_core_candidates(
             y_coordinates=y_coordinates,
             width=width,
             depth=depth,
-        )
-    )
-    if not rectangles:
+        ):
+            rectangle_bounds = rectangle.bounds
+            center = (
+                (rectangle_bounds[0] + rectangle_bounds[2]) / 2,
+                (rectangle_bounds[1] + rectangle_bounds[3]) / 2,
+            )
+            for strategy, target in target_coordinates.items():
+                key = (
+                    (center[0] - target[0]) ** 2 + (center[1] - target[1]) ** 2,
+                    rectangle_bounds,
+                )
+                ranked = ranked_by_strategy[strategy]
+                if len(ranked) < len(_STRATEGIES) or key < ranked[-1][0]:
+                    ranked.append((key, rectangle))
+                    ranked.sort(key=lambda item: item[0])
+                    del ranked[len(_STRATEGIES) :]
+    if not any(ranked_by_strategy.values()):
         return ()
 
-    targets = _strategy_targets(common)
     selected: list[CoreCandidate] = []
     used: set[str] = set()
     for strategy in _STRATEGIES:
-        ranked = sorted(
-            rectangles,
-            key=lambda rectangle: (
-                rectangle.centroid.distance(targets[strategy]),
-                rectangle.bounds,
-            ),
-        )
-        for rectangle in ranked:
+        for _, rectangle in ranked_by_strategy[strategy]:
             polygon = _rectangle_points(rectangle)
             returned_shape = Polygon(polygon)
             contained_floor_indices = tuple(
-                index for index, floor in enumerate(floors) if floor.covers(returned_shape)
+                index
+                for index, floor in enumerate(floors)
+                if floor.covers(returned_shape)
             )
             if len(contained_floor_indices) != len(floors):
                 continue

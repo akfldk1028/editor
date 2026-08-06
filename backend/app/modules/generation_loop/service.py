@@ -1800,11 +1800,10 @@ def _generate_side_mid_building(
         max(cross_bottoms),
         max_y - 1.2 - max(required_service_heights),
     )
-    return _generate_positioned_building(
-        baseline,
-        mass=mass,
-        generator=lambda analysis, program: generate_side_mid_layout(
-            analysis,
+
+    def side_mid_layout(program):
+        return generate_side_mid_layout(
+            baseline.mass,
             program,
             cross_bottom_override=shared_cross_bottom,
             floor_to_floor_height_m=(
@@ -1812,7 +1811,55 @@ def _generate_side_mid_building(
                 if mass.building_code_context is not None
                 else None
             ),
-        ),
+        )
+
+    adjusted_floors = []
+    for floor in baseline.floor_results:
+        preview = side_mid_layout(floor.program)
+        room_areas = {
+            room.room_id: polygon_area(room.polygon) for room in preview.rooms
+        }
+        nodes = []
+        changed = False
+        for node in floor.program.nodes:
+            if node.space_type not in {"sales", "open_work"}:
+                nodes.append(node)
+                continue
+            actual_area = room_areas.get(node.node_id)
+            if actual_area is None:
+                nodes.append(node)
+                continue
+            if actual_area <= 0:
+                raise ValueError(
+                    f"side-mid layout produced empty primary room '{node.node_id}'"
+                )
+            target = _clean_area(actual_area)
+            changed = changed or not math.isclose(
+                float(node.target_area), float(target), abs_tol=1e-7
+            )
+            nodes.append(
+                replace(
+                    node,
+                    target_area=target,
+                    min_area=_clean_area(float(target) * 0.85),
+                    max_area=_clean_area(float(target) * 1.15),
+                )
+            )
+        program = (
+            _with_program_adjustment(
+                floor.program,
+                nodes,
+                reason="side_mid_primary_fit",
+                source=f"{floor.program.source}:side_mid_primary_fit",
+            )
+            if changed
+            else floor.program
+        )
+        adjusted_floors.append(replace(floor, program=program))
+    return _generate_positioned_building(
+        replace(baseline, floor_results=tuple(adjusted_floors)),
+        mass=mass,
+        generator=lambda analysis, program: side_mid_layout(program),
     )
 
 
@@ -2688,7 +2735,7 @@ def run_candidate_search(
         raise ValueError("injected program identity does not match search request")
     floor_analysis = _analysis_for_floor(analysis, floor_index)
     boundary = mass.footprint_for_floor(floor_index)
-    streets = _street_segments(mass)
+    streets = _street_segments_for_boundary(mass, boundary)
     try:
         pending = generate_initial_proposals(floor_analysis, program)
     except Exception as error:

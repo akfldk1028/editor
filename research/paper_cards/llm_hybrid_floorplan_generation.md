@@ -139,8 +139,10 @@ still has no executed sampling result.
 
 ## Limits
 
-- Whole-building generation currently accepts only axis-aligned rectangular
-  floor plates.
+- Whole-building generation supports simple straight-edge single-ring floor
+  plates, including L/U shapes, sloped polygons, and floor-by-floor setbacks.
+  Diagonal fringes outside the axis-aligned planning region can remain
+  unassigned; holes, disconnected plates, and curved edges remain unsupported.
 - LLM output currently controls floor use assignment, not room polygons.
 - The deterministic concept-basic output includes role-specific rooms,
   room-to-corridor doors, core subdivision, two stair references, elevator,

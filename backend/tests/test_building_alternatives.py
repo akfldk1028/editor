@@ -148,7 +148,7 @@ def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, de
     result = run_building_alternatives(mass)
 
     assert len(result.alternatives) == 2
-    assert sum(alternative.accepted for alternative in result.alternatives) >= 1
+    assert sum(alternative.accepted for alternative in result.alternatives) == 2
     assert [alternative.rank for alternative in result.alternatives] == [1, 2]
     assert [alternative.accepted for alternative in result.alternatives] == sorted(
         (alternative.accepted for alternative in result.alternatives),
@@ -200,7 +200,7 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
 
     result = run_building_alternatives(mass)
 
-    assert result.accepted_count < 2
+    assert result.accepted_count == 2
     for alternative in result.alternatives:
         for floor in alternative.floor_results:
             screening = floor.validation.regulatory_screening
@@ -266,6 +266,13 @@ def test_legacy_unknown_sprinkler_uses_conservative_target_for_alternatives():
     assert "shared_core_normalization" in {
         adjustment.reason
         for alternative in result.alternatives
+        for floor in alternative.floor_results
+        for adjustment in floor.program.adjustments
+    }
+    assert "side_mid_primary_fit" in {
+        adjustment.reason
+        for alternative in result.alternatives
+        if alternative.alternative_id == "alternative-c"
         for floor in alternative.floor_results
         for adjustment in floor.program.adjustments
     }

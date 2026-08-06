@@ -11,7 +11,7 @@ from pathlib import Path
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.modules.generation_loop.service import (
-    _street_segments,
+    _street_segments_for_boundary,
     assign_floors_from_use_mix,
     build_floor_design_evidence,
     run_building_alternatives,
@@ -227,7 +227,7 @@ def create_building_visual_review_artifacts(
     width: int = 960,
     height: int = 540,
     *,
-    render_style: str = "review",
+    render_style: str = "architectural",
 ) -> BuildingVisualReviewArtifacts:
     _validate_render_style(render_style)
     target = Path(output_dir).resolve()
@@ -384,9 +384,21 @@ def create_visual_review_artifacts(
         height,
         render_style=render_style,
     )
+    floor_identity = f"F{result.program.floor_index} | {result.program.use_type}"
     svg_payload = str(svg_output.payload)
+    svg_identity = (
+        f'<g data-drawing-floor="{result.program.floor_index}">'
+        '<rect x="8" y="6" width="220" height="22" rx="3" '
+        'fill="white" fill-opacity="0.9" stroke="#555555" stroke-width="0.7"/>'
+        '<text x="16" y="21" font-family="Arial" font-size="12" '
+        f'font-weight="bold" fill="#222222">{html.escape(floor_identity)}</text></g>'
+    )
+    svg_payload = svg_payload.replace("</svg>", f"{svg_identity}</svg>")
+    png_payload = bytes(png_output.payload)
+    if render_style == "architectural":
+        png_payload = _annotate_png_identity(png_payload, floor_identity)
     svg_path.write_text(svg_payload, encoding="utf-8")
-    png_path.write_bytes(bytes(png_output.payload))
+    png_path.write_bytes(png_payload)
 
     render_evidence = _render_evidence(features, svg_output, png_output)
     missing_basic_design = _missing_basic_design_ids(result, render_evidence)
@@ -396,14 +408,11 @@ def create_visual_review_artifacts(
     unresolved_label_collisions = int(
         png_output.metadata.get("unresolved_collision_count", 0)
     )
-    if render_style == "architectural":
-        checks["label_overlap"] = "pass" if unresolved_label_collisions == 0 else "fail"
+    checks["label_overlap"] = "pass" if unresolved_label_collisions == 0 else "fail"
     measurements = _layout_measurements(result)
     room_shapes = to_jsonable(result.validation.room_shapes)
     room_areas = to_jsonable(result.validation.room_areas)
-    render_passed = not missing_basic_design and (
-        render_style != "architectural" or unresolved_label_collisions == 0
-    )
+    render_passed = not missing_basic_design and unresolved_label_collisions == 0
     regulatory_screening = _regulatory_screening_payload(result.validation)
     accepted = (
         result.validation.accepted
@@ -504,7 +513,11 @@ def create_visual_review_artifacts(
     svg_path.write_text(svg_payload, encoding="utf-8")
     report["status_footer"] = {
         "svg": "rendered",
-        "png": "unavailable",
+        "png": (
+            "rendered"
+            if png_payload.startswith(b"\x89PNG\r\n\x1a\n")
+            else "unavailable"
+        ),
         "text": status_text,
         "svg_output_size": [width, height + 30],
         "png_output_size": [width, height],
@@ -681,16 +694,17 @@ def run_visual_review_loop(
     reports: list[dict] = []
     for iteration in search.iterations:
         candidate = iteration.best_so_far
+        floor_boundary = mass.footprint_for_floor(floor_index)
         area_ledger, egress_graph = build_floor_design_evidence(
             layout=candidate.layout,
             program=search.program,
-            boundary=mass.footprint_polygon,
+            boundary=list(floor_boundary),
         )
         validation = validate_layout(
             candidate.layout,
             search.program,
-            boundary=mass.footprint_polygon,
-            street_segments=_street_segments(mass),
+            boundary=list(floor_boundary),
+            street_segments=_street_segments_for_boundary(mass, floor_boundary),
             building_code_context=mass.building_code_context,
             egress_graph=egress_graph,
         )
@@ -701,11 +715,17 @@ def run_visual_review_loop(
             validation=validation,
             area_ledger=area_ledger,
             egress_graph=egress_graph,
+            floor_boundary=tuple(floor_boundary),
+            floor_boundary_source=(
+                "explicit_floor_footprint"
+                if mass.floor_footprints
+                else "legacy_broadcast"
+            ),
         )
         iteration_dir = target / f"iteration_{iteration.iteration:03d}"
         review = create_visual_review_artifacts(
             result,
-            boundary=mass.footprint_polygon,
+            boundary=list(floor_boundary),
             output_dir=iteration_dir,
             candidate=candidate,
             iteration_number=iteration.iteration,
@@ -2145,7 +2165,57 @@ def _render_png(
             pad_y,
             height,
         )
+    else:
+        _, collision_metadata = _draw_architectural_png_text(
+            payload,
+            canvas,
+            features,
+            min_x,
+            min_y,
+            scale,
+            pad_x,
+            pad_y,
+            height,
+        )
+        metadata = {
+            **metadata,
+            "collision_strategy": "architectural-label-proxy",
+            "label_count": collision_metadata["label_count"],
+            "adjusted_count": collision_metadata["adjusted_count"],
+            "unresolved_collision_count": collision_metadata[
+                "unresolved_collision_count"
+            ],
+        }
     return _RenderedOutput(payload, tuple(rendered), tuple(skipped), metadata)
+
+
+def _annotate_png_identity(payload: bytes, label: str) -> bytes:
+    from PIL import Image, ImageDraw, ImageFont
+
+    image = Image.open(io.BytesIO(payload)).convert("RGB")
+    if image.width < 320 or image.height < 180:
+        return payload
+    drawing = ImageDraw.Draw(image)
+    font_path = _architectural_font_path()
+    font = (
+        ImageFont.truetype(str(font_path), 14)
+        if font_path is not None
+        else ImageFont.load_default()
+    )
+    box = drawing.textbbox((0, 0), label, font=font)
+    width = box[2] - box[0]
+    height = box[3] - box[1]
+    drawing.rounded_rectangle(
+        (8, 6, 24 + width, 16 + height),
+        radius=3,
+        fill=(255, 255, 255),
+        outline=(85, 85, 85),
+        width=1,
+    )
+    drawing.text((16, 9), label, fill=(34, 34, 34), font=font)
+    output = io.BytesIO()
+    image.save(output, format="PNG", optimize=False)
+    return output.getvalue()
 
 
 def _png_feature(

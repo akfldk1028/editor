@@ -154,9 +154,8 @@ def refine_proposals(
 ) -> list[CandidateProposal]:
     proposals: list[CandidateProposal] = []
     for parent, report in zip(frontier, reports):
-        if "circulation_missing" not in {
-            violation.code for violation in report.violations
-        }:
+        violation_codes = sorted({violation.code for violation in report.violations})
+        if report.accepted or not violation_codes:
             continue
         parent_layout = parent.layout if isinstance(parent, CandidateRecord) else parent
         parent_fingerprint = (
@@ -165,7 +164,14 @@ def refine_proposals(
             else layout_fingerprint(parent_layout)
         )
         proposals.extend(
-            _corridor_proposals(
+            replace(
+                proposal,
+                operator_params={
+                    **proposal.operator_params,
+                    "trigger_violations": violation_codes,
+                },
+            )
+            for proposal in _corridor_proposals(
                 parent_layout,
                 parent_fingerprint,
                 analysis,

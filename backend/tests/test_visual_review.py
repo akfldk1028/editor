@@ -118,7 +118,10 @@ def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
     assert review.png_path.exists()
     assert review.html_path.exists()
     assert review.report_path.exists()
-    assert "<svg" in review.svg_path.read_text(encoding="utf-8")
+    svg = review.svg_path.read_text(encoding="utf-8")
+    assert "<svg" in svg
+    assert 'data-drawing-floor="1"' in svg
+    assert ">F1 | neighborhood_commercial</text>" in svg
     assert "visual review" in review.html_path.read_text(encoding="utf-8").lower()
     assert review.png_path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     report = json.loads(review.report_path.read_text(encoding="utf-8"))
@@ -128,6 +131,7 @@ def test_create_visual_review_artifacts_writes_svg_png_and_report(tmp_path):
     assert report["checks"]["openings"] == "not_checked"
     assert report["checks"]["corridor_width"] == "not_checked"
     assert report["checks"]["basic_design"] == "not_checked"
+    assert report["status_footer"]["png"] == "rendered"
 
 
 def test_architectural_style_uses_monochrome_drafting_symbols_and_korean_font(
@@ -689,6 +693,13 @@ def test_building_review_writes_navigable_artifacts_for_every_floor(tmp_path):
     assert "F1 | neighborhood_commercial" in index
     assert "F5 | office" in index
     report = json.loads(artifacts.report_path.read_text(encoding="utf-8"))
+    assert report["render_style"] == "architectural"
+    assert len(
+        {review.png_path.read_bytes() for review in artifacts.floor_artifacts}
+    ) == 5
+    for floor_index, review in enumerate(artifacts.floor_artifacts, start=1):
+        svg = review.svg_path.read_text(encoding="utf-8")
+        assert f'data-drawing-floor="{floor_index}"' in svg
     assert report["accepted"] is result.accepted
     assert report["vertical_core_aligned"] is True
     assert report["vertical_basic_design_aligned"] is True
@@ -1414,8 +1425,9 @@ def test_run_visual_review_loop_writes_search_history_and_canonical_index(tmp_pa
         "basic_design": "not_checked",
         "boundary": "pass",
         "circulation_access": "pass",
-        "corridor_width": "not_checked",
-        "openings": "not_checked",
+            "corridor_width": "not_checked",
+            "label_overlap": "pass",
+            "openings": "not_checked",
         "overlap": "pass",
         "room_form": "fail",
     }

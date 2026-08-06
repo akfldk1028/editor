@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from itertools import permutations, product
 
 from backend.app.schemas.loop import CandidateRecord
 from engine.geometry.polygon import shared_boundary_length
@@ -117,31 +116,59 @@ def _canonical_floor_topology(layout) -> tuple:
                 )
             )
 
-    role_groups = tuple(
-        (role, tuple(sorted(node for node, value in roles.items() if value == role)))
+    role_counts = tuple(
+        (role, sum(value == role for value in roles.values()))
         for role in sorted(set(roles.values()))
     )
-    group_permutations = [
-        tuple(permutations(nodes))
-        for _, nodes in role_groups
-    ]
-    role_counts = tuple((role, len(nodes)) for role, nodes in role_groups)
-    canonical_edges = None
-    for ordered_groups in product(*group_permutations):
-        labels = {
-            node: index
-            for index, node in enumerate(
-                node
-                for ordered_nodes in ordered_groups
-                for node in ordered_nodes
-            )
-        }
-        encoded = tuple(
-            sorted(
-                (kind, labels[source], labels[target])
-                for kind, source, target in edges
-            )
+    colors = _refined_node_colors(roles, edges)
+    canonical_edges = tuple(
+        sorted(
+            (kind, colors[source], colors[target])
+            for kind, source, target in edges
         )
-        if canonical_edges is None or encoded < canonical_edges:
-            canonical_edges = encoded
-    return role_counts, canonical_edges or ()
+    )
+    color_counts = tuple(
+        sorted(
+            (color, sum(value == color for value in colors.values()))
+            for color in set(colors.values())
+        )
+    )
+    return role_counts, color_counts, canonical_edges
+
+
+def _refined_node_colors(
+    roles: dict[str, str],
+    edges: list[tuple[str, str, str]],
+) -> dict[str, int]:
+    role_palette = {role: index for index, role in enumerate(sorted(set(roles.values())))}
+    colors = {node: role_palette[role] for node, role in roles.items()}
+    for _ in range(max(1, len(roles))):
+        signatures = {
+            node: (
+                roles[node],
+                tuple(
+                    sorted(
+                        (kind, colors[target])
+                        for kind, source, target in edges
+                        if source == node
+                    )
+                ),
+                tuple(
+                    sorted(
+                        (kind, colors[source])
+                        for kind, source, target in edges
+                        if target == node
+                    )
+                ),
+            )
+            for node in roles
+        }
+        palette = {
+            signature: index
+            for index, signature in enumerate(sorted(set(signatures.values())))
+        }
+        refined = {node: palette[signature] for node, signature in signatures.items()}
+        if refined == colors:
+            return refined
+        colors = refined
+    return colors
