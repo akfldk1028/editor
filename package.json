@@ -1,7 +1,10 @@
 {
   "private": true,
   "scripts": {
-    "test:browser": "playwright test"
+    "test:agent": "node --test agents/planm/tests/*.test.ts --experimental-strip-types",
+    "test:browser": "playwright test",
+    "test:frontend": "playwright test -c playwright.planm.config.cjs",
+    "test:product": "playwright test -c playwright.planm-live.config.cjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.0"
