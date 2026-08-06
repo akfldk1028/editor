@@ -12,7 +12,7 @@ review, approval, artifact delivery, and optional post-approval DWG inspection.
 | `backend/app/modules/` | PLAN domain logic, run state, artifacts, execution |
 | `backend/app/adapters/` | Thin PLANM process and DWG loopback adapters |
 | `agents/planm/` | PLANM identity, contracts, skills, workflows, memory, runtime bridge |
-| `external/gitagent-runtime/` | Generic GitAgent runtime |
+| `external/gitagent-runtime/` | Generic GitAgent host for PLANM skill/workflow discovery |
 | `external/dwg-intelligence/` | Independent DWG Git submodule |
 | `engine/` | Shared geometry, graph, constraints, metrics, and image primitives |
 | `datasets/`, `experiments/`, `research/` | Retained research inputs and evidence |
@@ -22,13 +22,18 @@ review, approval, artifact delivery, and optional post-approval DWG inspection.
 ```text
 Frontend
    -> Backend API and orchestration
-      -> PLANM Agent process -> generic GitAgent runtime
+      -> PLANM deterministic process bridge -> injected Backend execution service
       -> optional DWG loopback process after approval
+
+PLANM Agent package
+   -> generic GitAgent runtime for agentic skill/workflow hosting
 ```
 
-The Frontend never reads Agent or DWG paths. PLANM and DWG never import each
-other. The PLANM bridge receives a Backend-owned engine command at runtime and
-contains no Backend filesystem path.
+The product API does not require an LLM runtime. The generic GitAgent host can
+load the same PLANM identity, skills, and workflow for agentic operation. The
+Frontend never reads Agent or DWG paths. PLANM and DWG never import each other.
+The deterministic PLANM bridge receives a Backend-owned engine command at
+runtime and contains no Backend filesystem path.
 
 ## Run
 

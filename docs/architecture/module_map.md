@@ -13,14 +13,19 @@ PLAN is organized around a replaceable `Mass -> Program -> Precedent -> Layout -
 - `external/dwg-intelligence`: independent DWG Git submodule and process.
 - `engine`: reusable geometry, graph, constraint, metric, and image primitives.
 
-Allowed dependency direction:
+Deterministic product dependency direction:
 
-`Frontend -> Backend -> PLANM Agent -> generic runtime`
+`Frontend -> Backend -> PLANM process bridge -> injected Backend execution service`
 
 `Backend -> optional DWG process`
 
-PLANM Agent receives its Backend engine command through the versioned process
-environment. It does not import Backend modules or contain a Backend path.
+Optional agentic hosting direction:
+
+`generic GitAgent runtime -> load agents/planm identity, skills, and workflow`
+
+The product API does not require an LLM runtime. PLANM receives its Backend
+engine command through the versioned process environment. It does not import
+Backend modules or contain a Backend path.
 
 ## Runtime Boundary
 
