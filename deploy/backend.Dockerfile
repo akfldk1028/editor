@@ -12,11 +12,17 @@ RUN apt-get update \
 WORKDIR /app
 COPY . .
 
-RUN python3 -m venv /opt/planm \
-    && /opt/planm/bin/pip install --no-cache-dir . \
-    && npm --prefix external/gitagent-runtime ci \
+ENV npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_retry_mintimeout=20000
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.npm \
+    python3 -m venv /opt/planm \
+    && /opt/planm/bin/pip install . \
+    && npm --prefix external/gitagent-runtime ci --prefer-offline --no-audit \
     && npm --prefix external/gitagent-runtime run build \
-    && npm --prefix external/dwg-intelligence ci \
+    && npm --prefix external/dwg-intelligence ci --prefer-offline --no-audit \
     && npm --prefix external/dwg-intelligence run build:parser \
     && npm --prefix external/dwg-intelligence run build:cad-io-host
 
