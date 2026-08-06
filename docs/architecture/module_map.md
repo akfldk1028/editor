@@ -2,6 +2,9 @@
 
 PLAN is organized around a replaceable `Mass -> Program -> Precedent -> Layout -> Validation` loop.
 
+The canonical folder ownership and dependency rules are defined in
+`docs/architecture/repository_layout.md`.
+
 ## Product Ownership
 
 - `frontend`: PLANM user interface. It calls only the Backend HTTP API.

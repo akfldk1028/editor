@@ -44,5 +44,5 @@ docker compose up --build
 
 Open `http://localhost:8080`.
 
-See `docs/architecture/module_map.md` and `docs/integrations/` for contracts and
-deployment details.
+See `docs/architecture/repository_layout.md`, `docs/architecture/module_map.md`,
+and `docs/integrations/` for ownership, contracts, and deployment details.
