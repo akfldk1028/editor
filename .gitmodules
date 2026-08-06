@@ -1,0 +1,3 @@
+[submodule "external/dwg-intelligence"]
+	path = external/dwg-intelligence
+	url = https://github.com/akfldk1028/DWG.git
