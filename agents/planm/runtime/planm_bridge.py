@@ -10,13 +10,6 @@ import subprocess
 import sys
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-ENGINE = Path(
-    os.environ.get(
-        "PLANM_ENGINE_PATH",
-        REPOSITORY_ROOT / "backend" / "app" / "adapters" / "planm_engine.py",
-    )
-)
 STAGES = ("normalize", "analyze", "alternatives", "review", "deliver")
 STAGE_SKILLS = {
     "normalize": "normalize-plan-request",
@@ -25,6 +18,21 @@ STAGE_SKILLS = {
     "review": "review-floorplan",
     "deliver": "deliver-planm-package",
 }
+
+
+def _engine_command() -> list[str]:
+    raw = os.environ.get("PLANM_ENGINE_COMMAND_JSON")
+    if not raw:
+        raise RuntimeError("PLANM engine command was not provided")
+    value = json.loads(raw)
+    if (
+        not isinstance(value, list)
+        or not value
+        or len(value) > 16
+        or any(not isinstance(part, str) or not part or len(part) > 4096 for part in value)
+    ):
+        raise ValueError("PLANM engine command must be a bounded string array")
+    return value
 
 
 def _timeout_result(stage: str, request: dict, timeout_seconds: float) -> dict:
@@ -74,8 +82,8 @@ def main() -> int:
     timeout_seconds = float(os.environ.get("PLANM_ENGINE_TIMEOUT_SECONDS", "290"))
     try:
         completed = subprocess.run(
-            [sys.executable, str(ENGINE)],
-            cwd=REPOSITORY_ROOT,
+            _engine_command(),
+            cwd=os.environ.get("PLANM_ENGINE_CWD") or None,
             input=json.dumps(request, ensure_ascii=False),
             capture_output=True,
             text=True,

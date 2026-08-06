@@ -2,6 +2,26 @@
 
 PLAN is organized around a replaceable `Mass -> Program -> Precedent -> Layout -> Validation` loop.
 
+## Product Ownership
+
+- `frontend`: PLANM user interface. It calls only the Backend HTTP API.
+- `backend/app/api`: versioned HTTP routes and DTO boundaries.
+- `backend/app/modules`: PLAN product logic, run ownership, artifacts, and stage execution.
+- `backend/app/adapters`: thin process or loopback clients for PLANM Agent and DWG.
+- `agents/planm`: PLANM identity, contracts, skills, workflows, memory, and process bridge.
+- `external/gitagent-runtime`: generic Agent runtime; it imports no PLANM or DWG product code.
+- `external/dwg-intelligence`: independent DWG Git submodule and process.
+- `engine`: reusable geometry, graph, constraint, metric, and image primitives.
+
+Allowed dependency direction:
+
+`Frontend -> Backend -> PLANM Agent -> generic runtime`
+
+`Backend -> optional DWG process`
+
+PLANM Agent receives its Backend engine command through the versioned process
+environment. It does not import Backend modules or contain a Backend path.
+
 ## Runtime Boundary
 
 - `backend/app/schemas`: stable data contracts.

@@ -1,18 +1,29 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 
 
+PLAN_ROOT = Path(__file__).parents[2]
 BRIDGE = (
-    Path(__file__).parents[2]
+    PLAN_ROOT
     / "agents"
     / "planm"
-    / "adapters"
+    / "runtime"
     / "planm_bridge.py"
 )
+
+
+def _engine_environment() -> dict[str, str]:
+    environment = os.environ.copy()
+    environment["PLANM_ENGINE_COMMAND_JSON"] = json.dumps(
+        [sys.executable, "-m", "backend.app.adapters.planm_engine"]
+    )
+    environment["PLANM_ENGINE_CWD"] = str(PLAN_ROOT)
+    return environment
 
 
 def _sample_payload() -> dict:
@@ -46,6 +57,7 @@ def test_bridge_normalize_writes_versioned_state(tmp_path: Path) -> None:
         capture_output=True,
         text=True,
         check=False,
+        env=_engine_environment(),
     )
 
     assert completed.returncode == 0, completed.stderr
@@ -80,6 +92,7 @@ def test_bridge_normalize_reports_invalid_input_without_state(tmp_path: Path) ->
         capture_output=True,
         text=True,
         check=False,
+        env=_engine_environment(),
     )
 
     assert completed.returncode == 2

@@ -2,17 +2,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 
 
 PLAN_ROOT = Path(__file__).parents[2]
-BRIDGE = PLAN_ROOT / "agents" / "planm" / "adapters" / "planm_bridge.py"
+BRIDGE = PLAN_ROOT / "agents" / "planm" / "runtime" / "planm_bridge.py"
 SAMPLE = PLAN_ROOT / "datasets" / "manifests" / "sample_mass_office_commercial.json"
 
 
 def _run(stage: str, state: Path, output_dir: Path) -> dict:
+    environment = os.environ.copy()
+    environment["PLANM_ENGINE_COMMAND_JSON"] = json.dumps(
+        [sys.executable, "-m", "backend.app.adapters.planm_engine"]
+    )
+    environment["PLANM_ENGINE_CWD"] = str(PLAN_ROOT)
     completed = subprocess.run(
         [
             sys.executable,
@@ -30,6 +36,7 @@ def _run(stage: str, state: Path, output_dir: Path) -> dict:
         capture_output=True,
         text=True,
         timeout=120,
+        env=environment,
     )
     assert completed.returncode == 0, completed.stderr or completed.stdout
     result = json.loads(completed.stdout)

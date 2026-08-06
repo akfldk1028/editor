@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 
-bridge = Path(__file__).resolve().parents[3] / "adapters" / "planm_bridge.py"
+bridge = Path(__file__).resolve().parents[3] / "runtime" / "planm_bridge.py"
 raise SystemExit(
     subprocess.run(
         [sys.executable, str(bridge), "alternatives", *sys.argv[1:]],

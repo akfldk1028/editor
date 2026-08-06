@@ -28,8 +28,12 @@ def run_planm_stage(
             path.resolve().relative_to(owned_root)
         except ValueError as error:
             raise ValueError(f"{label} path escapes the owned run root") from error
-    bridge = repository_root / "agents" / "planm" / "adapters" / "planm_bridge.py"
+    bridge = repository_root / "agents" / "planm" / "runtime" / "planm_bridge.py"
     environment = os.environ.copy()
+    environment["PLANM_ENGINE_COMMAND_JSON"] = json.dumps(
+        [sys.executable, "-m", "backend.app.adapters.planm_engine"]
+    )
+    environment["PLANM_ENGINE_CWD"] = str(repository_root)
     environment["PLANM_ENGINE_TIMEOUT_SECONDS"] = str(max(0.01, timeout_seconds * 0.9))
     try:
         completed = subprocess.run(

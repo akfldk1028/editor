@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import ast
 import os
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -12,7 +13,7 @@ import pytest
 
 
 PLAN_ROOT = Path(__file__).parents[2]
-PLANM_BRIDGE = PLAN_ROOT / "agents" / "planm" / "adapters" / "planm_bridge.py"
+PLANM_BRIDGE = PLAN_ROOT / "agents" / "planm" / "runtime" / "planm_bridge.py"
 
 
 def test_planm_bridge_has_no_backend_python_imports() -> None:
@@ -20,6 +21,20 @@ def test_planm_bridge_has_no_backend_python_imports() -> None:
 
     assert "from backend.app" not in source
     assert "import backend.app" not in source
+    assert "backend" not in source.lower()
+
+
+def test_planm_engine_adapter_is_a_thin_process_host() -> None:
+    path = PLAN_ROOT / "backend" / "app" / "adapters" / "planm_engine.py"
+    source = path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+
+    assert len(source.splitlines()) <= 10
+    assert any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "backend.app.modules.planm_execution.service"
+        for node in tree.body
+    )
 
 
 def test_backend_planm_adapter_runs_versioned_normalize_stage(tmp_path: Path) -> None:
@@ -140,7 +155,10 @@ def test_planm_bridge_returns_blocked_result_when_engine_times_out(tmp_path: Pat
     fake_engine = tmp_path / "slow_engine.py"
     fake_engine.write_text("import time\ntime.sleep(5)\n", encoding="utf-8")
     env = os.environ.copy()
-    env["PLANM_ENGINE_PATH"] = str(fake_engine)
+    env["PLANM_ENGINE_COMMAND_JSON"] = json.dumps(
+        [sys.executable, str(fake_engine)]
+    )
+    env["PLANM_ENGINE_CWD"] = str(tmp_path)
     env["PLANM_ENGINE_TIMEOUT_SECONDS"] = "0.05"
 
     completed = subprocess.run(
@@ -173,7 +191,7 @@ def test_backend_adapter_converts_outer_watchdog_timeout(tmp_path: Path) -> None
     from backend.app.adapters.planm_agent import run_planm_stage
 
     repository = tmp_path / "repository"
-    bridge = repository / "agents" / "planm" / "adapters" / "planm_bridge.py"
+    bridge = repository / "agents" / "planm" / "runtime" / "planm_bridge.py"
     bridge.parent.mkdir(parents=True)
     bridge.write_text("import time\ntime.sleep(5)\n", encoding="utf-8")
     run_root = tmp_path / "run"
