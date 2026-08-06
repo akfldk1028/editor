@@ -1,0 +1,9 @@
+log_level: info
+planm:
+  state_file: planm-state.json
+  maximum_stage_attempts: 3
+  minimum_accepted_alternatives: 2
+  reject_duplicate_fingerprints: true
+  require_internal_validation: true
+  require_render_validation: true
+  preserve_regulatory_not_checked: true

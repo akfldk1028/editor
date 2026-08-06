@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "planm-stage-request/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "stage",
+    "input_path",
+    "state_path",
+    "output_dir"
+  ],
+  "properties": {
+    "contract_version": { "const": "planm-stage-request/v1" },
+    "stage": {
+      "enum": ["normalize", "analyze", "alternatives", "review", "deliver"]
+    },
+    "input_path": { "type": "string", "minLength": 1 },
+    "state_path": { "type": "string", "minLength": 1 },
+    "output_dir": { "type": "string", "minLength": 1 }
+  }
+}

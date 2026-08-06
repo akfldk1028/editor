@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "planm-state/v1",
+  "title": "PLANM Workflow State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "project_id",
+    "stage",
+    "status",
+    "input_path",
+    "output_dir",
+    "attempts",
+    "candidate_fingerprints",
+    "accepted_alternative_ids",
+    "unresolved_facts",
+    "violations",
+    "artifacts",
+    "history"
+  ],
+  "properties": {
+    "contract_version": { "const": "planm-state/v1" },
+    "project_id": { "type": "string", "minLength": 1 },
+    "stage": {
+      "enum": [
+        "initialized",
+        "normalized",
+        "analyzed",
+        "alternatives_generated",
+        "reviewed",
+        "delivered"
+      ]
+    },
+    "status": {
+      "enum": ["success", "needs_input", "retryable", "blocked"]
+    },
+    "input_path": { "type": "string", "minLength": 1 },
+    "output_dir": { "type": "string", "minLength": 1 },
+    "attempts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 5
+      }
+    },
+    "candidate_fingerprints": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+      "uniqueItems": true
+    },
+    "accepted_alternative_ids": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "unresolved_facts": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "violations": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["skill_name", "status", "attempt", "finished_at"],
+        "properties": {
+          "skill_name": { "type": "string" },
+          "status": {
+            "enum": ["success", "needs_input", "retryable", "blocked"]
+          },
+          "attempt": { "type": "integer", "minimum": 1 },
+          "finished_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
