@@ -15,15 +15,16 @@ PLAN is organized around a replaceable `Mass -> Program -> Precedent -> Layout -
 
 Deterministic product dependency direction:
 
-`Frontend -> Backend -> PLANM process bridge -> injected Backend execution service`
+`Frontend -> Backend -> PLANM GitAgent host -> discovered PLANM skill -> process bridge -> injected Backend execution service`
 
 `Backend -> optional DWG process`
 
-Optional agentic hosting direction:
+Always-on Agent hosting direction:
 
-`generic GitAgent runtime -> load agents/planm identity, skills, and workflow`
+`generic GitAgent runtime API -> discover agents/planm workflow and stage skill`
 
-The product API does not require an LLM runtime. PLANM receives its Backend
+The product API does not require an LLM provider. All PLANM stages traverse the
+generic runtime discovery boundary. PLANM receives its Backend
 engine command through the versioned process environment. It does not import
 Backend modules or contain a Backend path.
 

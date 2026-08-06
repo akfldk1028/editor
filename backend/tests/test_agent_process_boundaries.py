@@ -71,6 +71,18 @@ def test_backend_planm_adapter_runs_versioned_normalize_stage(tmp_path: Path) ->
     assert state_path.is_file()
 
 
+def test_backend_planm_adapter_builds_gitagent_host_command() -> None:
+    from backend.app.adapters.planm_agent import build_planm_host_command
+
+    command = build_planm_host_command(PLAN_ROOT)
+
+    assert Path(command[0]).name.lower() in {"node", "node.exe"}
+    assert command[1] == str(
+        PLAN_ROOT / "agents" / "planm" / "runtime" / "gitagent_host.mjs"
+    )
+    assert "planm_bridge.py" not in " ".join(command)
+
+
 def test_dwg_client_builds_independent_mcp_process_command() -> None:
     from backend.app.adapters.dwg_client import build_dwg_mcp_command
 
@@ -191,9 +203,9 @@ def test_backend_adapter_converts_outer_watchdog_timeout(tmp_path: Path) -> None
     from backend.app.adapters.planm_agent import run_planm_stage
 
     repository = tmp_path / "repository"
-    bridge = repository / "agents" / "planm" / "runtime" / "planm_bridge.py"
-    bridge.parent.mkdir(parents=True)
-    bridge.write_text("import time\ntime.sleep(5)\n", encoding="utf-8")
+    host = repository / "agents" / "planm" / "runtime" / "gitagent_host.mjs"
+    host.parent.mkdir(parents=True)
+    host.write_text("setTimeout(() => {}, 5000);\n", encoding="utf-8")
     run_root = tmp_path / "run"
     run_root.mkdir()
     input_path = run_root / "input.json"

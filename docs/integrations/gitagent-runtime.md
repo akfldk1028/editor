@@ -23,3 +23,12 @@ npm run test:agent
 
 The runtime receives an Agent directory as configuration. It never discovers a
 product Agent through a hard-coded repository-relative path.
+
+## PLANM execution
+
+Backend always starts `agents/planm/runtime/gitagent_host.mjs`. The host loads
+the configured runtime entry, discovers `planm-delivery` and the stage's named
+skill, verifies the canonical five-skill order, and executes only that skill's
+contained `scripts/run.py`. The Python bridge and deterministic Backend engine
+remain separate process boundaries. This path has no activation mode and does
+not require model credentials.

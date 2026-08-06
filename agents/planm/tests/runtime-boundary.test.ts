@@ -29,3 +29,12 @@ test("generic runtime does not depend on PLANM or DWG product code", async () =>
 	}
 	assert.deepEqual(violations, []);
 });
+
+test("Backend launches the PLANM GitAgent host instead of the bridge directly", async () => {
+	const adapter = await readFile(
+		new URL("../../../backend/app/adapters/planm_agent.py", import.meta.url),
+		"utf8",
+	);
+	assert.match(adapter, /gitagent_host\.mjs/);
+	assert.doesNotMatch(adapter, /runtime["']\s*\/\s*["']planm_bridge\.py/);
+});

@@ -3,9 +3,18 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 from typing import Any
+
+
+def build_planm_host_command(repository_root: Path) -> list[str]:
+    node = shutil.which("node") or shutil.which("node.exe")
+    if node is None:
+        raise RuntimeError("Node.js is required to host the PLANM agent")
+    host = repository_root / "agents" / "planm" / "runtime" / "gitagent_host.mjs"
+    return [node, str(host)]
 
 
 def run_planm_stage(
@@ -28,8 +37,12 @@ def run_planm_stage(
             path.resolve().relative_to(owned_root)
         except ValueError as error:
             raise ValueError(f"{label} path escapes the owned run root") from error
-    bridge = repository_root / "agents" / "planm" / "runtime" / "planm_bridge.py"
     environment = os.environ.copy()
+    environment["PLANM_AGENT_DIR"] = str(repository_root / "agents" / "planm")
+    environment["PLANM_GITAGENT_RUNTIME_ENTRY"] = str(
+        repository_root / "external" / "gitagent-runtime" / "dist" / "exports.js"
+    )
+    environment["PLANM_PYTHON_EXECUTABLE"] = sys.executable
     environment["PLANM_ENGINE_COMMAND_JSON"] = json.dumps(
         [sys.executable, "-m", "backend.app.adapters.planm_engine"]
     )
@@ -38,8 +51,7 @@ def run_planm_stage(
     try:
         completed = subprocess.run(
             [
-                sys.executable,
-                str(bridge),
+                *build_planm_host_command(repository_root),
                 stage,
                 "--input",
                 str(input_path),

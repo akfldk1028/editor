@@ -22,6 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && /opt/planm/bin/pip install . \
     && npm --prefix external/gitagent-runtime ci --prefer-offline --no-audit \
     && npm --prefix external/gitagent-runtime run build \
+    && test -f external/gitagent-runtime/dist/exports.js \
     && npm --prefix external/dwg-intelligence ci --prefer-offline --no-audit \
     && npm --prefix external/dwg-intelligence run build:parser \
     && npm --prefix external/dwg-intelligence run build:cad-io-host

@@ -22,15 +22,16 @@ review, approval, artifact delivery, and optional post-approval DWG inspection.
 ```text
 Frontend
    -> Backend API and orchestration
-      -> PLANM deterministic process bridge -> injected Backend execution service
+      -> PLANM GitAgent host -> discovered workflow/skill -> process bridge -> injected Backend execution service
       -> optional DWG loopback process after approval
 
 PLANM Agent package
    -> generic GitAgent runtime for agentic skill/workflow hosting
 ```
 
-The product API does not require an LLM runtime. The generic GitAgent host can
-load the same PLANM identity, skills, and workflow for agentic operation. The
+The product API does not require an LLM provider. Every PLANM stage always runs
+through the generic GitAgent host, which discovers the PLANM workflow and skill
+before executing the deterministic process bridge. The
 Frontend never reads Agent or DWG paths. PLANM and DWG never import each other.
 The deterministic PLANM bridge receives a Backend-owned engine command at
 runtime and contains no Backend filesystem path.

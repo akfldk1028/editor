@@ -4,7 +4,7 @@
 
 ```text
 Browser -> Frontend nginx -> Backend HTTP
-                            |-> PLANM Agent subprocess
+                            |-> GitAgent host -> PLANM skill subprocess
                             `-> optional DWG gateway subprocess
 ```
 
@@ -12,6 +12,8 @@ Browser -> Frontend nginx -> Backend HTTP
 - Backend owns run state, orchestration, adapters, and the persistent run volume.
 - `agents/planm` remains a separate process boundary from Backend domain code.
 - `external/gitagent-runtime` remains a generic built runtime with no PLAN or DWG imports.
+  Its built discovery API is required by every deployed PLANM stage; no user
+  activation switch or LLM provider is required.
 - `external/dwg-intelligence` is built from its pinned submodule source. Its public
   gateway starts only for an approved CAD inspection and receives the single run
   handoff directory as `DWG_WORKSPACE`.
