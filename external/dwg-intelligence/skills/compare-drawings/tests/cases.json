@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "cad-skill-cases/v1",
+  "skillId": "compare-drawings",
+  "cases": [
+    {
+      "id": "fixture-derived-text-change",
+      "fixture": "dxf.minimal-architectural",
+      "scenario": "fixture-text-change",
+      "input": "examples/input.json",
+      "output": "examples/output.json",
+      "status": "passed"
+    },
+    {
+      "id": "missing-before-drawing",
+      "fixture": "dxf.minimal-architectural",
+      "scenario": "fixture-missing-before",
+      "input": "tests/missing-input.json",
+      "output": "tests/missing-output.json",
+      "status": "failed"
+    }
+  ]
+}

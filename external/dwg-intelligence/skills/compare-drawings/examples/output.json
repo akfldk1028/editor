@@ -1,0 +1,29 @@
+{
+  "added": [],
+  "removed": [],
+  "changed": [
+    {
+      "before": {
+        "id": "h:30",
+        "handle": "30",
+        "type": "TEXT",
+        "layer": "A-TEXT",
+        "bbox": { "min": [100, 100, 0], "max": [100, 100, 0] },
+        "text": "ROOM 101",
+        "reason": "matched drawing evidence",
+        "confidence": 1
+      },
+      "after": {
+        "id": "h:30",
+        "handle": "30",
+        "type": "TEXT",
+        "layer": "A-TEXT",
+        "bbox": { "min": [100, 100, 0], "max": [100, 100, 0] },
+        "text": "ROOM 102",
+        "reason": "matched drawing evidence",
+        "confidence": 1
+      },
+      "fields": ["text"]
+    }
+  ]
+}

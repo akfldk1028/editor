@@ -1,0 +1,16 @@
+{
+  "name": "@dwg/cad-capabilities",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@dwg/cad-export": "0.1.0",
+    "@dwg/cad-io-acadsharp": "0.1.0",
+    "@dwg/cad-edit": "0.1.0",
+    "@dwg/cad-query": "0.1.0",
+    "@dwg/contracts": "0.1.0"
+  }
+}

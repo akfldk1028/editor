@@ -1,0 +1,32 @@
+.viewer-toolbar, .viewer-status { display: flex; align-items: center; border-bottom: 1px solid var(--border-soft); }
+.viewer-toolbar { padding: 0 7px; justify-content: space-between; }
+.tool-group { display: flex; gap: 2px; }
+.tool-button { width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid transparent; background: transparent; border-radius: 4px; cursor: pointer; color: #5e6b77; }
+.tool-button.active { color: #067e9b; background: var(--accent-soft); border-color: #cce8ee; }
+.viewer-crumb { color: #63717e; font-size: 10px; }
+.viewer-crumb span { padding: 0 7px; color: #a2abb3; }
+.canvas-wrap { min-height: 0; position: relative; overflow: hidden; background: #fbfcfd; }
+.cad-canvas { display: block; width: 100%; height: 100%; background: #fbfcfd; }
+.minor-grid { fill: none; stroke: #edf1f4; stroke-width: .22; }
+.major-grid { fill: none; stroke: #dde4e9; stroke-width: .35; }
+.cad-entity, .cad-entity * { vector-effect: non-scaling-stroke; }
+.cad-entity { stroke: #334d5b; stroke-width: 1.15; fill: none; transition: stroke .1s, stroke-width .1s, fill .1s; }
+line.cad-entity { fill: none; }
+.cad-entity.highlighted { stroke: #00a6c8; stroke-width: 3; fill: none; filter: drop-shadow(0 0 1.5px rgba(0,166,200,.45)); }
+.cad-entity[data-geometry-kind="point"] { fill: #334d5b; }
+.cad-entity[data-geometry-kind="point"].highlighted { fill: #00a6c8; }
+.cad-entity.geometry-fallback { stroke-dasharray: 2 1.5; opacity: .72; }
+.cad-text { fill: #334d5b; stroke: none; font-family: "Segoe UI", sans-serif; pointer-events: visiblePainted; }
+.cad-text.highlighted { fill: #00a6c8; stroke: none; }
+.axis-gizmo { position: absolute; left: 14px; bottom: 13px; width: 38px; height: 38px; color: #546370; border-left: 2px solid #3ba66d; border-bottom: 2px solid #d85c5c; }
+.axis-gizmo svg { position: absolute; left: -8px; bottom: -8px; background: #fff; }
+.axis-gizmo span { position: absolute; font-size: 8px; font-weight: 800; }
+.axis-y { left: -2px; top: -12px; color: #2e9762; }
+.axis-x { right: -9px; bottom: -4px; color: #c64a4a; }
+.scale-readout { position: absolute; right: 12px; bottom: 10px; padding: 3px 6px; color: #6f7d88; background: rgba(255,255,255,.9); border: 1px solid var(--border-soft); border-radius: 3px; font: 9px ui-monospace, monospace; }
+.viewer-status { padding: 0 9px; gap: 14px; border-top: 1px solid var(--border-soft); border-bottom: 0; color: #77838e; font-size: 9px; }
+.viewer-maximized { position: fixed; z-index: 50; inset: 0; grid-template-rows: 35px minmax(0, 1fr) 26px; box-shadow: 0 0 0 1px var(--border); }
+.viewer-status span { display: flex; align-items: center; gap: 5px; }
+.status-dot { width: 6px; height: 6px; display: inline-block; border-radius: 50%; }
+.status-dot.ready { background: #29a06d; box-shadow: 0 0 0 2px #ddf3e9; }
+.coordinates { margin-left: auto; font-family: ui-monospace, monospace; }

@@ -1,0 +1,12 @@
+{
+  "id": "22222222-2222-4222-8222-222222222222",
+  "status": "passed",
+  "format": "dxf",
+  "version": "AC1027",
+  "sourceSha256": "86BE7BBDF2CA52E4343F0914E2986229229A2DB90DB9350453F7FC21C17B97B6",
+  "outputSha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "intendedChangeCount": 0,
+  "verifiedChangeCount": 0,
+  "copiedHandleMap": {},
+  "warnings": []
+}

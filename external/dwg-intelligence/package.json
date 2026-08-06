@@ -1,0 +1,58 @@
+{
+  "name": "click-around",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "modules/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "build:parser": "dotnet build modules/dwg-parser/src/DwgIntelligence.DwgParser/DwgIntelligence.DwgParser.csproj --nologo",
+    "build:cad-io-host": "dotnet build modules/cad-io-acadsharp/src/DwgIntelligence.CadIo.Host/DwgIntelligence.CadIo.Host.csproj --nologo",
+    "build:frontend": "npm --workspace @click-around/workspace run build",
+    "pretest": "npm run build:parser && npm run build:cad-io-host",
+    "test": "node --import tsx --test \"packages/**/*.test.ts\" \"modules/**/*.test.ts\" \"apps/workspace/tests/unit/**/*.test.ts\" \"scripts/**/*.test.mjs\"",
+    "test:edit": "node --import tsx --test \"modules/cad-edit/**/*.test.ts\"",
+    "test:roundtrip": "node --import tsx --test \"modules/cad-io-acadsharp/**/*.test.ts\" \"modules/cad-capabilities/tests/save-coordinator.test.ts\"",
+    "test:skills": "node --import tsx --test \"modules/skill-runtime/**/*.test.ts\" \"tests/skills/**/*.test.ts\"",
+    "test:fixtures": "node --test scripts/verify-fixture-hashes.test.mjs",
+    "test:dotnet:parser": "dotnet test modules/dwg-parser/tests/DwgIntelligence.DwgParser.Tests/DwgIntelligence.DwgParser.Tests.csproj --nologo",
+    "test:dotnet:cad-io": "dotnet test modules/cad-io-acadsharp/tests/DwgIntelligence.CadIo.Tests/DwgIntelligence.CadIo.Tests.csproj --nologo",
+    "test:dotnet": "npm run test:dotnet:parser && npm run test:dotnet:cad-io",
+    "test:e2e": "node scripts/run-e2e.mjs",
+    "capture:docs": "npm --workspace @click-around/workspace run capture:docs --",
+    "verify": "npm test && npm run test:dotnet && npm run build:frontend",
+    "verify:all": "npm run verify && npm run test:e2e",
+    "verify:foundation": "npm test && npm run test:dotnet && npm run build:frontend && npm run test:e2e",
+    "harness": "tsx modules/cad-runtime/harness/run-case.ts",
+    "preskill": "dotnet build modules/dwg-parser/src/DwgIntelligence.DwgParser/DwgIntelligence.DwgParser.csproj --nologo --verbosity quiet && dotnet build modules/cad-io-acadsharp/src/DwgIntelligence.CadIo.Host/DwgIntelligence.CadIo.Host.csproj --nologo --verbosity quiet",
+    "skill": "tsx modules/cad-runtime/harness/run-skill.ts",
+    "premcp": "npm run build:parser && npm run build:cad-io-host",
+    "mcp": "tsx modules/cad-runtime/src/mcp/stdio.ts",
+    "pregateway": "npm run build:parser && npm run build:cad-io-host",
+    "gateway": "tsx modules/cad-runtime/src/http/gateway.ts",
+    "preproviders:smoke": "npm run build:parser",
+    "providers:smoke": "tsx modules/cad-runtime/harness/provider-smoke.ts"
+  },
+  "dependencies": {
+    "@dwg/cad-capabilities": "file:modules/cad-capabilities",
+    "@dwg/cad-document": "file:modules/cad-document",
+    "@dwg/cad-edit": "file:modules/cad-edit",
+    "@dwg/cad-export": "file:modules/cad-export",
+    "@dwg/cad-io-acadsharp": "file:modules/cad-io-acadsharp",
+    "@dwg/contracts": "file:packages/contracts",
+    "@dwg/host-dialogs": "file:modules/host-dialogs",
+    "@dwg/skill-contracts": "file:packages/skill-contracts",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "ajv": "^8.17.1",
+    "dxf-parser": "^1.1.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

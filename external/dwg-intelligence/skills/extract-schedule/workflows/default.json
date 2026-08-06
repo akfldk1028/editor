@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "cad-skill-workflow/v1",
+  "steps": [
+    { "id": "text", "capability": "query.text", "input": { "drawingId": "$input.drawingId", "query": "$input.query" } },
+    { "id": "schedule", "capability": "query.schedule", "input": { "drawingId": "$input.drawingId", "matches": "$steps.text.output.matches", "yTolerance": "$input.yTolerance" } }
+  ]
+}

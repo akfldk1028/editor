@@ -1,0 +1,61 @@
+.drawing-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border, #e5e5e5);
+}
+
+.drawing-sessions > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 6px;
+}
+
+.drawing-sessions > button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.drawing-sessions ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drawing-sessions li button {
+  width: 100%;
+  overflow: hidden;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+}
+
+.drawing-sessions li button.active {
+  cursor: default;
+  font-weight: 600;
+  background: var(--surface-active, #f1f1f1);
+}
+
+.drawing-sessions-error {
+  margin: 0;
+  font-size: 11px;
+  color: var(--danger, #b3261e);
+}

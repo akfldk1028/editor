@@ -1,0 +1,60 @@
+{
+  "id": "compare-drawings",
+  "version": "1.0.0",
+  "purpose": "Compare two opened drawings using deterministic read-only CAD evidence.",
+  "capabilityContract": "cad-capabilities/v1",
+  "permissions": ["read"],
+  "capabilities": ["query.compare"],
+  "formats": ["dwg", "dxf"],
+  "entityTypes": ["LINE", "LWPOLYLINE", "INSERT", "TEXT", "MTEXT"],
+  "failureCodes": ["INPUT_SCHEMA_INVALID", "CAPABILITY_EXECUTION_FAILED", "OUTPUT_SCHEMA_INVALID"],
+  "limitationCodes": ["NO_MODEL_GEOMETRY_INFERENCE", "UNSUPPORTED_OBJECTS_REPORTED"],
+  "inputSchema": {
+    "type": "object",
+    "required": ["beforeDrawingId", "afterDrawingId"],
+    "properties": {
+      "beforeDrawingId": { "type": "string", "minLength": 1 },
+      "afterDrawingId": { "type": "string", "minLength": 1 }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["added", "removed", "changed"],
+    "properties": {
+      "added": { "type": "array", "items": { "$ref": "#/definitions/match" } },
+      "removed": { "type": "array", "items": { "$ref": "#/definitions/match" } },
+      "changed": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["before", "after", "fields"],
+          "properties": {
+            "before": { "$ref": "#/definitions/match" },
+            "after": { "$ref": "#/definitions/match" },
+            "fields": { "type": "array", "items": { "enum": ["type", "layer", "bbox", "text"] }, "minItems": 1 }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false,
+    "definitions": {
+      "match": {
+        "type": "object",
+        "required": ["id", "handle", "type", "layer", "bbox", "reason", "confidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "handle": { "type": ["string", "null"] },
+          "type": { "type": "string" },
+          "layer": { "type": "string" },
+          "bbox": { "type": ["object", "null"] },
+          "text": { "type": ["string", "null"] },
+          "reason": { "type": "string" },
+          "confidence": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

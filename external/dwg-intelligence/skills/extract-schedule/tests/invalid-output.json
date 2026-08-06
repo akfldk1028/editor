@@ -1,0 +1,6 @@
+{
+  "skillId": "extract-schedule",
+  "status": "failed",
+  "steps": [],
+  "warnings": ["INPUT_SCHEMA_INVALID"]
+}

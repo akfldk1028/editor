@@ -1,0 +1,43 @@
+{
+  "id": "extract-schedule",
+  "version": "1.0.0",
+  "purpose": "Extract deterministic text and schedule-row evidence from an opened drawing.",
+  "capabilityContract": "cad-capabilities/v1",
+  "permissions": ["read"],
+  "capabilities": ["query.text", "query.schedule"],
+  "formats": ["dwg", "dxf"],
+  "entityTypes": ["TEXT", "MTEXT"],
+  "failureCodes": ["INPUT_SCHEMA_INVALID", "CAPABILITY_EXECUTION_FAILED", "OUTPUT_SCHEMA_INVALID"],
+  "limitationCodes": ["NO_MODEL_GEOMETRY_INFERENCE", "NO_TABLE_CELL_INFERENCE", "UNSUPPORTED_OBJECTS_REPORTED"],
+  "inputSchema": {
+    "type": "object",
+    "required": ["drawingId", "query", "yTolerance"],
+    "properties": {
+      "drawingId": { "type": "string", "minLength": 1 },
+      "query": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "yTolerance": { "type": "number", "exclusiveMinimum": 0, "maximum": 1000000 }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["rows"],
+    "properties": {
+      "rows": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["sourceHandles", "cells", "layer", "bbox"],
+          "properties": {
+            "sourceHandles": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "cells": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            "layer": { "type": "string" },
+            "bbox": { "type": ["object", "null"] }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  }
+}

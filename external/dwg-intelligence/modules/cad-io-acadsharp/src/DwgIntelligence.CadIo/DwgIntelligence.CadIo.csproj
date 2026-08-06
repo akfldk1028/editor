@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ACadSharp" Version="3.6.35" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="DwgIntelligence.DwgParser.Tests" />
+    <InternalsVisibleTo Include="DwgIntelligence.CadIo.Tests" />
+    <InternalsVisibleTo Include="DwgIntelligence.CadIo.Host" />
+  </ItemGroup>
+</Project>

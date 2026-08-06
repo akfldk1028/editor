@@ -1,0 +1,14 @@
+{
+  "id": "layer-inspection",
+  "version": "1.2.3",
+  "purpose": "Inspect drawing layers using deterministic CAD evidence.",
+  "capabilityContract": "cad-capabilities/v1",
+  "permissions": ["read"],
+  "capabilities": ["query.layers"],
+  "formats": ["dwg", "dxf"],
+  "entityTypes": ["LAYER"],
+  "failureCodes": ["DRAWING_NOT_FOUND"],
+  "limitationCodes": ["NO_VISUAL_INFERENCE"],
+  "inputSchema": { "type": "object" },
+  "outputSchema": { "type": "object" }
+}

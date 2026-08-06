@@ -1,0 +1,12 @@
+{
+  "skillId": "compare-drawings",
+  "status": "failed",
+  "steps": [
+    {
+      "id": "compare",
+      "status": "failed",
+      "output": { "error": { "code": "CAPABILITY_EXECUTION_FAILED" } }
+    }
+  ],
+  "warnings": []
+}

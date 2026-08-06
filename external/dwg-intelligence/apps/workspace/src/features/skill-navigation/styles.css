@@ -1,0 +1,16 @@
+.skill-navigation { min-height: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
+.skill-navigation-scroll { min-height: 0; flex: 1 1 auto; overflow: auto; padding: 8px; }
+.skill-navigation-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; padding: 10px; border-bottom: 1px solid var(--border-soft); }
+.skill-navigation-row > div:first-child { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.skill-navigation-row strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.skill-navigation-row small { color: var(--muted); font-size: 8px; }
+.skill-compatibility, .skill-status { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 8px; font-weight: 700; }
+.skill-compatibility.compatible, .skill-status.passed { color: var(--success); }
+.skill-compatibility.incompatible, .skill-status.failed { color: var(--warning); }
+.skill-status.running { color: var(--accent); }
+.skill-status.idle { color: var(--muted); }
+.skill-permissions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
+.skill-permissions span { padding: 2px 4px; color: var(--muted); background: var(--subtle); border-radius: 4px; font-size: 8px; }
+.skill-navigation-state { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 84px; padding: 14px; color: var(--muted); font-size: 10px; text-align: center; }
+.skill-navigation-state.error { color: var(--warning); }
+.spin { animation: spin .8s linear infinite; }

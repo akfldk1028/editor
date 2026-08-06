@@ -1,0 +1,39 @@
+.panel-heading { height: 35px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-soft); color: #778490; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
+.icon-button { width: 25px; height: 25px; color: #667480; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; }
+.icon-button.active { color: var(--accent); background: var(--accent-soft); border-radius: 4px; }
+.explorer-search { height: 34px; display: flex; align-items: center; gap: 6px; padding: 0 9px; color: var(--muted); border-bottom: 1px solid var(--border-soft); }
+.explorer-search input { width: 100%; min-width: 0; border: 0; outline: 0; font-size: 10px; }
+.tree-empty { padding: 14px 10px; color: #8a969f; font-size: 9px; text-align: center; }
+.tree-row { height: 30px; padding: 0 10px; display: flex; align-items: center; gap: 7px; color: #475665; font-size: 11px; }
+.tree-row:hover { background: #f6f9fa; }
+.tree-root { height: 34px; color: #203140; font-weight: 650; border-bottom: 1px solid var(--border-soft); }
+.tree-section { padding-top: 5px; }
+.tree-child { padding-left: 30px; }
+.tree-child .tree-guide { width: 1px; height: 30px; margin-left: -13px; background: #dfe5ea; }
+.selected-row { color: #076f8a; background: var(--accent-soft); }
+.count { margin-left: auto; color: #8b97a1; font-size: 9px; font-variant-numeric: tabular-nums; }
+.layer-swatch { width: 8px; height: 8px; border-radius: 2px; border: 2px solid #27a6c4; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.explorer-summary { position: absolute; bottom: 205px; left: 0; width: 220px; padding: 10px; border-top: 1px solid var(--border-soft); background: #fafbfc; }
+.explorer-summary div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 9px; color: #788590; }
+.explorer-summary strong { color: #43515e; font-weight: 600; }
+
+.layer-visibility-button {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 3px;
+  color: #667480;
+  background: transparent;
+  cursor: pointer;
+}
+
+.layer-visibility-button:hover,
+.layer-visibility-button[aria-pressed="true"] {
+  color: #067e9b;
+  background: #e4f4f7;
+}

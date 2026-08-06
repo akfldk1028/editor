@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "cad-skill-workflow/v1",
+  "steps": [
+    { "id": "open", "capability": "document.open", "input": { "path": "$input.path" } },
+    { "id": "describe", "capability": "document.describe", "input": { "drawingId": "$steps.open.output.drawingId" } },
+    { "id": "layers", "capability": "query.layers", "input": { "drawingId": "$steps.open.output.drawingId" } },
+    { "id": "entities", "capability": "query.entities", "input": { "drawingId": "$steps.open.output.drawingId", "layer": "$input.layer" } }
+  ]
+}

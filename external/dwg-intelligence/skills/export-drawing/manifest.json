@@ -1,0 +1,40 @@
+{
+  "id": "export-drawing",
+  "version": "1.0.0",
+  "purpose": "Save a verified DWG or DXF copy through a one-use host destination grant.",
+  "capabilityContract": "cad-capabilities/v1",
+  "permissions": ["write-copy", "export"],
+  "capabilities": ["export.drawing"],
+  "formats": ["dwg", "dxf"],
+  "entityTypes": [],
+  "failureCodes": ["CAPABILITY_EXECUTION_FAILED", "INPUT_SCHEMA_INVALID", "OUTPUT_SCHEMA_INVALID"],
+  "limitationCodes": ["SOURCE_DRAWING_UNCHANGED", "HOST_DESTINATION_ONLY"],
+  "inputSchema": {
+    "type": "object",
+    "required": ["expectedRevision", "baseFilename", "format", "version"],
+    "properties": {
+      "expectedRevision": { "type": "integer", "minimum": 0 },
+      "baseFilename": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "format": { "enum": ["dxf", "dwg"] },
+      "version": { "type": "string", "pattern": "^AC[0-9]{4}$" }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["id", "status", "format", "version", "sourceSha256", "outputSha256", "intendedChangeCount", "verifiedChangeCount", "copiedHandleMap", "warnings"],
+    "properties": {
+      "id": { "type": "string" },
+      "status": { "enum": ["passed", "failed"] },
+      "format": { "enum": ["dxf", "dwg"] },
+      "version": { "type": "string" },
+      "sourceSha256": { "type": "string" },
+      "outputSha256": { "type": "string" },
+      "intendedChangeCount": { "type": "integer" },
+      "verifiedChangeCount": { "type": "integer" },
+      "copiedHandleMap": { "type": "object" },
+      "warnings": { "type": "array" }
+    },
+    "additionalProperties": false
+  }
+}

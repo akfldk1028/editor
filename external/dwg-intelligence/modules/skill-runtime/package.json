@@ -1,0 +1,15 @@
+{
+  "name": "@dwg/skill-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "@dwg/cad-capabilities": "0.1.0",
+    "@dwg/contracts": "0.1.0",
+    "@dwg/skill-contracts": "0.1.0"
+  }
+}

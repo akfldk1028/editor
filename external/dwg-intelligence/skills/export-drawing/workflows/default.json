@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "cad-skill-workflow/v1",
+  "steps": [
+    {
+      "id": "save",
+      "capability": "export.drawing",
+      "input": {
+        "documentId": "$host.documentId",
+        "expectedRevision": "$input.expectedRevision",
+        "destinationGrantId": "$host.destinationGrantId",
+        "baseFilename": "$input.baseFilename",
+        "format": "$input.format",
+        "version": "$input.version"
+      }
+    }
+  ]
+}

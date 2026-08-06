@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "dwg-roundtrip-policy/v1",
+  "candidates": [
+    {
+      "version": "AC1014",
+      "probeFixtureSha256": "",
+      "verified": false,
+      "invariantSha256": ""
+    },
+    {
+      "version": "AC1015",
+      "probeFixtureSha256": "B60B4A7242E43B34CA35561B105B2DDA30F2E373602AB5A12900EBC25B1E499B",
+      "verified": true,
+      "invariantSha256": "78D535815F6B80D84BE0CFE2EBB8786F18C284F70AEB982378C6C89622D62148"
+    },
+    {
+      "version": "AC1018",
+      "probeFixtureSha256": "B60B4A7242E43B34CA35561B105B2DDA30F2E373602AB5A12900EBC25B1E499B",
+      "verified": true,
+      "invariantSha256": "78D535815F6B80D84BE0CFE2EBB8786F18C284F70AEB982378C6C89622D62148"
+    },
+    {
+      "version": "AC1024",
+      "probeFixtureSha256": "B60B4A7242E43B34CA35561B105B2DDA30F2E373602AB5A12900EBC25B1E499B",
+      "verified": true,
+      "invariantSha256": "78D535815F6B80D84BE0CFE2EBB8786F18C284F70AEB982378C6C89622D62148"
+    },
+    {
+      "version": "AC1027",
+      "probeFixtureSha256": "B60B4A7242E43B34CA35561B105B2DDA30F2E373602AB5A12900EBC25B1E499B",
+      "verified": true,
+      "invariantSha256": "78D535815F6B80D84BE0CFE2EBB8786F18C284F70AEB982378C6C89622D62148"
+    },
+    {
+      "version": "AC1032",
+      "probeFixtureSha256": "B60B4A7242E43B34CA35561B105B2DDA30F2E373602AB5A12900EBC25B1E499B",
+      "verified": true,
+      "invariantSha256": "78D535815F6B80D84BE0CFE2EBB8786F18C284F70AEB982378C6C89622D62148"
+    }
+  ]
+}

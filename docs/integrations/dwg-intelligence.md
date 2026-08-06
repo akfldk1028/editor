@@ -1,8 +1,9 @@
 # DWG Intelligence integration boundary
 
-DWG Intelligence is pinned as an independent Git submodule at
-`external/dwg-intelligence`. Its source, dependencies, tests, agent guidance,
-and repository memory remain owned by that repository.
+DWG Intelligence is vendored as one complete independent product module at
+`external/dwg-intelligence`. PLAN directly tracks its workspace, runtime,
+parsers, contracts, skills, tests, agent guidance, and repository memory so a
+normal PLAN checkout contains every DWG Frontend and Backend source file.
 
 ## Boundary
 
@@ -14,7 +15,7 @@ and repository memory remain owned by that repository.
   CAD inspection or export capabilities.
 - Contract-only consumers may use the public `@dwg/contracts` or
   `@dwg/skill-contracts` package entrypoints with their declared dependencies.
-- Before changing the submodule, read
+- Before changing the vendored module, read
   `external/dwg-intelligence/AGENTS.md` and
   `external/dwg-intelligence/docs/handoff/repo-memory.md`.
 
@@ -40,16 +41,17 @@ that native DWG authoring or regulatory validation has completed.
 
 During integration, the DWG DXF indexer was found to return numeric handles for
 handle-less ASCII DXF even though the public contract requires `string | null`.
-The fix and regression test belong to the DWG submodule and must be committed
-and released there before updating PLAN's submodule pointer.
+The vendored module retains the string-handle normalization and its regression
+test while preserving all other source from the reviewed DWG checkout.
 
 ## Initialize and verify
 
 ```powershell
-git submodule update --init --recursive
 npm --prefix external/dwg-intelligence ci
-npm --prefix external/dwg-intelligence run verify
+npm --prefix external/dwg-intelligence run verify:all
 ```
 
-Update the submodule only to a reviewed DWG commit, then commit the changed
-submodule pointer in PLAN separately from DWG implementation work.
+Upstream synchronization must compare tracked blobs, preserve PLAN-reviewed
+fixes, exclude nested `.git`, local OAuth state, generated outputs, and source
+drawings, then rerun the complete DWG verification before committing the
+vendored update.

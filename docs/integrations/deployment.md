@@ -14,19 +14,17 @@ Browser -> Frontend nginx -> Backend HTTP
 - `external/gitagent-runtime` remains a generic built runtime with no PLAN or DWG imports.
   Its built discovery API is required by every deployed PLANM stage; no user
   activation switch or LLM provider is required.
-- `external/dwg-intelligence` is built from its pinned submodule source. Its public
+- `external/dwg-intelligence` is built from its complete vendored source. Its public
   gateway starts only for an approved CAD inspection and receives the single run
   handoff directory as `DWG_WORKSPACE`.
 - DWG source is never copied into Backend Python packages and Frontend never
   receives an Agent or DWG filesystem path.
 
-Initialize submodules before building. The deployable source must include a DWG
-submodule commit containing the numeric DXF handle normalization used by the
-PLAN handoff; an uncommitted submodule worktree is not reproducible deployment
-evidence.
+The deployable source includes the DWG workspace, runtime, parser, CAD I/O,
+contracts, skills, and tests. It also retains the numeric DXF handle
+normalization used by the PLAN handoff.
 
 ```powershell
-git submodule update --init --recursive
 docker compose build
 docker compose up -d
 ```
