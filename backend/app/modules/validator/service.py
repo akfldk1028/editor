@@ -35,13 +35,13 @@ from backend.app.schemas.regulatory import (
     RegulatoryScreening,
 )
 from backend.app.modules.basic_design.stair import required_stair_enclosure
-from engine.geometry import (
+from backend.engine.geometry import (
     bounding_box_aspect_ratio,
     orthogonal_min_width,
     segment_to_segment_distance,
     shared_boundary_segments,
 )
-from engine.geometry.polygon import (
+from backend.engine.geometry.polygon import (
     Segment,
     contains_polygon,
     polygon_area,

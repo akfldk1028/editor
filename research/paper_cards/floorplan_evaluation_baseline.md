@@ -4,7 +4,7 @@
 
 V1 is a deterministic, non-ML evaluation baseline. It validates a finite,
 simple, positive-area polygon ring and writes review artifacts before model
-integration. Shapely is isolated behind `engine.geometry`; schemas and
+integration. Shapely is isolated behind `backend.engine.geometry`; schemas and
 application services exchange only Python coordinates, booleans, and numbers.
 
 Hard validity is not a quality score. Room identity and per-room area,

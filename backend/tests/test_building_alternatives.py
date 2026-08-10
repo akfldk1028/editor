@@ -16,7 +16,7 @@ from backend.app.schemas.mass import (
 )
 from backend.app.schemas.program import ProgramAdjustment, ProgramNode
 from backend.app.schemas.result import PlannerProvenance
-from engine.geometry.polygon import (
+from backend.engine.geometry.polygon import (
     polygon_area,
     polygon_overlap_area,
     shared_boundary_with_segments_length,

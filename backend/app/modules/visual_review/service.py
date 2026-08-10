@@ -43,10 +43,10 @@ from backend.app.schemas.visual import (
     VisualReviewArtifacts,
     VisualReviewLoopResult,
 )
-from engine.geometry import orthogonal_min_width
-from engine.geometry.polygon import bounds
-from engine.geometry.polygon import polygon_area
-from engine.io.png import SimplePngCanvas
+from backend.engine.geometry import orthogonal_min_width
+from backend.engine.geometry.polygon import bounds
+from backend.engine.geometry.polygon import polygon_area
+from backend.engine.io.png import SimplePngCanvas
 
 PALETTE = {
     "shop_unit": "#d9ead3",

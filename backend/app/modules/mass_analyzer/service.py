@@ -5,7 +5,7 @@ from backend.app.schemas.mass import (
     MassAnalysis,
     MassInput,
 )
-from engine.geometry.polygon import bounds, contains_polygon, polygon_area
+from backend.engine.geometry.polygon import bounds, contains_polygon, polygon_area
 
 
 def analyze_mass(mass: MassInput) -> MassAnalysis:

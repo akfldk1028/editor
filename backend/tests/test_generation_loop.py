@@ -31,7 +31,7 @@ from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import FloorFootprint, MassInput
 from backend.app.schemas.loop import CandidateProposal, LoopConfig
 from backend.app.schemas.layout import RoomPolygon
-from engine.geometry.polygon import shared_boundary_length
+from backend.engine.geometry.polygon import shared_boundary_length
 
 
 def _exterior_routing_mass() -> MassInput:

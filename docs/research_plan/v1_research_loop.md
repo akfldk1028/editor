@@ -42,7 +42,7 @@ review artifacts do not claim a per-candidate audit trail.
 
 ## Evaluation Baseline
 
-Exact simple-polygon predicates are isolated in `engine.geometry`; Shapely is
+Exact simple-polygon predicates are isolated in `backend.engine.geometry`; Shapely is
 not an application or schema dependency. The V1 evaluator rejects non-finite,
 self-intersecting, zero-area, hole, and multipolygon inputs. It intentionally
 does not yet model holes, doors, minimum corridor widths, or concave-aware

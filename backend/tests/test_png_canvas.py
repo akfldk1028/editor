@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-from engine.io.png import SimplePngCanvas
+from backend.engine.io.png import SimplePngCanvas
 
 
 BLACK = (0, 0, 0)
@@ -93,7 +93,7 @@ def test_canvas_primitives_keep_png_bytes_deterministic() -> None:
 
 def test_large_offscreen_geometry_finishes_with_a_valid_png() -> None:
     script = """
-from engine.io.png import SimplePngCanvas
+from backend.engine.io.png import SimplePngCanvas
 
 canvas = SimplePngCanvas(16, 16)
 canvas.stroke_line((-1e9, 8), (1e9, 8), (0, 0, 0))

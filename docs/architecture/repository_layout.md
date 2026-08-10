@@ -27,7 +27,8 @@ PLAN/
 |-- external/
 |   |-- gitagent-runtime/     generic runtime; no PLAN or DWG imports
 |   `-- dwg-intelligence/     vendored independent DWG product module
-|-- engine/                   reusable geometry and validation primitives
+|-- backend/
+|   |-- engine/              backend-owned geometry and validation primitives
 |-- deploy/                   container definitions and reverse proxy config
 |-- browser_tests/            product UI and visual E2E tests
 |-- datasets/                 retained source and normalized fixtures

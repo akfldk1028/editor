@@ -15,7 +15,7 @@ The canonical folder ownership and dependency rules are defined in
 - `external/gitagent-runtime`: generic Agent runtime; it imports no PLANM or DWG product code.
 - `external/dwg-intelligence`: vendored independent DWG product and process;
   its workspace, runtime, parsers, contracts, skills, and tests stay internally owned.
-- `engine`: reusable geometry, graph, constraint, metric, and image primitives.
+- `backend.engine`: backend-owned geometry, graph, constraint, metric, and image primitives.
 
 Deterministic product dependency direction:
 
@@ -36,14 +36,14 @@ Backend modules or contain a Backend path.
 
 - `backend/app/schemas`: stable data contracts.
 - `backend/app/modules`: application services that orchestrate one capability each.
-- `engine`: reusable geometry, graph, constraint, metric, and IO primitives.
+- `backend.engine`: backend-owned geometry, graph, constraint, metric, and IO primitives.
 - `backend/app/api`: thin route wrappers. V1 keeps them framework-neutral.
 - `backend/app/cli.py`: CLI entrypoint for running the V1 loop.
 - `backend/app/modules/generation_loop`: deterministic candidate operators, canonical geometry fingerprints, lexicographic ranking, lineage, and budget-aware termination.
 - `backend/app/modules/llm_planner`: strict LLM JSON contracts, building-level
   floor assignment orchestration, and an OpenAI Responses API adapter.
 - `backend/app/modules/visual_review`: writes SVG, PNG, HTML, per-iteration review JSON, and a run-level index for human-in-the-loop checking.
-- `engine/geometry`: the sole Shapely boundary. Application code passes Python point lists and scalar measurements, never Shapely objects.
+- `backend/engine/geometry`: the sole Shapely boundary. Application code passes Python point lists and scalar measurements, never Shapely objects.
 
 ## Research Boundary
 

@@ -1,7 +1,7 @@
 import pytest
 from shapely.geometry import Polygon
 
-from engine.geometry.polygonal import (
+from backend.engine.geometry.polygonal import (
     common_polygon_region,
     fixed_rectangle_candidates,
     largest_inscribed_axis_aligned_rectangle,

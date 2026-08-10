@@ -17,8 +17,8 @@ from backend.app.modules.basic_design.service import (
 )
 from backend.app.schemas.layout import BasicDesignFeatures, PlanElement, PlanLine, RoomPolygon
 from backend.app.schemas.mass import MassInput
-from engine.geometry.distance import segment_to_segment_distance
-from engine.geometry.polygon import polygon_area, polygon_overlap_area
+from backend.engine.geometry.distance import segment_to_segment_distance
+from backend.engine.geometry.polygon import polygon_area, polygon_overlap_area
 
 
 def test_fixed_object_placement_considers_end_aligned_regular_grid() -> None:

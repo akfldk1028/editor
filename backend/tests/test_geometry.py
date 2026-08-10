@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from engine.geometry.polygon import (
+from backend.engine.geometry.polygon import (
     contains_polygon,
     polygon_overlap_area,
     shared_boundary_length,

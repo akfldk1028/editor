@@ -1,6 +1,6 @@
 import pytest
 
-from engine.geometry.access import (
+from backend.engine.geometry.access import (
     orthogonal_min_width,
     shared_boundary_segments,
 )

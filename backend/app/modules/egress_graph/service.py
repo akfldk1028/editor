@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import heapq
 import math
 
-from engine.geometry.polygon import validate_polygon
+from backend.engine.geometry.polygon import validate_polygon
 
 from backend.app.schemas.egress import (
     FloorEgressGraphResult,

@@ -4,7 +4,7 @@ import math
 
 from shapely.geometry import LineString, Polygon
 
-from engine.geometry.polygon import Segment, validate_polygon
+from backend.engine.geometry.polygon import Segment, validate_polygon
 
 Point = tuple[float, float]
 

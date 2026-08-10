@@ -10,8 +10,8 @@ from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.mass import FloorFootprint, MassInput
 from backend.app.modules.generation_loop.operators import layout_fingerprint
-from engine.geometry import orthogonal_min_width, shared_boundary_segments
-from engine.geometry.polygon import (
+from backend.engine.geometry import orthogonal_min_width, shared_boundary_segments
+from backend.engine.geometry.polygon import (
     polygon_area,
     shared_boundary_length,
     shared_boundary_with_segments_length,

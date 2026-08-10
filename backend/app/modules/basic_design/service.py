@@ -19,9 +19,9 @@ from backend.app.modules.basic_design.stair import (
     required_stair_enclosure,
     resolve_floor_height,
 )
-from engine.geometry.access import orthogonal_min_width, shared_boundary_segments
-from engine.geometry.distance import segment_to_segment_distance
-from engine.geometry.polygon import contains_polygon, polygon_area, polygon_overlap_area
+from backend.engine.geometry.access import orthogonal_min_width, shared_boundary_segments
+from backend.engine.geometry.distance import segment_to_segment_distance
+from backend.engine.geometry.polygon import contains_polygon, polygon_area, polygon_overlap_area
 
 Point = tuple[float, float]
 Segment = tuple[Point, Point]

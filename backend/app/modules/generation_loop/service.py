@@ -78,23 +78,23 @@ from backend.app.schemas.result import (
 )
 from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
 from backend.app.schemas.program import ProgramAdjustment, ProgramGraph
-from engine.geometry import (
+from backend.engine.geometry import (
     bounding_box_aspect_ratio,
     orthogonal_min_width,
     shared_boundary_segments,
 )
-from engine.geometry.polygon import (
+from backend.engine.geometry.polygon import (
     bounds as polygon_bounds,
     contains_polygon,
     polygon_area,
     polygon_overlap_area,
     union_polygon,
 )
-from engine.geometry.orthogonal import (
+from backend.engine.geometry.orthogonal import (
     common_floor_region,
     shared_core_candidates,
 )
-from engine.geometry.polygonal import (
+from backend.engine.geometry.polygonal import (
     common_polygon_region,
     fixed_rectangle_candidates,
     largest_inscribed_axis_aligned_rectangle,

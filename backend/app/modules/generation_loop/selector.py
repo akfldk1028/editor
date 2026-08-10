@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from backend.app.schemas.loop import CandidateRecord
-from engine.geometry.polygon import shared_boundary_length
+from backend.engine.geometry.polygon import shared_boundary_length
 
 
 def rank_candidate(record: CandidateRecord) -> tuple:
