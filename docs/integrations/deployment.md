@@ -14,7 +14,7 @@ Browser -> Frontend nginx -> Backend HTTP
 - `agents/runtimes/gitagent` remains a generic built runtime with no PLAN or DWG imports.
   Its built discovery API is required by every deployed PLANM stage; no user
   activation switch or LLM provider is required.
-- `external/dwg-intelligence` is built from its complete vendored source. Its public
+- `agents/dwg` is built from its complete vendored source. Its public
   gateway starts only for an approved CAD inspection and receives the single run
   handoff directory as `DWG_WORKSPACE`.
 - DWG source is never copied into Backend Python packages and Frontend never

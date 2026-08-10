@@ -233,7 +233,7 @@ def test_backend_planm_adapter_invokes_only_node_runtime_host() -> None:
     assert "planm_bridge.py" not in " ".join(command)
 ```
 
-Add a source-boundary assertion that `planm_agent.py` contains no direct bridge path and that `gitagent_host.mjs` contains no `backend`, `dwg-intelligence`, or `external/dwg-intelligence` product import.
+Add a source-boundary assertion that `planm_agent.py` contains no direct bridge path and that `gitagent_host.mjs` contains no `backend`, `dwg-intelligence`, or `agents/dwg` product import.
 
 - [ ] **Step 2: Run the adapter tests and confirm failure**
 

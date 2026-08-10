@@ -14,7 +14,7 @@ backend/app/adapters/           PLAN Agent and DWG process clients
 backend/app/modules/            PLAN domain implementation
 agents/planm/                   PLAN Agent identity, contracts, skills, workflows, memory
 agents/runtimes/gitagent/      generic GitAgent runtime
-external/dwg-intelligence/      independent DWG repository, including its own Agent
+agents/dwg/      independent DWG repository, including its own Agent
 docs/integrations/              process and contract integration documentation
 ```
 

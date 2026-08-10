@@ -13,7 +13,7 @@ review, approval, artifact delivery, and optional post-approval DWG inspection.
 | `backend/app/adapters/` | Thin PLANM process and DWG loopback adapters |
 | `agents/planm/` | PLANM identity, contracts, skills, workflows, memory, runtime bridge |
 | `agents/runtimes/gitagent/` | Generic GitAgent host for PLANM skill/workflow discovery |
-| `external/dwg-intelligence/` | Vendored independent DWG product: workspace, runtime, parsers, skills, and tests |
+| `agents/dwg/` | Vendored independent DWG product: workspace, runtime, parsers, skills, and tests |
 | `backend/engine/` | Backend-owned geometry, graph, constraints, metrics, and image primitives |
 | `datasets/`, `experiments/`, `research/` | Retained research inputs and evidence |
 

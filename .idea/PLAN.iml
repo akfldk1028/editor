@@ -17,8 +17,8 @@
       <excludeFolder url="file://$MODULE_DIR$/../frontend/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/../agents/runtimes/gitagent/dist" />
       <excludeFolder url="file://$MODULE_DIR$/../agents/runtimes/gitagent/node_modules" />
-      <excludeFolder url="file://$MODULE_DIR$/../external/dwg-intelligence/node_modules" />
-      <excludeFolder url="file://$MODULE_DIR$/../external/dwg-intelligence/apps/workspace/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/../agents/dwg/node_modules" />
+      <excludeFolder url="file://$MODULE_DIR$/../agents/dwg/apps/workspace/dist" />
       <excludePattern pattern="__pycache__" />
       <excludePattern pattern="bin" />
       <excludePattern pattern="obj" />

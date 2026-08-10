@@ -23,9 +23,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && npm --prefix agents/runtimes/gitagent ci --prefer-offline --no-audit \
     && npm --prefix agents/runtimes/gitagent run build \
     && test -f agents/runtimes/gitagent/dist/exports.js \
-    && npm --prefix external/dwg-intelligence ci --prefer-offline --no-audit \
-    && npm --prefix external/dwg-intelligence run build:parser \
-    && npm --prefix external/dwg-intelligence run build:cad-io-host
+    && npm --prefix agents/dwg ci --prefer-offline --no-audit \
+    && npm --prefix agents/dwg run build:parser \
+    && npm --prefix agents/dwg run build:cad-io-host
 
 ENV PATH="/opt/planm/bin:${PATH}" \
     PLANM_REPOSITORY_ROOT=/app \

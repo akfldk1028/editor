@@ -9,7 +9,7 @@ generic GitAgent executor. Its upstream identity is recorded in
 - Runtime source owns generic agent loading, skills, workflows, tools, MCP,
   scheduling, telemetry, and SDK behavior.
 - `agents/planm` owns PLANM identity, contracts, skills, workflows, and memory.
-- `external/dwg-intelligence` owns the independent DWG Agent and CAD runtime.
+- `agents/dwg` owns the independent DWG Agent and CAD runtime.
 - Runtime source must not import PLAN Backend, PLANM, or DWG product code.
 
 ## Local verification
