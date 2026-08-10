@@ -2,6 +2,7 @@ const { test, expect } = require("@playwright/test");
 
 test("delivers a real reviewed PLANM run through the product UI", async ({ page }, testInfo) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "PLANM Planning" }).click();
   await page.getByLabel("Project ID").fill("playwright-live-planm");
   await page.getByRole("button", { name: "Generate alternatives" }).click();
 
