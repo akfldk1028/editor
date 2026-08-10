@@ -18,8 +18,14 @@ ENV DWG_WORKSPACE=/data/planm-runs \
     DWG_GATEWAY_PORT=4317 \
     DWG_HOST_DIALOGS=off
 
-RUN mkdir -p /data/planm-runs/_seed /data/dwg-exports \
-    && cp tests/fixtures/dwg/export_sample.dwg /data/planm-runs/_seed/default.dwg
+# Keep the seed drawing outside DWG_WORKSPACE. A named volume mounted over that
+# workspace is only populated from the image when the volume is empty, so a
+# build-time copy into it silently disappears on every existing installation.
+RUN mkdir -p /dwg/seed \
+    && cp tests/fixtures/dwg/export_sample.dwg /dwg/seed/default.dwg
 
 EXPOSE 4317
-CMD ["npm", "run", "gateway"]
+
+# Seed the workspace at start, after the volume is mounted, so the gateway always
+# finds its default drawing regardless of the volume's prior contents.
+CMD ["sh", "-c", "set -e; mkdir -p \"$DWG_EXPORT_ROOT\" \"$DWG_WORKSPACE/$(dirname \"$DWG_DRAWING_PATH\")\"; [ -f \"$DWG_WORKSPACE/$DWG_DRAWING_PATH\" ] || cp /dwg/seed/default.dwg \"$DWG_WORKSPACE/$DWG_DRAWING_PATH\"; exec npm run gateway"]
