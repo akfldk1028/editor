@@ -47,9 +47,9 @@ Backend modules or contain a Backend path.
 
 ## Research Boundary
 
-- `research/papers`: grouped paper sources and notes.
-- `datasets/raw`: untouched inputs.
-- `datasets/processed`: normalized images, vectors, graphs, and program data.
+- `resources/research/papers`: grouped paper sources and notes.
+- `resources/datasets/raw`: untouched inputs.
+- `resources/datasets/processed`: normalized images, vectors, graphs, and program data.
 - `experiments`: isolated experiment outputs and configs.
 
 ## V1 Principle
@@ -77,7 +77,7 @@ unsupported.
 
 ## Visual Review Loop
 
-Use `python -m backend.app.cli loop-review --input datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial --output-dir logs/runs/sample_review --max-iterations 5`.
+Use `python -m backend.app.cli loop-review --input resources/datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial --output-dir logs/runs/sample_review --max-iterations 5`.
 
 Each iteration writes artifacts for the search `best_so_far` candidate:
 
@@ -108,24 +108,24 @@ acceptance.
 
 Use the deterministic use-mix allocator:
 
-`python -m backend.app.cli building-review --input datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review`
+`python -m backend.app.cli building-review --input resources/datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review`
 
 Run the retained three-floor L-shaped setback fixture:
 
-`python -m backend.app.cli building-review --input datasets/manifests/sample_mass_l_setback_office.json --output-dir docs/l-setback-review`
+`python -m backend.app.cli building-review --input resources/datasets/manifests/sample_mass_l_setback_office.json --output-dir docs/l-setback-review`
 
 Run the retained two-floor sloped hexagonal setback fixture:
 
-`python -m backend.app.cli building-review --input datasets/manifests/sample_mass_polygon_setback_office.json --output-dir docs/polygon-setback-review`
+`python -m backend.app.cli building-review --input resources/datasets/manifests/sample_mass_polygon_setback_office.json --output-dir docs/polygon-setback-review`
 
 Use the OpenAI structured planner:
 
-`python -m backend.app.cli building-review --input datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review_llm --planner openai`
+`python -m backend.app.cli building-review --input resources/datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review_llm --planner openai`
 
 The LLM assigns one supported use type to every floor through strict JSON.
 PLAN independently validates the response, generates all floors, aligns one
 core polygon vertically, validates each floor, and writes a building index plus
 per-floor SVG, PNG, HTML, and review JSON. LLM failure is not silently replaced
 with deterministic output. See
-`research/paper_cards/llm_hybrid_floorplan_generation.md` for the paper-code
+`resources/research/paper_cards/llm_hybrid_floorplan_generation.md` for the paper-code
 evidence and current limits.

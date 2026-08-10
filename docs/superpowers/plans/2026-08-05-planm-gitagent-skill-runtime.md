@@ -301,7 +301,7 @@ Expected: PASS.
 - Create runtime artifacts only under the pytest temporary directory
 
 **Interfaces:**
-- Consumes: representative input `datasets/manifests/sample_mass_office_commercial.json`.
+- Consumes: representative input `resources/datasets/manifests/sample_mass_office_commercial.json`.
 - Produces: `planm-state.json`, `planm-manifest.json`, two accepted alternative review packages, and canonical artifact hashes.
 
 - [ ] **Step 1: Write the failing end-to-end test**
@@ -309,7 +309,7 @@ Expected: PASS.
 ```python
 def test_planm_vertical_slice_delivers_two_reviewed_alternatives(tmp_path):
     state = run_all_stages(
-        input_path=Path("datasets/manifests/sample_mass_office_commercial.json"),
+        input_path=Path("resources/datasets/manifests/sample_mass_office_commercial.json"),
         output_dir=tmp_path,
     )
     assert state["status"] == "success"
@@ -346,7 +346,7 @@ Run from `C:\DK\PLAN`:
 
 ```powershell
 python agents/planm/adapters/planm_bridge.py normalize `
-  --input datasets/manifests/sample_mass_office_commercial.json `
+  --input resources/datasets/manifests/sample_mass_office_commercial.json `
   --state logs/runs/planm-agent/planm-state.json `
   --output-dir logs/runs/planm-agent
 ```

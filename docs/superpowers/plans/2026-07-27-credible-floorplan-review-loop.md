@@ -269,8 +269,8 @@ Commit message: `feat: integrate iterative review history`
 - Modify: `docs/architecture/module_map.md`
 - Modify: `docs/research_plan/v1_research_loop.md`
 - Modify: `docs/schemas/v1_contracts.md`
-- Create: `research/paper_cards/floorplan_evaluation_baseline.md`
-- Create: `datasets/manifests/sample_mass_concave.json`
+- Create: `resources/research/paper_cards/floorplan_evaluation_baseline.md`
+- Create: `resources/datasets/manifests/sample_mass_concave.json`
 - Modify: `backend/tests/test_cli.py`
 
 **Interfaces:**
@@ -302,10 +302,10 @@ Run: `pytest -q`
 Expected: PASS with no failures.
 
 Run:
-`python -m backend.app.cli loop-review --input datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial --output-dir logs/runs/final_rect --max-iterations 5`
+`python -m backend.app.cli loop-review --input resources/datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial --output-dir logs/runs/final_rect --max-iterations 5`
 
 Run:
-`python -m backend.app.cli loop-review --input datasets/manifests/sample_mass_concave.json --floor 1 --use-type office --output-dir logs/runs/final_concave --max-iterations 5`
+`python -m backend.app.cli loop-review --input resources/datasets/manifests/sample_mass_concave.json --floor 1 --use-type office --output-dir logs/runs/final_concave --max-iterations 5`
 
 Expected: both commands exit zero, write run indexes, and do not award a
 perfect hard-validity report to a candidate with missing circulation.

@@ -35,7 +35,7 @@ The retained source of truth is:
 - Aggregate: `docs/building-quality-baseline-2026-07-30/source-run/alternatives.review.json`
 - Aggregate SHA-256: `1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69`
 - Task report: `.superpowers/sdd/2026-07-30-building-quality/task-1-report.md`
-- Fixture: `datasets/manifests/sample_mass_irregular_12v_setback_office.json`
+- Fixture: `resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json`
 
 The aggregate records:
 
@@ -105,7 +105,7 @@ hard-pass. Feedback activates only for the structured hard issue.
 - `backend/app/modules/building_quality/service.py`
 - `backend/app/modules/building_quality/daylight.py`
 - `backend/app/modules/validator/`
-- `datasets/manifests/sample_mass_irregular_12v_setback_office.json`
+- `resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json`
 - `docs/building-quality-baseline-2026-07-30/`
 
 ## Interface Contract
@@ -1358,7 +1358,7 @@ Expected: every command passes.
 
 ```powershell
 python -m backend.app.cli irregular-alternatives-review `
-  --input datasets/manifests/sample_mass_irregular_12v_setback_office.json `
+  --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json `
   --output-dir logs/runs/primary_daylight_feedback_after `
   --limit 3
 ```
@@ -1523,7 +1523,7 @@ git diff 480640d -- `
   backend/app/modules/building_quality/policy.py `
   backend/app/modules/building_quality/service.py `
   backend/app/modules/building_quality/daylight.py `
-  datasets/manifests/sample_mass_irregular_12v_setback_office.json `
+  resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json `
   docs/building-quality-baseline-2026-07-30
 ```
 

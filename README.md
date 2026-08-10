@@ -15,7 +15,7 @@ review, approval, artifact delivery, and optional post-approval DWG inspection.
 | `agents/runtimes/gitagent/` | Generic GitAgent host for PLANM skill/workflow discovery |
 | `agents/dwg/` | Vendored independent DWG product: workspace, runtime, parsers, skills, and tests |
 | `backend/engine/` | Backend-owned geometry, graph, constraints, metrics, and image primitives |
-| `datasets/`, `experiments/`, `research/` | Retained research inputs and evidence |
+| `resources/datasets/`, `resources/experiments/`, `resources/research/` | Retained research inputs and evidence |
 
 ## Dependency Direction
 

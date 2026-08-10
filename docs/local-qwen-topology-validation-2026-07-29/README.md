@@ -9,7 +9,7 @@ Local-only Qwen3-4B NF4 runs. No external API was used.
 
 ## Rectangular office
 
-- Input: `datasets/manifests/sample_mass_office_commercial.json`, floor 2
+- Input: `resources/datasets/manifests/sample_mass_office_commercial.json`, floor 2
 - Accepted: 2/2
 - Distinct geometry: 2/2
 - Scores: 0.9203, 0.8895
@@ -17,7 +17,7 @@ Local-only Qwen3-4B NF4 runs. No external API was used.
 
 ## L-shaped neighborhood commercial
 
-- Input: `datasets/manifests/sample_mass_l_setback_office.json`, floor 1
+- Input: `resources/datasets/manifests/sample_mass_l_setback_office.json`, floor 1
 - Accepted: 2/2
 - Distinct geometry: 2/2
 - Scores: 0.8514, 0.8514

@@ -5,7 +5,7 @@ I scaffolded `C:/DK/PLAN` as a git repo for mass-conditioned 근생/오피스 fl
 
 ## Next
 1. Replace `backend/app/modules/layout_generator/service.py` baseline slicing with a real adjacency-aware generator.
-2. Add data ingestion/vectorization under `scripts/ingest` and `datasets/processed/*`.
+2. Add data ingestion/vectorization under `scripts/ingest` and `resources/datasets/processed/*`.
 3. Expand validator with circulation, core/access, evacuation, frontage, and rentable-efficiency checks.
 
 ## Context

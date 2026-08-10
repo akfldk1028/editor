@@ -962,7 +962,7 @@ python -m pytest -q backend/tests/test_visual_review.py
 
 ```powershell
 python -m backend.app.cli irregular-alternatives-review `
-  --input datasets/manifests/sample_mass_irregular_12v_setback_office.json `
+  --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json `
   --output-dir logs/runs/building_quality_irregular `
   --limit 3
 ```

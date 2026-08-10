@@ -4,7 +4,7 @@
 
 ```powershell
 python -m backend.app.cli local-topology-review `
-  --input datasets/manifests/sample_mass_polygon_setback_office.json `
+  --input resources/datasets/manifests/sample_mass_polygon_setback_office.json `
   --floor 1 `
   --use-type office `
   --output-dir logs/runs/local_qwen_polygon_office_v3 `

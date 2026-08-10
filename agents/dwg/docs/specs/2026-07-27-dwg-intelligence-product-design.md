@@ -136,7 +136,7 @@ DWG/
 |   `-- e2e/
 |-- docs/
 |   |-- architecture/
-|   |-- research/
+|   |-- resources/research/
 |   |-- ref/
 |   `-- specs/
 `-- clone/

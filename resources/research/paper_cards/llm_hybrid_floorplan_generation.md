@@ -91,7 +91,7 @@ There is no silent fallback when the model or contract fails.
 
 ```powershell
 python -m backend.app.cli building-review `
-  --input datasets/manifests/sample_mass_office_commercial.json `
+  --input resources/datasets/manifests/sample_mass_office_commercial.json `
   --output-dir logs/runs/sample_building_review_llm `
   --planner openai
 ```

@@ -815,7 +815,7 @@ def test_building_generation_enables_strict_validation_and_aligns_structure() ->
 def test_json_manifest_list_points_run_through_building_generation() -> None:
     manifest_path = (
         Path(__file__).parents[2]
-        / "datasets"
+        / "resources" / "datasets"
         / "manifests"
         / "sample_mass_office_commercial.json"
     )

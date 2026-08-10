@@ -83,7 +83,7 @@ def test_cli_irregular_review_emits_two_repaired_quality_distinct_alternatives(
             "--input",
             str(
                 REPOSITORY_ROOT
-                / "datasets"
+                / "resources" / "datasets"
                 / "manifests"
                 / "sample_mass_irregular_12v_setback_office.json"
             ),
@@ -655,7 +655,7 @@ def _run_sample_loop_review(
             "backend.app.cli",
             "loop-review",
             "--input",
-            str(REPOSITORY_ROOT / "datasets" / "manifests" / manifest_name),
+            str(REPOSITORY_ROOT / "resources" / "datasets" / "manifests" / manifest_name),
             "--floor",
             "1",
             "--use-type",
@@ -1829,7 +1829,7 @@ def test_cli_concave_sample_reports_truthful_non_acceptance_and_polygon_boundary
 
     manifest = json.loads(
         (
-            REPOSITORY_ROOT / "datasets" / "manifests" / "sample_mass_concave.json"
+            REPOSITORY_ROOT / "resources" / "datasets" / "manifests" / "sample_mass_concave.json"
         ).read_text(encoding="utf-8")
     )
     final_svg = output_dir / index["iterations"][-1]["artifacts"]["svg"]

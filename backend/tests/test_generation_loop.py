@@ -200,7 +200,7 @@ def test_building_generation_rejects_duplicate_or_unknown_exterior_requests() ->
 def _long_edge_fixture_inputs():
     manifest_path = (
         Path(__file__).resolve().parents[2]
-        / "datasets"
+        / "resources" / "datasets"
         / "manifests"
         / "sample_mass_irregular_12v_setback_office.json"
     )

@@ -24,7 +24,7 @@
 ### Task 1: Irregular Fixture And Core Planner
 
 **Files:**
-- Create: `datasets/manifests/sample_mass_irregular_12v_setback_office.json`
+- Create: `resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json`
 - Create: `backend/app/modules/core_planner/__init__.py`
 - Create: `backend/app/modules/core_planner/contracts.py`
 - Create: `backend/app/modules/core_planner/service.py`
@@ -90,7 +90,7 @@ python -m ruff check backend/app/modules/core_planner backend/tests/test_core_pl
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add datasets/manifests/sample_mass_irregular_12v_setback_office.json backend/app/modules/core_planner backend/tests/test_core_planner.py
+git add resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json backend/app/modules/core_planner backend/tests/test_core_planner.py
 git commit -m "feat: add irregular shared core planner"
 ```
 
@@ -276,7 +276,7 @@ git commit -m "feat: compose structural floor plan alternatives"
 
 ```powershell
 python -m backend.app.cli irregular-alternatives-review `
-  --input datasets/manifests/sample_mass_irregular_12v_setback_office.json `
+  --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json `
   --output-dir logs/runs/irregular_structural_alternatives `
   --limit 3
 ```
@@ -314,7 +314,7 @@ regulatory facts.
 
 ```powershell
 python -m backend.app.cli irregular-alternatives-review `
-  --input datasets/manifests/sample_mass_irregular_12v_setback_office.json `
+  --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json `
   --output-dir logs/runs/irregular_structural_alternatives `
   --limit 3
 ```

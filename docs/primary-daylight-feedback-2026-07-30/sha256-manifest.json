@@ -1,10 +1,10 @@
 {
     "source_commit":  "06953d6447979039c78122f171d1c3888af6d905",
     "fixture":  {
-                    "path":  "datasets/manifests/sample_mass_irregular_12v_setback_office.json",
+                    "path":  "resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json",
                     "sha256":  "6b59bfea90ed15aea10a9e2814fc14a8561cba1fd90e5cc2c7acee945a1c143c"
                 },
-    "cli_command":  "python -m backend.app.cli irregular-alternatives-review --input datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/primary_daylight_feedback_final_06953d6 --limit 3",
+    "cli_command":  "python -m backend.app.cli irregular-alternatives-review --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/primary_daylight_feedback_final_06953d6 --limit 3",
     "default_quality_policy":  {
                                    "thresholds":  {
                                                       "minimum_core_stack_ratio":  0.95,

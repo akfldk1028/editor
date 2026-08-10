@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 PLAN_ROOT = Path(__file__).parents[2]
-SAMPLE = PLAN_ROOT / "datasets" / "manifests" / "sample_mass_office_commercial.json"
+SAMPLE = PLAN_ROOT / "resources" / "datasets" / "manifests" / "sample_mass_office_commercial.json"
 
 
 def _run(stage: str, input_path: Path, state: Path, output_dir: Path) -> dict:

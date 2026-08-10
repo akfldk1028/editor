@@ -98,7 +98,7 @@ shape and frontage requirements, and review artifacts expose the measurements.
 - Modify: `backend/app/schemas/visual.py`
 - Modify: `backend/tests/test_visual_review.py`
 - Modify as needed: `backend/tests/test_cli.py`
-- Modify: `research/paper_cards/llm_hybrid_floorplan_generation.md`
+- Modify: `resources/research/paper_cards/llm_hybrid_floorplan_generation.md`
 
 **Interfaces:**
 - Consumes validated form measurements.

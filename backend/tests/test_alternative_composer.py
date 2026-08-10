@@ -56,7 +56,7 @@ from backend.app.schemas.result import BuildingGenerationResult
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = (
     REPOSITORY_ROOT
-    / "datasets"
+    / "resources" / "datasets"
     / "manifests"
     / "sample_mass_irregular_12v_setback_office.json"
 )

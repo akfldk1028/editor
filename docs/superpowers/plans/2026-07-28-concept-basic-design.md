@@ -79,7 +79,7 @@ dependency-free PNG canvas, pytest, Playwright.
 
 **Files:**
 - Modify as needed based on verified failures only.
-- Update: `research/paper_cards/llm_hybrid_floorplan_generation.md`
+- Update: `resources/research/paper_cards/llm_hybrid_floorplan_generation.md`
 - Test: `backend/tests/test_cli.py`
 
 - [ ] Run actual OpenAI five-floor building review into

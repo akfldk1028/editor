@@ -2,11 +2,11 @@
 
 ## Raw Data
 
-Keep downloaded or manually collected files unchanged under `datasets/raw`.
+Keep downloaded or manually collected files unchanged under `resources/datasets/raw`.
 
 ## Processed Data
 
-Only derived, normalized artifacts belong under `datasets/processed`.
+Only derived, normalized artifacts belong under `resources/datasets/processed`.
 
 ## ArchDaily and Master Drawings
 

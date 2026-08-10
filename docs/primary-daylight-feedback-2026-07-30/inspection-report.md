@@ -4,8 +4,8 @@
 
 - Source commit: `06953d6447979039c78122f171d1c3888af6d905` (`fix: retain validation retry provenance`).
 - Initial dirty-state check: clean.
-- Fixture: `datasets/manifests/sample_mass_irregular_12v_setback_office.json`, SHA-256 `6b59bfea90ed15aea10a9e2814fc14a8561cba1fd90e5cc2c7acee945a1c143c`.
-- CLI command: `python -m backend.app.cli irregular-alternatives-review --input datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/primary_daylight_feedback_final_06953d6 --limit 3`.
+- Fixture: `resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json`, SHA-256 `6b59bfea90ed15aea10a9e2814fc14a8561cba1fd90e5cc2c7acee945a1c143c`.
+- CLI command: `python -m backend.app.cli irregular-alternatives-review --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/primary_daylight_feedback_final_06953d6 --limit 3`.
 - CLI result: exit `0` in `235.2s`.
 - Retained output: 36 source/retained file pairs with equal SHA-256 and byte count. See `sha256-manifest.json`.
 - Before aggregate remains immutable at `docs/building-quality-baseline-2026-07-30/source-run/alternatives.review.json`, SHA-256 `1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69`.

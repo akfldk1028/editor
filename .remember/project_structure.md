@@ -10,8 +10,8 @@
 
 ## Commands
 - Test: `pytest -q`
-- Generate JSON: `python -m backend.app.cli generate --input datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial`
-- Visual loop: `python -m backend.app.cli loop-review --input datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial --output-dir logs/runs/sample_review --max-iterations 3`
+- Generate JSON: `python -m backend.app.cli generate --input resources/datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial`
+- Visual loop: `python -m backend.app.cli loop-review --input resources/datasets/manifests/sample_mass_office_commercial.json --floor 1 --use-type neighborhood_commercial --output-dir logs/runs/sample_review --max-iterations 3`
 
 ## Commits
 - `e4e9b26` scaffold loop

@@ -13,7 +13,7 @@ test.beforeAll(async () => {
     "python",
     [
       "-m", "backend.app.cli", "building-review",
-      "--input", "datasets/manifests/sample_mass_office_commercial.json",
+      "--input", "resources/datasets/manifests/sample_mass_office_commercial.json",
       "--output-dir", outputDir,
     ],
     { cwd: root, stdio: "pipe" },

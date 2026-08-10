@@ -85,7 +85,7 @@
 ### Task 4: End-To-End LLM Building Review
 
 **Files:**
-- Modify: `research/paper_cards/llm_hybrid_floorplan_generation.md`
+- Modify: `resources/research/paper_cards/llm_hybrid_floorplan_generation.md`
 - Test: `backend/tests/test_cli.py`
 
 **Interfaces:**

@@ -1473,7 +1473,7 @@ python -m pytest -q backend/tests/test_cli.py
 
 ```powershell
 python -m backend.app.cli export-ifc `
-  --input datasets/manifests/sample_mass_irregular_12v_setback_office.json `
+  --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json `
   --output-dir logs/runs/bim-ifc-revit-export-2026-07-31 `
   --limit 2 `
   --profile revit-2026-link
