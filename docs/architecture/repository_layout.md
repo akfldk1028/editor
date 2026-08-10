@@ -7,35 +7,43 @@ code belongs to exactly one of the following top-level modules.
 PLAN/
 |-- frontend/                 PLAN web UI; Backend HTTP only
 |-- backend/
-|   `-- app/
-|       |-- api/              versioned HTTP routes
-|       |-- schemas/          frontend-to-backend DTOs
-|       |-- modules/          PLAN domain and orchestration services
-|       `-- adapters/         thin PLANM and DWG process clients
+|   |-- app/
+|   |   |-- api/              versioned HTTP routes
+|   |   |-- schemas/          frontend-to-backend DTOs
+|   |   |-- modules/          PLAN domain and orchestration services
+|   |   `-- adapters/         thin PLANM and DWG process clients
+|   |-- engine/               backend-owned geometry and validation primitives
+|   `-- tests/                backend unit and contract tests
 |-- agents/
-|   `-- planm/
-|       |-- agent.yaml        agent manifest
-|       |-- SOUL.md           identity
-|       |-- RULES.md          behavior boundary
-|       |-- config/           agent-owned configuration
-|       |-- contracts/        backend-to-agent JSON contracts
-|       |-- runtime/          GitAgent host and process bridge
-|       |-- skills/           executable PLANM capabilities
-|       |-- workflows/        ordered skill flows
-|       |-- memory/           PLANM product memory
-|       `-- tests/            agent contract and runtime tests
-|-- external/
-|   |-- gitagent-runtime/     generic runtime; no PLAN or DWG imports
-|   `-- dwg-intelligence/     vendored independent DWG product module
-|-- backend/
-|   |-- engine/              backend-owned geometry and validation primitives
-|-- infra/docker/                   container definitions and reverse proxy config
+|   |-- planm/
+|   |   |-- agent.yaml        agent manifest
+|   |   |-- SOUL.md           identity
+|   |   |-- RULES.md          behavior boundary
+|   |   |-- config/           agent-owned configuration
+|   |   |-- contracts/        backend-to-agent JSON contracts
+|   |   |-- runtime/          GitAgent host and process bridge
+|   |   |-- skills/           executable PLANM capabilities
+|   |   |-- workflows/        ordered skill flows
+|   |   |-- memory/           PLANM product memory
+|   |   `-- tests/            agent contract and runtime tests
+|   |-- runtimes/
+|   |   `-- gitagent/         generic runtime; no PLAN or DWG imports
+|   `-- dwg/                  vendored independent DWG product module
+|-- infra/
+|   |-- docker/               container definitions and reverse proxy config
+|   `-- dev/                  local product launcher and structure tests
 |-- tests/browser/            product UI and visual E2E tests
-|-- resources/datasets/                 retained source and normalized fixtures
-|-- resources/experiments/              bounded experiment definitions and evidence
-|-- resources/research/                 papers, notes, cards, and survey material
+|-- resources/
+|   |-- datasets/             retained source and normalized fixtures
+|   |-- experiments/          bounded experiment definitions and evidence
+|   |-- research/             papers, notes, cards, and survey material
+|   `-- scripts/              retained research and ingestion scripts
 `-- docs/                     architecture, decisions, integrations, evidence
 ```
+
+No `external/` directory exists. It was removed when each product took ownership
+of its own module: the generic runtime became `agents/runtimes/gitagent/` and the
+vendored DWG product became `agents/dwg/`.
 
 ## Dependency Rules
 
@@ -46,7 +54,7 @@ Backend -> DWG adapter -> independent DWG process, after approval only
 ```
 
 - Frontend never imports Backend, PLANM, GitAgent, or DWG source.
-- Backend modules never import `agents/planm` or `external` product internals.
+- Backend modules never import `agents/planm` or `agents/dwg` product internals.
 - PLANM never imports Backend modules or DWG internals.
 - The generic GitAgent runtime never imports PLANM, Backend, or DWG code.
 - DWG never imports PLANM or Backend modules.
