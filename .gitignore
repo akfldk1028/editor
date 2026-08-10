@@ -17,6 +17,7 @@ logs/runs/
 logs/evaluation/
 logs/migration-backups/
 logs/security/
+logs/dev/
 experiments/**/outputs/
 clone/
 .playwright-mcp/
