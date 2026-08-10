@@ -10,6 +10,29 @@ services:
       - planm-runs:/data/planm-runs
     expose:
       - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json, urllib.request; data=json.load(urllib.request.urlopen('http://127.0.0.1:8000/openapi.json', timeout=3)); assert data['info']['title'] == 'PLANM API'"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  dwg:
+    build:
+      context: .
+      dockerfile: deploy/dwg.Dockerfile
+    volumes:
+      - planm-runs:/data/planm-runs
+      - dwg-exports:/data/dwg-exports
+    expose:
+      - "4317"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4317/api/health').then(async response => { const body = await response.json(); if (!response.ok || body.ok !== true || body.service !== 'dwg-provider-gateway') process.exit(1); }).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 4s
+      retries: 24
+      start_period: 20s
     restart: unless-stopped
 
   frontend:
@@ -17,10 +40,20 @@ services:
       context: .
       dockerfile: deploy/frontend.Dockerfile
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+      dwg:
+        condition: service_healthy
     ports:
       - "8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 5s
     restart: unless-stopped
 
 volumes:
   planm-runs:
+  dwg-exports:
