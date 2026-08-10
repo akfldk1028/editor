@@ -40,7 +40,7 @@
 ### Task 2: Normalize Generic GitAgent Runtime
 
 **Files:**
-- Create/Register: `external/gitagent-runtime`
+- Create/Register: `agents/runtimes/gitagent`
 - Modify: `.gitmodules` or root runtime package configuration
 - Create: `docs/integrations/gitagent-runtime.md`
 

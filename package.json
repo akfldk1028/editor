@@ -4,7 +4,7 @@
     "dev": "node scripts/dev/product.mjs",
     "dev:docker": "docker compose up --build",
     "dev:docker:down": "docker compose down",
-    "build:agent-runtime": "npm --prefix external/gitagent-runtime run build",
+    "build:agent-runtime": "npm --prefix agents/runtimes/gitagent run build",
     "test:dev": "node --test scripts/dev/*.test.mjs",
     "test:agent": "npm run build:agent-runtime && node --test agents/planm/tests/*.test.ts agents/planm/tests/*.test.mjs --experimental-strip-types",
     "test:browser": "playwright test",

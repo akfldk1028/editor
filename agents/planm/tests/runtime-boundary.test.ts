@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 const runtimeSrc = fileURLToPath(
-	new URL("../../../external/gitagent-runtime/src/", import.meta.url),
+	new URL("../../runtimes/gitagent/src/", import.meta.url),
 );
 
 async function sourceFiles(directory: string): Promise<string[]> {

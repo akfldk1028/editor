@@ -13,7 +13,7 @@ agent package inside that runtime.
 ## Ownership Boundary
 
 ```text
-external/gitagent-runtime/
+agents/runtimes/gitagent/
   src/                         GitAgent runtime; no PLAN imports
   agents/
     planm/
@@ -33,10 +33,10 @@ The existing Python modules remain the deterministic domain engine:
 ```text
 PLANM Agent -> PLANM Skill -> PLAN adapter -> backend.app.modules
 backend.app.modules -X-> agent/gitagent
-external/gitagent-runtime/src -X-> PLAN domain code
+agents/runtimes/gitagent/src -X-> PLAN domain code
 ```
 
-No PLAN-specific behavior belongs in `external/gitagent-runtime/src`. This keeps GitAgent
+No PLAN-specific behavior belongs in `agents/runtimes/gitagent/src`. This keeps GitAgent
 replaceable and prevents framework updates from owning product behavior.
 
 ## Skill Layout

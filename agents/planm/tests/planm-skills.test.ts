@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { discoverSkills, loadSkill } from "../../../external/gitagent-runtime/src/skills.ts";
+import { discoverSkills, loadSkill } from "../../runtimes/gitagent/src/skills.ts";
 
 
 const planmDir = fileURLToPath(new URL("..", import.meta.url));

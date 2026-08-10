@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { discoverWorkflows } from "../../../external/gitagent-runtime/src/workflows.ts";
+import { discoverWorkflows } from "../../runtimes/gitagent/src/workflows.ts";
 
 
 const planmDir = fileURLToPath(new URL("..", import.meta.url));

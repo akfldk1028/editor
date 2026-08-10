@@ -13,7 +13,7 @@ backend/app/schemas/            versioned frontend HTTP DTOs
 backend/app/adapters/           PLAN Agent and DWG process clients
 backend/app/modules/            PLAN domain implementation
 agents/planm/                   PLAN Agent identity, contracts, skills, workflows, memory
-external/gitagent-runtime/      generic GitAgent runtime
+agents/runtimes/gitagent/      generic GitAgent runtime
 external/dwg-intelligence/      independent DWG repository, including its own Agent
 docs/integrations/              process and contract integration documentation
 ```
@@ -34,7 +34,7 @@ not part of default generation; it is an optional post-approval CAD capability.
 
 1. Extract PLANM product files from the untracked nested GitAgent checkout into
    `agents/planm`, preserving current behavior and relocating product tests.
-2. Register a clean generic runtime under `external/gitagent-runtime`; upstream
+2. Register a clean generic runtime under `agents/runtimes/gitagent`; upstream
    runtime changes must be committed in a reviewed fork or replaced by a
    released package, never left as a dirty nested repository.
 3. Replace PLAN Agent direct Python imports with a versioned JSON process/API

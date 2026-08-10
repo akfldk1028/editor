@@ -8,7 +8,7 @@ normal PLAN checkout contains every DWG Frontend and Backend source file.
 ## Boundary
 
 - Do not copy DWG source into `backend/`, `frontend/`, `agents/planm/`, or
-  `external/gitagent-runtime/`.
+  `agents/runtimes/gitagent/`.
 - Do not deep-import DWG parser, runtime, workspace feature, or CAD capability
   internals.
 - Prefer the DWG loopback `/api` or MCP stdio process boundary when PLAN needs

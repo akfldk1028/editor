@@ -1,8 +1,8 @@
 # GitAgent Runtime Boundary
 
-`external/gitagent-runtime` is a repository-owned vendored snapshot of the
+`agents/runtimes/gitagent` is a repository-owned vendored snapshot of the
 generic GitAgent executor. Its upstream identity is recorded in
-`external/gitagent-runtime/UPSTREAM.md`.
+`agents/runtimes/gitagent/UPSTREAM.md`.
 
 ## Ownership
 
@@ -15,9 +15,9 @@ generic GitAgent executor. Its upstream identity is recorded in
 ## Local verification
 
 ```powershell
-npm --prefix external/gitagent-runtime ci
-npm --prefix external/gitagent-runtime run build
-npm --prefix external/gitagent-runtime test
+npm --prefix agents/runtimes/gitagent ci
+npm --prefix agents/runtimes/gitagent run build
+npm --prefix agents/runtimes/gitagent test
 npm run test:agent
 ```
 

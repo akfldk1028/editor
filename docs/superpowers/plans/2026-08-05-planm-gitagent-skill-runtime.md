@@ -4,14 +4,14 @@
 
 **Goal:** Build an executable PLANM product agent inside `agents/planm` that uses discoverable skills to produce validated alternatives, visual artifacts, and a delivery manifest from a PLAN mass input.
 
-**Architecture:** Keep `external/gitagent-runtime/src` generic. PLANM identity, contracts, workflows, adapters, and skills live in one isolated agent directory. Thin Python adapters call public `backend.app.modules` APIs and exchange persisted JSON contracts; neither the backend nor GitAgent runtime imports PLANM product code.
+**Architecture:** Keep `agents/runtimes/gitagent/src` generic. PLANM identity, contracts, workflows, adapters, and skills live in one isolated agent directory. Thin Python adapters call public `backend.app.modules` APIs and exchange persisted JSON contracts; neither the backend nor GitAgent runtime imports PLANM product code.
 
 **Tech Stack:** GitAgent 2.0 TypeScript runtime, Node.js 20+, Python 3.11, JSON Schema, YAML SkillFlows, pytest, Node test runner.
 
 ## Global Constraints
 
 - The single source of truth for product skills is `agents/planm/skills`.
-- `external/gitagent-runtime/src` must not import PLAN backend or PLANM product files.
+- `agents/runtimes/gitagent/src` must not import PLAN backend or PLANM product files.
 - `backend.app.modules` must not import `agent` or GitAgent.
 - Deterministic validation cannot be overridden by an LLM.
 - Skill status is exactly `success`, `needs_input`, `retryable`, or `blocked`.

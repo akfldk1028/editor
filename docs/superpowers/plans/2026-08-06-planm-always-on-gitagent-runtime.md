@@ -13,7 +13,7 @@
 - Frontend calls only the Backend HTTP API.
 - Backend owns run state, project ownership, artifacts, approval, and optional post-approval DWG orchestration.
 - `agents/planm` owns identity, contracts, skills, workflow, memory, and its deployment runtime host.
-- `external/gitagent-runtime` remains generic and imports no PLANM, Backend, or DWG product code.
+- `agents/runtimes/gitagent` remains generic and imports no PLANM, Backend, or DWG product code.
 - PLANM Agent imports no Backend modules and contains no Backend filesystem path.
 - DWG remains an independent submodule and process.
 - No user-facing runtime mode or activation flag is introduced.
@@ -124,7 +124,7 @@ Assert that the five workflow steps equal `Object.values(STAGE_SKILLS)` and that
 ```json
 {
   "scripts": {
-    "build:agent-runtime": "npm --prefix external/gitagent-runtime run build",
+    "build:agent-runtime": "npm --prefix agents/runtimes/gitagent run build",
     "test:agent": "npm run build:agent-runtime && node --test agents/planm/tests/*.test.ts agents/planm/tests/*.test.mjs --experimental-strip-types"
   }
 }
@@ -296,7 +296,7 @@ git commit -m "refactor(backend): route PLANM through GitAgent host"
 - Modify: `agents/planm/tests/runtime-boundary.test.ts`
 
 **Interfaces:**
-- Consumes: real `external/gitagent-runtime/dist/exports.js`, the Backend adapter, and all five PLANM skill scripts.
+- Consumes: real `agents/runtimes/gitagent/dist/exports.js`, the Backend adapter, and all five PLANM skill scripts.
 - Produces: evidence that normalize through deliver traverses the generic runtime host without model credentials.
 
 - [ ] **Step 1: Rewrite the PLANM E2E helper to call `run_planm_stage`**
@@ -314,7 +314,7 @@ def _run(stage: str, state: Path, output_dir: Path) -> dict:
     )
 ```
 
-Build the generic runtime once in test setup with `npm --prefix external/gitagent-runtime run build`; fail explicitly if `dist/exports.js` is absent.
+Build the generic runtime once in test setup with `npm --prefix agents/runtimes/gitagent run build`; fail explicitly if `dist/exports.js` is absent.
 
 - [ ] **Step 2: Prove the runtime boundary without changing the result contract**
 
@@ -358,7 +358,7 @@ git commit -m "test(planm): prove always-on GitAgent delivery path"
 After the generic runtime build in `deploy/backend.Dockerfile`, add:
 
 ```dockerfile
-RUN test -f external/gitagent-runtime/dist/exports.js \
+RUN test -f agents/runtimes/gitagent/dist/exports.js \
     && test -f agents/planm/runtime/gitagent_host.mjs
 ```
 

@@ -19,7 +19,7 @@ test("the product checkout exposes only canonical top-level module ownership", a
     "frontend",
     "backend/app",
     "agents/planm",
-    "external/gitagent-runtime",
+    "agents/runtimes/gitagent",
     "external/dwg-intelligence",
     "scripts/dev",
   ]) {

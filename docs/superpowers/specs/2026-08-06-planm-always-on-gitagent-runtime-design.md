@@ -14,7 +14,7 @@ LLM provider is configured.
   post-approval DWG orchestration.
 - `agents/planm` owns identity, contracts, skills, workflow, memory, and its
   deployment runtime host.
-- `external/gitagent-runtime` remains generic and imports no PLANM, Backend, or
+- `agents/runtimes/gitagent` remains generic and imports no PLANM, Backend, or
   DWG product code.
 - PLANM Agent imports no Backend modules and contains no Backend filesystem
   path.
@@ -85,7 +85,7 @@ The host must:
 
 ## Deployment
 
-The Backend image already builds `external/gitagent-runtime/dist`. The image
+The Backend image already builds `agents/runtimes/gitagent/dist`. The image
 must also include the PLANM host and invoke Node from the copied runtime. No
 additional service, port, API key, or user configuration is required.
 
