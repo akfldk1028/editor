@@ -8,7 +8,7 @@ expected phase-boundary result: only one quality-distinct hard-pass alternative
 was produced (`accepted_count=1`), so the command did not return success with
 fewer than two alternatives.
 
-Input: `datasets/manifests/sample_mass_irregular_12v_setback_office.json`.
+Input: `resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json`.
 Source run: `logs/runs/building_quality_irregular_refresh_d095f4a`.
 
 ## Focused And Repository Verification

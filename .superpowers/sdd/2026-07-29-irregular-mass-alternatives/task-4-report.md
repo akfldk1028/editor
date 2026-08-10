@@ -3,8 +3,8 @@
 ## Scope
 
 - Base commit: `f4ebc2e`
-- Fixture: `datasets/manifests/sample_mass_irregular_12v_setback_office.json`
-- Command: `python -m backend.app.cli irregular-alternatives-review --input datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/irregular_structural_alternatives --limit 3`
+- Fixture: `resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json`
+- Command: `python -m backend.app.cli irregular-alternatives-review --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/irregular_structural_alternatives --limit 3`
 - Retained review: `docs/irregular-mass-alternative-review-2026-07-29/`
 
 ## Implementation

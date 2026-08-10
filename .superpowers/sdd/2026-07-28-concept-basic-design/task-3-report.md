@@ -51,7 +51,7 @@
   - Task 3 checkpoint: `241 passed`
   - Current shared-tree run after the parallel Task 4 fixes: `248 passed`
 - Browser:
-  - `npx playwright test browser_tests/visual_review.spec.js`
+  - `npx playwright test tests/browser/visual_review.spec.js`
   - `1 passed`
 - Ruff:
   - `ruff check backend/app/modules/visual_review/service.py backend/tests/test_visual_review.py`

@@ -19,6 +19,10 @@
       <excludeFolder url="file://$MODULE_DIR$/../agents/runtimes/gitagent/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/../agents/dwg/node_modules" />
       <excludeFolder url="file://$MODULE_DIR$/../agents/dwg/apps/workspace/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/../resources/datasets/raw" />
+      <excludeFolder url="file://$MODULE_DIR$/../resources/datasets/processed" />
+      <excludeFolder url="file://$MODULE_DIR$/../resources/research/papers" />
+      <excludeFolder url="file://$MODULE_DIR$/../resources/experiments" />
       <excludePattern pattern="__pycache__" />
       <excludePattern pattern="bin" />
       <excludePattern pattern="obj" />

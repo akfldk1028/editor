@@ -34,7 +34,7 @@ python -m pytest backend/tests/test_visual_review.py backend/tests/test_cli.py -
 ## Actual Generation
 
 ```powershell
-python -m backend.app.cli building-review --input datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review_llm --planner openai
+python -m backend.app.cli building-review --input resources/datasets/manifests/sample_mass_office_commercial.json --output-dir logs/runs/sample_building_review_llm --planner openai
 ```
 
 `OPENAI_API_KEY` was available. The actual five-floor OpenAI run was accepted;
@@ -102,7 +102,7 @@ the page had no iframe-load synchronization function.
 - Layer visibility derives from `aria-pressed` in `synchronizeLayers()`, which
   runs after every click and iframe `load`, preserving an early-click state.
 - Added tracked Playwright configuration and
-  `browser_tests/visual_review.spec.js`. It delays the SVG response, clicks
+  `tests/browser/visual_review.spec.js`. It delays the SVG response, clicks
   Rooms before iframe load, verifies the post-load SVG group is hidden, then
   toggles all four layers off/on with no console or page errors.
 
