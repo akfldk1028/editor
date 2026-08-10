@@ -29,7 +29,7 @@ PLAN/
 |   `-- dwg-intelligence/     vendored independent DWG product module
 |-- backend/
 |   |-- engine/              backend-owned geometry and validation primitives
-|-- deploy/                   container definitions and reverse proxy config
+|-- infra/docker/                   container definitions and reverse proxy config
 |-- browser_tests/            product UI and visual E2E tests
 |-- datasets/                 retained source and normalized fixtures
 |-- experiments/              bounded experiment definitions and evidence

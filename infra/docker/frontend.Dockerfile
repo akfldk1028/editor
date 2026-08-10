@@ -12,7 +12,7 @@ COPY frontend/ ./frontend/
 RUN npm --prefix frontend run build
 
 FROM nginx:1.27-alpine
-COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY infra/docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/frontend/dist /usr/share/nginx/html
 
 EXPOSE 80

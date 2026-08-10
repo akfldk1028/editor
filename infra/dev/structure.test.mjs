@@ -21,7 +21,7 @@ test("the product checkout exposes only canonical top-level module ownership", a
     "agents/planm",
     "agents/runtimes/gitagent",
     "agents/dwg",
-    "scripts/dev",
+    "infra/dev",
   ]) {
     assert.equal(await exists(resolve(repositoryRoot, path)), true, `${path} must exist`);
   }

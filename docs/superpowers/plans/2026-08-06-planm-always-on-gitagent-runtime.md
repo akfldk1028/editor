@@ -31,7 +31,7 @@
 - Modify `backend/tests/test_agent_process_boundaries.py`: enforce Backend-to-host and host-to-runtime dependency direction.
 - Modify `backend/tests/test_planm_agent_e2e.py`: run all five stages through the Backend adapter and real GitAgent build output.
 - Modify `package.json`: build the generic runtime before Agent host tests and include `.test.mjs` files.
-- Modify `deploy/backend.Dockerfile`: retain runtime build output and verify the host file is packaged.
+- Modify `infra/docker/backend.Dockerfile`: retain runtime build output and verify the host file is packaged.
 - Modify `README.md` and `docs/architecture/module_map.md`: document the actual always-on runtime path.
 
 ---
@@ -344,7 +344,7 @@ git commit -m "test(planm): prove always-on GitAgent delivery path"
 ### Task 5: Deployment and Documentation
 
 **Files:**
-- Modify: `deploy/backend.Dockerfile`
+- Modify: `infra/docker/backend.Dockerfile`
 - Modify: `README.md`
 - Modify: `docs/architecture/module_map.md`
 - Modify: `docs/integrations/deployment.md`
@@ -355,7 +355,7 @@ git commit -m "test(planm): prove always-on GitAgent delivery path"
 
 - [ ] **Step 1: Add a Docker build assertion**
 
-After the generic runtime build in `deploy/backend.Dockerfile`, add:
+After the generic runtime build in `infra/docker/backend.Dockerfile`, add:
 
 ```dockerfile
 RUN test -f agents/runtimes/gitagent/dist/exports.js \
@@ -406,7 +406,7 @@ Expected evidence:
 - [ ] **Step 6: Commit deployment integration**
 
 ```powershell
-git add deploy/backend.Dockerfile README.md docs/architecture/module_map.md docs/integrations/deployment.md
+git add infra/docker/backend.Dockerfile README.md docs/architecture/module_map.md docs/integrations/deployment.md
 git commit -m "docs(deploy): document always-on PLANM runtime"
 ```
 

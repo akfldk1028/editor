@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: deploy/backend.Dockerfile
+      dockerfile: infra/docker/backend.Dockerfile
     environment:
       PLANM_REPOSITORY_ROOT: /app
       PLANM_RUNS_ROOT: /data/planm-runs
@@ -21,7 +21,7 @@ services:
   dwg:
     build:
       context: .
-      dockerfile: deploy/dwg.Dockerfile
+      dockerfile: infra/docker/dwg.Dockerfile
     volumes:
       - planm-runs:/data/planm-runs
       - dwg-exports:/data/dwg-exports
@@ -38,7 +38,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: deploy/frontend.Dockerfile
+      dockerfile: infra/docker/frontend.Dockerfile
     depends_on:
       backend:
         condition: service_healthy

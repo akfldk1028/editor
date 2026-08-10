@@ -1,11 +1,11 @@
 {
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev/product.mjs",
+    "dev": "node infra/dev/product.mjs",
     "dev:docker": "docker compose up --build",
     "dev:docker:down": "docker compose down",
     "build:agent-runtime": "npm --prefix agents/runtimes/gitagent run build",
-    "test:dev": "node --test scripts/dev/*.test.mjs",
+    "test:dev": "node --test infra/dev/*.test.mjs",
     "test:agent": "npm run build:agent-runtime && node --test agents/planm/tests/*.test.ts agents/planm/tests/*.test.mjs --experimental-strip-types",
     "test:browser": "playwright test",
     "test:frontend": "playwright test -c playwright.planm.config.cjs",
