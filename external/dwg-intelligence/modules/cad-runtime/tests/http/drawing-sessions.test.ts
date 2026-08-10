@@ -114,6 +114,49 @@ test("a chosen drawing becomes a second active session and drives the drawing ro
   assert.equal((await (await fetch(`${base}/api/drawing`)).json()).entities.length, 4);
 });
 
+test("a workspace-relative drawing can be registered without a host dialog", async (context) => {
+  const server = await createCadGatewayServer({
+    workspaceRoot: process.cwd(),
+    drawingPath: MINIMAL_DXF
+  });
+  context.after(() => server.close());
+  const base = await listen(server);
+
+  const registered = await fetch(`${base}/api/drawings/register`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      path: "tests/fixtures/dwg/export_sample.dwg",
+      displayName: "PLANM approved drawing"
+    })
+  });
+
+  assert.equal(registered.status, 200);
+  const sessions = await registered.json();
+  assert.equal(sessions.sessions.length, 2);
+  assert.equal(sessions.sessions[1].displayName, "PLANM approved drawing");
+  assert.equal(sessions.sessions[1].active, true);
+  assert.equal((await (await fetch(`${base}/api/drawing`)).json()).entities.length, 234);
+});
+
+test("drawing registration rejects paths outside the configured workspace", async (context) => {
+  const server = await createCadGatewayServer({
+    workspaceRoot: process.cwd(),
+    drawingPath: MINIMAL_DXF
+  });
+  context.after(() => server.close());
+  const base = await listen(server);
+
+  const response = await fetch(`${base}/api/drawings/register`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ path: "../outside.dwg" })
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error.code, "DRAWING_REQUEST_INVALID");
+});
+
 test("an unknown session cannot be activated and the last one cannot be closed", async (context) => {
   const server = await createCadGatewayServer({
     workspaceRoot: process.cwd(),

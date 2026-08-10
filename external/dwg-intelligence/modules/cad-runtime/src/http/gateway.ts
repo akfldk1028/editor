@@ -22,7 +22,10 @@ import {
   createDrawingSessionRegistry
 } from "../application/sessions/sessionRegistry.js";
 import { createDrawingSessionRoutes } from "./drawingSessionGateway.js";
-import { createDrawingWorkspace } from "./drawingWorkspace.js";
+import {
+  createDrawingWorkspace,
+  resolveWorkspaceDrawingPath
+} from "./drawingWorkspace.js";
 import { createExportCapabilityRoutes } from "./exportCapabilityGateway.js";
 import { createProviderGateway } from "./providerGateway.js";
 import { createSkillGatewayRoutes } from "./skillGateway.js";
@@ -104,26 +107,49 @@ export async function createCadGatewayServer(options: CadGatewayServerOptions = 
     capabilityVersion: options.capabilityVersion
   });
   const exports = createExportCapabilityRoutes(active);
+  const addSession = async (
+    canonicalPath: string,
+    displayName: string,
+    sessionWorkspace: string,
+    sessionDrawingPath: string
+  ) => {
+    registry.add({
+      displayName,
+      application: await createCadApplication({
+        workspaceRoot: sessionWorkspace,
+        drawingPath: sessionDrawingPath,
+        exportRoot,
+        dwgVersionManifestPath: paths.dwgVersionManifest,
+        cadIoHostProjectPath: paths.cadIoHostProject,
+        destinationSelector: options.dialogs
+          ? { request: (signal) => options.dialogs!.chooseDirectory(signal) }
+          : undefined,
+        processRunner: hostProcessRunner
+      })
+    });
+    return canonicalPath;
+  };
   const sessions = createDrawingSessionRoutes({
     registry,
     dialogs: options.dialogs,
     async openSession(canonicalPath, displayName) {
       // The dialog already produced a canonical path a person chose, so the
       // opened drawing is its own workspace root: it may sit anywhere.
-      registry.add({
+      await addSession(
+        canonicalPath,
         displayName,
-        application: await createCadApplication({
-          workspaceRoot: dirname(canonicalPath),
-          drawingPath: basename(canonicalPath),
-          exportRoot,
-          dwgVersionManifestPath: paths.dwgVersionManifest,
-          cadIoHostProjectPath: paths.cadIoHostProject,
-          destinationSelector: options.dialogs
-            ? { request: (signal) => options.dialogs!.chooseDirectory(signal) }
-            : undefined,
-          processRunner: hostProcessRunner
-        })
-      });
+        dirname(canonicalPath),
+        basename(canonicalPath)
+      );
+    },
+    async registerSession(relativePath, displayName) {
+      const canonicalPath = resolveWorkspaceDrawingPath(workspace, relativePath);
+      await addSession(
+        canonicalPath,
+        displayName ?? basename(canonicalPath),
+        workspace,
+        relativePath
+      );
     }
   });
 
@@ -151,8 +177,9 @@ if (isEntrypoint()) {
       : undefined
   });
   const port = Number(process.env.DWG_GATEWAY_PORT ?? 4317);
-  server.listen(port, "127.0.0.1", () => {
-    console.log(`DWG provider gateway listening on http://127.0.0.1:${port}`);
+  const host = process.env.DWG_GATEWAY_HOST ?? "127.0.0.1";
+  server.listen(port, host, () => {
+    console.log(`DWG provider gateway listening on http://${host}:${port}`);
   });
   const shutdown = () => server.close(() => process.exit(0));
   process.on("SIGINT", shutdown);

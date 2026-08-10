@@ -7,7 +7,8 @@ export const DRAWING_SESSION_ERROR_CODES = [
   "SESSION_UNKNOWN",
   "SESSION_LIMIT",
   "SESSION_LAST",
-  "DIALOG_UNAVAILABLE"
+  "DIALOG_UNAVAILABLE",
+  "DRAWING_REQUEST_INVALID"
 ] as const;
 
 export type DrawingSessionErrorCode = (typeof DRAWING_SESSION_ERROR_CODES)[number];
@@ -33,9 +34,22 @@ const drawingSessionErrorResponse = z.object({
   }).strict()
 }).strict();
 
+const drawingSessionRegisterRequest = z.object({
+  path: z.string().min(1).max(1024).refine(
+    (value) =>
+      !value.startsWith("/") &&
+      !value.startsWith("\\") &&
+      !/^[A-Za-z]:[\\/]/u.test(value) &&
+      !value.split(/[\\/]/u).includes(".."),
+    "Drawing path must be workspace-relative."
+  ),
+  displayName: z.string().min(1).max(255).optional()
+}).strict();
+
 export type DrawingSession = z.infer<typeof drawingSession>;
 export type DrawingSessionListResponse = z.infer<typeof drawingSessionListResponse>;
 export type DrawingSessionErrorResponse = z.infer<typeof drawingSessionErrorResponse>;
+export type DrawingSessionRegisterRequest = z.infer<typeof drawingSessionRegisterRequest>;
 
 export function parseDrawingSessionListResponse(value: unknown): DrawingSessionListResponse {
   return drawingSessionListResponse.parse(value);
@@ -43,4 +57,8 @@ export function parseDrawingSessionListResponse(value: unknown): DrawingSessionL
 
 export function parseDrawingSessionErrorResponse(value: unknown): DrawingSessionErrorResponse {
   return drawingSessionErrorResponse.parse(value);
+}
+
+export function parseDrawingSessionRegisterRequest(value: unknown): DrawingSessionRegisterRequest {
+  return drawingSessionRegisterRequest.parse(value);
 }

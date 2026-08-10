@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   parseDrawingSessionErrorResponse,
   parseDrawingSessionListResponse,
+  parseDrawingSessionRegisterRequest,
   type DrawingSessionErrorCode
 } from "@dwg/contracts";
 import type { HostDialogProvider } from "@dwg/host-dialogs";
@@ -30,9 +31,15 @@ export interface DrawingSessionDependencies {
     displayName: string,
     signal?: AbortSignal
   ): Promise<void>;
+  registerSession(
+    relativePath: string,
+    displayName: string | undefined,
+    signal?: AbortSignal
+  ): Promise<void>;
 }
 
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/u;
+const MAX_REGISTER_REQUEST_BYTES = 8 * 1024;
 
 export function createDrawingSessionRoutes(
   dependencies: DrawingSessionDependencies
@@ -47,6 +54,19 @@ export function createDrawingSessionRoutes(
         }
         if (request.method === "POST" && pathname === "/api/drawings/open") {
           await open(dependencies, response, signal);
+          return true;
+        }
+        if (request.method === "POST" && pathname === "/api/drawings/register") {
+          let body: ReturnType<typeof parseDrawingSessionRegisterRequest>;
+          try {
+            body = parseDrawingSessionRegisterRequest(
+              await readJsonBody(request, signal)
+            );
+          } catch {
+            throw new Error("DRAWING_REQUEST_INVALID");
+          }
+          await dependencies.registerSession(body.path, body.displayName, signal);
+          sendSessions(response, dependencies.registry, dependencies.dialogs !== undefined);
           return true;
         }
         if (request.method === "POST" && pathname.startsWith("/api/drawings/sessions/")) {
@@ -115,10 +135,33 @@ function toFailure(error: unknown): {
     }
   }
   const message = error instanceof Error ? error.message : "";
+  if (message === "DRAWING_REQUEST_INVALID" || error instanceof SyntaxError) {
+    return { status: 400, code: "DRAWING_REQUEST_INVALID", message: "Drawing registration request is invalid." };
+  }
   if (/Unsupported drawing format/u.test(message)) {
     return { status: 415, code: "DRAWING_UNSUPPORTED", message: "That file is not a supported drawing." };
   }
   return { status: 404, code: "DRAWING_NOT_FOUND", message: "The drawing could not be opened." };
+}
+
+async function readJsonBody(
+  request: IncomingMessage,
+  signal?: AbortSignal
+): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of request) {
+    if (signal?.aborted) throw signal.reason;
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += bytes.length;
+    if (size > MAX_REGISTER_REQUEST_BYTES) throw new Error("DRAWING_REQUEST_INVALID");
+    chunks.push(bytes);
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    throw new Error("DRAWING_REQUEST_INVALID");
+  }
 }
 
 function sendSessions(
