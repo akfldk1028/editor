@@ -30,7 +30,7 @@ PLAN/
 |-- backend/
 |   |-- engine/              backend-owned geometry and validation primitives
 |-- infra/docker/                   container definitions and reverse proxy config
-|-- browser_tests/            product UI and visual E2E tests
+|-- tests/browser/            product UI and visual E2E tests
 |-- datasets/                 retained source and normalized fixtures
 |-- experiments/              bounded experiment definitions and evidence
 |-- research/                 papers, notes, cards, and survey material

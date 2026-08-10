@@ -3,7 +3,7 @@ const { execFileSync, spawn } = require("child_process");
 const { existsSync, readdirSync } = require("fs");
 const { join } = require("path");
 
-const root = join(__dirname, "..");
+const root = join(__dirname, "..", "..");
 const outputDir = join(root, "test-results", "visual-review-browser");
 const port = 8877;
 let server;

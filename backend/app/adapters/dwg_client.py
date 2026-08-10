@@ -20,7 +20,7 @@ def build_dwg_mcp_command(repository_root: Path) -> list[str]:
     return [
         executable,
         "--prefix",
-        str(repository_root.resolve() / "external" / "dwg-intelligence"),
+        str(repository_root.resolve() / "agents" / "dwg"),
         "run",
         "mcp",
     ]
@@ -31,7 +31,7 @@ def build_dwg_gateway_command(repository_root: Path) -> list[str]:
     return [
         executable,
         "--prefix",
-        str(repository_root.resolve() / "external" / "dwg-intelligence"),
+        str(repository_root.resolve() / "agents" / "dwg"),
         "run",
         "gateway",
     ]
@@ -66,7 +66,7 @@ def inspect_dwg_handoff(
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
     process = subprocess.Popen(
         build_dwg_gateway_command(repository),
-        cwd=repository / "external" / "dwg-intelligence",
+        cwd=repository / "agents" / "dwg",
         env=env,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,

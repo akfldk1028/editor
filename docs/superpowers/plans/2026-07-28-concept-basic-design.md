@@ -66,7 +66,7 @@ dependency-free PNG canvas, pytest, Playwright.
 - Modify: `engine/io/png.py`
 - Modify: `backend/app/modules/visual_review/service.py`
 - Modify: `backend/tests/test_visual_review.py`
-- Modify: `browser_tests/visual_review.spec.js`
+- Modify: `tests/browser/visual_review.spec.js`
 
 - [ ] Write RED SVG DOM, PNG pixel/text, report, and Playwright tests.
 - [ ] Add deterministic 5x7 PNG text and basic drawing primitives.

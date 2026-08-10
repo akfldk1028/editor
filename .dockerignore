@@ -13,7 +13,7 @@
 **/node_modules
 **/obj
 agent
-browser_tests
+tests/browser
 clone
 datasets
 docs
