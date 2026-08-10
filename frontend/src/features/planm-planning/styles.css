@@ -1,4 +1,4 @@
-:root {
+.planm-surface {
   font-family: "Manrope Variable", sans-serif;
   color: #171815;
   background: #f3f0e8;
@@ -12,7 +12,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background-image: linear-gradient(rgba(23,24,21,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(23,24,21,.045) 1px, transparent 1px); background-size: 24px 24px; }
+.planm-surface { margin: 0; min-width: 320px; min-height: 100%; background-image: linear-gradient(rgba(23,24,21,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(23,24,21,.045) 1px, transparent 1px); background-size: 24px 24px; }
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 .shell { width: min(1520px, 100%); margin: 0 auto; padding: 0 40px 72px; overflow: hidden; }

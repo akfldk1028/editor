@@ -73,6 +73,7 @@ test("creates a PLANM run, compares alternatives, and approves one", async ({ pa
   });
 
   await page.goto("/");
+  await page.getByRole("button", { name: "PLANM Planning" }).click();
   await expect(page.getByRole("heading", { name: "Plans with proof." })).toBeVisible();
   await page.getByRole("button", { name: "Generate alternatives" }).click();
   await expect(page.getByText("alternative-a", { exact: true })).toBeVisible();

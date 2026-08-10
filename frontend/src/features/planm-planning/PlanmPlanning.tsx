@@ -11,6 +11,7 @@ import {
   previewUrl,
 } from "./api";
 import type { AlternativesResult, CadHandoff, DwgInspection, MassForm, PlanmRun } from "./types";
+import { registerPlanmDrawing } from "../../integrations/dwg/api";
 
 const stages = ["normalize", "analyze", "alternatives", "review", "deliver"];
 
@@ -22,7 +23,11 @@ const initialForm: MassForm = {
   commercialShare: 0.2,
 };
 
-function App() {
+interface Props {
+  onOpenDwg(): void;
+}
+
+function App({ onOpenDwg }: Props) {
   const [form, setForm] = useState(initialForm);
   const [run, setRun] = useState<PlanmRun | null>(null);
   const [alternatives, setAlternatives] = useState<AlternativesResult | null>(null);
@@ -94,6 +99,24 @@ function App() {
       setDwgInspection(await inspectCadHandoff(run.run_id));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "DWG inspection failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openInDwg() {
+    if (!run || !cadHandoff) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await registerPlanmDrawing(
+        run.run_id,
+        cadHandoff.drawing_path,
+        `${run.project_id} / ${cadHandoff.alternative_id}`
+      );
+      onOpenDwg();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "DWG session registration failed");
     } finally {
       setBusy(false);
     }
@@ -212,6 +235,7 @@ function App() {
                     <div className="cad-actions">
                       <button disabled={busy} onClick={prepareCad}>Prepare layered DXF</button>
                       <button disabled={busy || !cadHandoff} onClick={inspectCad}>Run DWG inspection</button>
+                      <button disabled={busy || !cadHandoff} onClick={openInDwg}>Open in DWG workspace</button>
                       {cadHandoff && <a href={artifactUrl(run.run_id, cadHandoff.drawing_path)} download>Download DXF</a>}
                     </div>
                     {cadHandoff && <small>{cadHandoff.source_floor_count} floors / {cadHandoff.entity_count} entities / {cadHandoff.units}</small>}
