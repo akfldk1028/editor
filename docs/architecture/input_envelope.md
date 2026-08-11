@@ -19,64 +19,55 @@ file, not the exit code, is the authority on the outcome.
 ## Measured result, 2026-08-11
 
 96 cases: 6 footprints x floor counts 1/3/5/8 x commercial share 0/20/34/100 %.
-**52 reached two accepted alternatives, 44 did not.** Floor count never changed
-an outcome. Commercial share changed one footprint only.
+**80 reached two accepted alternatives, 16 did not.** Neither floor count nor
+commercial share changes an outcome. Plate shape decides it.
 
-| Footprint | Reached two | Failing alternative |
-| --- | --- | --- |
-| 20x10, 30x12, 40x24 | 16 / 16 | none |
-| 60x20 (3:1 elongated) | 4 / 16 | `alternative-a` on every office floor |
-| 24x24 (square) | 0 / 16 | `alternative-c` |
-| L-shaped 36x26 with an 18x12 notch | 0 / 16 | both alternatives |
-
-Every failure is `internal_validation`. Rendering passes throughout.
-
-## Two distinct causes
-
-### Room proportion on extreme rectangles, a generator limit
-
-The validator rejects a room whose proportions exceed its hard limit. The
-measured overruns:
-
-| Case | Violation |
+| Footprint | Reached two |
 | --- | --- |
-| 24x24 | `core` aspect ratio 2.469-2.571 over the 2.000 limit; `pantry` 8.569 over 8.500 |
-| 60x20, office floors | `open_work` aspect ratio 6.675 over 6.500 |
+| 20x10, 30x12, 40x24, 24x24, 60x20 | 16 / 16 |
+| L-shaped 36x26 with an 18x12 notch | 0 / 16 |
 
-60x20 reaches two accepted alternatives at 100 % commercial, because that
-program carries no deep `open_work` room.
+Every rectangular plate measured is inside the envelope. Concave plates are not.
 
-These are the limits the validator exists to enforce, and `RULES.md` forbids
-overriding a geometry gate. Widening them would buy a second alternative by
-shipping a room the product already judges unusable. The gap belongs to the
-generator: on a square plate `side-mid-core-longitudinal-spine` stretches the
-core, and on a 3:1 plate `rear-right-core-single-spine` stretches the open work
-area. Both need plate-proportion-aware sizing.
+## Rectangular plates: fixed
 
-### Concave plates on the alternatives path, a defect
+An earlier run of this sweep lost 28 cases to room proportion. A square plate
+stretched the core to 2.571 against its 2.000 limit and the pantry to 8.569
+against 8.500; a 3:1 plate left the open work area at 6.675 against 6.500. Each
+loss cost the run its second alternative.
+
+The cause was the generator, not the limits. Each strategy picked one dimension
+from the plate and let the other fall out of the area, which produces a sliver
+once the plate is extreme. The dimensions now derive from the limit itself: a
+core height stops at sqrt(limit * area), a service room widens to at least
+sqrt(area / limit), and the rear band leaves the open work area the depth its
+limit needs. The core and the rear band stack across floors, so both are sized
+once from the tightest floor. No gate moved.
+
+## Concave plates: refused, not supported
 
 `docs/architecture/module_map.md` states that the deterministic office path
-supports L and U plates, and the retained fixture
-`resources/datasets/manifests/sample_mass_l_setback_office.json` is the evidence
-for it. Both claims hold on the single-alternative path and fail on the path the
-product API actually uses:
+supports L and U plates, and
+`resources/datasets/manifests/sample_mass_l_setback_office.json` is the retained
+evidence. That holds on the single-building path and not on the alternatives
+path the product API uses.
+
+Every alternative strategy lays rooms across the bounding rectangle of the plate
+while validation measures them against the real footprint. On a concave outline
+the two disagree over the notch, so the path used to return layouts whose rooms
+stood outside the building. It now rejects the family up front and says why.
+
+The structural composer does place cores inside the actual polygon, and it
+produces a valid alternative for a concave mass:
 
 ```powershell
-# accepted = true, every floor passes every check
-python -m backend.app.cli building-review --input resources/datasets/manifests/sample_mass_l_setback_office.json --output-dir logs/runs/l-building-check
-
-# accepted_count = 0 on the same fixture
-python -m backend.app.cli alternatives-review --input resources/datasets/manifests/sample_mass_l_setback_office.json --output-dir logs/runs/l-alternatives-check
+# accepted alternative on an L plate, strategy long_edge_adjacent
+python -m backend.app.cli irregular-alternatives-review --input <L mass> --output-dir logs/runs/l-irregular
 ```
 
-The alternatives path reports an axis-aligned `circulation_bounds` rectangle
-over the concave outline, then places rooms in it. The violations follow from
-that: `boundary` failures where rooms escape the notch, and `room_identity`
-where a required room no longer fits. Every L case in the sweep fails both
-alternatives for this reason.
-
-This one is not an envelope limit. A documented, fixture-backed capability works
-in one code path and is broken in the product path.
+Routing the product path through that composer is what would bring concave
+plates inside the envelope. It assigns one use type to every floor today, so it
+has to learn the floor use mix before it can stand in for the current path.
 
 ## Reading a failure
 
