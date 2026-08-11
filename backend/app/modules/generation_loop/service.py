@@ -1028,6 +1028,31 @@ def run_building_alternatives(
     planner_provenance: PlannerProvenance | None = None,
 ) -> BuildingAlternativesResult:
     """Generate ranked, geometrically distinct concept-basic building options."""
+    analysis = analyze_mass(mass)
+    # Every strategy below lays rooms out across the bounding rectangle of the
+    # plate. On a concave outline that rectangle covers ground the building does
+    # not occupy, and the rooms placed there fall outside the boundary. Say so
+    # rather than return a layout that leaves the building.
+    if any(
+        not _is_axis_aligned_rectangle(plate.footprint_polygon, plate.bounds)
+        for plate in analysis.floor_plates
+    ):
+        return BuildingAlternativesResult(
+            mass=analysis,
+            alternatives=(),
+            comparisons=(),
+            rejected_families=(
+                RejectedAlternativeFamilyResult(
+                    family="conservative_redundant_two_stair",
+                    reasons=(
+                        "rear and side core strategies lay out the bounding "
+                        "rectangle of the plate, so they cannot honour a "
+                        "non-rectangular outline; compose structural "
+                        "alternatives for this mass instead",
+                    ),
+                ),
+            ),
+        )
     try:
         baseline = run_building_generation(
             mass,
