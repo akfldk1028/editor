@@ -2543,7 +2543,12 @@ def _draw_architectural_png_text(
     image = Image.open(io.BytesIO(payload)).convert("RGB")
     drawing = ImageDraw.Draw(image)
     font = ImageFont.truetype(str(font_path), 12)
-    occupied: list[tuple[float, float, float, float]] = []
+    # Furniture is a soft obstacle. A drafter routes a room callout around the
+    # desks when there is room and otherwise sets it over them on a knockout,
+    # because a fully furnished room would otherwise carry no name at all. Only
+    # another label is a hard obstacle: text over text is unreadable.
+    label_boxes: list[tuple[float, float, float, float]] = []
+    furniture_boxes: list[tuple[float, float, float, float]] = []
     for feature in features:
         if (
             feature.layer not in {"furniture", "fixtures"}
@@ -2558,7 +2563,7 @@ def _draw_architectural_png_text(
             )
             for x, y in feature.points
         ]
-        occupied.append(
+        furniture_boxes.append(
             (
                 min(point[0] for point in obstacle)
                 - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
@@ -2571,8 +2576,10 @@ def _draw_architectural_png_text(
             )
         )
     adjusted_count = 0
+    masked_count = 0
     label_count = 0
     unresolved_collision_count = 0
+    unresolved_labels: list[str] = []
     for feature in features:
         if (
             not feature.label
@@ -2593,12 +2600,6 @@ def _draw_architectural_png_text(
         else:
             x, y = _architectural_line_label_position(feature, raster)
         text = _display_label(feature, "architectural").replace("|", "\n")
-        box = drawing.multiline_textbbox(
-            (0, 0), text, font=font, spacing=1, align="center"
-        )
-        text_width = box[2] - box[0]
-        text_height = box[3] - box[1]
-        origin = (x - text_width / 2, y - text_height / 2)
         offsets = [(0, 0)]
         for radius in (16, 28, 42, 58, 76):
             offsets.extend(
@@ -2613,36 +2614,52 @@ def _draw_architectural_png_text(
                     (-radius, -radius),
                 )
             )
-        for offset_x, offset_y in offsets:
-            candidate = (
-                origin[0] + offset_x,
-                origin[1] + offset_y,
-                origin[0] + offset_x + text_width,
-                origin[1] + offset_y + text_height,
-            )
-            collision_box = (
-                candidate[0] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
-                candidate[1] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
-                candidate[2] + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
-                candidate[3] + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
-            )
-            inside_canvas = (
-                candidate[0] >= 2
-                and candidate[1] >= 2
-                and candidate[2] <= image.width - 2
-                and candidate[3] <= image.height - 2
-            )
-            if inside_canvas and not any(
-                _rectangles_intersect(collision_box, item) for item in occupied
-            ):
-                if offset_x or offset_y:
-                    adjusted_count += 1
-                origin = (candidate[0], candidate[1])
-                occupied.append(collision_box)
+        box = drawing.multiline_textbbox(
+            (0, 0), text, font=font, spacing=1, align="center"
+        )
+        text_width = box[2] - box[0]
+        text_height = box[3] - box[1]
+        anchor = (x - text_width / 2, y - text_height / 2)
+        placement = None
+        for over_furniture in (False, True):
+            blockers = label_boxes if over_furniture else label_boxes + furniture_boxes
+            for offset_x, offset_y in offsets:
+                candidate = (
+                    anchor[0] + offset_x,
+                    anchor[1] + offset_y,
+                    anchor[0] + offset_x + text_width,
+                    anchor[1] + offset_y + text_height,
+                )
+                collision_box = (
+                    candidate[0] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                    candidate[1] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                    candidate[2] + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                    candidate[3] + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
+                )
+                inside_canvas = (
+                    candidate[0] >= 2
+                    and candidate[1] >= 2
+                    and candidate[2] <= image.width - 2
+                    and candidate[3] <= image.height - 2
+                )
+                if inside_canvas and not any(
+                    _rectangles_intersect(collision_box, item) for item in blockers
+                ):
+                    placement = (
+                        candidate,
+                        collision_box,
+                        bool(offset_x or offset_y),
+                        over_furniture,
+                    )
+                    break
+            if placement is not None:
                 break
-        else:
+
+        if placement is None:
+            origin = anchor
             unresolved_collision_count += 1
-            occupied.append(
+            unresolved_labels.append(text.replace("\n", " "))
+            label_boxes.append(
                 (
                     origin[0] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
                     origin[1] - _ARCHITECTURAL_LABEL_CLEARANCE_PX,
@@ -2650,6 +2667,16 @@ def _draw_architectural_png_text(
                     origin[1] + text_height + _ARCHITECTURAL_LABEL_CLEARANCE_PX,
                 )
             )
+        else:
+            text_box, collision_box, moved, masked = placement
+            origin = (text_box[0], text_box[1])
+            if moved:
+                adjusted_count += 1
+            if masked:
+                masked_count += 1
+                drawing.rectangle(text_box, fill=(255, 255, 255))
+            label_boxes.append(collision_box)
+
         drawing.multiline_text(
             origin,
             text,
@@ -2664,10 +2691,12 @@ def _draw_architectural_png_text(
         "renderer": "pillow",
         "font_path": str(font_path),
         "fallback": False,
-        "collision_strategy": "offset",
+        "collision_strategy": "offset-then-mask",
         "label_count": label_count,
         "adjusted_count": adjusted_count,
+        "masked_count": masked_count,
         "unresolved_collision_count": unresolved_collision_count,
+        "unresolved_labels": unresolved_labels,
     }
 
 

@@ -174,7 +174,7 @@ def test_architectural_style_uses_monochrome_drafting_symbols_and_korean_font(
     assert 'data-symbol="furniture"' in svg
     assert 'data-symbol="dimension-chain"' in svg
     assert "UP" in svg
-    assert report["png_text"]["collision_strategy"] == "offset"
+    assert report["png_text"]["collision_strategy"] == "offset-then-mask"
     assert report["png_text"]["label_count"] > 0
     assert report["png_text"]["unresolved_collision_count"] == 0
     assert report["checks"]["label_overlap"] == "pass"
@@ -347,6 +347,76 @@ def test_architectural_png_separates_adjacent_narrow_room_labels():
 
     assert output.metadata["adjusted_count"] >= 2
     assert output.metadata["unresolved_collision_count"] == 0
+
+
+def _fully_furnished_room_features():
+    desks = tuple(
+        visual_review_service._RenderFeature(
+            f"desk-{column}-{row}",
+            "furniture",
+            "focus_desk",
+            "polygon",
+            (
+                (4.0 + column * 3.0, 3.0 + row * 3.0),
+                (6.0 + column * 3.0, 3.0 + row * 3.0),
+                (6.0 + column * 3.0, 5.0 + row * 3.0),
+                (4.0 + column * 3.0, 5.0 + row * 3.0),
+            ),
+        )
+        for column in range(11)
+        for row in range(6)
+    )
+    return desks + (
+        visual_review_service._RenderFeature(
+            "open-work-label",
+            "text-labels",
+            "room-label",
+            "label",
+            ((20.0, 12.0),),
+            "업무공간|360.084 m2",
+        ),
+    )
+
+
+def test_architectural_png_masks_the_label_of_a_fully_furnished_room():
+    output = visual_review_service._render_png(
+        _fully_furnished_room_features(),
+        [(0, 0), (40, 0), (40, 24), (0, 24)],
+        960,
+        540,
+        render_style="architectural",
+    )
+
+    assert output.metadata["collision_strategy"] == "offset-then-mask"
+    assert output.metadata["label_count"] == 1
+    assert output.metadata["masked_count"] == 1
+    assert output.metadata["unresolved_collision_count"] == 0
+    assert output.metadata["unresolved_labels"] == []
+
+
+def test_architectural_png_still_reports_a_label_it_cannot_place():
+    features = tuple(
+        visual_review_service._RenderFeature(
+            f"stacked-label-{index}",
+            "text-labels",
+            "room-label",
+            "label",
+            ((20.0, 12.0),),
+            "업무공간|360.084 m2",
+        )
+        for index in range(2)
+    )
+
+    output = visual_review_service._render_png(
+        features,
+        [(0, 0), (40, 0), (40, 24), (0, 24)],
+        150,
+        110,
+        render_style="architectural",
+    )
+
+    assert output.metadata["unresolved_collision_count"] == 1
+    assert output.metadata["unresolved_labels"] == ["업무공간 360.084 m2"]
 
 
 def test_architectural_png_reports_ascii_fallback_when_korean_font_is_missing(
