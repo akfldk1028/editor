@@ -15,6 +15,10 @@ from backend.engine.geometry.polygon import polygon_area
 
 Point = tuple[float, float]
 
+# Coordinates are rounded when a rectangle is built, so a room sized exactly at
+# its aspect limit can round back over it. Size just inside the limit instead.
+_ASPECT_LIMIT_MARGIN = 1.01
+
 
 def generate_baseline_layout(
     analysis: MassAnalysis,
@@ -338,6 +342,7 @@ def generate_rear_center_layout(
     core_position: str = "rear_center",
     floor_to_floor_height_m: float | None = None,
     core_polygon: tuple[Point, ...] | list[Point] | None = None,
+    rear_height_override: float | None = None,
     respect_program_order: bool = False,
 ) -> LayoutCandidate:
     """Generate a direct rear-center-core topology with a public access spine."""
@@ -372,7 +377,17 @@ def generate_rear_center_layout(
         rear_height = core_max_y - core_min_y
         core_width = core_max_x - core_min_x
     else:
-        rear_height = max(stair_long_side + 0.25, 5.2, depth * 0.5)
+        rear_height = (
+            rear_height_override
+            if rear_height_override is not None
+            else rear_band_height(
+                program,
+                plate_width=max_x - min_x,
+                plate_depth=depth,
+                min_circulation_width=min_circulation_width,
+                stair_long_side=stair_long_side,
+            )
+        )
         core_width = max(7.0, _layout_area(core_node) / rear_height)
         if core_position == "rear_center":
             core_min_x = (min_x + max_x - core_width) / 2
@@ -646,12 +661,86 @@ def generate_rear_center_layout(
     )
 
 
+def rear_band_height(
+    program: ProgramGraph,
+    *,
+    plate_width: float,
+    plate_depth: float,
+    min_circulation_width: float,
+    stair_long_side: float,
+) -> float:
+    """Depth of the rear core band for one floor.
+
+    The open work area runs the full width of the plate, so on a long plate its
+    proportion is decided by how much depth the rear band leaves behind. Give it
+    the depth its aspect limit needs before the core takes the rest, without
+    dropping below what the stair enclosure requires.
+    """
+    primary = next(
+        (node for node in program.nodes if node.space_type == "open_work"),
+        None,
+    )
+    ceiling = math.inf
+    limit = None if primary is None else primary.max_aspect_ratio
+    if limit is not None:
+        limit = float(limit)
+        if math.isfinite(limit) and limit > 0:
+            required_depth = (plate_width - min_circulation_width) / limit
+            ceiling = (
+                plate_depth
+                - min_circulation_width
+                - required_depth * _ASPECT_LIMIT_MARGIN
+            )
+    return max(stair_long_side + 0.25, 5.2, min(plate_depth * 0.5, ceiling))
+
+
+def service_room_width(node, service_height: float) -> float:
+    """Width of a service room stacked to the full depth of the rear bay.
+
+    The room runs from the corridor to the rear wall, so a narrow width turns
+    it into a slot. sqrt(area / limit) is the narrowest the rectangle can be
+    and still meet its proportion limit, and the margin keeps the coordinate
+    rounding that follows from landing back on the wrong side of it.
+    """
+    area = _layout_area(node)
+    candidates = [area / service_height, float(node.min_width or 0), 1.1]
+    limit = node.max_aspect_ratio
+    if limit is not None:
+        limit = float(limit)
+        if math.isfinite(limit) and limit > 0 and area > 0:
+            candidates.append(math.sqrt(area / limit) * _ASPECT_LIMIT_MARGIN)
+    return max(candidates)
+
+
+def height_within_aspect_limit(
+    height: float,
+    *,
+    area: float,
+    maximum_aspect_ratio: float | None,
+    minimum_height: float,
+) -> float:
+    """Cap a room height so the rectangle of this area can meet its aspect limit.
+
+    The width follows from the area, so a height driven by plate depth alone
+    turns into a sliver on a deep plate. A rectangle of this area satisfies the
+    limit only up to sqrt(limit * area); beyond that the room is rejected for
+    proportion however the rest of the floor is arranged.
+    """
+    if maximum_aspect_ratio is None:
+        return height
+    limit = float(maximum_aspect_ratio)
+    if not math.isfinite(limit) or limit <= 0 or area <= 0:
+        return height
+    return max(minimum_height, min(height, math.sqrt(limit * area) / _ASPECT_LIMIT_MARGIN))
+
+
 def generate_side_mid_layout(
     analysis: MassAnalysis,
     program: ProgramGraph,
     *,
     min_circulation_width: float = 1.2,
     cross_bottom_override: float | None = None,
+    core_height_override: float | None = None,
     floor_to_floor_height_m: float | None = None,
 ) -> LayoutCandidate:
     """Generate a right-side mid-core with a longitudinal public corridor."""
@@ -660,7 +749,16 @@ def generate_side_mid_layout(
     _, stair_long_side = required_stair_enclosure(stair_height)
     depth = max_y - min_y
     core_node = next(node for node in program.nodes if node.space_type == "core")
-    core_height = max(7.2, depth * 0.6)
+    core_height = (
+        core_height_override
+        if core_height_override is not None
+        else height_within_aspect_limit(
+            max(7.2, depth * 0.6),
+            area=_layout_area(core_node),
+            maximum_aspect_ratio=core_node.max_aspect_ratio,
+            minimum_height=7.2,
+        )
+    )
     core_width = max(
         _layout_area(core_node) / core_height,
         stair_long_side + 0.25,
@@ -736,11 +834,7 @@ def generate_side_mid_layout(
     )
     while (
         sum(
-            max(
-                _layout_area(node) / required_service_height,
-                float(node.min_width or 0),
-                1.1,
-            )
+            service_room_width(node, required_service_height)
             for node in service_nodes
         )
         > branch_left - min_x - stair_long_side
@@ -780,11 +874,7 @@ def generate_side_mid_layout(
     service_height = max_y - cross_top
     cursor = min_x + stair_long_side
     for node in service_nodes:
-        room_width = max(
-            _layout_area(node) / service_height,
-            float(node.min_width or 0),
-            1.1,
-        )
+        room_width = service_room_width(node, service_height)
         room_height = _layout_area(node) / room_width
         if cursor + room_width > branch_left + 1e-7:
             raise ValueError("side-mid service program exceeds rear service bay")

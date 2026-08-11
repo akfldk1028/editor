@@ -128,7 +128,10 @@ def test_building_alternatives_preserve_explicit_assignments_and_provenance():
         } == {"neighborhood_commercial"}
 
 
-@pytest.mark.parametrize("width,depth", [(20, 12), (30, 12), (30, 20)])
+@pytest.mark.parametrize(
+    "width,depth",
+    [(20, 12), (30, 12), (30, 20), (24, 24), (60, 20)],
+)
 def test_building_alternatives_are_distinct_ranked_and_mostly_accepted(width, depth):
     mass = MassInput(
         project_id=f"alternatives-{width}x{depth}",

@@ -23,6 +23,9 @@ from backend.app.modules.layout_generator.service import (
     generate_core_aligned_layout,
     generate_rear_center_layout,
     generate_side_mid_layout,
+    height_within_aspect_limit,
+    rear_band_height,
+    service_room_width,
 )
 from backend.app.modules.layout_generator.daylight import (
     require_usable_daylight_frontage,
@@ -1049,6 +1052,7 @@ def run_building_alternatives(
             if transform == "identity":
                 building = baseline
             elif transform == "rear-right":
+                shared_rear_height = _shared_rear_band_height(baseline, mass=mass)
                 building = _generate_positioned_building(
                     baseline,
                     mass=mass,
@@ -1056,6 +1060,7 @@ def run_building_alternatives(
                         analysis,
                         program,
                         core_position="rear_right",
+                        rear_height_override=shared_rear_height,
                         floor_to_floor_height_m=(
                             mass.building_code_context.floor_to_floor_height_m
                             if mass.building_code_context is not None
@@ -1723,18 +1728,50 @@ def _generate_rear_center_building(
             source=f"{floor.program.source}:rear_center_service_fit",
         )
         adjusted_floors.append(replace(floor, program=program))
+    adjusted = replace(baseline, floor_results=tuple(adjusted_floors))
+    shared_rear_height = _shared_rear_band_height(adjusted, mass=mass)
     return _generate_positioned_building(
-        replace(baseline, floor_results=tuple(adjusted_floors)),
+        adjusted,
         mass=mass,
         generator=lambda analysis, program: generate_rear_center_layout(
             analysis,
             program,
+            rear_height_override=shared_rear_height,
             floor_to_floor_height_m=(
                 mass.building_code_context.floor_to_floor_height_m
                 if mass.building_code_context is not None
                 else None
             ),
         ),
+    )
+
+
+def _shared_rear_band_height(
+    building: BuildingGenerationResult,
+    *,
+    mass: MassInput,
+) -> float:
+    """One rear band depth for the whole stack.
+
+    The core sits in this band on every floor, so a per-floor depth would leave
+    the stack unaligned. The tightest floor governs.
+    """
+    min_x, min_y, max_x, max_y = building.mass.bounds
+    stair_height, _ = resolve_floor_height(
+        mass.building_code_context.floor_to_floor_height_m
+        if mass.building_code_context is not None
+        else None
+    )
+    _, stair_long_side = required_stair_enclosure(stair_height)
+    return min(
+        rear_band_height(
+            floor.program,
+            plate_width=max_x - min_x,
+            plate_depth=max_y - min_y,
+            min_circulation_width=1.2,
+            stair_long_side=stair_long_side,
+        )
+        for floor in building.floor_results
     )
 
 
@@ -1753,9 +1790,29 @@ def _generate_side_mid_building(
         else None
     )
     _, stair_long_side = required_stair_enclosure(stair_height)
+    # The core stacks, so every floor has to receive the same rectangle. Size it
+    # from the tightest floor, which is the one whose core area allows the least
+    # height before the proportion limit bites.
+    shared_core_height = min(
+        height_within_aspect_limit(
+            max(7.2, depth * 0.6),
+            area=float(
+                next(
+                    node
+                    for node in floor.program.nodes
+                    if node.space_type == "core"
+                ).target_area
+            ),
+            maximum_aspect_ratio=next(
+                node for node in floor.program.nodes if node.space_type == "core"
+            ).max_aspect_ratio,
+            minimum_height=7.2,
+        )
+        for floor in baseline.floor_results
+    )
     for floor in baseline.floor_results:
         core = next(node for node in floor.program.nodes if node.space_type == "core")
-        core_height = max(7.2, depth * 0.6)
+        core_height = shared_core_height
         core_width = max(
             float(core.target_area) / core_height,
             stair_long_side + 0.25,
@@ -1784,12 +1841,7 @@ def _generate_side_mid_building(
         )
         while (
             sum(
-                max(
-                    float(node.target_area) / service_height,
-                    float(node.min_width or 0),
-                    1.1,
-                )
-                for node in service_nodes
+                service_room_width(node, service_height) for node in service_nodes
             )
             > available_width
             and service_height < depth - 3.2
@@ -1806,6 +1858,7 @@ def _generate_side_mid_building(
             baseline.mass,
             program,
             cross_bottom_override=shared_cross_bottom,
+            core_height_override=shared_core_height,
             floor_to_floor_height_m=(
                 mass.building_code_context.floor_to_floor_height_m
                 if mass.building_code_context is not None
