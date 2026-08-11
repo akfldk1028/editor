@@ -62,8 +62,10 @@ Backend -> DWG adapter -> independent DWG process, after approval only
 
 ## Non-Product Directories
 
-The following paths may exist in a developer checkout but are not product
-modules and must remain ignored and excluded from IDE indexing:
+None of the following is a product module. No production import, workflow path,
+installer, or deployment command may depend on one.
+
+Ignored, and excluded from IDE indexing:
 
 - `clone/`: large local research checkouts.
 - `logs/`: generated runs, migration backups, and retained execution evidence.
@@ -71,7 +73,15 @@ modules and must remain ignored and excluded from IDE indexing:
 - `node_modules/`, `dist/`, `__pycache__/`, `.pytest_cache/`, `.ruff_cache/`:
   generated dependencies, builds, and caches.
 - `.worktrees/`: local isolated Git worktrees.
-- `.superpowers/`, `.remember/`: development-tool records, not runtime code.
+- `.idea/`: local IDE configuration.
 
-No production import, workflow path, installer, or deployment command may depend
-on a non-product directory.
+Tracked, because they carry decision history a later session needs:
+
+- `.superpowers/sdd/`: per-task briefs and reports for completed work.
+- `.remember/`: session handoff state.
+
+`docs/` holds both documentation and retained evidence. `architecture/`,
+`decisions/`, `integrations/`, `schemas/`, `datasets/`, `research_plan/`, and
+`superpowers/` are documentation. The remaining dated directories are the
+evidence a plan or spec produced; their names are referenced from those records
+and are not renamed after the fact.

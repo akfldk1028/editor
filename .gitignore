@@ -21,5 +21,6 @@ logs/
 resources/experiments/**/outputs/
 clone/
 .playwright-mcp/
+.idea/
 /frontend/vite.config.js
 /frontend/vite.config.d.ts
