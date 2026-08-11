@@ -125,6 +125,9 @@ LAYER_DISPLAY = {
 }
 RENDER_STYLES = {"review", "architectural"}
 _ARCHITECTURAL_LABEL_CLEARANCE_PX = 8
+_ARCHITECTURAL_LABEL_ENCLOSURE_LAYERS = frozenset(
+    {"rooms", "core", "circulation"}
+)
 ARCHITECTURAL_FONT_STACK = "Noto Sans KR, Malgun Gothic, sans-serif"
 ARCHITECTURAL_LABELS = {
     "shop_unit": "상가",
@@ -2549,20 +2552,24 @@ def _draw_architectural_png_text(
     # another label is a hard obstacle: text over text is unreadable.
     label_boxes: list[tuple[float, float, float, float]] = []
     furniture_boxes: list[tuple[float, float, float, float]] = []
+    enclosures: list[tuple[tuple[float, float], ...]] = []
     for feature in features:
-        if (
-            feature.layer not in {"furniture", "fixtures"}
-            or feature.geometry != "polygon"
-            or not _finite_points(feature.points, minimum=3)
+        if feature.geometry != "polygon" or not _finite_points(
+            feature.points, minimum=3
         ):
             continue
-        obstacle = [
+        raster_ring = tuple(
             (
                 _sx(x, min_x, scale, pad_x),
                 _sy(y, min_y, scale, pad_y, height),
             )
             for x, y in feature.points
-        ]
+        )
+        if feature.layer in _ARCHITECTURAL_LABEL_ENCLOSURE_LAYERS:
+            enclosures.append(raster_ring)
+        if feature.layer not in {"furniture", "fixtures"}:
+            continue
+        obstacle = raster_ring
         furniture_boxes.append(
             (
                 min(point[0] for point in obstacle)
@@ -2642,16 +2649,24 @@ def _draw_architectural_png_text(
                     and candidate[2] <= image.width - 2
                     and candidate[3] <= image.height - 2
                 )
-                if inside_canvas and not any(
+                if not inside_canvas or any(
                     _rectangles_intersect(collision_box, item) for item in blockers
                 ):
-                    placement = (
-                        candidate,
-                        collision_box,
-                        bool(offset_x or offset_y),
-                        over_furniture,
-                    )
-                    break
+                    continue
+                # The knockout paints over whatever it covers, so it may only be
+                # used inside the single enclosure that holds the label: a mask
+                # crossing a wall would erase that wall from the drawing.
+                if over_furniture and not _box_within_one_enclosure(
+                    candidate, (x, y), enclosures
+                ):
+                    continue
+                placement = (
+                    candidate,
+                    collision_box,
+                    bool(offset_x or offset_y),
+                    over_furniture,
+                )
+                break
             if placement is not None:
                 break
 
@@ -2989,6 +3004,24 @@ def _point_in_viewport(
     max_y: float,
 ) -> bool:
     return 0.0 <= point[0] <= max_x and 0.0 <= point[1] <= max_y
+
+
+def _box_within_one_enclosure(
+    box: tuple[float, float, float, float],
+    anchor: tuple[float, float],
+    enclosures: list[tuple[tuple[float, float], ...]],
+) -> bool:
+    corners = (
+        (box[0], box[1]),
+        (box[2], box[1]),
+        (box[2], box[3]),
+        (box[0], box[3]),
+    )
+    return any(
+        _point_in_polygon(anchor, enclosure)
+        and all(_point_in_polygon(corner, enclosure) for corner in corners)
+        for enclosure in enclosures
+    )
 
 
 def _point_in_polygon(

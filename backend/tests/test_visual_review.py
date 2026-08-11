@@ -349,7 +349,14 @@ def test_architectural_png_separates_adjacent_narrow_room_labels():
     assert output.metadata["unresolved_collision_count"] == 0
 
 
-def _fully_furnished_room_features():
+def _fully_furnished_room_features(room_ring=None):
+    room = visual_review_service._RenderFeature(
+        "open-work",
+        "rooms",
+        "room",
+        "polygon",
+        room_ring or ((2.0, 2.0), (38.0, 2.0), (38.0, 22.0), (2.0, 22.0)),
+    )
     desks = tuple(
         visual_review_service._RenderFeature(
             f"desk-{column}-{row}",
@@ -366,15 +373,19 @@ def _fully_furnished_room_features():
         for column in range(11)
         for row in range(6)
     )
-    return desks + (
-        visual_review_service._RenderFeature(
-            "open-work-label",
-            "text-labels",
-            "room-label",
-            "label",
-            ((20.0, 12.0),),
-            "업무공간|360.084 m2",
-        ),
+    return (
+        (room,)
+        + desks
+        + (
+            visual_review_service._RenderFeature(
+                "open-work-label",
+                "text-labels",
+                "room-label",
+                "label",
+                ((20.0, 12.0),),
+                "업무공간|360.084 m2",
+            ),
+        )
     )
 
 
@@ -392,6 +403,21 @@ def test_architectural_png_masks_the_label_of_a_fully_furnished_room():
     assert output.metadata["masked_count"] == 1
     assert output.metadata["unresolved_collision_count"] == 0
     assert output.metadata["unresolved_labels"] == []
+
+
+def test_architectural_png_refuses_a_knockout_that_would_cross_a_wall():
+    output = visual_review_service._render_png(
+        _fully_furnished_room_features(
+            room_ring=((19.4, 11.6), (20.6, 11.6), (20.6, 12.4), (19.4, 12.4)),
+        ),
+        [(0, 0), (40, 0), (40, 24), (0, 24)],
+        960,
+        540,
+        render_style="architectural",
+    )
+
+    assert output.metadata["masked_count"] == 0
+    assert output.metadata["unresolved_labels"] == ["업무공간 360.084 m2"]
 
 
 def test_architectural_png_still_reports_a_label_it_cannot_place():
