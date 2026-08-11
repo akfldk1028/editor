@@ -1021,6 +1021,93 @@ _ALTERNATIVE_STRATEGIES = (
 )
 
 
+def _composed_building_alternatives(
+    mass: MassInput,
+    *,
+    analysis,
+    floor_assignments: Iterable[FloorAssignment] | None,
+    planner_provenance: PlannerProvenance | None,
+) -> BuildingAlternativesResult:
+    """Plan a non-rectangular plate through the polygon-aware composer.
+
+    The composer enumerates cores that fit inside the real outline, so it is the
+    only path that can plan a concave plate. It reports why each core family was
+    turned down, which is carried through as the family rejection.
+    """
+    from backend.app.modules.alternative_composer.service import (
+        compose_structural_alternatives,
+    )
+
+    assignments = (
+        tuple(floor_assignments)
+        if floor_assignments is not None
+        else assign_floors_from_use_mix(mass)
+    )
+    try:
+        composition = compose_structural_alternatives(
+            mass,
+            use_type=None,
+            floor_assignments=assignments,
+            limit=len(_ALTERNATIVE_STRATEGIES),
+        )
+    except (TypeError, ValueError) as error:
+        return BuildingAlternativesResult(
+            mass=analysis,
+            alternatives=(),
+            comparisons=(),
+            rejected_families=(
+                RejectedAlternativeFamilyResult(
+                    family="polygonal_core_families",
+                    reasons=(str(error),),
+                ),
+            ),
+        )
+
+    alternatives = []
+    for index, composed in enumerate(composition.alternatives, start=1):
+        building = composed.building
+        alternatives.append(
+            BuildingAlternativeResult(
+                alternative_id=f"alternative-{index:02d}",
+                strategy=f"polygonal_core_families/{composed.strategy}",
+                building=building,
+                score=round(
+                    sum(
+                        floor.validation.total_score
+                        for floor in building.floor_results
+                    )
+                    / len(building.floor_results),
+                    6,
+                ),
+                rank=index,
+                fingerprints=tuple(
+                    layout_fingerprint(floor.layout)
+                    for floor in building.floor_results
+                ),
+                **_alternative_geometry_evidence(building),
+            )
+        )
+    rejected = (
+        (
+            RejectedAlternativeFamilyResult(
+                family="polygonal_core_families",
+                reasons=tuple(
+                    f"{rejection.strategy}: {rejection.reason}"
+                    for rejection in composition.rejections
+                ),
+            ),
+        )
+        if composition.rejections
+        else ()
+    )
+    return BuildingAlternativesResult(
+        mass=analysis,
+        alternatives=tuple(alternatives),
+        comparisons=_alternative_comparisons(tuple(alternatives), analysis),
+        rejected_families=rejected,
+    )
+
+
 def run_building_alternatives(
     mass: MassInput,
     *,
@@ -1031,27 +1118,17 @@ def run_building_alternatives(
     analysis = analyze_mass(mass)
     # Every strategy below lays rooms out across the bounding rectangle of the
     # plate. On a concave outline that rectangle covers ground the building does
-    # not occupy, and the rooms placed there fall outside the boundary. Say so
-    # rather than return a layout that leaves the building.
+    # not occupy, so the strategies cannot honour it. The structural composer
+    # places cores inside the actual polygon and takes over for those masses.
     if any(
         not _is_axis_aligned_rectangle(plate.footprint_polygon, plate.bounds)
         for plate in analysis.floor_plates
     ):
-        return BuildingAlternativesResult(
-            mass=analysis,
-            alternatives=(),
-            comparisons=(),
-            rejected_families=(
-                RejectedAlternativeFamilyResult(
-                    family="conservative_redundant_two_stair",
-                    reasons=(
-                        "rear and side core strategies lay out the bounding "
-                        "rectangle of the plate, so they cannot honour a "
-                        "non-rectangular outline; compose structural "
-                        "alternatives for this mass instead",
-                    ),
-                ),
-            ),
+        return _composed_building_alternatives(
+            mass,
+            analysis=analysis,
+            floor_assignments=floor_assignments,
+            planner_provenance=planner_provenance,
         )
     try:
         baseline = run_building_generation(
@@ -1195,9 +1272,20 @@ def run_building_alternatives(
         replace(alternative, rank=rank)
         for rank, alternative in enumerate(alternatives, start=1)
     )
+    return BuildingAlternativesResult(
+        mass=baseline.mass,
+        alternatives=ranked,
+        comparisons=_alternative_comparisons(ranked, baseline.mass),
+    )
+
+
+def _alternative_comparisons(
+    ranked: tuple[BuildingAlternativeResult, ...],
+    analysis,
+) -> tuple[AlternativeGeometryComparison, ...]:
     diagonal = math.hypot(
-        baseline.mass.bounds[2] - baseline.mass.bounds[0],
-        baseline.mass.bounds[3] - baseline.mass.bounds[1],
+        analysis.bounds[2] - analysis.bounds[0],
+        analysis.bounds[3] - analysis.bounds[1],
     )
     comparisons = []
     for index, first in enumerate(ranked):
@@ -1225,11 +1313,7 @@ def run_building_alternatives(
                     ),
                 )
             )
-    return BuildingAlternativesResult(
-        mass=baseline.mass,
-        alternatives=ranked,
-        comparisons=tuple(comparisons),
-    )
+    return tuple(comparisons)
 
 
 def _alternative_geometry_evidence(building: BuildingGenerationResult) -> dict:

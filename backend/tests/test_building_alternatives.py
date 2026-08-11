@@ -601,10 +601,6 @@ def test_any_floor_requiring_two_stairs_suppresses_one_stair_family():
             [(0, 0), (18, 0), (18, 12), (0, 12)],
             "width >= 20.0",
         ),
-        (
-            [(0, 0), (30, 0), (30, 12), (20, 12), (20, 8), (0, 8)],
-            "non-rectangular outline",
-        ),
     ],
 )
 def test_infeasible_mass_reports_conservative_family_rejection(
@@ -629,7 +625,7 @@ def test_infeasible_mass_reports_conservative_family_rejection(
     assert any(reason in item for item in rejected.reasons)
 
 
-def test_a_concave_plate_is_refused_before_any_room_leaves_the_outline():
+def test_a_concave_plate_is_planned_inside_its_own_outline():
     mass = MassInput(
         project_id="concave-plate",
         floors=3,
@@ -648,10 +644,37 @@ def test_a_concave_plate_is_refused_before_any_room_leaves_the_outline():
 
     result = run_building_alternatives(mass)
 
-    assert result.alternatives == ()
-    assert result.comparisons == ()
+    assert result.alternatives
+    for alternative in result.alternatives:
+        assert alternative.strategy.startswith("polygonal_core_families/")
+        assert alternative.accepted
+        for floor in alternative.floor_results:
+            assert floor.validation.accepted
+
+
+def test_a_concave_plate_carries_the_core_families_that_were_turned_down():
+    mass = MassInput(
+        project_id="concave-plate-rejections",
+        floors=3,
+        footprint_polygon=[
+            (0, 0),
+            (36, 0),
+            (36, 14),
+            (18, 14),
+            (18, 26),
+            (0, 26),
+        ],
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.34, "office": 0.66},
+    )
+
+    result = run_building_alternatives(mass)
+
+    assert result.rejected_families
     rejected = result.rejected_families[0]
-    assert any("non-rectangular outline" in reason for reason in rejected.reasons)
+    assert rejected.family == "polygonal_core_families"
+    assert rejected.reasons
 
 
 def test_conservative_family_does_not_swallow_unrelated_strategy_value_error(

@@ -74,10 +74,18 @@ def generate_structural_alternatives(
 def compose_structural_alternatives(
     mass: MassInput,
     *,
-    use_type: str = "office",
+    use_type: str | None = "office",
+    floor_assignments: Iterable[FloorAssignment] | None = None,
     limit: int = 3,
 ) -> StructuralComposition:
-    if use_type not in SUPPORTED_USE_TYPES:
+    """Compose core and circulation families inside the actual floor polygon.
+
+    Pass ``floor_assignments`` to plan a building whose floors differ, or
+    ``use_type`` to give every floor the same one.
+    """
+    if floor_assignments is not None and use_type is not None:
+        raise ValueError("supply either floor assignments or a single use type")
+    if floor_assignments is None and use_type not in SUPPORTED_USE_TYPES:
         raise ValueError(f"unsupported use_type: {use_type}")
     if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
         raise ValueError("structural alternative limit must be a positive integer")
@@ -87,17 +95,28 @@ def compose_structural_alternatives(
         mass.footprint_for_floor(floor_index)
         for floor_index in range(1, mass.floors + 1)
     )
-    assignments = tuple(
-        FloorAssignment(floor_index, use_type)
-        for floor_index in range(1, mass.floors + 1)
-    )
-    programs = {
-        floor_index: generate_program_graph(
-            analysis,
-            floor_index=floor_index,
-            use_type=use_type,
+    if floor_assignments is None:
+        assignments = tuple(
+            FloorAssignment(floor_index, use_type)
+            for floor_index in range(1, mass.floors + 1)
         )
-        for floor_index in range(1, mass.floors + 1)
+    else:
+        assignments = tuple(floor_assignments)
+        expected = tuple(range(1, mass.floors + 1))
+        if tuple(item.floor_index for item in assignments) != expected:
+            raise ValueError("floor assignments must cover every floor in order")
+        unsupported = sorted(
+            {item.use_type for item in assignments} - SUPPORTED_USE_TYPES
+        )
+        if unsupported:
+            raise ValueError(f"unsupported use types: {', '.join(unsupported)}")
+    programs = {
+        assignment.floor_index: generate_program_graph(
+            analysis,
+            floor_index=assignment.floor_index,
+            use_type=assignment.use_type,
+        )
+        for assignment in assignments
     }
     requested_core_area = min(
         72.0,
