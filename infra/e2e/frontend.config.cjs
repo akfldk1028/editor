@@ -1,7 +1,10 @@
 const { defineConfig, devices } = require("@playwright/test");
+const { resolve } = require("node:path");
+
+const repositoryRoot = resolve(__dirname, "../..");
 
 module.exports = defineConfig({
-  testDir: "tests/browser",
+  testDir: "browser",
   testMatch: "planm-run-ui.spec.js",
   timeout: 30000,
   use: {
@@ -14,7 +17,8 @@ module.exports = defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: "cd frontend && npm run dev -- --host 127.0.0.1",
+    command: "npm --prefix frontend run dev -- --host 127.0.0.1",
+    cwd: repositoryRoot,
     url: "http://127.0.0.1:5173",
     reuseExistingServer: false,
     timeout: 30000,

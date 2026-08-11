@@ -31,8 +31,8 @@ PLAN/
 |   `-- dwg/                  vendored independent DWG product module
 |-- infra/
 |   |-- docker/               container definitions and reverse proxy config
-|   `-- dev/                  local product launcher and structure tests
-|-- tests/browser/            product UI and visual E2E tests
+|   |-- dev/                  local product launcher and structure tests
+|   `-- e2e/                  product UI and visual E2E, Playwright configs
 |-- resources/
 |   |-- datasets/             retained source and normalized fixtures
 |   |-- experiments/          bounded experiment definitions and evidence

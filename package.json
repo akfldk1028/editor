@@ -7,9 +7,9 @@
     "build:agent-runtime": "npm --prefix agents/runtimes/gitagent run build",
     "test:dev": "node --test infra/dev/*.test.mjs",
     "test:agent": "npm run build:agent-runtime && node --test agents/planm/tests/*.test.ts agents/planm/tests/*.test.mjs --experimental-strip-types",
-    "test:browser": "playwright test",
-    "test:frontend": "playwright test -c playwright.planm.config.cjs",
-    "test:product": "playwright test -c playwright.planm-live.config.cjs"
+    "test:browser": "playwright test -c infra/e2e/visual-review.config.cjs",
+    "test:frontend": "playwright test -c infra/e2e/frontend.config.cjs",
+    "test:product": "playwright test -c infra/e2e/product.config.cjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.0"

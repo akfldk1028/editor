@@ -13,7 +13,7 @@ PLAN은 스캐폴딩 단계를 지나 통합 제품 저장소가 되었다. 매�
 - `agents/planm/` — SOUL, RULES, agent.yaml, contracts 3종, skills 5개, workflow, memory
 - `agents/runtimes/gitagent/` — 범용 런타임
 - `agents/dwg/` — 벤더링된 독립 DWG 제품
-- `infra/docker`, `infra/dev`, `tests/browser`, `resources/*`, `docs/`
+- `infra/docker`, `infra/dev`, `infra/e2e`, `resources/*`, `docs/`
 
 루트 legacy(`agent/`, `external/`, `deploy/`, `scripts/`, `datasets/`,
 `experiments/`, `research/`, `browser_tests/`, 루트 `engine/`)는 제거됨.

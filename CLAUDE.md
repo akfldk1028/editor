@@ -34,8 +34,9 @@
 | `agents/planm/` | PLANM 정체성, 계약, 스킬, 워크플로, 메모리, 프로세스 브리지 |
 | `agents/runtimes/gitagent/` | 범용 GitAgent 호스트. PLAN/DWG 코드 무의존 |
 | `agents/dwg/` | 벤더링된 독립 DWG 제품 (자체 AGENTS.md 보유) |
-| `infra/docker/`, `infra/dev/` | 컨테이너 정의, 로컬 런처, 구조 테스트 |
-| `tests/browser/` | 제품 UI 및 시각 E2E |
+| `infra/docker/` | 컨테이너 정의, 리버스 프록시 설정 |
+| `infra/dev/` | 로컬 제품 런처, 구조·배포 경계 테스트 |
+| `infra/e2e/` | 제품 UI 및 시각 E2E, Playwright 설정 |
 | `resources/` | datasets, experiments, research, scripts |
 
 정본: `docs/architecture/repository_layout.md`, `docs/architecture/module_map.md`.
