@@ -22,12 +22,19 @@ file, not the exit code, is the authority on the outcome.
 **80 reached two accepted alternatives, 16 did not.** Neither floor count nor
 commercial share changes an outcome. Plate shape decides it.
 
-| Footprint | Reached two |
-| --- | --- |
-| 20x10, 30x12, 40x24, 24x24, 60x20 | 16 / 16 |
-| L-shaped 36x26 with an 18x12 notch | 0 / 16 |
+| Footprint | Reached two | Alternatives produced |
+| --- | --- | --- |
+| 20x10, 30x12, 40x24, 24x24, 60x20 | 16 / 16 | 2 |
+| L-shaped 36x26 with an 18x12 notch | 0 / 16 | 1 in 6 cases, 0 in 10 |
 
-Every rectangular plate measured is inside the envelope. Concave plates are not.
+Every rectangular plate measured is inside the envelope. Concave plates produce
+valid alternatives but not always two.
+
+The retained 12-vertex irregular setback fixture does reach two:
+
+```powershell
+python -m backend.app.cli alternatives-review --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/irregular
+```
 
 ## Rectangular plates: fixed
 
@@ -65,9 +72,49 @@ produces a valid alternative for a concave mass:
 python -m backend.app.cli irregular-alternatives-review --input <L mass> --output-dir logs/runs/l-irregular
 ```
 
-Routing the product path through that composer is what would bring concave
-plates inside the envelope. It assigns one use type to every floor today, so it
-has to learn the floor use mix before it can stand in for the current path.
+## What holds concave plates to one alternative
+
+Measured on the L plate, best core family, three floors:
+
+```text
+plate 720.0 m2 | rooms 411.8 + circulation 37.6 = 449.4 | coverage 0.6242
+leftover 270.6 m2 in two pieces, the larger 256.8 m2 filling the left arm
+```
+
+`notch_adjacent` clears every hard gate and is turned down on the quality
+threshold alone, `floor_coverage 0.4646 / 0.600`.
+
+Residual absorption is not the problem. Instrumented on a single floor it grows
+the seeded rooms from 105.9 to 464.1 m2, absorbing 358 m2. What it absorbs
+swings between 106 and 358 m2 across core families, because the core, stair, and
+corridor are shared by every floor and a placement that suits one floor starves
+another.
+
+The corridor is the lever, and two things stand in the way:
+
+- Both topologies, `_legacy_corridor_rectangles` and
+  `_long_edge_corridor_networks`, are two rectangles anchored to the core. On a
+  concave plate they stay in the arm that holds the core, so the far arm has no
+  corridor to seed rooms against.
+- `_select_network_and_stair` ranks candidates by `(corridor.area, -separation)`
+  and takes the minimum, so a branch that reaches the far arm is always beaten
+  by the compact network that does not.
+
+Reaching the far arm therefore needs a branch topology **and** a selection that
+values plate reach. The second changes the corridor chosen for every mass, so it
+churns the geometry fingerprint of existing output and needs the full suite and
+a fresh sweep behind it.
+
+Two attempts that did not work, so they are not repeated:
+
+- Seeding the primary room before the support rooms. The support seeds are meant
+  to form a cut-set that the primary then picks the largest reachable component
+  from, which `test_primary_seed_prefers_reachable_area_after_support_cutset`
+  pins. Inverting it moved `open_work` from 39 to 70 m2, left coverage at
+  0.6242, and broke seven tests.
+- Routing the product path through the composer. That did land, and it is why
+  concave plates produce valid alternatives at all now, but the composer offers
+  three core families and only one clears every gate on this plate.
 
 ## Reading a failure
 
