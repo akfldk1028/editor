@@ -24,6 +24,12 @@ _MAX_CORRIDOR_NETWORK_CANDIDATES = 64
 _MAX_REMOTE_STAIR_VALID_ORIGINS_PER_DIMENSION = 256
 _MAX_REMOTE_STAIR_CANDIDATES = 128
 _TOLERANCE = 1e-8
+# How far a room may sit from the corridor before the floor counts as out of
+# reach. Roughly one deep room off either side of the spine.
+_CORRIDOR_REACH_M = 14.0
+# A sliver of the plate beyond that distance is normal; a limb of it is not.
+_MAX_OUT_OF_REACH_RATIO = 0.08
+_MAX_BRANCH_CANDIDATES = 24
 
 
 def generate_circulation_candidate(
@@ -187,6 +193,7 @@ def _select_network_and_stair(
                 continue
             candidates.append(
                 (
+                    _out_of_reach_ratio(boundary, corridor) > _MAX_OUT_OF_REACH_RATIO,
                     corridor.area,
                     -separation,
                     tuple(rectangle.bounds for rectangle in rectangles),
@@ -199,6 +206,9 @@ def _select_network_and_stair(
         raise CirculationPlanningError(
             "no connected circulation topology meets the exit separation target"
         )
+    # A corridor that leaves a limb of the floor unreachable loses to one that
+    # does not, however much smaller it is. Among those that reach, the compact
+    # network still wins.
     *_, rectangles, stair = min(candidates)
     return rectangles, _canonical_ring(stair)
 
@@ -228,7 +238,94 @@ def _corridor_network_candidates(
             selected.append(rectangles)
             if len(selected) == _MAX_CORRIDOR_NETWORK_CANDIDATES:
                 return tuple(selected)
+    for rectangles in _branch_corridor_networks(boundary, tuple(selected), width):
+        key = tuple(rectangle.bounds for rectangle in rectangles)
+        if key in seen:
+            continue
+        seen.add(key)
+        selected.append(rectangles)
+        if len(selected) == _MAX_CORRIDOR_NETWORK_CANDIDATES:
+            break
     return tuple(selected)
+
+
+def _out_of_reach_ratio(boundary: Polygon, corridor: Polygon) -> float:
+    """Share of the floor that sits further than a room's depth from a corridor."""
+    if boundary.area <= 0:
+        return 0.0
+    stranded = boundary.difference(corridor.buffer(_CORRIDOR_REACH_M))
+    return stranded.area / boundary.area
+
+
+def _branch_corridor_networks(
+    boundary: Polygon,
+    base_networks: Iterable[tuple[Polygon, ...]],
+    width: float,
+) -> tuple[tuple[Polygon, ...], ...]:
+    """Extend a network with one spur toward the part of the floor it misses.
+
+    A template anchored to the core stays in the limb that holds the core, so a
+    plate with more than one limb leaves the others without circulation to open
+    a room onto. Each spur runs from a rectangle already in the network to the
+    stranded area, along one axis at a time so it stays orthogonal.
+    """
+    branched: list[tuple[Polygon, ...]] = []
+    for rectangles in base_networks:
+        corridor = union_all(rectangles)
+        if not isinstance(corridor, Polygon):
+            continue
+        stranded = boundary.difference(corridor.buffer(_CORRIDOR_REACH_M))
+        if stranded.is_empty:
+            continue
+        limbs = (
+            list(stranded.geoms)
+            if stranded.geom_type == "MultiPolygon"
+            else [stranded]
+        )
+        for limb in sorted(limbs, key=lambda shape: -shape.area):
+            target = limb.representative_point()
+            for source in rectangles:
+                for spur in _spur_options(source, target, width):
+                    if not boundary.covers(spur):
+                        continue
+                    if spur.intersection(corridor).area > _TOLERANCE:
+                        continue
+                    if (
+                        spur.boundary.intersection(corridor.boundary).length
+                        + _TOLERANCE
+                        < _DOOR_WIDTH
+                    ):
+                        continue
+                    branched.append((*rectangles, spur))
+                    if len(branched) == _MAX_BRANCH_CANDIDATES:
+                        return tuple(branched)
+    return tuple(branched)
+
+
+def _spur_options(
+    source: Polygon,
+    target,
+    width: float,
+) -> tuple[Polygon, ...]:
+    min_x, min_y, max_x, max_y = source.bounds
+    options = []
+    if target.y > max_y:
+        options.append(box(min_x, max_y, min_x + width, target.y))
+        options.append(box(max_x - width, max_y, max_x, target.y))
+    if target.y < min_y:
+        options.append(box(min_x, target.y, min_x + width, min_y))
+        options.append(box(max_x - width, target.y, max_x, min_y))
+    if target.x > max_x:
+        options.append(box(max_x, min_y, target.x, min_y + width))
+        options.append(box(max_x, max_y - width, target.x, max_y))
+    if target.x < min_x:
+        options.append(box(target.x, min_y, min_x, min_y + width))
+        options.append(box(target.x, max_y - width, min_x, max_y))
+    return tuple(
+        option
+        for option in options
+        if option.is_valid and option.area > _TOLERANCE
+    )
 
 
 def _legacy_corridor_rectangles(

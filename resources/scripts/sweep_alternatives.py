@@ -4,6 +4,11 @@ Runs the deterministic alternatives review across a matrix of footprints, floor
 counts, and use mixes, then reports which combinations fail to reach the two
 accepted alternatives the product requires before approval.
 
+An earlier run over four floor counts and four use mixes found that neither
+changed any outcome; plate shape decided all of them. The matrix now spends that
+budget on shape families instead, and keeps two of each other axis to catch a
+shape whose behaviour does turn on them.
+
 Usage: python resources/scripts/sweep_alternatives.py [output_root]
 """
 
@@ -16,15 +21,32 @@ import tempfile
 from pathlib import Path
 
 FOOTPRINTS = {
-    "20x10": [[0, 0], [20, 0], [20, 10], [0, 10]],
-    "30x12": [[0, 0], [30, 0], [30, 12], [0, 12]],
-    "40x24": [[0, 0], [40, 0], [40, 24], [0, 24]],
-    "24x24": [[0, 0], [24, 0], [24, 24], [0, 24]],
-    "60x20": [[0, 0], [60, 0], [60, 20], [0, 20]],
-    "L-shape": [[0, 0], [36, 0], [36, 14], [18, 14], [18, 26], [0, 26]],
+    # Rectangles across the proportion range.
+    "rect-20x10": [[0, 0], [20, 0], [20, 10], [0, 10]],
+    "rect-30x12": [[0, 0], [30, 0], [30, 12], [0, 12]],
+    "rect-40x24": [[0, 0], [40, 0], [40, 24], [0, 24]],
+    "square-24": [[0, 0], [24, 0], [24, 24], [0, 24]],
+    "long-60x20": [[0, 0], [60, 0], [60, 20], [0, 20]],
+    # Concave orthogonal families.
+    "L-36x26": [[0, 0], [36, 0], [36, 14], [18, 14], [18, 26], [0, 26]],
+    "L-large": [[0, 0], [48, 0], [48, 20], [24, 20], [24, 40], [0, 40]],
+    "U-shape": [
+        [0, 0], [44, 0], [44, 28], [32, 28], [32, 12], [12, 12], [12, 28], [0, 28],
+    ],
+    "T-shape": [
+        [0, 0], [44, 0], [44, 14], [30, 14], [30, 30], [14, 30], [14, 14], [0, 14],
+    ],
+    "notched": [
+        [0, 0], [40, 0], [40, 26], [26, 26], [26, 18], [14, 18], [14, 26], [0, 26],
+    ],
+    # Non-orthogonal families.
+    "chamfered": [
+        [6, 0], [34, 0], [40, 6], [40, 20], [34, 26], [6, 26], [0, 20], [0, 6],
+    ],
+    "sloped": [[0, 0], [40, 0], [40, 18], [24, 26], [0, 26]],
 }
-FLOOR_COUNTS = (1, 3, 5, 8)
-COMMERCIAL_SHARES = (0.0, 0.2, 0.34, 1.0)
+FLOOR_COUNTS = (3, 5)
+COMMERCIAL_SHARES = (0.0, 0.34)
 
 
 def case_name(footprint: str, floors: int, share: float) -> str:
