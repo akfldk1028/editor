@@ -68,7 +68,11 @@ def measure_primary_daylight(floor: GenerationResult) -> PrimaryDaylightMeasurem
     return PrimaryDaylightMeasurement(
         total_primary_area=total_primary_area,
         served_primary_area=served_primary_area,
-        ratio=served_primary_area / total_primary_area,
+        # The served rooms are a subset of the primary rooms, so the ratio
+        # cannot exceed one. Summing the subset and the whole in different
+        # orders can still land a hair above it, which the metric contract
+        # rejects, and that would throw away the floor that lit every room.
+        ratio=min(1.0, served_primary_area / total_primary_area),
         served_room_ids=served_room_ids,
         unserved_room_ids=unserved_room_ids,
     )

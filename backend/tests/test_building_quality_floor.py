@@ -34,6 +34,20 @@ def test_daylight_proxy_is_area_weighted_and_requires_valid_exterior_window():
     assert measured.unserved_room_ids == ("meeting",)
 
 
+def test_a_floor_that_lights_every_primary_room_reports_a_ratio_of_one():
+    areas = {"open_work": 70, "meeting": 20, "focus": 10}
+    floor = _office_floor(
+        primary_areas=areas,
+        exterior_windows=set(areas),
+    )
+
+    measured = measure_primary_daylight(floor)
+
+    assert measured.unserved_room_ids == ()
+    assert measured.ratio <= 1.0
+    assert measured.ratio == pytest.approx(1.0)
+
+
 def test_interior_window_does_not_serve_primary_room():
     floor = _office_floor(
         primary_areas={"open_work": 70, "meeting": 20, "focus": 10},
