@@ -220,7 +220,13 @@ def _corridor_network_candidates(
     *,
     minimum_exit_separation: float | None = None,
 ) -> tuple[tuple[Polygon, ...], ...]:
-    legacy = _legacy_corridor_rectangles(boundary, core, width)
+    # The legacy strip is one option among several, not a precondition. It only
+    # fits beside a core that leaves room for it, and letting its absence raise
+    # here hid every other topology from a plate that had one.
+    try:
+        legacy_networks = (_legacy_corridor_rectangles(boundary, core, width),)
+    except CirculationPlanningError:
+        legacy_networks = ()
     critical_networks, auxiliary_networks = _long_edge_corridor_networks(
         boundary,
         core,
@@ -229,7 +235,7 @@ def _corridor_network_candidates(
     )
     selected = []
     seen = set()
-    for group in ((legacy, *critical_networks), auxiliary_networks):
+    for group in ((*legacy_networks, *critical_networks), auxiliary_networks):
         for rectangles in group:
             key = tuple(rectangle.bounds for rectangle in rectangles)
             if key in seen:
@@ -625,11 +631,14 @@ def _maximum_doorway_separation(
     stair_line = _longest_shared_line(stair, corridor)
     if core_line is None or stair_line is None:
         return 0.0
-    return max(
+    separations = [
         segment_to_segment_distance(core_opening, stair_opening)
         for core_opening in _end_openings(core_line)
         for stair_opening in _end_openings(stair_line)
-    )
+    ]
+    # A shared edge too short to hold a doorway offers no separation to measure,
+    # which is the same answer as sharing no edge at all.
+    return max(separations, default=0.0)
 
 
 def _longest_shared_line(
