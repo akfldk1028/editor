@@ -105,6 +105,26 @@ values plate reach. The second changes the corridor chosen for every mass, so it
 churns the geometry fingerprint of existing output and needs the full suite and
 a fresh sweep behind it.
 
+Widening the core search closed part of this. Each strategy ranks several
+rectangles and used to send only its leader; the composer now asks for the
+runners-up when the leaders come up short, which found a better core and lifted
+coverage from 0.6242 to 0.6685. The plate still returns one alternative, and the
+reason moved: a second valid building now exists and is dropped for being too
+alike.
+
+Measured on the two survivors, both from `long_edge_adjacent`:
+
+```text
+core 0.0283   circulation 0.4667   topology 0.0000   area 0.0852
+total 0.1422 against the 0.25 minimum, material components 3 of 4
+```
+
+The gate is right to refuse them. Their cores sit in nearly the same place and
+their room graphs are identical; only the corridor differs. Two drawings that
+share a core and an adjacency graph are one scheme, not two, so the threshold
+stays where it is. A genuine second scheme needs a different core, which returns
+to the corridor reach above.
+
 Two attempts that did not work, so they are not repeated:
 
 - Seeding the primary room before the support rooms. The support seeds are meant
