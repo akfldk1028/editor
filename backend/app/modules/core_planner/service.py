@@ -22,8 +22,14 @@ def generate_shared_core_candidates(
     required_area: float,
     minimum_width: float,
     minimum_depth: float,
+    widen: bool = False,
 ) -> tuple[CoreCandidate, ...]:
-    """Return deterministic rectangular cores contained by every floor."""
+    """Return deterministic rectangular cores contained by every floor.
+
+    Each strategy normally contributes the one core closest to its target. A
+    plate that yields too few workable buildings can ask to ``widen``, which
+    also returns the runners-up each strategy ranked but did not send.
+    """
     _validate_requirements(
         floor_boundaries,
         required_area=required_area,
@@ -112,7 +118,8 @@ def generate_shared_core_candidates(
                     contained_floor_indices=contained_floor_indices,
                 )
             )
-            break
+            if not widen:
+                break
     return tuple(selected)
 
 
