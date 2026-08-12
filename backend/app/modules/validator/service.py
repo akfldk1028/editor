@@ -2123,17 +2123,25 @@ def _validate_basic_design(
                     "positive intersection is never permitted"
                 ),
             )
-    for index, left in enumerate(placed):
-        for right in placed[index + 1 :]:
-            if (
-                left.host_id == right.host_id
-                and polygon_overlap_area(left.footprint, right.footprint) > 0
-            ):
-                add_violation(
-                    "placed_object_overlap",
-                    f"{left.element_id}|{right.element_id}",
-                    "placed objects in the same room cannot positively overlap",
-                )
+    # Only objects sharing a room can overlap, and a room holding a hundred
+    # workstations would otherwise pay for every pair in the floor. Group by
+    # host and reject on bounds before measuring an actual intersection.
+    placed_by_host: dict[str, list[tuple[object, tuple[float, ...]]]] = {}
+    for element in placed:
+        placed_by_host.setdefault(element.host_id, []).append(
+            (element, _bounds(element.footprint))
+        )
+    for room_elements in placed_by_host.values():
+        for index, (left, left_bounds) in enumerate(room_elements):
+            for right, right_bounds in room_elements[index + 1 :]:
+                if not _bounds_overlap(left_bounds, right_bounds):
+                    continue
+                if polygon_overlap_area(left.footprint, right.footprint) > 0:
+                    add_violation(
+                        "placed_object_overlap",
+                        f"{left.element_id}|{right.element_id}",
+                        "placed objects in the same room cannot positively overlap",
+                    )
     for room_id, room in occupied_rooms.items():
         actual_kinds = {
             element.kind for element in placed if element.host_id == room_id
@@ -3215,6 +3223,18 @@ def _stair_door_swing_is_valid(
             and landing_bounds[1] - _EPSILON <= point[1] <= landing_bounds[3] + _EPSILON
             for point in (swing.hinge, other, swing.leaf_end)
         )
+    )
+
+
+def _bounds_overlap(
+    left: tuple[float, float, float, float],
+    right: tuple[float, float, float, float],
+) -> bool:
+    return (
+        left[0] < right[2]
+        and right[0] < left[2]
+        and left[1] < right[3]
+        and right[1] < left[3]
     )
 
 

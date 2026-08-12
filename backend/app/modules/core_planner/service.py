@@ -8,8 +8,10 @@ from shapely.geometry import Point, Polygon, box
 from shapely.prepared import prep
 
 from backend.app.modules.core_planner.contracts import CoreCandidate
+from backend.engine.geometry import GEOMETRY_DECIMALS, snap_coordinate
 
 
+_GRID_RESOLUTION = 10.0**-GEOMETRY_DECIMALS
 _STRATEGIES = ("central", "notch_adjacent", "long_edge_adjacent")
 _GRID_STEP = 0.25
 _MAX_AUXILIARY_INTERVALS_PER_AXIS = 64
@@ -498,10 +500,24 @@ def _concave_vertices(coordinates: tuple[tuple[float, float], ...]) -> tuple[Poi
 
 
 def _rectangle_points(rectangle) -> tuple[tuple[float, float], ...]:
-    return tuple(
-        (float(x), float(y))
-        for x, y in tuple(rectangle.exterior.coords)[:-1]
-    )
+    # A core edge and the corridor built flush against it travel through
+    # different modules, and those modules do not round alike. Left raw, the
+    # two can end up a nanometre apart, which every exact boundary comparison
+    # downstream reads as no contact at all. The core was sized to hold a
+    # required area, so the snap extends a side rather than let rounding take
+    # that area back.
+    min_x, min_y, max_x, max_y = rectangle.bounds
+    left, bottom = snap_coordinate(min_x), snap_coordinate(min_y)
+    right = _snapped_far_edge(left, extent=max_x - min_x)
+    top = _snapped_far_edge(bottom, extent=max_y - min_y)
+    return ((right, bottom), (right, top), (left, top), (left, bottom))
+
+
+def _snapped_far_edge(near_edge: float, *, extent: float) -> float:
+    far_edge = snap_coordinate(near_edge + extent)
+    if far_edge - near_edge < extent:
+        far_edge = snap_coordinate(far_edge + _GRID_RESOLUTION)
+    return far_edge
 
 
 def core_geometry_fingerprint(

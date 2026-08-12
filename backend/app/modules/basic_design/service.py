@@ -4,6 +4,7 @@ import math
 from dataclasses import dataclass, replace
 
 from shapely.geometry import LineString, Polygon
+from shapely.prepared import prep
 
 from backend.app.schemas.layout import (
     BasicDesignFeatures,
@@ -1092,6 +1093,9 @@ def _room_contents(
             room_clearance.extend(
                 _primary_access_segments(room, layout, fixed_lines)
             )
+        # Room shape and clearances are settled before the first object goes
+        # in, so every object in this room reuses one answer per position.
+        site_cache: dict[tuple[Point, ...], bool] = {}
         for kind, category in room_requirements:
             footprint = _place_object(
                 room,
@@ -1111,6 +1115,7 @@ def _room_contents(
                 object_size=object_size,
                 placement_margin=placement_margin,
                 aisle=aisle,
+                site_cache=site_cache,
             )
             label = {
                 "sales_shelf": "GONDOLA",
@@ -1176,6 +1181,7 @@ def _place_object(
     object_size: tuple[float, float] | None = None,
     placement_margin: float = 0.35,
     aisle: float = 0.8,
+    site_cache: dict[tuple[Point, ...], bool] | None = None,
 ) -> tuple[Point, ...]:
     min_x, min_y, max_x, max_y = _bounds(room.polygon)
     width, height = max_x - min_x, max_y - min_y
@@ -1208,21 +1214,72 @@ def _place_object(
         include_end=object_size is None,
     )
     room_shape = Polygon(room.polygon)
-    occupied_shapes = tuple(Polygon(item.footprint) for item in occupied)
+    prepared_room = prep(room_shape)
+    # A room the size of a whole plate offers hundreds of grid positions and
+    # fills with as many objects, so measuring every position against every
+    # object on the floor with real intersections is what makes a plan slow.
+    # Everything placed here is an axis-aligned rectangle, so keep those to
+    # arithmetic and reserve Shapely for the shapes that are not.
+    room_bounds = _bounds(room.polygon)
+    room_rectangle = _axis_aligned_bounds(room.polygon)
+    occupied_shapes = tuple(
+        (
+            _axis_aligned_bounds(item.footprint),
+            _bounds(item.footprint),
+            item.footprint,
+        )
+        for item in occupied
+        if _bounds_overlap(_bounds(item.footprint), room_bounds)
+    )
+
+    def fits_the_site(footprint: tuple[Point, ...]) -> bool:
+        """Whether the room and its clearances leave this position free.
+
+        Neither depends on what is already placed, so a room filling with
+        sixty workstations answers this once per position instead of once per
+        position per workstation.
+        """
+        footprint_rectangle = _axis_aligned_bounds(footprint)
+        if room_rectangle is not None and footprint_rectangle is not None:
+            if not _bounds_cover(room_rectangle, footprint_rectangle):
+                return False
+        elif not prepared_room.covers(Polygon(footprint)):
+            return False
+        return not any(
+            _rectangle_near_segment(footprint, segment, clearance=0.6)
+            for segment in clearance_segments
+        )
 
     def available(footprint: tuple[Point, ...]) -> bool:
-        footprint_shape = Polygon(footprint)
-        return (
-            room_shape.covers(footprint_shape)
-            and not any(
-                footprint_shape.intersection(shape).area > _EPSILON
-                for shape in occupied_shapes
-            )
-            and not any(
-                _rectangle_near_segment(footprint, segment, clearance=0.6)
-                for segment in clearance_segments
-            )
-        )
+        if site_cache is None:
+            site_free = fits_the_site(footprint)
+        else:
+            site_free = site_cache.get(footprint)
+            if site_free is None:
+                site_free = fits_the_site(footprint)
+                site_cache[footprint] = site_free
+        if not site_free:
+            return False
+        footprint_rectangle = _axis_aligned_bounds(footprint)
+        footprint_bounds = footprint_rectangle or _bounds(footprint)
+        for occupied_rectangle, bounds, occupied_footprint in occupied_shapes:
+            if not _bounds_overlap(footprint_bounds, bounds):
+                continue
+            if occupied_rectangle is not None and footprint_rectangle is not None:
+                if (
+                    _bounds_overlap_area(footprint_rectangle, occupied_rectangle)
+                    > _EPSILON
+                ):
+                    return False
+                continue
+            if (
+                Polygon(footprint).intersection(
+                    Polygon(occupied_footprint)
+                ).area
+                > _EPSILON
+            ):
+                return False
+        return True
 
     candidates: list[tuple[Point, ...]] = []
     for y in y_values:
@@ -1269,13 +1326,14 @@ def _place_object(
             _footprint_center(item.footprint)
             for item in siblings
         ]
-        return max(
-            candidates,
-            key=lambda footprint: min(
-                math.dist(_footprint_center(footprint), center)
-                for center in sibling_centers
-            ),
-        )
+
+        def clearance_from_siblings(footprint: tuple[Point, ...]) -> float:
+            center = _footprint_center(footprint)
+            return min(
+                math.dist(center, sibling) for sibling in sibling_centers
+            )
+
+        return max(candidates, key=clearance_from_siblings)
     raise ValueError(f"room '{room.room_id}' cannot place required {kind} without overlap")
 
 
@@ -1305,6 +1363,58 @@ def _dimensions_and_site(
 def _bounds(points: list[Point] | tuple[Point, ...]) -> tuple[float, float, float, float]:
     _require_finite_points(points, "geometry", 1)
     return min(point[0] for point in points), min(point[1] for point in points), max(point[0] for point in points), max(point[1] for point in points)
+
+
+def _bounds_overlap(
+    left: tuple[float, float, float, float],
+    right: tuple[float, float, float, float],
+) -> bool:
+    return (
+        left[0] < right[2]
+        and right[0] < left[2]
+        and left[1] < right[3]
+        and right[1] < left[3]
+    )
+
+
+def _bounds_cover(
+    container: tuple[float, float, float, float],
+    candidate: tuple[float, float, float, float],
+) -> bool:
+    return (
+        container[0] <= candidate[0]
+        and container[1] <= candidate[1]
+        and candidate[2] <= container[2]
+        and candidate[3] <= container[3]
+    )
+
+
+def _bounds_overlap_area(
+    left: tuple[float, float, float, float],
+    right: tuple[float, float, float, float],
+) -> float:
+    width = min(left[2], right[2]) - max(left[0], right[0])
+    height = min(left[3], right[3]) - max(left[1], right[1])
+    return width * height if width > 0 and height > 0 else 0.0
+
+
+def _axis_aligned_bounds(
+    points: list[Point] | tuple[Point, ...],
+) -> tuple[float, float, float, float] | None:
+    """Return the bounds when the ring is an axis-aligned rectangle."""
+    ring = list(points[:-1] if points[:1] == points[-1:] else points)
+    if len(ring) != 4:
+        return None
+    bounds = _bounds(ring)
+    corners = {
+        (bounds[0], bounds[1]),
+        (bounds[2], bounds[1]),
+        (bounds[2], bounds[3]),
+        (bounds[0], bounds[3]),
+    }
+    if set(ring) != corners or len(set(ring)) != 4:
+        return None
+    return bounds
 
 
 def _require_finite_points(points, label: str, minimum: int) -> None:

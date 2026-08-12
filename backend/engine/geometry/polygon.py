@@ -9,6 +9,24 @@ from shapely.geometry import LineString, LinearRing, Polygon
 Point = tuple[float, float]
 Segment = tuple[Point, Point]
 
+# Geometry crosses several module boundaries before anything compares two
+# walls for contact, and those comparisons are exact. Every module that emits
+# plan geometry rounds its vertices to this many decimals so a wall built
+# flush against another stays flush, at ten nanometres — far below any
+# dimension this product reasons about.
+GEOMETRY_DECIMALS = 8
+
+
+def snap_coordinate(value: float) -> float:
+    """Put one coordinate on the shared plan grid."""
+    snapped = round(float(value), GEOMETRY_DECIMALS)
+    return 0.0 if snapped == 0 else snapped
+
+
+def snap_ring(points: Iterable[Point]) -> tuple[Point, ...]:
+    """Put every vertex of a ring on the shared plan grid."""
+    return tuple((snap_coordinate(x), snap_coordinate(y)) for x, y in points)
+
 
 def validate_polygon(points: Iterable[Point], *, label: str = "polygon") -> None:
     _as_polygon(points, label=label)

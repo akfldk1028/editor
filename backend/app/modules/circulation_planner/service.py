@@ -14,6 +14,7 @@ from backend.app.modules.circulation_planner.contracts import (
     Point,
 )
 from backend.app.modules.core_planner.contracts import CoreCandidate
+from backend.engine.geometry import snap_coordinate, snap_ring
 from backend.engine.geometry.distance import segment_to_segment_distance
 
 
@@ -64,8 +65,12 @@ def generate_circulation_candidate(
         stair_dimensions=dimensions,
         minimum_exit_separation=minimum_exit_separation,
     )
-    corridor = union_all(corridor_rectangles)
     polygons = tuple(_canonical_ring(rectangle) for rectangle in corridor_rectangles)
+    remote_stair = snap_ring(remote_stair)
+    # Judge connectivity on the geometry that leaves this module, not on the
+    # raw arithmetic behind it, so a candidate cannot pass here and read as
+    # disconnected to its consumer.
+    corridor = union_all([Polygon(polygon) for polygon in polygons])
 
     entrance_connected = any(
         corridor.boundary.intersection(LineString(segment)).length
@@ -845,11 +850,11 @@ def _canonical_ring(points: Iterable[Point] | Polygon) -> tuple[Point, ...]:
         if isinstance(points, Polygon)
         else _points(points)
     )
-    normalized = tuple(
-        (0.0 if math.isclose(x, 0.0, abs_tol=_TOLERANCE) else x,
-         0.0 if math.isclose(y, 0.0, abs_tol=_TOLERANCE) else y)
-        for x, y in coordinates
-    )
+    # Corridor pieces are built along several paths, some of which already
+    # round their origins. Two that meet flush could land a nanometre apart,
+    # and then a cell behind the seam shared no boundary with any corridor at
+    # all. Emitting on the shared grid keeps the seams closed.
+    normalized = snap_ring(coordinates)
     rotations = [normalized[index:] + normalized[:index] for index in range(len(normalized))]
     reversed_points = tuple(reversed(normalized))
     rotations.extend(
@@ -864,11 +869,7 @@ def _points(points: Iterable[Point]) -> tuple[Point, ...]:
 
 
 def _point(point: Point) -> Point:
-    x, y = float(point[0]), float(point[1])
-    return (
-        0.0 if math.isclose(x, 0.0, abs_tol=_TOLERANCE) else x,
-        0.0 if math.isclose(y, 0.0, abs_tol=_TOLERANCE) else y,
-    )
+    return (snap_coordinate(point[0]), snap_coordinate(point[1]))
 
 
 def _clean(value: float) -> float:

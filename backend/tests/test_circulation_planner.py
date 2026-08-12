@@ -446,15 +446,17 @@ def test_legacy_none_uses_pre_separation_full_quarter_meter_lattice() -> None:
     assert candidate.polygons == (
         ((9.8, 0.0), (9.8, 12.0), (11.0, 12.0), (11.0, 0.0)),
     )
+    # Emitted on the shared plan grid, so 0.25 + 4.63 reads as 4.88 rather
+    # than carrying the addition's last-bit remainder into the drawing.
     assert candidate.remote_stair_polygon == (
-        (4.880000000000001, 0.25),
-        (4.880000000000001, 3.05),
+        (4.88, 0.25),
+        (4.88, 3.05),
         (9.8, 3.05),
         (9.8, 0.25),
     )
     assert (
         candidate.fingerprint
-        == "efae93c031b646dfeee4c5103f5c844425d9ccfa954a46c6b9ef4ff0bceb8750"
+        == "05c325fbe8060bb6c48f05e3d089f7e81cad538317c7134203609b3de5cb7456"
     )
 
 

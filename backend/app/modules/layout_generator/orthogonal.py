@@ -185,7 +185,10 @@ def generate_orthogonal_office_layout(
             if frontage_segments
             else 0
         ),
-        frontage_min_width=min(
+        # The assignment lookahead keeps a frontage seed for every frontage
+        # room at that room's own minimum width, so subdivision has to protect
+        # the same width or it cuts away the seed the assigner then asks for.
+        frontage_min_width=max(
             _MIN_FURNISHED_FRONTAGE_DEPTH,
             max(
                 (

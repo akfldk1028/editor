@@ -160,17 +160,26 @@ def test_long_edge_floor_three_accepts_only_usable_daylight_frontage(
     assert 'data-id="meeting"' in svg
     assert 'data-id="meeting-window"' in svg
 
+    # Once the corridor and the cells behind it stopped missing each other by
+    # a nanometre, this floor could seat focus on the facade as well, so the
+    # request is met rather than refused. The refusal itself still has to
+    # hold on a floor that genuinely cannot seat the room, which
+    # test_orthogonal_layout_generator pins.
     for room_ids in (("focus",), ("focus", "meeting")):
-        with pytest.raises(
-            ValueError,
-            match="focus.*usable daylight frontage",
-        ):
-            run_building_generation(
-                mass,
-                **generation_kwargs,
-                exterior_allocation_requests=(
-                    ExteriorAllocationRequest(3, room_ids),
-                ),
+        requested = run_building_generation(
+            mass,
+            **generation_kwargs,
+            exterior_allocation_requests=(
+                ExteriorAllocationRequest(3, room_ids),
+            ),
+        )
+        requested_floor = requested.floor_results[2]
+        assert requested.accepted
+        for room_id in room_ids:
+            assert room_has_usable_daylight_frontage(
+                requested_floor.layout,
+                boundary=requested_floor.floor_boundary,
+                room_id=room_id,
             )
 
 
