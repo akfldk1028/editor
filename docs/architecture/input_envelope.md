@@ -8,133 +8,82 @@ boundary is measured rather than discovered at approval time.
 Regenerate with:
 
 ```powershell
-python resources/scripts/sweep_alternatives.py logs/runs/sweep
-python resources/scripts/sweep_alternatives.py logs/runs/sweep --summarize-only
+python resources/scripts/sweep_alternatives.py logs/runs/shapes
+python resources/scripts/sweep_alternatives.py logs/runs/shapes --summarize-only
 ```
 
 The sweep writes `sweep-summary.json` beside the per-case run directories. The
 CLI exits non-zero for any run short of two accepted alternatives, so the report
 file, not the exit code, is the authority on the outcome.
 
-## Measured result, 2026-08-11
+## Measured result, 2026-08-12
 
-96 cases: 6 footprints x floor counts 1/3/5/8 x commercial share 0/20/34/100 %.
-**80 reached two accepted alternatives, 16 did not.** Neither floor count nor
-commercial share changes an outcome. Plate shape decides it.
+48 cases: twelve shape families x floor counts 3/5 x commercial share 0/34 %.
+An earlier 96-case run over four floor counts and four use mixes found neither
+ever changed an outcome, so that budget now buys shape variety instead.
 
-| Footprint | Reached two | Alternatives produced |
+| Shape | Office only | Mixed use |
 | --- | --- | --- |
-| 20x10, 30x12, 40x24, 24x24, 60x20 | 16 / 16 | 2 |
-| L-shaped 36x26 with an 18x12 notch | 0 / 16 | 1 in 6 cases, 0 in 10 |
+| rect 20x10, 30x12, 40x24, square 24, long 60x20 | two | two |
+| T, U, notched | two | **none** |
+| L 36x26, chamfered octagon, sloped pentagon | one | **none** |
+| L 48x40 | none | none |
 
-Every rectangular plate measured is inside the envelope. Concave plates produce
-valid alternatives but not always two.
+Floor count changed nothing anywhere.
 
-The retained 12-vertex irregular setback fixture does reach two:
+## The two findings that matter
 
-```powershell
-python -m backend.app.cli alternatives-review --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/irregular
-```
+### A non-rectangular plate with a commercial floor returns nothing
 
-## Rectangular plates: fixed
+This holds for every concave and every non-orthogonal family, and it predates
+the corridor work: reverting `circulation_planner` to its earlier state
+reproduces it. Concave plates are not the problem on their own, since T, U, and
+notched all reach two alternatives when every floor is office.
 
-An earlier run of this sweep lost 28 cases to room proportion. A square plate
-stretched the core to 2.571 against its 2.000 limit and the pantry to 8.569
-against 8.500; a 3:1 plate left the open work area at 6.675 against 6.500. Each
-loss cost the run its second alternative.
+The chain ends at `orthogonal layout cannot place frontage room sales_a`. A shop
+carries `frontage_required`, so it needs a cell that touches the street, and a
+cell only survives seeding if it also touches the corridor. Instrumenting a T
+plate shows the count of cells meeting both swinging between zero and four
+depending on where the core lands. The corridor is chosen once for the whole
+stack while the frontage requirement belongs to the commercial floor alone, so
+nothing in the choice protects the shop frontage.
 
-The cause was the generator, not the limits. Each strategy picked one dimension
-from the plate and let the other fall out of the area, which produces a sliver
-once the plate is extreme. The dimensions now derive from the limit itself: a
-core height stops at sqrt(limit * area), a service room widens to at least
-sqrt(area / limit), and the rear band leaves the open work area the depth its
-limit needs. The core and the rear band stack across floors, so both are sized
-once from the tightest floor. No gate moved.
+Adding served-street length as a selection constraint was tried and reverted: it
+changed no outcome and broke the coordinate-scale bound in
+`test_optional_separation_candidate_search_is_coordinate_scale_bounded`.
 
-## Concave plates: refused, not supported
+### Rectangles are clean
 
-`docs/architecture/module_map.md` states that the deterministic office path
-supports L and U plates, and
-`resources/datasets/manifests/sample_mass_l_setback_office.json` is the retained
-evidence. That holds on the single-building path and not on the alternatives
-path the product API uses.
+All twenty rectangular cases reach two. The square and the 3:1 plate were
+failing on room proportion until the generator started deriving the free
+dimension from the aspect limit rather than from the plate.
 
-Every alternative strategy lays rooms across the bounding rectangle of the plate
-while validation measures them against the real footprint. On a concave outline
-the two disagree over the notch, so the path used to return layouts whose rooms
-stood outside the building. It now rejects the family up front and says why.
+## What was fixed getting here
 
-The structural composer does place cores inside the actual polygon, and it
-produces a valid alternative for a concave mass:
+- The legacy corridor strip was a precondition rather than an option. Its
+  failure raised out of the candidate search, hiding the long-edge networks and
+  branches from any plate whose core left no room beside it. That was the real
+  meaning of `floor does not admit a connected corridor network`.
+- `_maximum_doorway_separation` reduced an empty sequence when a shared edge was
+  too short for a doorway, which the sibling `None` branch already answered
+  with zero. Reaching more topologies exposed it.
+- Corridor reach became a constraint rather than a preference, and a network
+  that strands a limb now loses to one that does not. Among those that reach,
+  the compact network still wins, so a rectangular plate keeps its old choice.
+- Each core strategy ranks several rectangles and sent only its leader. The
+  composer now asks for the runners-up when the leaders come up short.
+- `primary_daylight_ratio` could land a hair above one by float summation and
+  fail its own `[0, 1]` contract, discarding the floor that lit every room.
 
-```powershell
-# accepted alternative on an L plate, strategy long_edge_adjacent
-python -m backend.app.cli irregular-alternatives-review --input <L mass> --output-dir logs/runs/l-irregular
-```
+## Attempts that were reverted, so they are not repeated
 
-## What holds concave plates to one alternative
-
-Measured on the L plate, best core family, three floors:
-
-```text
-plate 720.0 m2 | rooms 411.8 + circulation 37.6 = 449.4 | coverage 0.6242
-leftover 270.6 m2 in two pieces, the larger 256.8 m2 filling the left arm
-```
-
-`notch_adjacent` clears every hard gate and is turned down on the quality
-threshold alone, `floor_coverage 0.4646 / 0.600`.
-
-Residual absorption is not the problem. Instrumented on a single floor it grows
-the seeded rooms from 105.9 to 464.1 m2, absorbing 358 m2. What it absorbs
-swings between 106 and 358 m2 across core families, because the core, stair, and
-corridor are shared by every floor and a placement that suits one floor starves
-another.
-
-The corridor is the lever, and two things stand in the way:
-
-- Both topologies, `_legacy_corridor_rectangles` and
-  `_long_edge_corridor_networks`, are two rectangles anchored to the core. On a
-  concave plate they stay in the arm that holds the core, so the far arm has no
-  corridor to seed rooms against.
-- `_select_network_and_stair` ranks candidates by `(corridor.area, -separation)`
-  and takes the minimum, so a branch that reaches the far arm is always beaten
-  by the compact network that does not.
-
-Reaching the far arm therefore needs a branch topology **and** a selection that
-values plate reach. The second changes the corridor chosen for every mass, so it
-churns the geometry fingerprint of existing output and needs the full suite and
-a fresh sweep behind it.
-
-Widening the core search closed part of this. Each strategy ranks several
-rectangles and used to send only its leader; the composer now asks for the
-runners-up when the leaders come up short, which found a better core and lifted
-coverage from 0.6242 to 0.6685. The plate still returns one alternative, and the
-reason moved: a second valid building now exists and is dropped for being too
-alike.
-
-Measured on the two survivors, both from `long_edge_adjacent`:
-
-```text
-core 0.0283   circulation 0.4667   topology 0.0000   area 0.0852
-total 0.1422 against the 0.25 minimum, material components 3 of 4
-```
-
-The gate is right to refuse them. Their cores sit in nearly the same place and
-their room graphs are identical; only the corridor differs. Two drawings that
-share a core and an adjacency graph are one scheme, not two, so the threshold
-stays where it is. A genuine second scheme needs a different core, which returns
-to the corridor reach above.
-
-Two attempts that did not work, so they are not repeated:
-
-- Seeding the primary room before the support rooms. The support seeds are meant
-  to form a cut-set that the primary then picks the largest reachable component
-  from, which `test_primary_seed_prefers_reachable_area_after_support_cutset`
-  pins. Inverting it moved `open_work` from 39 to 70 m2, left coverage at
-  0.6242, and broke seven tests.
-- Routing the product path through the composer. That did land, and it is why
-  concave plates produce valid alternatives at all now, but the composer offers
-  three core families and only one clears every gate on this plate.
+- Seeding the primary room before the support rooms. The support seeds form a
+  cut-set the primary then picks the largest reachable component from, which
+  `test_primary_seed_prefers_reachable_area_after_support_cutset` pins. It moved
+  `open_work` from 39 to 70 m2, left coverage unchanged, and broke seven tests.
+- Requesting a core the size the program asks for rather than the 72 m2 cap.
+  The candidate count was identical at both areas.
+- Served-street length as a corridor selection constraint, as above.
 
 ## Reading a failure
 
@@ -146,6 +95,7 @@ GET /api/v1/planm/runs/{run_id}
 alternatives.json
   alternatives[].internal_validation  hard geometry gates
   alternatives[].render_validation    drawing legibility gates
+  rejected_families[].reasons         why each core family was turned down
 ```
 
 Per-floor `*.review.json` carries `checks` plus `validation.violations` with the

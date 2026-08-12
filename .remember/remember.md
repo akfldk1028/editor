@@ -2,37 +2,64 @@
 
 ## State
 
-PLAN은 스캐폴딩 단계를 지나 통합 제품 저장소가 되었다. 매스 입력에서 대안 생성,
-검증, 시각 리뷰, 승인, DXF 핸드오프, 승인 후 DWG 검사까지 하나의 흐름으로 동작한다.
+PLAN is an integrated product repository. Mass input runs through alternative
+generation, validation, visual review, approval, DXF handoff, and post-approval
+DWG inspection as one flow.
 
-정본 구조 (2026-08-10 모듈화 완료):
+Structure:
 
-- `frontend/` — Backend HTTP만 호출
-- `backend/app/` — api, schemas, modules(20개), adapters(planm_agent, dwg_client, planm_engine)
-- `backend/engine/` — 기하/그래프/제약/메트릭, Shapely 유일 경계
-- `agents/planm/` — SOUL, RULES, agent.yaml, contracts 3종, skills 5개, workflow, memory
-- `agents/runtimes/gitagent/` — 범용 런타임
-- `agents/dwg/` — 벤더링된 독립 DWG 제품
+- `frontend/` — calls the Backend HTTP API only
+- `backend/app/` — api, schemas, modules (20), adapters (planm_agent, dwg_client, planm_engine)
+- `backend/engine/` — geometry, graph, constraints, metrics; the sole Shapely boundary
+- `agents/planm/` — SOUL, RULES, agent.yaml, 3 contracts, 5 skills, workflow, memory
+- `agents/runtimes/gitagent/` — generic runtime
+- `agents/dwg/` — vendored independent DWG product
 - `infra/docker`, `infra/dev`, `infra/e2e`, `resources/*`, `docs/`
 
-루트 legacy(`agent/`, `external/`, `deploy/`, `scripts/`, `datasets/`,
-`experiments/`, `research/`, `browser_tests/`, 루트 `engine/`)는 제거됨.
+Code folders are exactly frontend, backend, agents, infra. `docs/` and
+`resources/` hold documentation and research assets, not code.
 
-제품 API 라우트 (`PLANM API v1.0.0`):
-`/api/v1/planm/runs`, `.../{run_id}`, `.../alternatives`,
-`.../alternatives/{id}/preview`, `.../approval`, `.../dwg/handoff`,
-`.../dwg/inspection`, `.../artifacts/{path}`.
+Product API routes (`PLANM API v1.0.0`): `/api/v1/planm/runs`, `.../{run_id}`,
+`.../alternatives`, `.../alternatives/{id}/preview`, `.../approval`,
+`.../dwg/handoff`, `.../dwg/inspection`, `.../artifacts/{path}`.
 
-## Next
+## Where the generator stands
 
-1. `agents/dwg` npm high advisory 1건 미해결.
-2. 레이아웃 생성기는 여전히 결정론 베이스라인. 인접성 인식 생성기로 교체 여지.
-3. 밸리데이터에 문/최소 복도폭/오목 인식 파티션 미구현 (V1 계약 밖).
+`docs/architecture/input_envelope.md` holds the measured envelope, the two
+fixes still outstanding, and the attempts already reverted. Read it before
+touching the generator; it exists so the same dead ends are not retried.
+
+Short version, from a 48-case sweep over twelve shape families:
+
+- Every rectangular plate reaches the two accepted alternatives approval needs.
+- T, U, and notched plates reach two when every floor is office.
+- **Any non-rectangular plate with a commercial floor returns nothing.** The
+  shop needs a cell touching both the street and the corridor, and the corridor
+  is chosen once for the whole stack without regard for that.
+- L and the non-orthogonal families reach one, not two, even office-only.
+
+## Verify
+
+```powershell
+python -m pytest -q                    # 914 passed, 2 skipped, ~11 min
+npm run test:agent                     # GitAgent runtime + PLANM contracts
+npm run test:dev                       # launcher, structure, compose invariants
+npm --prefix frontend run build
+npm run test:frontend                  # Playwright frontend
+npm run test:product                   # Playwright live product flow
+npm --prefix agents/dwg run verify:all # node + .NET parser/CAD I/O + E2E
+python resources/scripts/sweep_alternatives.py logs/runs/shapes --summarize-only
+```
+
+The full pytest run takes about eleven minutes. Run the affected test files
+first and keep the full run for just before a commit.
 
 ## Context
 
-실무용 자동화가 목적이지 이미지 생성이 아니다. 비율 하드코딩 금지. 매 루프마다
-PNG/HTML 아티팩트를 실제로 확인한다. 하드 유효성과 소프트 점수를 섞지 않는다.
+This is practical automation, not image generation. Do not hardcode area ratios
+as product truth. Render and look at the PNG artifacts each loop. Keep hard
+validity separate from soft quality, and never widen a gate to make a mass pass;
+change the generator so it chooses dimensions inside the gate instead.
 
-목표/경계/검증 명령은 루트 `CLAUDE.md`와 `docs/architecture/repository_layout.md`에
-정리되어 있다.
+Goals, module boundaries, and the verification commands are in the root
+`CLAUDE.md` and `docs/architecture/repository_layout.md`.
