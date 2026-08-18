@@ -15,6 +15,7 @@ export interface PlanmRun {
   stage: string;
   approved_alternative_id: string | null;
   violations: Array<{ code: string; message: string }>;
+  unresolved_facts?: string[];
 }
 
 export interface Alternative {
@@ -28,19 +29,39 @@ export interface Alternative {
   regulatory_screening: string;
 }
 
+export interface RejectedFamily {
+  family: string;
+  reasons: string[];
+}
+
 export interface AlternativesResult {
   project_id: string;
   accepted_count: number;
   accepted_alternative_ids: string[];
   alternatives: Alternative[];
+  rejected_families?: RejectedFamily[];
 }
+
+/** Shape families the plate builder can emit, mirroring the measured envelope. */
+export type ShapeFamily = "rectangle" | "l" | "t" | "u";
+
+export type TravelLimit = "general_30" | "qualified_50" | "highrise_residential_40";
+
+/** Sprinkler facts the screening reads. "unknown" asserts nothing. */
+export type SprinklerState = "unknown" | "none" | "standard" | "qualifying";
 
 export interface MassForm {
   projectId: string;
   floors: number;
   width: number;
   depth: number;
+  shape: ShapeFamily;
+  notchRatio: number;
   commercialShare: number;
+  jurisdiction: string;
+  effectiveDate: string;
+  travelLimit: TravelLimit | "";
+  sprinkler: SprinklerState;
 }
 
 export interface CadHandoff {
