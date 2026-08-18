@@ -7,7 +7,6 @@ import math
 import pytest
 
 from backend.app.cli import _mass_input_from_payload
-from backend.app.api import routes_evaluation
 from backend.app.modules.generation_loop.service import run_building_generation
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.validator.service import validate_layout
@@ -275,32 +274,6 @@ def test_generated_exit_geometry_does_not_fabricate_regulatory_failure() -> None
     )
     assert separation.status == "not_checked"
     assert "connected_exit_passage" in report.regulatory_screening.unresolved_facts
-
-
-def test_evaluation_route_forwards_optional_building_code_context(
-    monkeypatch,
-) -> None:
-    layout, program = _office_candidate()
-    context = BuildingCodeContext(sprinklered=True)
-    sentinel = object()
-    captured = {}
-
-    def fake_validate_layout(*args, **kwargs):
-        captured["args"] = args
-        captured["kwargs"] = kwargs
-        return sentinel
-
-    monkeypatch.setattr(routes_evaluation, "validate_layout", fake_validate_layout)
-
-    result = routes_evaluation.validate_layout_route(
-        layout,
-        program,
-        [(0.0, 0.0), (18.0, 0.0), (18.0, 10.0), (0.0, 10.0)],
-        building_code_context=context,
-    )
-
-    assert result is sentinel
-    assert captured["kwargs"]["building_code_context"] is context
 
 
 def test_legacy_review_separates_internal_validation_from_unchecked_regulation(

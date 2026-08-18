@@ -37,7 +37,7 @@ Backend modules or contain a Backend path.
 - `backend/app/schemas`: stable data contracts.
 - `backend/app/modules`: application services that orchestrate one capability each.
 - `backend.engine`: backend-owned geometry, graph, constraint, metric, and IO primitives.
-- `backend/app/api`: thin route wrappers. V1 keeps them framework-neutral.
+- `backend/app/api`: the versioned product router. It holds only routes the product serves; a module with no route belongs under `backend/app/modules`.
 - `backend/app/cli.py`: CLI entrypoint for running the V1 loop.
 - `backend/app/modules/generation_loop`: deterministic candidate operators, canonical geometry fingerprints, lexicographic ranking, lineage, and budget-aware termination.
 - `backend/app/modules/llm_planner`: strict LLM JSON contracts, building-level
