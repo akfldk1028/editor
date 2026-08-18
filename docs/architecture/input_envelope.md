@@ -16,26 +16,67 @@ The sweep writes `sweep-summary.json` beside the per-case run directories. The
 CLI exits non-zero for any run short of two accepted alternatives, so the report
 file, not the exit code, is the authority on the outcome.
 
-## Measured result, 2026-08-12
+## Measured result, 2026-08-16
 
 48 cases: twelve shape families x floor counts 3/5 x commercial share 0/34 %.
 An earlier 96-case run over four floor counts and four use mixes found neither
 ever changed an outcome, so that budget now buys shape variety instead.
 
-33 of 48 reach two, up from 26 before the coordinate-grid fix below.
+34 of 48 reach two, up from 33 before the rear-primary and label-search fixes
+below, and from 26 before the coordinate-grid fix. No shape family returns none
+any more: every mass on this matrix now produces at least one alternative that
+passes every hard gate.
 
 | Shape | Office only | Mixed use |
 | --- | --- | --- |
 | rect 20x10, 30x12, 40x24, square 24, long 60x20 | two | two |
-| T 44x30 | two | two at five floors, one at three |
-| U 44x28 | three | none |
-| notched 40x26 | two | none |
-| L 48x40 | two | none |
+| T 44x30 | two | two |
+| U 44x28 | three | one |
+| notched 40x26 | two | one |
+| L 48x40 | two | one |
 | chamfered octagon | two | one |
-| sloped pentagon | two | none |
+| sloped pentagon | two | one |
 | L 36x26 | one | one |
 
-Floor count changed nothing except on T mixed use.
+Floor count changes nothing on this matrix.
+
+## What the rear-primary fix changed
+
+Only a primary room may grow past its target area to take the floor no seed
+claimed. An office floor carries two of them, because
+`_zone_orthogonal_office_program` re-types `focus` to `open_work` on a
+non-rectangular plate, so a region the main room cannot reach still has an
+owner. A commercial floor carried none but its shop tenants, and those are
+pinned to the street band.
+
+On a U plate that was the whole difference. Same core, same corridor:
+
+| | office floor | commercial floor |
+| --- | --- | --- |
+| residual cells touching a primary seed | 79 m2 | **0 m2** |
+| coverage | 0.985 | 0.456 |
+
+Both tenants finished at 39 m2 against a 279 m2 target, every support room
+stopped at its own target, and 482 m2 of 912 belonged to nobody.
+
+A shop cannot occupy that depth — it has no frontage — but back of house can,
+and already sits there. `_rear_primary_room_ids` nominates the commercial
+`stock` node, and `generate_orthogonal_office_layout` takes the nomination
+through `rear_primary_room_ids`, which is how the generator now decides who is
+primary: by room, not by space type. Coverage on the commercial floor of U,
+notched, sloped, and L 48x40 went from 0.37-0.55 to 0.92-0.99, and each of those
+families went from none to one.
+
+## What the label-search fix changed
+
+Every render rejection on this matrix was one label the placement search gave up
+on: the entrance and elevator callouts of a commercial floor. The search steps
+outward from the anchor, and its ladder jumped 16 px to 28 px. On a street line
+carrying three shop entrances above a row of grid bubbles, the only opening was
+20 px straight down, 2 px wide between the bubbles and the sheet edge — a brute
+force count found 3478 free positions the ladder never landed on. The step is
+now 2 px (`_ARCHITECTURAL_LABEL_SEARCH_STEP_PX`), which recovered T 44x30 at
+three floors and cleared the render rejections from L 48x40.
 
 ## What the grid fix changed
 
@@ -66,28 +107,41 @@ Three things came out of that:
 
 ## What still falls short
 
-### Mixed use on U, notched, sloped, and L 48x40
+Every case that falls short now stops at one accepted alternative, never zero,
+and every one of them stops for the same reason.
 
-These return zero. The chain ends in floor coverage between 0.47 and 0.55
-against the 0.60 policy: a shop program is seven small rooms, and once they are
-seeded along the street the residual behind them belongs to no one. Office
-floors do not have this problem because `open_work` is one primary room that
-absorbs the whole plate.
+### The second alternative is refused for diversity, not geometry
 
-### L 36x26 reaches one, both mixes
+L 36x26 on both mixes, and U, notched, sloped, L 48x40, and chamfered on mixed
+use. Each plate produces further alternatives that pass every hard gate, and
+`_select_quality_distinct_alternatives` turns them down at 0.128 to 0.17 against
+its distinctness threshold. The other core strategies on these plates are still
+refused earlier with `orthogonal footprint leaves too few accessible room
+rectangles`, so the long-edge core is the only family offering candidates and
+its candidates resemble each other.
 
-Its second alternative is turned down for structural diversity rather than for
-geometry. Worth confirming against `compare_building_diversity` before treating
-it as a generator problem.
+Two things to separate before treating either as a defect: whether the threshold
+is calibrated for a plate whose geometry admits one core family, and whether
+`too few accessible room rectangles` is hiding a central core that would give a
+genuinely different plan. Check the second first — it is the reason the field is
+narrow.
 
-### Render validation on L 48x40
+### The commercial floor's areas skew hard
 
-`alternative-01:render_validation` on the mixed-use runs and
-`alternative-03:render_validation` on the office runs. The office runs still
-reach two, so this is a third alternative being dropped, not a blocker.
+The room that owns the rear takes most of the plate: `stock` reaches 552 m2 of
+912 on T 44x30 while `checkout` holds 5 m2. This is the same skew a rectangular
+plate has always had, where one tenant takes 727 m2 and the other 17 m2, so it
+is not new and it is not what the rear-primary fix introduced. It is what
+`_absorb_residual_cells` does by design: the primary takes whatever is left.
+Room proportions are advisory, so no gate reads it, but a reviewer will.
 
 ## What was fixed getting here
 
+- A commercial floor names a rear primary, as above, so the depth behind the
+  corridor has an owner. Primary is now a set of room ids the caller may add to,
+  not a space-type test.
+- The label placement ladder steps in 2 px, as above, so it cannot stride over
+  the gap it is looking for.
 - Every emitting module snaps to one coordinate grid, as above.
 - Subdivision protected frontage cells at 2.8 m while the assignment lookahead
   demanded each frontage room's own `min_width`, so subdivision cut away the
