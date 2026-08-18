@@ -445,6 +445,74 @@ def test_architectural_png_still_reports_a_label_it_cannot_place():
     assert output.metadata["unresolved_labels"] == ["업무공간 360.084 m2"]
 
 
+def _COARSE_LABEL_OFFSETS() -> tuple[tuple[int, int], ...]:
+    """The ladder as it was before it stepped in units smaller than a gap."""
+    offsets: list[tuple[int, int]] = [(0, 0)]
+    for radius in (16, 28, 42, 58, 76):
+        offsets.extend(
+            (
+                (0, -radius),
+                (0, radius),
+                (radius, 0),
+                (-radius, 0),
+                (radius, radius),
+                (radius, -radius),
+                (-radius, radius),
+                (-radius, -radius),
+            )
+        )
+    return tuple(offsets)
+
+
+def _crowded_label_features() -> tuple:
+    """One label over another, on a sheet whose edges rule out the far rungs.
+
+    The pair only separates past roughly 34 px, and the sheet cuts off at 40, so
+    every position lies inside a window narrower than the old ladder's stride.
+    """
+    return (
+        visual_review_service._RenderFeature(
+            "blocking-room-label",
+            "text-labels",
+            "room-label",
+            "label",
+            ((41.68, 55.54),),
+            "업무공간|360.084 m2",
+        ),
+        visual_review_service._RenderFeature(
+            "crowded-corridor-label",
+            "text-labels",
+            "circulation",
+            "label",
+            ((41.68, 55.54),),
+            "circulation",
+        ),
+    )
+
+
+def test_architectural_png_label_search_lands_between_the_old_ladder_rungs(
+    monkeypatch,
+):
+    features = _crowded_label_features()
+    boundary = [(0, 0), (100, 0), (100, 100), (0, 100)]
+
+    monkeypatch.setattr(
+        visual_review_service,
+        "_ARCHITECTURAL_LABEL_OFFSETS",
+        _COARSE_LABEL_OFFSETS(),
+    )
+    coarse = visual_review_service._render_png(
+        features, boundary, 100, 88, render_style="architectural"
+    )
+    monkeypatch.undo()
+    fine = visual_review_service._render_png(
+        features, boundary, 100, 88, render_style="architectural"
+    )
+
+    assert coarse.metadata["unresolved_collision_count"] == 1
+    assert fine.metadata["unresolved_collision_count"] == 0
+
+
 def test_architectural_png_reports_ascii_fallback_when_korean_font_is_missing(
     monkeypatch,
 ):

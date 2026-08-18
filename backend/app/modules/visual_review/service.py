@@ -125,6 +125,34 @@ LAYER_DISPLAY = {
 }
 RENDER_STYLES = {"review", "architectural"}
 _ARCHITECTURAL_LABEL_CLEARANCE_PX = 8
+_ARCHITECTURAL_LABEL_SEARCH_PX = 76
+# A label looks for a free spot by stepping outward from its anchor, so the
+# step has to be shorter than the gaps it is looking for. A ladder that jumped
+# 16 to 28 strode over the only opening a crowded street line had left and
+# reported a collision that was not there: three shop entrances, the grid
+# bubbles beneath them, and a sheet edge 20 px below the anchor.
+_ARCHITECTURAL_LABEL_SEARCH_STEP_PX = 2
+_ARCHITECTURAL_LABEL_OFFSETS = (
+    (0, 0),
+    *(
+        offset
+        for radius in range(
+            _ARCHITECTURAL_LABEL_SEARCH_STEP_PX,
+            _ARCHITECTURAL_LABEL_SEARCH_PX + 1,
+            _ARCHITECTURAL_LABEL_SEARCH_STEP_PX,
+        )
+        for offset in (
+            (0, -radius),
+            (0, radius),
+            (radius, 0),
+            (-radius, 0),
+            (radius, radius),
+            (radius, -radius),
+            (-radius, radius),
+            (-radius, -radius),
+        )
+    ),
+)
 _ARCHITECTURAL_LABEL_ENCLOSURE_LAYERS = frozenset(
     {"rooms", "core", "circulation"}
 )
@@ -2607,20 +2635,7 @@ def _draw_architectural_png_text(
         else:
             x, y = _architectural_line_label_position(feature, raster)
         text = _display_label(feature, "architectural").replace("|", "\n")
-        offsets = [(0, 0)]
-        for radius in (16, 28, 42, 58, 76):
-            offsets.extend(
-                (
-                    (0, -radius),
-                    (0, radius),
-                    (radius, 0),
-                    (-radius, 0),
-                    (radius, radius),
-                    (radius, -radius),
-                    (-radius, radius),
-                    (-radius, -radius),
-                )
-            )
+        offsets = _ARCHITECTURAL_LABEL_OFFSETS
         box = drawing.multiline_textbbox(
             (0, 0), text, font=font, spacing=1, align="center"
         )
