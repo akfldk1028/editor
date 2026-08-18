@@ -43,6 +43,7 @@ def generate_orthogonal_office_layout(
     circulation_candidate: CirculationCandidate | None = None,
     frontage_segments: Iterable[tuple[Point, Point]] = (),
     exterior_priority_room_ids: Iterable[str] = (),
+    rear_primary_room_ids: Iterable[str] = (),
     min_circulation_width: float = 1.2,
     respect_program_order: bool = False,
 ) -> LayoutCandidate:
@@ -236,6 +237,7 @@ def generate_orthogonal_office_layout(
         exterior_segments=exterior_segments,
         exterior_path_areas=exterior_path_areas,
         exterior_priority_room_ids=exterior_priority_room_ids,
+        rear_primary_room_ids=rear_primary_room_ids,
         respect_program_order=respect_program_order,
     )
     if circulation_candidate is not None:
@@ -245,6 +247,7 @@ def generate_orthogonal_office_layout(
             fixed_shape=fixed_shape,
             exterior_priority_room_ids=exterior_priority_room_ids,
             exterior_segments=exterior_segments,
+            rear_primary_room_ids=rear_primary_room_ids,
         )
     unmet_exterior_room_ids = sorted(
         node.node_id
@@ -287,6 +290,25 @@ def generate_orthogonal_office_layout(
         score=0.0,
         openings=openings,
         remote_stair_footprint=remote_stair,
+    )
+
+
+def _primary_room_ids(
+    nodes: Iterable[ProgramNode],
+    rear_primary_room_ids: Iterable[str] = (),
+) -> frozenset[str]:
+    """Name the rooms that may grow past their target to own the leftover floor.
+
+    A floor's primary is whatever the use calls its main space, but a plate the
+    corridor cuts can leave a region no primary seed reaches. The caller then
+    nominates the room that belongs there instead, which is how a commercial
+    floor gives its back of house the depth its street tenants cannot use.
+    """
+    rear = frozenset(rear_primary_room_ids)
+    return frozenset(
+        node.node_id
+        for node in nodes
+        if node.space_type in _PRIMARY_SPACE_TYPES or node.node_id in rear
     )
 
 
@@ -438,6 +460,7 @@ def _assign_rectangles(
     exterior_segments: tuple[tuple[Point, Point], ...] = (),
     exterior_path_areas: dict[tuple[Point, ...], float] | None = None,
     exterior_priority_room_ids: Iterable[str] = (),
+    rear_primary_room_ids: Iterable[str] = (),
     respect_program_order: bool = False,
 ) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
     if len(rectangles) < len(nodes):
@@ -468,7 +491,7 @@ def _assign_rectangles(
     )
     remaining = list(rectangles)
     support_types = {"pantry", "restroom", "it_storage"}
-    primary_types = _PRIMARY_SPACE_TYPES
+    primary_room_ids = _primary_room_ids(nodes, rear_primary_room_ids)
     input_order = {node.node_id: index for index, node in enumerate(nodes)}
     ordered_nodes = sorted(
         nodes,
@@ -482,7 +505,7 @@ def _assign_rectangles(
                     else 0
                     if node.space_type in support_types
                     else 2
-                    if node.space_type in primary_types
+                    if node.node_id in primary_room_ids
                     else 1
                 )
                 if free_shape is not None
@@ -561,7 +584,7 @@ def _assign_rectangles(
             ]
             candidates = width_compliant or candidates
         if free_shape is not None:
-            if node.space_type not in primary_types and not requires_exterior:
+            if node.node_id not in primary_room_ids and not requires_exterior:
                 maximum_seed_area = _maximum_seed_area(node)
                 bounded_candidates = [
                     rectangle
@@ -584,7 +607,7 @@ def _assign_rectangles(
             remaining_area_limits = tuple(
                 _maximum_seed_area(later)
                 for later in later_nodes
-                if later.space_type not in primary_types
+                if later.node_id not in primary_room_ids
             )
             remaining_frontage_nodes = [
                 later
@@ -663,7 +686,7 @@ def _assign_rectangles(
                     _rectangle_sort_key(rectangle),
                 ),
             )
-        elif node.space_type in primary_types and free_shape is not None:
+        elif node.node_id in primary_room_ids and free_shape is not None:
             blockers = [Polygon(polygon) for _, polygon in assignments]
             chosen = max(
                 candidates,
@@ -963,6 +986,7 @@ def _absorb_residual_cells(
     fixed_shape=None,
     exterior_priority_room_ids: tuple[str, ...] = (),
     exterior_segments: tuple[tuple[Point, Point], ...] = (),
+    rear_primary_room_ids: Iterable[str] = (),
 ) -> list[tuple[ProgramNode, tuple[Point, ...]]]:
     """Grow accessible program seeds across the fixed-circulation free cells."""
     shapes = {
@@ -983,9 +1007,9 @@ def _absorb_residual_cells(
         raise ValueError(
             "residual program allocation exceeds bounded cell count"
         )
-    primary_types = {"open_work", "sales"}
+    primary_room_ids = _primary_room_ids(nodes.values(), rear_primary_room_ids)
     support_nodes = [
-        node for node in nodes.values() if node.space_type not in primary_types
+        node for node in nodes.values() if node.node_id not in primary_room_ids
     ]
     if support_nodes:
         cell_area_budget = min(
@@ -995,7 +1019,7 @@ def _absorb_residual_cells(
             )
             for node in support_nodes
         )
-        if not any(node.space_type in primary_types for node in nodes.values()):
+        if not primary_room_ids:
             residual_cells = _subdivide_residual_cells(
                 residual_cells,
                 maximum_area=cell_area_budget,
@@ -1021,7 +1045,7 @@ def _absorb_residual_cells(
         room_id = room_ids[right_index - residual_count]
         node = nodes[room_id]
         if (
-            node.space_type not in primary_types
+            node.node_id not in primary_room_ids
             and shapes[room_id].area + _TOLERANCE >= float(node.target_area)
             and room_id not in exterior_priority_room_ids
         ):
@@ -1056,7 +1080,7 @@ def _absorb_residual_cells(
                 -1
                 if requested
                 else 0
-                if node.space_type in primary_types
+                if node.node_id in primary_room_ids
                 else 1,
                 exterior_distances[cell_index] if requested else 1,
                 1,
@@ -1082,7 +1106,7 @@ def _absorb_residual_cells(
         cell = residual_cells[cell_index]
         requested = room_id in exterior_priority_room_ids
         if (
-            node.space_type not in primary_types
+            node.node_id not in primary_room_ids
             and (
                 (
                     room_areas[room_id] + _TOLERANCE
@@ -1121,7 +1145,7 @@ def _absorb_residual_cells(
             if neighbor_index in absorbed:
                 continue
             if (
-                node.space_type not in primary_types
+                node.node_id not in primary_room_ids
                 and room_areas[room_id] + _TOLERANCE >= float(node.target_area)
                 and (not requested or room_has_usable_frontage[room_id])
             ):
@@ -1132,7 +1156,7 @@ def _absorb_residual_cells(
                     -1
                     if requested
                     else 0
-                    if node.space_type in primary_types
+                    if node.node_id in primary_room_ids
                     else 1,
                     (
                         exterior_distances[neighbor_index]

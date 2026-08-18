@@ -483,6 +483,55 @@ def test_residual_frontier_gives_surplus_to_far_primary_over_near_full_support(
     assert areas == {"meeting": 2.0, "open-work": 5.0}
 
 
+def test_nominated_rear_primary_owns_floor_the_sealed_tenant_cannot_reach(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A commercial plate needs a primary behind the corridor, not only in front.
+
+    The only rooms that grow past their target are the primaries, and on a
+    commercial floor those are the frontage tenants. A corridor that seals them
+    inside the street band leaves the floor behind it touching support seeds
+    alone, each stopping at its target, so it belonged to nobody and the floor
+    failed coverage. Naming the back of house a rear primary gives that floor an
+    owner; without the nomination the same room still stops at its target.
+    """
+    rear_seed = box(-2.0, 0.0, 0.0, 1.0)
+    sealed_tenant_seed = box(20.0, 0.0, 21.0, 1.0)
+    residual = tuple(
+        orthogonal_service._canonical_rectangle((x, 0.0, x + 1.0, 1.0))
+        for x in range(4)
+    )
+    free_shape = union_all(
+        (rear_seed, sealed_tenant_seed, *(Polygon(cell) for cell in residual))
+    )
+    monkeypatch.setattr(
+        orthogonal_service,
+        "_rectangle_cells",
+        lambda *args, **kwargs: residual,
+    )
+    rear = ProgramNode("stock", "stock", 1.0, min_area=0.85, max_area=1.15)
+    tenant = ProgramNode("sales_a", "sales", 5.0, min_area=4.25, max_area=5.75)
+    seeds = [
+        (rear, orthogonal_service._polygon_ring(rear_seed)),
+        (tenant, orthogonal_service._polygon_ring(sealed_tenant_seed)),
+    ]
+
+    without = orthogonal_service._absorb_residual_cells(seeds, free_shape=free_shape)
+    with_rear = orthogonal_service._absorb_residual_cells(
+        seeds,
+        free_shape=free_shape,
+        rear_primary_room_ids=("stock",),
+    )
+
+    orphaned = union_all([Polygon(polygon) for _, polygon in without])
+    owned = union_all([Polygon(polygon) for _, polygon in with_rear])
+    assert free_shape.difference(orphaned).area == pytest.approx(4.0)
+    assert free_shape.difference(owned).area == pytest.approx(0.0, abs=1e-9)
+    assert dict(
+        (node.node_id, Polygon(polygon).area) for node, polygon in with_rear
+    ) == {"stock": pytest.approx(6.0), "sales_a": pytest.approx(1.0)}
+
+
 def test_polygon_ring_removes_collinear_residual_strip_breakpoints() -> None:
     strips = union_all(tuple(box(x, 0.0, x + 1.0, 1.0) for x in range(100)))
 

@@ -690,6 +690,7 @@ def run_building_generation(
                 exterior_priority_room_ids=(
                     request.room_ids if request is not None else ()
                 ),
+                rear_primary_room_ids=_rear_primary_room_ids(program),
             )
             if core_override is not None:
                 layout = replace(
@@ -2585,6 +2586,28 @@ def _fit_rear_primary_program(
         reason="rear_primary_fit",
         source=f"{program.source}:rear_primary_fit",
     )
+
+
+def _rear_primary_room_ids(program: ProgramGraph) -> tuple[str, ...]:
+    """Name the room that owns a commercial floor behind its street tenants.
+
+    An office floor already carries a second primary: `_zone_orthogonal_office_program`
+    re-types `focus` to `open_work`, so the parts of the plate the main room
+    cannot reach still have an owner that may grow past its target. A commercial
+    floor has no such room. Its primaries are the shop tenants, every one of
+    them pinned to the street band, and on a plate whose corridor seals that
+    band the whole depth behind it belongs to nobody.
+
+    A shop cannot occupy that depth: it has no frontage. Back of house can, and
+    already sits there, so it is what the floor gives the area to. Everything
+    else on the floor keeps its own size.
+    """
+    if program.use_type != "neighborhood_commercial":
+        return ()
+    rear = [node for node in program.nodes if node.space_type == "stock"]
+    if not rear:
+        return ()
+    return (max(rear, key=lambda node: (float(node.target_area), node.node_id)).node_id,)
 
 
 def _zone_orthogonal_office_program(
