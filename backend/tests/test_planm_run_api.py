@@ -168,3 +168,59 @@ def test_planm_run_api_rejects_unaccepted_approval(tmp_path: Path) -> None:
     )
 
     assert response.status_code == 409
+
+
+def test_planm_run_records_unresolved_code_facts_from_normalize(tmp_path: Path) -> None:
+    app = create_app(
+        repository_root=PLAN_ROOT,
+        runs_root=tmp_path / "runs",
+        execute_inline=True,
+    )
+    client = TestClient(app)
+
+    created = client.post(
+        "/api/v1/planm/runs",
+        json={"contract_version": "planm-run-create/v1", "mass": _mass()},
+    )
+    assert created.status_code == 201, created.text
+    run_id = created.json()["run_id"]
+
+    record = client.get(f"/api/v1/planm/runs/{run_id}").json()
+
+    assert record["unresolved_facts"] == [
+        "jurisdiction",
+        "effective_date",
+        "floor_code_context",
+        "travel_limit_classification",
+    ]
+
+
+def test_planm_run_unresolved_facts_shrink_when_the_brief_supplies_them(
+    tmp_path: Path,
+) -> None:
+    app = create_app(
+        repository_root=PLAN_ROOT,
+        runs_root=tmp_path / "runs",
+        execute_inline=True,
+    )
+    client = TestClient(app)
+    mass = _mass()
+    mass["building_code_context"] = {
+        "jurisdiction": "KR",
+        "effective_date": "2026-07-28",
+        "travel_limit_classification": "general_30",
+        "sprinklered": True,
+        "qualifying_sprinkler_protection": True,
+        "floor_facts": [],
+    }
+
+    created = client.post(
+        "/api/v1/planm/runs",
+        json={"contract_version": "planm-run-create/v1", "mass": mass},
+    )
+    assert created.status_code == 201, created.text
+    run_id = created.json()["run_id"]
+
+    record = client.get(f"/api/v1/planm/runs/{run_id}").json()
+
+    assert record["unresolved_facts"] == ["floor_code_context"]

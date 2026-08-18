@@ -70,6 +70,7 @@ class PlanmRunService:
             "updated_at": now,
             "approved_alternative_id": None,
             "violations": [],
+            "unresolved_facts": [],
         }
         _write_json(run_dir / "run.json", record)
         return record
@@ -109,6 +110,9 @@ class PlanmRunService:
                     stage=stage,
                     violations=result.get("violations", []),
                 )
+            unresolved = result.get("outputs", {}).get("unresolved_facts")
+            if isinstance(unresolved, list):
+                self._update(run_id, unresolved_facts=[str(item) for item in unresolved])
         return self._update(run_id, status="delivered", stage="delivered")
 
     def get(self, run_id: str) -> dict[str, Any]:
