@@ -105,26 +105,89 @@ Three things came out of that:
 - The suite runs in half the time, because the same fix stopped the placement
   search from rebuilding Shapely geometry it did not need.
 
+## What the misdiagnosis fixes changed, 2026-08-19
+
+The count did not move. 34 of 48 before, 34 of 48 after. What moved is the
+reason each shortfall gives, which was wrong.
+
+`orthogonal footprint leaves too few accessible room rectangles` was the
+headline refusal on `central` and `notch_adjacent` across every short plate.
+It appeared about twenty times in one four-case probe; it now appears once.
+Two defects were producing it.
+
+### The frontage guard refused every split once the band was short
+
+`_subdivide_accessible_rectangles` may not spend a frontage seat on a seed that
+cannot use it, so a split is dropped when it would leave frontage capacity below
+the requirement. Compared against the requirement rather than against the
+capacity the band already holds, the guard refuses *every* split the moment
+capacity is short of one, including splits that touch no frontage at all. A
+core that puts the whole accessible band off the street starts at zero, so the
+family never subdivided and died counting rectangles.
+
+The guard now protects what the band holds: a split may not lower capacity
+below `min(required, current)`. Where capacity meets the requirement the
+behaviour is unchanged, which
+`test_accessible_subdivision_still_refuses_a_split_that_spends_frontage` pins.
+
+### The decomposition dropped the street edge one grid step wide
+
+Both planners snap to `_GRID_STEP = 0.25`. A core or corridor landing one step
+off the street leaves a 0.25 m strip along the whole frontage, the
+decomposition cuts it into its own row of cells, and the minimum-width filter
+discards them. On U 44x28 mixed use that was 41 of the 100 cells sitting on the
+free shape's bottom edge, every one exactly 0.25 m deep. What survived started
+at y = 0.25, and since frontage contact is an exact intersection, a quarter of a
+metre reads the same as a mile: the shop program had no frontage at all.
+
+`_absorb_frontage_slivers` folds a street-edge sliver into the seed it shares a
+full edge with. On U 44x28 mixed use:
+
+| | before | after |
+| --- | --- | --- |
+| assignments with no street-facing seed | 10 of 24 | 3 of 25 |
+| deepest street-facing seed, minimum dimension | 3.8 m | 6.8 m |
+
+Shops on that plate ask for 4.0 m, so the band went from short everywhere to
+clear of the requirement.
+
+Only frontage slivers fold. Merging the same strip inland was measured and
+reverted, see below.
+
+## Where the fourteen shortfalls actually stop
+
+Every shortfall is a plate reaching one, and the set is exactly the twelve
+non-rectangular mixed-use cases plus L 36x26 on both mixes. Three distinct
+causes, none of them the rectangle count any more:
+
+- **L 36x26, both mixes.** `central` and `notch_adjacent` refuse with `core is
+  too small for two height-derived separated stairs, a central bank, and lobby`.
+  A core-sizing question, unrelated to the plate decomposition.
+- **Non-rectangular mixed use.** `central` and `notch_adjacent` refuse with
+  `orthogonal layout cannot place frontage room sales_a` or `cannot preserve
+  bounded seed capacity after sales_a`. A shop wants street frontage and a
+  budgeted seed; these cores offer one or the other.
+- **All of them, finally.** `long_edge_adjacent` is the only family left
+  offering candidates, and `_select_quality_distinct_alternatives` refuses its
+  runners-up at 0.107 to 0.17. The field is narrow because the field is one
+  family, which is now a measured fact rather than an inference.
+
 ## What still falls short
 
-Every case that falls short now stops at one accepted alternative, never zero,
-and every one of them stops for the same reason.
+### The distinctness threshold now meets an honest one-family field
 
-### The second alternative is refused for diversity, not geometry
+The question this section used to pose — whether `too few accessible room
+rectangles` was hiding a core that would give a genuinely different plan — is
+answered. It was, and two defects were the reason; both are fixed above. What
+remains is a `central` core that a shop program genuinely cannot use on these
+plates, so `long_edge_adjacent` really is the only family offering candidates
+and its runners-up really do resemble each other.
 
-L 36x26 on both mixes, and U, notched, sloped, L 48x40, and chamfered on mixed
-use. Each plate produces further alternatives that pass every hard gate, and
-`_select_quality_distinct_alternatives` turns them down at 0.128 to 0.17 against
-its distinctness threshold. The other core strategies on these plates are still
-refused earlier with `orthogonal footprint leaves too few accessible room
-rectangles`, so the long-edge core is the only family offering candidates and
-its candidates resemble each other.
-
-Two things to separate before treating either as a defect: whether the threshold
-is calibrated for a plate whose geometry admits one core family, and whether
-`too few accessible room rectangles` is hiding a central core that would give a
-genuinely different plan. Check the second first — it is the reason the field is
-narrow.
+That makes the threshold question live rather than premature: 0.107 to 0.17 is
+what one core family produces on a plate that admits one core family. Do not
+move the threshold to clear it. Either the shop program has to become placeable
+against a central core, or a plate with one workable core family has to be
+reported as such instead of counted as a shortfall.
 
 ### The commercial floor's areas skew hard
 
@@ -137,6 +200,10 @@ Room proportions are advisory, so no gate reads it, but a reviewer will.
 
 ## What was fixed getting here
 
+- The frontage split guard protects the capacity the band holds rather than the
+  requirement, as above, so a band that starts short can still subdivide.
+- A street-edge sliver folds into its neighbour instead of being dropped, as
+  above, so the plate edge stops moving inward by a grid step.
 - A commercial floor names a rear primary, as above, so the depth behind the
   corridor has an owner. Primary is now a set of room ids the caller may add to,
   not a space-type test.
@@ -161,6 +228,16 @@ Room proportions are advisory, so no gate reads it, but a reviewer will.
   fail its own `[0, 1]` contract, discarding the floor that lit every room.
 
 ## Attempts that were reverted, so they are not repeated
+
+- Folding a too-thin cell into its neighbour anywhere on the plate, not just on
+  the frontage. It is tempting because it did unlock something real: `central`
+  produced its first accepted alternative on U 44x28 mixed use. It also cost
+  more than it bought. T 44x30 at three floors on mixed use fell from two to one
+  with `cannot preserve bounded seed capacity after sales_a`, and the
+  long-edge winner on U 44x28 started failing render with one unresolved label
+  collision. 33 of 48, down one. Merging inland moves seed areas the assignment
+  lookahead has already budgeted against, so anything in this direction has to
+  answer the seed-capacity budget first.
 
 - Seeding the primary room before the support rooms. The support seeds form a
   cut-set the primary then picks the largest reachable component from, which
