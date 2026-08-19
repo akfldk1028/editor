@@ -29,11 +29,15 @@ belongs under `backend/app/modules`.
 
 ## What the product surface shows
 
-The brief submits rectangle, L, T, and U plates. `footprintPolygon` in
-`frontend/src/features/planm-planning/api.ts` walks every family
-counter-clockwise from the origin, so edge 0 is always the full-width street
-frontage and the pinned `site_edges` and `access_candidates` keep their meaning
-on every shape. Coordinates snap to 0.1 m.
+The brief reproduces every footprint the sweep measures. Six families —
+rectangle, L, T, U, sloped, chamfered — cover all twelve, because U also
+describes the notched plate and sloped is the diagonal form of L. The cut is two
+lengths in metres, the material removed from the top of the plate, so a
+reviewer can put a measured case in front of the generator to the coordinate.
+`footprintPolygon` in `frontend/src/features/planm-planning/api.ts` walks every
+family counter-clockwise from the origin, so edge 0 is always the street
+frontage the pinned `site_edges` and `access_candidates` refer to. Coordinates
+snap to 0.1 m.
 
 Code facts are asserted, never assumed. The brief sends only the fields it was
 given, so an unstated fact reaches the screening as unresolved rather than as an
@@ -64,6 +68,16 @@ disabled until the run is `delivered`.
 `docs/architecture/input_envelope.md` holds the measured envelope, the two
 fixes still outstanding, and the attempts already reverted. Read it before
 touching the generator; it exists so the same dead ends are not retried.
+
+The count has not moved from 34 of 48, but as of 2026-08-19 the reasons are
+right. Two defects were making every short plate blame the rectangle count: the
+frontage split guard refused every split once the band was short of a seat, and
+the decomposition dropped the 0.25 m grid-step strip along the street, which
+left the accessible band not touching the frontage at all. Both are fixed and
+measured in the envelope doc. Read the three causes there before picking this
+up — the fourteen shortfalls are core sizing on L 36x26, shop placement against
+a central core on the non-rectangular mixed-use plates, and a distinctness
+threshold now meeting an honestly one-family field. Do not move the threshold.
 
 Short version, from a 48-case sweep over twelve shape families, 34 of 48
 reaching two:
