@@ -215,6 +215,24 @@ def generate_shared_structure(
     return StructureSet(lines=tuple(lines), columns=tuple(columns))
 
 
+def minimum_core_edge(floor_to_floor_height_m: float) -> float:
+    """The shortest core edge that can host the subdivision on either side.
+
+    Two stairs stand either side of the central bank along the edge the
+    protected exits share, so that edge needs both stairs and the bank. The
+    perpendicular edge needs only one stair depth and the lobby, which is the
+    smaller of the two. A core chosen before anyone knows which edge the
+    corridor will arrive on has to satisfy the larger, or a family that meets
+    it on the wrong edge is refused after the fact for a core that was never
+    sized for the job.
+    """
+    required_short, required_long = required_stair_enclosure(floor_to_floor_height_m)
+    return max(
+        2 * required_short + _CORE_BANK_MIN_WIDTH,
+        required_long + _CORE_LOBBY_MIN_DEPTH,
+    )
+
+
 def _core_elements(
     core: RoomPolygon,
     exits: list[PlanLine],

@@ -23,6 +23,7 @@ from backend.app.modules.building_quality import (
     evaluate_building_quality,
     measure_primary_daylight,
 )
+from backend.app.modules.basic_design.service import minimum_core_edge
 from backend.app.modules.basic_design.stair import (
     required_stair_enclosure,
     resolve_floor_height,
@@ -137,15 +138,14 @@ def compose_structural_alternatives(
         minimum_width=7.6,
         minimum_depth=5.2,
     )
-    stair_short_side, stair_long_side = required_stair_enclosure(
-        resolve_floor_height(
-            (
-                mass.building_code_context.floor_to_floor_height_m
-                if mass.building_code_context is not None
-                else None
-            )
-        )[0]
-    )
+    floor_height = resolve_floor_height(
+        (
+            mass.building_code_context.floor_to_floor_height_m
+            if mass.building_code_context is not None
+            else None
+        )
+    )[0]
+    stair_short_side, stair_long_side = required_stair_enclosure(floor_height)
     stair_dimensions = (
         (stair_short_side, stair_long_side),
         (stair_long_side, stair_short_side),
@@ -181,8 +181,20 @@ def compose_structural_alternatives(
                 rejected=rejected,
             )
 
+    def distinct_so_far() -> int:
+        # Counting raw acceptances asks the wrong question. A plate whose only
+        # workable core family produces three near-identical alternatives has
+        # three acceptances and one plan, and it is exactly the plate the
+        # fallbacks below exist for. Gate them on what survives distinctness,
+        # which is what the caller receives.
+        selected, _ = _select_quality_distinct_alternatives(
+            deduplicate_structural_alternatives(accepted),
+            limit=limit,
+        )
+        return len(selected)
+
     evaluate(cores)
-    if len(deduplicate_structural_alternatives(accepted)) < 2:
+    if distinct_so_far() < 2:
         # This plate did not offer two workable cores among the strategy
         # leaders, so take the runners-up each strategy had already ranked
         # rather than leave the mass without a second alternative.
@@ -192,6 +204,23 @@ def compose_structural_alternatives(
                 required_area=requested_core_area,
                 minimum_width=7.6,
                 minimum_depth=5.2,
+                widen=True,
+            )
+        )
+    if distinct_so_far() < 2:
+        # The minimums above size a core for a corridor arriving on its width:
+        # one stair depth and a lobby across the other way. A family that meets
+        # the core on that other edge needs two stairs and the bank there
+        # instead, and no core this plate has been offered can give it. Ask for
+        # cores that satisfy the subdivision whichever edge the corridor
+        # reaches, and only once the cheaper shapes have come up short.
+        square_edge = minimum_core_edge(floor_height)
+        evaluate(
+            generate_shared_core_candidates(
+                boundaries,
+                required_area=requested_core_area,
+                minimum_width=square_edge,
+                minimum_depth=square_edge,
                 widen=True,
             )
         )

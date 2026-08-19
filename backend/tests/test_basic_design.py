@@ -1043,3 +1043,29 @@ def _footprint_bounds(footprint):
 
 def _axis_gap(first_min, first_max, second_min, second_max):
     return max(first_min, second_min) - min(first_max, second_max)
+
+
+def test_minimum_core_edge_takes_the_larger_of_the_two_core_edges() -> None:
+    """Either edge may be the one the corridor arrives on, so size for both.
+
+    Along the edge the protected exits share, two stairs stand either side of
+    the central bank. Across it, one stair depth and the lobby. A core picked
+    before the corridor is known has to satisfy whichever is larger.
+    """
+    from backend.app.modules.basic_design.service import (
+        _CORE_BANK_MIN_WIDTH,
+        _CORE_LOBBY_MIN_DEPTH,
+        minimum_core_edge,
+    )
+    from backend.app.modules.basic_design.stair import required_stair_enclosure
+
+    height = 3.6
+    short, long_side = required_stair_enclosure(height)
+
+    assert minimum_core_edge(height) == max(
+        2 * short + _CORE_BANK_MIN_WIDTH,
+        long_side + _CORE_LOBBY_MIN_DEPTH,
+    )
+    # On the default height the exit edge governs, which is the case the
+    # composer's hardcoded 5.2 m depth could never satisfy.
+    assert minimum_core_edge(height) == 6.8

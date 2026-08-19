@@ -1533,3 +1533,41 @@ def _controlled_diversity(
         nonzero_component_count=4,
         quality_distinct=True,
     )
+
+
+def test_core_fallbacks_fire_when_distinctness_cuts_the_field_to_one(
+    monkeypatch,
+) -> None:
+    """Counting raw acceptances asks the wrong question.
+
+    A plate whose only workable core family produces several near-identical
+    alternatives has plenty of acceptances and one plan, and it is exactly the
+    plate the fallback core requests exist for. Gated on the raw count they
+    never fired there.
+    """
+    requests: list[tuple[float, float]] = []
+    real = alternative_service.generate_shared_core_candidates
+
+    def recording(boundaries, **kwargs):
+        requests.append((kwargs["minimum_width"], kwargs["minimum_depth"]))
+        return real(boundaries, **kwargs)
+
+    monkeypatch.setattr(
+        alternative_service,
+        "generate_shared_core_candidates",
+        recording,
+    )
+    # Every candidate is refused, so the distinct count stays at zero and each
+    # fallback in turn has to be reached.
+    monkeypatch.setattr(
+        alternative_service,
+        "_select_quality_distinct_alternatives",
+        lambda alternatives, *, limit: ((), ()),
+    )
+
+    compose_structural_alternatives(_mass(), limit=3)
+
+    assert requests[0] == (7.6, 5.2)
+    assert len(requests) == 3, requests
+    # The last request sizes the core for whichever edge the corridor reaches.
+    assert requests[-1][0] == requests[-1][1] == 6.8
