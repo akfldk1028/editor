@@ -1366,3 +1366,139 @@ def _is_orthogonal_polygon(shape: Polygon) -> bool:
             for start, end in zip(coordinates, coordinates[1:])
         )
     )
+
+
+def test_accessible_subdivision_still_splits_when_frontage_is_already_short() -> None:
+    """A plate whose accessible band never reaches the street must still seed.
+
+    The frontage guard exists to stop a split from destroying frontage capacity.
+    Compared against the requirement rather than against the capacity the band
+    already has, it refuses every split the moment capacity is short, including
+    splits that touch no frontage at all. A central core puts the whole
+    accessible band off the street, so the family died on the rectangle count
+    instead of on the frontage rule that actually applies to it.
+    """
+    rectangle = orthogonal_service._canonical_rectangle((0, 0, 8, 4))
+    circulation = [
+        RoomPolygon(
+            room_id="corridor",
+            space_type="circulation",
+            polygon=[(0, -1), (8, -1), (8, 0), (0, 0)],
+        )
+    ]
+    # The street runs far from the band, so capacity starts at zero.
+    frontage_segments = (((0.0, 20.0), (8.0, 20.0)),)
+    assert (
+        orthogonal_service._frontage_capacity(
+            [rectangle],
+            frontage_segments=frontage_segments,
+            minimum_width=4.0,
+        )
+        == 0
+    )
+
+    result = orthogonal_service._subdivide_accessible_rectangles(
+        [rectangle],
+        circulation,
+        required_count=2,
+        frontage_segments=frontage_segments,
+        frontage_required_count=2,
+        frontage_min_width=4.0,
+    )
+
+    assert result == [
+        orthogonal_service._canonical_rectangle((0, 0, 4, 4)),
+        orthogonal_service._canonical_rectangle((4, 0, 8, 4)),
+    ]
+
+
+def test_accessible_subdivision_still_refuses_a_split_that_spends_frontage() -> None:
+    """The guard keeps its job where capacity is there to lose."""
+    rectangle = orthogonal_service._canonical_rectangle((0, 0, 8, 5))
+    circulation = [
+        RoomPolygon(
+            room_id="corridor",
+            space_type="circulation",
+            polygon=[(0, -1), (8, -1), (8, 0), (0, 0)],
+        )
+    ]
+    frontage_segments = (((0.0, 5.0), (8.0, 5.0)),)
+    assert (
+        orthogonal_service._frontage_capacity(
+            [rectangle],
+            frontage_segments=frontage_segments,
+            minimum_width=5.0,
+        )
+        == 1
+    )
+
+    result = orthogonal_service._subdivide_accessible_rectangles(
+        [rectangle],
+        circulation,
+        required_count=2,
+        frontage_segments=frontage_segments,
+        frontage_required_count=1,
+        frontage_min_width=5.0,
+    )
+
+    # Halving it leaves two 4 m frontages against a 5 m requirement, so the one
+    # frontage seat the band has would be spent for a seed it cannot use.
+    assert result == [rectangle]
+
+
+STREET = (((0.0, 0.0), (12.0, 0.0)),)
+
+
+def test_frontage_sliver_merges_into_the_seed_that_shares_its_edge() -> None:
+    """A grid-step strip at the street is floor, not something to discard.
+
+    Dropped, it moves the street edge inward by the step, and frontage contact
+    is an exact intersection, so the seed above it reads as not touching the
+    street at all.
+    """
+    strip = orthogonal_service._canonical_rectangle((0, 0, 12, 0.25))
+    body = orthogonal_service._canonical_rectangle((0, 0.25, 12, 6))
+
+    result = orthogonal_service._absorb_frontage_slivers(
+        (strip, body), 1.1, frontage_segments=STREET
+    )
+
+    assert result == [orthogonal_service._canonical_rectangle((0, 0, 12, 6))]
+
+
+def test_frontage_sliver_merge_keeps_every_result_rectangular() -> None:
+    """Only a full shared edge merges, so an offset neighbour is left alone."""
+    strip = orthogonal_service._canonical_rectangle((0, 0, 12, 0.25))
+    offset = orthogonal_service._canonical_rectangle((4, 0.25, 9, 6))
+
+    result = orthogonal_service._absorb_frontage_slivers(
+        (strip, offset), 1.1, frontage_segments=STREET
+    )
+
+    assert result == [strip, offset]
+
+
+def test_a_sliver_away_from_the_street_is_left_for_the_caller_filter() -> None:
+    """Merging inland changes seed areas the assignment lookahead budgets on."""
+    inland_strip = orthogonal_service._canonical_rectangle((0, 9, 12, 9.25))
+    body = orthogonal_service._canonical_rectangle((0, 9.25, 12, 15))
+
+    result = orthogonal_service._absorb_frontage_slivers(
+        (inland_strip, body), 1.1, frontage_segments=STREET
+    )
+
+    assert result == [inland_strip, body]
+
+
+def test_frontage_sliver_merge_leaves_a_usable_cell_untouched() -> None:
+    cells = (
+        orthogonal_service._canonical_rectangle((0, 0, 12, 3)),
+        orthogonal_service._canonical_rectangle((0, 3, 12, 6)),
+    )
+
+    assert (
+        orthogonal_service._absorb_frontage_slivers(
+            cells, 1.1, frontage_segments=STREET
+        )
+        == list(cells)
+    )

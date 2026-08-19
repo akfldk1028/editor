@@ -144,9 +144,13 @@ def generate_orthogonal_office_layout(
     )
     available = [
         rectangle
-        for rectangle in _rectangle_cells(
-            free_shape,
-            require_complete=circulation_candidate is None,
+        for rectangle in _absorb_frontage_slivers(
+            _rectangle_cells(
+                free_shape,
+                require_complete=circulation_candidate is None,
+            ),
+            minimum_room_width,
+            frontage_segments=frontage_segments,
         )
         if (
             _longest_shared_edge(rectangle, circulation) >= _DOOR_WIDTH
@@ -290,6 +294,87 @@ def generate_orthogonal_office_layout(
         score=0.0,
         openings=openings,
         remote_stair_footprint=remote_stair,
+    )
+
+
+def _absorb_frontage_slivers(
+    cells: tuple[tuple[Point, ...], ...],
+    minimum_width: float,
+    *,
+    frontage_segments: tuple[tuple[Point, Point], ...],
+) -> list[tuple[Point, ...]]:
+    """Fold a street-edge cell too thin to be a room into the seed above it.
+
+    A core or corridor snapped to the planner grid can sit one grid step off the
+    street, and the decomposition then cuts that step into its own row of cells.
+    Dropping them for being too narrow moves the street edge inward: what is
+    left starts a step short of the frontage, and since frontage contact is an
+    exact intersection, a quarter of a metre reads the same as a mile. A shop
+    program loses every seat it has.
+
+    Only slivers on the frontage are folded. The same strip elsewhere on the
+    plate is left to the caller's filter, because merging it changes seed areas
+    the assignment lookahead has already budgeted against. Only a full shared
+    edge merges, which keeps every result a rectangle, and a sliver with no
+    neighbour to join is returned untouched.
+    """
+    kept: list[tuple[float, float, float, float]] = []
+    slivers: list[tuple[float, float, float, float]] = []
+    for cell in cells:
+        bounds = _bounds(cell)
+        thin = min(bounds[2] - bounds[0], bounds[3] - bounds[1]) + _TOLERANCE < minimum_width
+        if thin and not _touches_frontage(cell, frontage_segments):
+            kept.append(bounds)
+            continue
+        (slivers if thin else kept).append(bounds)
+
+    merged = True
+    while merged and slivers:
+        merged = False
+        for sliver in list(slivers):
+            for index, host in enumerate(kept):
+                union = _shared_edge_union(sliver, host)
+                if union is None:
+                    continue
+                kept[index] = union
+                slivers.remove(sliver)
+                merged = True
+                break
+
+    return [
+        _canonical_rectangle(bounds)
+        for bounds in sorted(kept + slivers)
+    ]
+
+
+def _shared_edge_union(
+    first: tuple[float, float, float, float],
+    second: tuple[float, float, float, float],
+) -> tuple[float, float, float, float] | None:
+    """Union two rectangles that share a whole edge, else None."""
+    a_min_x, a_min_y, a_max_x, a_max_y = first
+    b_min_x, b_min_y, b_max_x, b_max_y = second
+    spans_x = math.isclose(a_min_x, b_min_x, abs_tol=_TOLERANCE) and math.isclose(
+        a_max_x, b_max_x, abs_tol=_TOLERANCE
+    )
+    spans_y = math.isclose(a_min_y, b_min_y, abs_tol=_TOLERANCE) and math.isclose(
+        a_max_y, b_max_y, abs_tol=_TOLERANCE
+    )
+    stacked = spans_x and (
+        math.isclose(a_max_y, b_min_y, abs_tol=_TOLERANCE)
+        or math.isclose(b_max_y, a_min_y, abs_tol=_TOLERANCE)
+    )
+    beside = spans_y and (
+        math.isclose(a_max_x, b_min_x, abs_tol=_TOLERANCE)
+        or math.isclose(b_max_x, a_min_x, abs_tol=_TOLERANCE)
+    )
+    if not stacked and not beside:
+        return None
+    return (
+        min(a_min_x, b_min_x),
+        min(a_min_y, b_min_y),
+        max(a_max_x, b_max_x),
+        max(a_max_y, b_max_y),
     )
 
 
@@ -1621,6 +1706,20 @@ def _subdivide_accessible_rectangles(
             raise ValueError(
                 "accessible room subdivision exceeds bounded rectangle count"
             )
+        # The guard below protects the frontage seats this band already holds.
+        # Measured against the requirement instead, it refuses every split the
+        # moment the band is short of one, including splits that touch no
+        # frontage at all. A core that puts the whole accessible band off the
+        # street starts at zero, so the family died counting rectangles rather
+        # than on the frontage rule that actually applies to it.
+        frontage_floor = min(
+            frontage_required_count,
+            _frontage_capacity(
+                result,
+                frontage_segments=frontage_segments,
+                minimum_width=frontage_min_width,
+            ),
+        )
         options = []
         for rectangle in result:
             shared = [
@@ -1661,7 +1760,7 @@ def _subdivide_accessible_rectangles(
                         frontage_segments=frontage_segments,
                         minimum_width=frontage_min_width,
                     )
-                    < frontage_required_count
+                    < frontage_floor
                 ):
                     continue
                 options.append(
