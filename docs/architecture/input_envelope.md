@@ -16,7 +16,49 @@ The sweep writes `sweep-summary.json` beside the per-case run directories. The
 CLI exits non-zero for any run short of two accepted alternatives, so the report
 file, not the exit code, is the authority on the outcome.
 
-## Measured result, 2026-08-16
+## Measured result, 2026-08-19
+
+40 of 48, up from 34. Every rectangular plate reaches two, every office-only
+plate reaches two, and every remaining shortfall is a non-rectangular plate on
+the mixed-use mix.
+
+| Shape | Office only | Mixed use |
+| --- | --- | --- |
+| rect 20x10, 30x12, 40x24, square 24, long 60x20 | two | two |
+| T 44x30 | two | two |
+| U 44x28 | three | two |
+| notched 40x26 | two | two |
+| L 36x26 | two | one |
+| L 48x40 | two | one |
+| chamfered octagon | two | one |
+| sloped pentagon | two | one |
+
+Floor count changes nothing on this matrix.
+
+### What moved it
+
+The composer decides it has enough by counting acceptances, and it was counting
+the wrong thing. A plate whose only workable core family produces three
+near-identical alternatives has three acceptances and one plan; `len(accepted)
+< 2` was false, so neither fallback core request ran on exactly the plates they
+exist for. They now gate on what survives
+`_select_quality_distinct_alternatives`, which is what the caller receives.
+
+The core minimums were hardcoded at 7.6 by 5.2. The 5.2 is one stair depth plus
+the lobby, which is what the core needs *across* the edge the protected exits
+sit on. *Along* that edge it needs two stairs and the central bank, 6.8 at the
+default height. So a family meeting the core on its short edge was refused
+after the fact for a core never sized for the job: the same 72 m2 core at
+13.85 by 5.2 fitted 60 times for `long_edge_adjacent` and failed 8 times for
+`central` and `notch_adjacent` — identical rectangle, different edge.
+`minimum_core_edge` derives the larger requirement from the stair enclosure and
+a third fallback asks for cores that satisfy either edge, after the cheaper
+shapes come up short so nothing that works today is taken away.
+
+Recovered: L 36x26 office at both floor counts, U 44x28 mixed use, notched
+mixed use. Nothing regressed.
+
+## Measured result, 2026-08-16, kept for the deltas below
 
 48 cases: twelve shape families x floor counts 3/5 x commercial share 0/34 %.
 An earlier 96-case run over four floor counts and four use mixes found neither
@@ -154,40 +196,46 @@ clear of the requirement.
 Only frontage slivers fold. Merging the same strip inland was measured and
 reverted, see below.
 
-## Where the fourteen shortfalls actually stop
+## Where the eight shortfalls actually stop
 
-Every shortfall is a plate reaching one, and the set is exactly the twelve
-non-rectangular mixed-use cases plus L 36x26 on both mixes. Three distinct
-causes, none of them the rectangle count any more:
+L 36x26, L 48x40, chamfered, and sloped, all on mixed use, at both floor counts.
+Every one of them now stops on the same honest sentence:
 
-- **L 36x26, both mixes.** `central` and `notch_adjacent` refuse with `core is
-  too small for two height-derived separated stairs, a central bank, and lobby`.
-  A core-sizing question, unrelated to the plate decomposition.
-- **Non-rectangular mixed use.** `central` and `notch_adjacent` refuse with
-  `orthogonal layout cannot place frontage room sales_a` or `cannot preserve
-  bounded seed capacity after sales_a`. A shop wants street frontage and a
-  budgeted seed; these cores offer one or the other.
-- **All of them, finally.** `long_edge_adjacent` is the only family left
-  offering candidates, and `_select_quality_distinct_alternatives` refuses its
-  runners-up at 0.107 to 0.17. The field is narrow because the field is one
-  family, which is now a measured fact rather than an inference.
+    orthogonal layout cannot leave a street-facing seed for sales_b after sales_a
+
+That message is new, and it replaces a false one. Two lookaheads share the
+block that raises it — an area budget and a frontage seat — and both were
+reported as the area budget. The measurement said otherwise: at the give-up
+point on sloped the assigner held 8 seeds for 4 bounded rooms with every seed
+smaller than every limit, so the area budget was never in question. Counting
+the two refusals apart, and naming the frontage one, is the whole of that
+change.
+
+Subdivision now also drives frontage capacity up to the seat count rather than
+stopping as soon as it has enough rectangles overall: two shops need two
+street-facing seeds, and one wide seat is one seat. That removed all eleven
+area-capacity give-ups on sloped. It did not move the count, because on these
+four plates the street band still cannot be cut into two seats of the 4.0 m the
+shops ask for while both halves keep their corridor door.
+
+So the open question is now one question, and it is a geometry question, not a
+threshold one: can the street band on a plate like sloped 40x26 carry two shop
+frontages at all, and if it can, what split produces them. The midpoint split
+is the only cut subdivision knows.
 
 ## What still falls short
 
-### The distinctness threshold now meets an honest one-family field
+### The distinctness threshold is no longer the thing in the way
 
 The question this section used to pose — whether `too few accessible room
 rectangles` was hiding a core that would give a genuinely different plan — is
-answered. It was, and two defects were the reason; both are fixed above. What
-remains is a `central` core that a shop program genuinely cannot use on these
-plates, so `long_edge_adjacent` really is the only family offering candidates
-and its runners-up really do resemble each other.
+answered. It was. Four defects were the reason and all four are fixed above,
+which is where the six recovered cases came from.
 
-That makes the threshold question live rather than premature: 0.107 to 0.17 is
-what one core family produces on a plate that admits one core family. Do not
-move the threshold to clear it. Either the shop program has to become placeable
-against a central core, or a plate with one workable core family has to be
-reported as such instead of counted as a shortfall.
+On the eight that remain, distinctness is downstream of a shop that cannot be
+seated, not the cause. Do not move the threshold: the plate has one core family
+because the other families genuinely cannot serve two shops on it, and clearing
+a 0.107 pair would ship two drawings of the same plan.
 
 ### The commercial floor's areas skew hard
 
@@ -200,6 +248,12 @@ Room proportions are advisory, so no gate reads it, but a reviewer will.
 
 ## What was fixed getting here
 
+- The composer gates its fallback core requests on the distinct count, as
+  above, so they fire on the plates they exist for.
+- Core minimums come from the stair enclosure rather than two constants that
+  assumed which edge the corridor arrives on, as above.
+- Subdivision drives frontage capacity up to the seat count, and the assigner
+  names a frontage shortage as one instead of reporting it as an area budget.
 - The frontage split guard protects the capacity the band holds rather than the
   requirement, as above, so a band that starts short can still subdivide.
 - A street-edge sliver folds into its neighbour instead of being dropped, as
