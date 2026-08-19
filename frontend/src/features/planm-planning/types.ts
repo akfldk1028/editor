@@ -42,8 +42,12 @@ export interface AlternativesResult {
   rejected_families?: RejectedFamily[];
 }
 
-/** Shape families the plate builder can emit, mirroring the measured envelope. */
-export type ShapeFamily = "rectangle" | "l" | "t" | "u";
+/**
+ * Shape families the plate builder can emit. Between them they cover every
+ * footprint `resources/scripts/sweep_alternatives.py` measures: `u` carries the
+ * notched plate as well, and `sloped` is the diagonal form of `l`.
+ */
+export type ShapeFamily = "rectangle" | "l" | "t" | "u" | "sloped" | "chamfered";
 
 export type TravelLimit = "general_30" | "qualified_50" | "highrise_residential_40";
 
@@ -56,7 +60,10 @@ export interface MassForm {
   width: number;
   depth: number;
   shape: ShapeFamily;
-  notchRatio: number;
+  /** Plan width of the material removed from the top of the plate, in metres. */
+  cutWidth: number;
+  /** Depth of that removal from the top edge, in metres. */
+  cutDepth: number;
   commercialShare: number;
   jurisdiction: string;
   effectiveDate: string;

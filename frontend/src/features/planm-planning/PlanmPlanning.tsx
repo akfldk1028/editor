@@ -32,7 +32,9 @@ const shapeFamilies: Array<{ value: ShapeFamily; label: string }> = [
   { value: "rectangle", label: "Rectangle" },
   { value: "l", label: "L" },
   { value: "t", label: "T" },
-  { value: "u", label: "U" },
+  { value: "u", label: "U / notched" },
+  { value: "sloped", label: "Sloped" },
+  { value: "chamfered", label: "Chamfered" },
 ];
 
 const travelLimits: Array<{ value: TravelLimit; label: string }> = [
@@ -58,7 +60,8 @@ const initialForm: MassForm = {
   width: 30,
   depth: 12,
   shape: "rectangle",
-  notchRatio: 0.3,
+  cutWidth: 12,
+  cutDepth: 8,
   commercialShare: 0.2,
   jurisdiction: "",
   effectiveDate: "",
@@ -234,13 +237,25 @@ function App({ onOpenDwg }: Props) {
                   ))}
                 </select>
               </label>
-              {form.shape !== "rectangle" && (
+              {form.shape === "chamfered" && (
                 <label>
-                  Cut ratio <small>% of plate</small>
-                  <input type="number" min="15" max="45" value={Math.round(form.notchRatio * 100)} onChange={(event) => setForm({ ...form, notchRatio: Number(event.target.value) / 100 })} />
+                  Chamfer <small>m</small>
+                  <input type="number" min="1" max="60" step="0.1" value={form.cutWidth} onChange={(event) => setForm({ ...form, cutWidth: Number(event.target.value) })} />
                 </label>
               )}
             </div>
+            {form.shape !== "rectangle" && form.shape !== "chamfered" && (
+              <div className="field-pair">
+                <label>
+                  Cut width <small>m</small>
+                  <input type="number" min="1" max="120" step="0.1" value={form.cutWidth} onChange={(event) => setForm({ ...form, cutWidth: Number(event.target.value) })} />
+                </label>
+                <label>
+                  Cut depth <small>m</small>
+                  <input type="number" min="1" max="120" step="0.1" value={form.cutDepth} onChange={(event) => setForm({ ...form, cutDepth: Number(event.target.value) })} />
+                </label>
+              </div>
+            )}
             <PlatePreview form={form} />
             <div className="code-facts">
               <h4>Code facts <small>only an asserted fact is screened</small></h4>

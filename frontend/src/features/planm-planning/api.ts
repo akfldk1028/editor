@@ -14,17 +14,23 @@ const snap = (value: number) => Math.round(value * 10) / 10;
 
 /**
  * Every family starts at the origin and runs counter-clockwise, so edge 0 is
- * always the full-width street frontage the brief pins access to.
+ * always the street frontage the brief pins access to.
+ *
+ * `cutWidth` and `cutDepth` measure the material removed from the top of the
+ * plate, which is what lets a brief reproduce a measured sweep footprint
+ * exactly: L removes one corner, T removes both and keeps the stem between
+ * them, U removes a centred notch. `sloped` removes the same corner as L along
+ * a diagonal, and `chamfered` takes `cutWidth` as the chamfer on all four.
  */
 export function footprintPolygon(form: MassForm): Array<[number, number]> {
   const width = snap(form.width);
   const depth = snap(form.depth);
-  const cutX = snap(width * form.notchRatio);
-  const cutY = snap(depth * form.notchRatio);
-  const innerY = snap(depth - cutY);
-  const rightX = snap(width - cutX);
+  const cutWidth = snap(Math.min(form.cutWidth, width));
+  const cutDepth = snap(Math.min(form.cutDepth, depth));
+  const innerY = snap(depth - cutDepth);
   switch (form.shape) {
-    case "l":
+    case "l": {
+      const rightX = snap(width - cutWidth);
       return [
         [0, 0],
         [width, 0],
@@ -33,28 +39,58 @@ export function footprintPolygon(form: MassForm): Array<[number, number]> {
         [rightX, depth],
         [0, depth],
       ];
-    case "t":
+    }
+    case "t": {
+      const side = snap(cutWidth / 2);
+      const rightX = snap(width - side);
       return [
         [0, 0],
         [width, 0],
         [width, innerY],
         [rightX, innerY],
         [rightX, depth],
-        [cutX, depth],
-        [cutX, innerY],
+        [side, depth],
+        [side, innerY],
         [0, innerY],
       ];
-    case "u":
+    }
+    case "u": {
+      const leftX = snap((width - cutWidth) / 2);
+      const rightX = snap(width - leftX);
       return [
         [0, 0],
         [width, 0],
         [width, depth],
         [rightX, depth],
         [rightX, innerY],
-        [cutX, innerY],
-        [cutX, depth],
+        [leftX, innerY],
+        [leftX, depth],
         [0, depth],
       ];
+    }
+    case "sloped": {
+      const rightX = snap(width - cutWidth);
+      return [
+        [0, 0],
+        [width, 0],
+        [width, innerY],
+        [rightX, depth],
+        [0, depth],
+      ];
+    }
+    case "chamfered": {
+      const chamfer = snap(Math.min(cutWidth, width / 2, depth / 2));
+      return [
+        [chamfer, 0],
+        [snap(width - chamfer), 0],
+        [width, chamfer],
+        [width, snap(depth - chamfer)],
+        [snap(width - chamfer), depth],
+        [chamfer, depth],
+        [0, snap(depth - chamfer)],
+        [0, chamfer],
+      ];
+    }
     default:
       return [
         [0, 0],

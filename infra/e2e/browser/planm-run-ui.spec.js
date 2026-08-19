@@ -177,8 +177,10 @@ test("submits a non-rectangular plate and the asserted code facts", async ({ pag
   await page.goto("/");
   await page.getByRole("button", { name: "PLANM Planning" }).click();
   await page.getByLabel("Plate shape").selectOption("l");
-  await page.getByLabel("Width", { exact: false }).fill("40");
-  await page.getByLabel("Depth", { exact: false }).fill("24");
+  await page.getByLabel("Width m", { exact: true }).fill("40");
+  await page.getByLabel("Depth m", { exact: true }).fill("24");
+  await page.getByLabel("Cut width m", { exact: true }).fill("12");
+  await page.getByLabel("Cut depth m", { exact: true }).fill("7.2");
   await page.getByLabel("Jurisdiction").selectOption("KR");
   await page.getByLabel("Analysis as-of date").fill("2026-07-28");
   await page.getByLabel("Travel limit").selectOption("general_30");
@@ -250,3 +252,77 @@ test("names the code facts a delivered run still could not resolve", async ({ pa
   await expect(page.getByText("Unresolved code facts")).toBeVisible();
   await expect(page.getByText("floor_code_context")).toBeVisible();
 });
+
+// Every footprint the alternatives sweep measures, so the brief can reproduce a
+// measured case exactly instead of approximating it.
+const sweepFootprints = [
+  {
+    name: "L-36x26",
+    form: { shape: "l", width: 36, depth: 26, cutWidth: 18, cutDepth: 12 },
+    polygon: [[0, 0], [36, 0], [36, 14], [18, 14], [18, 26], [0, 26]],
+  },
+  {
+    name: "L-large",
+    form: { shape: "l", width: 48, depth: 40, cutWidth: 24, cutDepth: 20 },
+    polygon: [[0, 0], [48, 0], [48, 20], [24, 20], [24, 40], [0, 40]],
+  },
+  {
+    name: "U-shape",
+    form: { shape: "u", width: 44, depth: 28, cutWidth: 20, cutDepth: 16 },
+    polygon: [[0, 0], [44, 0], [44, 28], [32, 28], [32, 12], [12, 12], [12, 28], [0, 28]],
+  },
+  {
+    name: "T-shape",
+    form: { shape: "t", width: 44, depth: 30, cutWidth: 28, cutDepth: 16 },
+    polygon: [[0, 0], [44, 0], [44, 14], [30, 14], [30, 30], [14, 30], [14, 14], [0, 14]],
+  },
+  {
+    name: "notched",
+    form: { shape: "u", width: 40, depth: 26, cutWidth: 12, cutDepth: 8 },
+    polygon: [[0, 0], [40, 0], [40, 26], [26, 26], [26, 18], [14, 18], [14, 26], [0, 26]],
+  },
+  {
+    name: "chamfered",
+    form: { shape: "chamfered", width: 40, depth: 26, cutWidth: 6, cutDepth: 6 },
+    polygon: [[6, 0], [34, 0], [40, 6], [40, 20], [34, 26], [6, 26], [0, 20], [0, 6]],
+  },
+  {
+    name: "sloped",
+    form: { shape: "sloped", width: 40, depth: 26, cutWidth: 16, cutDepth: 8 },
+    polygon: [[0, 0], [40, 0], [40, 18], [24, 26], [0, 26]],
+  },
+];
+
+for (const shape of sweepFootprints) {
+  test(`reproduces the ${shape.name} footprint the sweep measures`, async ({ page }) => {
+    let submitted = null;
+    await page.route("**/api/v1/planm/runs", async (route) => {
+      submitted = route.request().postDataJSON();
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(run) });
+    });
+    await page.route("**/api/v1/planm/runs/*/alternatives", async (route) => {
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify(alternatives) });
+    });
+    await page.route("**/api/v1/planm/runs/*/alternatives/*/preview", async (route) => {
+      await route.fulfill({ status: 200, contentType: "image/svg+xml", body: "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='450'><rect width='100%' height='100%' fill='white'/></svg>" });
+    });
+
+    await page.goto("/");
+    await page.getByRole("button", { name: "PLANM Planning" }).click();
+    await page.getByLabel("Plate shape").selectOption(shape.form.shape);
+    await page.getByLabel("Width m", { exact: true }).fill(String(shape.form.width));
+    await page.getByLabel("Depth m", { exact: true }).fill(String(shape.form.depth));
+    if (shape.form.shape === "chamfered") {
+      await page.getByLabel("Chamfer m", { exact: true }).fill(String(shape.form.cutWidth));
+    } else {
+      await page.getByLabel("Cut width m", { exact: true }).fill(String(shape.form.cutWidth));
+      await page.getByLabel("Cut depth m", { exact: true }).fill(String(shape.form.cutDepth));
+    }
+    await page.getByRole("button", { name: "Generate alternatives" }).click();
+
+    await expect(page.getByText("alternative-a", { exact: true })).toBeVisible();
+    expect(submitted.mass.footprint_polygon).toEqual(shape.polygon);
+    // Edge 0 is the pinned street frontage on every family.
+    expect(submitted.mass.site_edges).toEqual([{ edge_index: 0, kind: "street" }]);
+  });
+}
