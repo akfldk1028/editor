@@ -700,6 +700,10 @@ def _assign_rectangles(
                 if frontage_segments and later.frontage_required
             ]
             capacity_preserving = []
+            # Two lookaheads sit here and they fail for different reasons, so
+            # count them apart. Reporting a frontage shortage as an area budget
+            # sends the reader to the wrong module.
+            refused_on_area = 0
             for candidate in candidates:
                 next_rectangles = [
                     rectangle for rectangle in remaining if rectangle != candidate
@@ -708,6 +712,7 @@ def _assign_rectangles(
                     next_rectangles,
                     remaining_area_limits,
                 ):
+                    refused_on_area += 1
                     continue
                 if (
                     remaining_frontage_nodes
@@ -729,9 +734,15 @@ def _assign_rectangles(
                         "orthogonal layout cannot reserve exterior allocation for "
                         f"{node.node_id}"
                     )
+                if refused_on_area == len(candidates):
+                    raise ValueError(
+                        f"orthogonal layout cannot preserve bounded seed capacity "
+                        f"after {node.node_id}"
+                    )
                 raise ValueError(
-                    f"orthogonal layout cannot preserve bounded seed capacity "
-                    f"after {node.node_id}"
+                    "orthogonal layout cannot leave a street-facing seed for "
+                    + ", ".join(later.node_id for later in remaining_frontage_nodes)
+                    + f" after {node.node_id}"
                 )
             candidates = capacity_preserving
         if requires_exterior:
@@ -1697,7 +1708,27 @@ def _subdivide_accessible_rectangles(
             bounded_area_limits is None
             or _has_bounded_seed_capacity(result, bounded_area_limits)
         )
-        if len(result) >= required_count and has_bounded_capacity:
+        # Enough rectangles is not enough seats. Two shops need two street-facing
+        # seeds; one wide one is a single seat, and the assignment lookahead then
+        # refuses every rectangle the first shop could take because it leaves the
+        # second with nowhere on the street. Keep splitting until the band holds
+        # a seat per frontage room, or until nothing splits.
+        # A band that never reaches the street cannot gain a seat by splitting,
+        # since every piece is a subset of what already misses it.
+        touches_street = any(
+            _touches_frontage(rectangle, frontage_segments) for rectangle in result
+        )
+        has_frontage_seats = (
+            frontage_required_count == 0
+            or not touches_street
+            or _frontage_capacity(
+                result,
+                frontage_segments=frontage_segments,
+                minimum_width=frontage_min_width,
+            )
+            >= frontage_required_count
+        )
+        if len(result) >= required_count and has_bounded_capacity and has_frontage_seats:
             break
         if (
             bounded_area_limits is not None
