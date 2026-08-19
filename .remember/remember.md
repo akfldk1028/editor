@@ -69,28 +69,44 @@ disabled until the run is `delivered`.
 fixes still outstanding, and the attempts already reverted. Read it before
 touching the generator; it exists so the same dead ends are not retried.
 
-The count has not moved from 34 of 48, but as of 2026-08-19 the reasons are
-right. Two defects were making every short plate blame the rectangle count: the
-frontage split guard refused every split once the band was short of a seat, and
-the decomposition dropped the 0.25 m grid-step strip along the street, which
-left the accessible band not touching the frontage at all. Both are fixed and
-measured in the envelope doc. Read the three causes there before picking this
-up — the fourteen shortfalls are core sizing on L 36x26, shop placement against
-a central core on the non-rectangular mixed-use plates, and a distinctness
-threshold now meeting an honestly one-family field. Do not move the threshold.
+40 of 48 as of 2026-08-19, up from 34. Every rectangular plate reaches two and
+so does every office-only plate. The eight that remain are L 36x26, L 48x40,
+chamfered, and sloped, all on mixed use, at both floor counts.
 
-Short version, from a 48-case sweep over twelve shape families, 34 of 48
-reaching two:
+Four defects came out of that, all of them reporting the wrong cause, which is
+why the same dead ends kept being retried:
+
+- The composer gated its fallback core requests on the raw acceptance count. A
+  plate whose one workable core family produces three near-identical
+  alternatives had three acceptances and one plan, so the fallbacks never fired
+  where they were needed. They gate on the distinct count now.
+- Core minimums were hardcoded 7.6 by 5.2. The 5.2 is one stair depth plus the
+  lobby, which is what the core needs *across* the exit edge; *along* it two
+  stairs and the bank need 6.8. The same 72 m2 core fitted 60 times for
+  `long_edge_adjacent` and failed 8 for `central` — same rectangle, other edge.
+- The frontage split guard compared against the requirement, so it refused every
+  split once the band was short of a seat.
+- The decomposition dropped the 0.25 m grid-step strip along the street, and
+  frontage contact is exact, so the whole shop program lost its frontage.
+
+All eight remaining shortfalls now stop on one sentence: `orthogonal layout
+cannot leave a street-facing seed for sales_b after sales_a`. That reduces to
+one geometry question — can the street band on these plates carry two 4.0 m shop
+frontages at all, and if so what split produces them. The midpoint cut is the
+only one subdivision knows. Do not move the distinctness threshold; on these
+plates it is downstream of a shop that cannot be seated.
+
+The full pytest run is about eight and a half minutes now, up from six. The
+extra time is the composer's third core pass, and it is what bought the six
+recovered cases.
+
+Short version, from a 48-case sweep over twelve shape families:
 
 - Every rectangular plate reaches the two accepted alternatives approval needs,
-  and so does T 44x30 on both mixes.
-- No mass on the matrix returns none any more. Every remaining shortfall is a
-  plate that reaches exactly one.
-- Every one of those stops the same way: further alternatives pass every hard
-  gate and `_select_quality_distinct_alternatives` refuses them at 0.128 to 0.17
-  for distinctness. The field is narrow because the other core strategies are
-  refused earlier with `too few accessible room rectangles`, so look there
-  before touching the threshold.
+  and so does every plate on the office-only mix.
+- T 44x30, U 44x28, and notched 40x26 reach two on both mixes.
+- No mass on the matrix returns none. Every shortfall is a plate reaching one,
+  and all eight are the mixed-use mix on L 36x26, L 48x40, chamfered, sloped.
 
 Only a primary room grows past its target to take unclaimed floor. Office floors
 get a second one from `_zone_orthogonal_office_program`; commercial floors have
@@ -106,7 +122,7 @@ Anything new that emits plan geometry has to snap the same way.
 ## Verify
 
 ```powershell
-python -m pytest -q                    # 914 passed, 2 skipped, ~6 min
+python -m pytest -q                    # 925 passed, 2 skipped, ~8.5 min
 npm run test:agent                     # GitAgent runtime + PLANM contracts
 npm run test:dev                       # launcher, structure, compose invariants
 npm --prefix frontend run build
