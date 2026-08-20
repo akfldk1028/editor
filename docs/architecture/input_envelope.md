@@ -218,10 +218,24 @@ area-capacity give-ups on sloped. It did not move the count, because on these
 four plates the street band still cannot be cut into two seats of the 4.0 m the
 shops ask for while both halves keep their corridor door.
 
-So the open question is now one question, and it is a geometry question, not a
-threshold one: can the street band on a plate like sloped 40x26 carry two shop
-frontages at all, and if it can, what split produces them. The midpoint split
-is the only cut subdivision knows.
+The measurement answers the geometry question, and the answer is no, not by
+splitting. On sloped 40x26 the band is 14.53 by 6.75 with its corridor contact
+on the 6.75 end. Sixty-six cuts would give two 4.0 m seats; none of them leaves
+both halves a door, and stacking two 4.0 m rooms needs 8 m of depth the band
+does not have. Every room needs a circulation door — `validator/service.py`
+refuses one without — so a shop cannot be seated on street access alone.
+
+Two ways out, both design decisions rather than defects:
+
+- A corridor that runs along the street instead of into it. Tried, measured,
+  reverted; see below. It cannot land while the planner returns one network per
+  core and ranks on area.
+- A program that asks for the tenants the plate can seat.
+  `_split_commercial_tenants` splits the sales area into exactly two, always,
+  and a one-tenant neighbourhood-commercial floor is a normal plan. Deciding
+  that needs the seatable frontage, which is only known inside the layout
+  generator, so it belongs in the repair path beside the daylight retry rather
+  than in the program prior.
 
 ## What still falls short
 
@@ -282,6 +296,21 @@ Room proportions are advisory, so no gate reads it, but a reviewer will.
   fail its own `[0, 1]` contract, discarding the floor that lit every room.
 
 ## Attempts that were reverted, so they are not repeated
+
+- A corridor spine parallel to the street, offered as an extra network
+  candidate. The reasoning holds: a network anchored to the core meets the
+  frontage band end-on, so the band has one door at one end, and the measurement
+  agrees — on sloped 40x26 mixed use the shop band is 14.53 by 6.75 with its
+  corridor contact on the 6.75 end. Of the 66 cuts that would give the band two
+  4.0 m seats, none leaves both halves a door. A street-parallel spine fixes
+  that in principle, and in practice it cut the bands short of a seat from 12 to
+  8. It still cost four cases: 36 of 48, losing U 44x28 and notched 40x26 on
+  mixed use at both floor counts. `_select_network_and_stair` returns one
+  network per core and ranks on corridor area, so a spine is chosen only where
+  it happens to be small — 3 selections out of 21 — and where it is chosen it
+  displaces a network that was serving the floor better. Nothing here works
+  until the planner can offer more than one circulation per core and let the
+  layout generator pick the one its program fits.
 
 - Folding a too-thin cell into its neighbour anywhere on the plate, not just on
   the frontage. It is tempting because it did unlock something real: `central`
