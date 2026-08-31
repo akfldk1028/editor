@@ -19,6 +19,35 @@ def test_create_app_uses_deployment_runs_root(tmp_path: Path, monkeypatch) -> No
     assert app.state.planm_runs.runs_root == runs_root.resolve()
 
 
+def test_execute_endpoint_exposes_explicit_run_recovery(
+    tmp_path: Path, monkeypatch
+) -> None:
+    app = create_app(
+        repository_root=PLAN_ROOT,
+        runs_root=tmp_path / "runs",
+        execute_inline=False,
+    )
+    service = app.state.planm_runs
+    record = service.create(_mass())
+    monkeypatch.setattr(
+        service,
+        "execute",
+        lambda run_id: {
+            **service.get(run_id),
+            "status": "running",
+            "stage": "analyze",
+            "next_stage": "analyze",
+        },
+    )
+
+    response = TestClient(app).post(
+        f"/api/v1/planm/runs/{record['run_id']}/execute"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["next_stage"] == "analyze"
+
+
 def _mass() -> dict:
     return {
         "project_id": "run-api",

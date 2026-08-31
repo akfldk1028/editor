@@ -34,6 +34,10 @@ def create_planm_runs_router(
     def get_run(run_id: str) -> dict:
         return _translate_errors(lambda: service.get(run_id))
 
+    @router.post("/{run_id}/execute")
+    def execute_run(run_id: str) -> dict:
+        return _translate_errors(lambda: service.execute(run_id))
+
     @router.get("/{run_id}/alternatives")
     def get_alternatives(run_id: str) -> dict:
         return _translate_errors(lambda: service.alternatives(run_id))

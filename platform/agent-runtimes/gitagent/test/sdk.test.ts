@@ -27,6 +27,7 @@ describe("exports", () => {
 		assert.equal(typeof mod.query, "function");
 		assert.equal(typeof mod.tool, "function");
 		assert.equal(typeof mod.loadAgent, "function");
+		assert.equal(typeof mod.loadAgentManifest, "function");
 	});
 });
 

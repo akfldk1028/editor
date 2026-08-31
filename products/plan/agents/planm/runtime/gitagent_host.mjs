@@ -49,10 +49,20 @@ async function main() {
 	);
 	const runtime = await import(pathToFileURL(runtimeEntry).href);
 	if (
+		typeof runtime.loadAgentManifest !== "function" ||
 		typeof runtime.discoverWorkflows !== "function" ||
 		typeof runtime.discoverSkills !== "function"
 	) {
 		fail("runtime entry does not expose discovery APIs");
+	}
+	const manifest = await runtime.loadAgentManifest(agentDir);
+	if (
+		manifest?.name !== "planm" ||
+		manifest?.metadata?.execution_mode !== "deterministic" ||
+		!Number.isInteger(manifest?.runtime?.max_turns) ||
+		manifest.runtime.max_turns < 1
+	) {
+		fail("agent manifest is invalid for deterministic PLANM execution");
 	}
 
 	const workflows = await runtime.discoverWorkflows(agentDir);

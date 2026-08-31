@@ -11,6 +11,7 @@ from PIL import Image, ImageChops
 
 
 from backend.app.core.serialization import to_jsonable
+from backend.app.core.json_contracts import validate_planm_contract
 from backend.app.modules.generation_loop.service import run_building_alternatives
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.visual_review.service import create_building_visual_review_artifacts
@@ -25,6 +26,7 @@ STAGE_SKILLS = {
     "review": "review-floorplan",
     "deliver": "deliver-planm-package",
 }
+PRODUCT_ROOT = Path(__file__).resolve().parents[4]
 
 
 def _now() -> str:
@@ -85,8 +87,7 @@ def _load_mass(input_path: Path):
 
 def _load_state(state_path: Path, expected_stage: str) -> dict:
     state = _read_json(state_path)
-    if state.get("contract_version") != "planm-state/v1":
-        raise ValueError("unsupported PLANM state contract")
+    validate_planm_contract(PRODUCT_ROOT, "planm-state.schema.json", state)
     if state.get("stage") != expected_stage:
         raise ValueError(f"expected state stage {expected_stage}, got {state.get('stage')}")
     return state
@@ -145,6 +146,7 @@ def _advance(state_path: Path, state: dict, *, skill: str, stage: str,
     if fingerprints is not None:
         state["candidate_fingerprints"] = fingerprints
     state["history"].append({"skill_name": skill, "status": "success", "attempt": attempt, "finished_at": _now()})
+    validate_planm_contract(PRODUCT_ROOT, "planm-state.schema.json", state)
     _atomic_write(state_path, state)
     return attempt
 
@@ -167,6 +169,7 @@ def normalize(input_path: Path, state_path: Path, output_dir: Path) -> dict:
         "unresolved_facts": _unresolved_facts(mass), "violations": [], "artifacts": [],
         "history": [{"skill_name": STAGE_SKILLS["normalize"], "status": "success", "attempt": 1, "finished_at": _now()}],
     }
+    validate_planm_contract(PRODUCT_ROOT, "planm-state.schema.json", state)
     _atomic_write(state_path, state)
     return _result(skill_name=STAGE_SKILLS["normalize"], status="success", started_at=started_at,
                    input_sha256=_sha256(payload), outputs={"state_path": _portable_path(state_path, output_dir),
@@ -323,8 +326,14 @@ def deliver(input_path: Path, state_path: Path, output_dir: Path) -> dict:
 
 def main() -> int:
     request = json.load(sys.stdin)
-    if not isinstance(request, dict) or request.get("contract_version") != "planm-stage-request/v1":
-        raise SystemExit("unsupported PLANM stage request contract")
+    try:
+        validate_planm_contract(
+            PRODUCT_ROOT,
+            "planm-stage-request.schema.json",
+            request,
+        )
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
     stage = request.get("stage")
     if stage not in STAGE_SKILLS:
         raise SystemExit(f"unsupported PLANM stage: {stage}")
@@ -341,6 +350,7 @@ def main() -> int:
         result = _result(skill_name=STAGE_SKILLS[stage], status="blocked", started_at=_now(),
                          input_sha256=_sha256({"input": input_path.name, "state": state_path.name}),
                          violations=[_violation("stage_execution_failed", f"{type(error).__name__}: {error}")])
+    validate_planm_contract(PRODUCT_ROOT, "skill-result.schema.json", result)
     print(json.dumps(result, ensure_ascii=False))
     return EXIT_CODES[result["status"]]
 

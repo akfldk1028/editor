@@ -120,7 +120,7 @@ export type { SessionCosts, ModelUsage } from "./cost-tracker.js";
 export { estimateTokens, estimateMessageTokens, needsCompaction, truncateToolResults, messagesToText, buildCompactPrompt } from "./compact.js";
 
 // Loader (escape hatch)
-export { loadAgent } from "./loader.js";
+export { loadAgent, loadAgentManifest } from "./loader.js";
 
 // Telemetry (OpenTelemetry instrumentation)
 export {

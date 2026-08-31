@@ -8,6 +8,8 @@ import subprocess
 import sys
 from typing import Any
 
+from backend.app.core.json_contracts import validate_planm_contract
+
 
 def build_planm_host_command(repository_root: Path) -> list[str]:
     node = shutil.which("node") or shutil.which("node.exe")
@@ -81,6 +83,9 @@ def run_planm_stage(
             f"PLANM agent exited {completed.returncode}: {completed.stderr.strip()}"
         )
     result = json.loads(completed.stdout)
-    if not isinstance(result, dict) or result.get("contract_version") != "skill-result/v1":
-        raise ValueError("PLANM agent returned an unsupported result contract")
+    validate_planm_contract(
+        repository_root,
+        "skill-result.schema.json",
+        result,
+    )
     return result

@@ -15,12 +15,13 @@ const stages = [
 	["deliver", "deliver-planm-package"],
 ];
 
-async function fixture({ escapeSkill = false } = {}) {
+async function fixture({ escapeSkill = false, agentName = "planm" } = {}) {
 	const root = await mkdtemp(join(tmpdir(), "planm-host-"));
 	const agent = join(root, "agent");
 	const skill = escapeSkill ? join(root, "outside-skill") : join(agent, "skills", stages[0][1]);
 	const evidence = join(root, "evidence.txt");
 	await mkdir(agent, { recursive: true });
+	await writeFile(join(agent, "agent.yaml"), `name: ${agentName}\n`);
 	await mkdir(join(skill, "scripts"), { recursive: true });
 	await writeFile(
 		join(skill, "scripts", "run.py"),
@@ -31,6 +32,7 @@ async function fixture({ escapeSkill = false } = {}) {
 		runtime,
 		`import {appendFileSync} from "node:fs";
 const steps=${JSON.stringify(stages.map(([, skillName]) => ({ skill: skillName })))};
+export async function loadAgentManifest(){appendFileSync(process.env.EVIDENCE,"manifest\\n");return {name:${JSON.stringify(agentName)},metadata:{execution_mode:"deterministic"},runtime:{max_turns:40}}}
 export async function discoverWorkflows(){appendFileSync(process.env.EVIDENCE,"workflows\\n");return [{name:"planm-delivery",steps}]}
 export async function discoverSkills(){appendFileSync(process.env.EVIDENCE,"skills\\n");return [{name:"normalize-plan-request",directory:${JSON.stringify(skill)}}]}
 export async function loadFlowDefinition(){throw new Error("unexpected flow load")}`,
@@ -61,7 +63,7 @@ test("discovers the PLANM workflow and skill before executing its script", async
 
 	assert.equal(completed.status, 0, completed.stderr);
 	assert.equal(JSON.parse(completed.stdout).contract_version, "skill-result/v1");
-	assert.equal(await import("node:fs/promises").then((fs) => fs.readFile(paths.evidence, "utf8")), "workflows\nskills\nskill\n");
+	assert.equal(await import("node:fs/promises").then((fs) => fs.readFile(paths.evidence, "utf8")), "manifest\nworkflows\nskills\nskill\n");
 });
 
 test("rejects a discovered skill outside the PLANM agent directory", async () => {
@@ -70,4 +72,12 @@ test("rejects a discovered skill outside the PLANM agent directory", async () =>
 
 	assert.equal(completed.status, 4);
 	assert.match(completed.stderr, /escapes the PLANM agent directory/);
+});
+
+test("rejects a runtime manifest that is not the PLANM agent", async () => {
+	const paths = await fixture({ agentName: "other-agent" });
+	const completed = runHost(paths);
+
+	assert.equal(completed.status, 4);
+	assert.match(completed.stderr, /agent manifest is invalid/);
 });

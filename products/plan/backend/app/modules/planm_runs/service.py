@@ -7,12 +7,24 @@ from threading import RLock
 from typing import Any
 from uuid import uuid4
 
+import yaml
+from filelock import FileLock, Timeout as FileLockTimeout
+
 from backend.app.adapters.planm_agent import run_planm_stage
 from backend.app.adapters.dwg_client import inspect_dwg_handoff
+from backend.app.core.json_contracts import validate_planm_contract
 from backend.app.modules.cad_handoff import create_dxf_handoff
 
 
 STAGES = ("normalize", "analyze", "alternatives", "review", "deliver")
+AUTO_RETRY_CODES = {"agent_process_failed", "engine_timeout", "stage_execution_failed"}
+STATE_NEXT_STAGE = {
+    "normalized": "analyze",
+    "analyzed": "alternatives",
+    "alternatives_generated": "review",
+    "reviewed": "deliver",
+    "delivered": None,
+}
 
 
 class PlanmRunNotFound(LookupError):
@@ -44,12 +56,36 @@ def _read_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def _maximum_stage_attempts(repository_root: Path) -> int:
+    config_path = repository_root / "agents" / "planm" / "config" / "default.yaml"
+    value = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    attempts = value.get("planm", {}).get("maximum_stage_attempts") if isinstance(value, dict) else None
+    if not isinstance(attempts, int) or isinstance(attempts, bool) or not 1 <= attempts <= 5:
+        raise ValueError("PLANM maximum_stage_attempts must be an integer from 1 to 5")
+    return attempts
+
+
+def _next_stage(stage: str) -> str | None:
+    index = STAGES.index(stage)
+    return STAGES[index + 1] if index + 1 < len(STAGES) else None
+
+
+def _retry_codes(result: dict[str, Any]) -> set[str]:
+    return {
+        str(item.get("code"))
+        for item in result.get("violations", [])
+        if isinstance(item, dict) and item.get("retryable") is True
+    }
+
+
 class PlanmRunService:
     def __init__(self, *, repository_root: Path, runs_root: Path) -> None:
         self.repository_root = repository_root.resolve()
         self.runs_root = runs_root.resolve()
         self.runs_root.mkdir(parents=True, exist_ok=True)
         self._lock = RLock()
+        self._execution_locks: dict[str, FileLock] = {}
+        self.maximum_stage_attempts = _maximum_stage_attempts(self.repository_root)
 
     def create(self, mass: dict[str, Any]) -> dict[str, Any]:
         run_id = uuid4().hex
@@ -71,49 +107,192 @@ class PlanmRunService:
             "approved_alternative_id": None,
             "violations": [],
             "unresolved_facts": [],
+            "next_stage": "normalize",
+            "stage_attempts": {},
+            "execution_history": [],
         }
         _write_json(run_dir / "run.json", record)
         return record
 
     def execute(self, run_id: str) -> dict[str, Any]:
+        execution_lock = self._execution_lock(run_id)
+        try:
+            execution_lock.acquire(timeout=0)
+        except FileLockTimeout:
+            return self.get(run_id)
+        try:
+            return self._execute_owned(run_id)
+        finally:
+            execution_lock.release()
+
+    def _execute_owned(self, run_id: str) -> dict[str, Any]:
         run_dir = self._existing_run_dir(run_id)
         input_path = run_dir / "input" / "mass.json"
         output_dir = run_dir / "artifacts"
         state_path = output_dir / "planm-state.json"
-        for stage in STAGES:
-            self._update(run_id, status="running", stage=stage)
-            try:
-                result = run_planm_stage(
-                    stage=stage,
-                    input_path=input_path,
-                    state_path=state_path,
-                    output_dir=output_dir,
-                    repository_root=self.repository_root,
-                    run_root=run_dir,
-                )
-            except (OSError, RuntimeError, TimeoutError, ValueError) as error:
-                return self._update(
+        self._reconcile_agent_state(run_id, state_path)
+        record = self.get(run_id)
+        if record["status"] in {"delivered", "approved"}:
+            return record
+        start = record.get("next_stage", "normalize")
+        if start not in STAGES:
+            raise PlanmRunConflict("run has no resumable PLANM stage")
+        for stage in STAGES[STAGES.index(start):]:
+            while True:
+                record = self.get(run_id)
+                attempts = dict(record.get("stage_attempts", {}))
+                attempt = int(attempts.get(stage, 0)) + 1
+                if attempt > self.maximum_stage_attempts:
+                    return self._attempts_exhausted(run_id, stage, attempts[stage])
+                attempts[stage] = attempt
+                self._update(
                     run_id,
-                    status="blocked",
+                    status="running",
                     stage=stage,
-                    violations=[
-                        {
-                            "code": "agent_process_failed",
-                            "message": f"{type(error).__name__}: {error}",
-                        }
-                    ],
+                    next_stage=stage,
+                    stage_attempts=attempts,
+                    violations=[],
                 )
-            if result["status"] != "success":
+                try:
+                    result = run_planm_stage(
+                        stage=stage,
+                        input_path=input_path,
+                        state_path=state_path,
+                        output_dir=output_dir,
+                        repository_root=self.repository_root,
+                        run_root=run_dir,
+                    )
+                except (OSError, RuntimeError, TimeoutError, ValueError) as error:
+                    result = {
+                        "status": "retryable",
+                        "outputs": {},
+                        "violations": [
+                            {
+                                "code": "agent_process_failed",
+                                "message": f"{type(error).__name__}: {error}",
+                                "severity": "hard",
+                                "retryable": True,
+                            }
+                        ],
+                    }
+                history = list(self.get(run_id).get("execution_history", []))
+                history.append(
+                    {
+                        "stage": stage,
+                        "status": result["status"],
+                        "attempt": attempt,
+                        "finished_at": _now(),
+                        "violations": result.get("violations", []),
+                    }
+                )
+                if result["status"] == "success":
+                    unresolved = result.get("outputs", {}).get("unresolved_facts")
+                    changes: dict[str, Any] = {
+                        "status": "running",
+                        "stage": stage,
+                        "next_stage": _next_stage(stage),
+                        "execution_history": history,
+                        "violations": [],
+                    }
+                    if isinstance(unresolved, list):
+                        changes["unresolved_facts"] = [str(item) for item in unresolved]
+                    self._update(run_id, **changes)
+                    break
+                retry_codes = _retry_codes(result)
+                if (
+                    result["status"] == "retryable"
+                    and retry_codes
+                    and retry_codes <= AUTO_RETRY_CODES
+                    and attempt < self.maximum_stage_attempts
+                ):
+                    self._update(run_id, execution_history=history)
+                    continue
+                if result["status"] == "retryable" and attempt >= self.maximum_stage_attempts:
+                    self._update(run_id, execution_history=history)
+                    return self._attempts_exhausted(run_id, stage, attempt)
                 return self._update(
                     run_id,
                     status=result["status"],
                     stage=stage,
+                    next_stage=stage,
                     violations=result.get("violations", []),
+                    execution_history=history,
                 )
-            unresolved = result.get("outputs", {}).get("unresolved_facts")
-            if isinstance(unresolved, list):
-                self._update(run_id, unresolved_facts=[str(item) for item in unresolved])
-        return self._update(run_id, status="delivered", stage="delivered")
+        return self._update(
+            run_id,
+            status="delivered",
+            stage="delivered",
+            next_stage=None,
+            violations=[],
+        )
+
+    def _reconcile_agent_state(self, run_id: str, state_path: Path) -> None:
+        if not state_path.is_file():
+            return
+        state = _read_json(state_path)
+        validate_planm_contract(
+            self.repository_root,
+            "planm-state.schema.json",
+            state,
+        )
+        state_next = STATE_NEXT_STAGE.get(state["stage"])
+        record = self.get(run_id)
+        record_next = record.get("next_stage", "normalize")
+        state_rank = len(STAGES) if state_next is None else STAGES.index(state_next)
+        record_rank = (
+            len(STAGES)
+            if record_next is None
+            else STAGES.index(record_next)
+        )
+        if state_rank <= record_rank:
+            return
+        if state_next is None:
+            self._update(
+                run_id,
+                status="delivered",
+                stage="delivered",
+                next_stage=None,
+                violations=[],
+            )
+            return
+        self._update(
+            run_id,
+            status="queued",
+            stage=state["stage"],
+            next_stage=state_next,
+            violations=[],
+        )
+
+    def _attempts_exhausted(
+        self,
+        run_id: str,
+        stage: str,
+        attempt: int,
+    ) -> dict[str, Any]:
+        return self._update(
+            run_id,
+            status="blocked",
+            stage=stage,
+            next_stage=stage,
+            violations=[
+                {
+                    "code": "stage_attempts_exhausted",
+                    "message": (
+                        f"PLANM stage {stage} exhausted {attempt} attempts"
+                    ),
+                    "severity": "hard",
+                    "retryable": False,
+                }
+            ],
+        )
+
+    def _execution_lock(self, run_id: str) -> FileLock:
+        run_dir = self._existing_run_dir(run_id)
+        with self._lock:
+            return self._execution_locks.setdefault(
+                run_id,
+                FileLock(str(run_dir / ".execute.lock")),
+            )
 
     def get(self, run_id: str) -> dict[str, Any]:
         return _read_json(self._existing_run_dir(run_id) / "run.json")

@@ -144,6 +144,28 @@ export interface LoadedAgent {
 	plugins: LoadedPlugin[];
 }
 
+export async function loadAgentManifest(agentDir: string): Promise<AgentManifest> {
+	const manifestRaw = await readFile(join(agentDir, "agent.yaml"), "utf-8");
+	const manifest = yaml.load(manifestRaw) as AgentManifest;
+	if (
+		!manifest ||
+		typeof manifest !== "object" ||
+		typeof manifest.spec_version !== "string" ||
+		typeof manifest.name !== "string" ||
+		typeof manifest.version !== "string" ||
+		typeof manifest.description !== "string" ||
+		!manifest.model ||
+		!Array.isArray(manifest.model.fallback) ||
+		!Array.isArray(manifest.tools) ||
+		!manifest.runtime ||
+		!Number.isInteger(manifest.runtime.max_turns) ||
+		manifest.runtime.max_turns < 1
+	) {
+		throw new Error("agent.yaml does not satisfy the GitAgent manifest contract");
+	}
+	return manifest;
+}
+
 function deepMerge(base: Record<string, any>, override: Record<string, any>): Record<string, any> {
 	const result = { ...base };
 	for (const key of Object.keys(override)) {
@@ -241,8 +263,7 @@ export async function loadAgent(
 	envFlag?: string,
 ): Promise<LoadedAgent> {
 	// Parse agent.yaml
-	const manifestRaw = await readFile(join(agentDir, "agent.yaml"), "utf-8");
-	let manifest = yaml.load(manifestRaw) as AgentManifest;
+	let manifest = await loadAgentManifest(agentDir);
 
 	// Load environment config
 	const envConfig = await loadEnvConfig(agentDir, envFlag);
