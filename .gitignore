@@ -18,9 +18,9 @@ logs/evaluation/
 logs/migration-backups/
 logs/security/
 logs/
-resources/experiments/**/outputs/
+products/plan/resources/experiments/**/outputs/
 clone/
 .playwright-mcp/
 .idea/
-/frontend/vite.config.js
-/frontend/vite.config.d.ts
+/products/plan/frontend/vite.config.js
+/products/plan/frontend/vite.config.d.ts

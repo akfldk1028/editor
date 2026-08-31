@@ -16,11 +16,11 @@ async function exists(path) {
 
 test("the product checkout exposes only canonical top-level module ownership", async () => {
   for (const path of [
-    "frontend",
-    "backend/app",
-    "agents/planm",
-    "agents/runtimes/gitagent",
-    "agents/dwg",
+    "products/plan/frontend",
+    "products/plan/backend/app",
+    "products/plan/agents/planm",
+    "platform/agent-runtimes/gitagent",
+    "products/dwg",
     "infra/dev",
   ]) {
     assert.equal(await exists(resolve(repositoryRoot, path)), true, `${path} must exist`);
@@ -30,11 +30,11 @@ test("the product checkout exposes only canonical top-level module ownership", a
 
 test("frontend generated configuration artifacts do not pollute the source tree", async () => {
   for (const path of [
-    "frontend/reserved_for_v2_dashboard",
-    "frontend/vite.config.js",
-    "frontend/vite.config.d.ts",
-    "frontend/tsconfig.tsbuildinfo",
-    "frontend/tsconfig.node.tsbuildinfo",
+    "products/plan/frontend/reserved_for_v2_dashboard",
+    "products/plan/frontend/vite.config.js",
+    "products/plan/frontend/vite.config.d.ts",
+    "products/plan/frontend/tsconfig.tsbuildinfo",
+    "products/plan/frontend/tsconfig.node.tsbuildinfo",
   ]) {
     assert.equal(await exists(resolve(repositoryRoot, path)), false, `${path} must not exist`);
   }

@@ -17,8 +17,8 @@ module.exports = defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: "npm --prefix frontend run dev -- --host 127.0.0.1",
-    cwd: repositoryRoot,
+    command: "npm run dev -- --host 127.0.0.1",
+    cwd: resolve(repositoryRoot, "products/plan/frontend"),
     url: "http://127.0.0.1:5173",
     reuseExistingServer: false,
     timeout: 30000,

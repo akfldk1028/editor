@@ -1,0 +1,27 @@
+{
+  "name": "@planm/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test:boundaries": "node --test tests/module-boundaries.test.mjs"
+  },
+  "dependencies": {
+    "@click-around/workspace": "file:../../dwg/apps/workspace",
+    "@dwg/contracts": "file:../../dwg/packages/contracts",
+    "@fontsource-variable/manrope": "^5.2.7",
+    "@fontsource-variable/newsreader": "^5.2.8",
+    "lucide-react": "^1.27.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^5.8.3",
+    "vite": "^8.1.5"
+  }
+}

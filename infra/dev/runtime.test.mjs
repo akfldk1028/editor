@@ -28,14 +28,14 @@ test("service definitions keep one product URL and explicit module working direc
   const services = createServiceDefinitions(repositoryRoot, "win32");
 
   assert.equal(services.frontend.publicUrl, "http://127.0.0.1:5173");
-  assert.equal(services.backend.cwd, resolve(repositoryRoot));
-  assert.equal(services.dwg.cwd, resolve(repositoryRoot, "agents/dwg"));
-  assert.equal(services.frontend.cwd, resolve(repositoryRoot, "frontend"));
+  assert.equal(services.backend.cwd, resolve(repositoryRoot, "products/plan"));
+  assert.equal(services.dwg.cwd, resolve(repositoryRoot, "products/dwg"));
+  assert.equal(services.frontend.cwd, resolve(repositoryRoot, "products/plan/frontend"));
   assert.deepEqual(
     services.frontend.args.slice(-4),
     ["--host", "127.0.0.1", "--port", "5173"],
   );
-  assert.ok(services.frontend.args.includes(resolve(repositoryRoot, "frontend/vite.config.ts")));
+  assert.ok(services.frontend.args.includes(resolve(repositoryRoot, "products/plan/frontend/vite.config.ts")));
 });
 
 test("probeService accepts only the expected backend contract", async () => {
