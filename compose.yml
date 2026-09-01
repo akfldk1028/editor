@@ -2,9 +2,9 @@ services:
   backend:
     build:
       context: .
-      dockerfile: products/plan/infra/docker/backend.Dockerfile
+      dockerfile: infra/docker/backend.Dockerfile
     environment:
-      PLANM_REPOSITORY_ROOT: /workspace/products/plan
+      PLANM_REPOSITORY_ROOT: /app
       PLANM_RUNS_ROOT: /data/planm-runs
     volumes:
       - planm-runs:/data/planm-runs
@@ -21,7 +21,7 @@ services:
   dwg:
     build:
       context: .
-      dockerfile: products/dwg/infra/docker/Dockerfile
+      dockerfile: infra/docker/dwg.Dockerfile
     volumes:
       - planm-runs:/data/planm-runs
       - dwg-exports:/data/dwg-exports
@@ -38,7 +38,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: products/plan/infra/docker/frontend.Dockerfile
+      dockerfile: infra/docker/frontend.Dockerfile
     depends_on:
       backend:
         condition: service_healthy

@@ -4,10 +4,9 @@
     "dev": "node infra/dev/product.mjs",
     "dev:docker": "docker compose up --build",
     "dev:docker:down": "docker compose down",
-    "build:agent-runtime": "npm --prefix platform/agent-runtimes/gitagent run build",
+    "build:agent-runtime": "npm --prefix agents/runtimes/gitagent run build",
     "test:dev": "node --test infra/dev/*.test.mjs",
-    "test:architecture": "node --test infra/architecture/*.test.mjs",
-    "test:agent": "npm run build:agent-runtime && node --test products/plan/agents/planm/tests/*.test.ts products/plan/agents/planm/tests/*.test.mjs --experimental-strip-types",
+    "test:agent": "npm run build:agent-runtime && node --test agents/planm/tests/*.test.ts agents/planm/tests/*.test.mjs --experimental-strip-types",
     "test:browser": "playwright test -c infra/e2e/visual-review.config.cjs",
     "test:frontend": "playwright test -c infra/e2e/frontend.config.cjs",
     "test:product": "playwright test -c infra/e2e/product.config.cjs"

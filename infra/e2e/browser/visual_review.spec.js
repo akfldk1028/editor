@@ -16,7 +16,7 @@ test.beforeAll(async () => {
       "--input", "resources/datasets/manifests/sample_mass_office_commercial.json",
       "--output-dir", outputDir,
     ],
-    { cwd: join(root, "products", "plan"), stdio: "pipe" },
+    { cwd: root, stdio: "pipe" },
   );
   server = spawn("python", ["-m", "http.server", String(port), "--directory", outputDir], {
     cwd: root,

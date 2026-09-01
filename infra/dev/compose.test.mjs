@@ -32,7 +32,7 @@ test("the DWG image never seeds a path that a mounted volume then hides", () => 
   assert.ok(mountTargets.length > 0, "the DWG service must mount its run and export volumes");
 
   const dockerfile = readFileSync(
-    resolve(repositoryRoot, "products/dwg/infra/docker/Dockerfile"),
+    resolve(repositoryRoot, "infra/docker/dwg.Dockerfile"),
     "utf8",
   );
   const buildSteps = dockerfile
