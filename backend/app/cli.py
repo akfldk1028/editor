@@ -50,12 +50,7 @@ from backend.app.modules.visual_review.service import (
     run_visual_review_loop,
 )
 from backend.app.schemas.llm import FloorAssignment
-from backend.app.schemas.mass import (
-    BuildingCodeContext,
-    FloorCodeContext,
-    FloorFootprint,
-    MassInput,
-)
+from backend.app.schemas.mass import MassInput
 from backend.app.schemas.mass_io import mass_input_from_payload
 
 _IRREGULAR_MINIMUM_FLOOR_COVERAGE = 0.60
