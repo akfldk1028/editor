@@ -8,7 +8,7 @@ validated alternatives, visual review, bounded repair, and delivery evidence.
 ## Stable boundaries
 
 - GitAgent is the generic runtime.
-- `products/plan/agents/planm` owns PLANM product behavior in the workspace.
+- `agents/planm` owns PLANM product behavior in this repository.
 - PLAN Python modules own deterministic domain behavior.
 - Skills communicate through persisted versioned JSON contracts.
 - Backend owns durable run attempts, resume position, approval, and CAD handoff.
