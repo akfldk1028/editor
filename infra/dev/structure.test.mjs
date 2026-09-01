@@ -19,13 +19,15 @@ test("the product checkout exposes only canonical top-level module ownership", a
     "frontend",
     "backend/app",
     "agents/planm",
-    "agents/runtimes/gitagent",
-    "agents/dwg",
+    "infra/runtimes/gitagent",
+    "infra/services/dwg",
     "infra/dev",
   ]) {
     assert.equal(await exists(resolve(repositoryRoot, path)), true, `${path} must exist`);
   }
-  assert.equal(await exists(resolve(repositoryRoot, "agent")), false, "legacy agent/ must not exist");
+  for (const path of ["agent", "agents/runtimes", "agents/dwg"]) {
+    assert.equal(await exists(resolve(repositoryRoot, path)), false, `${path} must not exist`);
+  }
 });
 
 test("frontend generated configuration artifacts do not pollute the source tree", async () => {

@@ -12,8 +12,8 @@ The canonical folder ownership and dependency rules are defined in
 - `backend/app/modules`: PLAN product logic, run ownership, artifacts, and stage execution.
 - `backend/app/adapters`: thin process or loopback clients for PLANM Agent and DWG.
 - `agents/planm`: PLANM identity, contracts, skills, workflows, memory, and process bridge.
-- `agents/runtimes/gitagent`: generic Agent runtime; it imports no PLANM or DWG product code.
-- `agents/dwg`: vendored independent DWG product and process;
+- `infra/runtimes/gitagent`: generic Agent runtime; it imports no PLANM or DWG product code.
+- `infra/services/dwg`: independent DWG service and process;
   its workspace, runtime, parsers, contracts, skills, and tests stay internally owned.
 - `backend.engine`: backend-owned geometry, graph, constraint, metric, and image primitives.
 

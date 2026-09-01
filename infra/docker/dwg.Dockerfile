@@ -5,7 +5,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim
 COPY --from=node-runtime /usr/local/ /usr/local/
 
 WORKDIR /dwg
-COPY agents/dwg/ ./
+COPY infra/services/dwg/ ./
 
 RUN npm ci --prefer-offline --no-audit \
     && npm run build:parser \

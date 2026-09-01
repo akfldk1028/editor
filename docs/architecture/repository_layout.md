@@ -15,24 +15,25 @@ PLAN/
 |   |-- engine/               backend-owned geometry and validation primitives
 |   `-- tests/                backend unit and contract tests
 |-- agents/
-|   |-- planm/
-|   |   |-- agent.yaml        agent manifest
-|   |   |-- SOUL.md           identity
-|   |   |-- RULES.md          behavior boundary
-|   |   |-- config/           agent-owned configuration
-|   |   |-- contracts/        backend-to-agent JSON contracts
-|   |   |-- runtime/          GitAgent host and process bridge
-|   |   |-- skills/           executable PLANM capabilities
-|   |   |-- workflows/        ordered skill flows
-|   |   |-- memory/           PLANM product memory
-|   |   `-- tests/            agent contract and runtime tests
-|   |-- runtimes/
-|   |   `-- gitagent/         generic runtime; no PLAN or DWG imports
-|   `-- dwg/                  vendored independent DWG product module
+|   `-- planm/
+|       |-- agent.yaml        agent manifest
+|       |-- SOUL.md           identity
+|       |-- RULES.md          behavior boundary
+|       |-- config/           agent-owned configuration
+|       |-- contracts/        backend-to-agent JSON contracts
+|       |-- runtime/          GitAgent host and process bridge
+|       |-- skills/           executable PLANM capabilities
+|       |-- workflows/        ordered skill flows
+|       |-- memory/           PLANM product memory
+|       `-- tests/            agent contract and runtime tests
 |-- infra/
 |   |-- docker/               container definitions and reverse proxy config
 |   |-- dev/                  local product launcher and structure tests
-|   `-- e2e/                  product UI and visual E2E, Playwright configs
+|   |-- e2e/                  product UI and visual E2E, Playwright configs
+|   |-- runtimes/
+|   |   `-- gitagent/         generic runtime; no PLAN or DWG imports
+|   `-- services/
+|       `-- dwg/              independent DWG service and workspace
 |-- resources/
 |   |-- datasets/             retained source and normalized fixtures
 |   |-- experiments/          bounded experiment definitions and evidence
@@ -42,8 +43,8 @@ PLAN/
 ```
 
 No `external/` directory exists. It was removed when each product took ownership
-of its own module: the generic runtime became `agents/runtimes/gitagent/` and the
-vendored DWG product became `agents/dwg/`.
+of its own module: the generic runtime is `infra/runtimes/gitagent/` and the
+independent DWG service is `infra/services/dwg/`.
 
 ## Dependency Rules
 
@@ -53,8 +54,9 @@ Backend -> PLANM adapter -> GitAgent host -> PLANM skill -> process bridge
 Backend -> DWG adapter -> independent DWG process, after approval only
 ```
 
-- Frontend never imports Backend, PLANM, GitAgent, or DWG source.
-- Backend modules never import `agents/planm` or `agents/dwg` product internals.
+- Frontend never imports Backend, PLANM, GitAgent, or DWG internals; it consumes
+  only the DWG service's public workspace and contract packages.
+- Backend modules never import `agents/planm` or `infra/services/dwg` internals.
 - PLANM never imports Backend modules or DWG internals.
 - The generic GitAgent runtime never imports PLANM, Backend, or DWG code.
 - DWG never imports PLANM or Backend modules.

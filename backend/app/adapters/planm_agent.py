@@ -42,7 +42,7 @@ def run_planm_stage(
     environment = os.environ.copy()
     environment["PLANM_AGENT_DIR"] = str(repository_root / "agents" / "planm")
     environment["PLANM_GITAGENT_RUNTIME_ENTRY"] = str(
-        repository_root / "agents" / "runtimes" / "gitagent" / "dist" / "exports.js"
+        repository_root / "infra" / "runtimes" / "gitagent" / "dist" / "exports.js"
     )
     environment["PLANM_PYTHON_EXECUTABLE"] = sys.executable
     environment["PLANM_ENGINE_COMMAND_JSON"] = json.dumps(

@@ -32,8 +32,8 @@
 | `backend/app/adapters/` | PLANM 프로세스 / DWG 루프백 얇은 클라이언트 |
 | `backend/engine/` | 기하, 그래프, 제약, 메트릭, 이미지 프리미티브. **Shapely 유일 경계** |
 | `agents/planm/` | PLANM 정체성, 계약, 스킬, 워크플로, 메모리, 프로세스 브리지 |
-| `agents/runtimes/gitagent/` | 범용 GitAgent 호스트. PLAN/DWG 코드 무의존 |
-| `agents/dwg/` | 벤더링된 독립 DWG 제품 (자체 AGENTS.md 보유) |
+| `infra/runtimes/gitagent/` | 범용 GitAgent 호스트. PLAN/DWG 코드 무의존 |
+| `infra/services/dwg/` | 독립 DWG 서비스 (자체 AGENTS.md 보유) |
 | `infra/docker/` | 컨테이너 정의, 리버스 프록시 설정 |
 | `infra/dev/` | 로컬 제품 런처, 구조·배포 경계 테스트 |
 | `infra/e2e/` | 제품 UI 및 시각 E2E, Playwright 설정 |
@@ -50,7 +50,7 @@ Backend  -> DWG 어댑터 -> 독립 DWG 프로세스 (승인 후에만)
 ```
 
 - Frontend는 Backend/PLANM/GitAgent/DWG 소스를 import 하지 않는다.
-- Backend는 `agents/planm`, `agents/dwg` 내부를 import 하지 않는다.
+- Backend는 `agents/planm`, `infra/services/dwg` 내부를 import 하지 않는다.
 - PLANM과 DWG는 서로를 import 하지 않는다.
 - GitAgent 런타임은 PLANM/Backend/DWG 코드를 import 하지 않는다.
 - 모듈 간 데이터는 버전드 JSON 또는 공개 HTTP/MCP 계약으로만 오간다.
@@ -75,7 +75,7 @@ npm --prefix frontend run build        # tsc --noEmit + vite build
 npm --prefix frontend run test:boundaries
 npm run test:frontend                  # Playwright 프론트엔드
 npm run test:product                   # Playwright 라이브 제품 플로우
-npm --prefix agents/dwg run verify:all # DWG: node + .NET 파서/CAD I/O + E2E
+npm --prefix infra/services/dwg run verify:all # DWG: node + .NET 파서/CAD I/O + E2E
 ```
 
 ## 비제품 디렉터리

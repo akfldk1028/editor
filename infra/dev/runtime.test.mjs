@@ -29,7 +29,7 @@ test("service definitions keep one product URL and explicit module working direc
 
   assert.equal(services.frontend.publicUrl, "http://127.0.0.1:5173");
   assert.equal(services.backend.cwd, resolve(repositoryRoot));
-  assert.equal(services.dwg.cwd, resolve(repositoryRoot, "agents/dwg"));
+  assert.equal(services.dwg.cwd, resolve(repositoryRoot, "infra/services/dwg"));
   assert.equal(services.frontend.cwd, resolve(repositoryRoot, "frontend"));
   assert.deepEqual(
     services.frontend.args.slice(-4),

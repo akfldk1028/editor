@@ -12,8 +12,8 @@ Structure:
 - `backend/app/` — api, schemas, modules (20), adapters (planm_agent, dwg_client, planm_engine)
 - `backend/engine/` — geometry, graph, constraints, metrics; the sole Shapely boundary
 - `agents/planm/` — SOUL, RULES, agent.yaml, 3 contracts, 5 skills, workflow, memory
-- `agents/runtimes/gitagent/` — generic runtime
-- `agents/dwg/` — vendored independent DWG product
+- `infra/runtimes/gitagent/` — generic runtime
+- `infra/services/dwg/` — independent DWG service
 - `infra/docker`, `infra/dev`, `infra/e2e`, `resources/*`, `docs/`
 
 Code folders are exactly frontend, backend, agents, infra. `docs/` and
@@ -128,7 +128,7 @@ npm run test:dev                       # launcher, structure, compose invariants
 npm --prefix frontend run build
 npm run test:frontend                  # Playwright frontend
 npm run test:product                   # Playwright live product flow
-npm --prefix agents/dwg run verify:all # node + .NET parser/CAD I/O + E2E
+npm --prefix infra/services/dwg run verify:all # node + .NET parser/CAD I/O + E2E
 python resources/scripts/sweep_alternatives.py logs/runs/shapes --summarize-only
 ```
 

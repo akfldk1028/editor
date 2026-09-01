@@ -20,7 +20,7 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       name: "dwg",
       command: npm,
       args: ["run", "gateway"],
-      cwd: resolve(repositoryRoot, "agents/dwg"),
+      cwd: resolve(repositoryRoot, "infra/services/dwg"),
       healthUrl: "http://127.0.0.1:4317/api/health",
       timeoutMs: 120_000,
       validate: ({ body }) => body?.ok === true && body?.service === "dwg-provider-gateway",

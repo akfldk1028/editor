@@ -1,14 +1,14 @@
 # DWG Intelligence integration boundary
 
 DWG Intelligence is vendored as one complete independent product module at
-`agents/dwg`. PLAN directly tracks its workspace, runtime,
+`infra/services/dwg`. PLAN directly tracks its workspace, runtime,
 parsers, contracts, skills, tests, agent guidance, and repository memory so a
 normal PLAN checkout contains every DWG Frontend and Backend source file.
 
 ## Boundary
 
 - Do not copy DWG source into `backend/`, `frontend/`, `agents/planm/`, or
-  `agents/runtimes/gitagent/`.
+  `infra/runtimes/gitagent/`.
 - Do not deep-import DWG parser, runtime, workspace feature, or CAD capability
   internals.
 - Prefer the DWG loopback `/api` or MCP stdio process boundary when PLAN needs
@@ -16,8 +16,8 @@ normal PLAN checkout contains every DWG Frontend and Backend source file.
 - Contract-only consumers may use the public `@dwg/contracts` or
   `@dwg/skill-contracts` package entrypoints with their declared dependencies.
 - Before changing the vendored module, read
-  `agents/dwg/AGENTS.md` and
-  `agents/dwg/docs/handoff/repo-memory.md`.
+  `infra/services/dwg/AGENTS.md` and
+  `infra/services/dwg/docs/handoff/repo-memory.md`.
 
 PLANM and GitAgent remain PLAN-owned. They may call a supported DWG process
 surface, but neither repository imports the other's internal implementation.
@@ -47,8 +47,8 @@ test while preserving all other source from the reviewed DWG checkout.
 ## Initialize and verify
 
 ```powershell
-npm --prefix agents/dwg ci
-npm --prefix agents/dwg run verify:all
+npm --prefix infra/services/dwg ci
+npm --prefix infra/services/dwg run verify:all
 ```
 
 Upstream synchronization must compare tracked blobs, preserve PLAN-reviewed

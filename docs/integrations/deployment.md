@@ -11,10 +11,10 @@ Browser -> Frontend nginx -> Backend HTTP
 - Frontend contains only the built Vite application and reverse proxy.
 - Backend owns run state, orchestration, adapters, and the persistent run volume.
 - `agents/planm` remains a separate process boundary from Backend domain code.
-- `agents/runtimes/gitagent` remains a generic built runtime with no PLAN or DWG imports.
+- `infra/runtimes/gitagent` remains a generic built runtime with no PLAN or DWG imports.
   Its built discovery API is required by every deployed PLANM stage; no user
   activation switch or LLM provider is required.
-- `agents/dwg` is built from its complete vendored source. Its public
+- `infra/services/dwg` is built from its complete vendored source. Its public
   gateway starts only for an approved CAD inspection and receives the single run
   handoff directory as `DWG_WORKSPACE`.
 - DWG source is never copied into Backend Python packages and Frontend never

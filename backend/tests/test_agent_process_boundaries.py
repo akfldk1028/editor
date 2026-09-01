@@ -91,7 +91,7 @@ def test_dwg_client_builds_independent_mcp_process_command() -> None:
     assert command[0] in {"npm", "npm.cmd"}
     assert command[1:] == [
         "--prefix",
-        str(PLAN_ROOT / "agents" / "dwg"),
+        str(PLAN_ROOT / "infra" / "services" / "dwg"),
         "run",
         "mcp",
     ]
@@ -105,7 +105,7 @@ def test_dwg_client_builds_independent_gateway_process_command() -> None:
     assert command[0] in {"npm", "npm.cmd"}
     assert command[1:] == [
         "--prefix",
-        str(PLAN_ROOT / "agents" / "dwg"),
+        str(PLAN_ROOT / "infra" / "services" / "dwg"),
         "run",
         "gateway",
     ]

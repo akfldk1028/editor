@@ -20,12 +20,12 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=cache,target=/root/.npm \
     python3 -m venv /opt/planm \
     && /opt/planm/bin/pip install . \
-    && npm --prefix agents/runtimes/gitagent ci --prefer-offline --no-audit \
-    && npm --prefix agents/runtimes/gitagent run build \
-    && test -f agents/runtimes/gitagent/dist/exports.js \
-    && npm --prefix agents/dwg ci --prefer-offline --no-audit \
-    && npm --prefix agents/dwg run build:parser \
-    && npm --prefix agents/dwg run build:cad-io-host
+    && npm --prefix infra/runtimes/gitagent ci --prefer-offline --no-audit \
+    && npm --prefix infra/runtimes/gitagent run build \
+    && test -f infra/runtimes/gitagent/dist/exports.js \
+    && npm --prefix infra/services/dwg ci --prefer-offline --no-audit \
+    && npm --prefix infra/services/dwg run build:parser \
+    && npm --prefix infra/services/dwg run build:cad-io-host
 
 ENV PATH="/opt/planm/bin:${PATH}" \
     PLANM_REPOSITORY_ROOT=/app \

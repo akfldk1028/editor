@@ -21,7 +21,7 @@ module.exports = defineConfig({
       timeout: 30000,
     },
     {
-      command: "npm --prefix agents/dwg run gateway",
+      command: "npm --prefix infra/services/dwg run gateway",
       cwd: repositoryRoot,
       url: "http://127.0.0.1:4317/api/health",
       reuseExistingServer: false,
