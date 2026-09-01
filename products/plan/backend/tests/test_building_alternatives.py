@@ -677,6 +677,45 @@ def test_a_concave_plate_carries_the_core_families_that_were_turned_down():
     assert rejected.reasons
 
 
+@pytest.mark.parametrize(
+    "footprint_polygon",
+    [
+        [(0, 0), (36, 0), (36, 14), (18, 14), (18, 26), (0, 26)],
+        [(0, 0), (48, 0), (48, 20), (24, 20), (24, 40), (0, 40)],
+        [
+            (6, 0),
+            (34, 0),
+            (40, 6),
+            (40, 20),
+            (34, 26),
+            (6, 26),
+            (0, 20),
+            (0, 6),
+        ],
+        [(0, 0), (40, 0), (40, 18), (24, 26), (0, 26)],
+    ],
+)
+def test_mixed_irregular_plate_searches_more_than_one_circulation_candidate(
+    footprint_polygon,
+):
+    mass = MassInput(
+        project_id="mixed-irregular-circulation-search",
+        floors=3,
+        footprint_polygon=footprint_polygon,
+        site_edges=[{"edge_index": 0, "kind": "street"}],
+        access_candidates=[{"edge_index": 0, "position": 0.5}],
+        use_mix={"neighborhood_commercial": 0.34, "office": 0.66},
+    )
+
+    result = run_building_alternatives(mass)
+
+    assert result.accepted_count >= 2
+    assert len({item.core_centroid for item in result.alternatives}) >= 2
+    assert len({item.circulation_graph_signature for item in result.alternatives}) >= 2
+    assert result.comparisons
+    assert all(comparison.semantic_distinct for comparison in result.comparisons)
+
+
 def test_conservative_family_does_not_swallow_unrelated_strategy_value_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

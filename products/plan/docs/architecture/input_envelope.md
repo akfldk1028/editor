@@ -16,6 +16,47 @@ The sweep writes `sweep-summary.json` beside the per-case run directories. The
 CLI exits non-zero for any run short of two accepted alternatives, so the report
 file, not the exit code, is the authority on the outcome.
 
+## Measured result, 2026-09-01
+
+48 of 48 cases reach at least two accepted, quality-distinct alternatives. The
+matrix remains twelve footprint families x floor counts 3/5 x commercial share
+0/34 %. The eight mixed-use shortfalls recorded below now pass without reducing
+the two-tenant program or weakening internal, render, or diversity gates.
+
+| Shape | Office only | Mixed use |
+| --- | --- | --- |
+| rect 20x10, 30x12, 40x24, square 24, long 60x20 | two | two |
+| T 44x30 | two | two |
+| U 44x28 | three | two |
+| notched 40x26 | two | three |
+| L 36x26 | two | three |
+| L 48x40 | two | two |
+| chamfered octagon | two | two |
+| sloped pentagon | two | two |
+
+The root cause was the circulation planner selecting one corridor/stair pair
+per core even though it had already enumerated viable runners-up. On the four
+affected shape families, that single pair left only one corridor door into the
+street-facing commercial band. Splitting the band could not give both required
+tenants frontage and a door, so the layout stopped at `sales_b`.
+
+`generate_circulation_candidates` now exposes a deterministic ranked, bounded
+set of corridor/stair pairs. The structural composer searches up to 24 pairs
+only when a building has a `neighborhood_commercial` floor, stops at the first
+accepted pair for each core/variant, and retains the existing single-candidate
+path for office-only buildings. The original single-candidate API delegates to
+the new search with `limit=1`, preserving its result and contract.
+
+Fresh evidence is retained outside the repository at
+`C:\DK\PLAN-local-archive-20260901\verification-c034-multicandidate-20260901-131508\sweep`:
+
+- 48 `alternatives.review.json` reports;
+- 102 accepted alternatives, with zero accepted alternatives failing an
+  internal or render gate;
+- 429 PNGs;
+- distinct representative PNG hashes and direct visual inspection for L 36x26,
+  L 48x40, chamfered, and sloped mixed-use floors.
+
 ## Measured result, 2026-08-19
 
 40 of 48, up from 34. Every rectangular plate reaches two, every office-only

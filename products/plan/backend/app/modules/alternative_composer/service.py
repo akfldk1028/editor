@@ -29,7 +29,7 @@ from backend.app.modules.basic_design.stair import (
     resolve_floor_height,
 )
 from backend.app.modules.circulation_planner.service import (
-    generate_circulation_candidate,
+    generate_circulation_candidates,
 )
 from backend.app.modules.circulation_planner.contracts import CirculationCandidate
 from backend.app.modules.core_planner.service import generate_shared_core_candidates
@@ -252,101 +252,27 @@ def _evaluate_core(
     core_alternatives: list[StructuralAlternative] = []
     core_rejections: list[StructuralAlternativeRejection] = []
     seen_circulation: set[str] = set()
+    circulation_limit = (
+        24
+        if any(
+            assignment.use_type == "neighborhood_commercial"
+            for assignment in assignments
+        )
+        else 1
+    )
     for variant, separation in (
         ("legacy", None),
         ("governing_separation", minimum_exit_separation),
     ):
         try:
-            shared_circulation = generate_circulation_candidate(
+            circulation_candidates = generate_circulation_candidates(
                 floor_boundary=circulation_boundary,
                 core=core,
                 street_segments=_access_segments(mass, circulation_boundary),
                 minimum_width=1.2,
                 stair_dimensions=stair_dimensions,
                 minimum_exit_separation=separation,
-            )
-            if shared_circulation.fingerprint in seen_circulation:
-                continue
-            seen_circulation.add(shared_circulation.fingerprint)
-            circulation = {
-                floor_index: shared_circulation
-                for floor_index in range(1, mass.floors + 1)
-            }
-            building = run_building_generation(
-                mass,
-                floor_assignments=assignments,
-                program_overrides=programs,
-                core_override=core,
-                circulation_overrides=circulation,
-            )
-            if not building.accepted:
-                core_rejections.append(
-                    StructuralAlternativeRejection(
-                        strategy=core.strategy,
-                        reason_type="BuildingValidationRejected",
-                        reason=f"{variant}: {_validation_reason(building)}",
-                    )
-                )
-                continue
-            quality_report = evaluate_building_quality(building)
-            generator_repairs: tuple[GeneratorRepairProvenance, ...] = ()
-            if not quality_report.hard_pass:
-                core_rejections.append(
-                    StructuralAlternativeRejection(
-                        strategy=core.strategy,
-                        reason_type="BuildingQualityRejected",
-                        reason=(
-                            f"{variant}: {_quality_rejection_reason(quality_report)}"
-                        ),
-                        quality_report=quality_report,
-                    )
-                )
-                repaired = _evaluate_with_primary_daylight_retry(
-                    mass,
-                    assignments=assignments,
-                    programs=programs,
-                    core=core,
-                    circulation=circulation,
-                    building=building,
-                    quality_report=quality_report,
-                )
-                if repaired is None:
-                    continue
-                retry_rejection = _primary_daylight_retry_rejection(
-                    strategy=core.strategy,
-                    variant=variant,
-                    original_quality_report=quality_report,
-                    retry=repaired,
-                )
-                if retry_rejection is not None:
-                    core_rejections.append(retry_rejection)
-                    continue
-                if repaired.building is None or repaired.quality_report is None:
-                    raise ValueError(
-                        "successful primary daylight retry evidence is incomplete"
-                    )
-                building = repaired.building
-                quality_report = repaired.quality_report
-                generator_repairs = repaired.generator_repairs
-            circulation_fingerprint = _circulation_fingerprint(circulation.items())
-            room_fingerprint = room_structural_fingerprint(building)
-            structural_fingerprint = hashlib.sha256(
-                (
-                    f"{core.fingerprint}:{circulation_fingerprint}:"
-                    f"{room_fingerprint}"
-                ).encode()
-            ).hexdigest()
-            core_alternatives.append(
-                StructuralAlternative(
-                    strategy=core.strategy,
-                    building=building,
-                    quality_report=quality_report,
-                    core_fingerprint=core.fingerprint,
-                    circulation_fingerprint=circulation_fingerprint,
-                    room_fingerprint=room_fingerprint,
-                    structural_fingerprint=structural_fingerprint,
-                    generator_repairs=generator_repairs,
-                )
+                limit=circulation_limit,
             )
         except (TypeError, ValueError) as error:
             core_rejections.append(
@@ -356,6 +282,114 @@ def _evaluate_core(
                     reason=f"{variant}: {error}",
                 )
             )
+            continue
+
+        for candidate_index, shared_circulation in enumerate(
+            circulation_candidates,
+            start=1,
+        ):
+            if shared_circulation.fingerprint in seen_circulation:
+                continue
+            seen_circulation.add(shared_circulation.fingerprint)
+            candidate_variant = (
+                variant
+                if candidate_index == 1
+                else f"{variant}/candidate-{candidate_index}"
+            )
+            try:
+                circulation = {
+                    floor_index: shared_circulation
+                    for floor_index in range(1, mass.floors + 1)
+                }
+                building = run_building_generation(
+                    mass,
+                    floor_assignments=assignments,
+                    program_overrides=programs,
+                    core_override=core,
+                    circulation_overrides=circulation,
+                )
+                if not building.accepted:
+                    core_rejections.append(
+                        StructuralAlternativeRejection(
+                            strategy=core.strategy,
+                            reason_type="BuildingValidationRejected",
+                            reason=(
+                                f"{candidate_variant}: "
+                                f"{_validation_reason(building)}"
+                            ),
+                        )
+                    )
+                    continue
+                quality_report = evaluate_building_quality(building)
+                generator_repairs: tuple[GeneratorRepairProvenance, ...] = ()
+                if not quality_report.hard_pass:
+                    core_rejections.append(
+                        StructuralAlternativeRejection(
+                            strategy=core.strategy,
+                            reason_type="BuildingQualityRejected",
+                            reason=(
+                                f"{candidate_variant}: "
+                                f"{_quality_rejection_reason(quality_report)}"
+                            ),
+                            quality_report=quality_report,
+                        )
+                    )
+                    repaired = _evaluate_with_primary_daylight_retry(
+                        mass,
+                        assignments=assignments,
+                        programs=programs,
+                        core=core,
+                        circulation=circulation,
+                        building=building,
+                        quality_report=quality_report,
+                    )
+                    if repaired is None:
+                        continue
+                    retry_rejection = _primary_daylight_retry_rejection(
+                        strategy=core.strategy,
+                        variant=candidate_variant,
+                        original_quality_report=quality_report,
+                        retry=repaired,
+                    )
+                    if retry_rejection is not None:
+                        core_rejections.append(retry_rejection)
+                        continue
+                    if repaired.building is None or repaired.quality_report is None:
+                        raise ValueError(
+                            "successful primary daylight retry evidence is incomplete"
+                        )
+                    building = repaired.building
+                    quality_report = repaired.quality_report
+                    generator_repairs = repaired.generator_repairs
+                circulation_fingerprint = _circulation_fingerprint(circulation.items())
+                room_fingerprint = room_structural_fingerprint(building)
+                structural_fingerprint = hashlib.sha256(
+                    (
+                        f"{core.fingerprint}:{circulation_fingerprint}:"
+                        f"{room_fingerprint}"
+                    ).encode()
+                ).hexdigest()
+                core_alternatives.append(
+                    StructuralAlternative(
+                        strategy=core.strategy,
+                        building=building,
+                        quality_report=quality_report,
+                        core_fingerprint=core.fingerprint,
+                        circulation_fingerprint=circulation_fingerprint,
+                        room_fingerprint=room_fingerprint,
+                        structural_fingerprint=structural_fingerprint,
+                        generator_repairs=generator_repairs,
+                    )
+                )
+                break
+            except (TypeError, ValueError) as error:
+                core_rejections.append(
+                    StructuralAlternativeRejection(
+                        strategy=core.strategy,
+                        reason_type=type(error).__name__,
+                        reason=f"{candidate_variant}: {error}",
+                    )
+                )
     if core_alternatives:
         accepted.append(min(core_alternatives, key=_rank_key))
     rejected.extend(core_rejections)
@@ -506,7 +540,9 @@ def _primary_daylight_requests(
             raise ValueError("primary daylight issue requires structured evidence")
         floor = floors_by_index.get(issue.floor_index)
         if floor is None:
-            raise ValueError("primary daylight issue floor_index does not match building")
+            raise ValueError(
+                "primary daylight issue floor_index does not match building"
+            )
         if issue.subject_id != f"floor-{issue.floor_index}":
             raise ValueError("primary daylight issue subject_id does not match floor")
         measurement: PrimaryDaylightMeasurement = measure_primary_daylight(floor)
@@ -546,8 +582,7 @@ def _minimum_primary_daylight_room_ids(
     missing = sorted(set(measurement.unserved_room_ids) - areas_by_room_id.keys())
     if missing:
         raise ValueError(
-            "primary daylight request room area is unavailable: "
-            + ", ".join(missing)
+            "primary daylight request room area is unavailable: " + ", ".join(missing)
         )
     ranked = sorted(
         measurement.unserved_room_ids,
@@ -575,9 +610,7 @@ def _evaluate_with_primary_daylight_retry(
     circulation: Mapping[int, CirculationCandidate],
     building: BuildingGenerationResult,
     quality_report: BuildingQualityReport,
-) -> (
-    _PrimaryDaylightRetryResult | None
-):
+) -> _PrimaryDaylightRetryResult | None:
     requests = _primary_daylight_requests(building, quality_report)
     if not requests:
         return None

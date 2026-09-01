@@ -6,7 +6,13 @@ import math
 from collections.abc import Iterable
 
 from shapely import union_all
-from shapely.geometry import GeometryCollection, LineString, MultiLineString, Polygon, box
+from shapely.geometry import (
+    GeometryCollection,
+    LineString,
+    MultiLineString,
+    Polygon,
+    box,
+)
 
 from backend.app.modules.circulation_planner.contracts import (
     CirculationCandidate,
@@ -43,10 +49,36 @@ def generate_circulation_candidate(
     minimum_exit_separation: float | None = None,
 ) -> CirculationCandidate:
     """Construct a deterministic entrance-to-core-to-stair circulation topology."""
+    return generate_circulation_candidates(
+        floor_boundary=floor_boundary,
+        core=core,
+        street_segments=street_segments,
+        minimum_width=minimum_width,
+        stair_dimensions=stair_dimensions,
+        minimum_exit_separation=minimum_exit_separation,
+        limit=1,
+    )[0]
+
+
+def generate_circulation_candidates(
+    *,
+    floor_boundary: Iterable[Point],
+    core: CoreCandidate,
+    street_segments: Iterable[tuple[Point, Point]],
+    minimum_width: float = 1.2,
+    stair_dimensions: Iterable[tuple[float, float]],
+    minimum_exit_separation: float | None = None,
+    limit: int = 24,
+) -> tuple[CirculationCandidate, ...]:
+    """Return ranked connected topologies instead of discarding every runner-up."""
+    if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
+        raise CirculationPlanningError("circulation candidate limit must be positive")
     boundary_points = _points(floor_boundary)
     core_points = _points(core.polygon)
     streets = tuple((_point(start), _point(end)) for start, end in street_segments)
-    dimensions = tuple((float(width), float(length)) for width, length in stair_dimensions)
+    dimensions = tuple(
+        (float(width), float(length)) for width, length in stair_dimensions
+    )
     _validate_inputs(
         boundary_points,
         core_points,
@@ -57,33 +89,49 @@ def generate_circulation_candidate(
     )
     boundary = Polygon(boundary_points)
     core_shape = Polygon(core_points)
-    corridor_rectangles, remote_stair = _select_network_and_stair(
+    geometry_candidates = _network_and_stair_candidates(
         boundary=boundary,
         core=core_shape,
         street_segments=streets,
         minimum_width=minimum_width,
         stair_dimensions=dimensions,
         minimum_exit_separation=minimum_exit_separation,
+        limit=limit,
     )
-    polygons = tuple(_canonical_ring(rectangle) for rectangle in corridor_rectangles)
-    remote_stair = snap_ring(remote_stair)
-    # Judge connectivity on the geometry that leaves this module, not on the
-    # raw arithmetic behind it, so a candidate cannot pass here and read as
-    # disconnected to its consumer.
-    corridor = union_all([Polygon(polygon) for polygon in polygons])
+    return tuple(
+        _circulation_candidate(
+            core=core,
+            core_shape=core_shape,
+            street_segments=streets,
+            corridor_rectangles=rectangles,
+            remote_stair=remote_stair,
+        )
+        for rectangles, remote_stair in geometry_candidates
+    )
 
+
+def _circulation_candidate(
+    *,
+    core: CoreCandidate,
+    core_shape: Polygon,
+    street_segments: tuple[tuple[Point, Point], ...],
+    corridor_rectangles: tuple[Polygon, ...],
+    remote_stair: tuple[Point, ...],
+) -> CirculationCandidate:
+    polygons = tuple(_canonical_ring(rectangle) for rectangle in corridor_rectangles)
+    snapped_stair = snap_ring(remote_stair)
+    corridor = union_all([Polygon(polygon) for polygon in polygons])
     entrance_connected = any(
-        corridor.boundary.intersection(LineString(segment)).length
-        + _TOLERANCE
+        corridor.boundary.intersection(LineString(segment)).length + _TOLERANCE
         >= _DOOR_WIDTH
-        for segment in streets
+        for segment in street_segments
     )
     core_connected = (
         corridor.boundary.intersection(core_shape.boundary).length + _TOLERANCE
         >= _DOOR_WIDTH
     )
     stair_connected = (
-        Polygon(remote_stair).boundary.intersection(corridor.boundary).length
+        Polygon(snapped_stair).boundary.intersection(corridor.boundary).length
         + _TOLERANCE
         >= _DOOR_WIDTH
     )
@@ -93,12 +141,12 @@ def generate_circulation_candidate(
         strategy=core.strategy,
         core_fingerprint=core.fingerprint,
         polygons=polygons,
-        remote_stair_polygon=remote_stair,
+        remote_stair_polygon=snapped_stair,
         fingerprint=circulation_geometry_fingerprint(
             strategy=core.strategy,
             core_fingerprint=core.fingerprint,
             polygons=polygons,
-            remote_stair=remote_stair,
+            remote_stair=snapped_stair,
         ),
         entrance_connected=entrance_connected,
         core_connected=core_connected,
@@ -118,15 +166,21 @@ def _validate_inputs(
     boundary = Polygon(boundary_points)
     core = Polygon(core_points)
     if not boundary.is_valid or boundary.area <= _TOLERANCE:
-        raise CirculationPlanningError("floor boundary must be a valid positive-area polygon")
+        raise CirculationPlanningError(
+            "floor boundary must be a valid positive-area polygon"
+        )
     if not core.is_valid or core.area <= _TOLERANCE or not boundary.covers(core):
-        raise CirculationPlanningError("core must be a valid polygon inside the floor boundary")
+        raise CirculationPlanningError(
+            "core must be a valid polygon inside the floor boundary"
+        )
     if not math.isfinite(minimum_width) or minimum_width < 1.2:
         raise CirculationPlanningError("minimum_width must be finite and at least 1.2")
     if not street_segments:
         raise CirculationPlanningError("at least one street/access segment is required")
     if any(LineString(segment).length <= _TOLERANCE for segment in street_segments):
-        raise CirculationPlanningError("street/access segments must have positive length")
+        raise CirculationPlanningError(
+            "street/access segments must have positive length"
+        )
     if not stair_dimensions or any(
         not math.isfinite(value) or value <= 0
         for dimensions in stair_dimensions
@@ -134,15 +188,14 @@ def _validate_inputs(
     ):
         raise CirculationPlanningError("stair dimensions must be finite and positive")
     if minimum_exit_separation is not None and (
-        not math.isfinite(minimum_exit_separation)
-        or minimum_exit_separation <= 0
+        not math.isfinite(minimum_exit_separation) or minimum_exit_separation <= 0
     ):
         raise CirculationPlanningError(
             "minimum_exit_separation must be finite and positive"
         )
 
 
-def _select_network_and_stair(
+def _network_and_stair_candidates(
     *,
     boundary: Polygon,
     core: Polygon,
@@ -150,7 +203,8 @@ def _select_network_and_stair(
     minimum_width: float,
     stair_dimensions: tuple[tuple[float, float], ...],
     minimum_exit_separation: float | None,
-) -> tuple[tuple[Polygon, ...], tuple[Point, ...]]:
+    limit: int,
+) -> tuple[tuple[tuple[Polygon, ...], tuple[Point, ...]], ...]:
     if minimum_exit_separation is None:
         rectangles = _legacy_corridor_rectangles(boundary, core, minimum_width)
         corridor = union_all(rectangles)
@@ -162,7 +216,7 @@ def _select_network_and_stair(
             street_segments=street_segments,
             stair_dimensions=stair_dimensions,
         )
-        return rectangles, stair
+        return ((rectangles, stair),)
 
     candidates = []
     for rectangles in _corridor_network_candidates(
@@ -179,8 +233,7 @@ def _select_network_and_stair(
         ):
             continue
         if not any(
-            corridor.boundary.intersection(LineString(segment)).length
-            + _TOLERANCE
+            corridor.boundary.intersection(LineString(segment)).length + _TOLERANCE
             >= _DOOR_WIDTH
             for segment in street_segments
         ):
@@ -214,8 +267,13 @@ def _select_network_and_stair(
     # A corridor that leaves a limb of the floor unreachable loses to one that
     # does not, however much smaller it is. Among those that reach, the compact
     # network still wins.
-    *_, rectangles, stair = min(candidates)
-    return rectangles, _canonical_ring(stair)
+    ranked = sorted(candidates)
+    selected = []
+    for *_, rectangles, stair in ranked:
+        selected.append((rectangles, _canonical_ring(stair)))
+        if len(selected) == limit:
+            break
+    return tuple(selected)
 
 
 def _corridor_network_candidates(
@@ -289,9 +347,7 @@ def _branch_corridor_networks(
         if stranded.is_empty:
             continue
         limbs = (
-            list(stranded.geoms)
-            if stranded.geom_type == "MultiPolygon"
-            else [stranded]
+            list(stranded.geoms) if stranded.geom_type == "MultiPolygon" else [stranded]
         )
         for limb in sorted(limbs, key=lambda shape: -shape.area):
             target = limb.representative_point()
@@ -333,9 +389,7 @@ def _spur_options(
         options.append(box(target.x, min_y, min_x, min_y + width))
         options.append(box(target.x, max_y - width, min_x, max_y))
     return tuple(
-        option
-        for option in options
-        if option.is_valid and option.area > _TOLERANCE
+        option for option in options if option.is_valid and option.area > _TOLERANCE
     )
 
 
@@ -375,10 +429,7 @@ def _long_edge_corridor_networks(
     width: float,
     *,
     minimum_exit_separation: float | None,
-) -> tuple[
-    tuple[tuple[Polygon, ...], ...],
-    tuple[tuple[Polygon, ...], ...],
-]:
+) -> tuple[tuple[tuple[Polygon, ...], ...], tuple[tuple[Polygon, ...], ...],]:
     min_y = boundary.bounds[1]
     core_min_x, core_min_y, core_max_x, _ = core.bounds
     route_y = _clean(core_min_y - width)
@@ -420,8 +471,7 @@ def _long_edge_corridor_networks(
             if (
                 boundary.covers(trunk)
                 and boundary.covers(crossbar)
-                and crossbar.boundary.intersection(core.boundary).length
-                + _TOLERANCE
+                and crossbar.boundary.intersection(core.boundary).length + _TOLERANCE
                 >= _DOOR_WIDTH
             ):
                 networks.append((trunk, crossbar))
@@ -448,12 +498,17 @@ def _select_remote_stair(
         raise_on_empty_reserve=True,
     )
     if not candidates:
-        raise CirculationPlanningError("no accessible remote stair reserve fits the floor")
+        raise CirculationPlanningError(
+            "no accessible remote stair reserve fits the floor"
+        )
     street_lines = tuple(LineString(segment) for segment in street_segments)
     selected = max(
         candidates,
         key=lambda stair: (
-            not any(stair.boundary.intersection(line).length > _TOLERANCE for line in street_lines),
+            not any(
+                stair.boundary.intersection(line).length > _TOLERANCE
+                for line in street_lines
+            ),
             stair.centroid.distance(core.centroid),
             tuple(-value for value in stair.bounds),
         ),
@@ -475,9 +530,7 @@ def _remote_stair_candidates(
     free = boundary.difference(union_all((core, corridor)))
     if free.is_empty:
         if raise_on_empty_reserve:
-            raise CirculationPlanningError(
-                "circulation leaves no remote stair reserve"
-            )
+            raise CirculationPlanningError("circulation leaves no remote stair reserve")
         return ()
     candidates: dict[tuple[float, ...], tuple[bool, Polygon]] = {}
     for stair_width, stair_length in stair_dimensions:
@@ -592,8 +645,7 @@ def _remote_stair_candidates(
                     break
             if (
                 minimum_exit_separation is not None
-                and valid_origin_count
-                == _MAX_REMOTE_STAIR_VALID_ORIGINS_PER_DIMENSION
+                and valid_origin_count == _MAX_REMOTE_STAIR_VALID_ORIGINS_PER_DIMENSION
             ):
                 break
     if minimum_exit_separation is None:
@@ -620,10 +672,7 @@ def _remote_stair_candidates(
                 item[1].bounds,
             ),
         )
-    selected = [
-        item[1]
-        for item in ranked_candidates[:_MAX_REMOTE_STAIR_CANDIDATES]
-    ]
+    selected = [item[1] for item in ranked_candidates[:_MAX_REMOTE_STAIR_CANDIDATES]]
     return tuple(sorted(selected, key=lambda stair: stair.bounds))
 
 
@@ -658,11 +707,7 @@ def _line_strings(geometry) -> tuple[LineString, ...]:
     if isinstance(geometry, LineString):
         return (geometry,)
     if isinstance(geometry, (MultiLineString, GeometryCollection)):
-        return tuple(
-            line
-            for part in geometry.geoms
-            for line in _line_strings(part)
-        )
+        return tuple(line for part in geometry.geoms for line in _line_strings(part))
     return ()
 
 
@@ -722,11 +767,7 @@ def _grid_values(
     )
     if natural_interval_count <= _MAX_AUXILIARY_INTERVALS_PER_AXIS:
         values = [
-            (
-                minimum + index * _GRID_STEP
-                if index < interval_count
-                else maximum
-            )
+            (minimum + index * _GRID_STEP if index < interval_count else maximum)
             for index in range(interval_count + 1)
         ]
     else:
@@ -787,9 +828,7 @@ def _candidate_origin_groups(
         *(
             float(origin)
             for origin in extra
-            if minimum - _TOLERANCE
-            <= float(origin)
-            <= maximum + _TOLERANCE
+            if minimum - _TOLERANCE <= float(origin) <= maximum + _TOLERANCE
         ),
     }
     auxiliary = set(
@@ -855,7 +894,9 @@ def _canonical_ring(points: Iterable[Point] | Polygon) -> tuple[Point, ...]:
     # and then a cell behind the seam shared no boundary with any corridor at
     # all. Emitting on the shared grid keeps the seams closed.
     normalized = snap_ring(coordinates)
-    rotations = [normalized[index:] + normalized[:index] for index in range(len(normalized))]
+    rotations = [
+        normalized[index:] + normalized[:index] for index in range(len(normalized))
+    ]
     reversed_points = tuple(reversed(normalized))
     rotations.extend(
         reversed_points[index:] + reversed_points[:index]
