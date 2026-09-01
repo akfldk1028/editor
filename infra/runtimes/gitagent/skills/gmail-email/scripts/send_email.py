@@ -53,7 +53,7 @@ def send_email(to, subject, body, from_email=None, app_password=None):
     
     # Send email
     try:
-        print(f"Connecting to Gmail SMTP server...", file=sys.stderr)
+        print("Connecting to Gmail SMTP server...", file=sys.stderr)
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         

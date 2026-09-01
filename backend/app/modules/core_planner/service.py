@@ -4,8 +4,8 @@ import hashlib
 import json
 import math
 
-from shapely.geometry import Point, Polygon, box
-from shapely.prepared import prep
+from shapely import box, covers
+from shapely.geometry import Point, Polygon
 
 from backend.app.modules.core_planner.contracts import CoreCandidate
 from backend.engine.geometry import GEOMETRY_DECIMALS, snap_coordinate
@@ -182,9 +182,7 @@ def _contained_rectangles(
         ),
     )
 
-    prepared_common = prep(common)
-    result = []
-    seen: set[tuple[float, float, float, float]] = set()
+    origins: list[tuple[float, float]] = []
     tested_origins: set[tuple[float, float]] = set()
 
     def test_origin(x: float, y: float) -> None:
@@ -192,20 +190,7 @@ def _contained_rectangles(
         if origin in tested_origins:
             return
         tested_origins.add(origin)
-        if not prepared_common.covers(Point(x + width / 2, y + depth / 2)):
-            return
-        rectangle_max_x = x + width
-        rectangle_max_y = y + depth
-        if rectangle_max_x - x < width:
-            rectangle_max_x = math.nextafter(rectangle_max_x, math.inf)
-        if rectangle_max_y - y < depth:
-            rectangle_max_y = math.nextafter(rectangle_max_y, math.inf)
-        rectangle = box(x, y, rectangle_max_x, rectangle_max_y)
-        if prepared_common.covers(rectangle):
-            bounds = tuple(float(value) for value in rectangle.bounds)
-            if bounds not in seen:
-                seen.add(bounds)
-                result.append(rectangle)
+        origins.append(origin)
 
     for x in x_origins:
         for y in y_origins:
@@ -229,7 +214,31 @@ def _contained_rectangles(
             maximum=maximum_y_origin,
         ):
             test_origin(x, y)
-    return tuple(result)
+
+    minimum_x = [x for x, _ in origins]
+    minimum_y = [y for _, y in origins]
+    maximum_x = [
+        value
+        if value - x >= width
+        else math.nextafter(value, math.inf)
+        for x, value in ((x, x + width) for x in minimum_x)
+    ]
+    maximum_y = [
+        value
+        if value - y >= depth
+        else math.nextafter(value, math.inf)
+        for y, value in ((y, y + depth) for y in minimum_y)
+    ]
+    rectangles = box(minimum_x, minimum_y, maximum_x, maximum_y)
+    return tuple(
+        rectangle
+        for rectangle, is_contained in zip(
+            rectangles,
+            covers(common, rectangles),
+            strict=True,
+        )
+        if is_contained
+    )
 
 
 def _dimension_options(
