@@ -237,40 +237,42 @@ clear of the requirement.
 Only frontage slivers fold. Merging the same strip inland was measured and
 reverted, see below.
 
-## Where the eight shortfalls actually stop
+## Historical: where the eight shortfalls stopped before 2026-09-01
 
-L 36x26, L 48x40, chamfered, and sloped, all on mixed use, at both floor counts.
-Every one of them now stops on the same honest sentence:
+Before the bounded circulation-search fix described in the 2026-09-01 result,
+L 36x26, L 48x40, chamfered, and sloped failed on mixed use at both floor
+counts. Every one stopped on the same honest sentence:
 
     orthogonal layout cannot leave a street-facing seed for sales_b after sales_a
 
-That message is new, and it replaces a false one. Two lookaheads share the
-block that raises it — an area budget and a frontage seat — and both were
+That message was new at the time and replaced a false one. Two lookaheads share
+the block that raises it — an area budget and a frontage seat — and both were
 reported as the area budget. The measurement said otherwise: at the give-up
 point on sloped the assigner held 8 seeds for 4 bounded rooms with every seed
 smaller than every limit, so the area budget was never in question. Counting
 the two refusals apart, and naming the frontage one, is the whole of that
 change.
 
-Subdivision now also drives frontage capacity up to the seat count rather than
-stopping as soon as it has enough rectangles overall: two shops need two
+Subdivision also drove frontage capacity up to the seat count rather than
+stopping as soon as it had enough rectangles overall: two shops need two
 street-facing seeds, and one wide seat is one seat. That removed all eleven
 area-capacity give-ups on sloped. It did not move the count, because on these
 four plates the street band still cannot be cut into two seats of the 4.0 m the
 shops ask for while both halves keep their corridor door.
 
-The measurement answers the geometry question, and the answer is no, not by
+The measurement answered the geometry question, and the answer was no, not by
 splitting. On sloped 40x26 the band is 14.53 by 6.75 with its corridor contact
 on the 6.75 end. Sixty-six cuts would give two 4.0 m seats; none of them leaves
 both halves a door, and stacking two 4.0 m rooms needs 8 m of depth the band
 does not have. Every room needs a circulation door — `validator/service.py`
 refuses one without — so a shop cannot be seated on street access alone.
 
-Two ways out, both design decisions rather than defects:
+Two ways out were considered at that stage, both design decisions rather than
+defects:
 
 - A corridor that runs along the street instead of into it. Tried, measured,
-  reverted; see below. It cannot land while the planner returns one network per
-  core and ranks on area.
+  reverted; see below. It could not land while the planner returned one network
+  per core and ranked on area.
 - A program that asks for the tenants the plate can seat.
   `_split_commercial_tenants` splits the sales area into exactly two, always,
   and a one-tenant neighbourhood-commercial floor is a normal plan. Deciding
@@ -278,7 +280,7 @@ Two ways out, both design decisions rather than defects:
   generator, so it belongs in the repair path beside the daylight retry rather
   than in the program prior.
 
-## What still falls short
+## Historical shortfalls before 2026-09-01
 
 ### The distinctness threshold is no longer the thing in the way
 
@@ -287,10 +289,10 @@ rectangles` was hiding a core that would give a genuinely different plan — is
 answered. It was. Four defects were the reason and all four are fixed above,
 which is where the six recovered cases came from.
 
-On the eight that remain, distinctness is downstream of a shop that cannot be
-seated, not the cause. Do not move the threshold: the plate has one core family
-because the other families genuinely cannot serve two shops on it, and clearing
-a 0.107 pair would ship two drawings of the same plan.
+In the 2026-08-19 result, the eight that remained stopped downstream of
+distinctness because a shop could not be seated. Distinctness was not the cause.
+That historical result remains evidence against weakening the threshold:
+clearing a 0.107 pair would have shipped two drawings of the same plan.
 
 ### The commercial floor's areas skew hard
 
@@ -301,7 +303,7 @@ is not new and it is not what the rear-primary fix introduced. It is what
 `_absorb_residual_cells` does by design: the primary takes whatever is left.
 Room proportions are advisory, so no gate reads it, but a reviewer will.
 
-## What was fixed getting here
+## Historical fixes leading to the 2026-09-01 result
 
 - The composer gates its fallback core requests on the distinct count, as
   above, so they fire on the plates they exist for.

@@ -14,6 +14,7 @@ Usage: python resources/scripts/sweep_alternatives.py [output_root]
 
 from __future__ import annotations
 
+import argparse
 import json
 import subprocess
 import sys
@@ -129,10 +130,28 @@ def summarize_report(report_path: Path) -> dict:
     }
 
 
-def main() -> int:
-    arguments = [value for value in sys.argv[1:] if value != "--summarize-only"]
-    summarize_only = "--summarize-only" in sys.argv
-    output_root = Path(arguments[0] if arguments else "logs/runs/sweep")
+def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Run or summarize the deterministic PLANM alternatives sweep."
+    )
+    parser.add_argument(
+        "output_root",
+        nargs="?",
+        type=Path,
+        default=Path("logs/runs/sweep"),
+        help="directory containing the per-case outputs",
+    )
+    parser.add_argument(
+        "--summarize-only",
+        action="store_true",
+        help="summarize existing reports without running cases",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    arguments = parse_arguments(argv)
+    output_root = arguments.output_root
     output_root.mkdir(parents=True, exist_ok=True)
     results = []
     for footprint in FOOTPRINTS:
@@ -141,7 +160,7 @@ def main() -> int:
                 name = case_name(footprint, floors, share)
                 case_dir = output_root / name
                 report_path = case_dir / "alternatives.review.json"
-                if summarize_only:
+                if arguments.summarize_only:
                     if not report_path.is_file():
                         continue
                     result = summarize_report(report_path)
