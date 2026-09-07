@@ -1,0 +1,19 @@
+# Biome formats to LF and CI runs on Linux, so a Windows checkout with
+# core.autocrlf=true would otherwise fail `bun run check` on every text file
+# without a single real formatting problem. Pin the working tree to LF.
+* text=auto eol=lf
+
+# Keep shell scripts executable-safe and never CRLF — a CR in a shebang line
+# breaks them under bash.
+*.sh text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ifc binary
+*.glb binary
+*.gltf binary
