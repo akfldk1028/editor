@@ -29,7 +29,9 @@ describe('managed runtime', () => {
 
     expect(active.version).toBe('1.2.3')
     expect(active.directory).toBe(path.join(paths.runtime, '1.2.3'))
-    expect(await Bun.file(path.join(active.directory, 'frontend/app/editor/server.js')).exists()).toBe(true)
+    expect(
+      await Bun.file(path.join(active.directory, 'frontend/app/editor/server.js')).exists(),
+    ).toBe(true)
   })
 
   test('starts, identifies, and stops a detached editor while preserving data', async () => {
@@ -157,7 +159,9 @@ describe('managed runtime', () => {
 
     expect(started.state.version).toBe('1.2.3')
     expect((await getEditorStatus(paths)).healthy).toBe(true)
-    expect(await Bun.file(path.join(active.directory, 'frontend/app/editor/server.js')).exists()).toBe(true)
+    expect(
+      await Bun.file(path.join(active.directory, 'frontend/app/editor/server.js')).exists(),
+    ).toBe(true)
     await stopEditor(paths)
   })
 

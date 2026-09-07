@@ -22,10 +22,14 @@ await rm(outputDirectory, { recursive: true, force: true })
 await mkdir(path.dirname(outputDirectory), { recursive: true })
 await cp(standaloneDirectory, outputDirectory, { recursive: true, dereference: false })
 
-await cp(path.join(appDirectory, 'public'), path.join(outputDirectory, 'frontend/app/editor/public'), {
-  recursive: true,
-  force: true,
-})
+await cp(
+  path.join(appDirectory, 'public'),
+  path.join(outputDirectory, 'frontend/app/editor/public'),
+  {
+    recursive: true,
+    force: true,
+  },
+)
 await cp(
   path.join(appDirectory, '.next/static'),
   path.join(outputDirectory, 'frontend/app/editor/.next/static'),
