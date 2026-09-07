@@ -246,7 +246,7 @@ function setNodeDerivedMenuAnchor(
   return true
 }
 
-// Fence schema defaults — mirror packages/nodes/src/fence/definition.ts so the
+// Fence schema defaults — mirror frontend/elements/nodes/src/fence/definition.ts so the
 // pill reads sensibly before an explicit height / thickness is set.
 const FENCE_DEFAULT_HEIGHT = 1.8
 const FENCE_DEFAULT_THICKNESS = 0.08

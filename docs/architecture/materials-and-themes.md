@@ -1,6 +1,6 @@
 # Materials & themes (surface colour)
 
-How a node's surfaces get their colour. Applies to: `packages/viewer/src/lib/{materials.ts,scene-themes.ts}`, the per-kind material logic in `packages/viewer/src/systems/<kind>/` and `packages/nodes/src/<kind>/`, and the appearance state in `packages/viewer/src/store/use-viewer.ts`.
+How a node's surfaces get their colour. Applies to: `frontend/components/viewer/src/lib/{materials.ts,scene-themes.ts}`, the per-kind material logic in `frontend/components/viewer/src/systems/<kind>/` and `frontend/elements/nodes/src/<kind>/`, and the appearance state in `frontend/components/viewer/src/store/use-viewer.ts`.
 
 ## The axes
 
@@ -19,7 +19,7 @@ Appearance is a set of orthogonal axes, all held in `useViewer`:
 
 ## Surface roles
 
-Every registry kind may declare one token on its `NodeDefinition` (`packages/core/src/registry/types.ts`):
+Every registry kind may declare one token on its `NodeDefinition` (`resources/lib/core/src/registry/types.ts`):
 
 ```ts
 surfaceRole?: 'wall' | 'floor' | 'ceiling' | 'roof' | 'joinery' | 'glazing' | 'furnishing'
@@ -29,7 +29,7 @@ surfaceRole?: 'wall' | 'floor' | 'ceiling' | 'roof' | 'joinery' | 'glazing' | 'f
 
 ## Resolving a colour
 
-The single source of truth is in `packages/viewer/src/lib/materials.ts`:
+The single source of truth is in `frontend/components/viewer/src/lib/materials.ts`:
 
 ```ts
 resolveSurfaceColor(role, colorPreset, sceneThemeId?)
@@ -133,7 +133,7 @@ This contract is shared by wall `systems/wall/wall-system.tsx` (`ExtrudeGeometry
 
 GLB item slots follow the same ~1 UV unit/m authoring convention, enforced by the slot validator's UV-presence check and the Blender recipe in [item-authoring](item-authoring.md). This is an authoring requirement, not a render-time correction.
 
-A catalog material's `repeat` (`mapProperties.repeatX/repeatY` in `packages/core/src/material-library.ts`) is therefore a per-material world-scale setting: tiles per metre.
+A catalog material's `repeat` (`mapProperties.repeatX/repeatY` in `resources/lib/core/src/material-library.ts`) is therefore a per-material world-scale setting: tiles per metre.
 
 `repeat: 1` means 1 tile/m, `0.4` means one tile every 2.5 m, and `1.5` means 1.5 tiles/m.
 

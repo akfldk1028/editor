@@ -10,7 +10,7 @@ import { compileSemanticPrintShellWithManifold } from '../src/lib/print-shell-co
 const outputArgument = process.argv[2]
 if (!outputArgument) {
   throw new Error(
-    'Usage: bun packages/editor/scripts/generate-print-golden-house.ts <output-directory>',
+    'Usage: bun frontend/components/editor/scripts/generate-print-golden-house.ts <output-directory>',
   )
 }
 

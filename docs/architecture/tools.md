@@ -2,15 +2,15 @@
 
 *Editor tools and registry-owned placement interactions.*
 
-Applies to: `apps/editor/components/tools/**` and `packages/nodes/src/*/{tool,floorplan-tool}.tsx`.
+Applies to: `frontend/app/editor/components/tools/**` and `frontend/elements/nodes/src/*/{tool,floorplan-tool}.tsx`.
 
-Tools are React components that capture user input (pointer, keyboard) and translate it into `useScene` mutations. Cross-kind and application-level tools live in `apps/editor/components/tools/`. A registry-owned node kind may colocate its 3D `def.tool` and floorplan tool extension in `packages/nodes/src/<kind>/`; this keeps the complete kind registration removable and discoverable as one unit. These components may consume the public editor interaction APIs, but must not add app-specific state or import from `apps/editor`.
+Tools are React components that capture user input (pointer, keyboard) and translate it into `useScene` mutations. Cross-kind and application-level tools live in `frontend/app/editor/components/tools/`. A registry-owned node kind may colocate its 3D `def.tool` and floorplan tool extension in `frontend/elements/nodes/src/<kind>/`; this keeps the complete kind registration removable and discoverable as one unit. These components may consume the public editor interaction APIs, but must not add app-specific state or import from `frontend/app/editor`.
 
 ## Lifecycle
 
 `ToolManager` reads `useEditor` (phase + mode + tool) and mounts the active tool component. When the tool changes, the old component unmounts, cleaning up any transient state.
 
-See `apps/editor/components/tools/tool-manager.tsx`.
+See `frontend/app/editor/components/tools/tool-manager.tsx`.
 
 > **What the user is doing right now** is owned by the interaction state machine, not by tool-local flags. A tool that starts a placement / move / handle / reshape / box-select / paint interaction enters it through `useInteractionScope.begin(...)` and leaves through `end()` — see [interaction-scope](interaction-scope.md). Do not add a new `useEditor` flag for a new interaction.
 
@@ -39,7 +39,7 @@ See `apps/editor/components/tools/tool-manager.tsx`.
 ## Pattern
 
 ```tsx
-// apps/editor/components/tools/my-tool/index.tsx
+// frontend/app/editor/components/tools/my-tool/index.tsx
 import { useScene } from '@pascal-app/core'
 import { useEditor } from '../../store/use-editor'
 
@@ -121,7 +121,7 @@ export function MyTool() {
 
 ## Adding a New Tool
 
-1. Create `apps/editor/components/tools/<name>/index.tsx`.
+1. Create `frontend/app/editor/components/tools/<name>/index.tsx`.
 2. Register the tool in `ToolManager` under the correct phase and mode.
 3. Add the tool identifier to the `useEditor` tool union type.
 4. If the tool requires new node types, add schema + renderer + system first.
@@ -177,7 +177,7 @@ Anything that subscribes to `useLiveTransforms` to inform 2D rendering needs to 
 
 `useLiveTransforms` (above) carries a rigid position/rotation offset — right when the renderer can preview the move by transforming the node's group. It's **wrong** when the geometry is *recomputed from data fields* (a wall re-miters from its `start`/`end`, an opening re-cuts its host wall, an endpoint drag reshapes the segment and cascades to linked walls): the shape itself changes, so there's no rigid offset to apply. Those preview via **`useLiveNodeOverrides`** (`@pascal-app/core`) — the tool publishes the changed fields per tick (`set(id, patch)` / `setMany(...)`) and the geometry systems merge them (`getEffectiveWall` in 3D, the floor-plan sibling-override merge in 2D, `getEffectiveNode` in panels). The scene store stays untouched during the drag; on commit the tool clears overrides and writes it **once** (`resumeSceneHistory → updateNodes([...]) → pauseSceneHistory`), so the gesture is a single undo step. Esc/unmount just clears overrides — cancel is free.
 
-**Writing `useScene.updateNodes`/`updateNode` per `grid:move` tick is a blocker:** it replaces the `nodes` map ref, so every `useScene(s => s.nodes)` subscriber app-wide (panels, HUD, tooltips, floor plan, catalog) re-renders each frame → FPS collapse. (`markDirty` per tick is fine for a bounded gesture — it never calls `set()` and the marks drain every frame; an animation loop that marks dirty for as long as it runs is not, see `node-definitions.md` § "`geometry` + `system`".) Reference: `packages/nodes/src/wall/{move-tool,move-endpoint-tool}.tsx`.
+**Writing `useScene.updateNodes`/`updateNode` per `grid:move` tick is a blocker:** it replaces the `nodes` map ref, so every `useScene(s => s.nodes)` subscriber app-wide (panels, HUD, tooltips, floor plan, catalog) re-renders each frame → FPS collapse. (`markDirty` per tick is fine for a bounded gesture — it never calls `set()` and the marks drain every frame; an animation loop that marks dirty for as long as it runs is not, see `node-definitions.md` § "`geometry` + `system`".) Reference: `frontend/elements/nodes/src/wall/{move-tool,move-endpoint-tool}.tsx`.
 
 ## Floorplan registry: per-node subscriptions, stable props
 

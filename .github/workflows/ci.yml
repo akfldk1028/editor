@@ -63,7 +63,7 @@ jobs:
           PASCAL_PORTABLE_BUILD: "1"
         run: |
           bun run build --filter editor
-          cd packages/cli
+          cd backend/cli
           bun run build
           bun run stage-runtime
           bun run smoke-runtime

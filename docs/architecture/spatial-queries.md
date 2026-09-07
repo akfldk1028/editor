@@ -2,11 +2,11 @@
 
 *Placement validation for tools — `canPlaceOnFloor`, `canPlaceOnWall`, `canPlaceOnCeiling`.*
 
-Applies to: `apps/editor/components/tools/**`.
+Applies to: `frontend/app/editor/components/tools/**`.
 
 `useSpatialQuery()` validates whether an item can be placed at a given position without overlapping existing items. Every placement tool must call it before committing a node to the scene.
 
-**Source**: `packages/core/src/hooks/spatial-grid/use-spatial-query.ts`
+**Source**: `resources/lib/core/src/hooks/spatial-grid/use-spatial-query.ts`
 
 ## Hook
 
@@ -98,7 +98,7 @@ const y = spatialGridManager.getSlabElevationForItem(levelId, position, dimensio
 
 - **Always pass `[item.id]` in `ignoreIds`** when validating a draft item that already exists in the scene — otherwise it collides with itself.
 - **Use `adjustedY` from `canPlaceOnWall`** — don't use the raw cursor Y for wall-mounted items.
-- **Use `getScaledDimensions(item)`** (`packages/core/src/schema/nodes/item.ts`) to account for item scale, not the raw `asset.dimensions`.
+- **Use `getScaledDimensions(item)`** (`resources/lib/core/src/schema/nodes/item.ts`) to account for item scale, not the raw `asset.dimensions`.
 - Validate on every pointer move for live feedback (highlight ghost red/green). Only `createNode` / `updateNode` on pointer up or click.
 
-See `apps/editor/components/tools/item/use-placement-coordinator.tsx` for a full implementation.
+See `frontend/app/editor/components/tools/item/use-placement-coordinator.tsx` for a full implementation.

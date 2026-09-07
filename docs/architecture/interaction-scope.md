@@ -2,7 +2,7 @@
 
 _The authoritative interaction state machine ("the spine") — one scope describes "what the user is currently doing"._
 
-Applies to: `packages/editor/src/lib/interaction/**`, `packages/editor/src/store/use-interaction-scope.ts`.
+Applies to: `frontend/components/editor/src/lib/interaction/**`, `frontend/components/editor/src/store/use-interaction-scope.ts`.
 
 Before this, "what is the user doing right now?" was re-derived from 7+ independent
 `useEditor` flags (`movingNode`, `placementDragMode`, `activeHandleDrag`,
@@ -62,7 +62,7 @@ single owner. Exactly one scope at a time; the only writable shape is
 | `end()`                                | Return to idle atomically. Both commit and cancel call it; the write-vs-revert distinction lives in the interaction body, not here.                                                                               |
 | `endIf(match)`                         | Return to idle only if the active scope satisfies `match`.                                                                                                                                                        |
 
-The `mesh-editing` scope is the global ownership summary, not a container for kind-specific component state. block keeps its vertex/edge/face mode, selected IDs, active component, and active material slot in a kind-owned transient store under `packages/nodes/src/block/`. The canvas affordance and custom inspector share that store while the scope owns the session. Entering another mesh transfers ownership; scope loss, explicit exit, and unmount clear only the matching node's session. Persisted topology and material slots remain in `useScene`.
+The `mesh-editing` scope is the global ownership summary, not a container for kind-specific component state. block keeps its vertex/edge/face mode, selected IDs, active component, and active material slot in a kind-owned transient store under `frontend/elements/nodes/src/block/`. The canvas affordance and custom inspector share that store while the scope owns the session. Entering another mesh transfers ownership; scope loss, explicit exit, and unmount clear only the matching node's session. Persisted topology and material slots remain in `useScene`.
 
 **Atomic-end invariant.** `end()` sets the scope back to `IDLE_SCOPE` in one
 write — no interaction payload can leak past the end of its interaction (no stale
@@ -152,7 +152,7 @@ spots not yet touched; both are tracked in `plans/editor-placement-interaction-o
 **touches** one must migrate it to the model above, not extend the legacy path:
 
 1. **`event.shiftKey` as a snap bypass with hardcoded steps** — the MEP move/endpoint tools
-   (`packages/nodes/src/{duct-segment,pipe-segment,liquid-line,lineset,duct-fitting}/{move-tool,selection}.tsx`).
+   (`frontend/elements/nodes/src/{duct-segment,pipe-segment,liquid-line,lineset,duct-fitting}/{move-tool,selection}.tsx`).
    Opening a `moving` scope from a bespoke mover is **not** the migration — `useMovingNode()` reads the scope,
    so `tool-manager` re-mounts the generic `MoveRegistryNodeTool` alongside it (the dual-path FPS/teleport
    bug). Resolve the mode without a global `moving`/`reshaping` scope; see the plan's dual-path note.

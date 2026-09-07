@@ -42,7 +42,7 @@ import useViewer from '../../store/use-viewer'
  *  6. Clears the dirty flag.
  *
  * This is the "no per-kind system needed" path documented in
- * `wiki/architecture/node-definitions.md`. A kind that only rebuilds on
+ * `docs/architecture/node-definitions.md`. A kind that only rebuilds on
  * dirty (shelf, item, fence segment, etc.) ships nothing more than a pure
  * `geometry` function — no `renderer.tsx`, no `system.tsx`.
  *

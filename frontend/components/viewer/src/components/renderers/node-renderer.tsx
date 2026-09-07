@@ -34,7 +34,7 @@ export const NodeRenderer = ({ nodeId }: { nodeId: AnyNode['id'] }) => {
   if (!isNodeKindEnabled(node.type, installedPlugins)) return null
   const def = nodeRegistry.get(node.type)
   if (!def) return null
-  // Two-checkbox dispatch (see wiki/architecture/node-definitions.md):
+  // Two-checkbox dispatch (see docs/architecture/node-definitions.md):
   //  1. Custom renderer — JSX-side composition for kinds that need GLB,
   //     drei, <Html>, instancing, shader materials.
   //  2. Else, if the kind ships `def.geometry`, the generic empty-group

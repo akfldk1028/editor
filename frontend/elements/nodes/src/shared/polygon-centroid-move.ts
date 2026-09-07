@@ -25,7 +25,7 @@ import { createFloorplanCursorResolver } from './floorplan-cursor'
  * placement uses the polygon centroid as the cursor-following pivot. This
  * matches the generic 3D move tool while keeping polygon geometry in vertices.
  *
- * **Why a delta in `useLiveTransforms`** (see `wiki/architecture/tools.md`):
+ * **Why a delta in `useLiveTransforms`** (see `docs/architecture/tools.md`):
  * polygon kinds carry their position in their vertices, not a `position`
  * field. The live preview translates the rendered `<group>` by the delta
  * (`ParametricNodeRenderer` consumes `useLiveTransforms.position` as the

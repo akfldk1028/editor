@@ -13,7 +13,7 @@
  * 4. What do the wired call sites actually gain end to end?
  *
  * Run via:
- *   bun run packages/core/src/schema/__bench__/node-parsers.bench.ts
+ *   bun run resources/lib/core/src/schema/__bench__/node-parsers.bench.ts
  *
  * Every section runs in its own child process. Compiling is irreversible within
  * a process and a large generated function measurably perturbs everything timed

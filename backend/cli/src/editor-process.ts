@@ -697,7 +697,7 @@ async function matchesRecordedEditorProcess(
     const manifest = await readRuntimeManifest(runtimeDirectory)
     expectedEntrypoint = path.resolve(runtimeDirectory, manifest.entrypoint)
   } catch {
-    expectedEntrypoint = path.join(runtimeDirectory, 'apps/editor/server.js')
+    expectedEntrypoint = path.join(runtimeDirectory, 'frontend/app/editor/server.js')
   }
   const command = await processCommand(state.pid)
   return command.includes(expectedEntrypoint)

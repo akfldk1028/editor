@@ -2,7 +2,7 @@
 
 *Persistent generic measurement annotations, semantic feature associations, and the shared 2D/3D drafting contract.*
 
-Applies to: `packages/core/src/{lib/measurement-geometry.ts,lib/zone-quantities.ts,schema/nodes/measurement.ts,registry/types.ts}`, `packages/nodes/src/{measurement/**,wall/measurement.ts,roof-segment/measurement.ts,shared/polygon-measurement.ts,shared/quick-measurement.ts,zone/quantities-panel.tsx}`, `packages/editor/src/{store/use-measurement-draft.ts,components/editor-2d/floorplan-measurement-tool-layer.tsx,components/editor-2d/floorplan-quick-measure-layer.tsx}`.
+Applies to: `resources/lib/core/src/{lib/measurement-geometry.ts,lib/zone-quantities.ts,schema/nodes/measurement.ts,registry/types.ts}`, `frontend/elements/nodes/src/{measurement/**,wall/measurement.ts,roof-segment/measurement.ts,shared/polygon-measurement.ts,shared/quick-measurement.ts,zone/quantities-panel.tsx}`, `frontend/components/editor/src/{store/use-measurement-draft.ts,components/editor-2d/floorplan-measurement-tool-layer.tsx,components/editor-2d/floorplan-quick-measure-layer.tsx}`.
 
 Measurements are regular level children. Their geometry is resolved in level-local SI metres, while rendering and formatting are derived from live viewer preferences. Draft previews stay transient and a completed measurement enters scene history through one `createNode` call.
 

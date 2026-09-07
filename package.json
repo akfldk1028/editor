@@ -58,8 +58,11 @@
     "lightningcss-linux-x64-gnu": "1.32.0"
   },
   "workspaces": [
-    "apps/*",
-    "packages/*",
-    "tooling/*"
+    "frontend/app/*",
+    "frontend/components/*",
+    "frontend/elements/*",
+    "backend/*",
+    "infra/config/*",
+    "resources/lib/*"
   ]
 }

@@ -22,7 +22,7 @@ Fixes land on `main` and ship in the next release of the affected package. The `
 In scope:
 
 - The packages published from this repo — `@pascal-app/core`, `@pascal-app/viewer`, `@pascal-app/editor`, `@pascal-app/nodes`, `@pascal-app/mcp`, `@pascal-app/ifc-converter`
-- The standalone editor app in `apps/editor`
+- The standalone editor app in `frontend/app/editor`
 - The scene save API and the MCP server surface, including anything that lets untrusted scene data reach a parser, a renderer, or a stored graph
 
 Out of scope:

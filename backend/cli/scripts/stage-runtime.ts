@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url'
 
 const packageDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const repositoryRoot = path.resolve(packageDirectory, '../..')
-const appDirectory = path.join(repositoryRoot, 'apps/editor')
+const appDirectory = path.join(repositoryRoot, 'frontend/app/editor')
 const standaloneDirectory = path.join(appDirectory, '.next/standalone')
-const standaloneAppDirectory = path.join(standaloneDirectory, 'apps/editor')
+const standaloneAppDirectory = path.join(standaloneDirectory, 'frontend/app/editor')
 const outputDirectory = path.join(packageDirectory, 'dist/runtime')
 
 const packageJson = JSON.parse(
@@ -22,13 +22,13 @@ await rm(outputDirectory, { recursive: true, force: true })
 await mkdir(path.dirname(outputDirectory), { recursive: true })
 await cp(standaloneDirectory, outputDirectory, { recursive: true, dereference: false })
 
-await cp(path.join(appDirectory, 'public'), path.join(outputDirectory, 'apps/editor/public'), {
+await cp(path.join(appDirectory, 'public'), path.join(outputDirectory, 'frontend/app/editor/public'), {
   recursive: true,
   force: true,
 })
 await cp(
   path.join(appDirectory, '.next/static'),
-  path.join(outputDirectory, 'apps/editor/.next/static'),
+  path.join(outputDirectory, 'frontend/app/editor/.next/static'),
   { recursive: true, force: true },
 )
 await bundleMcpServer(outputDirectory, packageJson.version)
@@ -48,7 +48,7 @@ await writeFile(
     {
       schemaVersion: 1,
       version: packageJson.version,
-      entrypoint: 'apps/editor/server.js',
+      entrypoint: 'frontend/app/editor/server.js',
       mcpEntrypoint: 'services/pascal-mcp.mjs',
       healthPath: '/api/health',
       mcpHealthPath: '/health',
@@ -67,7 +67,7 @@ async function bundleMcpServer(runtimeDirectory: string, version: string): Promi
     process.execPath,
     [
       'build',
-      path.join(repositoryRoot, 'packages/mcp/src/bin/pascal-mcp.ts'),
+      path.join(repositoryRoot, 'backend/mcp/src/bin/pascal-mcp.ts'),
       '--outfile',
       output,
       '--target',
@@ -95,7 +95,7 @@ async function assertFile(filePath: string): Promise<void> {
     await readFile(filePath)
   } catch {
     throw new Error(
-      `standalone editor build not found at ${filePath}; run PASCAL_PORTABLE_BUILD=1 bun run build from apps/editor first`,
+      `standalone editor build not found at ${filePath}; run PASCAL_PORTABLE_BUILD=1 bun run build from frontend/app/editor first`,
     )
   }
 }

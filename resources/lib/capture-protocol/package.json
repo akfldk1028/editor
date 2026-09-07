@@ -41,10 +41,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/pascalorg/editor.git",
-    "directory": "packages/capture-protocol"
+    "url": "https://github.com/akfldk1028/editor.git",
+    "directory": "resources/lib/capture-protocol"
   },
   "license": "MIT",
-  "homepage": "https://github.com/pascalorg/editor/tree/main/packages/capture-protocol#readme",
-  "bugs": "https://github.com/pascalorg/editor/issues"
+  "homepage": "https://github.com/akfldk1028/editor/tree/main/resources/lib/capture-protocol#readme",
+  "bugs": "https://github.com/akfldk1028/editor/issues"
 }

@@ -14,7 +14,7 @@ type DoorWidthPayload = { side: 'start' | 'end' }
 
 /**
  * 2D drag affordance for the door's width side-arrows. Sister to the 3D
- * `DoorSideArrow` width drag in `packages/editor/src/components/editor/
+ * `DoorSideArrow` width drag in `frontend/components/editor/src/components/editor/
  * door-side-handles.tsx` — both anchor at the opposite door edge and clamp
  * to wall bounds.
  *

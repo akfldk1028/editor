@@ -2,15 +2,15 @@
 
 *Viewer must be editor-agnostic — controlled from outside via props and children.*
 
-Applies to: `packages/viewer/**`.
+Applies to: `frontend/components/viewer/**`.
 
 `@pascal-app/viewer` is a standalone 3D canvas library. It must never know about editor-specific features, UI state, or tools. This keeps it usable in the read-only `/viewer/[id]` route and in any future embedding context.
 
 ## The Rule
 
-> The viewer is controlled from outside. It exposes control points (props, callbacks, children). It never reaches into `apps/editor`.
+> The viewer is controlled from outside. It exposes control points (props, callbacks, children). It never reaches into `frontend/app/editor`.
 
-## Forbidden in `packages/viewer`
+## Forbidden in `frontend/components/viewer`
 
 ```ts
 // ❌ Never import from the editor app
@@ -26,7 +26,7 @@ if (isEditorMode) { … }
 The editor mounts the viewer and passes what it needs:
 
 ```tsx
-// apps/editor/components/editor-canvas.tsx  ✅
+// frontend/app/editor/components/editor-canvas.tsx  ✅
 import { Viewer } from '@pascal-app/viewer'
 import { ToolManager } from '../tools/tool-manager'
 import { useEditor } from '../../store/use-editor'
@@ -77,10 +77,10 @@ When an editor feature needs to live "inside" the canvas but must not pollute th
 
 This pattern lets the viewer stay ignorant of these components while they still have access to the R3F context.
 
-## Checklist Before Adding Code to `packages/viewer`
+## Checklist Before Adding Code to `frontend/components/viewer`
 
 - [ ] Does this feature make sense in the read-only viewer route?
 - [ ] Does it reference `useEditor`, tool state, or phase/mode?
 - [ ] Could it be passed in as a prop or child instead?
 
-If any answer is "editor-specific", keep it in `apps/editor` and inject it via children or props.
+If any answer is "editor-specific", keep it in `frontend/app/editor` and inject it via children or props.

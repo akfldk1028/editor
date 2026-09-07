@@ -75,7 +75,7 @@ await loadPlugin(builtinPlugin)
 ```
 
 Load the plugin before mounting `@pascal-app/viewer`. See the
-[`@pascal-app/viewer` quick start](https://github.com/pascalorg/editor/tree/main/packages/viewer#usage)
+[`@pascal-app/viewer` quick start](https://github.com/pascalorg/editor/tree/main/frontend/components/viewer#usage)
 for a React example.
 
 ## License

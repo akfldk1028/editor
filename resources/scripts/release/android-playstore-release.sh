@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Android Play Store Release Script
-# Usage: bash tooling/release/android-playstore-release.sh [track]
+# Usage: bash resources/scripts/release/android-playstore-release.sh [track]
 #   track: internal (default), alpha, beta, production
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT_DIR"
 
 TRACK="${1:-internal}"

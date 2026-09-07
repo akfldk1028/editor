@@ -148,7 +148,7 @@ export function computeSceneBoundsXZ(
 
 /**
  * Matches the `SiteNode` bootstrap polygon defined in
- * `packages/core/src/schema/nodes/site.ts` (a 30×30 square at the origin).
+ * `resources/lib/core/src/schema/nodes/site.ts` (a 30×30 square at the origin).
  * We ignore it so the default scene doesn't "auto-frame" onto an empty box.
  */
 function isDefaultSitePolygon(points: unknown[]): boolean {

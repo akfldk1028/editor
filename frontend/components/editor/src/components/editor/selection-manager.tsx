@@ -456,7 +456,7 @@ function applyRoofSegmentPaintPreview(
 }
 
 // Chimney + dormer paint dispatch lives on their NodeDefinition's
-// `capabilities.paint` (see packages/nodes/src/{chimney,dormer}/
+// `capabilities.paint` (see frontend/elements/nodes/src/{chimney,dormer}/
 // paint.ts). The generic registry-driven arm in this file consults
 // those entries — no per-kind helpers needed here.
 

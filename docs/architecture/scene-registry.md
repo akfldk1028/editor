@@ -2,11 +2,11 @@
 
 *Mapping node IDs to live `THREE.Object3D` instances.*
 
-Applies to: `packages/core/src/hooks/scene-registry/**`, `packages/viewer/**`.
+Applies to: `resources/lib/core/src/hooks/scene-registry/**`, `frontend/components/viewer/**`.
 
 The scene registry is a global, mutable map that links node IDs to their live `THREE.Object3D` instances. It avoids tree traversal and lets systems and selection managers do O(1) lookups.
 
-**Source**: `packages/core/src/hooks/scene-registry/scene-registry.ts`
+**Source**: `resources/lib/core/src/hooks/scene-registry/scene-registry.ts`
 
 ## Structure
 
@@ -75,4 +75,4 @@ for (const id of selection.selectedIds) {
 }
 ```
 
-See `packages/viewer/src/components/viewer/selection-manager.tsx` for the full sync pattern.
+See `frontend/components/viewer/src/components/viewer/selection-manager.tsx` for the full sync pattern.

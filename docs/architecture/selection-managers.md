@@ -2,14 +2,14 @@
 
 *Two-layer selection architecture: viewer manager (hierarchy) + editor manager (phase-aware).*
 
-Applies to: `packages/viewer/src/components/viewer/selection-manager.tsx`, `apps/editor/components/editor/selection-manager.tsx`.
+Applies to: `frontend/components/viewer/src/components/viewer/selection-manager.tsx`, `frontend/app/editor/components/editor/selection-manager.tsx`.
 
 There are two selection managers. They are separate components, not the same component configured differently.
 
 | Component | Location | Knows about |
 |---|---|---|
-| `SelectionManager` | `packages/viewer/src/components/viewer/selection-manager.tsx` | Viewer state only |
-| `SelectionManager` (editor) | `apps/editor/components/editor/selection-manager.tsx` | Phase, mode, tool state |
+| `SelectionManager` | `frontend/components/viewer/src/components/viewer/selection-manager.tsx` | Viewer state only |
+| `SelectionManager` (editor) | `frontend/app/editor/components/editor/selection-manager.tsx` | Phase, mode, tool state |
 
 The viewer's manager is the default. The editor mounts its own manager as a child of `<Viewer>`, overriding the default behaviour via the viewer-isolation pattern.
 
@@ -90,7 +90,7 @@ In Select mode, 3D and 2D canvas selection share the same modifier vocabulary:
   canvas. Rotation snaps to the default angle increment unless Shift is held during the
   drag.
 
-The floating helper in `packages/editor/src/components/ui/helpers/helper-manager.tsx`
+The floating helper in `frontend/components/editor/src/components/ui/helpers/helper-manager.tsx`
 mirrors these rules from current selection state and held modifiers. Keep that helper and
 the shortcut dialog in sync when changing selection gestures.
 

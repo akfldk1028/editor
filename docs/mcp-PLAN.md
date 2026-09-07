@@ -4,7 +4,7 @@
 
 ## 0. Ground truth discovered in Phase 0
 
-- **Monorepo layout.** Turborepo + Bun. Root `package.json` already lists `packages/*` in `workspaces`. Our new package sits at `packages/mcp/`.
+- **Monorepo layout.** Turborepo + Bun. Root `package.json` already lists `packages/*` in `workspaces`. Our new package sits at `backend/mcp/`.
 - **Build tooling.** TypeScript 5.9.3, `tsc --build` per package, outputs to `dist/`. Biome 2.4.x for lint/format (root `biome.jsonc`).
 - **AGENTS.md does not exist.** `CLAUDE.md` is a symlink pointing to a non-existent `AGENTS.md`. The conventions referenced in the task prompt are therefore derived from `README.md`, `CONTRIBUTING.md`, and the actual code.
 - **`@pascal-app/core` v0.5.1** — already built and consumed by `@pascal-app/viewer` with `workspace:*` via `peerDependencies`. It exports the full Zod schema surface, the `useScene` Zustand store with `temporal` (Zundo) wrapper, systems, hooks, lib utilities, events, and `clone-scene-graph`.
@@ -84,7 +84,7 @@ Implications for tools:
 The core store was written for the browser. Node support requires **one polyfill** at MCP package boot (before `import useScene`):
 
 ```ts
-// packages/mcp/src/bridge/node-shims.ts
+// backend/mcp/src/bridge/node-shims.ts
 if (typeof (globalThis as any).requestAnimationFrame === 'undefined') {
   ;(globalThis as any).requestAnimationFrame = (cb: (t: number) => void): number => {
     return setTimeout(() => cb(performance.now()), 0) as unknown as number
@@ -95,15 +95,15 @@ if (typeof (globalThis as any).requestAnimationFrame === 'undefined') {
 }
 ```
 
-**Why:** `packages/core/src/store/actions/node-actions.ts:330` calls `requestAnimationFrame` inside `updateNodesAction`. `packages/core/src/store/use-scene.ts:462` calls `requestAnimationFrame` inside the temporal subscribe callback that marks affected nodes dirty after undo/redo. Both are load-reachable — the subscribe callback registers at module import time.
+**Why:** `resources/lib/core/src/store/actions/node-actions.ts:330` calls `requestAnimationFrame` inside `updateNodesAction`. `resources/lib/core/src/store/use-scene.ts:462` calls `requestAnimationFrame` inside the temporal subscribe callback that marks affected nodes dirty after undo/redo. Both are load-reachable — the subscribe callback registers at module import time.
 
 `crypto.randomUUID` is available globally in Node 18+, no shim needed. `URL.createObjectURL` is only called in `loadAssetUrl` which we do NOT call in MCP (no browser assets). `idb-keyval` is imported at the top of `asset-storage.ts` but only executes functions when `saveAsset`/`loadAssetUrl` are called; we never import that module in MCP code.
 
-**Persist middleware:** core does NOT apply `zustand/middleware/persist`. Persistence happens in `apps/editor`, not in core. So the store is already Node-clean apart from RAF.
+**Persist middleware:** core does NOT apply `zustand/middleware/persist`. Persistence happens in `frontend/app/editor`, not in core. So the store is already Node-clean apart from RAF.
 
 ## 2. Node types (17 total)
 
-Every one of these has a Zod schema in `packages/core/src/schema/nodes/` and participates in `AnyNode` (discriminated union on `type`):
+Every one of these has a Zod schema in `resources/lib/core/src/schema/nodes/` and participates in `AnyNode` (discriminated union on `type`):
 
 | Type literal    | Schema export    | Parent expected  | Container? | Notes |
 |-----------------|------------------|------------------|------------|-------|
@@ -125,11 +125,11 @@ Every one of these has a Zod schema in `packages/core/src/schema/nodes/` and par
 | `scan`          | `ScanNode`       | `level`          | — | external GLB url |
 | `guide`         | `GuideNode`      | `level`          | — | 2D guide image url |
 
-The full union is `AnyNode` at `packages/core/src/schema/types.ts:20`. `AnyNodeType` and `AnyNodeId` are also exported there. **Subagents MUST reuse these — never redefine.**
+The full union is `AnyNode` at `resources/lib/core/src/schema/types.ts:20`. `AnyNodeType` and `AnyNodeId` are also exported there. **Subagents MUST reuse these — never redefine.**
 
 ## 3. Store API — the only mutation surface
 
-From `packages/core/src/store/use-scene.ts:160-201`. All calls via `useScene.getState()`:
+From `resources/lib/core/src/store/use-scene.ts:160-201`. All calls via `useScene.getState()`:
 
 ```ts
 useScene.getState().createNode(node: AnyNode, parentId?: AnyNodeId): void
@@ -164,7 +164,7 @@ Plus `import { clearSceneHistory } from '@pascal-app/core'`.
 ## 4. MCP package layout
 
 ```
-packages/mcp/
+backend/mcp/
 ├── PLAN.md                       (this file)
 ├── PR_DESCRIPTION.md             (Phase 3 deliverable)
 ├── CROSS_CUTTING.md              (any proposed upstream changes)
@@ -381,23 +381,23 @@ The existing `turbo.json` globs `packages/*` implicitly via Bun workspaces and p
 
 | Path                                      | Agent |
 |-------------------------------------------|-------|
-| `packages/mcp/package.json`               | A     |
-| `packages/mcp/tsconfig.json`              | A     |
-| `packages/mcp/README.md`                  | G     |
-| `packages/mcp/CHANGELOG.md`               | G     |
-| `packages/mcp/src/index.ts`               | A     |
-| `packages/mcp/src/server.ts`              | C (registers tools; D extends with resources/prompts)* |
-| `packages/mcp/src/bridge/**`              | B     |
-| `packages/mcp/src/tools/**` (except vision) | C   |
-| `packages/mcp/src/tools/analyze-*.ts`     | E     |
-| `packages/mcp/src/resources/**`           | D     |
-| `packages/mcp/src/prompts/**`             | D     |
-| `packages/mcp/src/transports/**`          | F     |
-| `packages/mcp/src/bin/**`                 | F     |
-| `packages/mcp/scripts/smoke.ts`           | F     |
-| `packages/mcp/examples/**`                | G     |
+| `backend/mcp/package.json`               | A     |
+| `backend/mcp/tsconfig.json`              | A     |
+| `backend/mcp/README.md`                  | G     |
+| `backend/mcp/CHANGELOG.md`               | G     |
+| `backend/mcp/src/index.ts`               | A     |
+| `backend/mcp/src/server.ts`              | C (registers tools; D extends with resources/prompts)* |
+| `backend/mcp/src/bridge/**`              | B     |
+| `backend/mcp/src/tools/**` (except vision) | C   |
+| `backend/mcp/src/tools/analyze-*.ts`     | E     |
+| `backend/mcp/src/resources/**`           | D     |
+| `backend/mcp/src/prompts/**`             | D     |
+| `backend/mcp/src/transports/**`          | F     |
+| `backend/mcp/src/bin/**`                 | F     |
+| `backend/mcp/scripts/smoke.ts`           | F     |
+| `backend/mcp/examples/**`                | G     |
 | Root `turbo.json` / CI workflows          | H (only if strictly needed) |
-| `packages/mcp/biome.jsonc` (if any)       | H     |
+| `backend/mcp/biome.jsonc` (if any)       | H     |
 
 *Server.ts coordination: **Agent A writes a minimal `server.ts` stub exporting `createPascalMcpServer(bridge)` that returns an empty `McpServer`**. Agents C, D, E each export `register<Tools|Resources|Prompts|VisionTools>(server, bridge)` functions from their subtrees. Integration (me) wires them up in the final `server.ts` during Phase 2.
 

@@ -11,7 +11,7 @@ import { isAngleSnapActive } from '@pascal-app/editor'
 import { rotateAffordanceDelta } from '../shared/rotate-affordance'
 
 // Minimums + max sweep mirror the 3D handles in
-// `packages/editor/src/components/editor/stair-segment-handles.tsx` so a 2D
+// `frontend/components/editor/src/components/editor/stair-segment-handles.tsx` so a 2D
 // drag can't push a stair past what the 3D drag would allow.
 const MIN_SEGMENT_WIDTH = 0.4
 const MIN_SEGMENT_LENGTH = 0.4

@@ -69,7 +69,7 @@ function loadBuiltinsSync(): void {
  * Phase 6 plugin discovery hook — runs once, asynchronously, after the
  * synchronous builtins are already registered. Apps that ship external
  * node packs override the discovery via `setPluginDiscovery(...)`
- * before this module loads. See `wiki/architecture/plugin-authoring.md`.
+ * before this module loads. See `docs/architecture/plugin-authoring.md`.
  */
 export async function loadExternalPlugins(): Promise<void> {
   if (externalsKickedOff) return

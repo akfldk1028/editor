@@ -6,15 +6,15 @@ Public, open-source home of `@pascal-app/{core,viewer,editor,mcp}` and the stand
 
 | Path | Purpose |
 |---|---|
-| `packages/core` | Scene graph, node schemas, stores, event bus, core systems — pure logic, no Three.js |
-| `packages/viewer` | Standalone 3D canvas: renderers, viewer systems, presentation state |
-| `packages/editor` | Editor UI components reused by the standalone app and embedders |
-| `packages/mcp` | MCP server and scene storage adapters |
-| `apps/editor` | Standalone editor app — composes `viewer` + `editor` + tools |
+| `resources/lib/core` | Scene graph, node schemas, stores, event bus, core systems — pure logic, no Three.js |
+| `frontend/components/viewer` | Standalone 3D canvas: renderers, viewer systems, presentation state |
+| `frontend/components/editor` | Editor UI components reused by the standalone app and embedders |
+| `backend/mcp` | MCP server and scene storage adapters |
+| `frontend/app/editor` | Standalone editor app — composes `viewer` + `editor` + tools |
 
 ## Where to look
 
-- **Architecture rules** — `wiki/architecture/` (read on demand; index in `wiki/architecture/README.md`).
+- **Architecture rules** — `docs/architecture/` (read on demand; index in `docs/architecture/README.md`).
 - **Skills (ready workflows)** — `.agents/skills/<name>/SKILL.md`. Same content is reachable as `.claude/skills/`, `.cursor/skills/`, `.codex/skills/` (symlinks to `.agents/skills/`).
 - **Repo orientation for humans** — `README.md`, `SETUP.md`, `CONTRIBUTING.md`.
 
@@ -22,21 +22,21 @@ Public, open-source home of `@pascal-app/{core,viewer,editor,mcp}` and the stand
 
 ## Layer Boundaries (read once, internalise)
 
-- **`packages/core`** owns domain data and pure logic. It must not import Three.js, `packages/viewer`, `apps/editor`, rendering/UI concepts, tools, modes, phases, or view-specific concepts such as floorplan or paint preview.
-- **`packages/viewer`** owns the standalone 3D canvas, renderers, viewer systems, and genuine presentation state. It must not know about `useEditor`, editor tools, phases, modes, paint mode, floorplan state, or editor-only presentation vocabulary.
-- **`apps/editor`** owns the editing experience: tools, `useEditor`, panels, floorplan helpers, paint mode, keyboard shortcuts, command palette, action menus, cursor badges, and editor-only overlays. Editor features are injected into `<Viewer>` via props and children.
+- **`resources/lib/core`** owns domain data and pure logic. It must not import Three.js, `frontend/components/viewer`, `frontend/app/editor`, rendering/UI concepts, tools, modes, phases, or view-specific concepts such as floorplan or paint preview.
+- **`frontend/components/viewer`** owns the standalone 3D canvas, renderers, viewer systems, and genuine presentation state. It must not know about `useEditor`, editor tools, phases, modes, paint mode, floorplan state, or editor-only presentation vocabulary.
+- **`frontend/app/editor`** owns the editing experience: tools, `useEditor`, panels, floorplan helpers, paint mode, keyboard shortcuts, command palette, action menus, cursor badges, and editor-only overlays. Editor features are injected into `<Viewer>` via props and children.
 
-Details, examples, and rationale live in `wiki/architecture/layers.md`, `wiki/architecture/viewer-isolation.md`, `wiki/architecture/systems.md`, `wiki/architecture/renderers.md`, `wiki/architecture/tools.md`.
+Details, examples, and rationale live in `docs/architecture/layers.md`, `docs/architecture/viewer-isolation.md`, `docs/architecture/systems.md`, `docs/architecture/renderers.md`, `docs/architecture/tools.md`.
 
 ## When making architecture-sensitive changes
 
-Read the relevant page in `wiki/architecture/` **before** writing code. The page list lives in `wiki/architecture/README.md`. As a minimum:
+Read the relevant page in `docs/architecture/` **before** writing code. The page list lives in `docs/architecture/README.md`. As a minimum:
 
 - Adding a node type → `node-schemas.md`, `renderers.md`, `systems.md`
 - Adding a tool → `tools.md`, `spatial-queries.md`, `events.md`
 - Adding / changing a placement or move interaction → `tools.md` ("2D ↔ 3D behavioral parity": applicable behaviors must exist in both views; port the change to the sibling 2D/3D file in the same PR)
 - Adding a system → `systems.md`, `scene-registry.md`
-- Anything in `packages/viewer` → `viewer-isolation.md`, `layers.md`
+- Anything in `frontend/components/viewer` → `viewer-isolation.md`, `layers.md`
 - Anything touching selection → `selection-managers.md`, `scene-registry.md`, `events.md`
 
 ## When reviewing a PR

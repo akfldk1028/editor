@@ -21,7 +21,7 @@ JSON to load into the Pascal editor.
 
 ## How it works
 
-- **`@pascal-app/ifc-converter`** (`packages/ifc-converter`) — the pure
+- **`@pascal-app/ifc-converter`** (`backend/ifc-converter`) — the pure
   conversion logic. Parses IFC via [web-ifc](https://github.com/ThatOpen/engine_web-ifc),
   maps elements onto Pascal node schemas from `@pascal-app/core`. No DOM, no
   React.

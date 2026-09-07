@@ -2,7 +2,7 @@
 
 *When a numeric inspector field may and may not have `min`/`max`.*
 
-Applies to: `packages/nodes/src/**/parametrics.ts`, `packages/nodes/src/**/panel.tsx`, and any `<SliderControl>` usage.
+Applies to: `frontend/elements/nodes/src/**/parametrics.ts`, `frontend/elements/nodes/src/**/panel.tsx`, and any `<SliderControl>` usage.
 
 `SliderControl` is a scrubby number input, not a range slider: dragging applies a step-based delta (`dx/4 × step`), and the wheel/arrow keys step likewise. `min`/`max` play no role in the interaction — they are pure clamps, defaulting to ±Infinity, and a typed value beyond them is clamped **silently**. A max therefore never "smooths" anything; it only blocks users, and blocking reads as "the app ignored me". Sweep of 2026-08: all arbitrary maxes were lifted (editor PR for `chore/field-limit-sweep`).
 

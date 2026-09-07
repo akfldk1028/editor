@@ -25,7 +25,7 @@ describe('saveAsset', () => {
 
   // Regression test: crypto.randomUUID() throws/`undefined`s on plain-HTTP
   // origins because it requires a secure context (HTTPS or localhost). Every
-  // upload used to fail on such deployments (see packages/editor's
+  // upload used to fail on such deployments (see frontend/components/editor's
   // reference-panel.tsx, local-guide-image.ts, both of which call saveAsset).
   test('still works when crypto.randomUUID is unavailable (insecure context)', async () => {
     // @ts-expect-error simulating a browser without Web Crypto's randomUUID

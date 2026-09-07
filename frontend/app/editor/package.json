@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "dotenv -e ../../.env.local -e ../../.env.defaults -- next dev",
-    "build": "dotenv -e ../../.env.local -- next build",
+    "dev": "dotenv -e ../../../.env.local -e ../../../.env.defaults -- next dev",
+    "build": "dotenv -e ../../../.env.local -- next build",
     "start": "next start",
     "lint": "biome lint",
     "check-types": "next typegen && tsc --noEmit",

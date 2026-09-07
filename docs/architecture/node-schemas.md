@@ -2,11 +2,11 @@
 
 *Node type definitions, Zod schema pattern, and how to create nodes in the scene.*
 
-Applies to: `packages/core/src/schema/**`.
+Applies to: `resources/lib/core/src/schema/**`.
 
-All node types are defined as Zod schemas in `packages/core/src/schema/nodes/`. Each schema extends `BaseNode` and exports both the schema and its inferred TypeScript type.
+All node types are defined as Zod schemas in `resources/lib/core/src/schema/nodes/`. Each schema extends `BaseNode` and exports both the schema and its inferred TypeScript type.
 
-**Sources**: `packages/core/src/schema/base.ts`, `packages/core/src/schema/nodes/`
+**Sources**: `resources/lib/core/src/schema/base.ts`, `resources/lib/core/src/schema/nodes/`
 
 ## BaseNode
 
@@ -27,7 +27,7 @@ Every node shares these fields:
 ## Defining a New Node Type
 
 ```ts
-// packages/core/src/schema/nodes/my-node.ts
+// resources/lib/core/src/schema/nodes/my-node.ts
 import { z } from 'zod'
 import { BaseNode, objectId, nodeType } from '../base'
 
@@ -43,7 +43,7 @@ export type MyNode = z.infer<typeof MyNode>
 export type MyNodeId = MyNode['id']
 ```
 
-Then add `MyNode` to the `AnyNode` union in `packages/core/src/schema/types.ts`.
+Then add `MyNode` to the `AnyNode` union in `resources/lib/core/src/schema/types.ts`.
 
 ## Creating Nodes in Tools
 
@@ -80,7 +80,7 @@ updateNode(wall.id, { height: 2.8 })   // partial update, merges with existing
 
 ## Schema Evolution & Backward Compatibility
 
-Saved scenes are persisted JSON parsed back through `AnyNode` at load (`SceneState.setScene` → `migrateNodes` → `markDirty`, in `packages/core/src/store/use-scene.ts`). Any change to an existing node's properties must keep older saved scenes loadable — a scene written months ago must still parse and render.
+Saved scenes are persisted JSON parsed back through `AnyNode` at load (`SceneState.setScene` → `migrateNodes` → `markDirty`, in `resources/lib/core/src/store/use-scene.ts`). Any change to an existing node's properties must keep older saved scenes loadable — a scene written months ago must still parse and render.
 
 - **Adding a field** → give it a Zod `.default(...)` (or `.optional()`). `AnyNode.parse` then fills it for legacy nodes that lack it. A required field with no default makes every pre-existing scene fail validation.
 - **Renaming, removing, or retyping a field** → a `.default()` is not enough; it silently drops the old value. Add an entry to `migrateNodes` (`use-scene.ts`) that reads the legacy shape and rewrites it to the new one *before* parse. This is also where structural changes go (splitting one material into interior/exterior, deriving `pitch` from a legacy `roofHeight`, seeding `children: []` on a new host kind).
@@ -90,14 +90,14 @@ When in doubt, load an old scene (or a fixture) after the change and confirm it 
 
 ## Real Examples
 
-- **Simple geometry node**: `packages/core/src/schema/nodes/wall.ts` — `start`, `end`, `thickness`, `height`
-- **Polygon node**: `packages/core/src/schema/nodes/slab.ts` — `polygon: [number, number][]`, `holes`
-- **Positioned node**: `packages/core/src/schema/nodes/item.ts` — `position`, `rotation`, `scale`, `asset`
+- **Simple geometry node**: `resources/lib/core/src/schema/nodes/wall.ts` — `start`, `end`, `thickness`, `height`
+- **Polygon node**: `resources/lib/core/src/schema/nodes/slab.ts` — `polygon: [number, number][]`, `holes`
+- **Positioned node**: `resources/lib/core/src/schema/nodes/item.ts` — `position`, `rotation`, `scale`, `asset`
 
 ## Rules
 
 - **Always use `.parse()`** — it generates the correct ID prefix and fills defaults. `WallNode.parse({...})` not `{ type: 'wall', id: '...' }`.
 - **Never hardcode IDs.** Let `objectId('type')` generate them.
 - **Add new node types to `AnyNode`** in `types.ts` or they won't be accepted by the store.
-- **Keep schemas in `packages/core`**, not in the viewer or editor — the schema is shared by all packages.
+- **Keep schemas in `resources/lib/core`**, not in the viewer or editor — the schema is shared by all packages.
 - **Never break old scenes.** New fields get a `.default()`; renames/removals/retypes get a `migrateNodes` entry. See *Schema Evolution & Backward Compatibility* above.

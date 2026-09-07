@@ -26,7 +26,7 @@ The plugin registers the built-in schemas, renderers, geometry builders, tools, 
 can load additional plugins through the same `loadPlugin` API.
 
 See the
-[`@pascal-app/viewer` quick start](https://github.com/pascalorg/editor/tree/main/packages/viewer#usage)
+[`@pascal-app/viewer` quick start](https://github.com/pascalorg/editor/tree/main/frontend/components/viewer#usage)
 for bootstrap ordering in a React application.
 
 ## License

@@ -145,7 +145,7 @@ export function carveChimneyHoles(
  *   - group 1: the top face triangles. Receives the top material.
  *
  * Mirrors the v1 `partitionTopFaceGroups` in
- * `packages/viewer/src/systems/chimney/chimney-geometry.ts`. Operates in
+ * `frontend/components/viewer/src/systems/chimney/chimney-geometry.ts`. Operates in
  * place — the geometry is re-indexed and its `groups` array rewritten.
  */
 export function partitionTopFaceGroups(geo: THREE.BufferGeometry, topYMin: number) {

@@ -616,7 +616,7 @@ const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
           {/* Generic geometry rebuild loop for any registered kind that
             ships `def.geometry`. Reads dirtyNodes, calls the kind's pure
             builder, swaps the registered group's children. See
-            wiki/architecture/node-definitions.md. */}
+            docs/architecture/node-definitions.md. */}
           <GeometrySystem />
           {/* Automated stair opening sync — updates slab/ceiling cutouts
             whenever stairs, slabs, or levels change. */}

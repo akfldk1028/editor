@@ -272,7 +272,7 @@ function fenceCenterlinePoints(fence: FenceSupportInput): Array<[number, number]
 /**
  * Support-host patch for a fence: elect the slab the fence line stands on
  * and persist it as `supportSlabId` (the fence lift resolves absent =
- * level floor — see `packages/nodes/src/fence/lift.ts`).
+ * level floor — see `frontend/elements/nodes/src/fence/lift.ts`).
  *
  * The centerline (chord, sampled arc, or spline path) is turned into thin
  * band footprints and run through the same candidate machinery items use.

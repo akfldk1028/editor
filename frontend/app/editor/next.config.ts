@@ -7,7 +7,7 @@ const portableBuild = process.env.PASCAL_PORTABLE_BUILD === '1'
 
 const nextConfig: NextConfig = {
   ...(portableBuild
-    ? { output: 'standalone' as const, outputFileTracingRoot: path.join(appDirectory, '../..') }
+    ? { output: 'standalone' as const, outputFileTracingRoot: path.join(appDirectory, '../../..') }
     : {}),
   logging: {
     browserToTerminal: true,

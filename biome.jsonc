@@ -89,18 +89,24 @@
   "files": {
     "ignoreUnknown": true,
     "includes": [
-      "packages/**/*.ts",
-      "packages/**/*.tsx",
-      "packages/**/*.js",
-      "packages/**/*.jsx",
-      "packages/**/*.json",
-      "packages/**/*.css",
-      "packages/**/*.md",
-      "packages/**/*.mdx",
-      "apps/**/*.ts",
-      "apps/**/*.tsx",
-      "apps/**/*.js",
-      "apps/**/*.jsx",
+      "frontend/**/*.ts",
+      "frontend/**/*.tsx",
+      "frontend/**/*.js",
+      "frontend/**/*.jsx",
+      "frontend/**/*.json",
+      "frontend/**/*.css",
+      "frontend/**/*.md",
+      "frontend/**/*.mdx",
+      "backend/**/*.ts",
+      "backend/**/*.tsx",
+      "backend/**/*.js",
+      "backend/**/*.jsx",
+      "backend/**/*.json",
+      "backend/**/*.md",
+      "resources/lib/**/*.ts",
+      "resources/lib/**/*.tsx",
+      "resources/lib/**/*.json",
+      "resources/lib/**/*.md",
       "!**/node_modules",
       "!**/.next",
       "!**/dist",
@@ -112,7 +118,7 @@
   },
   "overrides": [
     {
-      "includes": ["packages/editor/components/debug/react-scan.tsx"],
+      "includes": ["frontend/components/editor/components/debug/react-scan.tsx"],
       "assist": {
         "actions": {
           "source": {
@@ -123,12 +129,12 @@
     },
     {
       "includes": [
-        "packages/core/**/*.ts",
-        "packages/core/**/*.tsx",
-        "packages/viewer/**/*.ts",
-        "packages/viewer/**/*.tsx",
-        "packages/editor/**/*.ts",
-        "packages/editor/**/*.tsx"
+        "resources/lib/core/**/*.ts",
+        "resources/lib/core/**/*.tsx",
+        "frontend/components/viewer/**/*.ts",
+        "frontend/components/viewer/**/*.tsx",
+        "frontend/components/editor/**/*.ts",
+        "frontend/components/editor/**/*.tsx"
       ],
       "linter": {
         "rules": {

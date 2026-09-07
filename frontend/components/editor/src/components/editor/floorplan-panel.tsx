@@ -643,8 +643,8 @@ type ReferenceFloorRegistryEntry = {
 // either render through a parent's builder or shouldn't appear as standalone
 // reference symbols — auto-deriving would double-draw or clutter the floor.
 // The list also can't live on `NodeDefinition`: "reference floor" is an
-// editor 2D-view concept that `packages/core` must stay unaware of (see
-// wiki/architecture/layers.md). New top-level structural kinds opt in here.
+// editor 2D-view concept that `resources/lib/core` must stay unaware of (see
+// docs/architecture/layers.md). New top-level structural kinds opt in here.
 const REFERENCE_REGISTRY_KINDS = new Set<AnyNode['type']>([
   'stair',
   'roof',
@@ -9752,7 +9752,7 @@ export function FloorplanPanel({
       }
 
       // The 3D wall tool's `grid:click` listener
-      // (`packages/nodes/src/wall/tool.tsx`) owns the wall-create
+      // (`frontend/elements/nodes/src/wall/tool.tsx`) owns the wall-create
       // call. `emitFloorplanGridEvent('click', …)` in
       // `useFloorplanBackgroundPlacement` fires it synchronously
       // just before this callback runs, so by the time we get here

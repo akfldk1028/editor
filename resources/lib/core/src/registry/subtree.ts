@@ -20,7 +20,7 @@ import type { AnyNode, AnyNodeId } from '../schema/types'
 // are *host references* (e.g. `wallId` / `wallT` on a door hosted by a
 // wall). That knowledge lives on `def.hostRefFields` — read it via
 // `getHostRefFields(def)` and apply it at storage time. See
-// `wiki/architecture/node-definitions.md` (host refs section).
+// `docs/architecture/node-definitions.md` (host refs section).
 
 /** A flat live-scene subtree rooted at `root`. */
 export type Subtree = {

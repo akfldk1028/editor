@@ -4,20 +4,20 @@ on:
   push:
     branches: [main]
     paths:
-      - 'packages/mcp/**'
-      - 'packages/core/**'
-      - 'apps/editor/app/api/scenes/**'
-      - 'apps/editor/lib/scene-*'
-      - 'apps/editor/package.json'
+      - 'backend/mcp/**'
+      - 'resources/lib/core/**'
+      - 'frontend/app/editor/app/api/scenes/**'
+      - 'frontend/app/editor/lib/scene-*'
+      - 'frontend/app/editor/package.json'
       - 'bun.lock'
       - '.github/workflows/mcp-ci.yml'
   pull_request:
     paths:
-      - 'packages/mcp/**'
-      - 'packages/core/**'
-      - 'apps/editor/app/api/scenes/**'
-      - 'apps/editor/lib/scene-*'
-      - 'apps/editor/package.json'
+      - 'backend/mcp/**'
+      - 'resources/lib/core/**'
+      - 'frontend/app/editor/app/api/scenes/**'
+      - 'frontend/app/editor/lib/scene-*'
+      - 'frontend/app/editor/package.json'
       - 'bun.lock'
       - '.github/workflows/mcp-ci.yml'
 
@@ -37,16 +37,16 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build core
-        run: bun run --cwd packages/core build
+        run: bun run --cwd resources/lib/core build
 
       - name: Build mcp
-        run: bun run --cwd packages/mcp build
+        run: bun run --cwd backend/mcp build
 
       - name: Test mcp
-        run: bun test --cwd packages/mcp
+        run: bun test --cwd backend/mcp
 
       - name: Test editor scene API
-        run: bun test apps/editor/lib/scene-store-server.test.ts apps/editor/lib/scene-api-security.test.ts
+        run: bun test frontend/app/editor/lib/scene-store-server.test.ts frontend/app/editor/lib/scene-api-security.test.ts
 
       - name: Biome check
-        run: bunx biome check packages/mcp apps/editor/lib/scene-store-server.ts apps/editor/lib/scene-api-security.ts apps/editor/app/api/scenes
+        run: bunx biome check backend/mcp frontend/app/editor/lib/scene-store-server.ts frontend/app/editor/lib/scene-api-security.ts frontend/app/editor/app/api/scenes

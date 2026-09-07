@@ -54,9 +54,9 @@ beforeAll(async () => {
   // files in the same process (the stubs stick for later dynamic imports
   // on linux), which starved this fixture of saveScene/loadStoredScene in
   // CI three runs straight.
-  const { SqliteSceneStore } = await import('../../../packages/mcp/src/storage/sqlite-scene-store')
+  const { SqliteSceneStore } = await import('../../../../backend/mcp/src/storage/sqlite-scene-store')
   const { createSceneOperations } = await import(
-    '../../../packages/mcp/src/operations/scene-operations'
+    '../../../../backend/mcp/src/operations/scene-operations'
   )
   const store = new SqliteSceneStore({ env: process.env })
   const operations = createSceneOperations({ store })

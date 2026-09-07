@@ -9,7 +9,7 @@ export const SCENE_LAYER = 0
  * scene pass so the screen-space ink and SSGI never treat overlays as geometry,
  * then composites it back on top via a dedicated overlay pass.
  *
- * Editor's `EDITOR_LAYER` (packages/editor) re-exports this — they MUST match.
+ * Editor's `EDITOR_LAYER` (frontend/components/editor) re-exports this — they MUST match.
  */
 export const OVERLAY_LAYER = 1
 

@@ -2,7 +2,7 @@
  * Shared Elevation System & Corner Smoothing
  *
  * Natural shadow stacking with light/dark mode adaptation.
- * Import from any app: @import "../../../styles/elevation.css";
+ * Import from an app: @import "../../../../resources/data/styles/elevation.css";
  *
  * Shadows:
  *   shadow-elevation-0  Flat — ambient ring only

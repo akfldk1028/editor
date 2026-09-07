@@ -1,6 +1,6 @@
 /**
  * Phase 0.5 bridge spike — prove that @pascal-app/core's useScene works in Node
- * after a RAF polyfill. Run with: bun run packages/mcp/scripts/spike.ts
+ * after a RAF polyfill. Run with: bun run backend/mcp/scripts/spike.ts
  */
 
 // Polyfill BEFORE importing core.

@@ -45,7 +45,7 @@ bun run test     # every package, via Turborepo
 Run one package while you work on it:
 
 ```bash
-bun --cwd packages/core run test
+bun --cwd resources/lib/core run test
 ```
 
 Use `bun run test`, not bare `bun test`. `test` is one of Bun's own
@@ -59,11 +59,11 @@ builds workspace dependencies first (several packages import theirs from
 
 | Package | What it does |
 |---------|-------------|
-| `packages/core` | Scene schema, state management, systems — no UI |
-| `packages/viewer` | 3D rendering with React Three Fiber |
-| `apps/editor` | The full editor app (Next.js) |
+| `resources/lib/core` | Scene schema, state management, systems — no UI |
+| `frontend/components/viewer` | 3D rendering with React Three Fiber |
+| `frontend/app/editor` | The full editor app (Next.js) |
 
-A key rule: **`packages/viewer` must never import from `apps/editor`**. The viewer is a standalone component; editor-specific behavior is injected via props/children.
+A key rule: **`frontend/components/viewer` must never import from `frontend/app/editor`**. The viewer is a standalone component; editor-specific behavior is injected via props/children.
 
 ### Building a plugin
 

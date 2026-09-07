@@ -1,10 +1,10 @@
 # Renderers
 
-*Node renderer pattern in `packages/viewer`.*
+*Node renderer pattern in `frontend/components/viewer`.*
 
-Applies to: `packages/viewer/**`.
+Applies to: `frontend/components/viewer/**`.
 
-Renderers live in `packages/viewer/src/components/renderers/`. Each renderer is responsible for one node type's Three.js geometry and materials — nothing else.
+Renderers live in `frontend/components/viewer/src/components/renderers/`. Each renderer is responsible for one node type's Three.js geometry and materials — nothing else.
 
 > **For registry-driven kinds, the default is no custom renderer.** Set `def.geometry` instead and the framework mounts a generic renderer + geometry system for you. See [node-definitions.md](node-definitions.md). The pattern below applies to kinds that *do* need a custom renderer (GLB, `<Html>`, drei, instancing, shader materials).
 
@@ -16,7 +16,7 @@ Renderers live in `packages/viewer/src/components/renderers/`. Each renderer is 
        └─ <WallRenderer> — (or SlabRenderer, DoorRenderer, …)
 ```
 
-See `packages/viewer/src/components/renderers/scene-renderer.tsx` and `packages/viewer/src/components/renderers/node-renderer.tsx`.
+See `frontend/components/viewer/src/components/renderers/scene-renderer.tsx` and `frontend/components/viewer/src/components/renderers/node-renderer.tsx`.
 
 ## Renderer Responsibilities
 
@@ -28,14 +28,14 @@ A renderer **should**:
 
 A renderer **must not**:
 - Run geometry generation logic (that belongs in a System)
-- Import anything from `apps/editor`
+- Import anything from `frontend/app/editor`
 - Manage selection state directly (use `useViewer` for read, emit events for write)
 - Perform expensive per-frame calculations in the component body
 
 ## Example — Minimal Renderer
 
 ```tsx
-// packages/viewer/src/components/renderers/my-node/index.tsx
+// frontend/components/viewer/src/components/renderers/my-node/index.tsx
 import { useRegistry } from '@pascal-app/core'
 import { useNodeEvents } from '../../hooks/use-node-events'
 import { useScene } from '@pascal-app/core'
@@ -56,12 +56,12 @@ export function MyNodeRenderer({ node }: { node: MyNode }) {
 
 ## Adding a New Node Type
 
-For new kinds, prefer the registry-driven model in [node-definitions.md](node-definitions.md). The legacy steps below apply only when a kind needs a custom React renderer (GLB loaders, `<Html>` portals, etc.) **and** lives in `packages/viewer` rather than `packages/nodes/<kind>`:
+For new kinds, prefer the registry-driven model in [node-definitions.md](node-definitions.md). The legacy steps below apply only when a kind needs a custom React renderer (GLB loaders, `<Html>` portals, etc.) **and** lives in `frontend/components/viewer` rather than `frontend/elements/nodes/<kind>`:
 
-1. Create `packages/viewer/src/components/renderers/<type>/index.tsx`
+1. Create `frontend/components/viewer/src/components/renderers/<type>/index.tsx`
 2. Add a case to `NodeRenderer` in `node-renderer.tsx`
-3. Add the corresponding system in `packages/core/src/systems/` if the node needs derived geometry
-4. Export from `packages/viewer/src/index.ts` if needed externally
+3. Add the corresponding system in `resources/lib/core/src/systems/` if the node needs derived geometry
+4. Export from `frontend/components/viewer/src/index.ts` if needed externally
 
 ## Performance Notes
 

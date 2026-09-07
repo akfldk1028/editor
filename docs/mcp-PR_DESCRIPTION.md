@@ -65,7 +65,7 @@ Issue [#74 "Viewer component API definition"](https://github.com/pascalorg/edito
 │                          ▲                                │
 │         stdio │ HTTP                                      │
 │                          ▼                                │
-│   ┌──────── packages/mcp/src/bin/pascal-mcp.ts ────────┐  │
+│   ┌──────── backend/mcp/src/bin/pascal-mcp.ts ────────┐  │
 │   │ (Bun CLI, loads node-shims first)                  │  │
 │   └────────────────────────────────────────────────────┘  │
 │                          │                                │
@@ -94,17 +94,17 @@ Issue [#74 "Viewer component API definition"](https://github.com/pascalorg/edito
 ```bash
 # From the repo root
 bun install
-bun run --cwd packages/core build
-bun run --cwd packages/mcp build
+bun run --cwd resources/lib/core build
+bun run --cwd backend/mcp build
 
 # Unit + integration tests (248 tests across 40 files)
-bun test --cwd packages/mcp
+bun test --cwd backend/mcp
 
 # End-to-end smoke test (spawns stdio server and exercises 4 tools)
-bun run --cwd packages/mcp smoke
+bun run --cwd backend/mcp smoke
 
 # Biome lint
-bunx biome check packages/mcp
+bunx biome check backend/mcp
 
 # Turbo build
 bunx turbo build --filter=@pascal-app/mcp
@@ -119,7 +119,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "pascal": {
       "command": "bun",
-      "args": ["/absolute/path/to/editor/packages/mcp/dist/bin/pascal-mcp.js"],
+      "args": ["/absolute/path/to/editor/backend/mcp/dist/bin/pascal-mcp.js"],
       "env": {
         "PASCAL_DATA_DIR": "/Users/you/.pascal/data"
       }
@@ -133,7 +133,7 @@ For Codex CLI:
 ```bash
 codex mcp add pascal-dev \
   --env PASCAL_DATA_DIR="$HOME/.pascal/data" \
-  -- bun "$PWD/packages/mcp/dist/bin/pascal-mcp.js"
+  -- bun "$PWD/backend/mcp/dist/bin/pascal-mcp.js"
 ```
 
 Run the editor with the same `PASCAL_DATA_DIR`, then ask the MCP host to create
@@ -151,27 +151,27 @@ and `save_scene`; the scene is openable at `/scene/<id>`.
 
 ## Cross-cutting changes
 
-Documented in [`packages/mcp/CROSS_CUTTING.md`](./CROSS_CUTTING.md):
+Documented in [`backend/mcp/CROSS_CUTTING.md`](./CROSS_CUTTING.md):
 
-1. **`packages/core/package.json` — additive subpath exports.** Adds `./schema`, `./store`, `./material-library`, `./spatial-grid`, `./wall`. Needed because the main entry re-exports browser-only systems; subpath entries let Node consumers skip them. Zero impact on existing consumers (`apps/editor`, `@pascal-app/viewer` still use the main entry).
+1. **`resources/lib/core/package.json` — additive subpath exports.** Adds `./schema`, `./store`, `./material-library`, `./spatial-grid`, `./wall`. Needed because the main entry re-exports browser-only systems; subpath entries let Node consumers skip them. Zero impact on existing consumers (`frontend/app/editor`, `@pascal-app/viewer` still use the main entry).
 2. **`.github/workflows/mcp-ci.yml` — new CI.** Kept because the repo otherwise only has manual release CI. It runs on PRs touching MCP/core/editor scene API code; installs with Bun 1.3.0, builds MCP, runs MCP tests, runs focused editor scene API tests, and biome-checks the touched surface.
-3. **`apps/editor` scene routes.** Adds scene API routes and pages that read from the same SQLite-backed `SceneOperations` layer as MCP.
+3. **`frontend/app/editor` scene routes.** Adds scene API routes and pages that read from the same SQLite-backed `SceneOperations` layer as MCP.
 4. (Observation, not fixed) **`SiteNode.children` inconsistency.** Detailed in CROSS_CUTTING §2.
 
 ## Checklist
 
-- ✅ `bunx biome check packages/mcp` — clean
-- ✅ `bun run --cwd packages/mcp build` — tsc OK
+- ✅ `bunx biome check backend/mcp` — clean
+- ✅ `bun run --cwd backend/mcp build` — tsc OK
 - ✅ `bunx turbo build --filter=@pascal-app/mcp` — 2/2 tasks successful
-- ✅ `bun test --cwd packages/mcp` — 248/248 tests pass across 40 files (965 expects)
-- ✅ `bun run --cwd packages/mcp smoke` — spawns stdio server, registers 30 tools, exercises `get_scene` / `create_level` / `validate_scene` / `undo` end-to-end
-- ✅ `bun test apps/editor/lib/scene-store-server.test.ts` — editor store singleton test passes
+- ✅ `bun test --cwd backend/mcp` — 248/248 tests pass across 40 files (965 expects)
+- ✅ `bun run --cwd backend/mcp smoke` — spawns stdio server, registers 30 tools, exercises `get_scene` / `create_level` / `validate_scene` / `undo` end-to-end
+- ✅ `bun test frontend/app/editor/lib/scene-store-server.test.ts` — editor store singleton test passes
 - ✅ Editor smoke — `/api/scenes/<id>` and `/scene/<id>` return 200 for a scene saved through MCP using the shared SQLite DB
 - ✅ Local Codex MCP probe with `gpt-5.5` — saved a template scene through `pascal-dev`, then reloaded it and created a wall
 - ✅ Docs: README with Claude Desktop, Claude Code, Codex CLI, Cursor configs + tool/resource/prompt tables, CHANGELOG, 3 examples
 - ✅ Conventional commit series (9 commits on `feat/mcp-server`)
 - ✅ No Supabase dependency, SQL migrations, or committed test-report artifacts
-- ✅ `packages/core` changes are additive subpath exports plus URL-schema hardening
+- ✅ `resources/lib/core` changes are additive subpath exports plus URL-schema hardening
 - ✅ Bun CLI; RAF polyfill loads before any core import
 - ✅ Strict TypeScript (no `any` without reason; no `@ts-expect-error`); Zod at every boundary
 - ✅ Every mutation goes through the Zustand store (undo-safe via Zundo)

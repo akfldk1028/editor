@@ -2,7 +2,7 @@
 
 *Core and viewer systems architecture.*
 
-Applies to: `packages/core/src/systems/**`, `packages/viewer/src/systems/**`.
+Applies to: `resources/lib/core/src/systems/**`, `frontend/components/viewer/src/systems/**`.
 
 Systems own business logic, geometry generation, and constraints. They run in the Three.js frame loop and are never rendered directly.
 
@@ -10,7 +10,7 @@ Systems own business logic, geometry generation, and constraints. They run in th
 
 ## Two Kinds of Systems
 
-### Core Systems — `packages/core/src/systems/`
+### Core Systems — `resources/lib/core/src/systems/`
 
 Pure logic: no rendering, no Three.js objects. They read nodes from `useScene`, compute derived values (geometry, constraints), and write results back.
 
@@ -23,9 +23,9 @@ Pure logic: no rendering, no Three.js objects. They read nodes from `useScene`, 
 | `WindowSystem` | Placement constraints on walls |
 | `ItemSystem` | Item transforms, collision |
 
-Slab geometry has no dedicated system: it renders through the registry `def.geometry` (`packages/nodes/src/slab/geometry.ts`, calling the pure generators in `packages/viewer/src/systems/slab/slab-system.tsx`) with a small `def.system` for dirty tracking.
+Slab geometry has no dedicated system: it renders through the registry `def.geometry` (`frontend/elements/nodes/src/slab/geometry.ts`, calling the pure generators in `frontend/components/viewer/src/systems/slab/slab-system.tsx`) with a small `def.system` for dirty tracking.
 
-### Viewer Systems — `packages/viewer/src/systems/`
+### Viewer Systems — `frontend/components/viewer/src/systems/`
 
 Access Three.js objects (via `useRegistry`) and manage rendering side-effects.
 
@@ -43,7 +43,7 @@ Access Three.js objects (via `useRegistry`) and manage rendering side-effects.
 Systems are React components that render nothing (`return null`) and use `useFrame` for per-frame logic.
 
 ```tsx
-// packages/core/src/systems/my-system.tsx
+// resources/lib/core/src/systems/my-system.tsx
 import { useFrame } from '@react-three/fiber'
 import { useScene } from '../store/use-scene'
 
@@ -58,7 +58,7 @@ export function MySystem() {
 }
 ```
 
-Core and viewer systems are mounted inside `<Viewer>` alongside renderers. See `packages/viewer/src/components/viewer/index.tsx` for the mount order.
+Core and viewer systems are mounted inside `<Viewer>` alongside renderers. See `frontend/components/viewer/src/components/viewer/index.tsx` for the mount order.
 
 **Systems are a customization point.** Any consumer of `<Viewer>` — the editor app, an embed, a read-only preview — can inject its own systems as children. This is how editor-specific behaviour (space detection, tool feedback) is added without touching the viewer package.
 
@@ -96,17 +96,17 @@ and corridor-enclosure edits must produce the same spaces and surfaces as full r
 ## Adding a New System
 
 1. Decide the scope:
-   - **Domain logic** → `packages/core/src/systems/`
-   - **Viewer rendering side-effect** → `packages/viewer/src/systems/` — mount in `packages/viewer/src/components/viewer/index.tsx`
-   - **Editor-specific or integration-specific** → keep it in the consuming app (e.g. `apps/editor/components/systems/`) and inject it as a child of `<Viewer>`
+   - **Domain logic** → `resources/lib/core/src/systems/`
+   - **Viewer rendering side-effect** → `frontend/components/viewer/src/systems/` — mount in `frontend/components/viewer/src/components/viewer/index.tsx`
+   - **Editor-specific or integration-specific** → keep it in the consuming app (e.g. `frontend/app/editor/components/systems/`) and inject it as a child of `<Viewer>`
 
 2. Create `<name>-system.tsx` in the appropriate directory.
 
 3. Mount it in the right place:
-   - Viewer-internal systems go in `packages/viewer/src/components/viewer/index.tsx`
+   - Viewer-internal systems go in `frontend/components/viewer/src/components/viewer/index.tsx`
    - App-specific systems are injected as children from outside:
      ```tsx
-     // apps/editor — editor injects its own systems without modifying the viewer
+     // frontend/app/editor — editor injects its own systems without modifying the viewer
      <Viewer>
        <MyEditorSystem />
        <ToolManager />

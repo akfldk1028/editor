@@ -555,7 +555,7 @@ export function buildDormerCutShape(
  *
  * Coordinates are SEGMENT-LOCAL. The viewer welds vertices, attaches
  * a single material group, and wraps the result in a Brush — see
- * `wiki/architecture/node-definitions.md` (`capabilities.roofAccessory.buildCut`).
+ * `docs/architecture/node-definitions.md` (`capabilities.roofAccessory.buildCut`).
  */
 export function buildDormerRoofCut(dormer: DormerNode): THREE.BufferGeometry | null {
   // Defensive: bail on any non-finite or sub-millimeter dimension. A

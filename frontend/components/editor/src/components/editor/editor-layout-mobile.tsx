@@ -16,7 +16,7 @@ const SHEET_OVERLAP_PX = 16
 // Sheet never collapses below the drag handle so the user can always grab it.
 const SHEET_HANDLE_PX = 24
 
-// Match the viewer's scene background colors (packages/viewer/src/components/viewer/index.tsx)
+// Match the viewer's scene background colors (frontend/components/viewer/src/components/viewer/index.tsx)
 const VIEWER_BG_DARK = '#1f2433'
 const VIEWER_BG_LIGHT = '#ffffff'
 

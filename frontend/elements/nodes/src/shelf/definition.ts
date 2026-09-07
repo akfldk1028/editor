@@ -219,7 +219,7 @@ export const shelfDefinition: NodeDefinition<typeof ShelfNode> = {
   // mount and rebuild on dirty; the <FloorplanRegistryLayer> calls
   // buildShelfFloorplan for the 2D top-down view. No renderer.tsx, no
   // system.tsx, no inline floor-plan SVG — see
-  // `wiki/architecture/node-definitions.md`.
+  // `docs/architecture/node-definitions.md`.
   geometry: buildShelfGeometry,
   // Boards/posts/back depend only on these fields — never on hosted
   // `children`. Lets <GeometrySystem> skip the dispose+rebuild (and the

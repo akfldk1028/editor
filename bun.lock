@@ -23,7 +23,57 @@
         "lightningcss-linux-x64-gnu": "1.32.0",
       },
     },
-    "apps/editor": {
+    "backend/cli": {
+      "name": "@pascal-app/cli",
+      "version": "1.0.0-beta.1",
+      "bin": {
+        "pascal": "dist/bin/pascal.js",
+      },
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.30.0",
+      },
+      "devDependencies": {
+        "@pascal/typescript-config": "*",
+        "@types/node": "^22.19.20",
+        "typescript": "6.0.3",
+      },
+    },
+    "backend/ifc-converter": {
+      "name": "@pascal-app/ifc-converter",
+      "version": "1.0.0-beta.5",
+      "dependencies": {
+        "@pascal-app/core": "*",
+        "nanoid": "^5.1.6",
+        "web-ifc": "^0.0.77",
+      },
+      "devDependencies": {
+        "@pascal/typescript-config": "*",
+        "@types/bun": "^1.3.0",
+        "typescript": "6.0.3",
+      },
+    },
+    "backend/mcp": {
+      "name": "@pascal-app/mcp",
+      "version": "1.0.0-beta.6",
+      "bin": {
+        "pascal-mcp": "./dist/bin/pascal-mcp.js",
+      },
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.30.0",
+        "@pascal-app/lingo": "^0.2.0",
+        "zod": ">=4.5.4 <4.6",
+      },
+      "devDependencies": {
+        "@pascal-app/core": "^1.0.0-beta.5",
+        "@pascal/typescript-config": "*",
+        "@types/node": "^22.19.20",
+        "typescript": "6.0.3",
+      },
+      "peerDependencies": {
+        "@pascal-app/core": "^1.0.0-beta.5",
+      },
+    },
+    "frontend/app/editor": {
       "name": "editor",
       "version": "0.1.0",
       "dependencies": {
@@ -67,7 +117,7 @@
         "typescript": "7.0.2",
       },
     },
-    "apps/ifc-converter": {
+    "frontend/app/ifc-converter": {
       "name": "ifc-converter-app",
       "version": "0.1.0",
       "dependencies": {
@@ -98,19 +148,7 @@
         "typescript": "7.0.2",
       },
     },
-    "packages/capture-protocol": {
-      "name": "@pascal-app/capture-protocol",
-      "version": "1.0.0-beta.4",
-      "dependencies": {
-        "zod": ">=4.5.4 <4.6",
-      },
-      "devDependencies": {
-        "@pascal/typescript-config": "*",
-        "@types/bun": "^1.3.0",
-        "typescript": "6.0.3",
-      },
-    },
-    "packages/capture-viewer": {
+    "frontend/components/capture-viewer": {
       "name": "@pascal-app/capture-viewer",
       "version": "1.0.0-beta.4",
       "devDependencies": {
@@ -137,50 +175,7 @@
         "three": "^0.185",
       },
     },
-    "packages/cli": {
-      "name": "@pascal-app/cli",
-      "version": "1.0.0-beta.1",
-      "bin": {
-        "pascal": "dist/bin/pascal.js",
-      },
-      "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.30.0",
-      },
-      "devDependencies": {
-        "@pascal/typescript-config": "*",
-        "@types/node": "^22.19.20",
-        "typescript": "6.0.3",
-      },
-    },
-    "packages/core": {
-      "name": "@pascal-app/core",
-      "version": "1.0.0-beta.5",
-      "dependencies": {
-        "@pascal-app/capture-protocol": "^1.0.0-beta.4",
-        "dedent": "^1.7.1",
-        "idb-keyval": "^6.2.2",
-        "mitt": "^3.0.1",
-        "nanoid": "^5.1.6",
-        "zod": ">=4.5.4 <4.6",
-        "zundo": "^2.3.0",
-        "zustand": "^5",
-      },
-      "devDependencies": {
-        "@pascal/typescript-config": "*",
-        "@types/bun": "^1.3.0",
-        "@types/react": "^19.2.2",
-        "@types/three": "^0.184.0",
-        "fake-indexeddb": "^6.2.5",
-        "typescript": "6.0.3",
-      },
-      "peerDependencies": {
-        "@react-three/drei": "^10",
-        "@react-three/fiber": "^9",
-        "react": "^18 || ^19",
-        "three": "^0.185",
-      },
-    },
-    "packages/editor": {
+    "frontend/components/editor": {
       "name": "@pascal-app/editor",
       "version": "1.0.0-beta.5",
       "dependencies": {
@@ -246,106 +241,7 @@
         "three": "^0.185",
       },
     },
-    "packages/eslint-config": {
-      "name": "@repo/eslint-config",
-      "version": "0.0.0",
-      "devDependencies": {
-        "@eslint/js": "^9.39.1",
-        "@next/eslint-plugin-next": "16.3.0",
-        "eslint": "^9.39.1",
-        "eslint-config-prettier": "^10.1.1",
-        "eslint-plugin-only-warn": "^1.1.0",
-        "eslint-plugin-react": "^7.37.5",
-        "eslint-plugin-react-hooks": "^5.2.0",
-        "eslint-plugin-turbo": "^2.7.1",
-        "globals": "^16.5.0",
-        "typescript": "6.0.3",
-        "typescript-eslint": "^8.50.0",
-      },
-    },
-    "packages/ifc-converter": {
-      "name": "@pascal-app/ifc-converter",
-      "version": "1.0.0-beta.5",
-      "dependencies": {
-        "@pascal-app/core": "*",
-        "nanoid": "^5.1.6",
-        "web-ifc": "^0.0.77",
-      },
-      "devDependencies": {
-        "@pascal/typescript-config": "*",
-        "@types/bun": "^1.3.0",
-        "typescript": "6.0.3",
-      },
-    },
-    "packages/mcp": {
-      "name": "@pascal-app/mcp",
-      "version": "1.0.0-beta.6",
-      "bin": {
-        "pascal-mcp": "./dist/bin/pascal-mcp.js",
-      },
-      "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.30.0",
-        "@pascal-app/lingo": "^0.2.0",
-        "zod": ">=4.5.4 <4.6",
-      },
-      "devDependencies": {
-        "@pascal-app/core": "^1.0.0-beta.5",
-        "@pascal/typescript-config": "*",
-        "@types/node": "^22.19.20",
-        "typescript": "6.0.3",
-      },
-      "peerDependencies": {
-        "@pascal-app/core": "^1.0.0-beta.5",
-      },
-    },
-    "packages/nodes": {
-      "name": "@pascal-app/nodes",
-      "version": "1.0.0-beta.5",
-      "devDependencies": {
-        "@pascal-app/core": "^1.0.0-beta.5",
-        "@pascal-app/editor": "^1.0.0-beta.5",
-        "@pascal-app/viewer": "^1.0.0-beta.5",
-        "@pascal/typescript-config": "*",
-        "@types/bun": "^1.3.0",
-        "@types/node": "^22.19.12",
-        "@types/react": "^19.2.2",
-        "@types/three": "^0.184.0",
-        "typescript": "6.0.3",
-      },
-      "peerDependencies": {
-        "@pascal-app/core": "^1.0.0-beta.5",
-        "@pascal-app/editor": "^1.0.0-beta.5",
-        "@pascal-app/viewer": "^1.0.0-beta.5",
-        "@react-three/drei": "^10",
-        "@react-three/fiber": "^9",
-        "lucide-react": "^1",
-        "react": "^18 || ^19",
-        "three": "^0.185",
-        "zustand": "^5",
-      },
-    },
-    "packages/typescript-config": {
-      "name": "@repo/typescript-config",
-      "version": "0.0.0",
-    },
-    "packages/ui": {
-      "name": "@repo/ui",
-      "version": "0.0.0",
-      "dependencies": {
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0",
-      },
-      "devDependencies": {
-        "@repo/eslint-config": "*",
-        "@repo/typescript-config": "*",
-        "@types/node": "^22.15.3",
-        "@types/react": "19.2.2",
-        "@types/react-dom": "19.2.2",
-        "eslint": "^9.39.1",
-        "typescript": "6.0.3",
-      },
-    },
-    "packages/viewer": {
+    "frontend/components/viewer": {
       "name": "@pascal-app/viewer",
       "version": "1.0.0-beta.5",
       "dependencies": {
@@ -371,9 +267,113 @@
         "three": "^0.185",
       },
     },
-    "tooling/typescript": {
+    "frontend/elements/nodes": {
+      "name": "@pascal-app/nodes",
+      "version": "1.0.0-beta.5",
+      "devDependencies": {
+        "@pascal-app/core": "^1.0.0-beta.5",
+        "@pascal-app/editor": "^1.0.0-beta.5",
+        "@pascal-app/viewer": "^1.0.0-beta.5",
+        "@pascal/typescript-config": "*",
+        "@types/bun": "^1.3.0",
+        "@types/node": "^22.19.12",
+        "@types/react": "^19.2.2",
+        "@types/three": "^0.184.0",
+        "typescript": "6.0.3",
+      },
+      "peerDependencies": {
+        "@pascal-app/core": "^1.0.0-beta.5",
+        "@pascal-app/editor": "^1.0.0-beta.5",
+        "@pascal-app/viewer": "^1.0.0-beta.5",
+        "@react-three/drei": "^10",
+        "@react-three/fiber": "^9",
+        "lucide-react": "^1",
+        "react": "^18 || ^19",
+        "three": "^0.185",
+        "zustand": "^5",
+      },
+    },
+    "frontend/elements/ui": {
+      "name": "@repo/ui",
+      "version": "0.0.0",
+      "dependencies": {
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+      },
+      "devDependencies": {
+        "@repo/eslint-config": "*",
+        "@repo/typescript-config": "*",
+        "@types/node": "^22.15.3",
+        "@types/react": "19.2.2",
+        "@types/react-dom": "19.2.2",
+        "eslint": "^9.39.1",
+        "typescript": "6.0.3",
+      },
+    },
+    "infra/config/eslint": {
+      "name": "@repo/eslint-config",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@eslint/js": "^9.39.1",
+        "@next/eslint-plugin-next": "16.3.0",
+        "eslint": "^9.39.1",
+        "eslint-config-prettier": "^10.1.1",
+        "eslint-plugin-only-warn": "^1.1.0",
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^5.2.0",
+        "eslint-plugin-turbo": "^2.7.1",
+        "globals": "^16.5.0",
+        "typescript": "6.0.3",
+        "typescript-eslint": "^8.50.0",
+      },
+    },
+    "infra/config/typescript": {
       "name": "@pascal/typescript-config",
       "version": "0.0.0",
+    },
+    "infra/config/typescript-repo": {
+      "name": "@repo/typescript-config",
+      "version": "0.0.0",
+    },
+    "resources/lib/capture-protocol": {
+      "name": "@pascal-app/capture-protocol",
+      "version": "1.0.0-beta.4",
+      "dependencies": {
+        "zod": ">=4.5.4 <4.6",
+      },
+      "devDependencies": {
+        "@pascal/typescript-config": "*",
+        "@types/bun": "^1.3.0",
+        "typescript": "6.0.3",
+      },
+    },
+    "resources/lib/core": {
+      "name": "@pascal-app/core",
+      "version": "1.0.0-beta.5",
+      "dependencies": {
+        "@pascal-app/capture-protocol": "^1.0.0-beta.4",
+        "dedent": "^1.7.1",
+        "idb-keyval": "^6.2.2",
+        "mitt": "^3.0.1",
+        "nanoid": "^5.1.6",
+        "zod": ">=4.5.4 <4.6",
+        "zundo": "^2.3.0",
+        "zustand": "^5",
+      },
+      "devDependencies": {
+        "@pascal/typescript-config": "*",
+        "@types/bun": "^1.3.0",
+        "@types/react": "^19.2.2",
+        "@types/three": "^0.184.0",
+        "fake-indexeddb": "^6.2.5",
+        "typescript": "6.0.3",
+      },
+      "peerDependencies": {
+        "@react-three/drei": "^10",
+        "@react-three/fiber": "^9",
+        "react": "^18 || ^19",
+        "three": "^0.185",
+      },
     },
   },
   "overrides": {
@@ -767,23 +767,23 @@
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.69.0", "", { "os": "win32", "cpu": "x64" }, "sha512-w8SOXv3mT9Fi6jY8OXdXCfnvX/3KNLXGNr4HEz2TA7S4Mv/PYAOmpB8y/ge40mxvBMgGNaSaaDwZpAsQn7HtWA=="],
 
-    "@pascal-app/capture-protocol": ["@pascal-app/capture-protocol@workspace:packages/capture-protocol"],
+    "@pascal-app/capture-protocol": ["@pascal-app/capture-protocol@workspace:resources/lib/capture-protocol"],
 
-    "@pascal-app/capture-viewer": ["@pascal-app/capture-viewer@workspace:packages/capture-viewer"],
+    "@pascal-app/capture-viewer": ["@pascal-app/capture-viewer@workspace:frontend/components/capture-viewer"],
 
-    "@pascal-app/cli": ["@pascal-app/cli@workspace:packages/cli"],
+    "@pascal-app/cli": ["@pascal-app/cli@workspace:backend/cli"],
 
-    "@pascal-app/core": ["@pascal-app/core@workspace:packages/core"],
+    "@pascal-app/core": ["@pascal-app/core@workspace:resources/lib/core"],
 
-    "@pascal-app/editor": ["@pascal-app/editor@workspace:packages/editor"],
+    "@pascal-app/editor": ["@pascal-app/editor@workspace:frontend/components/editor"],
 
-    "@pascal-app/ifc-converter": ["@pascal-app/ifc-converter@workspace:packages/ifc-converter"],
+    "@pascal-app/ifc-converter": ["@pascal-app/ifc-converter@workspace:backend/ifc-converter"],
 
     "@pascal-app/lingo": ["@pascal-app/lingo@0.2.0", "", { "peerDependencies": { "react": "^19" }, "optionalPeers": ["react"] }, "sha512-Ws+Utm23SmDbMB0Jc7joIp4KPkXhs4Z1boUcW9dl8nC3ATJz+a50F7/MyVTbE3QaL5Fr+YwNfsiOMxrKdhwPhA=="],
 
-    "@pascal-app/mcp": ["@pascal-app/mcp@workspace:packages/mcp"],
+    "@pascal-app/mcp": ["@pascal-app/mcp@workspace:backend/mcp"],
 
-    "@pascal-app/nodes": ["@pascal-app/nodes@workspace:packages/nodes"],
+    "@pascal-app/nodes": ["@pascal-app/nodes@workspace:frontend/elements/nodes"],
 
     "@pascal-app/plugin-bones": ["@pascal-app/plugin-bones@github:pascalorg/plugin-bones#5679260", { "peerDependencies": { "@pascal-app/core": ">=0.9.1 <1", "@pascal-app/editor": ">=0.9.1 <1", "@pascal-app/viewer": ">=0.9.1 <1", "@react-three/fiber": "^9", "react": "^18 || ^19", "three": "^0.185", "zod": "^4", "zustand": "^5" } }, "pascalorg-plugin-bones-5679260", "sha512-uQkyHHOl/VuYx2+d/MmcJui/KEAQZ2UUnO4ywp1XaopmD2YfN+Yx/fR/lS/VL2joEoyyZeBLC3KaXK1Sx5qEvg=="],
 
@@ -791,9 +791,9 @@
 
     "@pascal-app/plugin-trees": ["@pascal-app/plugin-trees@github:pascalorg/plugin-trees#56d978c", { "dependencies": { "@dgreenheck/ez-tree": "^1.1.0" }, "peerDependencies": { "@pascal-app/core": ">=0.9.1 <1", "@pascal-app/editor": ">=0.9.1 <1", "@pascal-app/viewer": ">=0.9.1 <1", "@react-three/fiber": "^9", "react": "^18 || ^19", "three": "^0.185", "zod": "^4", "zustand": "^5" } }, "pascalorg-plugin-trees-56d978c", "sha512-16VzWot1oadvxCPqsRwMJbaP0a3u5FESFy7F7++pY5wAAFq9JTFwzHvKAsllrY5TZ5TJ7Y5vSqvbmQk8sy8HaA=="],
 
-    "@pascal-app/viewer": ["@pascal-app/viewer@workspace:packages/viewer"],
+    "@pascal-app/viewer": ["@pascal-app/viewer@workspace:frontend/components/viewer"],
 
-    "@pascal/typescript-config": ["@pascal/typescript-config@workspace:tooling/typescript"],
+    "@pascal/typescript-config": ["@pascal/typescript-config@workspace:infra/config/typescript"],
 
     "@preact/signals": ["@preact/signals@2.9.1", "", { "dependencies": { "@preact/signals-core": "^1.14.0" }, "peerDependencies": { "preact": ">= 10.25.0 || >=11.0.0-0" } }, "sha512-xVqN8mJjbSN5IB/8Ubmd9NN+Ew6zJswoRxrjZbH3YsgkMshFeO6d8zxEFpHRTq9GJZx7cnPs2CnCpFqtGXGNsw=="],
 
@@ -883,11 +883,11 @@
 
     "@react-three/fiber": ["@react-three/fiber@9.6.1", "", { "dependencies": { "@babel/runtime": "^7.17.8", "@types/webxr": "*", "base64-js": "^1.5.1", "buffer": "^6.0.3", "its-fine": "^2.0.0", "react-use-measure": "^2.1.7", "scheduler": "^0.27.0", "suspend-react": "^0.1.3", "use-sync-external-store": "^1.4.0", "zustand": "^5.0.3" }, "peerDependencies": { "expo": ">=43.0", "expo-asset": ">=8.4", "expo-file-system": ">=11.0", "expo-gl": ">=11.0", "react": ">=19 <19.3", "react-dom": ">=19 <19.3", "react-native": ">=0.78", "three": ">=0.156" }, "optionalPeers": ["expo", "expo-asset", "expo-file-system", "expo-gl", "react-dom", "react-native"] }, "sha512-zF0rsKcVYpcJwbFEnv2HkHX9cvOEgsfQo/X8lwmR2dn13S4qEQJXir9fxf5js2LQFoXqxOY7MDkOkYx2uZ4gSg=="],
 
-    "@repo/eslint-config": ["@repo/eslint-config@workspace:packages/eslint-config"],
+    "@repo/eslint-config": ["@repo/eslint-config@workspace:infra/config/eslint"],
 
-    "@repo/typescript-config": ["@repo/typescript-config@workspace:packages/typescript-config"],
+    "@repo/typescript-config": ["@repo/typescript-config@workspace:infra/config/typescript-repo"],
 
-    "@repo/ui": ["@repo/ui@workspace:packages/ui"],
+    "@repo/ui": ["@repo/ui@workspace:frontend/elements/ui"],
 
     "@rollup/pluginutils": ["@rollup/pluginutils@5.4.0", "", { "dependencies": { "@types/estree": "^1.0.0", "estree-walker": "^2.0.2", "picomatch": "^4.0.2" }, "peerDependencies": { "rollup": "^1.20.0||^2.0.0||^3.0.0||^4.0.0" }, "optionalPeers": ["rollup"] }, "sha512-MfPp06CjRLfXQ3wY0R8vJDYBy/MvVcc9OulEfR0B8Iv9ko+GCNaRZ+EpJYFl27LhKsZK0o420sYCRHCjfCgeUg=="],
 
@@ -1259,7 +1259,7 @@
 
     "dunder-proto": ["dunder-proto@1.0.1", "", { "dependencies": { "call-bind-apply-helpers": "^1.0.1", "es-errors": "^1.3.0", "gopd": "^1.2.0" } }, "sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A=="],
 
-    "editor": ["editor@workspace:apps/editor"],
+    "editor": ["editor@workspace:frontend/app/editor"],
 
     "ee-first": ["ee-first@1.1.1", "", {}, "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="],
 
@@ -1459,7 +1459,7 @@
 
     "ieee754": ["ieee754@1.2.1", "", {}, "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA=="],
 
-    "ifc-converter-app": ["ifc-converter-app@workspace:apps/ifc-converter"],
+    "ifc-converter-app": ["ifc-converter-app@workspace:frontend/app/ifc-converter"],
 
     "ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
 

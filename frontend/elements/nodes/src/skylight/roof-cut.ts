@@ -17,7 +17,7 @@ import * as THREE from 'three'
  *
  * Coordinates are SEGMENT-LOCAL. The viewer welds vertices, attaches
  * a single material group, and wraps the result in a Brush — see
- * `wiki/architecture/node-definitions.md` (`capabilities.roofAccessory.buildCut`).
+ * `docs/architecture/node-definitions.md` (`capabilities.roofAccessory.buildCut`).
  */
 export function buildSkylightRoofCut(
   skylight: SkylightNode,

@@ -15,7 +15,7 @@
  * path takes it from there. Idempotent and cheap (one geometry probe per
  * wall, run every `WALL_PLACEHOLDER_SWEEP_INTERVAL` frames).
  *
- * Placeholder detection: `createPlaceholderGeometry` (packages/nodes,
+ * Placeholder detection: `createPlaceholderGeometry` (frontend/elements/nodes,
  * shared/placeholder-geometry.ts) mints a 3-vertex degenerate triangle and
  * stamps `userData.placeholder`. Real wall extrusions always carry far more
  * vertices, so the vertex-count signature doubles as a fallback for

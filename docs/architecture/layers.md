@@ -2,7 +2,7 @@
 
 *Three.js layer conventions — which layer each object type lives on and why.*
 
-Applies to: `packages/viewer/**`, `apps/editor/**`.
+Applies to: `frontend/components/viewer/**`, `frontend/app/editor/**`.
 
 Three.js `Layers` control which objects each camera and render pass sees. We use them to separate scene geometry, editor helpers, and zone overlays into distinct rendering buckets without duplicating scene structure.
 
@@ -17,7 +17,7 @@ Three.js `Layers` control which objects each camera and render pass sees. We use
 | `SHADOW_ONLY_LAYER` | `4` | `@pascal-app/viewer` | Shadow-caster-only geometry: hidden roofs/levels in cutaway/solo views. No color pass or camera enables it — only the sun's shadow camera (`lights.tsx`), so the geometry keeps shadowing interiors. Applied per-object via `lib/shadow-only.ts` (`applyShadowOnly`/`clearShadowOnly`). |
 | `BATCHED_LAYER` | `5` | `@pascal-app/viewer` | Source geometry already represented by a collective batch. No render camera enables it; surface raycasters opt in through `setSurfaceRaycastLayers`. |
 
-`apps/editor` exposes `EDITOR_LAYER` for editor-helper meshes; it **re-exports** `OVERLAY_LAYER` (`EDITOR_LAYER === OVERLAY_LAYER`) so the editor stays decoupled from the viewer's pass numbering while landing on the same layer.
+`frontend/app/editor` exposes `EDITOR_LAYER` for editor-helper meshes; it **re-exports** `OVERLAY_LAYER` (`EDITOR_LAYER === OVERLAY_LAYER`) so the editor stays decoupled from the viewer's pass numbering while landing on the same layer.
 
 ```ts
 // In viewer code
@@ -76,7 +76,7 @@ geometry and interacts through the node's retained proxies and children.
 ## Rules
 
 - **Never hardcode layer numbers.** Always use the named constants.
-- **All layer constants belong in `@pascal-app/viewer`** — they are renderer concerns. `apps/editor`'s `EDITOR_LAYER` is an alias re-export of `OVERLAY_LAYER`.
+- **All layer constants belong in `@pascal-app/viewer`** — they are renderer concerns. `frontend/app/editor`'s `EDITOR_LAYER` is an alias re-export of `OVERLAY_LAYER`.
 - **Zone meshes must set `layers={ZONE_LAYER}`** so they are picked up by `zonePass` and excluded from `scenePass` depth buffers.
 - **Overlay/helper meshes must set `layers={EDITOR_LAYER}`** (= `OVERLAY_LAYER`) so they render on top, stay out of the ink/SSGI buffers, and are invisible to the thumbnail camera.
 - **The grid uses `GRID_LAYER`**, not the overlay layer, because it needs scene-depth occlusion.

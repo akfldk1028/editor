@@ -6,7 +6,7 @@ Integrator review required. Each entry documents:
 - **Impact** on existing consumers
 - **Reversibility**
 
-## 1. `packages/core/package.json` — added subpath exports
+## 1. `resources/lib/core/package.json` — added subpath exports
 
 ### What
 
@@ -28,7 +28,7 @@ By adding subpath exports that point at modules which don't transitively pull gr
 
 ### Impact
 
-**Zero** on existing consumers. This is purely additive. `apps/editor` and `@pascal-app/viewer` continue to import from the main entry and get the full surface — they currently don't use these subpaths and don't need to. No types, runtime behavior, or bundle composition is affected.
+**Zero** on existing consumers. This is purely additive. `frontend/app/editor` and `@pascal-app/viewer` continue to import from the main entry and get the full surface — they currently don't use these subpaths and don't need to. No types, runtime behavior, or bundle composition is affected.
 
 ### Reversibility
 
@@ -44,7 +44,7 @@ Long-term, consider moving `systems/` into a separate package `@pascal-app/syste
 
 ### What
 
-`packages/core/src/schema/nodes/site.ts:36-38` declares:
+`resources/lib/core/src/schema/nodes/site.ts:36-38` declares:
 
 ```ts
 children: z.array(z.discriminatedUnion('type', [BuildingNode, ItemNode]))
@@ -77,11 +77,11 @@ Align `SiteNode.children` to `z.array(z.string())` + migration in `setScene.migr
 
 ### What
 
-Adds a CI workflow that runs on pushes to `main` and on pull requests touching `packages/mcp/`, `packages/core/`, the editor scene API surface, `.github/workflows/mcp-ci.yml`, or `bun.lock`. The job installs deps with Bun, builds `@pascal-app/core` then `@pascal-app/mcp`, runs `bun test` in the mcp package, runs focused editor scene API tests, and runs Biome over the MCP package plus the editor scene API files.
+Adds a CI workflow that runs on pushes to `main` and on pull requests touching `backend/mcp/`, `resources/lib/core/`, the editor scene API surface, `.github/workflows/mcp-ci.yml`, or `bun.lock`. The job installs deps with Bun, builds `@pascal-app/core` then `@pascal-app/mcp`, runs `bun test` in the mcp package, runs focused editor scene API tests, and runs Biome over the MCP package plus the editor scene API files.
 
 ### Why
 
-The existing `.github/workflows/release.yml` is `workflow_dispatch`-only (manual releases for `core` / `viewer`). There was no automated pre-merge check for MCP builds/tests. A new workflow is still needed so that PRs touching mcp/core are verified before merge, and it now covers the editor scene API because those routes consume the same MCP operations layer. Full `apps/editor` typecheck was evaluated but is not part of this workflow because it currently fails on unrelated `packages/editor` type errors.
+The existing `.github/workflows/release.yml` is `workflow_dispatch`-only (manual releases for `core` / `viewer`). There was no automated pre-merge check for MCP builds/tests. A new workflow is still needed so that PRs touching mcp/core are verified before merge, and it now covers the editor scene API because those routes consume the same MCP operations layer. Full `frontend/app/editor` typecheck was evaluated but is not part of this workflow because it currently fails on unrelated `frontend/components/editor` type errors.
 
 ### Impact
 
@@ -93,7 +93,7 @@ Delete `.github/workflows/mcp-ci.yml`.
 
 ---
 
-## 4. `packages/mcp/package.json` — added `./storage` and `./operations` subpath exports
+## 4. `backend/mcp/package.json` — added `./storage` and `./operations` subpath exports
 
 ### What
 
@@ -101,7 +101,7 @@ Added `./storage` and `./operations` entries to the `"exports"` map of `@pascal-
 
 ### Why
 
-The Next.js editor (`apps/editor`) needs access to `createSceneStore()`, `SceneStore` types/errors, and the shared `SceneOperations` service layer in server-only code (API route handlers + `lib/scene-store-server.ts`). The main entry `.` pulls in the full MCP server surface (tools, transports, MCP SDK), which is overkill for a consumer that only needs storage/operations. The subpath exports let `apps/editor` dynamically import storage and operations without re-declaring either contract.
+The Next.js editor (`frontend/app/editor`) needs access to `createSceneStore()`, `SceneStore` types/errors, and the shared `SceneOperations` service layer in server-only code (API route handlers + `lib/scene-store-server.ts`). The main entry `.` pulls in the full MCP server surface (tools, transports, MCP SDK), which is overkill for a consumer that only needs storage/operations. The subpath exports let `frontend/app/editor` dynamically import storage and operations without re-declaring either contract.
 
 The concrete backend is now `SqliteSceneStore`, backed by built-in SQLite drivers (`bun:sqlite` for the MCP CLI and `node:sqlite` for the Next.js editor server). It writes to `~/.pascal/data/pascal.db` by default and also supports `PASCAL_DATA_DIR`, `PASCAL_DB_PATH`, and `PASCAL_MAX_SCENE_BYTES`.
 
@@ -111,27 +111,27 @@ Zero on existing consumers. Purely additive. The `.` entry continues to export `
 
 ### Reversibility
 
-Remove the `./storage`/`./operations` entries from `exports` and update `apps/editor` to use a different factory. No data or behavior changes — pure module-graph shaping.
+Remove the `./storage`/`./operations` entries from `exports` and update `frontend/app/editor` to use a different factory. No data or behavior changes — pure module-graph shaping.
 
 ### Related
 
-- `apps/editor/package.json` adds `@pascal-app/mcp` as a workspace dependency so the subpath resolves.
-- `apps/editor/lib/scene-store-server.ts` and `apps/editor/app/api/scenes/**` consume these subpaths.
-- `packages/mcp/src/storage/sqlite-scene-store.ts` is the only production storage backend.
+- `frontend/app/editor/package.json` adds `@pascal-app/mcp` as a workspace dependency so the subpath resolves.
+- `frontend/app/editor/lib/scene-store-server.ts` and `frontend/app/editor/app/api/scenes/**` consume these subpaths.
+- `backend/mcp/src/storage/sqlite-scene-store.ts` is the only production storage backend.
 
 ---
 
-## 5. `packages/core/src/schema/asset-url.ts` — URL scheme allowlist on scene URL fields
+## 5. `resources/lib/core/src/schema/asset-url.ts` — URL scheme allowlist on scene URL fields
 
 ### What
 
 Introduced a shared `AssetUrl` Zod validator and replaced the bare `z.string()`
 on every URL-bearing field in core's schemas:
 
-- `scan.url` (`packages/core/src/schema/nodes/scan.ts`)
-- `guide.url` (`packages/core/src/schema/nodes/guide.ts`)
-- `item.asset.src` (`packages/core/src/schema/nodes/item.ts`)
-- `material.texture.url` (`packages/core/src/schema/material.ts`)
+- `scan.url` (`resources/lib/core/src/schema/nodes/scan.ts`)
+- `guide.url` (`resources/lib/core/src/schema/nodes/guide.ts`)
+- `item.asset.src` (`resources/lib/core/src/schema/nodes/item.ts`)
+- `material.texture.url` (`resources/lib/core/src/schema/material.ts`)
 - `material.maps.*` (`albedoMap`, `normalMap`, `roughnessMap`, `metalnessMap`,
   `aoMap`, `displacementMap`, `emissiveMap`, `bumpMap`, `alphaMap`, `lightMap`)
 
@@ -157,7 +157,7 @@ schema boundary.
   `migrateNodes`), so this is *not* a breakage for returning users. Legacy
   URLs will keep loading; only explicit MCP-bridge `safeParse` calls reject.
 - **MCP consumers**: one existing test
-  (`packages/mcp/src/bridge/scene-bridge.test.ts`, previously using
+  (`backend/mcp/src/bridge/scene-bridge.test.ts`, previously using
   `src: 'data:model/gltf-binary;base64,'`) now fails because `data:model/` is
   not in the allowlist. Replaced with `asset://test/chair.glb` — the only
   sanctioned scheme for an in-repo ItemNode fixture.
@@ -172,11 +172,11 @@ schema boundary.
    but the Phase 7 task scope only required `src`. Follow-up: apply `AssetUrl`
    to `thumbnail` as well. Verify the `place-item` tool's default
    `thumbnail: ''` (currently empty string) gets a proper fallback first.
-2. **`dist/` pollution** — `packages/core/tsconfig.json` `include`s `src` and
+2. **`dist/` pollution** — `resources/lib/core/tsconfig.json` `include`s `src` and
    doesn't exclude `**/*.test.ts`, so the new `asset-url.test.ts` is emitted
    to `dist/schema/`. Harmless (nothing imports it), but should be excluded
    for a clean publish. Mirror the `exclude: ["**/*.test.ts"]` pattern used
-   in `packages/mcp/tsconfig.json`. Out of scope for A7 because tsconfig is
+   in `backend/mcp/tsconfig.json`. Out of scope for A7 because tsconfig is
    not in the ownership list.
 3. **`bun:test` typing** — the test file uses `@ts-expect-error` on its
    `bun:test` import because `@pascal-app/core` does not depend on
@@ -193,27 +193,27 @@ schema boundary.
 
 ### Reversibility
 
-Delete `packages/core/src/schema/asset-url.ts` and revert the five imports in
+Delete `resources/lib/core/src/schema/asset-url.ts` and revert the five imports in
 `scan.ts`, `guide.ts`, `item.ts`, and `material.ts` to `z.string()`. The
 scene-bridge test update is self-contained.
 
 ---
 
-## 6. `apps/editor` / `packages/editor` scene-loading support
+## 6. `frontend/app/editor` / `frontend/components/editor` scene-loading support
 
 ### What
 
 The PR still touches the editor app and editor package, but the remaining files
 are tied to the MCP scene workflow:
 
-- `apps/editor/app/api/scenes/**`, `apps/editor/components/save-button.tsx`,
-  and `apps/editor/components/scene-loader.tsx` expose saved MCP scenes in the
+- `frontend/app/editor/app/api/scenes/**`, `frontend/app/editor/components/save-button.tsx`,
+  and `frontend/app/editor/components/scene-loader.tsx` expose saved MCP scenes in the
   web editor.
-- `packages/editor/src/hooks/use-auto-frame.ts` plus
-  `packages/editor/src/lib/scene-bounds.ts` frame the camera after a stored scene
+- `frontend/components/editor/src/hooks/use-auto-frame.ts` plus
+  `frontend/components/editor/src/lib/scene-bounds.ts` frame the camera after a stored scene
   is loaded, avoiding an apparently empty viewport when MCP loads a scene away
   from the default camera pose.
-- The large demo fixture `apps/editor/public/dev/casa-sol.json` was removed from
+- The large demo fixture `frontend/app/editor/public/dev/casa-sol.json` was removed from
   this PR to keep the diff focused.
 
 ### Why

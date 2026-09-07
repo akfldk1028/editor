@@ -2,11 +2,11 @@
 
 *Typed event bus — emitting and listening to node and grid events.*
 
-Applies to: `packages/core/src/events/**`, `packages/viewer/**`, `apps/editor/**`.
+Applies to: `resources/lib/core/src/events/**`, `frontend/components/viewer/**`, `frontend/app/editor/**`.
 
 The event bus (`emitter`) is a global `mitt` instance typed with `EditorEvents`. It decouples renderers (which emit) from selection managers and tools (which listen).
 
-**Source**: `packages/core/src/events/bus.ts`
+**Source**: `resources/lib/core/src/events/bus.ts`
 
 ## Event Key Format
 
@@ -28,7 +28,7 @@ parallel list.
 'click' | 'move' | 'enter' | 'leave' | 'pointerdown' | 'pointerup' | 'context-menu' | 'double-click'
 ```
 
-The `grid:*` events fire when the user interacts with empty space (no node hit). They are **not** emitted by a mesh — `useGridEvents(gridY)` (`apps/editor/hooks/use-grid-events.ts`) manually raycasts against a ground plane and calls `emitter.emit('grid:click', …)`. Mount it in any tool or editor component that needs empty-space interactions.
+The `grid:*` events fire when the user interacts with empty space (no node hit). They are **not** emitted by a mesh — `useGridEvents(gridY)` (`frontend/app/editor/hooks/use-grid-events.ts`) manually raycasts against a ground plane and calls `emitter.emit('grid:click', …)`. Mount it in any tool or editor component that needs empty-space interactions.
 
 ## NodeEvent Shape
 
@@ -62,7 +62,7 @@ node's related controls or presets.
 Renderers emit via `useNodeEvents` — never call `emitter.emit` directly in a renderer:
 
 ```tsx
-// packages/viewer/src/hooks/use-node-events.ts
+// frontend/components/viewer/src/hooks/use-node-events.ts
 const events = useNodeEvents(node, 'wall')
 return <mesh ref={ref} {...events} />
 ```
@@ -92,7 +92,7 @@ useEffect(() => {
 }, [])
 ```
 
-See `apps/editor/components/editor/selection-manager.tsx` for a full multi-type listener example.
+See `frontend/app/editor/components/editor/selection-manager.tsx` for a full multi-type listener example.
 
 ## Rules
 

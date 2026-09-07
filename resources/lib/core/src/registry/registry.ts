@@ -107,7 +107,7 @@ class NodeRegistryImpl implements NodeRegistry {
     }
     // Duplicate-kind handling depends on environment:
     //   - **Production**: throw. The plugin-authoring contract
-    //     (`wiki/architecture/plugin-authoring.md`) guarantees that two
+    //     (`docs/architecture/plugin-authoring.md`) guarantees that two
     //     plugins shipping `kind: 'couch'` is a startup-time error, not
     //     a silent overwrite — collisions need to be visible.
     //   - **Dev (HMR)**: replace with a warning. Saving `def.ts` would
@@ -386,7 +386,7 @@ export async function loadPlugin(plugin: Plugin): Promise<void> {
  * {@link setPluginDiscovery} before the bootstrap module runs.
  *
  * Kept async so a future loader can fetch over the network without
- * changing the contract. See `wiki/architecture/plugin-authoring.md` for
+ * changing the contract. See `docs/architecture/plugin-authoring.md` for
  * the plugin author surface this enables.
  */
 export type PluginDiscovery = () => Promise<Plugin[]>

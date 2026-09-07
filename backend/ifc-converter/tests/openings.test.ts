@@ -5,7 +5,7 @@ import * as WebIFC from 'web-ifc'
 import { convertIfcToPascal, type PascalSceneGraph } from '../src'
 
 const fixture = new URL(
-  '../../../apps/ifc-converter/public/test-ifc-files/04-ifc-open-house.ifc',
+  '../../../frontend/app/ifc-converter/public/test-ifc-files/04-ifc-open-house.ifc',
   import.meta.url,
 )
 const fillIds = [2441, 2511, 2594, 2667, 2740, 2813]

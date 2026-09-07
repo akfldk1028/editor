@@ -41,7 +41,7 @@ export type Selection = {
  *
  * Selection state intentionally lives in `useViewer` (it tracks the
  * camera / visibility hierarchy: building → level → zone → nodes), not
- * `useScene` — see `wiki/architecture/scene-registry.md`.
+ * `useScene` — see `docs/architecture/scene-registry.md`.
  */
 export function useSelection(): Selection {
   const selection = useViewer((s) => s.selection)

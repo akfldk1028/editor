@@ -1075,7 +1075,7 @@ export type NodeDefinition<S extends ZodObject<any>> = {
 
   /**
    * Renderer for this kind. Optional under the three-checkbox composition
-   * model (see `wiki/architecture/node-definitions.md`): when omitted, the
+   * model (see `docs/architecture/node-definitions.md`): when omitted, the
    * framework mounts a generic empty-group renderer that the per-kind
    * geometry/system fills. Required today only because the generic
    * renderer is not yet implemented — Phase 4 lands it, then this field
@@ -1103,7 +1103,7 @@ export type NodeDefinition<S extends ZodObject<any>> = {
    * children replace the registered group's children. Together with
    * `<ParametricNodeRenderer>` this lets a kind ship without per-kind
    * `renderer.tsx` or `system.tsx` files (see
-   * `wiki/architecture/node-definitions.md`). Combine with `renderer` if
+   * `docs/architecture/node-definitions.md`). Combine with `renderer` if
    * you want JSX-side composition (drei, `<Html>`, GLB) AND parametric
    * rebuilds; combine with `system` if you also need per-frame imperative
    * work (animations, named-mesh material poking).
@@ -1175,7 +1175,7 @@ export type NodeDefinition<S extends ZodObject<any>> = {
    * invisible utility node, or a kind that's 3D-only). Kinds that need
    * floor-plan rendering but no 3D mesh set `floorplan` without `geometry`.
    *
-   * See `wiki/architecture/node-definitions.md` ("floor-plan rendering"
+   * See `docs/architecture/node-definitions.md` ("floor-plan rendering"
    * section) and Phase 5 of the registry plan for the migration plan off
    * the legacy `floorplan-panel.tsx` monolith.
    */

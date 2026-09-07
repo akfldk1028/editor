@@ -18,7 +18,7 @@ import { z } from 'zod'
  * mean 1234 or 1.234) are rejected rather than silently absorbed, so a European
  * decimal never becomes a 1000× value.
  *
- * NOTE: intentionally duplicated as `editor/packages/mcp/src/tools/measurement.ts`
+ * NOTE: intentionally duplicated as `editor/backend/mcp/src/tools/measurement.ts`
  * (MCP tools) and `packages/ai/src/tools/scene/measurement.ts` (AI-chat tools).
  * The two tool stacks live in different packages — one inside the `editor`
  * submodule — so they can't share a module. Keep the two copies identical; the

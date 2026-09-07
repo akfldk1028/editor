@@ -58,7 +58,7 @@ type ImageBlock = {
 
 async function resolveImageBlock(image: string): Promise<ImageBlock> {
   if (/^https?:\/\//i.test(image)) {
-    // SSRF-safe fetch (see packages/mcp/src/lib/safe-fetch.ts).
+    // SSRF-safe fetch (see backend/mcp/src/lib/safe-fetch.ts).
     const { safeFetch } = await import('../../lib/safe-fetch')
     const res = await safeFetch(image, { accept: 'image/*' })
     const data = res.buffer.toString('base64')

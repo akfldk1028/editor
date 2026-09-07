@@ -60,7 +60,7 @@ function createColumnFromPreset(presetId: ColumnPresetId, position: [number, num
  * legacy editor-side `ColumnTool` lacked — it only showed a sphere), grid
  * snap is layered with Figma-style alignment, and a `grid:click` commits.
  *
- * Lives in `packages/nodes` (not the editor) specifically so it can import
+ * Lives in `frontend/elements/nodes` (not the editor) specifically so it can import
  * the column geometry for the ghost — the editor package can't depend on
  * `nodes`. Wired via `def.tool`, so `ToolManager`'s registry-first path
  * mounts it and the legacy `<ColumnTool>` branch no longer fires.

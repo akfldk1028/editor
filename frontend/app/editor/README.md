@@ -21,7 +21,7 @@ editor/
 |---------|---------------|
 | **@pascal-app/core** | Node schemas, scene state (Zustand), systems (geometry generation), spatial queries, event bus |
 | **@pascal-app/viewer** | 3D rendering via React Three Fiber, default camera/controls, post-processing |
-| **apps/editor** | UI components, tools, custom behaviors, editor-specific systems |
+| **frontend/app/editor** | UI components, tools, custom behaviors, editor-specific systems |
 
 The **viewer** renders the scene with sensible defaults. The **editor** extends it with interactive tools, selection management, and editing capabilities.
 
@@ -33,7 +33,7 @@ Each package has its own Zustand store for managing state:
 |-------|---------|----------------|
 | `useScene` | `@pascal-app/core` | Scene data: nodes, root IDs, dirty nodes, CRUD operations. Persisted to IndexedDB with undo/redo via Zundo. |
 | `useViewer` | `@pascal-app/viewer` | Viewer state: current selection (building/level/zone IDs), level display mode (stacked/exploded/solo), camera mode. |
-| `useEditor` | `apps/editor` | Editor state: active tool, structure layer visibility, panel states, editor-specific preferences. |
+| `useEditor` | `frontend/app/editor` | Editor state: active tool, structure layer visibility, panel states, editor-specific preferences. |
 
 **Access patterns:**
 
@@ -353,11 +353,11 @@ pnpm dev
 
 | Path | Description |
 |------|-------------|
-| `packages/core/src/schema/` | Node type definitions (Zod schemas) |
-| `packages/core/src/hooks/use-scene.ts` | Scene state store |
-| `packages/core/src/hooks/scene-registry/` | 3D object registry |
-| `packages/core/src/systems/` | Geometry generation systems |
-| `packages/viewer/src/components/renderers/` | Node renderers |
-| `packages/viewer/src/components/viewer/` | Main Viewer component |
-| `apps/editor/components/tools/` | Editor tools |
-| `apps/editor/store/` | Editor-specific state |
+| `resources/lib/core/src/schema/` | Node type definitions (Zod schemas) |
+| `resources/lib/core/src/hooks/use-scene.ts` | Scene state store |
+| `resources/lib/core/src/hooks/scene-registry/` | 3D object registry |
+| `resources/lib/core/src/systems/` | Geometry generation systems |
+| `frontend/components/viewer/src/components/renderers/` | Node renderers |
+| `frontend/components/viewer/src/components/viewer/` | Main Viewer component |
+| `frontend/app/editor/components/tools/` | Editor tools |
+| `frontend/app/editor/store/` | Editor-specific state |

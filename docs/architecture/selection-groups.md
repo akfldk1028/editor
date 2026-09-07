@@ -2,7 +2,7 @@
 
 *Session multi-select groups (Ctrl/Cmd+G) vs collections and future persistent groups.*
 
-Applies to: `packages/editor/src/lib/session-groups.ts`, `packages/editor/src/store/use-session-groups.ts`, multi-select UI under `packages/editor/src/components/ui/panels/` and floating menus, selection expand in `packages/editor/src/lib/selection-routing.ts` and `packages/editor/src/components/editor/floorplan-background-selection.ts`.
+Applies to: `frontend/components/editor/src/lib/session-groups.ts`, `frontend/components/editor/src/store/use-session-groups.ts`, multi-select UI under `frontend/components/editor/src/components/ui/panels/` and floating menus, selection expand in `frontend/components/editor/src/lib/selection-routing.ts` and `frontend/components/editor/src/components/editor/floorplan-background-selection.ts`.
 
 ## What this is
 
@@ -33,7 +33,7 @@ version preview, where the node ids change entirely.
 
 ## Session groups vs collections
 
-`packages/core` also has **collections** (`schema/collections.ts`): named, colored,
+`resources/lib/core` also has **collections** (`schema/collections.ts`): named, colored,
 persisted sets of node ids, managed from the item inspector's *Manage collections…*
 popover. They overlap with session groups but answer a different question:
 
@@ -43,7 +43,7 @@ popover. They overlap with session groups but answer a different question:
 | Created by | Ctrl/Cmd+G on a selection | Named explicitly in the inspector |
 | Click a member | Reselects the whole set | No selection behavior |
 | Lifetime | Until reload | Until deleted |
-| Layer | `packages/editor` | `packages/core` |
+| Layer | `frontend/components/editor` | `resources/lib/core` |
 
 Reach for a session group for the throwaway "keep these six chairs together while I
 lay out this room" case, and a collection to label a set you'll come back to. They
@@ -58,10 +58,10 @@ of one concept rather than a second one.
 
 | Layer | Session groups |
 |---|---|
-| `packages/core` | No |
-| `packages/viewer` | No |
-| `packages/editor` | Yes (store, selection expand, menus, keyboard) |
-| `packages/mcp` | No |
+| `resources/lib/core` | No |
+| `frontend/components/viewer` | No |
+| `frontend/components/editor` | Yes (store, selection expand, menus, keyboard) |
+| `backend/mcp` | No |
 
 ## Future options (not this PR)
 

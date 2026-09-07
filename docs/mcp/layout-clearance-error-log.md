@@ -39,7 +39,7 @@ Agents should treat skip reasons and verify issues as actionable, not ignore the
 **Rule:** Scene items always use `itemNodePlanAabb` / `getScaledDimensions`. Catalog placements (not yet scaled) use asset dimensions.  
 **Test:** Scaled item collides when scaled footprint overlaps.
 
-### L5 — Client navigation does not re-apply light preview (apps/editor)
+### L5 — Client navigation does not re-apply light preview (frontend/app/editor)
 **Bug:** `useEffect([])` only on mount; same-route query change ignored.  
 **Rule:** Depend on search-string / `useSearchParams` for light preview shading.  
 **Test:** Manual or unit: change `?disable=postFx` without remount → solid shading applies.
@@ -54,7 +54,7 @@ Agents should treat skip reasons and verify issues as actionable, not ignore the
 **Rule:** On total failure, report the **primary** pose reject reason (prefer door/overlap over bounds).  
 **Test:** Primary hits door, all nudges OOB → skip reason is door clearance.
 
-### L8 — Light preview stuck after flag removal (apps/editor)
+### L8 — Light preview stuck after flag removal (frontend/app/editor)
 **Bug:** Effect only sets solid when flags present; never restores when query cleared.  
 **Rule:** When light-preview flags absent, restore default shading (e.g. `rendered`).  
 **Test:** Navigate on → solid; navigate off → rendered (or app default).

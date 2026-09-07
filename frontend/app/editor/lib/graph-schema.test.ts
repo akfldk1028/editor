@@ -170,7 +170,7 @@ test('still rejects invalid builtin nodes', () => {
   expect(apiGraphSchema.safeParse(graph).success).toBe(false)
 })
 
-// Unnamespaced kinds are legitimate: `wiki/architecture/plugin-authoring.md`
+// Unnamespaced kinds are legitimate: `docs/architecture/plugin-authoring.md`
 // requires plugin *ids* to look like `vendor:pack`, never kinds, and its worked
 // example registers `kind: 'couch'`. Membership is decided by "not in AnyNode",
 // so such a node is validated as foreign rather than rejected outright.

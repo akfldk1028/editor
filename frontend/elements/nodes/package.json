@@ -52,10 +52,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/pascalorg/editor.git",
-    "directory": "packages/nodes"
+    "url": "https://github.com/akfldk1028/editor.git",
+    "directory": "frontend/elements/nodes"
   },
   "license": "MIT",
-  "homepage": "https://github.com/pascalorg/editor/tree/main/packages/nodes#readme",
-  "bugs": "https://github.com/pascalorg/editor/issues"
+  "homepage": "https://github.com/akfldk1028/editor/tree/main/frontend/elements/nodes#readme",
+  "bugs": "https://github.com/akfldk1028/editor/issues"
 }

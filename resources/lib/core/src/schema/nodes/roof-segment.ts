@@ -223,7 +223,7 @@ export const RoofSegmentNode = BaseNode.extend({
   // `<NodeRenderer>` so they inherit the segment's transform stack.
   // Required for `createNode(child, segmentId)` to append the child
   // to this array — see
-  // `wiki/architecture/node-definitions.md` ("Host kinds need a
+  // `docs/architecture/node-definitions.md` ("Host kinds need a
   // `children` field on the schema").
   children: z.array(z.string()).default([]),
 }).describe(

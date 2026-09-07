@@ -15,7 +15,7 @@ import { resolveWallOpeningCeiling } from '../shared/wall-opening-ceiling'
 
 /**
  * Pure helpers shared by the 3D `MoveWallTool` and the 2D
- * `wallFloorplanMoveTarget`. Lives in `packages/nodes` because the
+ * `wallFloorplanMoveTarget`. Lives in `frontend/elements/nodes` because the
  * bridge / ghost helpers depend on `WallSchema.parse` and material
  * preset resolution; kept React-free so both call sites can import
  * cleanly.

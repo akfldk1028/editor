@@ -2,7 +2,7 @@
 
 *The registry-driven composition model for node kinds.*
 
-Applies to: `packages/core/src/registry/`, `packages/nodes/src/<kind>/`, `packages/viewer/src/components/viewer/{registered-systems.tsx,node-renderer.tsx}`.
+Applies to: `resources/lib/core/src/registry/`, `frontend/elements/nodes/src/<kind>/`, `frontend/components/viewer/src/components/viewer/{registered-systems.tsx,node-renderer.tsx}`.
 
 A *node kind* — shelf, wall, door, item, spawn, zone — is described by a `NodeDefinition` registered with `nodeRegistry`. The definition is plain data + lazy module references. Three optional fields decide how the kind appears in the scene at runtime; pick whichever combination matches the kind's needs.
 
@@ -42,7 +42,7 @@ export const doorDefinition: NodeDefinition<typeof DoorNode> = {
 
 ## Runtime: how the three fields are wired
 
-Two framework components live in `packages/viewer/src/components/viewer/`:
+Two framework components live in `frontend/components/viewer/src/components/viewer/`:
 
 - **`<NodeRenderer>`** chooses what React mounts for a node:
   1. If `def.renderer` is set → mount the custom renderer.
@@ -91,7 +91,7 @@ For level-scoped batch data (wall mitering across an entire level), `ctx` can be
 Use this when the kind's meshes are a pure function of its node data. **Shelf, spawn, item, column, fence segment, wall, door (geometry side), window (geometry side).**
 
 ```ts
-// packages/nodes/src/shelf/geometry.ts
+// frontend/elements/nodes/src/shelf/geometry.ts
 export function buildShelfGeometry(node: ShelfNode): Group {
   const group = new Group()
   group.add(buildTopBoard(node))
@@ -100,7 +100,7 @@ export function buildShelfGeometry(node: ShelfNode): Group {
   return group
 }
 
-// packages/nodes/src/shelf/definition.ts
+// frontend/elements/nodes/src/shelf/definition.ts
 export const shelfDefinition: NodeDefinition<typeof ShelfNode> = {
   // ...
   geometry: buildShelfGeometry,
@@ -114,7 +114,7 @@ No renderer.tsx, no system.tsx. The generic renderer mounts an empty group, the 
 Use this when the kind composes its scene via JSX-only features and never needs imperative per-frame work. **GLB-backed items, kinds that mount drei helpers.**
 
 ```tsx
-// packages/nodes/src/<kind>/renderer.tsx
+// frontend/elements/nodes/src/<kind>/renderer.tsx
 import { useGLTF } from '@react-three/drei'
 import { useRegistry } from '@pascal-app/core'
 import { useNodeEvents } from '@pascal-app/viewer'
@@ -172,7 +172,7 @@ Setting `mesh.name = 'walls'` is just a three.js property. A system targeting `g
 
 If your kind's current system *only* rebuilds geometry on dirty (no animations, no cascades, no material poking), it can collapse to a single `def.geometry` function:
 
-1. Extract the imperative `updateXMesh(node, group)` from the system into a pure `buildXGeometry(node): Group` in `packages/nodes/src/<kind>/geometry.ts`.
+1. Extract the imperative `updateXMesh(node, group)` from the system into a pure `buildXGeometry(node): Group` in `frontend/elements/nodes/src/<kind>/geometry.ts`.
 2. Replace `def.renderer` with nothing — the framework's `<ParametricNodeRenderer>` covers it.
 3. Replace `def.system` with `def.geometry: buildXGeometry`.
 4. Delete `renderer.tsx` and `system.tsx`.
@@ -292,7 +292,7 @@ type PaintCapability = {
 }
 ```
 
-Implement the capability in a `paint.ts` file next to `definition.ts`. Keep it pure — no `useScene`, no store mutation. Reference implementations: `packages/nodes/src/chimney/paint.ts` (body/top split), `packages/nodes/src/wall/paint.ts` (interior/exterior + normal-based disambiguation).
+Implement the capability in a `paint.ts` file next to `definition.ts`. Keep it pure — no `useScene`, no store mutation. Reference implementations: `frontend/elements/nodes/src/chimney/paint.ts` (body/top split), `frontend/elements/nodes/src/wall/paint.ts` (interior/exterior + normal-based disambiguation).
 
 ```ts
 capabilities: {

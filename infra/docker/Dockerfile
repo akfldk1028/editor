@@ -21,5 +21,5 @@ VOLUME /data
 
 USER bun
 EXPOSE 3000
-WORKDIR /app/apps/editor
+WORKDIR /app/frontend/app/editor
 CMD ["bun", "run", "start"]

@@ -87,7 +87,7 @@ During workspace development, run both sides with the same data directory:
 PASCAL_DATA_DIR="$HOME/.pascal/data" bun run dev
 
 # Terminal 2 or an MCP host: run the server
-PASCAL_DATA_DIR="$HOME/.pascal/data" bun packages/mcp/dist/bin/pascal-mcp.js
+PASCAL_DATA_DIR="$HOME/.pascal/data" bun backend/mcp/dist/bin/pascal-mcp.js
 ```
 
 ## Live editor updates
@@ -158,7 +158,7 @@ Code at the built binary:
   "mcpServers": {
     "pascal": {
       "command": "node",
-      "args": ["/absolute/path/to/editor/packages/mcp/dist/bin/pascal-mcp.js"],
+      "args": ["/absolute/path/to/editor/backend/mcp/dist/bin/pascal-mcp.js"],
       "env": {
         "PASCAL_DATA_DIR": "/Users/you/.pascal/data"
       }
@@ -178,10 +178,10 @@ pascal mcp setup codex
 For local workspace testing before publish:
 
 ```bash
-bun run --cwd packages/mcp build
+bun run --cwd backend/mcp build
 codex mcp add pascal-dev \
   --env PASCAL_DATA_DIR="$HOME/.pascal/data" \
-  -- node "$PWD/packages/mcp/dist/bin/pascal-mcp.js"
+  -- node "$PWD/backend/mcp/dist/bin/pascal-mcp.js"
 ```
 
 This writes an entry like this to `~/.codex/config.toml`:
@@ -189,7 +189,7 @@ This writes an entry like this to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.pascal-dev]
 command = "node"
-args = ["/absolute/path/to/editor/packages/mcp/dist/bin/pascal-mcp.js"]
+args = ["/absolute/path/to/editor/backend/mcp/dist/bin/pascal-mcp.js"]
 
 [mcp_servers.pascal-dev.env]
 PASCAL_DATA_DIR = "/Users/you/.pascal/data"
@@ -398,14 +398,14 @@ The vision tools require the MCP host to support the sampling capability
 
 ```bash
 bun install
-bun run --cwd packages/mcp build
+bun run --cwd backend/mcp build
 bun test
 ```
 
 Smoke-test the stdio binary end-to-end:
 
 ```bash
-bun run --cwd packages/mcp smoke
+bun run --cwd backend/mcp smoke
 ```
 
 ## License

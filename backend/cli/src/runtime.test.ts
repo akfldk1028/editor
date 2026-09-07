@@ -29,7 +29,7 @@ describe('managed runtime', () => {
 
     expect(active.version).toBe('1.2.3')
     expect(active.directory).toBe(path.join(paths.runtime, '1.2.3'))
-    expect(await Bun.file(path.join(active.directory, 'apps/editor/server.js')).exists()).toBe(true)
+    expect(await Bun.file(path.join(active.directory, 'frontend/app/editor/server.js')).exists()).toBe(true)
   })
 
   test('starts, identifies, and stops a detached editor while preserving data', async () => {
@@ -151,13 +151,13 @@ describe('managed runtime', () => {
     const source = await fakeRuntime(root, '1.2.3')
     const paths = resolvePascalPaths({ PASCAL_HOME: path.join(root, 'home') })
     const active = await installBundledRuntime(paths, source)
-    await rm(path.join(active.directory, 'apps/editor/server.js'))
+    await rm(path.join(active.directory, 'frontend/app/editor/server.js'))
 
     const started = await startEditor({ paths, port: 0, sourceDirectory: source })
 
     expect(started.state.version).toBe('1.2.3')
     expect((await getEditorStatus(paths)).healthy).toBe(true)
-    expect(await Bun.file(path.join(active.directory, 'apps/editor/server.js')).exists()).toBe(true)
+    expect(await Bun.file(path.join(active.directory, 'frontend/app/editor/server.js')).exists()).toBe(true)
     await stopEditor(paths)
   })
 
@@ -308,7 +308,7 @@ async function waitUntilStopped(pid: number): Promise<void> {
 
 async function fakeRuntime(root: string, version: string, healthy = true): Promise<string> {
   const runtime = path.join(root, `source-${version}`)
-  const app = path.join(runtime, 'apps/editor')
+  const app = path.join(runtime, 'frontend/app/editor')
   const services = path.join(runtime, 'services')
   await mkdir(app, { recursive: true })
   await mkdir(services, { recursive: true })
@@ -317,7 +317,7 @@ async function fakeRuntime(root: string, version: string, healthy = true): Promi
     JSON.stringify({
       schemaVersion: 1,
       version,
-      entrypoint: 'apps/editor/server.js',
+      entrypoint: 'frontend/app/editor/server.js',
       mcpEntrypoint: 'services/pascal-mcp.mjs',
       healthPath: '/api/health',
       mcpHealthPath: '/health',

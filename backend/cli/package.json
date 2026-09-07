@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "build": "tsc --build",
-    "build-runtime": "cd ../../apps/editor && PASCAL_PORTABLE_BUILD=1 bun run build",
+    "build-runtime": "cd ../../frontend/app/editor && PASCAL_PORTABLE_BUILD=1 bun run build",
     "check-types": "tsc --build --pretty false && tsc --project tsconfig.scripts.json --pretty false",
     "stage-runtime": "bun run scripts/stage-runtime.ts",
     "smoke-runtime": "bun run scripts/smoke-packed-runtime.ts",
@@ -56,8 +56,8 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pascalorg/editor.git",
-    "directory": "packages/cli"
+    "url": "git+https://github.com/akfldk1028/editor.git",
+    "directory": "backend/cli"
   },
   "license": "MIT",
   "author": {
@@ -69,5 +69,5 @@
     "access": "public"
   },
   "homepage": "https://editor.pascal.app/docs/developers/local-editor",
-  "bugs": "https://github.com/pascalorg/editor/issues"
+  "bugs": "https://github.com/akfldk1028/editor/issues"
 }

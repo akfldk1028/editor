@@ -12,7 +12,7 @@ its authored/baked look untouched and exposes nothing to paint.
 ## The slot contract
 
 A glTF **material** whose name starts with `slot_` (case-insensitive) marks a paintable
-part. The canonical rules live in `packages/core/src/lib/slots.ts` and are shared by both
+part. The canonical rules live in `resources/lib/core/src/lib/slots.ts` and are shared by both
 the upload scan and the renderer, so authored names, stored slot metadata, and runtime
 meshes can never drift:
 

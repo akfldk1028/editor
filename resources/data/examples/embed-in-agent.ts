@@ -7,7 +7,7 @@
  *
  * Compile with the package's `tsc --build`, or run directly with Bun:
  *
- *   bun run packages/mcp/examples/embed-in-agent.ts
+ *   bun run backend/mcp/examples/embed-in-agent.ts
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'

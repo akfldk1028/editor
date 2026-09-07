@@ -2,17 +2,17 @@
 set -euo pipefail
 
 # Unified Release Script — builds and submits to both App Store and Play Store
-# Usage: bash tooling/release/release.sh [version] [platform]
+# Usage: bash resources/scripts/release/release.sh [version] [platform]
 #   version:  App Store version string (e.g. "1.0") — required for iOS
 #   platform: "all" (default), "ios", "android"
 #
 # Examples:
-#   bash tooling/release/release.sh 1.0          # Both platforms
-#   bash tooling/release/release.sh 1.0 ios      # iOS only
-#   bash tooling/release/release.sh "" android    # Android only (no ASC version needed)
+#   bash resources/scripts/release/release.sh 1.0          # Both platforms
+#   bash resources/scripts/release/release.sh 1.0 ios      # iOS only
+#   bash resources/scripts/release/release.sh "" android    # Android only (no ASC version needed)
 #   bun native:release 1.0                        # Via package.json script
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 VERSION="${1:-}"
 PLATFORM="${2:-all}"
@@ -33,13 +33,13 @@ ANDROID_EXIT=0
 
 if [[ "$PLATFORM" == "all" || "$PLATFORM" == "ios" ]]; then
   echo "=== Starting iOS release (version $VERSION) ==="
-  bash "$ROOT_DIR/tooling/release/ios-appstore-release.sh" "$VERSION" &
+  bash "$ROOT_DIR/resources/scripts/release/ios-appstore-release.sh" "$VERSION" &
   IOS_PID=$!
 fi
 
 if [[ "$PLATFORM" == "all" || "$PLATFORM" == "android" ]]; then
   echo "=== Starting Android release (internal track) ==="
-  bash "$ROOT_DIR/tooling/release/android-playstore-release.sh" internal &
+  bash "$ROOT_DIR/resources/scripts/release/android-playstore-release.sh" internal &
   ANDROID_PID=$!
 fi
 

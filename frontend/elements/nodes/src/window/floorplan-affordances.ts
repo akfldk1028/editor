@@ -14,7 +14,7 @@ type WindowWidthPayload = { side: 'start' | 'end' }
 
 /**
  * 2D drag affordance for the window's width side-arrows. Sister to the 3D
- * `WindowSideArrow` width drag in `packages/editor/src/components/editor/
+ * `WindowSideArrow` width drag in `frontend/components/editor/src/components/editor/
  * window-side-handles.tsx` — both anchor at the opposite window edge and
  * clamp to wall bounds. Mirrors `doorWidthAffordance` 1:1 with the door
  * type swapped for the window type.

@@ -19,7 +19,7 @@
   ],
   "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx"],
   "references": [
-    { "path": "../../packages/core" },
-    { "path": "../../packages/viewer" }
+    { "path": "../../../resources/lib/core" },
+    { "path": "../../components/viewer" }
   ]
 }

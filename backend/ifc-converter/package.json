@@ -34,10 +34,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/pascalorg/editor.git",
-    "directory": "packages/ifc-converter"
+    "url": "https://github.com/akfldk1028/editor.git",
+    "directory": "backend/ifc-converter"
   },
   "license": "MIT",
-  "homepage": "https://github.com/pascalorg/editor/tree/main/packages/ifc-converter#readme",
-  "bugs": "https://github.com/pascalorg/editor/issues"
+  "homepage": "https://github.com/akfldk1028/editor/tree/main/backend/ifc-converter#readme",
+  "bugs": "https://github.com/akfldk1028/editor/issues"
 }

@@ -31,7 +31,7 @@ import { NodeRenderer } from './node-renderer'
  *
  * This is what lets shelf — and every future registry-driven parametric
  * kind — ship without a per-kind `renderer.tsx`. See
- * `wiki/architecture/node-definitions.md` for the three-checkbox model.
+ * `docs/architecture/node-definitions.md` for the three-checkbox model.
  *
  * Typing note: `useNodeEvents` is keyed by a literal kind, but at this
  * dispatch level we have a union. The cast is contained here so callers

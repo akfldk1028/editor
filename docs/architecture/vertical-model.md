@@ -11,7 +11,7 @@ The invariant, in one sentence:
 > that height and translating the wall from its elected base. Optional terrain infill
 > extends only the bottom; it never changes the authored wall height or top.
 
-**Sources**: `packages/core/src/services/storey.ts`, `packages/core/src/systems/wall/wall-top.ts`, `packages/core/src/systems/slab/slab-support.ts`, `packages/core/src/systems/stair/stair-rise.ts`, `packages/core/src/utils/vertical-scene-migration.ts`
+**Sources**: `resources/lib/core/src/services/storey.ts`, `resources/lib/core/src/systems/wall/wall-top.ts`, `resources/lib/core/src/systems/slab/slab-support.ts`, `resources/lib/core/src/systems/stair/stair-rise.ts`, `resources/lib/core/src/utils/vertical-scene-migration.ts`
 
 ## Stored truth
 
