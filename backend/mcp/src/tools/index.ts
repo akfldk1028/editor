@@ -12,6 +12,7 @@ import { registerDuplicateLevel } from './duplicate-level'
 import { registerExportGlb } from './export-glb'
 import { registerExportJson } from './export-json'
 import { registerFindNodes } from './find-nodes'
+import { registerApplyFloorPlan } from './floor-plan'
 import { registerGetNode } from './get-node'
 import { registerGetScene } from './get-scene'
 import { registerMeasure } from './measure'
@@ -44,6 +45,7 @@ export function registerTools(server: McpServer, operations: SceneOperations): v
   registerMeasure(server, operations)
   registerConstructionTools(server, operations)
   registerRoomTools(server, operations)
+  registerApplyFloorPlan(server, operations)
   registerApplyPatch(server, operations)
   registerCreateLevel(server, operations)
   registerCreateWall(server, operations)

@@ -31,7 +31,8 @@ import {
 import { measurement } from './measurement'
 import { NodeIdSchema, Vec2Schema } from './schemas'
 
-const ROOM_TYPES = [
+/** Room categories the furnishing pass has a layout for. */
+export const ROOM_TYPES = [
   'bedroom',
   'kitchen',
   'bathroom',
@@ -574,6 +575,115 @@ export function registerAddWindow(server: McpServer, bridge: SceneOperations): v
   )
 }
 
+export type RoomType = (typeof ROOM_TYPES)[number]
+
+/**
+ * Work out where a room type's furniture goes and build the `ItemNode`s for it,
+ * without touching the scene. Reads the scene to avoid existing items and door
+ * clear zones, so callers that create several rooms must commit each room's
+ * geometry before planning the next room's furniture.
+ *
+ * Shared by `furnish_room` and `apply_floor_plan`.
+ */
+export function planRoomFurniture(
+  bridge: SceneOperations,
+  args: {
+    levelId: string
+    polygon: Vec2[]
+    roomType: RoomType
+    doorWallIndex?: number
+    /** Recorded on each item so the source tool is traceable in the scene. */
+    mcpTool?: string
+  },
+): { items: AnyNode[]; skipped: string[] } {
+  const { levelId, polygon: points, roomType } = args
+  const resolvedDoorWallIndex = args.doorWallIndex ?? 0
+  const { placements, bounds } = buildRoomPlacements(roomType, points, resolvedDoorWallIndex)
+  const skipped: string[] = []
+  const items: AnyNode[] = []
+
+  const allNodes = Object.values(bridge.getNodes())
+  // Doors on THIS level only (stacked floors must not interact in plan).
+  const existingKeepouts = collectDoorKeepouts(allNodes, { levelId })
+  const doorKeepoutAabbs: PlanAabb[] = existingKeepouts.map((k) => k.aabb)
+  // Always protect this room's door-wall edge when no keep-out already covers it
+  // (other rooms may already have doors elsewhere on the same level).
+  const planned = keepoutForPolygonEdge(points, resolvedDoorWallIndex, {
+    t: 0.5,
+    width: 0.9,
+  })
+  if (planned && !doorKeepoutAabbs.some((existing) => keepoutCoversPlanned(existing, planned))) {
+    doorKeepoutAabbs.push(planned)
+  }
+
+  // Existing floor items on this level + footprints we place in this batch.
+  const occupied: PlanAabb[] = collectOccupiedFootprints(allNodes, {
+    levelId,
+    floorOnly: true,
+  }).map((f) => f.aabb)
+
+  const roomBounds = {
+    minX: bounds.minX,
+    maxX: bounds.maxX,
+    minZ: bounds.minZ,
+    maxZ: bounds.maxZ,
+  }
+
+  for (const placement of placements) {
+    const asset = findCatalogItem(placement.assetId)
+    if (!asset) {
+      skipped.push(`${placement.assetId}: asset not found`)
+      continue
+    }
+
+    const primary = {
+      x: placement.x,
+      z: placement.z,
+      rotationDeg: placement.rotationDeg ?? 0,
+    }
+    const resolved = findValidPlacement({
+      primary,
+      dimensions: asset.dimensions,
+      doorKeepouts: doorKeepoutAabbs,
+      occupied,
+      roomBounds,
+      along: placement.along,
+      inward: placement.inward,
+    })
+
+    if (!resolved.candidate) {
+      const reason =
+        resolved.reason === 'blocks_door_clearance'
+          ? 'blocks door clearance'
+          : resolved.reason === 'outside_bounds'
+            ? 'outside room bounds'
+            : 'overlaps another item'
+      skipped.push(`${asset.id}: ${reason}`)
+      continue
+    }
+
+    const { x, z, rotationDeg } = resolved.candidate
+    const rotRad = (rotationDeg * Math.PI) / 180
+    const planAabb = itemPlanAabb([x, 0, z], asset.dimensions, rotRad)
+    occupied.push(planAabb)
+    items.push(
+      ItemNode.parse({
+        name: asset.name,
+        position: [x, 0, z],
+        rotation: [0, rotRad, 0],
+        asset: makeItemAsset(asset),
+        metadata: {
+          mcpTool: args.mcpTool ?? 'furnish_room',
+          roomType,
+          ...(x !== primary.x || z !== primary.z ? { placementAdjusted: true } : {}),
+        },
+      }),
+    )
+  }
+
+  return { items, skipped }
+}
+
 export function registerFurnishRoom(server: McpServer, bridge: SceneOperations): void {
   server.registerTool(
     'furnish_room',
@@ -587,93 +697,12 @@ export function registerFurnishRoom(server: McpServer, bridge: SceneOperations):
     async ({ levelId, zoneId, roomType, polygon, doorWallIndex }) => {
       const room = inferRoomGeometry(bridge, levelId, polygon as Vec2[] | undefined, zoneId)
       assertLevel(bridge, room.levelId)
-      const points = room.polygon
-      const resolvedDoorWallIndex = doorWallIndex ?? 0
-      const { placements, bounds } = buildRoomPlacements(roomType, points, resolvedDoorWallIndex)
-      const skipped: string[] = []
-      const items: AnyNode[] = []
-
-      const allNodes = Object.values(bridge.getNodes())
-      // Doors on THIS level only (stacked floors must not interact in plan).
-      const existingKeepouts = collectDoorKeepouts(allNodes, { levelId: room.levelId })
-      const doorKeepoutAabbs: PlanAabb[] = existingKeepouts.map((k) => k.aabb)
-      // Always protect this room's door-wall edge when no keep-out already covers it
-      // (other rooms may already have doors elsewhere on the same level).
-      const planned = keepoutForPolygonEdge(points, resolvedDoorWallIndex, {
-        t: 0.5,
-        width: 0.9,
-      })
-      if (
-        planned &&
-        !doorKeepoutAabbs.some((existing) => keepoutCoversPlanned(existing, planned))
-      ) {
-        doorKeepoutAabbs.push(planned)
-      }
-
-      // Existing floor items on this level + footprints we place in this batch.
-      const occupied: PlanAabb[] = collectOccupiedFootprints(allNodes, {
+      const { items, skipped } = planRoomFurniture(bridge, {
         levelId: room.levelId,
-        floorOnly: true,
-      }).map((f) => f.aabb)
-
-      const roomBounds = {
-        minX: bounds.minX,
-        maxX: bounds.maxX,
-        minZ: bounds.minZ,
-        maxZ: bounds.maxZ,
-      }
-
-      for (const placement of placements) {
-        const asset = findCatalogItem(placement.assetId)
-        if (!asset) {
-          skipped.push(`${placement.assetId}: asset not found`)
-          continue
-        }
-
-        const primary = {
-          x: placement.x,
-          z: placement.z,
-          rotationDeg: placement.rotationDeg ?? 0,
-        }
-        const resolved = findValidPlacement({
-          primary,
-          dimensions: asset.dimensions,
-          doorKeepouts: doorKeepoutAabbs,
-          occupied,
-          roomBounds,
-          along: placement.along,
-          inward: placement.inward,
-        })
-
-        if (!resolved.candidate) {
-          const reason =
-            resolved.reason === 'blocks_door_clearance'
-              ? 'blocks door clearance'
-              : resolved.reason === 'outside_bounds'
-                ? 'outside room bounds'
-                : 'overlaps another item'
-          skipped.push(`${asset.id}: ${reason}`)
-          continue
-        }
-
-        const { x, z, rotationDeg } = resolved.candidate
-        const rotRad = (rotationDeg * Math.PI) / 180
-        const planAabb = itemPlanAabb([x, 0, z], asset.dimensions, rotRad)
-        occupied.push(planAabb)
-        items.push(
-          ItemNode.parse({
-            name: asset.name,
-            position: [x, 0, z],
-            rotation: [0, rotRad, 0],
-            asset: makeItemAsset(asset),
-            metadata: {
-              mcpTool: 'furnish_room',
-              roomType,
-              ...(x !== primary.x || z !== primary.z ? { placementAdjusted: true } : {}),
-            },
-          }),
-        )
-      }
+        polygon: room.polygon,
+        roomType,
+        doorWallIndex,
+      })
 
       let persistence: LiveSyncStatus = 'published'
       if (items.length > 0) {
