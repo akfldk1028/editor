@@ -77,6 +77,8 @@ def publish_to_pascal(
             "pascal_warnings": applied.get("warnings", []),
         }
 
+    _reset_scene(client)
+
     scene = client.call_tool("save_scene", {"name": scene_name})
     scene_id = scene.get("id") or scene.get("sceneId")
 
@@ -102,6 +104,49 @@ def publish_to_pascal(
         "totals": applied.get("totals", {}),
         "pascal_warnings": applied.get("warnings", []),
     }
+
+
+#: Node types the template ships a sample room in. Everything of these types is
+#: cleared before a plan is applied; the site, building and level survive.
+_TEMPLATE_CONTENT_TYPES = {
+    "wall",
+    "door",
+    "window",
+    "zone",
+    "slab",
+    "ceiling",
+    "item",
+    "panel",
+    "stair",
+    "roof",
+}
+
+
+def _reset_scene(client: PascalPublisher) -> None:
+    """Give the plan a clean scene to build into.
+
+    The MCP session holds one in-memory scene, so without a reset each publish
+    stacks on whatever the previous one left behind — a second run turned 200
+    walls into 400. `empty-studio` is the smallest known starting point, but it
+    is not actually empty: it ships a one-room studio, so its contents are
+    cleared too, leaving the site, building and ground level to build on.
+    """
+    client.call_tool("create_from_template", {"id": "empty-studio"})
+
+    scene = client.call_tool("get_scene", {})
+    nodes = scene.get("nodes")
+    if not isinstance(nodes, dict):
+        return
+    doomed = [
+        node_id
+        for node_id, node in nodes.items()
+        if isinstance(node, dict) and node.get("type") in _TEMPLATE_CONTENT_TYPES
+    ]
+    if doomed:
+        client.call_tool(
+            "apply_patch",
+            {"patches": [{"op": "delete", "id": node_id} for node_id in doomed]},
+        )
 
 
 def _first_level_id(scene: dict[str, Any]) -> str | None:

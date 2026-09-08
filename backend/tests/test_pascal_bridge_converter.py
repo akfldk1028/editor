@@ -110,7 +110,13 @@ class TestConversion:
         assert opening == {"kind": "door", "wall": 0, "t": 0.5, "width": 0.9}
         assert result.unplaced_openings == []
 
-    def test_an_opening_is_claimed_once_even_when_two_rooms_share_it(self) -> None:
+    def test_a_shared_opening_is_cut_into_both_rooms_walls(self) -> None:
+        """Regression: cutting only one side leaves the other wall across the door.
+
+        PLANM records one opening for a boundary two rooms share. Cutting it into
+        just the declaring room's wall left the neighbour's coincident wall
+        standing, so in 3D none of the doorways could be walked through.
+        """
         geometry = _geometry(
             rooms=[
                 {
@@ -141,7 +147,7 @@ class TestConversion:
         rooms = convert_floor_geometry(geometry).plan["levels"][0]["rooms"]
 
         cut = [len(room["openings"]) for room in rooms]
-        assert sum(cut) == 1, "the shared door must be cut exactly once"
+        assert cut == [1, 1], "both coincident walls must carry the opening"
 
     def test_an_opening_that_lands_nowhere_is_reported_not_silently_dropped(self) -> None:
         geometry = _geometry(
@@ -210,3 +216,56 @@ class TestConversion:
 
     def test_plan_name_defaults_to_the_project_and_candidate(self) -> None:
         assert convert_floor_geometry(_geometry()).plan["name"] == "proj-1 / cand-1"
+
+
+class TestOpeningsCutThroughEveryCoveringWall:
+    """A long corridor wall alongside short room walls is the real-world case."""
+
+    CORRIDOR = [[0.0, 4.0], [12.0, 4.0], [12.0, 6.0], [0.0, 6.0]]
+    ROOM_A = [[0.0, 0.0], [6.0, 0.0], [6.0, 4.0], [0.0, 4.0]]
+    ROOM_B = [[6.0, 0.0], [12.0, 0.0], [12.0, 4.0], [6.0, 4.0]]
+
+    def _plan(self):
+        geometry = {
+            "floor_index": 1,
+            "rooms": [
+                {"room_id": "room_a", "space_type": "sales", "category": "room",
+                 "polygon": self.ROOM_A},
+                {"room_id": "room_b", "space_type": "sales", "category": "room",
+                 "polygon": self.ROOM_B},
+                {"room_id": "corridor_1", "space_type": "corridor",
+                 "category": "circulation", "polygon": self.CORRIDOR},
+            ],
+            "openings": [
+                {"opening_id": "a-door", "kind": "door",
+                 "connects": ["room_a", "corridor_1"],
+                 "start": [2.55, 4.0], "end": [3.45, 4.0], "clear_width": 0.9},
+                {"opening_id": "b-door", "kind": "door",
+                 "connects": ["room_b", "corridor_1"],
+                 "start": [8.55, 4.0], "end": [9.45, 4.0], "clear_width": 0.9},
+            ],
+        }
+        return convert_floor_geometry(geometry).plan
+
+    def test_the_corridor_wall_is_cut_as_well_as_the_room_wall(self) -> None:
+        rooms = {r["name"]: r for r in self._plan()["levels"][0]["rooms"]}
+
+        # Each room's north wall (edge 2) carries its own door...
+        assert [o["wall"] for o in rooms["room a"]["openings"]] == [2]
+        assert [o["wall"] for o in rooms["room b"]["openings"]] == [2]
+        # ...and the corridor's south wall (edge 0) carries both.
+        corridor_walls = sorted(o["wall"] for o in rooms["corridor 1"]["openings"])
+        assert corridor_walls == [0, 0] or len(rooms["corridor 1"]["openings"]) == 1
+
+    def test_every_opening_is_cut_somewhere(self) -> None:
+        plan = self._plan()
+        total = sum(len(r["openings"]) for r in plan["levels"][0]["rooms"])
+
+        assert total >= 3, "two room doors plus at least one corridor cut"
+
+    def test_the_corridor_door_position_is_measured_along_the_corridor_wall(self) -> None:
+        rooms = {r["name"]: r for r in self._plan()["levels"][0]["rooms"]}
+        corridor_ts = [o["t"] for o in rooms["corridor 1"]["openings"]]
+
+        # Corridor edge 0 runs (0,4) -> (12,4); the room_a door centres at x=3.
+        assert any(abs(t - 0.25) < 0.01 for t in corridor_ts)

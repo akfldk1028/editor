@@ -103,7 +103,13 @@ artifacts/alternatives/<alt>/floor_001/<stem>.geometry.json
 
 ## 변환 규칙
 
-**개구부 → 벽 인덱스.** PLANM은 개구부를 두 방이 공유하는 월드 좌표 선분으로 기록하고, Pascal은 폴리곤 변 인덱스와 `t`(0..1)로 배치한다. 변환기는 개구부 중점을 방의 각 변에 투영해 가장 가까운 변을 고른다(허용 오차 0.35 m). 공유 개구부는 **정확히 한 번만** 잘린다 — 먼저 자기 외곽선에 걸린 방이 가져간다. 어느 변에도 안 걸리면 `unplaced_openings`에 남고 조용히 사라지지 않는다.
+**개구부 → 벽 인덱스.** PLANM은 개구부를 두 방이 공유하는 월드 좌표 선분으로 기록하고, Pascal은 폴리곤 변 인덱스와 `t`(0..1)로 배치한다.
+
+개구부는 **그 자리를 덮는 모든 벽에** 뚫린다. 한쪽만 뚫으면 안 된다 — 복도의 긴 벽이 각 방의 짧은 벽과 나란히 지나가므로, 방 쪽만 뚫으면 복도 벽이 문 앞을 그대로 막아선다. 평면도로는 멀쩡해 보이지만 3D에서는 지나갈 수 있는 문이 하나도 없게 된다. 변환기는 개구부 선분과 **동일선상에서 겹치는**(허용 오차 0.05 m) 모든 벽을 찾아 각 벽 기준으로 `t`를 다시 계산한다. 한 벽은 여러 개구부를 받을 수 있지만 같은 개구부를 두 번 받지는 않는다.
+
+어느 벽에도 안 걸리면 `unplaced_openings`에 남고 조용히 사라지지 않는다.
+
+따라서 응답의 `doors`는 PLANM의 문 개수보다 많다 — 문 하나가 양쪽 벽을 관통하면 2로 센다.
 
 **`space_type` → Pascal 방 타입.** 가구 배치를 위한 매핑이며, 모르는 타입은 **타입 없이** 만든다. 방은 그대로 생기고 가구만 안 놓인다 — 매장을 침실로 잘못 라벨링하는 것보다 낫다. `category: "circulation"`은 타입이 매핑돼도 절대 가구를 놓지 않는다.
 
@@ -123,6 +129,8 @@ artifacts/alternatives/<alt>/floor_001/<stem>.geometry.json
 - **`level_height`는 새 레벨을 만들 때만 적용된다.** 첫 층은 씬의 기존 레벨을 재사용하므로 그 층의 층고는 바뀌지 않는다.
 - **PLANM은 현재 창을 만들지 않는다.** 개구부가 전부 `kind: "door"`라서 발행 결과의 `windows`는 0이다. 변환기는 `kind: "window"`를 이미 처리하므로 PLANM이 창을 내보내기 시작하면 그대로 동작한다.
 - 지오메트리 아티팩트가 생기기 전에 실행된 런은 발행할 수 없다. 409와 함께 재실행하라는 안내가 나온다.
+- **인접한 방은 경계마다 벽을 각자 하나씩 그린다.** 두 방이 맞닿으면 그 자리에 벽이 둘 생긴다. 개구부는 양쪽 모두에 뚫리므로 통행에는 문제가 없지만, 3D에서 벽 두께가 겹쳐 보인다. 벽 병합은 아직 안 했다.
+- MCP 세션은 인메모리 씬 하나를 들고 있어서, 발행할 때마다 이전 결과 위에 쌓인다. 그래서 발행은 `empty-studio` 템플릿으로 씬을 초기화하고 템플릿이 딸고 오는 예시 방까지 지운 뒤 시작한다.
 
 ## 검증된 실행
 
@@ -133,7 +141,7 @@ artifacts/alternatives/<alt>/floor_001/<stem>.geometry.json
 4. dry run -> 201  levels=5 rooms=50 walls=200 doors=40
 5. publish -> 201  items=14  areaSqMeters=1463.22
    conversion warnings: 0 | unplaced openings: 0
-   EDITOR: http://localhost:3002/scene/3e5fcd377bc1
+   EDITOR: http://localhost:3002/scene/098a80e351af
 ```
 
-에디터 API 교차 확인: `nodeCount 411` — wall 200 · zone 50 · slab 50 · ceiling 50 · door 40 · item 14 · level 5.
+에디터 API 교차 확인: wall 200 · door 80 · zone 50 · slab 50 · ceiling 50 · item 14 · level 5 — 발행이 보고한 값과 정확히 일치하며 템플릿 잔여물은 없다.

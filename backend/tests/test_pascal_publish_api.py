@@ -42,10 +42,19 @@ class FakePascalClient:
         if self._fail_with is not None:
             raise self._fail_with
         self.calls.append((name, arguments))
+        if name == "create_from_template":
+            return {"templateId": "empty-studio"}
         if name == "save_scene":
             return {"id": "scene123", "version": 1}
         if name == "get_scene":
-            return {"nodes": {"level_xyz": {"id": "level_xyz", "type": "level"}}}
+            return {
+                "nodes": {
+                    "level_xyz": {"id": "level_xyz", "type": "level"},
+                    "wall_template": {"id": "wall_template", "type": "wall"},
+                }
+            }
+        if name == "apply_patch":
+            return {"appliedOps": 1, "deletedIds": ["wall_template"], "createdIds": []}
         if name == "apply_floor_plan":
             return {
                 "totals": {"rooms": 1, "walls": 4, "doors": 1},
@@ -126,7 +135,19 @@ def test_publishes_the_approved_alternative_and_returns_the_editor_url(tmp_path:
     assert body["totals"]["rooms"] == 1
 
     called = [name for name, _ in pascal.calls]
-    assert called == ["save_scene", "get_scene", "apply_floor_plan"]
+    # The empty template comes first so a second publish does not stack on the
+    # geometry the previous one left in the MCP session.
+    assert called == [
+        "create_from_template",
+        "get_scene",
+        "apply_patch",
+        "save_scene",
+        "get_scene",
+        "apply_floor_plan",
+    ]
+    assert pascal.calls[0][1] == {"id": "empty-studio"}
+    # The template's own sample room is cleared, not left in the published scene.
+    assert pascal.calls[2][1] == {"patches": [{"op": "delete", "id": "wall_template"}]}
 
     # The scene is bound before the plan is applied, and the first level targets
     # the scene's existing ground level.

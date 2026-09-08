@@ -104,6 +104,61 @@ def assign_opening_to_edge(
     return best
 
 
+_COLLINEAR_TOLERANCE_M = 0.05
+
+
+def _opening_span(
+    start: Sequence[float], end: Sequence[float], width: float | None
+) -> tuple[Point, Point]:
+    """The world-space segment an opening occupies.
+
+    PLANM's recorded start/end already span the clear width, but a zero-length
+    record (both ends equal) is widened around its midpoint so it can still be
+    matched against a wall.
+    """
+    a = (float(start[0]), float(start[1]))
+    b = (float(end[0]), float(end[1]))
+    length = ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5
+    if length > 1e-9:
+        return a, b
+    half = (width or 0.9) / 2.0
+    return (a[0] - half, a[1]), (a[0] + half, a[1])
+
+
+def _edge_covers_span(
+    a: Sequence[float], b: Sequence[float], span: tuple[Point, Point]
+) -> float | None:
+    """Position along edge a→b of an opening lying on it, or None.
+
+    The opening must be collinear with the edge and overlap it — that is what
+    makes a corridor's long wall claim the same doorway as the room's short one.
+    """
+    ax, az = float(a[0]), float(a[1])
+    bx, bz = float(b[0]), float(b[1])
+    dx, dz = bx - ax, bz - az
+    length = (dx * dx + dz * dz) ** 0.5
+    if length < 1e-9:
+        return None
+
+    p, q = span
+    # Both endpoints must sit on the edge's line.
+    for point in (p, q):
+        cross = abs((point[0] - ax) * dz - (point[1] - az) * dx) / length
+        if cross > _COLLINEAR_TOLERANCE_M:
+            return None
+
+    # ...and their overlap with the edge must be real, not a touching corner.
+    tp = ((p[0] - ax) * dx + (p[1] - az) * dz) / (length * length)
+    tq = ((q[0] - ax) * dx + (q[1] - az) * dz) / (length * length)
+    lo, hi = sorted((tp, tq))
+    overlap = min(hi, 1.0) - max(lo, 0.0)
+    if overlap <= 1e-6:
+        return None
+
+    centre = (lo + hi) / 2.0
+    return min(1.0, max(0.0, centre))
+
+
 def _polygon(points: Any) -> list[list[float]]:
     """Coerce a polygon, dropping any point that is not a finite pair.
 
@@ -169,11 +224,14 @@ def convert_floors(
         floor_index = int(geometry.get("floor_index", position + 1))
         rooms_payload: list[dict[str, Any]] = []
 
-        # Openings are shared between two rooms; attach each to whichever room's
-        # outline it actually lies on, so it is cut exactly once.
         openings = list(geometry.get("openings", []))
-        claimed: set[str] = set()
 
+        # Build every room's walls first. An opening has to be cut into *every*
+        # wall that covers it, not just the one belonging to the room that
+        # declares it: a corridor's long wall runs alongside each room's short
+        # one, and cutting only the room side leaves the corridor wall standing
+        # across the doorway in 3D.
+        prepared: list[dict[str, Any]] = []
         for room in geometry.get("rooms", []):
             polygon = _polygon(room.get("polygon"))
             if len(polygon) < 3:
@@ -182,57 +240,70 @@ def convert_floors(
                     f"{len(polygon)} points, need at least 3."
                 )
                 continue
-
-            category = str(room.get("category", "room"))
-            space_type = str(room.get("space_type", ""))
-            room_type = _pascal_room_type(space_type)
-
-            room_openings: list[dict[str, Any]] = []
-            for index, opening in enumerate(openings):
-                # Key on position as well as id: geometry with blank ids would
-                # otherwise have its first opening claim every later one.
-                opening_key = f"{index}:{opening.get('opening_id', '')}"
-                if opening_key in claimed:
-                    continue
-                connects = [str(c) for c in opening.get("connects", ())]
-                if connects and str(room.get("room_id")) not in connects:
-                    continue
-                placed = assign_opening_to_edge(
-                    polygon, opening.get("start", (0, 0)), opening.get("end", (0, 0))
-                )
-                if placed is None:
-                    continue
-                edge_index, t = placed
-                claimed.add(opening_key)
-                kind = "door" if str(opening.get("kind", "door")) != "window" else "window"
-                entry: dict[str, Any] = {
-                    "kind": kind,
-                    "wall": edge_index,
-                    "t": round(t, 4),
+            prepared.append(
+                {
+                    "room": room,
+                    "polygon": polygon,
+                    "openings": [],
+                    "cut": set(),
                 }
-                clear_width = opening.get("clear_width")
-                if clear_width:
-                    entry["width"] = float(clear_width)
-                room_openings.append(entry)
-
-            payload: dict[str, Any] = {
-                "name": _room_name(room),
-                "polygon": polygon,
-                "openings": room_openings,
-            }
-            if room_type is not None:
-                payload["type"] = room_type
-                payload["furnish"] = furnish and category not in _UNFURNISHED_CATEGORIES
-            rooms_payload.append(payload)
+            )
 
         for index, opening in enumerate(openings):
             opening_id = str(opening.get("opening_id", ""))
-            if f"{index}:{opening.get('opening_id', '')}" not in claimed:
+            start = opening.get("start", (0, 0))
+            end = opening.get("end", (0, 0))
+            kind = "door" if str(opening.get("kind", "door")) != "window" else "window"
+            clear_width = opening.get("clear_width")
+            width = float(clear_width) if clear_width else None
+            span = _opening_span(start, end, width)
+
+            cut_into = 0
+            for entry in prepared:
+                polygon = entry["polygon"]
+                for edge_index in range(len(polygon)):
+                    a = polygon[edge_index]
+                    b = polygon[(edge_index + 1) % len(polygon)]
+                    t_value = _edge_covers_span(a, b, span)
+                    if t_value is None:
+                        continue
+                    # A wall may carry many openings; it must not carry the
+                    # same one twice.
+                    if (index, edge_index) in entry["cut"]:
+                        continue
+                    entry["cut"].add((index, edge_index))
+                    placement: dict[str, Any] = {
+                        "kind": kind,
+                        "wall": edge_index,
+                        "t": round(t_value, 4),
+                    }
+                    if width:
+                        placement["width"] = width
+                    entry["openings"].append(placement)
+                    cut_into += 1
+
+            if cut_into == 0:
                 unplaced.append(opening_id)
                 warnings.append(
                     f"floor {floor_index}: opening {opening_id} did not land on any "
                     f"room outline and was dropped."
                 )
+
+        for entry in prepared:
+            room = entry["room"]
+            category = str(room.get("category", "room"))
+            space_type = str(room.get("space_type", ""))
+            room_type = _pascal_room_type(space_type)
+
+            payload: dict[str, Any] = {
+                "name": _room_name(room),
+                "polygon": entry["polygon"],
+                "openings": entry["openings"],
+            }
+            if room_type is not None:
+                payload["type"] = room_type
+                payload["furnish"] = furnish and category not in _UNFURNISHED_CATEGORIES
+            rooms_payload.append(payload)
 
         if not rooms_payload:
             warnings.append(f"floor {floor_index}: no usable rooms, level skipped.")
