@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "cad-skill-workflow/v1",
+  "steps": [
+    { "id": "compare", "capability": "query.compare", "input": { "beforeDrawingId": "$input.beforeDrawingId", "afterDrawingId": "$input.afterDrawingId" } }
+  ]
+}

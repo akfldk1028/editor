@@ -1,0 +1,18 @@
+name: planm-delivery
+description: Execute the deterministic-first PLANM workflow from mass request to reviewed delivery package.
+steps:
+  - skill: normalize-plan-request
+    prompt: Read the source request, write planm-state.json, and stop unless the skill result status is success.
+    channel: analysis
+  - skill: analyze-building-mass
+    prompt: Read planm-state.json, require normalized success, persist mass analysis evidence, and stop unless status is success.
+    channel: analysis
+  - skill: generate-plan-alternatives
+    prompt: Read planm-state.json, require analyzed success, generate distinct validated alternatives, and preserve violations and fingerprints.
+    channel: analysis
+  - skill: review-floorplan
+    prompt: Read planm-state.json, require accepted alternatives, render canonical review artifacts, and reject unresolved render failures.
+    channel: analysis
+  - skill: deliver-planm-package
+    prompt: Read planm-state.json, require reviewed success, verify artifact hashes, and emit the final PLANM manifest with unresolved facts.
+    channel: final

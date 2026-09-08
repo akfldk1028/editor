@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from backend.app.schemas.result import PlannerProvenance
+
+
+@dataclass(frozen=True)
+class VisualReviewArtifacts:
+    svg_path: Path
+    png_path: Path
+    html_path: Path
+    report_path: Path
+    artifact_links: dict[str, str]
+    needs_iteration: bool
+    checks: dict[str, str]
+    internal_validation: dict[str, object]
+    render_validation: dict[str, object]
+    regulatory_screening: dict[str, object]
+
+
+@dataclass(frozen=True)
+class VisualReviewLoopResult:
+    iterations_run: int
+    final_needs_iteration: bool
+    artifacts: list[VisualReviewArtifacts]
+    index_json_path: Path | None = None
+    index_html_path: Path | None = None
+    termination_reason: str | None = None
+    evaluation_count: int = 0
+    accepted: bool = False
+    error: str | None = None
+    review_level: str = "concept-basic"
+    unchecked_checks: tuple[str, ...] = ()
+    planner_provenance: PlannerProvenance | None = None
+    internal_validation: dict[str, object] | None = None
+    render_validation: dict[str, object] | None = None
+    regulatory_screening: dict[str, object] | None = None
+
+
+@dataclass(frozen=True)
+class BuildingVisualReviewArtifacts:
+    index_html_path: Path
+    report_path: Path
+    floor_artifacts: tuple[VisualReviewArtifacts, ...]
+    accepted: bool
+    internal_validation: dict[str, object]
+    render_validation: dict[str, object]
+    regulatory_screening: dict[str, object]

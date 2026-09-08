@@ -1,0 +1,263 @@
+{
+  "accepted": true,
+  "error": null,
+  "evaluation_count": 1,
+  "floor_index": 1,
+  "hard_failure_trend": [
+    0
+  ],
+  "internal_validation": {
+    "policy_version": "exact-v1",
+    "status": "pass"
+  },
+  "iterations": [
+    {
+      "accepted": true,
+      "artifacts": {
+        "html": "iteration_001/sample-office-commercial-a8290018982a4b2c-f1.html",
+        "png": "iteration_001/sample-office-commercial-a8290018982a4b2c-f1.png",
+        "review_json": "iteration_001/sample-office-commercial-a8290018982a4b2c-f1.review.json",
+        "svg": "iteration_001/sample-office-commercial-a8290018982a4b2c-f1.svg"
+      },
+      "candidate_id": "sample-office-commercial-f1-rear-right",
+      "checks": {
+        "area": "pass",
+        "basic_design": "pass",
+        "boundary": "pass",
+        "circulation_access": "pass",
+        "corridor_width": "pass",
+        "openings": "pass",
+        "overlap": "pass",
+        "room_form": "pass"
+      },
+      "fingerprint": "6e8e696d1d3aa6b24539cd72f6b2a2d746632d778f182bf69b0d4abb8bca1fd9",
+      "hard_failure_count": 0,
+      "hard_failure_count_delta": null,
+      "internal_validation": {
+        "policy_version": "exact-v1",
+        "status": "pass"
+      },
+      "iteration": 1,
+      "needs_iteration": false,
+      "operator": "concept-basic-generation",
+      "operator_params": {},
+      "parent_id": null,
+      "program_adjusted": true,
+      "program_source": "building_aligned_prior:rear_service_residual_fit:rear_tenant_fit",
+      "regulatory_screening": {
+        "analysis_as_of_date": null,
+        "checks": [
+          {
+            "applicability": null,
+            "assumptions": [
+              "no typed code context was supplied for this floor",
+              "supported KR jurisdiction and analysis date are required",
+              "generated stair count is informational and separate from verified direct-stair count"
+            ],
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "rule_id": "KR-EGRESS-DIRECT-STAIR-COUNT-ART34",
+            "source_effective_date": "2026-02-27",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "status": "not_checked",
+            "threshold": null
+          },
+          {
+            "applicability": null,
+            "assumptions": [
+              "direct-stair applicability is unresolved"
+            ],
+            "effective_date": "2025-10-31",
+            "measured_value": 20.700000000000003,
+            "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
+            "source_effective_date": "2025-10-31",
+            "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
+            "status": "not_checked",
+            "threshold": null
+          },
+          {
+            "applicability": null,
+            "assumptions": [
+              "governing traversable farthest-point route is unresolved",
+              "travel-limit classification unknown; conservative internal 30 m target"
+            ],
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "rule_id": "KR-EGRESS-TRAVEL-DISTANCE-ART34",
+            "source_effective_date": "2026-02-27",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "status": "not_checked",
+            "threshold": 30.0
+          }
+        ],
+        "exit_separation_evidence": {
+          "connected_passage_verified": true,
+          "exit_portal_ids": [
+            "protected-exit-1",
+            "protected-exit-2"
+          ],
+          "measurement_method": "nearest-doorway-segment-distance",
+          "nearest_doorway_segment_distance_m": 20.700000000000003
+        },
+        "floor_index": 1,
+        "generated_direct_stair_count": 2,
+        "ruleset_id": "KR-egress-art34-20260227-art8-20251031",
+        "screened_required_direct_stair_count": null,
+        "status": "not_checked",
+        "unresolved_facts": [
+          "jurisdiction",
+          "effective_date",
+          "floor_code_context",
+          "travel_limit_classification",
+          "measured_travel_distance"
+        ],
+        "verified_direct_stair_count": null
+      },
+      "render_validation": {
+        "missing_basic_design_ids": [],
+        "status": "pass",
+        "unresolved_label_collision_count": 0
+      },
+      "scores": {
+        "adjacency_score": 0.5556,
+        "area_score": 0.9923,
+        "boundary_score": 1.0,
+        "circulation_score": 1.0,
+        "compactness_score": 0.6841,
+        "coverage_score": 0.9139,
+        "efficiency_score": 0.9162,
+        "frontage_score": 1.0,
+        "overlap_score": 1.0,
+        "total_score": 0.8958,
+        "violation_score": 0.0
+      },
+      "total_score_delta": null,
+      "violations": []
+    }
+  ],
+  "lineage": [
+    {
+      "candidate_id": "sample-office-commercial-f1-rear-right",
+      "operator": "concept-basic-generation",
+      "operator_params": {},
+      "parent_id": null
+    }
+  ],
+  "needs_iteration": false,
+  "planner_provenance": {
+    "model": null,
+    "planner_mode": "deterministic",
+    "provider": "deterministic",
+    "response_id": null,
+    "validated_assignments": [
+      {
+        "floor_index": 1,
+        "use_type": "neighborhood_commercial"
+      },
+      {
+        "floor_index": 2,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 3,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 4,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 5,
+        "use_type": "office"
+      }
+    ]
+  },
+  "program_adjusted": true,
+  "program_source": "building_aligned_prior:rear_service_residual_fit:rear_tenant_fit",
+  "project_id": "sample-office-commercial",
+  "regulatory_screening": {
+    "analysis_as_of_date": null,
+    "checks": [
+      {
+        "applicability": null,
+        "assumptions": [
+          "no typed code context was supplied for this floor",
+          "supported KR jurisdiction and analysis date are required",
+          "generated stair count is informational and separate from verified direct-stair count"
+        ],
+        "effective_date": "2026-02-27",
+        "measured_value": null,
+        "rule_id": "KR-EGRESS-DIRECT-STAIR-COUNT-ART34",
+        "source_effective_date": "2026-02-27",
+        "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+        "status": "not_checked",
+        "threshold": null
+      },
+      {
+        "applicability": null,
+        "assumptions": [
+          "direct-stair applicability is unresolved"
+        ],
+        "effective_date": "2025-10-31",
+        "measured_value": 20.700000000000003,
+        "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
+        "source_effective_date": "2025-10-31",
+        "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
+        "status": "not_checked",
+        "threshold": null
+      },
+      {
+        "applicability": null,
+        "assumptions": [
+          "governing traversable farthest-point route is unresolved",
+          "travel-limit classification unknown; conservative internal 30 m target"
+        ],
+        "effective_date": "2026-02-27",
+        "measured_value": null,
+        "rule_id": "KR-EGRESS-TRAVEL-DISTANCE-ART34",
+        "source_effective_date": "2026-02-27",
+        "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+        "status": "not_checked",
+        "threshold": 30.0
+      }
+    ],
+    "exit_separation_evidence": {
+      "connected_passage_verified": true,
+      "exit_portal_ids": [
+        "protected-exit-1",
+        "protected-exit-2"
+      ],
+      "measurement_method": "nearest-doorway-segment-distance",
+      "nearest_doorway_segment_distance_m": 20.700000000000003
+    },
+    "floor_index": 1,
+    "generated_direct_stair_count": 2,
+    "ruleset_id": "KR-egress-art34-20260227-art8-20251031",
+    "screened_required_direct_stair_count": null,
+    "status": "not_checked",
+    "unresolved_facts": [
+      "jurisdiction",
+      "effective_date",
+      "floor_code_context",
+      "travel_limit_classification",
+      "measured_travel_distance"
+    ],
+    "verified_direct_stair_count": null
+  },
+  "render_validation": {
+    "missing_basic_design_ids": [],
+    "status": "pass",
+    "unresolved_label_collision_count": 0
+  },
+  "review_level": "concept-basic",
+  "schema_version": 1,
+  "score_trend": [
+    0.8958
+  ],
+  "termination_reason": "accepted",
+  "unchecked_checks": [],
+  "use_type": "neighborhood_commercial",
+  "vertical_basic_design_aligned": true,
+  "vertical_core_aligned": true,
+  "vertical_structure_aligned": true
+}

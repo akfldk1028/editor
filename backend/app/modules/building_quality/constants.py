@@ -1,0 +1,5 @@
+from __future__ import annotations
+
+
+DIVERSITY_COMPONENT_WEIGHTS = (0.30, 0.25, 0.25, 0.20)
+MATERIAL_DIVERSITY_DISTANCE = 1e-6

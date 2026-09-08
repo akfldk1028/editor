@@ -1,0 +1,22 @@
+spec_version: "0.1.0"
+name: planm
+version: 0.1.0
+description: PLANM building-planning agent that executes validated skills from mass input through reviewed alternatives and delivery.
+
+metadata:
+  execution_mode: deterministic
+  state_owner: backend
+  optional_repair_mode: llm_proposal
+
+model:
+  preferred: ""
+  fallback: []
+
+tools:
+  - cli
+  - read
+  - memory
+
+runtime:
+  max_turns: 40
+  timeout: 300

@@ -1,0 +1,14 @@
+{
+  "scope": "independent_parent_verification",
+  "record_index": 0,
+  "device": "cpu",
+  "run_count": 2,
+  "derived_artifacts_equal": true,
+  "metadata_excluded": true,
+  "metadata_exclusion_reason": "timing fields differ between executions",
+  "sha256": {
+    "graph2plan-input-condition.npz": "be873c1fedcfae550bd0f1e048e47d73b8ecaa012a4bcdbaa7901110f2376030",
+    "graph2plan-raw-forward.npz": "0b1cf5e7db8801a1b6ad22d2bbb805c4160c6d57f2dc47d4335f1a8ee44a2a3f",
+    "graph2plan-raw-preview.png": "16732e93a42934b44a4e7deaf3e10885c92c6ec4e04cd2e572914f80695457e7"
+  }
+}

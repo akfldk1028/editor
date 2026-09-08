@@ -1,0 +1,260 @@
+{
+    "source_commit":  "06953d6447979039c78122f171d1c3888af6d905",
+    "fixture":  {
+                    "path":  "resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json",
+                    "sha256":  "6b59bfea90ed15aea10a9e2814fc14a8561cba1fd90e5cc2c7acee945a1c143c"
+                },
+    "cli_command":  "python -m backend.app.cli irregular-alternatives-review --input resources/datasets/manifests/sample_mass_irregular_12v_setback_office.json --output-dir logs/runs/primary_daylight_feedback_final_06953d6 --limit 3",
+    "default_quality_policy":  {
+                                   "thresholds":  {
+                                                      "minimum_core_stack_ratio":  0.95,
+                                                      "minimum_floor_coverage":  0.6,
+                                                      "minimum_pairwise_diversity":  0.25,
+                                                      "minimum_primary_daylight_ratio":  0.7,
+                                                      "minimum_room_form_pass_ratio":  0.9,
+                                                      "minimum_service_stack_ratio":  0.7,
+                                                      "minimum_shaft_stack_ratio":  0.9,
+                                                      "version":  "building-quality/v1",
+                                                      "weights":  {
+                                                                      "coverage_efficiency":  0.15,
+                                                                      "daylight":  0.25,
+                                                                      "egress":  0.2,
+                                                                      "room_form":  0.2,
+                                                                      "vertical_stacking":  0.2
+                                                                  }
+                                                  },
+                                   "version":  "building-quality/v1"
+                               },
+    "aggregate":  {
+                      "accepted_count":  2,
+                      "distinct_structural_count":  2,
+                      "distinct_core_count":  2,
+                      "distinct_circulation_count":  2,
+                      "distinct_candidate_png_count":  2,
+                      "distinct_png_count":  2,
+                      "accepted_pairwise_diversity_count":  1,
+                      "accepted_quality_distinct_pair_count":  1
+                  },
+    "before_aggregate":  {
+                             "path":  "docs/building-quality-baseline-2026-07-30/source-run/alternatives.review.json",
+                             "sha256":  "1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69"
+                         },
+    "files":  [
+                  {
+                      "relative_path":  "alternative-01/building.review.json",
+                      "source_sha256":  "3374e76029b819cd7074d5152f128285a07b2febfb9bacd837577409e9ed284b",
+                      "retained_sha256":  "3374e76029b819cd7074d5152f128285a07b2febfb9bacd837577409e9ed284b",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.html",
+                      "source_sha256":  "a975f60da04b34f2514c511478842b7d433ce692038589d21c6b6d0ab98cedd9",
+                      "retained_sha256":  "a975f60da04b34f2514c511478842b7d433ce692038589d21c6b6d0ab98cedd9",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.png",
+                      "source_sha256":  "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+                      "retained_sha256":  "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.review.json",
+                      "source_sha256":  "7816a01f167943edcb372796915a7c283e79d2efa163c59517933ecac366c9f1",
+                      "retained_sha256":  "7816a01f167943edcb372796915a7c283e79d2efa163c59517933ecac366c9f1",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.svg",
+                      "source_sha256":  "47532e3ba93f5f2be21bf752e737c9c8b3858b1a03736c6a933cbe9110c754c7",
+                      "retained_sha256":  "47532e3ba93f5f2be21bf752e737c9c8b3858b1a03736c6a933cbe9110c754c7",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.html",
+                      "source_sha256":  "784f39f507d104b94dd05737c0704523a73a0698deec982cb7af0e892a4a9ccf",
+                      "retained_sha256":  "784f39f507d104b94dd05737c0704523a73a0698deec982cb7af0e892a4a9ccf",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.png",
+                      "source_sha256":  "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+                      "retained_sha256":  "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.review.json",
+                      "source_sha256":  "444489b4f973f61270f6fd35567398dc2655b9c721cc13137140612b46e815ba",
+                      "retained_sha256":  "444489b4f973f61270f6fd35567398dc2655b9c721cc13137140612b46e815ba",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.svg",
+                      "source_sha256":  "96119d4bf6d5335eea9fa818fd565f45ab8de43a76b11b863f4249201dc50b73",
+                      "retained_sha256":  "96119d4bf6d5335eea9fa818fd565f45ab8de43a76b11b863f4249201dc50b73",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.html",
+                      "source_sha256":  "b51cd5b0c06c5dc652362d39fdd97ae16faa400b2710d2fe1d40c82e339544d2",
+                      "retained_sha256":  "b51cd5b0c06c5dc652362d39fdd97ae16faa400b2710d2fe1d40c82e339544d2",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.png",
+                      "source_sha256":  "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+                      "retained_sha256":  "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.review.json",
+                      "source_sha256":  "ddc8713fa801cc22e92b29e29b2312a744877a716f5e96d0d96329257ea6b608",
+                      "retained_sha256":  "ddc8713fa801cc22e92b29e29b2312a744877a716f5e96d0d96329257ea6b608",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.svg",
+                      "source_sha256":  "2a709feb19a13d6c19eedf17cd988b9e2653fb706d851fe61be8bc7e2b640d94",
+                      "retained_sha256":  "2a709feb19a13d6c19eedf17cd988b9e2653fb706d851fe61be8bc7e2b640d94",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/index.html",
+                      "source_sha256":  "b07daeaa0068ac4c5ed940681342596308756928d0fb52e871c1a6744f9aaa3b",
+                      "retained_sha256":  "b07daeaa0068ac4c5ed940681342596308756928d0fb52e871c1a6744f9aaa3b",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01-floor-001.png",
+                      "source_sha256":  "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+                      "retained_sha256":  "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01-floor-002.png",
+                      "source_sha256":  "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+                      "retained_sha256":  "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01-floor-003.png",
+                      "source_sha256":  "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+                      "retained_sha256":  "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/building.review.json",
+                      "source_sha256":  "eac118425dae4258f36429ba8fdaa75b15011c2136beff2ddb28f2b10fef208a",
+                      "retained_sha256":  "eac118425dae4258f36429ba8fdaa75b15011c2136beff2ddb28f2b10fef208a",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.html",
+                      "source_sha256":  "e62dbb32501b906c1d072ec405fa35bab08b308a668b3a127424169b82162c37",
+                      "retained_sha256":  "e62dbb32501b906c1d072ec405fa35bab08b308a668b3a127424169b82162c37",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.png",
+                      "source_sha256":  "d127a2af17ce06f91e5226b44d3e2deac464b5b0a61a49c8eaecfb4c4dbc2cf7",
+                      "retained_sha256":  "d127a2af17ce06f91e5226b44d3e2deac464b5b0a61a49c8eaecfb4c4dbc2cf7",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.review.json",
+                      "source_sha256":  "ffdd84fe81fa14ca26865436480cbc7920da5321a4bbbafb78a520ec2fb3dff3",
+                      "retained_sha256":  "ffdd84fe81fa14ca26865436480cbc7920da5321a4bbbafb78a520ec2fb3dff3",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.svg",
+                      "source_sha256":  "4588252446829fb131bebc57f6ee5d0ff8945f087714c9587f6d9d71ca3ef04b",
+                      "retained_sha256":  "4588252446829fb131bebc57f6ee5d0ff8945f087714c9587f6d9d71ca3ef04b",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.html",
+                      "source_sha256":  "b1fa8d5dfd1ffd6a494a43c845361e1bd055bdc8698926f479696606250e1115",
+                      "retained_sha256":  "b1fa8d5dfd1ffd6a494a43c845361e1bd055bdc8698926f479696606250e1115",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.png",
+                      "source_sha256":  "d5fc45679abb152613a73f04ec83cafd1388e39928c7f10502c655d3b3ca9f34",
+                      "retained_sha256":  "d5fc45679abb152613a73f04ec83cafd1388e39928c7f10502c655d3b3ca9f34",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.review.json",
+                      "source_sha256":  "5fb34c27519d218dac9616192a70129ff2db0934cb5f36778024c4cc14edb82e",
+                      "retained_sha256":  "5fb34c27519d218dac9616192a70129ff2db0934cb5f36778024c4cc14edb82e",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.svg",
+                      "source_sha256":  "32477b5ca716bbc72e75920eb0f968f2ba53f80f95ef508c66111896f3251283",
+                      "retained_sha256":  "32477b5ca716bbc72e75920eb0f968f2ba53f80f95ef508c66111896f3251283",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.html",
+                      "source_sha256":  "130c294f26d1a282549ba6aa19a7de43e2601be05624b62f012522597b3d02df",
+                      "retained_sha256":  "130c294f26d1a282549ba6aa19a7de43e2601be05624b62f012522597b3d02df",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.png",
+                      "source_sha256":  "78eb43e9d873ed391b0a6a742b4ff28fc5e569dd0413a9ae10d89de80e5a3df3",
+                      "retained_sha256":  "78eb43e9d873ed391b0a6a742b4ff28fc5e569dd0413a9ae10d89de80e5a3df3",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.review.json",
+                      "source_sha256":  "385c80f437e02e777e16ca19022df3a57541ed71881c0e7f8be4bcebe07c98a5",
+                      "retained_sha256":  "385c80f437e02e777e16ca19022df3a57541ed71881c0e7f8be4bcebe07c98a5",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.svg",
+                      "source_sha256":  "6b402691801fbbaa70ec7817faeb2211716b4c143b3fbe43a6dead6fb1070ea8",
+                      "retained_sha256":  "6b402691801fbbaa70ec7817faeb2211716b4c143b3fbe43a6dead6fb1070ea8",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02/index.html",
+                      "source_sha256":  "b07daeaa0068ac4c5ed940681342596308756928d0fb52e871c1a6744f9aaa3b",
+                      "retained_sha256":  "b07daeaa0068ac4c5ed940681342596308756928d0fb52e871c1a6744f9aaa3b",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02-floor-001.png",
+                      "source_sha256":  "d127a2af17ce06f91e5226b44d3e2deac464b5b0a61a49c8eaecfb4c4dbc2cf7",
+                      "retained_sha256":  "d127a2af17ce06f91e5226b44d3e2deac464b5b0a61a49c8eaecfb4c4dbc2cf7",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02-floor-002.png",
+                      "source_sha256":  "d5fc45679abb152613a73f04ec83cafd1388e39928c7f10502c655d3b3ca9f34",
+                      "retained_sha256":  "d5fc45679abb152613a73f04ec83cafd1388e39928c7f10502c655d3b3ca9f34",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-02-floor-003.png",
+                      "source_sha256":  "78eb43e9d873ed391b0a6a742b4ff28fc5e569dd0413a9ae10d89de80e5a3df3",
+                      "retained_sha256":  "78eb43e9d873ed391b0a6a742b4ff28fc5e569dd0413a9ae10d89de80e5a3df3",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternatives.review.json",
+                      "source_sha256":  "66f6697ae5e226a969e2e4499c01704e7bfee63bdaad5271fe2d358b08a3d624",
+                      "retained_sha256":  "66f6697ae5e226a969e2e4499c01704e7bfee63bdaad5271fe2d358b08a3d624",
+                      "bytes_match":  true
+                  },
+                  {
+                      "relative_path":  "index.html",
+                      "source_sha256":  "2398c9a4e946e141534c579d95e0440417869ac9087ee871c25bd64285667ab3",
+                      "retained_sha256":  "2398c9a4e946e141534c579d95e0440417869ac9087ee871c25bd64285667ab3",
+                      "bytes_match":  true
+                  }
+              ]
+}

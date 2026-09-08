@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "cad-skill-cases/v1",
+  "skillId": "inspect-drawing",
+  "cases": [
+    {
+      "id": "dxf-wall-evidence",
+      "fixture": "dxf.minimal-architectural",
+      "scenario": "workflow-input",
+      "input": "examples/input.json",
+      "output": "examples/output.json",
+      "status": "passed"
+    },
+    {
+      "id": "invalid-layer",
+      "fixture": "dxf.minimal-architectural",
+      "scenario": "workflow-input",
+      "input": "tests/invalid-input.json",
+      "output": "tests/invalid-output.json",
+      "status": "failed"
+    }
+  ]
+}

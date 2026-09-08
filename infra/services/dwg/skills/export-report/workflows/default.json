@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "cad-skill-workflow/v1",
+  "steps": [
+    {
+      "id": "report",
+      "capability": "export.report",
+      "input": {
+        "documentId": "$host.documentId",
+        "revision": "$host.revision",
+        "format": "$input.format"
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "project_id": "sample-polygon-setback-office",
+  "floors": 2,
+  "footprint_polygon": [[0, 0], [42, 0], [42, 16], [36, 22], [6, 22], [0, 16]],
+  "floor_footprints": [
+    {
+      "floor_index": 1,
+      "footprint_polygon": [[0, 0], [42, 0], [42, 16], [36, 22], [6, 22], [0, 16]]
+    },
+    {
+      "floor_index": 2,
+      "footprint_polygon": [[1, 0], [40, 0], [40, 15], [35, 20], [7, 20], [1, 15]]
+    }
+  ],
+  "site_edges": [{"edge_index": 0, "kind": "street"}],
+  "access_candidates": [{"edge_index": 0, "position": 0.5}],
+  "use_mix": {
+    "office": 1.0
+  }
+}

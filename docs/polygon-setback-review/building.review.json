@@ -1,0 +1,2191 @@
+{
+  "schema_version": 1,
+  "project_id": "sample-polygon-setback-office",
+  "accepted": true,
+  "internal_validation": {
+    "status": "pass"
+  },
+  "render_validation": {
+    "status": "pass"
+  },
+  "regulatory_screening": {
+    "status": "not_checked",
+    "unresolved_facts": [
+      "effective_date",
+      "floor_code_context",
+      "jurisdiction",
+      "measured_travel_distance",
+      "travel_limit_classification"
+    ]
+  },
+  "assignment_source": "use_mix",
+  "vertical_core_aligned": true,
+  "vertical_basic_design_aligned": true,
+  "vertical_structure_aligned": true,
+  "planner_provenance": {
+    "planner_mode": "deterministic",
+    "provider": "deterministic",
+    "model": null,
+    "response_id": null,
+    "validated_assignments": [
+      {
+        "floor_index": 1,
+        "use_type": "office"
+      },
+      {
+        "floor_index": 2,
+        "use_type": "office"
+      }
+    ]
+  },
+  "render_style": "review",
+  "total_area": 1640.5,
+  "use_type_areas": {
+    "office": 1640.5
+  },
+  "area_ledger": {
+    "floors": [
+      {
+        "floor_index": 1,
+        "status": "not_checked",
+        "entries": [
+          {
+            "bucket": "gross",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "floor-boundary"
+              ],
+              "classification_rule": "supplied-floor-boundary",
+              "formula": "union(gross boundary)"
+            }
+          },
+          {
+            "bucket": "core",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "core"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(core geometry)"
+            }
+          },
+          {
+            "bucket": "circulation",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "corridor-001",
+                "corridor-002",
+                "corridor-003",
+                "corridor-004",
+                "corridor-005"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(circulation geometry)"
+            }
+          },
+          {
+            "bucket": "remote_stair",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "remote-stair-footprint"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(remote_stair geometry)"
+            }
+          },
+          {
+            "bucket": "service",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "it_storage",
+                "pantry",
+                "restroom"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(service geometry)"
+            }
+          },
+          {
+            "bucket": "primary",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "focus",
+                "meeting",
+                "open_work",
+                "reception"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(primary geometry)"
+            }
+          },
+          {
+            "bucket": "net",
+            "area_m2": null,
+            "provenance": {
+              "method": "derived_sum",
+              "source_ids": [
+                "service",
+                "primary"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "service + primary"
+            }
+          },
+          {
+            "bucket": "unassigned",
+            "area_m2": null,
+            "provenance": {
+              "method": "residual",
+              "source_ids": [
+                "floor-boundary",
+                "core",
+                "corridor-001",
+                "corridor-002",
+                "corridor-003",
+                "corridor-004",
+                "corridor-005",
+                "remote-stair-footprint",
+                "it_storage",
+                "pantry",
+                "restroom",
+                "focus",
+                "meeting",
+                "open_work",
+                "reception"
+              ],
+              "classification_rule": "unclassified geometry remains unassigned",
+              "formula": "area(gross boundary minus union(classified geometry intersect gross))"
+            }
+          }
+        ],
+        "overlap_area_m2": 0.0,
+        "out_of_boundary_area_m2": 0.0,
+        "tolerance_m2": 1e-06,
+        "unresolved_facts": [
+          "non_axis_aligned_polygon"
+        ]
+      },
+      {
+        "floor_index": 2,
+        "status": "not_checked",
+        "entries": [
+          {
+            "bucket": "gross",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "floor-boundary"
+              ],
+              "classification_rule": "supplied-floor-boundary",
+              "formula": "union(gross boundary)"
+            }
+          },
+          {
+            "bucket": "core",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "core"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(core geometry)"
+            }
+          },
+          {
+            "bucket": "circulation",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "corridor-001",
+                "corridor-002",
+                "corridor-003",
+                "corridor-004",
+                "corridor-005"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(circulation geometry)"
+            }
+          },
+          {
+            "bucket": "remote_stair",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "remote-stair-footprint"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(remote_stair geometry)"
+            }
+          },
+          {
+            "bucket": "service",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "it_storage",
+                "pantry",
+                "restroom"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(service geometry)"
+            }
+          },
+          {
+            "bucket": "primary",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "focus",
+                "meeting",
+                "open_work",
+                "reception"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(primary geometry)"
+            }
+          },
+          {
+            "bucket": "net",
+            "area_m2": null,
+            "provenance": {
+              "method": "derived_sum",
+              "source_ids": [
+                "service",
+                "primary"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "service + primary"
+            }
+          },
+          {
+            "bucket": "unassigned",
+            "area_m2": null,
+            "provenance": {
+              "method": "residual",
+              "source_ids": [
+                "floor-boundary",
+                "core",
+                "corridor-001",
+                "corridor-002",
+                "corridor-003",
+                "corridor-004",
+                "corridor-005",
+                "remote-stair-footprint",
+                "it_storage",
+                "pantry",
+                "restroom",
+                "focus",
+                "meeting",
+                "open_work",
+                "reception"
+              ],
+              "classification_rule": "unclassified geometry remains unassigned",
+              "formula": "area(gross boundary minus union(classified geometry intersect gross))"
+            }
+          }
+        ],
+        "overlap_area_m2": 0.0,
+        "out_of_boundary_area_m2": 0.0,
+        "tolerance_m2": 1e-06,
+        "unresolved_facts": [
+          "non_axis_aligned_polygon"
+        ]
+      }
+    ],
+    "totals": [
+      {
+        "bucket": "gross",
+        "area_m2": null,
+        "provenance": {
+          "method": "derived_sum",
+          "source_ids": [
+            "floor:1:gross",
+            "floor:2:gross"
+          ],
+          "classification_rule": "building-floor-sum-v1",
+          "formula": "sum floor gross entries"
+        }
+      },
+      {
+        "bucket": "core",
+        "area_m2": null,
+        "provenance": {
+          "method": "derived_sum",
+          "source_ids": [
+            "floor:1:core",
+            "floor:2:core"
+          ],
+          "classification_rule": "building-floor-sum-v1",
+          "formula": "sum floor core entries"
+        }
+      },
+      {
+        "bucket": "circulation",
+        "area_m2": null,
+        "provenance": {
+          "method": "derived_sum",
+          "source_ids": [
+            "floor:1:circulation",
+            "floor:2:circulation"
+          ],
+          "classification_rule": "building-floor-sum-v1",
+          "formula": "sum floor circulation entries"
+        }
+      },
+      {
+        "bucket": "remote_stair",
+        "area_m2": null,
+        "provenance": {
+          "method": "derived_sum",
+          "source_ids": [
+            "floor:1:remote_stair",
+            "floor:2:remote_stair"
+          ],
+          "classification_rule": "building-floor-sum-v1",
+          "formula": "sum floor remote_stair entries"
+        }
+      },
+      {
+        "bucket": "service",
+        "area_m2": null,
+        "provenance": {
+          "method": "derived_sum",
+          "source_ids": [
+            "floor:1:service",
+            "floor:2:service"
+          ],
+          "classification_rule": "building-floor-sum-v1",
+          "formula": "sum floor service entries"
+        }
+      },
+      {
+        "bucket": "primary",
+        "area_m2": null,
+        "provenance": {
+          "method": "derived_sum",
+          "source_ids": [
+            "floor:1:primary",
+            "floor:2:primary"
+          ],
+          "classification_rule": "building-floor-sum-v1",
+          "formula": "sum floor primary entries"
+        }
+      },
+      {
+        "bucket": "net",
+        "area_m2": null,
+        "provenance": {
+          "method": "derived_sum",
+          "source_ids": [
+            "floor:1:net",
+            "floor:2:net"
+          ],
+          "classification_rule": "building-floor-sum-v1",
+          "formula": "sum floor net entries"
+        }
+      },
+      {
+        "bucket": "unassigned",
+        "area_m2": null,
+        "provenance": {
+          "method": "derived_sum",
+          "source_ids": [
+            "floor:1:unassigned",
+            "floor:2:unassigned"
+          ],
+          "classification_rule": "building-floor-sum-v1",
+          "formula": "sum floor unassigned entries"
+        }
+      }
+    ],
+    "status": "not_checked"
+  },
+  "floors": [
+    {
+      "floor_index": 1,
+      "use_type": "office",
+      "program_source": "building_aligned_prior:orthogonal_layout_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "shared_core_normalization",
+          "original_nodes": [
+            {
+              "node_id": "open_work",
+              "space_type": "open_work",
+              "target_area": 461.76,
+              "min_area": 392.496,
+              "max_area": 531.024,
+              "frontage_required": false,
+              "min_width": 6.0,
+              "max_aspect_ratio": 2.5,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "meeting",
+              "space_type": "meeting",
+              "target_area": 88.80000000000001,
+              "min_area": 75.48,
+              "max_area": 102.12,
+              "frontage_required": false,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "reception",
+              "space_type": "reception",
+              "target_area": 44.400000000000006,
+              "min_area": 37.74,
+              "max_area": 51.06,
+              "frontage_required": false,
+              "min_width": 2.4,
+              "max_aspect_ratio": 2.5,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "focus",
+              "space_type": "focus",
+              "target_area": 53.28,
+              "min_area": 45.288,
+              "max_area": 61.272,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 1.8,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "pantry",
+              "space_type": "pantry",
+              "target_area": 26.64,
+              "min_area": 22.644,
+              "max_area": 30.636,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.0,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "restroom",
+              "space_type": "restroom",
+              "target_area": 44.400000000000006,
+              "min_area": 37.74,
+              "max_area": 51.06,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "core",
+              "space_type": "core",
+              "target_area": 124.32000000000001,
+              "min_area": 105.672,
+              "max_area": 142.968,
+              "frontage_required": false,
+              "min_width": 3.0,
+              "max_aspect_ratio": 2.0,
+              "zone": "core",
+              "tenant_id": null
+            },
+            {
+              "node_id": "it_storage",
+              "space_type": "it_storage",
+              "target_area": 44.40000000000009,
+              "min_area": 37.74000000000007,
+              "max_area": 51.0600000000001,
+              "frontage_required": false,
+              "min_width": 1.5,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            }
+          ],
+          "adjusted_nodes": [
+            {
+              "node_id": "open_work",
+              "space_type": "open_work",
+              "target_area": 461.76,
+              "min_area": 392.496,
+              "max_area": 531.024,
+              "frontage_required": false,
+              "min_width": 6.0,
+              "max_aspect_ratio": 2.5,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "meeting",
+              "space_type": "meeting",
+              "target_area": 88.80000000000001,
+              "min_area": 75.48,
+              "max_area": 102.12,
+              "frontage_required": false,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "reception",
+              "space_type": "reception",
+              "target_area": 44.400000000000006,
+              "min_area": 37.74,
+              "max_area": 51.06,
+              "frontage_required": false,
+              "min_width": 2.4,
+              "max_aspect_ratio": 2.5,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "focus",
+              "space_type": "focus",
+              "target_area": 53.28,
+              "min_area": 45.288,
+              "max_area": 61.272,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 1.8,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "pantry",
+              "space_type": "pantry",
+              "target_area": 26.64,
+              "min_area": 22.644,
+              "max_area": 30.636,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.0,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "restroom",
+              "space_type": "restroom",
+              "target_area": 44.400000000000006,
+              "min_area": 37.74,
+              "max_area": 51.06,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "core",
+              "space_type": "core",
+              "target_area": 124.32,
+              "min_area": 105.672,
+              "max_area": 142.968,
+              "frontage_required": false,
+              "min_width": 3.0,
+              "max_aspect_ratio": 2.0,
+              "zone": "core",
+              "tenant_id": null
+            },
+            {
+              "node_id": "it_storage",
+              "space_type": "it_storage",
+              "target_area": 44.40000000000009,
+              "min_area": 37.74000000000007,
+              "max_area": 51.0600000000001,
+              "frontage_required": false,
+              "min_width": 1.5,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            }
+          ],
+          "original_targets": [
+            [
+              "open_work",
+              461.76
+            ],
+            [
+              "meeting",
+              88.80000000000001
+            ],
+            [
+              "reception",
+              44.400000000000006
+            ],
+            [
+              "focus",
+              53.28
+            ],
+            [
+              "pantry",
+              26.64
+            ],
+            [
+              "restroom",
+              44.400000000000006
+            ],
+            [
+              "core",
+              124.32000000000001
+            ],
+            [
+              "it_storage",
+              44.40000000000009
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              461.76
+            ],
+            [
+              "meeting",
+              88.80000000000001
+            ],
+            [
+              "reception",
+              44.400000000000006
+            ],
+            [
+              "focus",
+              53.28
+            ],
+            [
+              "pantry",
+              26.64
+            ],
+            [
+              "restroom",
+              44.400000000000006
+            ],
+            [
+              "core",
+              124.32
+            ],
+            [
+              "it_storage",
+              44.40000000000009
+            ]
+          ]
+        },
+        {
+          "reason": "orthogonal_layout_fit",
+          "original_nodes": [
+            {
+              "node_id": "open_work",
+              "space_type": "open_work",
+              "target_area": 461.76,
+              "min_area": 392.496,
+              "max_area": 531.024,
+              "frontage_required": false,
+              "min_width": 6.0,
+              "max_aspect_ratio": 2.5,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "meeting",
+              "space_type": "meeting",
+              "target_area": 88.80000000000001,
+              "min_area": 75.48,
+              "max_area": 102.12,
+              "frontage_required": false,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "reception",
+              "space_type": "reception",
+              "target_area": 44.400000000000006,
+              "min_area": 37.74,
+              "max_area": 51.06,
+              "frontage_required": false,
+              "min_width": 2.4,
+              "max_aspect_ratio": 2.5,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "focus",
+              "space_type": "focus",
+              "target_area": 53.28,
+              "min_area": 45.288,
+              "max_area": 61.272,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 1.8,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "pantry",
+              "space_type": "pantry",
+              "target_area": 26.64,
+              "min_area": 22.644,
+              "max_area": 30.636,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.0,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "restroom",
+              "space_type": "restroom",
+              "target_area": 44.400000000000006,
+              "min_area": 37.74,
+              "max_area": 51.06,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "core",
+              "space_type": "core",
+              "target_area": 124.32,
+              "min_area": 105.672,
+              "max_area": 142.968,
+              "frontage_required": false,
+              "min_width": 3.0,
+              "max_aspect_ratio": 2.0,
+              "zone": "core",
+              "tenant_id": null
+            },
+            {
+              "node_id": "it_storage",
+              "space_type": "it_storage",
+              "target_area": 44.40000000000009,
+              "min_area": 37.74000000000007,
+              "max_area": 51.0600000000001,
+              "frontage_required": false,
+              "min_width": 1.5,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            }
+          ],
+          "adjusted_nodes": [
+            {
+              "node_id": "open_work",
+              "space_type": "open_work",
+              "target_area": 59.34,
+              "min_area": 50.439,
+              "max_area": 68.241,
+              "frontage_required": false,
+              "min_width": 5.394545454999999,
+              "max_aspect_ratio": 2.5,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "meeting",
+              "space_type": "meeting",
+              "target_area": 59.34,
+              "min_area": 50.439,
+              "max_area": 68.241,
+              "frontage_required": false,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "reception",
+              "space_type": "reception",
+              "target_area": 30.209455,
+              "min_area": 25.678036,
+              "max_area": 34.740873,
+              "frontage_required": false,
+              "min_width": 2.4,
+              "max_aspect_ratio": 3.853246753214286,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "focus",
+              "space_type": "focus",
+              "target_area": 59.34,
+              "min_area": 50.439,
+              "max_area": 68.241,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 1.9616528925454546,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "pantry",
+              "space_type": "pantry",
+              "target_area": 30.209455,
+              "min_area": 25.678036,
+              "max_area": 34.740873,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 3.8532467532142856,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "restroom",
+              "space_type": "restroom",
+              "target_area": 59.34,
+              "min_area": 50.439,
+              "max_area": 68.241,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "core",
+              "space_type": "core",
+              "target_area": 124.32,
+              "min_area": 105.672,
+              "max_area": 142.968,
+              "frontage_required": false,
+              "min_width": 3.0,
+              "max_aspect_ratio": 2.0,
+              "zone": "core",
+              "tenant_id": null
+            },
+            {
+              "node_id": "it_storage",
+              "space_type": "it_storage",
+              "target_area": 54.12,
+              "min_area": 46.002,
+              "max_area": 62.238,
+              "frontage_required": false,
+              "min_width": 1.5,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            }
+          ],
+          "original_targets": [
+            [
+              "open_work",
+              461.76
+            ],
+            [
+              "meeting",
+              88.80000000000001
+            ],
+            [
+              "reception",
+              44.400000000000006
+            ],
+            [
+              "focus",
+              53.28
+            ],
+            [
+              "pantry",
+              26.64
+            ],
+            [
+              "restroom",
+              44.400000000000006
+            ],
+            [
+              "core",
+              124.32
+            ],
+            [
+              "it_storage",
+              44.40000000000009
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              59.34
+            ],
+            [
+              "meeting",
+              59.34
+            ],
+            [
+              "reception",
+              30.209455
+            ],
+            [
+              "focus",
+              59.34
+            ],
+            [
+              "pantry",
+              30.209455
+            ],
+            [
+              "restroom",
+              59.34
+            ],
+            [
+              "core",
+              124.32
+            ],
+            [
+              "it_storage",
+              54.12
+            ]
+          ]
+        }
+      ],
+      "floor_boundary": {
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            42.0,
+            0.0
+          ],
+          [
+            42.0,
+            16.0
+          ],
+          [
+            36.0,
+            22.0
+          ],
+          [
+            6.0,
+            22.0
+          ],
+          [
+            0.0,
+            16.0
+          ]
+        ],
+        "source": "explicit_floor_footprint",
+        "sha256": "66110ba57c7b16d5d74e65c98b2d94e9ab8d3a9befb998cd2b33413353c27ff1"
+      },
+      "accepted": true,
+      "internal_validation": {
+        "status": "pass",
+        "policy_version": "exact-v1"
+      },
+      "render_validation": {
+        "status": "pass"
+      },
+      "regulatory_screening": {
+        "ruleset_id": "KR-egress-art34-20260227-art8-20251031",
+        "status": "not_checked",
+        "checks": [
+          {
+            "rule_id": "KR-EGRESS-DIRECT-STAIR-COUNT-ART34",
+            "status": "not_checked",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "threshold": null,
+            "applicability": null,
+            "assumptions": [
+              "no typed code context was supplied for this floor",
+              "supported KR jurisdiction and analysis date are required",
+              "generated stair count is informational and separate from verified direct-stair count"
+            ],
+            "source_effective_date": "2026-02-27"
+          },
+          {
+            "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
+            "status": "not_checked",
+            "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
+            "effective_date": "2025-10-31",
+            "measured_value": 33.20169272793181,
+            "threshold": null,
+            "applicability": null,
+            "assumptions": [
+              "direct-stair applicability is unresolved"
+            ],
+            "source_effective_date": "2025-10-31"
+          },
+          {
+            "rule_id": "KR-EGRESS-TRAVEL-DISTANCE-ART34",
+            "status": "not_checked",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "threshold": 30.0,
+            "applicability": null,
+            "assumptions": [
+              "governing traversable farthest-point route is unresolved",
+              "travel-limit classification unknown; conservative internal 30 m target"
+            ],
+            "source_effective_date": "2026-02-27"
+          }
+        ],
+        "unresolved_facts": [
+          "jurisdiction",
+          "effective_date",
+          "floor_code_context",
+          "travel_limit_classification",
+          "measured_travel_distance"
+        ],
+        "floor_index": 1,
+        "generated_direct_stair_count": 2,
+        "verified_direct_stair_count": null,
+        "screened_required_direct_stair_count": null,
+        "analysis_as_of_date": null,
+        "exit_separation_evidence": {
+          "nearest_doorway_segment_distance_m": 33.20169272793181,
+          "connected_passage_verified": null,
+          "exit_portal_ids": [
+            "protected-exit-1",
+            "protected-exit-2"
+          ],
+          "measurement_method": "nearest-doorway-segment-distance"
+        }
+      },
+      "area_ledger": {
+        "floor_index": 1,
+        "status": "not_checked",
+        "entries": [
+          {
+            "bucket": "gross",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "floor-boundary"
+              ],
+              "classification_rule": "supplied-floor-boundary",
+              "formula": "union(gross boundary)"
+            }
+          },
+          {
+            "bucket": "core",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "core"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(core geometry)"
+            }
+          },
+          {
+            "bucket": "circulation",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "corridor-001",
+                "corridor-002",
+                "corridor-003",
+                "corridor-004",
+                "corridor-005"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(circulation geometry)"
+            }
+          },
+          {
+            "bucket": "remote_stair",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "remote-stair-footprint"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(remote_stair geometry)"
+            }
+          },
+          {
+            "bucket": "service",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "it_storage",
+                "pantry",
+                "restroom"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(service geometry)"
+            }
+          },
+          {
+            "bucket": "primary",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "focus",
+                "meeting",
+                "open_work",
+                "reception"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(primary geometry)"
+            }
+          },
+          {
+            "bucket": "net",
+            "area_m2": null,
+            "provenance": {
+              "method": "derived_sum",
+              "source_ids": [
+                "service",
+                "primary"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "service + primary"
+            }
+          },
+          {
+            "bucket": "unassigned",
+            "area_m2": null,
+            "provenance": {
+              "method": "residual",
+              "source_ids": [
+                "floor-boundary",
+                "core",
+                "corridor-001",
+                "corridor-002",
+                "corridor-003",
+                "corridor-004",
+                "corridor-005",
+                "remote-stair-footprint",
+                "it_storage",
+                "pantry",
+                "restroom",
+                "focus",
+                "meeting",
+                "open_work",
+                "reception"
+              ],
+              "classification_rule": "unclassified geometry remains unassigned",
+              "formula": "area(gross boundary minus union(classified geometry intersect gross))"
+            }
+          }
+        ],
+        "overlap_area_m2": 0.0,
+        "out_of_boundary_area_m2": 0.0,
+        "tolerance_m2": 1e-06,
+        "unresolved_facts": [
+          "non_axis_aligned_polygon"
+        ]
+      },
+      "egress_graph": {
+        "floor_index": 1,
+        "status": "not_checked",
+        "nodes": [],
+        "edges": [],
+        "room_results": [
+          {
+            "floor_index": 1,
+            "room_id": "focus",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 1,
+            "room_id": "meeting",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 1,
+            "room_id": "open_work",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 1,
+            "room_id": "pantry",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 1,
+            "room_id": "reception",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 1,
+            "room_id": "restroom",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          }
+        ],
+        "governing_room_id": null,
+        "governing_distance_m": null,
+        "governing_exit_id": null,
+        "common_path_distance_m": null,
+        "common_path_status": "not_checked",
+        "dead_end_distance_m": null,
+        "dead_end_status": "not_checked",
+        "unresolved_facts": [
+          "non_axis_aligned_polygon"
+        ]
+      },
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_001/sample-polygon-setback-office-9ef48ad39a16a2cb-f1.svg",
+        "png": "floor_001/sample-polygon-setback-office-9ef48ad39a16a2cb-f1.png",
+        "html": "floor_001/sample-polygon-setback-office-9ef48ad39a16a2cb-f1.html",
+        "review_json": "floor_001/sample-polygon-setback-office-9ef48ad39a16a2cb-f1.review.json"
+      }
+    },
+    {
+      "floor_index": 2,
+      "use_type": "office",
+      "program_source": "building_aligned_prior:orthogonal_layout_fit",
+      "program_adjusted": true,
+      "program_adjustments": [
+        {
+          "reason": "shared_core_normalization",
+          "original_nodes": [
+            {
+              "node_id": "open_work",
+              "space_type": "open_work",
+              "target_area": 391.3,
+              "min_area": 332.605,
+              "max_area": 449.995,
+              "frontage_required": false,
+              "min_width": 6.0,
+              "max_aspect_ratio": 2.5,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "meeting",
+              "space_type": "meeting",
+              "target_area": 75.25,
+              "min_area": 63.9625,
+              "max_area": 86.5375,
+              "frontage_required": false,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "reception",
+              "space_type": "reception",
+              "target_area": 37.625,
+              "min_area": 31.98125,
+              "max_area": 43.26875,
+              "frontage_required": false,
+              "min_width": 2.4,
+              "max_aspect_ratio": 2.5,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "focus",
+              "space_type": "focus",
+              "target_area": 45.15,
+              "min_area": 38.3775,
+              "max_area": 51.92249999999999,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 1.8,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "pantry",
+              "space_type": "pantry",
+              "target_area": 22.575,
+              "min_area": 19.18875,
+              "max_area": 25.961249999999996,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.0,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "restroom",
+              "space_type": "restroom",
+              "target_area": 37.625,
+              "min_area": 31.98125,
+              "max_area": 43.26875,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "core",
+              "space_type": "core",
+              "target_area": 105.35000000000001,
+              "min_area": 89.5475,
+              "max_area": 121.1525,
+              "frontage_required": false,
+              "min_width": 3.0,
+              "max_aspect_ratio": 2.0,
+              "zone": "core",
+              "tenant_id": null
+            },
+            {
+              "node_id": "it_storage",
+              "space_type": "it_storage",
+              "target_area": 37.624999999999886,
+              "min_area": 31.981249999999903,
+              "max_area": 43.26874999999987,
+              "frontage_required": false,
+              "min_width": 1.5,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            }
+          ],
+          "adjusted_nodes": [
+            {
+              "node_id": "open_work",
+              "space_type": "open_work",
+              "target_area": 372.33,
+              "min_area": 316.4805,
+              "max_area": 428.1795,
+              "frontage_required": false,
+              "min_width": 6.0,
+              "max_aspect_ratio": 2.5,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "meeting",
+              "space_type": "meeting",
+              "target_area": 75.25,
+              "min_area": 63.9625,
+              "max_area": 86.5375,
+              "frontage_required": false,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "reception",
+              "space_type": "reception",
+              "target_area": 37.625,
+              "min_area": 31.98125,
+              "max_area": 43.26875,
+              "frontage_required": false,
+              "min_width": 2.4,
+              "max_aspect_ratio": 2.5,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "focus",
+              "space_type": "focus",
+              "target_area": 45.15,
+              "min_area": 38.3775,
+              "max_area": 51.92249999999999,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 1.8,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "pantry",
+              "space_type": "pantry",
+              "target_area": 22.575,
+              "min_area": 19.18875,
+              "max_area": 25.961249999999996,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.0,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "restroom",
+              "space_type": "restroom",
+              "target_area": 37.625,
+              "min_area": 31.98125,
+              "max_area": 43.26875,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "core",
+              "space_type": "core",
+              "target_area": 124.32,
+              "min_area": 105.672,
+              "max_area": 142.968,
+              "frontage_required": false,
+              "min_width": 3.0,
+              "max_aspect_ratio": 2.0,
+              "zone": "core",
+              "tenant_id": null
+            },
+            {
+              "node_id": "it_storage",
+              "space_type": "it_storage",
+              "target_area": 37.624999999999886,
+              "min_area": 31.981249999999903,
+              "max_area": 43.26874999999987,
+              "frontage_required": false,
+              "min_width": 1.5,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            }
+          ],
+          "original_targets": [
+            [
+              "open_work",
+              391.3
+            ],
+            [
+              "meeting",
+              75.25
+            ],
+            [
+              "reception",
+              37.625
+            ],
+            [
+              "focus",
+              45.15
+            ],
+            [
+              "pantry",
+              22.575
+            ],
+            [
+              "restroom",
+              37.625
+            ],
+            [
+              "core",
+              105.35000000000001
+            ],
+            [
+              "it_storage",
+              37.624999999999886
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              372.33
+            ],
+            [
+              "meeting",
+              75.25
+            ],
+            [
+              "reception",
+              37.625
+            ],
+            [
+              "focus",
+              45.15
+            ],
+            [
+              "pantry",
+              22.575
+            ],
+            [
+              "restroom",
+              37.625
+            ],
+            [
+              "core",
+              124.32
+            ],
+            [
+              "it_storage",
+              37.624999999999886
+            ]
+          ]
+        },
+        {
+          "reason": "orthogonal_layout_fit",
+          "original_nodes": [
+            {
+              "node_id": "open_work",
+              "space_type": "open_work",
+              "target_area": 372.33,
+              "min_area": 316.4805,
+              "max_area": 428.1795,
+              "frontage_required": false,
+              "min_width": 6.0,
+              "max_aspect_ratio": 2.5,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "meeting",
+              "space_type": "meeting",
+              "target_area": 75.25,
+              "min_area": 63.9625,
+              "max_area": 86.5375,
+              "frontage_required": false,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "reception",
+              "space_type": "reception",
+              "target_area": 37.625,
+              "min_area": 31.98125,
+              "max_area": 43.26875,
+              "frontage_required": false,
+              "min_width": 2.4,
+              "max_aspect_ratio": 2.5,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "focus",
+              "space_type": "focus",
+              "target_area": 45.15,
+              "min_area": 38.3775,
+              "max_area": 51.92249999999999,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 1.8,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "pantry",
+              "space_type": "pantry",
+              "target_area": 22.575,
+              "min_area": 19.18875,
+              "max_area": 25.961249999999996,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.0,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "restroom",
+              "space_type": "restroom",
+              "target_area": 37.625,
+              "min_area": 31.98125,
+              "max_area": 43.26875,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "core",
+              "space_type": "core",
+              "target_area": 124.32,
+              "min_area": 105.672,
+              "max_area": 142.968,
+              "frontage_required": false,
+              "min_width": 3.0,
+              "max_aspect_ratio": 2.0,
+              "zone": "core",
+              "tenant_id": null
+            },
+            {
+              "node_id": "it_storage",
+              "space_type": "it_storage",
+              "target_area": 37.624999999999886,
+              "min_area": 31.981249999999903,
+              "max_area": 43.26874999999987,
+              "frontage_required": false,
+              "min_width": 1.5,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            }
+          ],
+          "adjusted_nodes": [
+            {
+              "node_id": "open_work",
+              "space_type": "open_work",
+              "target_area": 59.34,
+              "min_area": 50.439,
+              "max_area": 68.241,
+              "frontage_required": false,
+              "min_width": 5.394545454999999,
+              "max_aspect_ratio": 2.5,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "meeting",
+              "space_type": "meeting",
+              "target_area": 59.34,
+              "min_area": 50.439,
+              "max_area": 68.241,
+              "frontage_required": false,
+              "min_width": 2.7,
+              "max_aspect_ratio": 2.0,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "reception",
+              "space_type": "reception",
+              "target_area": 30.209455,
+              "min_area": 25.678036,
+              "max_area": 34.740873,
+              "frontage_required": false,
+              "min_width": 2.4,
+              "max_aspect_ratio": 3.853246753214286,
+              "zone": "public",
+              "tenant_id": null
+            },
+            {
+              "node_id": "focus",
+              "space_type": "focus",
+              "target_area": 59.34,
+              "min_area": 50.439,
+              "max_area": 68.241,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 1.9616528925454546,
+              "zone": "workplace",
+              "tenant_id": null
+            },
+            {
+              "node_id": "pantry",
+              "space_type": "pantry",
+              "target_area": 30.209455,
+              "min_area": 25.678036,
+              "max_area": 34.740873,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 3.8532467532142856,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "restroom",
+              "space_type": "restroom",
+              "target_area": 54.12,
+              "min_area": 46.002,
+              "max_area": 62.238,
+              "frontage_required": false,
+              "min_width": 1.8,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            },
+            {
+              "node_id": "core",
+              "space_type": "core",
+              "target_area": 124.32,
+              "min_area": 105.672,
+              "max_area": 142.968,
+              "frontage_required": false,
+              "min_width": 3.0,
+              "max_aspect_ratio": 2.0,
+              "zone": "core",
+              "tenant_id": null
+            },
+            {
+              "node_id": "it_storage",
+              "space_type": "it_storage",
+              "target_area": 59.34,
+              "min_area": 50.439,
+              "max_area": 68.241,
+              "frontage_required": false,
+              "min_width": 1.5,
+              "max_aspect_ratio": 2.5,
+              "zone": "service",
+              "tenant_id": null
+            }
+          ],
+          "original_targets": [
+            [
+              "open_work",
+              372.33
+            ],
+            [
+              "meeting",
+              75.25
+            ],
+            [
+              "reception",
+              37.625
+            ],
+            [
+              "focus",
+              45.15
+            ],
+            [
+              "pantry",
+              22.575
+            ],
+            [
+              "restroom",
+              37.625
+            ],
+            [
+              "core",
+              124.32
+            ],
+            [
+              "it_storage",
+              37.624999999999886
+            ]
+          ],
+          "adjusted_targets": [
+            [
+              "open_work",
+              59.34
+            ],
+            [
+              "meeting",
+              59.34
+            ],
+            [
+              "reception",
+              30.209455
+            ],
+            [
+              "focus",
+              59.34
+            ],
+            [
+              "pantry",
+              30.209455
+            ],
+            [
+              "restroom",
+              54.12
+            ],
+            [
+              "core",
+              124.32
+            ],
+            [
+              "it_storage",
+              59.34
+            ]
+          ]
+        }
+      ],
+      "floor_boundary": {
+        "polygon": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            40.0,
+            0.0
+          ],
+          [
+            40.0,
+            15.0
+          ],
+          [
+            35.0,
+            20.0
+          ],
+          [
+            7.0,
+            20.0
+          ],
+          [
+            1.0,
+            15.0
+          ]
+        ],
+        "source": "explicit_floor_footprint",
+        "sha256": "b33cdf18abfd6a21f179ad3276eb75757993702eaddb98d117acce1a12ea947b"
+      },
+      "accepted": true,
+      "internal_validation": {
+        "status": "pass",
+        "policy_version": "exact-v1"
+      },
+      "render_validation": {
+        "status": "pass"
+      },
+      "regulatory_screening": {
+        "ruleset_id": "KR-egress-art34-20260227-art8-20251031",
+        "status": "not_checked",
+        "checks": [
+          {
+            "rule_id": "KR-EGRESS-DIRECT-STAIR-COUNT-ART34",
+            "status": "not_checked",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "threshold": null,
+            "applicability": null,
+            "assumptions": [
+              "no typed code context was supplied for this floor",
+              "supported KR jurisdiction and analysis date are required",
+              "generated stair count is informational and separate from verified direct-stair count"
+            ],
+            "source_effective_date": "2026-02-27"
+          },
+          {
+            "rule_id": "KR-EGRESS-STAIR-SEPARATION-ART8",
+            "status": "not_checked",
+            "source_url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1025183885",
+            "effective_date": "2025-10-31",
+            "measured_value": 33.20169272793181,
+            "threshold": null,
+            "applicability": null,
+            "assumptions": [
+              "direct-stair applicability is unresolved"
+            ],
+            "source_effective_date": "2025-10-31"
+          },
+          {
+            "rule_id": "KR-EGRESS-TRAVEL-DISTANCE-ART34",
+            "status": "not_checked",
+            "source_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1025183067",
+            "effective_date": "2026-02-27",
+            "measured_value": null,
+            "threshold": 30.0,
+            "applicability": null,
+            "assumptions": [
+              "governing traversable farthest-point route is unresolved",
+              "travel-limit classification unknown; conservative internal 30 m target"
+            ],
+            "source_effective_date": "2026-02-27"
+          }
+        ],
+        "unresolved_facts": [
+          "jurisdiction",
+          "effective_date",
+          "floor_code_context",
+          "travel_limit_classification",
+          "measured_travel_distance"
+        ],
+        "floor_index": 2,
+        "generated_direct_stair_count": 2,
+        "verified_direct_stair_count": null,
+        "screened_required_direct_stair_count": null,
+        "analysis_as_of_date": null,
+        "exit_separation_evidence": {
+          "nearest_doorway_segment_distance_m": 33.20169272793181,
+          "connected_passage_verified": null,
+          "exit_portal_ids": [
+            "protected-exit-1",
+            "protected-exit-2"
+          ],
+          "measurement_method": "nearest-doorway-segment-distance"
+        }
+      },
+      "area_ledger": {
+        "floor_index": 2,
+        "status": "not_checked",
+        "entries": [
+          {
+            "bucket": "gross",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "floor-boundary"
+              ],
+              "classification_rule": "supplied-floor-boundary",
+              "formula": "union(gross boundary)"
+            }
+          },
+          {
+            "bucket": "core",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "core"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(core geometry)"
+            }
+          },
+          {
+            "bucket": "circulation",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "corridor-001",
+                "corridor-002",
+                "corridor-003",
+                "corridor-004",
+                "corridor-005"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(circulation geometry)"
+            }
+          },
+          {
+            "bucket": "remote_stair",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "remote-stair-footprint"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(remote_stair geometry)"
+            }
+          },
+          {
+            "bucket": "service",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "it_storage",
+                "pantry",
+                "restroom"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(service geometry)"
+            }
+          },
+          {
+            "bucket": "primary",
+            "area_m2": null,
+            "provenance": {
+              "method": "polygon_union",
+              "source_ids": [
+                "focus",
+                "meeting",
+                "open_work",
+                "reception"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "union(primary geometry)"
+            }
+          },
+          {
+            "bucket": "net",
+            "area_m2": null,
+            "provenance": {
+              "method": "derived_sum",
+              "source_ids": [
+                "service",
+                "primary"
+              ],
+              "classification_rule": "actual-program-room-classification-v1",
+              "formula": "service + primary"
+            }
+          },
+          {
+            "bucket": "unassigned",
+            "area_m2": null,
+            "provenance": {
+              "method": "residual",
+              "source_ids": [
+                "floor-boundary",
+                "core",
+                "corridor-001",
+                "corridor-002",
+                "corridor-003",
+                "corridor-004",
+                "corridor-005",
+                "remote-stair-footprint",
+                "it_storage",
+                "pantry",
+                "restroom",
+                "focus",
+                "meeting",
+                "open_work",
+                "reception"
+              ],
+              "classification_rule": "unclassified geometry remains unassigned",
+              "formula": "area(gross boundary minus union(classified geometry intersect gross))"
+            }
+          }
+        ],
+        "overlap_area_m2": 0.0,
+        "out_of_boundary_area_m2": 0.0,
+        "tolerance_m2": 1e-06,
+        "unresolved_facts": [
+          "non_axis_aligned_polygon"
+        ]
+      },
+      "egress_graph": {
+        "floor_index": 2,
+        "status": "not_checked",
+        "nodes": [],
+        "edges": [],
+        "room_results": [
+          {
+            "floor_index": 2,
+            "room_id": "focus",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 2,
+            "room_id": "meeting",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 2,
+            "room_id": "open_work",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 2,
+            "room_id": "pantry",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 2,
+            "room_id": "reception",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          },
+          {
+            "floor_index": 2,
+            "room_id": "restroom",
+            "farthest_point": null,
+            "nearest_exit_id": null,
+            "distance_m": null,
+            "route_node_ids": [],
+            "route_polyline": [],
+            "status": "not_checked",
+            "unresolved_facts": [
+              "non_axis_aligned_polygon"
+            ]
+          }
+        ],
+        "governing_room_id": null,
+        "governing_distance_m": null,
+        "governing_exit_id": null,
+        "common_path_distance_m": null,
+        "common_path_status": "not_checked",
+        "dead_end_distance_m": null,
+        "dead_end_status": "not_checked",
+        "unresolved_facts": [
+          "non_axis_aligned_polygon"
+        ]
+      },
+      "room_count": 8,
+      "artifacts": {
+        "svg": "floor_002/sample-polygon-setback-office-9ef48ad39a16a2cb-f2.svg",
+        "png": "floor_002/sample-polygon-setback-office-9ef48ad39a16a2cb-f2.png",
+        "html": "floor_002/sample-polygon-setback-office-9ef48ad39a16a2cb-f2.html",
+        "review_json": "floor_002/sample-polygon-setback-office-9ef48ad39a16a2cb-f2.review.json"
+      }
+    }
+  ]
+}

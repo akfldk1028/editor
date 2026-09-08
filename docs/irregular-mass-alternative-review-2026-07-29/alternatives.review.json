@@ -1,0 +1,675 @@
+{
+  "schema_version": 1,
+  "project_id": "sample-irregular-12v-setback-office",
+  "accepted_count": 2,
+  "distinct_structural_count": 2,
+  "distinct_core_count": 2,
+  "distinct_circulation_count": 2,
+  "distinct_candidate_png_count": 2,
+  "distinct_png_count": 2,
+  "quality_thresholds": {
+    "minimum_floor_coverage": 0.6,
+    "maximum_unallocated_ratio": 0.4,
+    "maximum_unresolved_label_collisions": 0,
+    "minimum_primary_share_factor": 0.75
+  },
+  "alternatives": [
+    {
+      "alternative_id": "alternative-01",
+      "strategy": "notch_adjacent",
+      "accepted": true,
+      "quality_accepted": true,
+      "quality_checks": {
+        "floor_coverage": "pass",
+        "label_overlap": "pass",
+        "office_space_ratio": "pass"
+      },
+      "fingerprints": {
+        "core": "3292450986a8befc076d994ff73778a573139bbedc8e423ebf896bcd7bebb0a0",
+        "circulation": "7c7d14078e67a8671b6957d293e0b5cacf118afb4600f529caa5d798fb6fa947",
+        "room": "cf76e0251df185a8fe7ee1da55a45836249e46d2a9d9cb15d14678878eb8a1b8",
+        "structural": "c71cfd39c34c57e255916186be7425858346de36b64103a0292b723d3275e857"
+      },
+      "validation_scores": {
+        "floors": [
+          {
+            "floor_index": 1,
+            "adjacency_score": 0.5,
+            "area_score": 1.0,
+            "boundary_score": 1.0,
+            "circulation_score": 1.0,
+            "compactness_score": 0.6202,
+            "coverage_score": 0.7563,
+            "efficiency_score": 0.9371,
+            "frontage_score": 1.0,
+            "overlap_score": 1.0,
+            "total_score": 0.8682,
+            "violation_score": 0.0
+          },
+          {
+            "floor_index": 2,
+            "adjacency_score": 0.5,
+            "area_score": 1.0,
+            "boundary_score": 1.0,
+            "circulation_score": 1.0,
+            "compactness_score": 0.6077,
+            "coverage_score": 0.7311,
+            "efficiency_score": 0.9648,
+            "frontage_score": 1.0,
+            "overlap_score": 1.0,
+            "total_score": 0.8671,
+            "violation_score": 0.0
+          },
+          {
+            "floor_index": 3,
+            "adjacency_score": 0.5,
+            "area_score": 1.0,
+            "boundary_score": 1.0,
+            "circulation_score": 1.0,
+            "compactness_score": 0.6293,
+            "coverage_score": 0.7913,
+            "efficiency_score": 0.9989,
+            "frontage_score": 1.0,
+            "overlap_score": 1.0,
+            "total_score": 0.8799,
+            "violation_score": 0.0
+          }
+        ],
+        "total_score": 2.6152
+      },
+      "internal_validation": {
+        "status": "pass"
+      },
+      "render_validation": {
+        "status": "pass"
+      },
+      "regulatory_screening": {
+        "status": "not_checked",
+        "unresolved_facts": [
+          "effective_date",
+          "floor_code_context",
+          "jurisdiction",
+          "measured_travel_distance",
+          "travel_limit_classification"
+        ]
+      },
+      "index_html": "alternative-01\\index.html",
+      "building_review_json": "alternative-01\\building.review.json",
+      "candidate_png_fingerprint": "a6dbb5a3459ed9e47ed854b1233d3c316a203c171cee592e06c5d678cca8bcb2",
+      "floors": [
+        {
+          "floor_index": 1,
+          "svg": "alternative-01\\floor_001\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.svg",
+          "png": "alternative-01-floor-001.png",
+          "html": "alternative-01\\floor_001\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.html",
+          "review_json": "alternative-01\\floor_001\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.review.json",
+          "png_sha256": "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+          "floor_boundary": {
+            "polygon": [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                38.0,
+                0.0
+              ],
+              [
+                42.0,
+                4.0
+              ],
+              [
+                42.0,
+                24.0
+              ],
+              [
+                36.0,
+                30.0
+              ],
+              [
+                24.0,
+                30.0
+              ],
+              [
+                20.0,
+                25.0
+              ],
+              [
+                16.0,
+                30.0
+              ],
+              [
+                4.0,
+                30.0
+              ],
+              [
+                -2.0,
+                24.0
+              ],
+              [
+                -2.0,
+                6.0
+              ],
+              [
+                -1.0,
+                2.0
+              ]
+            ],
+            "sha256": "a010b5fc866484e67d8b5216791ce74e54a51ac7ce77c1983dc01771f675fdf9",
+            "source": "explicit_floor_footprint"
+          },
+          "coverage_score": 0.7563,
+          "unallocated_ratio": 0.2437,
+          "unresolved_label_collision_count": 0,
+          "png_output_size": [
+            1920,
+            1080
+          ],
+          "office_space_ratio": {
+            "baseline_prior_share": 0.6046511627906977,
+            "minimum_primary_share": 0.4534883720930233,
+            "actual_primary_share": 0.7005970896304923,
+            "primary_open_work_area": 583.2440935020155,
+            "non_core_program_area": 832.4957413249164,
+            "primary_is_largest_non_core": true,
+            "passed": true
+          }
+        },
+        {
+          "floor_index": 2,
+          "svg": "alternative-01\\floor_002\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.svg",
+          "png": "alternative-01-floor-002.png",
+          "html": "alternative-01\\floor_002\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.html",
+          "review_json": "alternative-01\\floor_002\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.review.json",
+          "png_sha256": "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+          "floor_boundary": {
+            "polygon": [
+              [
+                2.0,
+                0.0
+              ],
+              [
+                36.0,
+                0.0
+              ],
+              [
+                40.0,
+                4.0
+              ],
+              [
+                40.0,
+                22.0
+              ],
+              [
+                34.0,
+                28.0
+              ],
+              [
+                24.0,
+                28.0
+              ],
+              [
+                20.0,
+                24.0
+              ],
+              [
+                16.0,
+                28.0
+              ],
+              [
+                6.0,
+                28.0
+              ],
+              [
+                0.0,
+                22.0
+              ],
+              [
+                0.0,
+                6.0
+              ],
+              [
+                1.0,
+                2.0
+              ]
+            ],
+            "sha256": "dc687ba3ed8b08eaccac7c2d4df18db17278fa16a8ccc68d92d6185999b301a6",
+            "source": "explicit_floor_footprint"
+          },
+          "coverage_score": 0.7311,
+          "unallocated_ratio": 0.2689,
+          "unresolved_label_collision_count": 0,
+          "png_output_size": [
+            1920,
+            1080
+          ],
+          "office_space_ratio": {
+            "baseline_prior_share": 0.6046511627906977,
+            "minimum_primary_share": 0.4534883720930233,
+            "actual_primary_share": 0.7421847630908491,
+            "primary_open_work_area": 488.084375,
+            "non_core_program_area": 657.6318987840158,
+            "primary_is_largest_non_core": true,
+            "passed": true
+          }
+        },
+        {
+          "floor_index": 3,
+          "svg": "alternative-01\\floor_003\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.svg",
+          "png": "alternative-01-floor-003.png",
+          "html": "alternative-01\\floor_003\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.html",
+          "review_json": "alternative-01\\floor_003\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.review.json",
+          "png_sha256": "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+          "floor_boundary": {
+            "polygon": [
+              [
+                3.0,
+                0.0
+              ],
+              [
+                34.0,
+                0.0
+              ],
+              [
+                38.0,
+                4.0
+              ],
+              [
+                38.0,
+                20.0
+              ],
+              [
+                33.0,
+                26.0
+              ],
+              [
+                24.0,
+                26.0
+              ],
+              [
+                20.0,
+                22.0
+              ],
+              [
+                16.0,
+                26.0
+              ],
+              [
+                7.0,
+                26.0
+              ],
+              [
+                1.0,
+                20.0
+              ],
+              [
+                1.0,
+                6.0
+              ],
+              [
+                2.0,
+                2.0
+              ]
+            ],
+            "sha256": "80d2fd3f1c81e71279abd3f9450a1cb5f101bb6f070310f7bf7eba46dba8f1c2",
+            "source": "explicit_floor_footprint"
+          },
+          "coverage_score": 0.7913,
+          "unallocated_ratio": 0.2087,
+          "unresolved_label_collision_count": 0,
+          "png_output_size": [
+            1920,
+            1080
+          ],
+          "office_space_ratio": {
+            "baseline_prior_share": 0.6046511627906976,
+            "minimum_primary_share": 0.45348837209302323,
+            "actual_primary_share": 0.6146141776571679,
+            "primary_open_work_area": 367.8315935020156,
+            "non_core_program_area": 598.4756077449165,
+            "primary_is_largest_non_core": true,
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "alternative_id": "alternative-02",
+      "strategy": "long_edge_adjacent",
+      "accepted": true,
+      "quality_accepted": true,
+      "quality_checks": {
+        "floor_coverage": "pass",
+        "label_overlap": "pass",
+        "office_space_ratio": "pass"
+      },
+      "fingerprints": {
+        "core": "91bfcac95c8d8cbb85aeea235354fabd23e30c1447b9c3bf5e123119b6f717bb",
+        "circulation": "d02533c2d289e0d8878961c0dcf37c0e8dc934f2f3e46f713f1f5d65a2990a5e",
+        "room": "57d4775381049b2fd821185172d1ad84465fa64f5a2bf598a8756e1c393d0abd",
+        "structural": "3145d7d65a77993fc139f6111ff0703345a83a69317d0c971d56db16c881a625"
+      },
+      "validation_scores": {
+        "floors": [
+          {
+            "floor_index": 1,
+            "adjacency_score": 0.6667,
+            "area_score": 1.0,
+            "boundary_score": 1.0,
+            "circulation_score": 1.0,
+            "compactness_score": 0.5165,
+            "coverage_score": 0.6596,
+            "efficiency_score": 0.9457,
+            "frontage_score": 1.0,
+            "overlap_score": 1.0,
+            "total_score": 0.8654,
+            "violation_score": 0.0
+          },
+          {
+            "floor_index": 2,
+            "adjacency_score": 0.8333,
+            "area_score": 1.0,
+            "boundary_score": 1.0,
+            "circulation_score": 1.0,
+            "compactness_score": 0.5224,
+            "coverage_score": 0.6821,
+            "efficiency_score": 0.93,
+            "frontage_score": 1.0,
+            "overlap_score": 1.0,
+            "total_score": 0.8853,
+            "violation_score": 0.0
+          },
+          {
+            "floor_index": 3,
+            "adjacency_score": 0.6667,
+            "area_score": 1.0,
+            "boundary_score": 1.0,
+            "circulation_score": 1.0,
+            "compactness_score": 0.5564,
+            "coverage_score": 0.6278,
+            "efficiency_score": 0.9066,
+            "frontage_score": 1.0,
+            "overlap_score": 1.0,
+            "total_score": 0.8619,
+            "violation_score": 0.0
+          }
+        ],
+        "total_score": 2.6126
+      },
+      "internal_validation": {
+        "status": "pass"
+      },
+      "render_validation": {
+        "status": "pass"
+      },
+      "regulatory_screening": {
+        "status": "not_checked",
+        "unresolved_facts": [
+          "effective_date",
+          "floor_code_context",
+          "jurisdiction",
+          "measured_travel_distance",
+          "travel_limit_classification"
+        ]
+      },
+      "index_html": "alternative-02\\index.html",
+      "building_review_json": "alternative-02\\building.review.json",
+      "candidate_png_fingerprint": "a21e404b7f98857ac3ce093512ff632dc100f921aaf064824d0cbdf5c5553325",
+      "floors": [
+        {
+          "floor_index": 1,
+          "svg": "alternative-02\\floor_001\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.svg",
+          "png": "alternative-02-floor-001.png",
+          "html": "alternative-02\\floor_001\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.html",
+          "review_json": "alternative-02\\floor_001\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.review.json",
+          "png_sha256": "d127a2af17ce06f91e5226b44d3e2deac464b5b0a61a49c8eaecfb4c4dbc2cf7",
+          "floor_boundary": {
+            "polygon": [
+              [
+                0.0,
+                0.0
+              ],
+              [
+                38.0,
+                0.0
+              ],
+              [
+                42.0,
+                4.0
+              ],
+              [
+                42.0,
+                24.0
+              ],
+              [
+                36.0,
+                30.0
+              ],
+              [
+                24.0,
+                30.0
+              ],
+              [
+                20.0,
+                25.0
+              ],
+              [
+                16.0,
+                30.0
+              ],
+              [
+                4.0,
+                30.0
+              ],
+              [
+                -2.0,
+                24.0
+              ],
+              [
+                -2.0,
+                6.0
+              ],
+              [
+                -1.0,
+                2.0
+              ]
+            ],
+            "sha256": "a010b5fc866484e67d8b5216791ce74e54a51ac7ce77c1983dc01771f675fdf9",
+            "source": "explicit_floor_footprint"
+          },
+          "coverage_score": 0.6596,
+          "unallocated_ratio": 0.3404,
+          "unresolved_label_collision_count": 0,
+          "png_output_size": [
+            1920,
+            1080
+          ],
+          "office_space_ratio": {
+            "baseline_prior_share": 0.6046511627906977,
+            "minimum_primary_share": 0.4534883720930233,
+            "actual_primary_share": 0.5558049251228004,
+            "primary_open_work_area": 396.63591826582467,
+            "non_core_program_area": 713.6243317350801,
+            "primary_is_largest_non_core": true,
+            "passed": true
+          }
+        },
+        {
+          "floor_index": 2,
+          "svg": "alternative-02\\floor_002\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.svg",
+          "png": "alternative-02-floor-002.png",
+          "html": "alternative-02\\floor_002\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.html",
+          "review_json": "alternative-02\\floor_002\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.review.json",
+          "png_sha256": "d5fc45679abb152613a73f04ec83cafd1388e39928c7f10502c655d3b3ca9f34",
+          "floor_boundary": {
+            "polygon": [
+              [
+                2.0,
+                0.0
+              ],
+              [
+                36.0,
+                0.0
+              ],
+              [
+                40.0,
+                4.0
+              ],
+              [
+                40.0,
+                22.0
+              ],
+              [
+                34.0,
+                28.0
+              ],
+              [
+                24.0,
+                28.0
+              ],
+              [
+                20.0,
+                24.0
+              ],
+              [
+                16.0,
+                28.0
+              ],
+              [
+                6.0,
+                28.0
+              ],
+              [
+                0.0,
+                22.0
+              ],
+              [
+                0.0,
+                6.0
+              ],
+              [
+                1.0,
+                2.0
+              ]
+            ],
+            "sha256": "dc687ba3ed8b08eaccac7c2d4df18db17278fa16a8ccc68d92d6185999b301a6",
+            "source": "explicit_floor_footprint"
+          },
+          "coverage_score": 0.6821,
+          "unallocated_ratio": 0.3179,
+          "unresolved_label_collision_count": 0,
+          "png_output_size": [
+            1920,
+            1080
+          ],
+          "office_space_ratio": {
+            "baseline_prior_share": 0.6046511627906977,
+            "minimum_primary_share": 0.4534883720930233,
+            "actual_primary_share": 0.5266832469613256,
+            "primary_open_work_area": 320.2633990350554,
+            "non_core_program_area": 608.0759182730799,
+            "primary_is_largest_non_core": true,
+            "passed": true
+          }
+        },
+        {
+          "floor_index": 3,
+          "svg": "alternative-02\\floor_003\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.svg",
+          "png": "alternative-02-floor-003.png",
+          "html": "alternative-02\\floor_003\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.html",
+          "review_json": "alternative-02\\floor_003\\sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.review.json",
+          "png_sha256": "ff64327a8a849824eb7debf8196b66b4a81b62c96fa974c7ef75dda2b8301635",
+          "floor_boundary": {
+            "polygon": [
+              [
+                3.0,
+                0.0
+              ],
+              [
+                34.0,
+                0.0
+              ],
+              [
+                38.0,
+                4.0
+              ],
+              [
+                38.0,
+                20.0
+              ],
+              [
+                33.0,
+                26.0
+              ],
+              [
+                24.0,
+                26.0
+              ],
+              [
+                20.0,
+                22.0
+              ],
+              [
+                16.0,
+                26.0
+              ],
+              [
+                7.0,
+                26.0
+              ],
+              [
+                1.0,
+                20.0
+              ],
+              [
+                1.0,
+                6.0
+              ],
+              [
+                2.0,
+                2.0
+              ]
+            ],
+            "sha256": "80d2fd3f1c81e71279abd3f9450a1cb5f101bb6f070310f7bf7eba46dba8f1c2",
+            "source": "explicit_floor_footprint"
+          },
+          "coverage_score": 0.6278,
+          "unallocated_ratio": 0.3722,
+          "unresolved_label_collision_count": 0,
+          "png_output_size": [
+            1920,
+            1080
+          ],
+          "office_space_ratio": {
+            "baseline_prior_share": 0.6046511627906976,
+            "minimum_primary_share": 0.45348837209302323,
+            "actual_primary_share": 0.4743660202276502,
+            "primary_open_work_area": 215.13922115384617,
+            "non_core_program_area": 453.53,
+            "primary_is_largest_non_core": true,
+            "passed": true
+          }
+        }
+      ]
+    }
+  ],
+  "rejected_strategies": [
+    {
+      "strategy": "central",
+      "reason_type": "BuildingValidationRejected",
+      "reason": "legacy: protected_exit_separation,remote_exit_unfit"
+    },
+    {
+      "strategy": "central",
+      "reason_type": "CirculationPlanningError",
+      "reason": "governing_separation: no connected circulation topology meets the exit separation target"
+    }
+  ],
+  "unresolved_regulatory_facts": [
+    "effective_date",
+    "floor_code_context",
+    "jurisdiction",
+    "measured_travel_distance",
+    "travel_limit_classification"
+  ]
+}

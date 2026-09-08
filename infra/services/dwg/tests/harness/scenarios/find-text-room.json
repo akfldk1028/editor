@@ -1,0 +1,13 @@
+{
+  "name": "find-text-room",
+  "fixture": "tests/fixtures/dxf/minimal-architectural.dxf",
+  "steps": [
+    { "tool": "cad.open_drawing", "args": { "path": "$fixture" } },
+    { "tool": "cad.build_index", "args": { "drawingId": "$last.drawingId" } },
+    { "tool": "cad.find_text", "args": { "drawingId": "$last.drawingId", "query": "ROOM" } }
+  ],
+  "expect": {
+    "minMatches": 1,
+    "requiredFields": ["id", "handle", "type", "layer", "bbox", "text"]
+  }
+}

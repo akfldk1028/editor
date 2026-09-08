@@ -1,0 +1,9505 @@
+{
+  "schemaVersion": "cad-index/v0.2",
+  "drawingId": "dwg:b60b4a7242e43b34ca35561b",
+  "source": {
+    "kind": "dwg",
+    "displayName": "export_sample.dwg",
+    "parser": "acadsharp@3.6.35"
+  },
+  "drawing": {
+    "fileVersion": "AC1032",
+    "units": "Millimeters"
+  },
+  "summary": {
+    "entityCount": 234,
+    "layerCount": 4,
+    "unsupportedCount": 43,
+    "modelSpaceCount": 22,
+    "paperSpaceCount": 212
+  },
+  "layers": [
+    {
+      "name": "0",
+      "entityCount": 229,
+      "visible": true,
+      "frozen": false,
+      "color": 7,
+      "locked": false
+    },
+    {
+      "name": "Defpoints",
+      "entityCount": 0,
+      "visible": true,
+      "frozen": false,
+      "color": 7,
+      "locked": false
+    },
+    {
+      "name": "control",
+      "entityCount": 1,
+      "visible": true,
+      "frozen": false,
+      "color": 90,
+      "locked": false
+    },
+    {
+      "name": "out-margin",
+      "entityCount": 4,
+      "visible": true,
+      "frozen": false,
+      "color": 1,
+      "locked": false
+    }
+  ],
+  "entities": [
+    {
+      "id": "h:239",
+      "handle": "239",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          100,
+          100,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              0,
+              0,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              100,
+              0,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              100,
+              100,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              0,
+              100,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:23A",
+      "handle": "23A",
+      "type": "LINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          50,
+          100,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          0,
+          0,
+          0
+        ],
+        "end": [
+          50,
+          100,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:23B",
+      "handle": "23B",
+      "type": "LINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          50,
+          0,
+          0
+        ],
+        "max": [
+          100,
+          100,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          50,
+          100,
+          0
+        ],
+        "end": [
+          100,
+          0,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:23C",
+      "handle": "23C",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          -1.4210854715202004e-14,
+          0,
+          0
+        ],
+        "max": [
+          100.00000000000003,
+          100.00000000000004,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          50.00000000000001,
+          50.00000000000002,
+          0
+        ],
+        "radius": 50.00000000000002,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:23D",
+      "handle": "23D",
+      "type": "LINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          25,
+          50,
+          0
+        ],
+        "max": [
+          75,
+          50,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          25,
+          50,
+          0
+        ],
+        "end": [
+          75,
+          50,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:23E",
+      "handle": "23E",
+      "type": "ARC",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          32.24693918808244,
+          37.39309116401414,
+          0
+        ],
+        "max": [
+          67.75306081191758,
+          67.7526658358666,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          50.00000000000001,
+          50.00000000000005,
+          0
+        ],
+        "radius": 17.75342644108062,
+        "startAngle": 5.493529025407561,
+        "endAngle": 3.931248935361823,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:23F",
+      "handle": "23F",
+      "type": "POINT",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          50,
+          19.99999999999999,
+          0
+        ],
+        "max": [
+          50,
+          19.99999999999999,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "position": [
+          50,
+          19.99999999999999,
+          0
+        ],
+        "kind": "point"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:240",
+      "handle": "240",
+      "type": "ARC",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          50,
+          50,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          0,
+          0,
+          0
+        ],
+        "radius": 50,
+        "startAngle": 0,
+        "endAngle": 1.5707963267948966,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:241",
+      "handle": "241",
+      "type": "ARC",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          50,
+          0,
+          0
+        ],
+        "max": [
+          100,
+          50,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          100,
+          0,
+          0
+        ],
+        "radius": 50,
+        "startAngle": 1.5707963267948966,
+        "endAngle": 3.141592653589793,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:281",
+      "handle": "281",
+      "type": "LINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          -50,
+          -50,
+          0
+        ],
+        "max": [
+          50,
+          50,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          -50,
+          50,
+          0
+        ],
+        "end": [
+          50,
+          -50,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:282",
+      "handle": "282",
+      "type": "LINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          -50,
+          -50,
+          0
+        ],
+        "max": [
+          50,
+          50,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          -50,
+          -50,
+          0
+        ],
+        "end": [
+          50,
+          50,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:2D5",
+      "handle": "2D5",
+      "type": "LINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          -16.46031844895622,
+          -0.6364322744802848,
+          0
+        ],
+        "max": [
+          116.46031938030717,
+          100.63643320583145,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          -16.46031844895622,
+          100.63643320583145,
+          0
+        ],
+        "end": [
+          116.46031938030717,
+          -0.6364322744802848,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:2D6",
+      "handle": "2D6",
+      "type": "LINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          -16.46031844895622,
+          -0.6364322744802848,
+          0
+        ],
+        "max": [
+          116.46031938030717,
+          100.63643320583145,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          -16.46031844895622,
+          -0.6364322744802848,
+          0
+        ],
+        "end": [
+          116.46031938030717,
+          100.63643320583145,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:33A",
+      "handle": "33A",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          40.151080505089475,
+          67.75342644108068,
+          0
+        ],
+        "max": [
+          59.848919494910525,
+          80.30216101017895,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              59.848919494910525,
+              67.75342644108068,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              40.151080505089475,
+              67.75342644108069,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              40.151080505089475,
+              80.30216101017895,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              59.848919494910525,
+              80.30216101017895,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:347",
+      "handle": "347",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          40.151080505089475,
+          67.75342644108068,
+          0
+        ],
+        "max": [
+          59.848919494910525,
+          80.30216101017895,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:3B6",
+      "handle": "3B6",
+      "type": "INSERT",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          4.820087905162958,
+          0.12166608575347392,
+          0
+        ],
+        "max": [
+          8.033349257958617,
+          3.334927438549133,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": "my_block",
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          0,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "scale": [
+          0.03937007874015748,
+          0.03937007874015748,
+          0.03937007874015748
+        ],
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "insert"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:3D6",
+      "handle": "3D6",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          25,
+          30,
+          0
+        ],
+        "max": [
+          75,
+          70,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:58F",
+      "handle": "58F",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          10.228414186593032,
+          63.793103448275865,
+          0
+        ],
+        "max": [
+          89.77158581340697,
+          80.30216101017895,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              10.228414186593032,
+              63.79310390066654,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              10.228414186593035,
+              80.30216101017895,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              89.77158581340697,
+              80.30216101017895,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              89.77158581340696,
+              63.793103448275865,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": false,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:591",
+      "handle": "591",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          22.707449971798837,
+          82.28810939360596,
+          0
+        ],
+        "max": [
+          22.707449971798837,
+          82.28810939360596,
+          0
+        ]
+      },
+      "text": "Hello",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          22.707449971798837,
+          82.28810939360596,
+          0
+        ],
+        "alignmentPoint": [
+          0,
+          0,
+          0
+        ],
+        "height": 4,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:594",
+      "handle": "594",
+      "type": "MTEXT",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          11.821359386218038,
+          78.70921581055393,
+          0
+        ],
+        "max": [
+          11.821359386218038,
+          78.70921581055393,
+          0
+        ]
+      },
+      "text": "Mtext\nline1\r\nline2\r\nline3",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          11.821359386218038,
+          78.70921581055393,
+          0
+        ],
+        "alignmentPoint": [
+          1,
+          0,
+          0
+        ],
+        "height": 4,
+        "rotation": 0,
+        "width": 36.06287410373989,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:595",
+      "handle": "595",
+      "type": "MTEXT",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          88.17864061378197,
+          78.70921581055393,
+          0
+        ],
+        "max": [
+          88.17864061378197,
+          78.70921581055393,
+          0
+        ]
+      },
+      "text": "Mtext\nline1\r\nline2\r\nline3",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          88.17864061378197,
+          78.70921581055393,
+          0
+        ],
+        "alignmentPoint": [
+          1,
+          0,
+          0
+        ],
+        "height": 4,
+        "rotation": 0,
+        "width": 36.06287410373989,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:59D",
+      "handle": "59D",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "model",
+      "layout": "Model",
+      "bbox": {
+        "min": [
+          61.376790300321204,
+          82.28810939360596,
+          0
+        ],
+        "max": [
+          61.376790300321204,
+          82.28810939360596,
+          0
+        ]
+      },
+      "text": "Goodbye",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          61.376790300321204,
+          82.28810939360596,
+          0
+        ],
+        "alignmentPoint": [
+          0,
+          0,
+          0
+        ],
+        "height": 4,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:256",
+      "handle": "256",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          -2.2247298583834834,
+          -1.216657483063802,
+          0
+        ],
+        "max": [
+          22.490440163928408,
+          8.509654674005706,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:25B",
+      "handle": "25B",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          1.0499999523162842,
+          0.7999999523162842,
+          0
+        ],
+        "max": [
+          9.44999957084656,
+          7.1999995708465585,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:2BB",
+      "handle": "2BB",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          1.0499999523162842,
+          0.7999999523162842,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          0,
+          0,
+          0
+        ],
+        "end": [
+          1.0499999523162842,
+          0.7999999523162842,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:2BC",
+      "handle": "2BC",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          9.44999957084656,
+          0,
+          0
+        ],
+        "max": [
+          10.499999523162844,
+          0.7999999523162842,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.499999523162844,
+          0,
+          0
+        ],
+        "end": [
+          9.44999957084656,
+          0.7999999523162842,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:2BD",
+      "handle": "2BD",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          0,
+          7.1999995708465585,
+          0
+        ],
+        "max": [
+          1.0499999523162842,
+          7.999999523162843,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          0,
+          7.999999523162843,
+          0
+        ],
+        "end": [
+          1.0499999523162842,
+          7.1999995708465585,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:2BE",
+      "handle": "2BE",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          9.44999957084656,
+          7.1999995708465585,
+          0
+        ],
+        "max": [
+          10.499999523162844,
+          7.999999523162843,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.499999523162844,
+          7.999999523162843,
+          0
+        ],
+        "end": [
+          9.44999957084656,
+          7.1999995708465585,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:2C6",
+      "handle": "2C6",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          5.25,
+          4,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          0,
+          0,
+          0
+        ],
+        "end": [
+          5.25,
+          4,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:364",
+      "handle": "364",
+      "type": "LINE",
+      "layer": "out-margin",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          2.180139238158567,
+          8.13029719719205,
+          0
+        ],
+        "max": [
+          8.067595252156629,
+          8.13029719719205,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          2.180139238158567,
+          8.13029719719205,
+          0
+        ],
+        "end": [
+          8.067595252156629,
+          8.13029719719205,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:365",
+      "handle": "365",
+      "type": "LINE",
+      "layer": "out-margin",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          10.62892533697272,
+          2.6384610778337496,
+          0
+        ],
+        "max": [
+          10.62892533697272,
+          6.906484700704723,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.62892533697272,
+          6.906484700704723,
+          0
+        ],
+        "end": [
+          10.62892533697272,
+          2.6384610778337496,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:366",
+      "handle": "366",
+      "type": "LINE",
+      "layer": "out-margin",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          2.1801392381585654,
+          -0.11507112770247474,
+          0
+        ],
+        "max": [
+          8.067595252156627,
+          -0.11507112770247474,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          2.1801392381585654,
+          -0.11507112770247474,
+          0
+        ],
+        "end": [
+          8.067595252156627,
+          -0.11507112770247474,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:367",
+      "handle": "367",
+      "type": "LINE",
+      "layer": "out-margin",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          -0.15369197151071035,
+          2.638461077833751,
+          0
+        ],
+        "max": [
+          -0.15369197151071035,
+          6.906484700704725,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          -0.15369197151071035,
+          6.906484700704725,
+          0
+        ],
+        "end": [
+          -0.15369197151071035,
+          2.638461077833751,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:38A",
+      "handle": "38A",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          3.3918947743496943,
+          0.05509314621602002,
+          0
+        ],
+        "max": [
+          3.3918947743496943,
+          0.05509314621602002,
+          0
+        ]
+      },
+      "text": "This is a text",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          3.3918947743496943,
+          0.05509314621602002,
+          0
+        ],
+        "alignmentPoint": [
+          0,
+          0,
+          0
+        ],
+        "height": 0.5,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:393",
+      "handle": "393",
+      "type": "MTEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout1",
+      "bbox": {
+        "min": [
+          3.6151835091270144,
+          7.838655805628775,
+          0
+        ],
+        "max": [
+          3.6151835091270144,
+          7.838655805628775,
+          0
+        ]
+      },
+      "text": "this is a multiline text with multiple lines",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          3.6151835091270144,
+          7.838655805628775,
+          0
+        ],
+        "alignmentPoint": [
+          1,
+          0,
+          0
+        ],
+        "height": 0.2,
+        "rotation": 0,
+        "width": 2.7493336458058195,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:304",
+      "handle": "304",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout2",
+      "bbox": {
+        "min": [
+          -5.741602697686325,
+          -1.602054574674458,
+          0
+        ],
+        "max": [
+          25.757561285851324,
+          10.794004255348913,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:308",
+      "handle": "308",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "Layout2",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          11.020308678584357,
+          6.609503266387776,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:415",
+      "handle": "415",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          -2.9296849537500105,
+          -0.34060099448545866,
+          0
+        ],
+        "max": [
+          19.12979390495979,
+          8.340600761698816,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:439",
+      "handle": "439",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          0.3677049738687437,
+          7.709913443167302,
+          0
+        ],
+        "max": [
+          0.3677049738687437,
+          7.709913443167302,
+          0
+        ]
+      },
+      "text": "This is a basic text sample",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          0.3677049738687437,
+          7.709913443167302,
+          0
+        ],
+        "alignmentPoint": [
+          0,
+          0,
+          0
+        ],
+        "height": 0.2,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:44A",
+      "handle": "44A",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          0.3051797537014558,
+          7.410592252203141,
+          0
+        ],
+        "max": [
+          0.3051797537014558,
+          7.410592252203141,
+          0
+        ]
+      },
+      "text": "Text obliquing = 10",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          0.3051797537014558,
+          7.410592252203141,
+          0
+        ],
+        "alignmentPoint": [
+          0,
+          0,
+          0
+        ],
+        "height": 0.2,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:44B",
+      "handle": "44B",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          0.5622279053702606,
+          5.261493060385252,
+          0
+        ],
+        "max": [
+          0.5622279053702606,
+          5.261493060385252,
+          0
+        ]
+      },
+      "text": "Rotated text angle = 30",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          0.5622279053702606,
+          5.261493060385252,
+          0
+        ],
+        "alignmentPoint": [
+          0,
+          0,
+          0
+        ],
+        "height": 0.2,
+        "rotation": 0.5235987755982988,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:454",
+      "handle": "454",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          0.5067115786193774,
+          4.9058978146268295,
+          0
+        ],
+        "max": [
+          0.5067115786193774,
+          4.9058978146268295,
+          0
+        ]
+      },
+      "text": "Text width = 2.0",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          0.5067115786193774,
+          4.9058978146268295,
+          0
+        ],
+        "alignmentPoint": [
+          0,
+          0,
+          0
+        ],
+        "height": 0.1,
+        "rotation": 0,
+        "width": 2,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:455",
+      "handle": "455",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          7.4843690780071155,
+          7.5464261299383075,
+          0
+        ],
+        "max": [
+          7.4843690780071155,
+          7.5464261299383075,
+          0
+        ]
+      },
+      "text": "Justification center",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          7.4843690780071155,
+          7.5464261299383075,
+          0
+        ],
+        "alignmentPoint": [
+          8.35351982834818,
+          7.5464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:456",
+      "handle": "456",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.792844521390472,
+          7.0464261299383075,
+          0
+        ],
+        "max": [
+          6.792844521390472,
+          7.0464261299383075,
+          0
+        ]
+      },
+      "text": "Justification right",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          6.792844521390472,
+          7.0464261299383075,
+          0
+        ],
+        "alignmentPoint": [
+          8.35351982834818,
+          7.0464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:457",
+      "handle": "457",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.35086262245118,
+          0.7964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          7.7964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              6.3508626224511815,
+              7.7964261299383075,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              6.35086262245118,
+              0.7964261299383075,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              10.356177034245178,
+              0.7964261299383075,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              10.356177034245178,
+              7.7964261299383075,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:458",
+      "handle": "458",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          8.35351982834818,
+          0.7964261299383075,
+          0
+        ],
+        "max": [
+          8.35351982834818,
+          7.7964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          8.35351982834818,
+          7.7964261299383075,
+          0
+        ],
+        "end": [
+          8.35351982834818,
+          0.7964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:45A",
+      "handle": "45A",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          7.2964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          7.2964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          7.2964261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          7.2964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:45C",
+      "handle": "45C",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          6.7964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          6.7964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          6.7964261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          6.7964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:45D",
+      "handle": "45D",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          6.2964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          6.2964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          6.2964261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          6.2964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:45E",
+      "handle": "45E",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          5.7964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          5.7964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          5.7964261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          5.7964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:460",
+      "handle": "460",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          5.2964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          5.2964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          5.2964261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          5.2964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:461",
+      "handle": "461",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          4.7964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          4.7964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          4.7964261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          4.7964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:463",
+      "handle": "463",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          8.35351982834818,
+          6.441491017381264,
+          0
+        ],
+        "max": [
+          8.35351982834818,
+          6.441491017381264,
+          0
+        ]
+      },
+      "text": "Justification aligned",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          8.35351982834818,
+          6.441491017381264,
+          0
+        ],
+        "alignmentPoint": [
+          10.091821329030308,
+          6.441491017381264,
+          0
+        ],
+        "height": 0.14257301107754283,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:464",
+      "handle": "464",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          7.468356117570553,
+          5.971426129938307,
+          0
+        ],
+        "max": [
+          7.468356117570553,
+          5.971426129938307,
+          0
+        ]
+      },
+      "text": "Justification middle",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          7.468356117570553,
+          5.971426129938307,
+          0
+        ],
+        "alignmentPoint": [
+          8.35351982834818,
+          6.0464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:465",
+      "handle": "465",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          8.35351982834818,
+          5.441491017381264,
+          0
+        ],
+        "max": [
+          8.35351982834818,
+          5.441491017381264,
+          0
+        ]
+      },
+      "text": "Justification fit",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          8.35351982834818,
+          5.441491017381264,
+          0
+        ],
+        "alignmentPoint": [
+          10.091821329030308,
+          5.441491017381264,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1.32086767221272,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:466",
+      "handle": "466",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          8.35351982834818,
+          4.896426129938307,
+          0
+        ],
+        "max": [
+          8.35351982834818,
+          4.896426129938307,
+          0
+        ]
+      },
+      "text": "Justification top left",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          8.35351982834818,
+          4.896426129938307,
+          0
+        ],
+        "alignmentPoint": [
+          8.35351982834818,
+          5.0464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:467",
+      "handle": "467",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          7.309607822891152,
+          4.396426129938307,
+          0
+        ],
+        "max": [
+          7.309607822891152,
+          4.396426129938307,
+          0
+        ]
+      },
+      "text": "Justification top center",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          7.309607822891152,
+          4.396426129938307,
+          0
+        ],
+        "alignmentPoint": [
+          8.353519828348178,
+          4.5464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:468",
+      "handle": "468",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          4.2964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          4.2964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          4.2964261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          4.2964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:469",
+      "handle": "469",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          3.7964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          3.7964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          3.7964261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          3.7964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:46A",
+      "handle": "46A",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          3.2964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          3.2964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          3.2964261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          3.2964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:478",
+      "handle": "478",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          5.5464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          5.5464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          5.5464261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          5.5464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:479",
+      "handle": "479",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          5.0464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          5.0464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          5.0464261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          5.0464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:47A",
+      "handle": "47A",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          6.5464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          6.5464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          6.5464261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          6.5464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:47B",
+      "handle": "47B",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          6.0464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          6.0464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          6.0464261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          6.0464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:47C",
+      "handle": "47C",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          7.5464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          7.5464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          7.5464261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          7.5464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:47D",
+      "handle": "47D",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.3508626224511815,
+          7.0464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          7.0464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          7.0464261299383075,
+          0
+        ],
+        "end": [
+          6.3508626224511815,
+          7.0464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:47E",
+      "handle": "47E",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.35086262245118,
+          3.5464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245176,
+          3.5464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245176,
+          3.5464261299383075,
+          0
+        ],
+        "end": [
+          6.35086262245118,
+          3.5464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:47F",
+      "handle": "47F",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.35086262245118,
+          3.0464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245176,
+          3.0464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245176,
+          3.0464261299383075,
+          0
+        ],
+        "end": [
+          6.35086262245118,
+          3.0464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:480",
+      "handle": "480",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          4.5464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          4.5464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          4.5464261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          4.5464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:481",
+      "handle": "481",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          4.0464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          4.0464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          4.0464261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          4.0464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:482",
+      "handle": "482",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.4433220111585445,
+          3.8964261299383076,
+          0
+        ],
+        "max": [
+          6.4433220111585445,
+          3.8964261299383076,
+          0
+        ]
+      },
+      "text": "Justification top right",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          6.4433220111585445,
+          3.8964261299383076,
+          0
+        ],
+        "alignmentPoint": [
+          8.353519828348176,
+          4.0464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:483",
+      "handle": "483",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          8.353519828348176,
+          3.4714261299383073,
+          0
+        ],
+        "max": [
+          8.353519828348176,
+          3.4714261299383073,
+          0
+        ]
+      },
+      "text": "Justification mid left",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          8.353519828348176,
+          3.4714261299383073,
+          0
+        ],
+        "alignmentPoint": [
+          8.353519828348176,
+          3.5464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:484",
+      "handle": "484",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          7.286432515933442,
+          2.9714261299383073,
+          0
+        ],
+        "max": [
+          7.286432515933442,
+          2.9714261299383073,
+          0
+        ]
+      },
+      "text": "Justification mid center",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          7.286432515933442,
+          2.9714261299383073,
+          0
+        ],
+        "alignmentPoint": [
+          8.353519828348176,
+          3.0464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:493",
+      "handle": "493",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          2.2964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          2.2964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          2.2964261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          2.2964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:494",
+      "handle": "494",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.35086262245118,
+          2.5464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245176,
+          2.5464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245176,
+          2.5464261299383075,
+          0
+        ],
+        "end": [
+          6.35086262245118,
+          2.5464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:495",
+      "handle": "495",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.35086262245118,
+          2.0464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245176,
+          2.0464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245176,
+          2.0464261299383075,
+          0
+        ],
+        "end": [
+          6.35086262245118,
+          2.0464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:499",
+      "handle": "499",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          1.7964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          1.7964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          1.7964261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          1.7964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:49A",
+      "handle": "49A",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.396971397243129,
+          2.4714261299383073,
+          0
+        ],
+        "max": [
+          6.396971397243129,
+          2.4714261299383073,
+          0
+        ]
+      },
+      "text": "Justification mid right",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          6.396971397243129,
+          2.4714261299383073,
+          0
+        ],
+        "alignmentPoint": [
+          8.353519828348176,
+          2.5464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:49B",
+      "handle": "49B",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          8.353519828348176,
+          2.0908326783694124,
+          0
+        ],
+        "max": [
+          8.353519828348176,
+          2.0908326783694124,
+          0
+        ]
+      },
+      "text": "Justification bot left",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          8.353519828348176,
+          2.0908326783694124,
+          0
+        ],
+        "alignmentPoint": [
+          8.353519828348176,
+          2.0464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:4A3",
+      "handle": "4A3",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.35086262245118,
+          1.5464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245176,
+          1.5464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245176,
+          1.5464261299383075,
+          0
+        ],
+        "end": [
+          6.35086262245118,
+          1.5464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:4A4",
+      "handle": "4A4",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          1.2964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          1.2964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          1.2964261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          1.2964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:4A5",
+      "handle": "4A5",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.35086262245118,
+          1.0464261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245176,
+          1.0464261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245176,
+          1.0464261299383075,
+          0
+        ],
+        "end": [
+          6.35086262245118,
+          1.0464261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:4A9",
+      "handle": "4A9",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.350862622451181,
+          2.7964261299383075,
+          0
+        ],
+        "max": [
+          10.356177034245178,
+          2.7964261299383075,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          10.356177034245178,
+          2.7964261299383075,
+          0
+        ],
+        "end": [
+          6.350862622451181,
+          2.7964261299383075,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:4AB",
+      "handle": "4AB",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          7.3096078228911505,
+          1.5908326783694127,
+          0
+        ],
+        "max": [
+          7.3096078228911505,
+          1.5908326783694127,
+          0
+        ]
+      },
+      "text": "Justification bot center",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          7.3096078228911505,
+          1.5908326783694127,
+          0
+        ],
+        "alignmentPoint": [
+          8.353519828348176,
+          1.5464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:4AC",
+      "handle": "4AC",
+      "type": "TEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          6.4433220111585445,
+          1.0908326783694127,
+          0
+        ],
+        "max": [
+          6.4433220111585445,
+          1.0908326783694127,
+          0
+        ]
+      },
+      "text": "Justification bot right",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          6.4433220111585445,
+          1.0908326783694127,
+          0
+        ],
+        "alignmentPoint": [
+          8.353519828348176,
+          1.0464261299383075,
+          0
+        ],
+        "height": 0.15,
+        "rotation": 0,
+        "width": 1,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:4D8",
+      "handle": "4D8",
+      "type": "MTEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          1.0427715487532687,
+          3.5627412279075905,
+          0
+        ],
+        "max": [
+          1.0427715487532687,
+          3.5627412279075905,
+          0
+        ]
+      },
+      "text": "MText rotated:\nLine1\nLine2\nLine3 \nLong line at the end of the text",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          1.0427715487532687,
+          3.5627412279075905,
+          0
+        ],
+        "alignmentPoint": [
+          0.8660254037844387,
+          0.49999999999999994,
+          0
+        ],
+        "height": 0.2,
+        "rotation": 0.5235987755982988,
+        "width": 3.9582630224807502,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:4D9",
+      "handle": "4D9",
+      "type": "MTEXT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          0.548043103633407,
+          1.8551096782930863,
+          0
+        ],
+        "max": [
+          0.548043103633407,
+          1.8551096782930863,
+          0
+        ]
+      },
+      "text": "MText with multiple lines:\nLine1\nLine2\nLine3 \nLong line at the end of the text",
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "insertionPoint": [
+          0.548043103633407,
+          1.8551096782930863,
+          0
+        ],
+        "alignmentPoint": [
+          1,
+          0,
+          0
+        ],
+        "height": 0.2,
+        "rotation": 0,
+        "width": 3.9582630224807502,
+        "kind": "text"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:6A3",
+      "handle": "6A3",
+      "type": "LWPOLYLINE",
+      "layer": "control",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          -1.7763568394002505e-15,
+          0,
+          0
+        ],
+        "max": [
+          10.499999999999998,
+          8.000000000000002,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              0,
+              0,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              10.499999999999998,
+              0,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              10.499999999999998,
+              8,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              -1.7763568394002505e-15,
+              8.000000000000002,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:6CF",
+      "handle": "6CF",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "text_sample",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          10.499999999999998,
+          8,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          0,
+          0,
+          0
+        ],
+        "end": [
+          10.499999999999998,
+          8,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:5E7",
+      "handle": "5E7",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "layout_size",
+      "bbox": {
+        "min": [
+          -213.12807525199923,
+          -33.52340178543591,
+          0
+        ],
+        "max": [
+          669.7731144222194,
+          313.93010821943716,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:5F4",
+      "handle": "5F4",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "layout_size",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          210,
+          297,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          0,
+          0,
+          0
+        ],
+        "end": [
+          210,
+          297,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:64E",
+      "handle": "64E",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "layout_size",
+      "bbox": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          210,
+          297,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              0,
+              0,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              209.99999999999997,
+              0,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              210,
+              297,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              2.842170943040401e-14,
+              297,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:64F",
+      "handle": "64F",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "layout_size",
+      "bbox": {
+        "min": [
+          25,
+          25.000000000000004,
+          0
+        ],
+        "max": [
+          185,
+          272,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              25.00000000000001,
+              25.000000000000004,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              184.99999999999997,
+              25.000000000000004,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              185,
+              272,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              25,
+              272,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:659",
+      "handle": "659",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "layout_size",
+      "bbox": {
+        "min": [
+          104.99999999999999,
+          0,
+          0
+        ],
+        "max": [
+          105.00000000000001,
+          297,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          104.99999999999999,
+          0,
+          0
+        ],
+        "end": [
+          105.00000000000001,
+          297,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:65A",
+      "handle": "65A",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "layout_size",
+      "bbox": {
+        "min": [
+          1.4210854715202004e-14,
+          148.5,
+          0
+        ],
+        "max": [
+          210,
+          148.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          210,
+          148.5,
+          0
+        ],
+        "end": [
+          1.4210854715202004e-14,
+          148.5,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:6F6",
+      "handle": "6F6",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          -185.48661078734608,
+          -32.1461941324643,
+          0
+        ],
+        "max": [
+          550.6701292814587,
+          257.5580742976547,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:703",
+      "handle": "703",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          195.0599565023652,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          195.0599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          195.0599565023652,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          195.0599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:704",
+      "handle": "704",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          182.3599565023652,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          182.3599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          182.3599565023652,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          182.3599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:705",
+      "handle": "705",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          169.6599565023652,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          169.6599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          169.6599565023652,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          169.6599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:708",
+      "handle": "708",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          156.9599565023652,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          156.9599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          156.9599565023652,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          156.9599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:709",
+      "handle": "709",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          144.2599565023652,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          144.2599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          144.2599565023652,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          144.2599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:70A",
+      "handle": "70A",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          131.5599565023652,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          131.5599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          131.5599565023652,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          131.5599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:70B",
+      "handle": "70B",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          118.85995650236521,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          118.85995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          118.85995650236521,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          118.85995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:70C",
+      "handle": "70C",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          106.1599565023652,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          106.1599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          106.1599565023652,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          106.1599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:70D",
+      "handle": "70D",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          93.4599565023652,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          93.4599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          93.4599565023652,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          93.4599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:70E",
+      "handle": "70E",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          80.75995650236521,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          80.75995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          80.75995650236521,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          80.75995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:70F",
+      "handle": "70F",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          68.05995650236521,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          68.05995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          68.05995650236521,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          68.05995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:710",
+      "handle": "710",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          55.35995650236521,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          55.35995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          55.35995650236521,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          55.35995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:711",
+      "handle": "711",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          42.659956502365205,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          42.65995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          42.65995650236521,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          42.659956502365205,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:712",
+      "handle": "712",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          29.959956502365213,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          29.959956502365213,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          29.959956502365213,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          29.959956502365213,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:713",
+      "handle": "713",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          18.361197829696145,
+          17.259956502365213,
+          0
+        ],
+        "max": [
+          139.01119782969613,
+          17.259956502365213,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          18.361197829696145,
+          17.259956502365213,
+          0
+        ],
+        "end": [
+          139.01119782969613,
+          17.259956502365213,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:718",
+      "handle": "718",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          17.259956502365213,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          17.259956502365213,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          17.259956502365213,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          17.259956502365213,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:719",
+      "handle": "719",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          29.959956502365213,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          29.959956502365213,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          29.959956502365213,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          29.959956502365213,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:71A",
+      "handle": "71A",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          42.659956502365205,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          42.65995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          42.659956502365205,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          42.65995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:71B",
+      "handle": "71B",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          55.35995650236521,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          55.35995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          55.35995650236521,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          55.35995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:71C",
+      "handle": "71C",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          68.05995650236521,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          68.05995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          68.05995650236521,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          68.05995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:71D",
+      "handle": "71D",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          80.75995650236521,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          80.75995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          80.75995650236521,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          80.75995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:71E",
+      "handle": "71E",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          93.4599565023652,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          93.4599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          93.4599565023652,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          93.4599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:71F",
+      "handle": "71F",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          106.1599565023652,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          106.1599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          106.1599565023652,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          106.1599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:720",
+      "handle": "720",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          118.85995650236521,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          118.85995650236521,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          118.85995650236521,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          118.85995650236521,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:721",
+      "handle": "721",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          131.5599565023652,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          131.5599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          131.5599565023652,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          131.5599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:722",
+      "handle": "722",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          144.2599565023652,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          144.2599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          144.2599565023652,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          144.2599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:723",
+      "handle": "723",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          156.9599565023652,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          156.9599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          156.9599565023652,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          156.9599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:724",
+      "handle": "724",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          169.6599565023652,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          169.6599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          169.6599565023652,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          169.6599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:725",
+      "handle": "725",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          182.3599565023652,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          182.3599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          182.3599565023652,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          182.3599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:726",
+      "handle": "726",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "line-types",
+      "bbox": {
+        "min": [
+          151.71119782969615,
+          195.0599565023652,
+          0
+        ],
+        "max": [
+          272.36119782969615,
+          195.0599565023652,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          151.71119782969615,
+          195.0599565023652,
+          0
+        ],
+        "end": [
+          272.36119782969615,
+          195.0599565023652,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:8AA",
+      "handle": "8AA",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          -150.43773092100173,
+          -26.939015152125762,
+          0
+        ],
+        "max": [
+          601.9522372998101,
+          269.1536149271671,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:B9E",
+      "handle": "B9E",
+      "type": "ARC",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          20.30045289431473,
+          168.36134806348196,
+          0
+        ],
+        "max": [
+          70.30045289431473,
+          193.36087374720012,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          45.30045289431473,
+          168.36134806348196,
+          0
+        ],
+        "radius": 25,
+        "startAngle": 5.684341886080802e-16,
+        "endAngle": 3.1415926535897927,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:B9F",
+      "handle": "B9F",
+      "type": "ARC",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          20.30045289431473,
+          138.36134806348196,
+          0
+        ],
+        "max": [
+          70.30045289431473,
+          163.36087374720012,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          45.30045289431473,
+          138.36134806348196,
+          0
+        ],
+        "radius": 25,
+        "startAngle": 0,
+        "endAngle": 3.141592653589793,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA0",
+      "handle": "BA0",
+      "type": "ARC",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          20.300452894314738,
+          108.36134806348196,
+          0
+        ],
+        "max": [
+          70.30045289431473,
+          133.36087374720012,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          45.30045289431474,
+          108.36134806348196,
+          0
+        ],
+        "radius": 25,
+        "startAngle": 0,
+        "endAngle": 3.141592653589793,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA1",
+      "handle": "BA1",
+      "type": "ARC",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          20.300452894314745,
+          78.36134806348196,
+          0
+        ],
+        "max": [
+          70.30045289431474,
+          103.36087374720013,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          45.300452894314745,
+          78.36134806348196,
+          0
+        ],
+        "radius": 25,
+        "startAngle": 0,
+        "endAngle": 3.141592653589793,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA2",
+      "handle": "BA2",
+      "type": "ARC",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          20.300452894314752,
+          48.361348063481955,
+          0
+        ],
+        "max": [
+          70.30045289431476,
+          73.36087374720013,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          45.30045289431475,
+          48.361348063481955,
+          0
+        ],
+        "radius": 25,
+        "startAngle": 0,
+        "endAngle": 3.141592653589793,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA3",
+      "handle": "BA3",
+      "type": "ARC",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          20.30045289431476,
+          18.361348063481955,
+          0
+        ],
+        "max": [
+          70.30045289431476,
+          43.36087374720013,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          45.30045289431476,
+          18.361348063481955,
+          0
+        ],
+        "radius": 25,
+        "startAngle": 0,
+        "endAngle": 3.141592653589793,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "arc"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA4",
+      "handle": "BA4",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          85.30045289431473,
+          143.36134806348196,
+          0
+        ],
+        "max": [
+          135.30045289431473,
+          193.36134806348196,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          110.30045289431473,
+          168.36134806348196,
+          0
+        ],
+        "radius": 25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA5",
+      "handle": "BA5",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          85.30045289431472,
+          83.36134806348196,
+          0
+        ],
+        "max": [
+          135.30045289431473,
+          133.36134806348196,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          110.30045289431472,
+          108.36134806348196,
+          0
+        ],
+        "radius": 25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA6",
+      "handle": "BA6",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          85.30045289431467,
+          20.01342840474229,
+          0
+        ],
+        "max": [
+          110.3004528943147,
+          66.70926772222163,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:BA7",
+      "handle": "BA7",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          159.71763626854,
+          141.01559268235562,
+          0
+        ],
+        "max": [
+          238.31717745354624,
+          162.05150298631503,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              159.71763626854,
+              142.05435554869564,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              185.60886191857094,
+              142.05435554869564,
+              0
+            ],
+            "bulge": 0.25322023213282807,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              208.20484150910625,
+              154.28191072295715,
+              0
+            ],
+            "bulge": -0.5411385297667392,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              236.92056525070348,
+              154.28191072295715,
+              0
+            ],
+            "bulge": -1.0000000000000002,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              222.56270337990486,
+              144.9003609182382,
+              0
+            ],
+            "bulge": 1.741753120915666,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": false,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA8",
+      "handle": "BA8",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          159.71763626854,
+          171.01559268235562,
+          0
+        ],
+        "max": [
+          238.31717745354624,
+          192.05150298631503,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              159.71763626854,
+              172.05435554869564,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              185.60886191857094,
+              172.05435554869564,
+              0
+            ],
+            "bulge": 0.25322023213282807,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              208.20484150910625,
+              184.28191072295715,
+              0
+            ],
+            "bulge": -0.5411385297667392,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              236.92056525070348,
+              184.28191072295715,
+              0
+            ],
+            "bulge": -1.0000000000000002,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              222.56270337990486,
+              174.9003609182382,
+              0
+            ],
+            "bulge": 1.741753120915666,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": false,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BA9",
+      "handle": "BA9",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          159.71763626854,
+          111.32744457575475,
+          0
+        ],
+        "max": [
+          238.31717745354624,
+          132.36335487971417,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              159.71763626854,
+              112.36620744209478,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              185.60886191857094,
+              112.36620744209478,
+              0
+            ],
+            "bulge": 0.25322023213282807,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              208.20484150910625,
+              124.59376261635629,
+              0
+            ],
+            "bulge": -0.5411385297667392,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              236.92056525070348,
+              124.59376261635629,
+              0
+            ],
+            "bulge": -1.0000000000000002,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              222.56270337990486,
+              115.21221281163733,
+              0
+            ],
+            "bulge": 1.741753120915666,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": false,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BAA",
+      "handle": "BAA",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          159.71763626854,
+          81.32744457575475,
+          0
+        ],
+        "max": [
+          238.31717745354624,
+          102.36335487971418,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              159.71763626854,
+              82.36620744209478,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              185.60886191857094,
+              82.36620744209478,
+              0
+            ],
+            "bulge": 0.25322023213282807,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              208.20484150910625,
+              94.59376261635629,
+              0
+            ],
+            "bulge": -0.5411385297667392,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              236.92056525070348,
+              94.59376261635629,
+              0
+            ],
+            "bulge": -1.0000000000000002,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              222.56270337990486,
+              85.21221281163733,
+              0
+            ],
+            "bulge": 1.741753120915666,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": false,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BAB",
+      "handle": "BAB",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          159.71763626854,
+          51.32744457575475,
+          0
+        ],
+        "max": [
+          238.31717745354624,
+          72.36335487971418,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              159.71763626854,
+              52.366207442094776,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              185.60886191857094,
+              52.366207442094776,
+              0
+            ],
+            "bulge": 0.25322023213282807,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              208.20484150910625,
+              64.59376261635629,
+              0
+            ],
+            "bulge": -0.5411385297667392,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              236.92056525070348,
+              64.59376261635629,
+              0
+            ],
+            "bulge": -1.0000000000000002,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              222.56270337990486,
+              55.21221281163733,
+              0
+            ],
+            "bulge": 1.741753120915666,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": false,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BAC",
+      "handle": "BAC",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          159.71763626854,
+          21.327444575754747,
+          0
+        ],
+        "max": [
+          238.31717745354624,
+          42.36335487971418,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              159.71763626854,
+              22.366207442094776,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              185.60886191857094,
+              22.366207442094776,
+              0
+            ],
+            "bulge": 0.25322023213282807,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              208.20484150910625,
+              34.59376261635629,
+              0
+            ],
+            "bulge": -0.5411385297667392,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              236.92056525070348,
+              34.59376261635629,
+              0
+            ],
+            "bulge": -1.0000000000000002,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              222.56270337990486,
+              25.21221281163733,
+              0
+            ],
+            "bulge": 1.741753120915666,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": false,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BAD",
+      "handle": "BAD",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          127.80045289431469,
+          20.01342840474229,
+          0
+        ],
+        "max": [
+          140.3004528943147,
+          43.361348063481955,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:BAE",
+      "handle": "BAE",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          115.72537965603374,
+          20.01342840474229,
+          0
+        ],
+        "max": [
+          128.2238062519572,
+          66.70926772222163,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:BAF",
+      "handle": "BAF",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          260.72537965603374,
+          20.01342840474229,
+          0
+        ],
+        "max": [
+          273.22493724684045,
+          54.381382541096926,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:BB0",
+      "handle": "BB0",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          248.22980259634133,
+          70.01342840474229,
+          0
+        ],
+        "max": [
+          273.2207412255551,
+          116.70926293471577,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:BB1",
+      "handle": "BB1",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          248.22537965603374,
+          178.36134806348196,
+          0
+        ],
+        "max": [
+          260.72537965628004,
+          201.70926772222163,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:BB2",
+      "handle": "BB2",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "curve-ltypes",
+      "bbox": {
+        "min": [
+          248.2254196777897,
+          131.46634413187428,
+          0
+        ],
+        "max": [
+          273.22533963427776,
+          161.70510009907582,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:90C",
+      "handle": "90C",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          -3.679559141829536,
+          -3.1211874121856553,
+          0
+        ],
+        "max": [
+          23.628972558956804,
+          7.90259883204812,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:943",
+      "handle": "943",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5000000000000009,
+          6.5,
+          0
+        ],
+        "max": [
+          1.500000000000001,
+          7.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              0.5000000000000011,
+              7.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              0.5000000000000009,
+              6.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.500000000000001,
+              6.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.500000000000001,
+              7.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:944",
+      "handle": "944",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5000000000000007,
+          5,
+          0
+        ],
+        "max": [
+          1.5000000000000009,
+          6,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              0.5000000000000009,
+              6,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              0.5000000000000007,
+              5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.5000000000000009,
+              5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.5000000000000009,
+              6,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:945",
+      "handle": "945",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5000000000000004,
+          3.5,
+          0
+        ],
+        "max": [
+          1.5000000000000007,
+          4.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              0.5000000000000007,
+              4.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              0.5000000000000004,
+              3.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.5000000000000007,
+              3.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.5000000000000007,
+              4.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:946",
+      "handle": "946",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5000000000000002,
+          2,
+          0
+        ],
+        "max": [
+          1.5000000000000004,
+          3,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              0.5000000000000004,
+              3,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              0.5000000000000002,
+              2,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.5000000000000004,
+              2,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.5000000000000004,
+              3,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:947",
+      "handle": "947",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5,
+          0.5,
+          0
+        ],
+        "max": [
+          1.5000000000000002,
+          1.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              0.5000000000000002,
+              1.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              0.5,
+              0.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.5000000000000002,
+              0.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              1.5000000000000002,
+              1.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:9E0",
+      "handle": "9E0",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5000000000000009,
+          6.5,
+          0
+        ],
+        "max": [
+          1.500000000000001,
+          7.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:9E1",
+      "handle": "9E1",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5000000000000007,
+          5,
+          0
+        ],
+        "max": [
+          1.5000000000000009,
+          6,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:9E2",
+      "handle": "9E2",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5000000000000004,
+          3.5,
+          0
+        ],
+        "max": [
+          1.5000000000000007,
+          4.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:9E3",
+      "handle": "9E3",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5000000000000002,
+          2,
+          0
+        ],
+        "max": [
+          1.5000000000000004,
+          3,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:9F4",
+      "handle": "9F4",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          0.5,
+          0.5,
+          0
+        ],
+        "max": [
+          1.5000000000000002,
+          1.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:A0A",
+      "handle": "A0A",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2.5,
+          0.5,
+          0
+        ],
+        "max": [
+          3.5,
+          2,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              2.5,
+              0.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              2.5,
+              1.5,
+              0
+            ],
+            "bulge": -1.0000000000000004,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              3.5,
+              1.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              3.5,
+              0.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:A0C",
+      "handle": "A0C",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2.5,
+          2.5,
+          0
+        ],
+        "max": [
+          3.5,
+          3.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          3,
+          3,
+          0
+        ],
+        "radius": 0.5,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:A0D",
+      "handle": "A0D",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2.5,
+          4.5,
+          0
+        ],
+        "max": [
+          3.5,
+          5.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          3,
+          5,
+          0
+        ],
+        "radius": 0.5,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:A0E",
+      "handle": "A0E",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2,
+          4,
+          0
+        ],
+        "max": [
+          4,
+          6,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          3,
+          5,
+          0
+        ],
+        "radius": 1,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:A16",
+      "handle": "A16",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2,
+          4,
+          -1
+        ],
+        "max": [
+          4,
+          6,
+          1
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:A1C",
+      "handle": "A1C",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2.5,
+          2.5,
+          0
+        ],
+        "max": [
+          3.5,
+          3.5,
+          1
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:A24",
+      "handle": "A24",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2.5,
+          0.5,
+          0
+        ],
+        "max": [
+          3.5,
+          2,
+          1
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:A3C",
+      "handle": "A3C",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2,
+          6.500000000000001,
+          0
+        ],
+        "max": [
+          4,
+          7.500000000000001,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:A62",
+      "handle": "A62",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          2,
+          6.500000000000001,
+          0
+        ],
+        "max": [
+          4,
+          7.500000000000001,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:A71",
+      "handle": "A71",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.500000000000001,
+          0.5,
+          0
+        ],
+        "max": [
+          5.500000000000002,
+          1.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              4.500000000000001,
+              0.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              4.500000000000001,
+              1.5,
+              0
+            ],
+            "bulge": 0.9999999999999999,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              5.500000000000001,
+              1.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              5.500000000000002,
+              0.5000000000000002,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:A7F",
+      "handle": "A7F",
+      "type": "SPLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.429800240584552,
+          2.117702249806193,
+          0
+        ],
+        "max": [
+          6.485977119951942,
+          3.70802901030579,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:SPLINE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:SPLINE"
+      ]
+    },
+    {
+      "id": "h:A80",
+      "handle": "A80",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          5.284571872485174,
+          4.5,
+          0
+        ],
+        "max": [
+          6.284446000159049,
+          5.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:A82",
+      "handle": "A82",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.284571872485174,
+          4.5,
+          0
+        ],
+        "max": [
+          5.284571872485174,
+          4.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          5.284571872485174,
+          4.5,
+          0
+        ],
+        "end": [
+          4.284571872485174,
+          4.5,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:A83",
+      "handle": "A83",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.284571872485174,
+          4.5,
+          0
+        ],
+        "max": [
+          4.284571872485174,
+          5.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          4.284571872485174,
+          4.5,
+          0
+        ],
+        "end": [
+          4.284571872485174,
+          5.5,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:A84",
+      "handle": "A84",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.284571872485174,
+          5.5,
+          0
+        ],
+        "max": [
+          5.284571872485174,
+          5.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          4.284571872485174,
+          5.5,
+          0
+        ],
+        "end": [
+          5.284571872485174,
+          5.5,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:AA8",
+      "handle": "AA8",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.22798393693697,
+          1.9408074596507139,
+          0
+        ],
+        "max": [
+          6.909170634982304,
+          4.411099555078766,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:AB0",
+      "handle": "AB0",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.500000000000001,
+          0.5,
+          -1
+        ],
+        "max": [
+          5.500000000000002,
+          1.5000000000000004,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:AC9",
+      "handle": "AC9",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.284571872485174,
+          4.5,
+          0
+        ],
+        "max": [
+          6.284446000159049,
+          5.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:AD2",
+      "handle": "AD2",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.2845718724851745,
+          6.500000000000001,
+          0
+        ],
+        "max": [
+          5.2845718724851745,
+          7.500000000000001,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          4.7845718724851745,
+          7.000000000000001,
+          0
+        ],
+        "radius": 0.5,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:AD3",
+      "handle": "AD3",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          5.500000000000001,
+          6.5,
+          0
+        ],
+        "max": [
+          6.500000000000001,
+          7.5,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              5.500000000000001,
+              7.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              5.500000000000001,
+              6.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              6.500000000000001,
+              6.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              6.500000000000001,
+              7.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:AE1",
+      "handle": "AE1",
+      "type": "HATCH",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          4.2845718724851745,
+          6,
+          0
+        ],
+        "max": [
+          9.5,
+          7.999874127673875,
+          1
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:HATCH",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:HATCH"
+      ]
+    },
+    {
+      "id": "h:AF0",
+      "handle": "AF0",
+      "type": "LWPOLYLINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          7.000000000000001,
+          6.5,
+          0
+        ],
+        "max": [
+          8,
+          8,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "vertices": [
+          {
+            "point": [
+              7.000000000000001,
+              6.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              7.000000000000001,
+              7.5,
+              0
+            ],
+            "bulge": -1.0000000000000004,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              8,
+              7.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          },
+          {
+            "point": [
+              8,
+              6.5,
+              0
+            ],
+            "bulge": 0,
+            "startWidth": 0,
+            "endWidth": 0
+          }
+        ],
+        "closed": true,
+        "elevation": 0,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "lwpolyline"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:AFD",
+      "handle": "AFD",
+      "type": "ELLIPSE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          8.5,
+          7,
+          0
+        ],
+        "max": [
+          9.5,
+          7.999874127673875,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:ELLIPSE",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:ELLIPSE"
+      ]
+    },
+    {
+      "id": "h:AFE",
+      "handle": "AFE",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          9.5,
+          6,
+          0
+        ],
+        "max": [
+          9.5,
+          7,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          9.5,
+          7,
+          0
+        ],
+        "end": [
+          9.5,
+          6,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:AFF",
+      "handle": "AFF",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          8.5,
+          6,
+          0
+        ],
+        "max": [
+          9.5,
+          6,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          9.5,
+          6,
+          0
+        ],
+        "end": [
+          8.5,
+          6,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:B00",
+      "handle": "B00",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "hatch",
+      "bbox": {
+        "min": [
+          8.5,
+          6,
+          0
+        ],
+        "max": [
+          8.5,
+          7,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          8.5,
+          6,
+          0
+        ],
+        "end": [
+          8.5,
+          7,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:BEE",
+      "handle": "BEE",
+      "type": "VIEWPORT",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          -8.439795202551174,
+          -1.3270667666318303,
+          0
+        ],
+        "max": [
+          21.9038478203205,
+          11.119102329034142,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:VIEWPORT",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:VIEWPORT"
+      ]
+    },
+    {
+      "id": "h:C57",
+      "handle": "C57",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          0.7765366437406769,
+          6.706248439342023,
+          0
+        ],
+        "max": [
+          3.276536643740677,
+          6.706248439342023,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          0.7765366437406769,
+          6.706248439342023,
+          0
+        ],
+        "end": [
+          3.276536643740677,
+          6.706248439342023,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:C58",
+      "handle": "C58",
+      "type": "DIMENSION",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          0.7765366437406769,
+          6.706248439342023,
+          0
+        ],
+        "max": [
+          3.276536643740677,
+          6.706248439342023,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:DIMENSION",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:DIMENSION"
+      ]
+    },
+    {
+      "id": "h:C5A",
+      "handle": "C5A",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          0.5265366437406769,
+          6.456248439342023,
+          0
+        ],
+        "max": [
+          1.0265366437406769,
+          6.956248439342023,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          0.7765366437406769,
+          6.706248439342023,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:C5B",
+      "handle": "C5B",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          3.026536643740677,
+          6.456248439342023,
+          0
+        ],
+        "max": [
+          3.526536643740677,
+          6.956248439342023,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          3.276536643740677,
+          6.706248439342023,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:C5C",
+      "handle": "C5C",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          3.026536643740677,
+          7.206248439342023,
+          0
+        ],
+        "max": [
+          3.526536643740677,
+          7.706248439342023,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          3.276536643740677,
+          7.456248439342023,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:C5D",
+      "handle": "C5D",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          0.5265366437406769,
+          6.456248439342023,
+          0
+        ],
+        "max": [
+          1.0265366437406769,
+          6.956248439342023,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          0.7765366437406769,
+          6.706248439342023,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CEC",
+      "handle": "CEC",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          0.7765366437406769,
+          3.546182035977041,
+          0
+        ],
+        "max": [
+          3.276536643740677,
+          6.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          2.026536643740677,
+          4.796182035977041,
+          0
+        ],
+        "radius": 1.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CED",
+      "handle": "CED",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          0.7765366437406769,
+          4.796182035977041,
+          0
+        ],
+        "max": [
+          3.276536643740677,
+          4.796182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          3.276536643740677,
+          4.796182035977041,
+          0
+        ],
+        "end": [
+          0.7765366437406769,
+          4.796182035977041,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CEE",
+      "handle": "CEE",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          2.026536643740677,
+          3.546182035977041,
+          0
+        ],
+        "max": [
+          2.026536643740677,
+          6.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          2.026536643740677,
+          6.046182035977041,
+          0
+        ],
+        "end": [
+          2.026536643740677,
+          3.546182035977041,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CEF",
+      "handle": "CEF",
+      "type": "DIMENSION",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          2.026536643740677,
+          3.546182035977041,
+          0
+        ],
+        "max": [
+          2.026536643740677,
+          6.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:DIMENSION",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:DIMENSION"
+      ]
+    },
+    {
+      "id": "h:CF1",
+      "handle": "CF1",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          1.7765366437406769,
+          5.796182035977041,
+          0
+        ],
+        "max": [
+          2.276536643740677,
+          6.296182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          2.026536643740677,
+          6.046182035977041,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CF2",
+      "handle": "CF2",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          1.7765366437406769,
+          3.296182035977041,
+          0
+        ],
+        "max": [
+          2.276536643740677,
+          3.796182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          2.026536643740677,
+          3.546182035977041,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CF3",
+      "handle": "CF3",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          3.026536643740677,
+          4.546182035977041,
+          0
+        ],
+        "max": [
+          3.526536643740677,
+          5.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          3.276536643740677,
+          4.796182035977041,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CF4",
+      "handle": "CF4",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          2.48533996707695,
+          4.955409825507739,
+          0
+        ],
+        "max": [
+          2.98533996707695,
+          5.455409825507739,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          2.73533996707695,
+          5.205409825507739,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CF5",
+      "handle": "CF5",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          0.5265366437406769,
+          4.546182035977041,
+          0
+        ],
+        "max": [
+          1.0265366437406769,
+          5.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          0.7765366437406769,
+          4.796182035977041,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:CF6",
+      "handle": "CF6",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          1.9015366437406769,
+          4.671182035977041,
+          0
+        ],
+        "max": [
+          2.151536643740677,
+          4.921182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          2.026536643740677,
+          4.796182035977041,
+          0
+        ],
+        "radius": 0.125,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D3C",
+      "handle": "D3C",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          4.07260484096355,
+          3.546182035977041,
+          0
+        ],
+        "max": [
+          6.57260484096355,
+          6.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          5.32260484096355,
+          4.796182035977041,
+          0
+        ],
+        "radius": 1.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D3D",
+      "handle": "D3D",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          4.07260484096355,
+          4.796182035977041,
+          0
+        ],
+        "max": [
+          6.57260484096355,
+          4.796182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          6.57260484096355,
+          4.796182035977041,
+          0
+        ],
+        "end": [
+          4.07260484096355,
+          4.796182035977041,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D3E",
+      "handle": "D3E",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          5.32260484096355,
+          3.546182035977041,
+          0
+        ],
+        "max": [
+          5.32260484096355,
+          6.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          5.32260484096355,
+          6.046182035977041,
+          0
+        ],
+        "end": [
+          5.32260484096355,
+          3.546182035977041,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D3F",
+      "handle": "D3F",
+      "type": "DIMENSION",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          5.905376295382631,
+          4.796182035977041,
+          0
+        ],
+        "max": [
+          6.57260484096355,
+          5.9020199227915,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:DIMENSION",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:DIMENSION"
+      ]
+    },
+    {
+      "id": "h:D41",
+      "handle": "D41",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          5.655376295382631,
+          5.6520199227915,
+          0
+        ],
+        "max": [
+          6.155376295382631,
+          6.1520199227915,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          5.905376295382631,
+          5.9020199227915,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D42",
+      "handle": "D42",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          6.32260484096355,
+          4.546182035977041,
+          0
+        ],
+        "max": [
+          6.82260484096355,
+          5.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          6.57260484096355,
+          4.796182035977041,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D43",
+      "handle": "D43",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          5.07260484096355,
+          4.546182035977041,
+          0
+        ],
+        "max": [
+          5.57260484096355,
+          5.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          5.32260484096355,
+          4.796182035977041,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D44",
+      "handle": "D44",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          5.855471369968226,
+          4.842580404535048,
+          0
+        ],
+        "max": [
+          6.355471369968226,
+          5.342580404535048,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          6.105471369968226,
+          5.092580404535048,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D45",
+      "handle": "D45",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          5.19760484096355,
+          4.671182035977041,
+          0
+        ],
+        "max": [
+          5.44760484096355,
+          4.921182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          5.32260484096355,
+          4.796182035977041,
+          0
+        ],
+        "radius": 0.125,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D93",
+      "handle": "D93",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          6.943205831306386,
+          3.546182035977041,
+          0
+        ],
+        "max": [
+          9.443205831306386,
+          6.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          8.193205831306386,
+          4.796182035977041,
+          0
+        ],
+        "radius": 1.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D94",
+      "handle": "D94",
+      "type": "DIMENSION",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          -8.98410850609352,
+          -5.764155671472636,
+          0
+        ],
+        "max": [
+          8.98410850609352,
+          5.764155671472636,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:DIMENSION",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:DIMENSION"
+      ]
+    },
+    {
+      "id": "h:D96",
+      "handle": "D96",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          7.1523031565192525,
+          3.578208400481447,
+          0
+        ],
+        "max": [
+          7.6523031565192525,
+          4.078208400481447,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          7.4023031565192525,
+          3.828208400481447,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D97",
+      "handle": "D97",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          7.943205831306386,
+          4.546182035977041,
+          0
+        ],
+        "max": [
+          8.443205831306386,
+          5.046182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          8.193205831306386,
+          4.796182035977041,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D98",
+      "handle": "D98",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          8.73410850609352,
+          5.5141556714726345,
+          0
+        ],
+        "max": [
+          9.23410850609352,
+          6.0141556714726345,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          8.98410850609352,
+          5.7641556714726345,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:D99",
+      "handle": "D99",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          8.068205831306386,
+          4.671182035977041,
+          0
+        ],
+        "max": [
+          8.318205831306386,
+          4.921182035977041,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          8.193205831306386,
+          4.796182035977041,
+          0
+        ],
+        "radius": 0.125,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:DD5",
+      "handle": "DD5",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          4.901056318070559,
+          0.9186584091964285,
+          0
+        ],
+        "max": [
+          6.151056318070559,
+          2.1686584091964285,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          4.901056318070559,
+          0.9186584091964285,
+          0
+        ],
+        "end": [
+          6.151056318070559,
+          2.1686584091964285,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:DD6",
+      "handle": "DD6",
+      "type": "DIMENSION",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          4.901056318070559,
+          0.9186584091964285,
+          0
+        ],
+        "max": [
+          6.151056318070559,
+          2.1686584091964285,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:DIMENSION",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:DIMENSION"
+      ]
+    },
+    {
+      "id": "h:DD8",
+      "handle": "DD8",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          4.651056318070559,
+          0.6686584091964285,
+          0
+        ],
+        "max": [
+          5.151056318070559,
+          1.1686584091964285,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          4.901056318070559,
+          0.9186584091964285,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:DD9",
+      "handle": "DD9",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          5.901056318070559,
+          1.9186584091964285,
+          0
+        ],
+        "max": [
+          6.401056318070559,
+          2.4186584091964285,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          6.151056318070559,
+          2.1686584091964285,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:DDA",
+      "handle": "DDA",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          5.901056318070559,
+          2.3480294899477947,
+          0
+        ],
+        "max": [
+          6.401056318070559,
+          2.8480294899477947,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          6.151056318070559,
+          2.5980294899477947,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:DDB",
+      "handle": "DDB",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          4.776056318070559,
+          0.7936584091964285,
+          0
+        ],
+        "max": [
+          5.026056318070559,
+          1.0436584091964285,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          4.901056318070559,
+          0.9186584091964285,
+          0
+        ],
+        "radius": 0.125,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E1A",
+      "handle": "E1A",
+      "type": "LINE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          1.1433481961579588,
+          0.9914261145789045,
+          0
+        ],
+        "max": [
+          2.393348196157959,
+          2.2414261145789043,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "start": [
+          1.1433481961579588,
+          0.9914261145789045,
+          0
+        ],
+        "end": [
+          2.393348196157959,
+          2.2414261145789043,
+          0
+        ],
+        "kind": "line"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E1B",
+      "handle": "E1B",
+      "type": "DIMENSION",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          2.3933481961579606,
+          2.241426114578906,
+          0
+        ],
+        "max": [
+          2.9389578242941816,
+          2.407679215302287,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:DIMENSION",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:DIMENSION"
+      ]
+    },
+    {
+      "id": "h:E1D",
+      "handle": "E1D",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          2.1433481961579606,
+          1.991426114578906,
+          0
+        ],
+        "max": [
+          2.6433481961579606,
+          2.491426114578906,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          2.3933481961579606,
+          2.241426114578906,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E1E",
+      "handle": "E1E",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          2.6889578242941816,
+          2.157679215302287,
+          0
+        ],
+        "max": [
+          3.1889578242941816,
+          2.657679215302287,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          2.9389578242941816,
+          2.407679215302287,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E1F",
+      "handle": "E1F",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          0.8933481961579588,
+          0.7414261145789045,
+          0
+        ],
+        "max": [
+          1.3933481961579588,
+          1.2414261145789045,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          1.1433481961579588,
+          0.9914261145789045,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E20",
+      "handle": "E20",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          1.0183481961579588,
+          0.8664261145789045,
+          0
+        ],
+        "max": [
+          1.2683481961579588,
+          1.1164261145789045,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          1.1433481961579588,
+          0.9914261145789045,
+          0
+        ],
+        "radius": 0.125,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E64",
+      "handle": "E64",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          6.943205831306413,
+          0.8248596093610292,
+          0
+        ],
+        "max": [
+          9.443205831306413,
+          3.324859609361029,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          8.193205831306413,
+          2.074859609361029,
+          0
+        ],
+        "radius": 1.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E65",
+      "handle": "E65",
+      "type": "DIMENSION",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          -9.165475368268439,
+          -2.8604752580695187,
+          0
+        ],
+        "max": [
+          9.165475368268439,
+          2.8604752580695187,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "reason": "geometry-fallback:DIMENSION",
+        "kind": "bbox"
+      },
+      "warnings": [
+        "geometry-fallback:DIMENSION"
+      ]
+    },
+    {
+      "id": "h:E67",
+      "handle": "E67",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          8.915475368268433,
+          2.610475258069517,
+          0
+        ],
+        "max": [
+          9.415475368268433,
+          3.110475258069517,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          9.165475368268433,
+          2.860475258069517,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E68",
+      "handle": "E68",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          7.943205831306413,
+          1.8248596093610292,
+          0
+        ],
+        "max": [
+          8.443205831306413,
+          2.324859609361029,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          8.193205831306413,
+          2.074859609361029,
+          0
+        ],
+        "radius": 0.25,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    },
+    {
+      "id": "h:E69",
+      "handle": "E69",
+      "type": "CIRCLE",
+      "layer": "0",
+      "space": "paper",
+      "layout": "dimensions",
+      "bbox": {
+        "min": [
+          8.068205831306413,
+          1.9498596093610292,
+          0
+        ],
+        "max": [
+          8.318205831306413,
+          2.199859609361029,
+          0
+        ]
+      },
+      "text": null,
+      "blockName": null,
+      "attributes": {},
+      "geometry": {
+        "center": [
+          8.193205831306413,
+          2.074859609361029,
+          0
+        ],
+        "radius": 0.125,
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "kind": "circle"
+      },
+      "warnings": []
+    }
+  ],
+  "unsupported": [
+    {
+      "type": "DIMENSION",
+      "count": 7,
+      "reason": "geometry-fallback:DIMENSION"
+    },
+    {
+      "type": "ELLIPSE",
+      "count": 11,
+      "reason": "geometry-fallback:ELLIPSE"
+    },
+    {
+      "type": "HATCH",
+      "count": 14,
+      "reason": "geometry-fallback:HATCH"
+    },
+    {
+      "type": "SPLINE",
+      "count": 1,
+      "reason": "geometry-fallback:SPLINE"
+    },
+    {
+      "type": "VIEWPORT",
+      "count": 10,
+      "reason": "geometry-fallback:VIEWPORT"
+    }
+  ]
+}

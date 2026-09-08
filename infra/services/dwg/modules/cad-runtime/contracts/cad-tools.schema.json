@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cad-tools.schema.json",
+  "title": "CAD MCP Tool Contract v0.1",
+  "type": "object",
+  "properties": {
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "inputSchema"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^cad\\." },
+          "description": { "type": "string" },
+          "inputSchema": { "type": "object" }
+        }
+      }
+    }
+  }
+}

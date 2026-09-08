@@ -1,6 +1,18 @@
-# Pascal Editor
+# Pascal Editor + PLAN
 
-A 3D building editor built with React Three Fiber and WebGPU.
+Two products in one repository:
+
+- **Pascal Editor** — a 3D building editor built with React Three Fiber and WebGPU.
+- **PLAN / PLANM** — floorplan generation, review, approval and DWG delivery.
+  Absorbed from `akfldk1028/PLAN` with its history intact. See
+  [docs/PLAN.md](docs/PLAN.md) and [docs/PLAN-README.md](docs/PLAN-README.md).
+
+PLANM produces a floorplan; the editor renders and edits it in 3D. The bridge
+between them is the `apply_floor_plan` MCP tool — see
+[docs/mcp/floor-plan.md](docs/mcp/floor-plan.md).
+
+Its scripts live under the `plan:` prefix (`bun run plan:dev`), the editor's are
+unprefixed (`bun dev`).
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![npm @pascal-app/core](https://img.shields.io/npm/v/@pascal-app/core?label=%40pascal-app%2Fcore)](https://www.npmjs.com/package/@pascal-app/core)

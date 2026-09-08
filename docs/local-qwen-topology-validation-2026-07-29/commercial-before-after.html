@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>L commercial topology before and after</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { width: 1600px; margin: 0; background: #fff; color: #111; font: 18px Arial, sans-serif; }
+    main { padding: 32px; }
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    p { margin: 0 0 24px; color: #444; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    article { border: 1px solid #aaa; padding: 14px; }
+    h2 { margin: 0 0 6px; font-size: 21px; }
+    .meta { min-height: 48px; margin-bottom: 8px; color: #444; font-size: 15px; line-height: 1.45; }
+    img { display: block; width: 100%; height: auto; background: #fff; }
+    .failure { display: grid; min-height: 500px; place-content: center; border: 2px dashed #a33; background: #fff7f7; padding: 30px; }
+    .failure strong { color: #8b1f1f; font-size: 24px; }
+    .failure code { margin-top: 18px; font: 16px Consolas, monospace; line-height: 1.5; }
+    .before { border-top: 6px solid #a33; }
+    .after { border-top: 6px solid #177245; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>L자 근생: 이전 / 이후</h1>
+  <p>같은 L자 setback mass, floor 1. 이전에는 sales 셀 깊이 1.98m로 기본설계가 중단됐고 이후에는 두 sales가 도로에 접합니다.</p>
+  <div class="grid">
+    <article class="before">
+      <h2>이전</h2>
+      <div class="meta">생성 실패 · PNG 없음<br>도로 접면 셀 과분할</div>
+      <div class="failure">
+        <strong>GENERATION FAILED</strong>
+        <code>room 'sales_a' cannot place concept<br>sales_shelf arrangement</code>
+      </div>
+    </article>
+    <article class="after">
+      <h2>이후 1안</h2>
+      <div class="meta">score 0.8514 · hard violations 0<br>fingerprint fb1b540ca93a21ac</div>
+      <img src="comparison-assets/commercial-after-1.png" alt="Commercial after topology 1">
+    </article>
+    <article class="after">
+      <h2>이후 2안</h2>
+      <div class="meta">score 0.8514 · hard violations 0<br>fingerprint 333f57bb8261796b</div>
+      <img src="comparison-assets/commercial-after-2.png" alt="Commercial after topology 2">
+    </article>
+  </div>
+</main>
+</body>
+</html>

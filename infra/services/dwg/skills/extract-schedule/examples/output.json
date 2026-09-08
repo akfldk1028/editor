@@ -1,0 +1,10 @@
+{
+  "rows": [
+    {
+      "sourceHandles": ["30"],
+      "cells": ["ROOM 101"],
+      "layer": "A-TEXT",
+      "bbox": { "min": [100, 100, 0], "max": [100, 100, 0] }
+    }
+  ]
+}

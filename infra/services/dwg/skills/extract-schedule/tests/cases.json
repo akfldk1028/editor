@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "cad-skill-cases/v1",
+  "skillId": "extract-schedule",
+  "cases": [
+    {
+      "id": "dxf-text-row",
+      "fixture": "dxf.minimal-architectural",
+      "scenario": "opened-fixture",
+      "input": "examples/input.json",
+      "output": "examples/output.json",
+      "status": "passed"
+    },
+    {
+      "id": "dxf-no-text-match",
+      "fixture": "dxf.minimal-architectural",
+      "scenario": "opened-fixture",
+      "input": "tests/no-match-input.json",
+      "output": "tests/no-match-output.json",
+      "status": "passed"
+    },
+    {
+      "id": "invalid-y-tolerance",
+      "fixture": "dxf.minimal-architectural",
+      "scenario": "opened-fixture",
+      "input": "tests/invalid-input.json",
+      "output": "tests/invalid-output.json",
+      "status": "failed"
+    }
+  ]
+}

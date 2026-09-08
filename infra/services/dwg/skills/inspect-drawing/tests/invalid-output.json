@@ -1,0 +1,6 @@
+{
+  "skillId": "inspect-drawing",
+  "status": "failed",
+  "steps": [],
+  "warnings": ["INPUT_SCHEMA_INVALID"]
+}

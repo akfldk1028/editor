@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cad-index.schema.json",
+  "title": "CAD Entity Index",
+  "oneOf": [
+    { "$ref": "#/$defs/indexV01" },
+    { "$ref": "#/$defs/indexV02" }
+  ],
+  "$defs": {
+    "point3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "bbox": {
+      "type": "object",
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "$ref": "#/$defs/point3" },
+        "max": { "$ref": "#/$defs/point3" }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "required": ["kind", "displayName", "parser"],
+      "properties": {
+        "kind": { "enum": ["dxf", "dwg"] },
+        "displayName": { "type": "string" },
+        "parser": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "entityCount",
+        "layerCount",
+        "unsupportedCount",
+        "modelSpaceCount",
+        "paperSpaceCount"
+      ],
+      "properties": {
+        "entityCount": { "type": "integer", "minimum": 0 },
+        "layerCount": { "type": "integer", "minimum": 0 },
+        "unsupportedCount": { "type": "integer", "minimum": 0 },
+        "modelSpaceCount": { "type": "integer", "minimum": 0 },
+        "paperSpaceCount": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "drawing": {
+      "type": "object",
+      "required": ["fileVersion", "units"],
+      "properties": {
+        "fileVersion": { "type": ["string", "null"] },
+        "units": { "type": ["string", "null"] },
+        "revision": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "layer": {
+      "type": "object",
+      "required": ["name", "entityCount", "visible", "frozen"],
+      "properties": {
+        "name": { "type": "string" },
+        "entityCount": { "type": "integer", "minimum": 0 },
+        "visible": { "type": "boolean" },
+        "frozen": { "type": "boolean" },
+        "color": { "type": ["number", "null"] },
+        "locked": { "type": ["boolean", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "unsupported": {
+      "type": "object",
+      "required": ["type", "count", "reason"],
+      "properties": {
+        "type": { "type": "string" },
+        "count": { "type": "integer", "minimum": 0 },
+        "reason": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "entityBase": {
+      "type": "object",
+      "required": [
+        "id",
+        "handle",
+        "type",
+        "layer",
+        "space",
+        "layout",
+        "bbox",
+        "text",
+        "blockName",
+        "attributes",
+        "geometry",
+        "warnings"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "handle": { "type": ["string", "null"] },
+        "type": { "type": "string" },
+        "layer": { "type": "string" },
+        "space": { "enum": ["model", "paper", "unknown"] },
+        "layout": { "type": "string" },
+        "bbox": {
+          "oneOf": [
+            { "$ref": "#/$defs/bbox" },
+            { "type": "null" }
+          ]
+        },
+        "text": { "type": ["string", "null"] },
+        "blockName": { "type": ["string", "null"] },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "geometry": {},
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "legacyEntity": {
+      "allOf": [
+        { "$ref": "#/$defs/entityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "geometry": { "type": "object" }
+          }
+        }
+      ]
+    },
+    "lineGeometry": {
+      "type": "object",
+      "required": ["kind", "start", "end"],
+      "properties": {
+        "kind": { "const": "line" },
+        "start": { "$ref": "#/$defs/point3" },
+        "end": { "$ref": "#/$defs/point3" }
+      },
+      "additionalProperties": false
+    },
+    "circleGeometry": {
+      "type": "object",
+      "required": ["kind", "center", "radius", "normal"],
+      "properties": {
+        "kind": { "const": "circle" },
+        "center": { "$ref": "#/$defs/point3" },
+        "radius": { "type": "number", "exclusiveMinimum": 0 },
+        "normal": { "$ref": "#/$defs/point3" }
+      },
+      "additionalProperties": false
+    },
+    "arcGeometry": {
+      "type": "object",
+      "required": [
+        "kind",
+        "center",
+        "radius",
+        "startAngle",
+        "endAngle",
+        "normal"
+      ],
+      "properties": {
+        "kind": { "const": "arc" },
+        "center": { "$ref": "#/$defs/point3" },
+        "radius": { "type": "number", "exclusiveMinimum": 0 },
+        "startAngle": { "type": "number" },
+        "endAngle": { "type": "number" },
+        "normal": { "$ref": "#/$defs/point3" }
+      },
+      "additionalProperties": false
+    },
+    "polylineVertex": {
+      "type": "object",
+      "required": ["point", "bulge", "startWidth", "endWidth"],
+      "properties": {
+        "point": { "$ref": "#/$defs/point3" },
+        "bulge": { "type": "number" },
+        "startWidth": { "type": "number" },
+        "endWidth": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "lwpolylineGeometry": {
+      "type": "object",
+      "required": ["kind", "vertices", "closed", "elevation", "normal"],
+      "properties": {
+        "kind": { "const": "lwpolyline" },
+        "vertices": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/polylineVertex" }
+        },
+        "closed": { "type": "boolean" },
+        "elevation": { "type": "number" },
+        "normal": { "$ref": "#/$defs/point3" }
+      },
+      "additionalProperties": false
+    },
+    "pointGeometry": {
+      "type": "object",
+      "required": ["kind", "position"],
+      "properties": {
+        "kind": { "const": "point" },
+        "position": { "$ref": "#/$defs/point3" }
+      },
+      "additionalProperties": false
+    },
+    "textGeometry": {
+      "type": "object",
+      "required": [
+        "kind",
+        "insertionPoint",
+        "alignmentPoint",
+        "height",
+        "rotation",
+        "width"
+      ],
+      "properties": {
+        "kind": { "const": "text" },
+        "insertionPoint": { "$ref": "#/$defs/point3" },
+        "alignmentPoint": {
+          "oneOf": [
+            { "$ref": "#/$defs/point3" },
+            { "type": "null" }
+          ]
+        },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "rotation": { "type": "number" },
+        "width": { "type": ["number", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "insertGeometry": {
+      "type": "object",
+      "required": [
+        "kind",
+        "insertionPoint",
+        "rotation",
+        "scale",
+        "normal"
+      ],
+      "properties": {
+        "kind": { "const": "insert" },
+        "insertionPoint": { "$ref": "#/$defs/point3" },
+        "rotation": { "type": "number" },
+        "scale": { "$ref": "#/$defs/point3" },
+        "normal": { "$ref": "#/$defs/point3" }
+      },
+      "additionalProperties": false
+    },
+    "fallbackGeometry": {
+      "type": "object",
+      "required": ["kind", "reason"],
+      "properties": {
+        "kind": { "enum": ["bbox", "unavailable"] },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "geometryV02": {
+      "oneOf": [
+        { "$ref": "#/$defs/lineGeometry" },
+        { "$ref": "#/$defs/circleGeometry" },
+        { "$ref": "#/$defs/arcGeometry" },
+        { "$ref": "#/$defs/lwpolylineGeometry" },
+        { "$ref": "#/$defs/pointGeometry" },
+        { "$ref": "#/$defs/textGeometry" },
+        { "$ref": "#/$defs/insertGeometry" },
+        { "$ref": "#/$defs/fallbackGeometry" }
+      ]
+    },
+    "entityV02": {
+      "allOf": [
+        { "$ref": "#/$defs/entityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "geometry": { "$ref": "#/$defs/geometryV02" }
+          }
+        }
+      ]
+    },
+    "indexV01": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "drawingId",
+        "source",
+        "summary",
+        "layers",
+        "entities",
+        "unsupported"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "cad-index/v0.1" },
+        "drawingId": { "type": "string", "minLength": 1 },
+        "source": { "$ref": "#/$defs/source" },
+        "summary": { "$ref": "#/$defs/summary" },
+        "layers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/layer" }
+        },
+        "entities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/legacyEntity" }
+        },
+        "unsupported": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/unsupported" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "indexV02": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "drawingId",
+        "source",
+        "summary",
+        "layers",
+        "entities",
+        "unsupported"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "cad-index/v0.2" },
+        "drawingId": { "type": "string", "minLength": 1 },
+        "drawing": { "$ref": "#/$defs/drawing" },
+        "source": { "$ref": "#/$defs/source" },
+        "summary": { "$ref": "#/$defs/summary" },
+        "layers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/layer" }
+        },
+        "entities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/entityV02" }
+        },
+        "unsupported": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/unsupported" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,153 @@
+﻿{
+    "schema_version":  2,
+    "source_commit":  "d095f4a",
+    "source_run":  "logs/runs/building_quality_irregular_refresh_d095f4a",
+    "cli_exit_code":  1,
+    "accepted_count":  1,
+    "retained_at_utc":  "2026-07-30T09:57:44.5184173Z",
+    "comparison_png":  {
+                           "status":  "not_emitted",
+                           "note":  "The CLI source run did not emit a comparison PNG."
+                       },
+    "git_whitespace_qualification":  {
+                                         "attribute_file":  ".gitattributes",
+                                         "path":  "source-run/alternative-01/index.html",
+                                         "setting":  "-whitespace",
+                                         "reason":  "Retained generated HTML contains source trailing whitespace and must remain byte-for-byte identical."
+                                     },
+    "files":  [
+                  {
+                      "relative_path":  "alternative-01/building.review.json",
+                      "bytes":  99675,
+                      "source_sha256":  "3374e76029b819cd7074d5152f128285a07b2febfb9bacd837577409e9ed284b",
+                      "retained_sha256":  "3374e76029b819cd7074d5152f128285a07b2febfb9bacd837577409e9ed284b",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.html",
+                      "bytes":  89841,
+                      "source_sha256":  "a975f60da04b34f2514c511478842b7d433ce692038589d21c6b6d0ab98cedd9",
+                      "retained_sha256":  "a975f60da04b34f2514c511478842b7d433ce692038589d21c6b6d0ab98cedd9",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.png",
+                      "bytes":  33337,
+                      "source_sha256":  "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+                      "retained_sha256":  "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.review.json",
+                      "bytes":  70713,
+                      "source_sha256":  "7816a01f167943edcb372796915a7c283e79d2efa163c59517933ecac366c9f1",
+                      "retained_sha256":  "7816a01f167943edcb372796915a7c283e79d2efa163c59517933ecac366c9f1",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_001/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f1.svg",
+                      "bytes":  70241,
+                      "source_sha256":  "47532e3ba93f5f2be21bf752e737c9c8b3858b1a03736c6a933cbe9110c754c7",
+                      "retained_sha256":  "47532e3ba93f5f2be21bf752e737c9c8b3858b1a03736c6a933cbe9110c754c7",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.html",
+                      "bytes":  84929,
+                      "source_sha256":  "784f39f507d104b94dd05737c0704523a73a0698deec982cb7af0e892a4a9ccf",
+                      "retained_sha256":  "784f39f507d104b94dd05737c0704523a73a0698deec982cb7af0e892a4a9ccf",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.png",
+                      "bytes":  32801,
+                      "source_sha256":  "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+                      "retained_sha256":  "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.review.json",
+                      "bytes":  69069,
+                      "source_sha256":  "444489b4f973f61270f6fd35567398dc2655b9c721cc13137140612b46e815ba",
+                      "retained_sha256":  "444489b4f973f61270f6fd35567398dc2655b9c721cc13137140612b46e815ba",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_002/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f2.svg",
+                      "bytes":  65339,
+                      "source_sha256":  "96119d4bf6d5335eea9fa818fd565f45ab8de43a76b11b863f4249201dc50b73",
+                      "retained_sha256":  "96119d4bf6d5335eea9fa818fd565f45ab8de43a76b11b863f4249201dc50b73",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.html",
+                      "bytes":  79492,
+                      "source_sha256":  "b51cd5b0c06c5dc652362d39fdd97ae16faa400b2710d2fe1d40c82e339544d2",
+                      "retained_sha256":  "b51cd5b0c06c5dc652362d39fdd97ae16faa400b2710d2fe1d40c82e339544d2",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.png",
+                      "bytes":  32399,
+                      "source_sha256":  "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+                      "retained_sha256":  "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.review.json",
+                      "bytes":  67450,
+                      "source_sha256":  "ddc8713fa801cc22e92b29e29b2312a744877a716f5e96d0d96329257ea6b608",
+                      "retained_sha256":  "ddc8713fa801cc22e92b29e29b2312a744877a716f5e96d0d96329257ea6b608",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/floor_003/sample-irregular-12v-setback-office-b3b39de2f3bc6d23-f3.svg",
+                      "bytes":  59923,
+                      "source_sha256":  "2a709feb19a13d6c19eedf17cd988b9e2653fb706d851fe61be8bc7e2b640d94",
+                      "retained_sha256":  "2a709feb19a13d6c19eedf17cd988b9e2653fb706d851fe61be8bc7e2b640d94",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01/index.html",
+                      "bytes":  2923,
+                      "source_sha256":  "b07daeaa0068ac4c5ed940681342596308756928d0fb52e871c1a6744f9aaa3b",
+                      "retained_sha256":  "b07daeaa0068ac4c5ed940681342596308756928d0fb52e871c1a6744f9aaa3b",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01-floor-001.png",
+                      "bytes":  33337,
+                      "source_sha256":  "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+                      "retained_sha256":  "cb14068aa65b5871d113501da9ad470d1b84b96aeffff3ec0324008283657ec9",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01-floor-002.png",
+                      "bytes":  32801,
+                      "source_sha256":  "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+                      "retained_sha256":  "77c4f118e0ff5d5ddb3188e1e9fe4678fd95401b34cc74338277c45d44a04003",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternative-01-floor-003.png",
+                      "bytes":  32399,
+                      "source_sha256":  "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+                      "retained_sha256":  "1763b4747d7c1b29a40c1160b4198913af497468fe5da762dcae99a2f43b9337",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "alternatives.review.json",
+                      "bytes":  20445,
+                      "source_sha256":  "1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69",
+                      "retained_sha256":  "1a1b0390d7ed01e6293b31af786d60207ec2e6028fb2bd3c09c1e574ca5bff69",
+                      "hashes_match":  true
+                  },
+                  {
+                      "relative_path":  "index.html",
+                      "bytes":  2507,
+                      "source_sha256":  "12e923bfb900a4204c89b5af9f5494d633128a43654668b173290c9f9c788b5a",
+                      "retained_sha256":  "12e923bfb900a4204c89b5af9f5494d633128a43654668b173290c9f9c788b5a",
+                      "hashes_match":  true
+                  }
+              ]
+}

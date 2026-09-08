@@ -25,10 +25,20 @@
     "release:mcp": "gh workflow run release.yml -f package=mcp -f bump=patch",
     "release:cli": "gh workflow run release.yml -f package=cli -f bump=patch",
     "release:minor": "gh workflow run release.yml -f package=all -f bump=minor",
-    "release:major": "gh workflow run release.yml -f package=all -f bump=major"
+    "release:major": "gh workflow run release.yml -f package=all -f bump=major",
+    "plan:dev": "node infra/dev/product.mjs",
+    "plan:dev:docker": "docker compose up --build",
+    "plan:dev:docker:down": "docker compose down",
+    "plan:build:agent-runtime": "npm --prefix infra/runtimes/gitagent run build",
+    "plan:test:dev": "node --test infra/dev/*.test.mjs",
+    "plan:test:agent": "npm run build:agent-runtime && node --test agents/planm/tests/*.test.ts agents/planm/tests/*.test.mjs --experimental-strip-types",
+    "plan:test:browser": "playwright test -c infra/e2e/visual-review.config.cjs",
+    "plan:test:frontend": "playwright test -c infra/e2e/frontend.config.cjs",
+    "plan:test:product": "playwright test -c infra/e2e/product.config.cjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
+    "@playwright/test": "1.62.0",
     "@typescript/native-preview": "7.0.0-dev.20260624.1",
     "dotenv-cli": "^11.0.0",
     "turbo": "^2.9.17",

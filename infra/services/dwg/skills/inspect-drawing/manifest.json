@@ -1,0 +1,45 @@
+{
+  "id": "inspect-drawing",
+  "version": "1.0.0",
+  "purpose": "Inspect one drawing layer with deterministic read-only CAD evidence.",
+  "capabilityContract": "cad-capabilities/v1",
+  "permissions": ["read"],
+  "capabilities": ["document.open", "document.describe", "query.layers", "query.entities"],
+  "formats": ["dwg", "dxf"],
+  "entityTypes": ["LINE", "LWPOLYLINE", "INSERT", "TEXT"],
+  "failureCodes": ["INPUT_SCHEMA_INVALID", "CAPABILITY_EXECUTION_FAILED", "OUTPUT_SCHEMA_INVALID"],
+  "limitationCodes": ["NO_MODEL_GEOMETRY_INFERENCE", "UNSUPPORTED_OBJECTS_REPORTED"],
+  "inputSchema": {
+    "type": "object",
+    "required": ["path", "layer"],
+    "properties": {
+      "path": { "type": "string", "minLength": 1 },
+      "layer": { "type": "string", "minLength": 1 }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["matches"],
+    "properties": {
+      "matches": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["id", "handle", "type", "layer", "bbox", "reason", "confidence"],
+          "properties": {
+            "id": { "type": "string" },
+            "handle": { "type": ["string", "null"] },
+            "type": { "type": "string" },
+            "layer": { "type": "string" },
+            "bbox": { "type": ["object", "null"] },
+            "reason": { "type": "string" },
+            "confidence": { "type": "number" }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "export-report",
+  "version": "1.0.0",
+  "purpose": "Export a bounded report for the host-selected active CAD document revision.",
+  "capabilityContract": "cad-capabilities/v1",
+  "permissions": ["export"],
+  "capabilities": ["export.report"],
+  "formats": [],
+  "entityTypes": [],
+  "failureCodes": ["CAPABILITY_EXECUTION_FAILED", "INPUT_SCHEMA_INVALID", "OUTPUT_SCHEMA_INVALID"],
+  "limitationCodes": ["ACTIVE_DOCUMENT_ONLY", "HOST_OUTPUT_ONLY"],
+  "inputSchema": {
+    "type": "object",
+    "required": ["format"],
+    "properties": {
+      "format": { "enum": ["json", "csv", "pdf", "svg"] }
+    },
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["downloadId", "filename", "mediaType", "sha256"],
+    "properties": {
+      "downloadId": {
+        "type": "string",
+        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      },
+      "filename": { "type": "string", "minLength": 1, "maxLength": 255 },
+      "mediaType": { "type": "string", "minLength": 1, "maxLength": 128 },
+      "sha256": { "type": "string", "pattern": "^[0-9A-F]{64}$" }
+    },
+    "additionalProperties": false
+  }
+}

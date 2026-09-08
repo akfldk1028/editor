@@ -1,0 +1,2 @@
+# Retained generated HTML must remain byte-for-byte identical to the source run.
+source-run/alternative-01/index.html -whitespace

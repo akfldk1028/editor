@@ -1,0 +1,9 @@
+# Checkout must be byte-identical in every clone. Fixture hashes and skill
+# instructions are compared exactly, so a platform-dependent line ending breaks
+# fixture integrity and skill discovery in a fresh clone even though it passes
+# in the clone that produced the baselines.
+* text=auto eol=lf
+
+# Source CAD files are binary and are never line-ending converted.
+*.dwg binary
+*.dxf binary

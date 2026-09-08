@@ -1,0 +1,22 @@
+{
+  "matches": [
+    {
+      "id": "h:10",
+      "handle": "10",
+      "type": "LINE",
+      "layer": "A-WALL",
+      "bbox": { "min": [0, 0, 0], "max": [1000, 0, 0] },
+      "reason": "layer equals query",
+      "confidence": 1
+    },
+    {
+      "id": "h:11",
+      "handle": "11",
+      "type": "LWPOLYLINE",
+      "layer": "A-WALL",
+      "bbox": { "min": [0, 0, 0], "max": [1000, 500, 0] },
+      "reason": "layer equals query",
+      "confidence": 1
+    }
+  ]
+}
