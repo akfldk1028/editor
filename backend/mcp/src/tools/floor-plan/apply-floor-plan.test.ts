@@ -237,4 +237,86 @@ describe('apply_floor_plan', () => {
     expect(payload.rooms[0].itemIds).toHaveLength(0)
     expect(payload.warnings.join(' ')).toMatch(/type/i)
   })
+  test('omitWalls leaves a shared boundary to the neighbouring room', async () => {
+    const { payload } = await call({
+      plan: {
+        levels: [
+          {
+            levelId: levelId(),
+            rooms: [
+              { name: 'Left', polygon: SQUARE },
+              {
+                name: 'Right',
+                // Shares the x=4 edge with Left, so that edge is left to Left.
+                polygon: [
+                  [4, 0],
+                  [8, 0],
+                  [8, 3],
+                  [4, 3],
+                ],
+                omitWalls: [3],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    const [left, right] = payload.rooms
+    expect(left.wallIds).toHaveLength(4)
+    expect(right.wallIds).toHaveLength(3)
+    expect(right.omittedWalls).toEqual([3])
+    expect(payload.totals).toMatchObject({ walls: 7, omittedWalls: 1 })
+  })
+
+  test('an opening on an omitted wall is skipped with a warning, not silently dropped', async () => {
+    const { payload } = await call({
+      plan: {
+        levels: [
+          {
+            levelId: levelId(),
+            rooms: [
+              {
+                name: 'Room',
+                polygon: SQUARE,
+                omitWalls: [0],
+                openings: [{ kind: 'door', wall: 0 }],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(payload.rooms[0].doorIds).toHaveLength(0)
+    expect(payload.warnings.join(' ')).toContain('omitted')
+  })
+
+  test('omitting an edge does not shift the index other openings use', async () => {
+    const { payload } = await call({
+      plan: {
+        levels: [
+          {
+            levelId: levelId(),
+            rooms: [
+              {
+                name: 'Room',
+                polygon: SQUARE,
+                omitWalls: [0],
+                // Wall 2 must still mean polygon edge 2, not "the second wall built".
+                openings: [{ kind: 'door', wall: 2, t: 0.5 }],
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    const room = payload.rooms[0]
+    expect(room.wallIds).toHaveLength(3)
+    expect(room.doorIds).toHaveLength(1)
+    const door = bridge.getNode(room.doorIds[0]) as { wallId: string }
+    const wall = bridge.getNode(door.wallId) as { metadata: { edgeIndex: number } }
+    expect(wall.metadata.edgeIndex).toBe(2)
+  })
 })

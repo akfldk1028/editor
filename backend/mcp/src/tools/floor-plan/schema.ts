@@ -53,6 +53,15 @@ const RoomSchema = z.object({
     description: 'Wall thickness.',
   }).optional(),
   openings: z.array(OpeningSchema).default([]),
+  /**
+   * Polygon edges to leave without a wall, by the same index `openings` uses.
+   *
+   * Two rooms sharing a boundary each describe that edge, so building both
+   * leaves two coincident walls. Name the edge here on one of them and only the
+   * other room's wall is built. An opening on an omitted edge is skipped with a
+   * warning — cut it into the room that keeps the wall.
+   */
+  omitWalls: z.array(z.number().int().min(0)).default([]),
   /** Place furniture for `type`. Requires `type`; ignored without one. */
   furnish: z.boolean().default(false),
 })
@@ -96,7 +105,10 @@ const RoomResultSchema = z.object({
   zoneId: z.string().nullable(),
   slabId: z.string().nullable(),
   ceilingId: z.string().nullable(),
+  /** Created walls in polygon-edge order, skipping any omitted edge. */
   wallIds: z.array(z.string()),
+  /** Edge indices left without a wall, as asked for by `omitWalls`. */
+  omittedWalls: z.array(z.number()),
   doorIds: z.array(z.string()),
   windowIds: z.array(z.string()),
   itemIds: z.array(z.string()),
@@ -111,6 +123,7 @@ export const applyFloorPlanOutput = {
     levels: z.number(),
     rooms: z.number(),
     walls: z.number(),
+    omittedWalls: z.number(),
     doors: z.number(),
     windows: z.number(),
     items: z.number(),

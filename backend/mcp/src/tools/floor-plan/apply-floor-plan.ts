@@ -27,6 +27,7 @@ type RoomResult = {
   slabId: string | null
   ceilingId: string | null
   wallIds: string[]
+  omittedWalls: number[]
   doorIds: string[]
   windowIds: string[]
   itemIds: string[]
@@ -87,17 +88,23 @@ function buildRoomShell(room: FloorPlanRoom) {
   })
   const slab = SlabNode.parse({ polygon: points, metadata })
   const ceiling = CeilingNode.parse({ polygon: points, metadata })
-  const walls = points.map((start, index) =>
-    WallNode.parse({
-      name: `${room.name} wall ${index + 1}`,
-      start,
-      end: points[(index + 1) % points.length],
-      ...(room.wallHeight !== undefined ? { height: room.wallHeight } : {}),
-      ...(room.wallThickness !== undefined ? { thickness: room.wallThickness } : {}),
-      metadata: { ...metadata, edgeIndex: index },
-    }),
+  const omitted = new Set(room.omitWalls)
+  // Indexed by polygon edge so `opening.wall` keeps meaning the same thing
+  // whether or not neighbouring edges were omitted.
+  const wallByEdge = points.map((start, index) =>
+    omitted.has(index)
+      ? null
+      : WallNode.parse({
+          name: `${room.name} wall ${index + 1}`,
+          start,
+          end: points[(index + 1) % points.length],
+          ...(room.wallHeight !== undefined ? { height: room.wallHeight } : {}),
+          ...(room.wallThickness !== undefined ? { thickness: room.wallThickness } : {}),
+          metadata: { ...metadata, edgeIndex: index },
+        }),
   )
-  return { zone, slab, ceiling, walls, points }
+  const walls = wallByEdge.filter((wall) => wall !== null)
+  return { zone, slab, ceiling, wallByEdge, walls, points }
 }
 
 /**
@@ -106,17 +113,23 @@ function buildRoomShell(room: FloorPlanRoom) {
  */
 function buildOpenings(
   room: FloorPlanRoom,
-  walls: Array<ReturnType<typeof WallNode.parse>>,
+  wallByEdge: Array<ReturnType<typeof WallNode.parse> | null>,
 ): { doors: AnyNode[]; windows: AnyNode[]; warnings: string[] } {
   const doors: AnyNode[] = []
   const windows: AnyNode[] = []
   const warnings: string[] = []
 
   for (const opening of room.openings) {
-    const wall = walls[opening.wall]
+    if (opening.wall >= wallByEdge.length) {
+      warnings.push(
+        `${room.name}: ${opening.kind} skipped — wall ${opening.wall} does not exist (the room has ${wallByEdge.length} walls, 0-${wallByEdge.length - 1}).`,
+      )
+      continue
+    }
+    const wall = wallByEdge[opening.wall]
     if (!wall) {
       warnings.push(
-        `${room.name}: ${opening.kind} skipped — wall ${opening.wall} does not exist (the room has ${walls.length} walls, 0-${walls.length - 1}).`,
+        `${room.name}: ${opening.kind} skipped — wall ${opening.wall} was omitted, so there is nothing to cut. Put the opening on the room that keeps that wall.`,
       )
       continue
     }
@@ -178,7 +191,7 @@ export function registerApplyFloorPlan(server: McpServer, bridge: SceneOperation
     {
       title: 'Apply floor plan',
       description:
-        'Build a whole floor plan in one call: levels, rooms (zone, slab, ceiling, walls), doors, windows and optional furniture. Openings name a wall by its polygon edge index. Use dryRun to validate a plan without changing the scene. This is the tool a planning agent should call instead of orchestrating create_room/add_door/add_window itself.',
+        'Build a whole floor plan in one call: levels, rooms (zone, slab, ceiling, walls), doors, windows and optional furniture. Openings name a wall by its polygon edge index, and omitWalls leaves a shared boundary to the neighbouring room so it is not built twice. Use dryRun to validate a plan without changing the scene. This is the tool a planning agent should call instead of orchestrating create_room/add_door/add_window itself.',
       inputSchema: applyFloorPlanInput,
       outputSchema: applyFloorPlanOutput,
     },
@@ -210,8 +223,8 @@ export function registerApplyFloorPlan(server: McpServer, bridge: SceneOperation
         levelIds.push(levelId)
 
         for (const room of level.rooms) {
-          const { zone, slab, ceiling, walls, points } = buildRoomShell(room)
-          const openings = buildOpenings(room, walls)
+          const { zone, slab, ceiling, wallByEdge, walls, points } = buildRoomShell(room)
+          const openings = buildOpenings(room, wallByEdge)
           warnings.push(...openings.warnings)
 
           if (dryRun) {
@@ -222,6 +235,7 @@ export function registerApplyFloorPlan(server: McpServer, bridge: SceneOperation
               slabId: null,
               ceilingId: null,
               wallIds: walls.map((wall) => wall.id as string),
+              omittedWalls: [...room.omitWalls],
               doorIds: openings.doors.map((door) => door.id as string),
               windowIds: openings.windows.map((window) => window.id as string),
               itemIds: [],
@@ -290,6 +304,7 @@ export function registerApplyFloorPlan(server: McpServer, bridge: SceneOperation
             slabId: slab.id as string,
             ceilingId: ceiling.id as string,
             wallIds: walls.map((wall) => wall.id as string),
+            omittedWalls: [...room.omitWalls],
             doorIds: openings.doors.map((door) => door.id as string),
             windowIds: openings.windows.map((window) => window.id as string),
             itemIds,
@@ -302,6 +317,7 @@ export function registerApplyFloorPlan(server: McpServer, bridge: SceneOperation
         levels: plan.levels.length,
         rooms: rooms.length,
         walls: rooms.reduce((sum, room) => sum + room.wallIds.length, 0),
+        omittedWalls: rooms.reduce((sum, room) => sum + room.omittedWalls.length, 0),
         doors: rooms.reduce((sum, room) => sum + room.doorIds.length, 0),
         windows: rooms.reduce((sum, room) => sum + room.windowIds.length, 0),
         items: rooms.reduce((sum, room) => sum + room.itemIds.length, 0),

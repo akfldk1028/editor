@@ -110,12 +110,12 @@ class TestConversion:
         assert opening == {"kind": "door", "wall": 0, "t": 0.5, "width": 0.9}
         assert result.unplaced_openings == []
 
-    def test_a_shared_opening_is_cut_into_both_rooms_walls(self) -> None:
-        """Regression: cutting only one side leaves the other wall across the door.
+    def test_a_shared_boundary_keeps_one_wall_and_one_opening(self) -> None:
+        """Two rooms describing the same boundary must not build it twice.
 
-        PLANM records one opening for a boundary two rooms share. Cutting it into
-        just the declaring room's wall left the neighbour's coincident wall
-        standing, so in 3D none of the doorways could be walked through.
+        Both rooms declare the edge they share, so before merging the 3D model
+        carried two coincident walls at every boundary. One room now omits it,
+        and the single opening is cut into the wall that survives.
         """
         geometry = _geometry(
             rooms=[
@@ -146,8 +146,10 @@ class TestConversion:
         )
         rooms = convert_floor_geometry(geometry).plan["levels"][0]["rooms"]
 
-        cut = [len(room["openings"]) for room in rooms]
-        assert cut == [1, 1], "both coincident walls must carry the opening"
+        omitted = sum(len(room.get("omitWalls", [])) for room in rooms)
+        assert omitted == 1, "exactly one side of the shared boundary is dropped"
+        cut = sum(len(room["openings"]) for room in rooms)
+        assert cut == 1, "the surviving wall carries the door"
 
     def test_an_opening_that_lands_nowhere_is_reported_not_silently_dropped(self) -> None:
         geometry = _geometry(
@@ -247,21 +249,37 @@ class TestOpeningsCutThroughEveryCoveringWall:
         }
         return convert_floor_geometry(geometry).plan
 
-    def test_the_corridor_wall_is_cut_as_well_as_the_room_wall(self) -> None:
+    def test_the_corridor_keeps_the_wall_and_the_rooms_drop_theirs(self) -> None:
+        """The longer wall wins, so the boundary is built once."""
         rooms = {r["name"]: r for r in self._plan()["levels"][0]["rooms"]}
 
-        # Each room's north wall (edge 2) carries its own door...
-        assert [o["wall"] for o in rooms["room a"]["openings"]] == [2]
-        assert [o["wall"] for o in rooms["room b"]["openings"]] == [2]
-        # ...and the corridor's south wall (edge 0) carries both.
-        corridor_walls = sorted(o["wall"] for o in rooms["corridor 1"]["openings"])
-        assert corridor_walls == [0, 0] or len(rooms["corridor 1"]["openings"]) == 1
+        # Each room's north edge is covered by the corridor's south wall...
+        assert 2 in rooms["room a"]["omitWalls"]
+        assert 2 in rooms["room b"]["omitWalls"]
+        # ...and room b also drops the edge it shares with room a, which is the
+        # same length, so the tie is broken by room order.
+        assert rooms["room b"]["omitWalls"] == [2, 3]
+        assert "omitWalls" not in rooms["corridor 1"]
+
+        # Every boundary is still built exactly once.
+        built = sum(
+            len(r["polygon"]) - len(r.get("omitWalls", []))
+            for r in self._plan()["levels"][0]["rooms"]
+        )
+        assert built == 9, "12 edges minus the 3 shared ones"
+
+    def test_both_doors_end_up_on_the_corridor_wall(self) -> None:
+        rooms = {r["name"]: r for r in self._plan()["levels"][0]["rooms"]}
+
+        assert rooms["room a"]["openings"] == []
+        assert rooms["room b"]["openings"] == []
+        assert len(rooms["corridor 1"]["openings"]) == 2
 
     def test_every_opening_is_cut_somewhere(self) -> None:
         plan = self._plan()
         total = sum(len(r["openings"]) for r in plan["levels"][0]["rooms"])
 
-        assert total >= 3, "two room doors plus at least one corridor cut"
+        assert total == 2, "one cut per door, on the wall that survives"
 
     def test_the_corridor_door_position_is_measured_along_the_corridor_wall(self) -> None:
         rooms = {r["name"]: r for r in self._plan()["levels"][0]["rooms"]}

@@ -107,6 +107,74 @@ def assign_opening_to_edge(
 _COLLINEAR_TOLERANCE_M = 0.05
 
 
+def _edge_span(a: Sequence[float], b: Sequence[float]) -> tuple[Point, Point]:
+    return (float(a[0]), float(a[1])), (float(b[0]), float(b[1]))
+
+
+def _edge_covers_edge(
+    outer: tuple[Point, Point], inner: tuple[Point, Point]
+) -> bool:
+    """Does `outer` lie on the same line as `inner` and contain it?
+
+    Used to drop the redundant half of a shared boundary: two rooms meeting along
+    a wall each describe it, and a corridor's long wall contains each of the
+    short room walls beside it.
+    """
+    (ax, az), (bx, bz) = outer
+    dx, dz = bx - ax, bz - az
+    length = (dx * dx + dz * dz) ** 0.5
+    if length < 1e-9:
+        return False
+
+    ts = []
+    for px, pz in inner:
+        cross = abs((px - ax) * dz - (pz - az) * dx) / length
+        if cross > _COLLINEAR_TOLERANCE_M:
+            return False
+        ts.append(((px - ax) * dx + (pz - az) * dz) / (length * length))
+
+    lo, hi = sorted(ts)
+    margin = _COLLINEAR_TOLERANCE_M / length
+    return lo >= -margin and hi <= 1.0 + margin
+
+
+def _resolve_shared_walls(
+    prepared: list[dict[str, Any]],
+) -> None:
+    """Mark, on each room, the edges another room already builds.
+
+    Without this a boundary between two rooms carries two coincident walls: the
+    3D model shows doubled thickness where every pair of rooms meets. The wall
+    that survives is the one that covers the other — the corridor's long wall
+    rather than the room's short one — and exact duplicates are broken by room
+    order so the choice is deterministic.
+    """
+    edges: list[tuple[int, int, tuple[Point, Point], float]] = []
+    for room_index, entry in enumerate(prepared):
+        polygon = entry["polygon"]
+        for edge_index in range(len(polygon)):
+            span = _edge_span(polygon[edge_index], polygon[(edge_index + 1) % len(polygon)])
+            (ax, az), (bx, bz) = span
+            edges.append(
+                (room_index, edge_index, span, ((bx - ax) ** 2 + (bz - az) ** 2) ** 0.5)
+            )
+
+    for room_index, edge_index, span, length in edges:
+        for other_room, other_edge, other_span, other_length in edges:
+            if other_room == room_index:
+                continue
+            if not _edge_covers_edge(other_span, span):
+                continue
+            # Keep the longer wall; on a tie keep whichever comes first, so the
+            # pair never omits both sides.
+            if other_length > length + 1e-6 or (
+                abs(other_length - length) <= 1e-6
+                and (other_room, other_edge) < (room_index, edge_index)
+            ):
+                prepared[room_index]["omit"].add(edge_index)
+                break
+
+
 def _opening_span(
     start: Sequence[float], end: Sequence[float], width: float | None
 ) -> tuple[Point, Point]:
@@ -246,8 +314,11 @@ def convert_floors(
                     "polygon": polygon,
                     "openings": [],
                     "cut": set(),
+                    "omit": set(),
                 }
             )
+
+        _resolve_shared_walls(prepared)
 
         for index, opening in enumerate(openings):
             opening_id = str(opening.get("opening_id", ""))
@@ -269,6 +340,9 @@ def convert_floors(
                         continue
                     # A wall may carry many openings; it must not carry the
                     # same one twice.
+                    if edge_index in entry["omit"]:
+                        # No wall is built here, so there is nothing to cut.
+                        continue
                     if (index, edge_index) in entry["cut"]:
                         continue
                     entry["cut"].add((index, edge_index))
@@ -300,6 +374,8 @@ def convert_floors(
                 "polygon": entry["polygon"],
                 "openings": entry["openings"],
             }
+            if entry["omit"]:
+                payload["omitWalls"] = sorted(entry["omit"])
             if room_type is not None:
                 payload["type"] = room_type
                 payload["furnish"] = furnish and category not in _UNFURNISHED_CATEGORIES
