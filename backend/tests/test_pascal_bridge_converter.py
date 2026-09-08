@@ -269,3 +269,73 @@ class TestOpeningsCutThroughEveryCoveringWall:
 
         # Corridor edge 0 runs (0,4) -> (12,4); the room_a door centres at x=3.
         assert any(abs(t - 0.25) < 0.01 for t in corridor_ts)
+
+
+class TestNonOrthogonalOutlines:
+    """Diagonal, curved and non-convex rooms must survive unchanged.
+
+    PLANM sites can be angled, and its own irregular sample carries diagonal
+    room edges, so the conversion must not assume axis-aligned rectangles.
+    """
+
+    DIAMOND = [[6.0, 0.0], [12.0, 6.0], [6.0, 12.0], [0.0, 6.0]]
+
+    def _convert(self, polygon, openings=()):
+        return convert_floor_geometry(
+            {
+                "floor_index": 1,
+                "rooms": [
+                    {
+                        "room_id": "r",
+                        "space_type": "sales",
+                        "category": "room",
+                        "polygon": polygon,
+                    }
+                ],
+                "openings": list(openings),
+            }
+        )
+
+    def test_a_diagonal_outline_is_passed_through_unchanged(self) -> None:
+        room = self._convert(self.DIAMOND).plan["levels"][0]["rooms"][0]
+
+        assert room["polygon"] == self.DIAMOND
+
+    def test_an_opening_lands_on_a_diagonal_wall(self) -> None:
+        import math
+
+        half = 0.45 / math.sqrt(2)
+        opening = {
+            "opening_id": "diag",
+            "kind": "door",
+            "connects": ["r"],
+            # Centred on edge 0, which runs (6,0) -> (12,6).
+            "start": [9.0 - half, 3.0 - half],
+            "end": [9.0 + half, 3.0 + half],
+            "clear_width": 0.9,
+        }
+        result = self._convert(self.DIAMOND, [opening])
+        room = result.plan["levels"][0]["rooms"][0]
+
+        assert room["openings"] == [{"kind": "door", "wall": 0, "t": 0.5, "width": 0.9}]
+        assert result.unplaced_openings == []
+
+    def test_a_curve_approximation_keeps_every_segment(self) -> None:
+        import math
+
+        arc = [[0.0, 0.0]]
+        arc += [
+            [8.0 * math.cos((math.pi / 2) * i / 24), 8.0 * math.sin((math.pi / 2) * i / 24)]
+            for i in range(25)
+        ]
+        room = self._convert(arc).plan["levels"][0]["rooms"][0]
+
+        # One wall per segment; dropping any would open the outline.
+        assert len(room["polygon"]) == len(arc)
+
+    def test_a_non_convex_outline_is_kept(self) -> None:
+        ell = [[0.0, 0.0], [10.0, 0.0], [10.0, 4.0], [4.0, 4.0], [4.0, 10.0], [0.0, 10.0]]
+        result = self._convert(ell)
+
+        assert result.plan["levels"][0]["rooms"][0]["polygon"] == ell
+        assert result.warnings == []
