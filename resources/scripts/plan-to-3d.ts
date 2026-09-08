@@ -55,7 +55,19 @@ if (typeof plan === 'object' && plan !== null && 'plan' in plan) {
 
 const text = (result: unknown) =>
   (result as { content: Array<{ text: string }> }).content[0]?.text ?? ''
-const json = (result: unknown) => JSON.parse(text(result))
+
+/** Tool errors come back as plain prose, not JSON — report them as errors. */
+const json = (result: unknown) => {
+  const body = text(result)
+  if ((result as { isError?: boolean }).isError) {
+    throw new Error(body || 'the tool reported an error with no message')
+  }
+  try {
+    return JSON.parse(body)
+  } catch {
+    throw new Error(`unexpected response: ${body.slice(0, 400)}`)
+  }
+}
 
 const client = new Client({ name: 'plan-to-3d', version: '1.0.0' })
 await client.connect(
