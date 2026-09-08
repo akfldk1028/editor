@@ -21,6 +21,7 @@ from backend.app.modules.generation_loop.service import (
 from backend.app.modules.generation_loop.operators import layout_fingerprint
 from backend.app.modules.llm_planner.service import plan_floor_assignments
 from backend.app.modules.validator.service import validate_layout
+from backend.app.modules.visual_review.layout_geometry import write_floor_geometry
 from backend.app.schemas.llm import FloorAssignment, SUPPORTED_USE_TYPES
 from backend.app.schemas.loop import CandidateRecord, LoopConfig
 from backend.app.schemas.layout import (
@@ -389,6 +390,7 @@ def create_visual_review_artifacts(
     png_path = target / f"{stem}.png"
     html_path = target / f"{stem}.html"
     report_path = target / f"{stem}.review.json"
+    geometry_path = target / f"{stem}.geometry.json"
     artifact_root = Path(run_root).resolve() if run_root is not None else target
     if not target.is_relative_to(artifact_root):
         raise ValueError("artifact output directory escapes run root")
@@ -397,8 +399,11 @@ def create_visual_review_artifacts(
         "png": _relative_link(artifact_root, png_path),
         "html": _relative_link(artifact_root, html_path),
         "review_json": _relative_link(artifact_root, report_path),
+        "geometry_json": _relative_link(artifact_root, geometry_path),
     }
-    _ensure_within_target(target, svg_path, png_path, html_path, report_path)
+    _ensure_within_target(
+        target, svg_path, png_path, html_path, report_path, geometry_path
+    )
 
     features = _normalize_render_features(result, boundary)
     svg_output = _render_svg(
@@ -556,6 +561,14 @@ def create_visual_review_artifacts(
     report_path.write_text(
         json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True),
         encoding="utf-8",
+    )
+    # The review JSON carries metrics only; this is the geometry those metrics
+    # were measured from, so consumers never have to parse the SVG back.
+    write_floor_geometry(
+        result.layout,
+        geometry_path,
+        boundary=boundary,
+        use_type=result.program.use_type,
     )
     html_path.write_text(
         _render_html(

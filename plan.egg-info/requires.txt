@@ -1,0 +1,8 @@
+fastapi<1,>=0.115
+filelock<4,>=3.16
+jsonschema<5,>=4.23
+openai<3,>=2.11
+pillow<13,>=12.1
+shapely<3,>=2.1
+uvicorn<1,>=0.34
+pyyaml<7,>=6

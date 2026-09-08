@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: plan
+Version: 0.1.0
+Summary: Mass-conditioned program-aware floor plan research scaffold
+Requires-Python: >=3.11
+License-File: LICENSE
+Requires-Dist: fastapi<1,>=0.115
+Requires-Dist: filelock<4,>=3.16
+Requires-Dist: jsonschema<5,>=4.23
+Requires-Dist: openai<3,>=2.11
+Requires-Dist: pillow<13,>=12.1
+Requires-Dist: shapely<3,>=2.1
+Requires-Dist: uvicorn<1,>=0.34
+Requires-Dist: pyyaml<7,>=6
+Dynamic: license-file

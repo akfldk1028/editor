@@ -422,6 +422,14 @@ class PlanmRunService:
             _write_json(path, record)
             return record
 
+    def run_dir(self, run_id: str) -> Path:
+        """Directory holding an existing run's inputs and artifacts.
+
+        Public counterpart to `_existing_run_dir` for callers outside this
+        module that need to read artifacts directly.
+        """
+        return self._existing_run_dir(run_id)
+
     def _run_dir(self, run_id: str) -> Path:
         if len(run_id) != 32 or any(character not in "0123456789abcdef" for character in run_id):
             raise PlanmRunNotFound("run not found")
