@@ -6,6 +6,13 @@ services:
     environment:
       PLANM_REPOSITORY_ROOT: /app
       PLANM_RUNS_ROOT: /data/planm-runs
+      # The URL handed back after publishing. Relative, so it resolves against
+      # whatever origin the shell is served from.
+      PASCAL_EDITOR_URL: /editor
+      # PASCAL_MCP_URL is deliberately unset: this stack has no MCP HTTP
+      # service, so POST .../pascal answers 503 explaining that rather than
+      # failing obscurely. Run `bun run plan:dev` for the wired-up bridge, or
+      # point this at an MCP server you host yourself.
     volumes:
       - planm-runs:/data/planm-runs
     expose:
@@ -35,6 +42,36 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  # The Pascal 3D editor, served as one surface of the shell at /editor. It
+  # runs with PASCAL_BASE_PATH so Next knows it is mounted under that path
+  # rather than at the root.
+  editor:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+    environment:
+      NODE_ENV: production
+      PASCAL_BASE_PATH: /editor
+      PASCAL_DATA_DIR: /data
+    volumes:
+      - pascal-data:/data
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--spider",
+          "http://127.0.0.1:3000/editor/api/health",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 24
+      start_period: 20s
+    restart: unless-stopped
+
   frontend:
     build:
       context: ../..
@@ -43,6 +80,8 @@ services:
       backend:
         condition: service_healthy
       dwg:
+        condition: service_healthy
+      editor:
         condition: service_healthy
     ports:
       - "8080:80"
@@ -57,3 +96,4 @@ services:
 volumes:
   planm-runs:
   dwg-exports:
+  pascal-data:

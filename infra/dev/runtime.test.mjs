@@ -30,12 +30,42 @@ test("service definitions keep one product URL and explicit module working direc
   assert.equal(services.frontend.publicUrl, "http://127.0.0.1:5173");
   assert.equal(services.backend.cwd, resolve(repositoryRoot));
   assert.equal(services.dwg.cwd, resolve(repositoryRoot, "infra/services/dwg"));
-  assert.equal(services.frontend.cwd, resolve(repositoryRoot, "frontend"));
   assert.deepEqual(
     services.frontend.args.slice(-4),
     ["--host", "127.0.0.1", "--port", "5173"],
   );
-  assert.ok(services.frontend.args.includes(resolve(repositoryRoot, "frontend/app/planm/vite.config.ts")));
+  // The app runs from its own directory, so vite resolves its own config.
+  assert.equal(services.frontend.cwd, resolve(repositoryRoot, "frontend/app/planm"));
+});
+
+test("the editor and the bridge that reaches it are part of the product", () => {
+  const services = createServiceDefinitions(repositoryRoot, "win32");
+
+  assert.equal(services.editor.cwd, resolve(repositoryRoot));
+  assert.equal(services.pascalMcp.cwd, resolve(repositoryRoot));
+
+  // One origin: the editor is reached through the shell, not on its own port.
+  assert.equal(services.editor.publicUrl, "http://127.0.0.1:5173/editor");
+  // Next must know it is mounted under that path, not just proxied to it.
+  assert.equal(services.editor.env.PASCAL_BASE_PATH, "/editor");
+  assert.ok(services.editor.healthUrl.startsWith("http://127.0.0.1:3002/editor/"));
+
+  // The MCP server only answers /health once it knows which instance it is.
+  assert.equal(services.pascalMcp.env.PASCAL_INSTANCE_ID, "plan-dev");
+
+  // The backend publishes through the bridge, so it must be told where it is,
+  // and the URL it hands back has to be one a browser can open.
+  assert.equal(services.backend.env.PASCAL_MCP_URL, "http://127.0.0.1:3917/mcp");
+  assert.equal(services.backend.env.PASCAL_EDITOR_URL, "http://127.0.0.1:5173/editor");
+});
+
+test("each service accepts only its own health contract", () => {
+  const services = createServiceDefinitions(repositoryRoot, "win32");
+
+  assert.ok(services.editor.validate({ body: { status: "ok", app: "editor" } }));
+  assert.ok(!services.editor.validate({ body: { status: "ok", app: "mcp" } }));
+  assert.ok(services.pascalMcp.validate({ body: { status: "ok", app: "mcp" } }));
+  assert.ok(!services.pascalMcp.validate({ body: { status: "ok", app: "editor" } }));
 });
 
 test("probeService accepts only the expected backend contract", async () => {

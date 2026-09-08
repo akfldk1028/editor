@@ -96,7 +96,28 @@ git fetch upstream && git log upstream/main --oneline # upstream 신규 커밋 �
 | `frontend/{index.html,src,tests,vite.config.ts,...}` | `frontend/app/planm/` | `frontend/` 바로 아래는 `app`·`components`·`elements` 만 |
 | `compose.yml` (루트) | `infra/docker/compose.yml` | Docker 정의는 `infra/docker/` |
 
-스크립트는 접두사로 갈린다 — Editor는 `bun dev`, PLAN은 `bun run plan:dev`.
+스크립트는 접두사로 갈린다 — Editor 단독은 `bun dev`, 제품 전체는 `bun run plan:dev`.
+
+## 한 주소, 여러 페이지
+
+`bun run plan:dev` 하나로 다섯 서비스가 뜨고, **전부 한 origin에서** 경로로 갈린다:
+
+```
+http://127.0.0.1:5173
+  /dwg      DWG 워크스페이스 (AI 채팅 + CAD 뷰어)
+  /planm    PLANM Planning (평면 생성·검토·승인)
+  /editor   Pascal 3D 에디터
+  /api/v1   PLANM 백엔드 (:8000)
+  /api      DWG 서비스 (:4317)
+```
+
+`/dwg`와 `/planm`은 PLAN 프론트엔드가 직접 그리고, `/editor`는 **별개 Next 앱을 프록시**한 것이다. 두 앱은 합치지 않았다 — 프레임워크도 툴체인도 그대로다.
+
+**프록시만으로는 안 된다.** Next 는 자기가 루트에 있다고 믿어서 클라이언트 라우팅과 에셋 URL이 접두사를 잃는다. 그래서 에디터는 `PASCAL_BASE_PATH=/editor`로 뜨고, 그 값이 있을 때만 `allowedDevOrigins`도 켜진다 — 없으면 Next dev 가 프록시 요청을 cross-origin 으로 차단해 모든 청크가 막히고 페이지가 로딩에서 멈춘다.
+
+`PASCAL_BASE_PATH`가 없으면 예전처럼 루트로 뜨므로 `bun dev` 단독 실행과 포터블 런타임은 영향받지 않는다.
+
+서비스 정의는 `infra/dev/runtime.mjs`, 기동 순서는 `infra/dev/product.mjs`.
 
 **`frontend/app/planm`은 bun 워크스페이스가 아니다.** 자체 npm 툴체인과 DWG 서비스로의 `file:` 의존성을 갖고 있어서, 루트 `workspaces`는 glob 대신 Editor 패키지를 이름으로 나열한다. biome도 이 경로를 제외한다 (PLAN은 biome 포맷이 아니다).
 

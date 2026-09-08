@@ -4,8 +4,17 @@ import type { NextConfig } from 'next'
 
 const appDirectory = path.dirname(fileURLToPath(import.meta.url))
 const portableBuild = process.env.PASCAL_PORTABLE_BUILD === '1'
+// Mounted under a path when the editor is served as one surface of the PLAN
+// product shell. Proxying alone is not enough: without this Next believes it
+// lives at the root, so its client-side routing and asset URLs drop the prefix.
+const basePath = process.env.PASCAL_BASE_PATH || undefined
 
 const nextConfig: NextConfig = {
+  ...(basePath ? { basePath } : {}),
+  // Served behind the PLAN shell's proxy in development, so requests arrive
+  // with that origin. Without this Next's dev server refuses them as
+  // cross-origin and the page hangs mid-load with every chunk blocked.
+  ...(basePath ? { allowedDevOrigins: ['127.0.0.1', 'localhost'] } : {}),
   ...(portableBuild
     ? { output: 'standalone' as const, outputFileTracingRoot: path.join(appDirectory, '../../..') }
     : {}),

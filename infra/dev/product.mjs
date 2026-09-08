@@ -22,14 +22,24 @@ await main();
 async function main() {
   await mkdir(logRoot, { recursive: true });
   try {
-    await Promise.all([ensureService(services.backend), ensureService(services.dwg)]);
+    // Everything that does not depend on another service starts together.
+    await Promise.all([
+      ensureService(services.pascalMcp),
+      ensureService(services.dwg),
+      ensureService(services.editor),
+    ]);
+    // The backend reads PASCAL_MCP_URL when it publishes, so bring it up after.
+    await ensureService(services.backend);
     await ensureService(services.frontend);
     const page = await fetch(services.frontend.publicUrl, { signal: AbortSignal.timeout(5_000) });
     if (!page.ok || !(await page.text()).includes("id=\"root\"")) {
       throw new Error("Frontend HTML contract failed after API readiness.");
     }
     console.log(`\nPLAN product ready: ${services.frontend.publicUrl}`);
-    console.log("DWG and PLANM are available in the same product shell.\n");
+    console.log("  DWG workspace and PLANM planning share that shell.");
+    console.log(`Pascal editor:      ${services.editor.publicUrl}`);
+    console.log("  An approved PLANM alternative publishes into it via");
+    console.log("  POST /api/v1/planm/runs/{run_id}/pascal\n");
     if (ownedProcesses.length === 0) return;
     await waitForShutdown();
   } catch (error) {
@@ -65,7 +75,7 @@ function startService(service) {
   log.write(`\n[${new Date().toISOString()}] ${service.command} ${service.args.join(" ")}\n`);
   const child = spawn(service.command, service.args, {
     cwd: service.cwd,
-    env: process.env,
+    env: { ...process.env, ...service.env },
     shell: process.platform === "win32",
     windowsHide: true,
     stdio: ["ignore", "pipe", "pipe"],
