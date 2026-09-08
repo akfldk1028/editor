@@ -1,0 +1,65 @@
+{
+  "name": "3-bed house",
+  "levels": [
+    {
+      "label": "Ground floor",
+      "height": 2.7,
+      "rooms": [
+        {
+          "name": "Entry",
+          "type": "entry",
+          "polygon": [[0, 0], [2.4, 0], [2.4, 3], [0, 3]],
+          "openings": [{ "kind": "door", "wall": 0, "t": 0.5, "width": 1.0 }]
+        },
+        {
+          "name": "Living",
+          "type": "living",
+          "furnish": true,
+          "polygon": [[2.4, 0], [9.4, 0], [9.4, 5.5], [2.4, 5.5]],
+          "openings": [
+            { "kind": "door", "wall": 3, "t": 0.25 },
+            { "kind": "window", "wall": 0, "t": 0.5, "width": 2.4 },
+            { "kind": "window", "wall": 1, "t": 0.5, "width": 1.8 }
+          ]
+        },
+        {
+          "name": "Kitchen",
+          "type": "kitchen",
+          "furnish": true,
+          "polygon": [[0, 3], [2.4, 3], [2.4, 8], [0, 8]],
+          "openings": [
+            { "kind": "door", "wall": 1, "t": 0.2 },
+            { "kind": "window", "wall": 3, "t": 0.5, "width": 1.2 }
+          ]
+        },
+        {
+          "name": "Bedroom 1",
+          "type": "bedroom",
+          "furnish": true,
+          "polygon": [[2.4, 5.5], [6.2, 5.5], [6.2, 9.5], [2.4, 9.5]],
+          "openings": [
+            { "kind": "door", "wall": 0, "t": 0.3 },
+            { "kind": "window", "wall": 2, "t": 0.5, "width": 1.5 }
+          ]
+        },
+        {
+          "name": "Bedroom 2",
+          "type": "bedroom",
+          "furnish": true,
+          "polygon": [[6.2, 5.5], [9.4, 5.5], [9.4, 9.5], [6.2, 9.5]],
+          "openings": [
+            { "kind": "door", "wall": 0, "t": 0.3 },
+            { "kind": "window", "wall": 2, "t": 0.5, "width": 1.5 }
+          ]
+        },
+        {
+          "name": "Bathroom",
+          "type": "bathroom",
+          "furnish": true,
+          "polygon": [[0, 8], [2.4, 8], [2.4, 11], [0, 11]],
+          "openings": [{ "kind": "door", "wall": 0, "t": 0.5, "width": 0.8 }]
+        }
+      ]
+    }
+  ]
+}
