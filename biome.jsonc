@@ -131,6 +131,7 @@
       "frontend/app/**/*.tsx",
       "frontend/app/**/*.js",
       "frontend/app/**/*.jsx",
+      "resources/scripts/**/*.ts",
       "!**/node_modules",
       "!**/.next",
       "!**/dist",

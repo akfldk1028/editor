@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pascal": {
+      "command": "bun",
+      "args": ["run", "backend/mcp/src/bin/pascal-mcp.ts", "--stdio"],
+      "env": {}
+    }
+  }
+}

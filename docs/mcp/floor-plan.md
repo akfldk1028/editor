@@ -105,6 +105,37 @@
 
 방 자체는 개구부가 하나 실패해도 정상적으로 만들어진다.
 
+## 바로 해보기
+
+플랜 JSON 하나를 그대로 밀어 넣는 스크립트가 있다. 실제 MCP 서버를 stdio로 띄워 호출하므로,
+에이전트가 하는 일과 동일하다.
+
+```bash
+bun dev   # 에디터가 떠 있어야 결과를 볼 수 있다
+
+# 검증만 (씬 무변경)
+bun run resources/scripts/plan-to-3d.ts resources/data/plans/two-bed-flat.json --dry-run
+
+# 실제 생성 → 마지막 줄에 열 URL이 찍힌다
+bun run resources/scripts/plan-to-3d.ts resources/data/plans/two-bed-flat.json --name "My flat"
+
+# 파이프로도 받는다
+cat plan.json | bun run resources/scripts/plan-to-3d.ts - --name "My flat"
+```
+
+```
+4 rooms across 1 level(s): 16 walls, 4 doors, 2 windows, 4 items, 42 m²
+  Hall             12 m²
+  Living           20 m²
+  Bedroom          6 m²
+  Bathroom         4 m²
+verify_scene: ok
+
+Open: http://localhost:3002/scene/8debe4ea0af7
+```
+
+샘플 플랜은 `resources/data/plans/two-bed-flat.json`.
+
 ## 연결
 
 ```bash
@@ -115,7 +146,11 @@ bun run backend/mcp/src/bin/pascal-mcp.ts --stdio
 bun run backend/mcp/src/bin/pascal-mcp.ts --http --port 3917 --auth-token <token>
 ```
 
+리포 루트의 `.mcp.json`이 위 stdio 실행을 이미 정의하고 있다 — MCP 클라이언트가 그 파일을 읽는다면 별도 설정 없이 `pascal` 서버로 붙는다.
+
 브라우저에 실시간 반영하려면 먼저 `save_scene` 또는 `load_scene`으로 씬을 바인딩해야 한다. 바인딩이 없으면 변경은 인메모리 세션에만 적용되고, 응답의 `persistence.status`가 `unbound`로 돌아온다.
+
+에디터와 MCP는 같은 SQLite 저장소(`~/.pascal/data/pascal.db`, `PASCAL_DATA_DIR`로 변경 가능)를 공유한다. 바인딩된 씬에 쓰면 `/api/scenes/<id>/events` SSE를 통해 열려 있는 에디터 탭에 그대로 반영된다.
 
 ## 검증
 
