@@ -32,11 +32,11 @@ test("the product checkout exposes only canonical top-level module ownership", a
 
 test("frontend generated configuration artifacts do not pollute the source tree", async () => {
   for (const path of [
-    "frontend/reserved_for_v2_dashboard",
-    "frontend/vite.config.js",
-    "frontend/vite.config.d.ts",
-    "frontend/tsconfig.tsbuildinfo",
-    "frontend/tsconfig.node.tsbuildinfo",
+    "frontend/app/planm/reserved_for_v2_dashboard",
+    "frontend/app/planm/vite.config.js",
+    "frontend/app/planm/vite.config.d.ts",
+    "frontend/app/planm/tsconfig.tsbuildinfo",
+    "frontend/app/planm/tsconfig.node.tsbuildinfo",
   ]) {
     assert.equal(await exists(resolve(repositoryRoot, path)), false, `${path} must not exist`);
   }

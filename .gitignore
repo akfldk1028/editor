@@ -83,8 +83,8 @@ resources/experiments/**/outputs/
 clone/
 .playwright-mcp/
 .idea/
-/frontend/vite.config.js
-/frontend/vite.config.d.ts
+/frontend/app/planm/vite.config.js
+/frontend/app/planm/vite.config.d.ts
 
 # Python build artifacts from `pip install -e .`
 *.egg-info/

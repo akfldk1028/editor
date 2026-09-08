@@ -132,6 +132,9 @@
       "frontend/app/**/*.js",
       "frontend/app/**/*.jsx",
       "resources/scripts/**/*.ts",
+      // PLAN's own frontend lives under frontend/app but is not biome-formatted;
+      // it keeps its own toolchain (`bun run plan:*`).
+      "!frontend/app/planm",
       "!**/node_modules",
       "!**/.next",
       "!**/dist",

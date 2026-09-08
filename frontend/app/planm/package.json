@@ -9,8 +9,8 @@
     "test:boundaries": "node --test tests/module-boundaries.test.mjs"
   },
   "dependencies": {
-    "@click-around/workspace": "file:../infra/services/dwg/apps/workspace",
-    "@dwg/contracts": "file:../infra/services/dwg/packages/contracts",
+    "@click-around/workspace": "file:../../../infra/services/dwg/apps/workspace",
+    "@dwg/contracts": "file:../../../infra/services/dwg/packages/contracts",
     "@fontsource-variable/manrope": "^5.2.7",
     "@fontsource-variable/newsreader": "^5.2.8",
     "lucide-react": "^1.27.0",

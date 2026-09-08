@@ -27,8 +27,8 @@
     "release:minor": "gh workflow run release.yml -f package=all -f bump=minor",
     "release:major": "gh workflow run release.yml -f package=all -f bump=major",
     "plan:dev": "node infra/dev/product.mjs",
-    "plan:dev:docker": "docker compose up --build",
-    "plan:dev:docker:down": "docker compose down",
+    "plan:dev:docker": "docker compose -f infra/docker/compose.yml up --build",
+    "plan:dev:docker:down": "docker compose -f infra/docker/compose.yml down",
     "plan:build:agent-runtime": "npm --prefix infra/runtimes/gitagent run build",
     "plan:test:dev": "node --test infra/dev/*.test.mjs",
     "plan:test:agent": "npm run build:agent-runtime && node --test agents/planm/tests/*.test.ts agents/planm/tests/*.test.mjs --experimental-strip-types",
@@ -68,10 +68,13 @@
     "lightningcss-linux-x64-gnu": "1.32.0"
   },
   "workspaces": [
-    "frontend/app/*",
+    "frontend/app/editor",
+    "frontend/app/ifc-converter",
     "frontend/components/*",
     "frontend/elements/*",
-    "backend/*",
+    "backend/cli",
+    "backend/ifc-converter",
+    "backend/mcp",
     "infra/config/*",
     "resources/lib/*"
   ]

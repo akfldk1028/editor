@@ -7,11 +7,15 @@ import test from "node:test";
 const repositoryRoot = resolve(import.meta.dirname, "../..");
 
 function composeConfig() {
-  const result = spawnSync("docker", ["compose", "config", "--format", "json"], {
-    cwd: repositoryRoot,
-    encoding: "utf8",
-    windowsHide: true,
-  });
+  const result = spawnSync(
+    "docker",
+    ["compose", "-f", "infra/docker/compose.yml", "config", "--format", "json"],
+    {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      windowsHide: true,
+    },
+  );
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);
 }

@@ -35,7 +35,7 @@ test("service definitions keep one product URL and explicit module working direc
     services.frontend.args.slice(-4),
     ["--host", "127.0.0.1", "--port", "5173"],
   );
-  assert.ok(services.frontend.args.includes(resolve(repositoryRoot, "frontend/vite.config.ts")));
+  assert.ok(services.frontend.args.includes(resolve(repositoryRoot, "frontend/app/planm/vite.config.ts")));
 });
 
 test("probeService accepts only the expected backend contract", async () => {

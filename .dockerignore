@@ -22,3 +22,12 @@ logs
 playwright-report
 research
 test-results
+
+# ---- editor build ----
+node_modules
+**/.next
+**/.turbo
+.env
+.env.local
+.env*.local
+*.log

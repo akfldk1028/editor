@@ -33,7 +33,7 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
         "dev",
         "--",
         "--config",
-        resolve(repositoryRoot, "frontend/vite.config.ts"),
+        resolve(repositoryRoot, "frontend/app/planm/vite.config.ts"),
         "--host",
         "127.0.0.1",
         "--port",

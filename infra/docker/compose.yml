@@ -1,7 +1,7 @@
 services:
   backend:
     build:
-      context: .
+      context: ../..
       dockerfile: infra/docker/backend.Dockerfile
     environment:
       PLANM_REPOSITORY_ROOT: /app
@@ -20,7 +20,7 @@ services:
 
   dwg:
     build:
-      context: .
+      context: ../..
       dockerfile: infra/docker/dwg.Dockerfile
     volumes:
       - planm-runs:/data/planm-runs
@@ -37,7 +37,7 @@ services:
 
   frontend:
     build:
-      context: .
+      context: ../..
       dockerfile: infra/docker/frontend.Dockerfile
     depends_on:
       backend:
