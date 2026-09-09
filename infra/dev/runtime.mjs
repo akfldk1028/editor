@@ -77,7 +77,12 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       cwd: resolve(repositoryRoot),
       // Served as one surface of the product shell, so Next must know it is
       // mounted under a path rather than at the root.
-      env: { PASCAL_BASE_PATH: EDITOR_BASE_PATH },
+      // NEXT_PUBLIC_ is inlined at build time so packages that know nothing
+      // about the host app can still resolve their own public assets.
+      env: {
+        PASCAL_BASE_PATH: EDITOR_BASE_PATH,
+        NEXT_PUBLIC_BASE_PATH: EDITOR_BASE_PATH,
+      },
       healthUrl: `http://127.0.0.1:${EDITOR_PORT}${EDITOR_BASE_PATH}/api/health`,
       publicUrl: `http://127.0.0.1:${FRONTEND_PORT}${EDITOR_BASE_PATH}`,
       timeoutMs: 180_000,

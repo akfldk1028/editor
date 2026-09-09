@@ -1,7 +1,7 @@
 'use client'
 
 import { Icon } from '@iconify/react'
-import { type IconRef, useScene } from '@pascal-app/core'
+import { type IconRef, useScene, assetPath } from '@pascal-app/core'
 import { Plus } from 'lucide-react'
 import {
   type ComponentType,
@@ -33,7 +33,7 @@ const pluginsManagerPanel: ExtraPanel = {
  * inspector's `renderIcon`, sized for the 24px icon-rail button. */
 function renderIconRef(ref: IconRef): ReactNode {
   if (ref.kind === 'url') {
-    return <img alt="" className="h-5 w-5 object-contain" src={ref.src} />
+    return <img alt="" className="h-5 w-5 object-contain" src={assetPath(ref.src)} />
   }
   if (ref.kind === 'iconify') {
     return <Icon height={20} icon={ref.name} width={20} />

@@ -93,6 +93,7 @@ export {
   type WallConstructionResolution,
 } from './hooks/spatial-grid/support-host-patch'
 export { useSpatialQuery } from './hooks/spatial-grid/use-spatial-query'
+export * from './lib/asset-path'
 export { loadAssetUrl, saveAsset } from './lib/asset-storage'
 export {
   clampDoorOperationState,

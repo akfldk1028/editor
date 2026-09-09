@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import { Editor, ItemsPanel } from '@pascal-app/editor'
 import { Hammer, Layers, Package, Settings } from 'lucide-react'
 import Image from 'next/image'
@@ -29,7 +30,7 @@ const SIDEBAR_TABS = [
         alt=""
         className="h-8 w-8 object-contain"
         height={32}
-        src="/icons/scene.webp"
+        src={assetPath('/icons/scene.webp')}
         width={32}
       />
     ),
@@ -45,7 +46,7 @@ const SIDEBAR_TABS = [
         alt=""
         className="h-8 w-8 object-contain"
         height={32}
-        src="/icons/build.webp"
+        src={assetPath('/icons/build.webp')}
         width={32}
       />
     ),
@@ -61,7 +62,7 @@ const SIDEBAR_TABS = [
         alt=""
         className="h-8 w-8 object-contain"
         height={32}
-        src="/icons/couch.webp"
+        src={assetPath('/icons/couch.webp')}
         width={32}
       />
     ),
@@ -77,7 +78,7 @@ const SIDEBAR_TABS = [
         alt=""
         className="h-8 w-8 object-contain"
         height={32}
-        src="/icons/settings.webp"
+        src={assetPath('/icons/settings.webp')}
         width={32}
       />
     ),

@@ -9,6 +9,7 @@ import {
   type InspectorExtension,
   useRegistryVersion,
   useScene,
+  assetPath,
 } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import { ChevronDown, ChevronLeft, GripHorizontal, RotateCcw, X } from 'lucide-react'
@@ -453,7 +454,7 @@ export function PanelWrapper({
  *  inspector's `renderIcon` (plain <img> so no next/image server deps). */
 function renderExtensionIcon(ref: IconRef): React.ReactNode {
   if (ref.kind === 'url') {
-    return <img alt="" className="h-4 w-4 shrink-0 object-contain" src={ref.src} />
+    return <img alt="" className="h-4 w-4 shrink-0 object-contain" src={assetPath(ref.src)} />
   }
   if (ref.kind === 'iconify') {
     return <Icon height={16} icon={ref.name} width={16} />

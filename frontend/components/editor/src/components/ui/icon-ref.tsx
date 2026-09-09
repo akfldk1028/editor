@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import { Icon } from '@iconify/react'
 import type { IconRef } from '@pascal-app/core'
 import { type ComponentType, lazy, Suspense } from 'react'
@@ -26,7 +27,13 @@ function resolveLazyIcon(module: () => Promise<{ default: ComponentType }>): Com
  */
 export function IconRefGlyph({ icon, size = 16 }: { icon: IconRef; size?: number }) {
   if (icon.kind === 'url') {
-    return <img alt="" className="shrink-0 object-contain" height={size} src={icon.src} width={size} />
+    return <img
+        alt=""
+        className="shrink-0 object-contain"
+        height={size}
+        src={assetPath(icon.src)}
+        width={size}
+      />
   }
   if (icon.kind === 'iconify') {
     return <Icon height={size} icon={icon.name} width={size} />

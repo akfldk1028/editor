@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  assetPath,
   nodeRegistry,
   type RoofType,
   RoofType as RoofTypeSchema,
@@ -69,23 +70,43 @@ type MepItem = {
 
 // Same icons + ordering as the community Build sidebar, minus presets.
 const BASE_BUILD_TYPES: BuildType[] = [
-  { id: 'wall', label: 'Wall', iconSrc: '/icons/wall.webp', kind: 'wall' },
-  { id: 'fence', label: 'Fence', iconSrc: '/icons/fence.webp', kind: 'fence' },
-  { id: 'slab', label: 'Slab', iconSrc: '/icons/floor.webp', kind: 'slab' },
-  { id: 'ceiling', label: 'Ceiling', iconSrc: '/icons/ceiling.webp', kind: 'ceiling' },
-  { id: 'roof', label: 'Roof', iconSrc: '/icons/roof.webp', kind: 'roof' },
-  { id: 'stair', label: 'Stairs', iconSrc: '/icons/stairs.webp', kind: 'stair' },
-  { id: 'elevator', label: 'Elevator', iconSrc: '/icons/elevator.webp', kind: 'elevator' },
-  { id: 'door', label: 'Door', iconSrc: '/icons/door.webp', kind: 'door' },
-  { id: 'window', label: 'Window', iconSrc: '/icons/window.webp', kind: 'window' },
-  { id: 'column', label: 'Column', iconSrc: '/icons/column.webp', kind: 'column' },
-  { id: 'shelf', label: 'Shelf', iconSrc: '/icons/shelf.webp', kind: 'shelf' },
-  { id: 'spawn', label: 'Spawn Point', iconSrc: '/icons/spawn-point.webp', kind: 'spawn' },
-  { id: 'kitchen', label: 'Kitchen', iconSrc: '/icons/kitchen.webp' },
+  { id: 'wall', label: 'Wall', iconSrc: assetPath('/icons/wall.webp'), kind: 'wall' },
+  { id: 'fence', label: 'Fence', iconSrc: assetPath('/icons/fence.webp'), kind: 'fence' },
+  { id: 'slab', label: 'Slab', iconSrc: assetPath('/icons/floor.webp'), kind: 'slab' },
+  { id: 'ceiling', label: 'Ceiling', iconSrc: assetPath('/icons/ceiling.webp'), kind: 'ceiling' },
+  { id: 'roof', label: 'Roof', iconSrc: assetPath('/icons/roof.webp'), kind: 'roof' },
+  { id: 'stair', label: 'Stairs', iconSrc: assetPath('/icons/stairs.webp'), kind: 'stair' },
+  {
+    id: 'elevator',
+    label: 'Elevator',
+    iconSrc: assetPath('/icons/elevator.webp'),
+    kind: 'elevator',
+  },
+  { id: 'door', label: 'Door', iconSrc: assetPath('/icons/door.webp'), kind: 'door' },
+  { id: 'window', label: 'Window', iconSrc: assetPath('/icons/window.webp'), kind: 'window' },
+  { id: 'column', label: 'Column', iconSrc: assetPath('/icons/column.webp'), kind: 'column' },
+  { id: 'shelf', label: 'Shelf', iconSrc: assetPath('/icons/shelf.webp'), kind: 'shelf' },
+  {
+    id: 'spawn',
+    label: 'Spawn Point',
+    iconSrc: assetPath('/icons/spawn-point.webp'),
+    kind: 'spawn',
+  },
+  { id: 'kitchen', label: 'Kitchen', iconSrc: assetPath('/icons/kitchen.webp') },
   // Group tile — no tool of its own; opens the MEP sub-grid below (like Roof).
-  { id: 'mep', label: 'MEP', iconSrc: '/icons/HVAC.webp' },
-  { id: 'painting', label: 'Painting', iconSrc: '/icons/paint.webp', mode: 'material-paint' },
-  { id: 'terrain', label: 'Terrain', iconSrc: '/icons/mesh.webp', mode: 'terrain-sculpt' },
+  { id: 'mep', label: 'MEP', iconSrc: assetPath('/icons/HVAC.webp') },
+  {
+    id: 'painting',
+    label: 'Painting',
+    iconSrc: assetPath('/icons/paint.webp'),
+    mode: 'material-paint',
+  },
+  {
+    id: 'terrain',
+    label: 'Terrain',
+    iconSrc: assetPath('/icons/mesh.webp'),
+    mode: 'terrain-sculpt',
+  },
 ]
 
 const subscribeToClientMount = () => () => {}
@@ -126,17 +147,37 @@ function collectBuildTypes(floorplanMode: FloorplanMode): BuildType[] {
 // MEP sub-grid surfaced under the "MEP" tile — same icons + ordering the MEP
 // tools had in the community Build sidebar.
 const MEP_ITEMS: MepItem[] = [
-  { id: 'duct-segment', label: 'Duct', iconSrc: '/icons/duct.webp', kind: 'duct-segment' },
+  {
+    id: 'duct-segment',
+    label: 'Duct',
+    iconSrc: assetPath('/icons/duct.webp'),
+    kind: 'duct-segment',
+  },
   {
     id: 'duct-terminal',
     label: 'Register',
-    iconSrc: '/icons/registers.webp',
+    iconSrc: assetPath('/icons/registers.webp'),
     kind: 'duct-terminal',
   },
-  { id: 'hvac-equipment', label: 'HVAC Unit', iconSrc: '/icons/HVAC.webp', kind: 'hvac-equipment' },
-  { id: 'lineset', label: 'Lineset', iconSrc: '/icons/lineset.webp', kind: 'lineset' },
-  { id: 'liquid-line', label: 'Liquid Line', iconSrc: '/icons/lineset.webp', kind: 'liquid-line' },
-  { id: 'pipe-segment', label: 'DWV Pipe', iconSrc: '/icons/dwv-pipes.webp', kind: 'pipe-segment' },
+  {
+    id: 'hvac-equipment',
+    label: 'HVAC Unit',
+    iconSrc: assetPath('/icons/HVAC.webp'),
+    kind: 'hvac-equipment',
+  },
+  { id: 'lineset', label: 'Lineset', iconSrc: assetPath('/icons/lineset.webp'), kind: 'lineset' },
+  {
+    id: 'liquid-line',
+    label: 'Liquid Line',
+    iconSrc: assetPath('/icons/lineset.webp'),
+    kind: 'liquid-line',
+  },
+  {
+    id: 'pipe-segment',
+    label: 'DWV Pipe',
+    iconSrc: assetPath('/icons/dwv-pipes.webp'),
+    kind: 'pipe-segment',
+  },
 ]
 
 const MODULAR_CABINET_CATALOG_ITEM = CATALOG_ITEMS.find((item) => item.id === 'cabinet')
@@ -381,7 +422,7 @@ export function BuildTab() {
                       alt={type.label}
                       className="size-full object-contain transition-transform duration-200 group-hover:scale-110"
                       height={48}
-                      src={type.iconSrc}
+                      src={assetPath(type.iconSrc)}
                       width={48}
                     />
                   </button>
@@ -482,7 +523,7 @@ export function BuildTab() {
                               alt={feature.label}
                               className="size-full object-contain transition-transform duration-200 group-hover:scale-110"
                               height={48}
-                              src={feature.iconSrc}
+                              src={assetPath(feature.iconSrc)}
                               width={48}
                             />
                           </button>
@@ -564,7 +605,7 @@ export function BuildTab() {
                           alt={item.label}
                           className="size-full object-contain transition-transform duration-200 group-hover:scale-110"
                           height={48}
-                          src={item.iconSrc}
+                          src={assetPath(item.iconSrc)}
                           width={48}
                         />
                       </button>
@@ -600,7 +641,7 @@ export function BuildTab() {
                   aria-hidden
                   className="size-4 object-contain"
                   height={16}
-                  src="/icons/duct-fitting.webp"
+                  src={assetPath('/icons/duct-fitting.webp')}
                   width={16}
                 />
                 Add Fitting
@@ -630,7 +671,7 @@ export function BuildTab() {
                   aria-hidden
                   className="size-4 object-contain"
                   height={16}
-                  src="/icons/duct-fitting.webp"
+                  src={assetPath('/icons/duct-fitting.webp')}
                   width={16}
                 />
                 Add Fitting
@@ -654,7 +695,7 @@ export function BuildTab() {
                   aria-hidden
                   className="size-4 object-contain"
                   height={16}
-                  src="/icons/dwv-pipes.webp"
+                  src={assetPath('/icons/dwv-pipes.webp')}
                   width={16}
                 />
                 Add Trap

@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { Icon as IconifyIcon } from '@iconify/react'
 import { type AnyNodeId, nodeRegistry, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
@@ -58,7 +59,7 @@ export const RegistryTreeNode = memo(function RegistryTreeNode({
   const hasHostChildren = Boolean(node && hostChildren?.hasChildren(node))
   const HostChildren = hasHostChildren ? hostChildren?.component : undefined
   const icon = presentation?.icon
-  const iconSrc = icon?.kind === 'url' ? icon.src : '/icons/roof.webp'
+  const iconSrc = assetPath(icon?.kind === 'url' ? icon.src : '/icons/roof.webp')
   const iconElement =
     icon?.kind === 'iconify' ? (
       <IconifyIcon className="opacity-60" height={14} icon={icon.name} width={14} />

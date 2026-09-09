@@ -1,7 +1,7 @@
 'use client'
 
 import { Icon } from '@iconify/react'
-import { type IconRef, useScene } from '@pascal-app/core'
+import { type IconRef, useScene, assetPath } from '@pascal-app/core'
 import { ChevronLeft, ChevronRight, ExternalLink, Puzzle } from 'lucide-react'
 import { lazy, type ReactNode, Suspense, useState, useSyncExternalStore } from 'react'
 import { editorHostPanelRegistry } from '../../../../lib/plugin-panels'
@@ -12,7 +12,7 @@ const PLUGIN_AUTHORING_URL =
 
 function renderPluginIcon(ref: IconRef): ReactNode {
   if (ref.kind === 'url') {
-    return <img alt="" className="h-8 w-8 object-contain" src={ref.src} />
+    return <img alt="" className="h-8 w-8 object-contain" src={assetPath(ref.src)} />
   }
   if (ref.kind === 'iconify') {
     return <Icon height={28} icon={ref.name} width={28} />

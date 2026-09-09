@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon as IconifyIcon } from '@iconify/react'
+import { assetPath } from '@pascal-app/core'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,7 +94,7 @@ const VIEW_MODES: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
         alt=""
         className="h-3.5 w-3.5 object-contain"
         height={14}
-        src="/icons/building.webp"
+        src={assetPath('/icons/building.webp')}
         width={14}
       />
     ),
@@ -106,7 +107,7 @@ const VIEW_MODES: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
         alt=""
         className="h-3.5 w-3.5 object-contain"
         height={14}
-        src="/icons/blueprint.webp"
+        src={assetPath('/icons/blueprint.webp')}
         width={14}
       />
     ),
