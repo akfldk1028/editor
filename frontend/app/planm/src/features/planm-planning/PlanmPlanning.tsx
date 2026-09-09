@@ -3,6 +3,7 @@ import {
   approveAlternative,
   artifactUrl,
   createCadHandoff,
+  publishToPascal,
   createRun,
   footprintPolygon,
   getAlternatives,
@@ -16,6 +17,7 @@ import type {
   CadHandoff,
   DwgInspection,
   MassForm,
+  PascalPublish,
   PlanmRun,
   ShapeFamily,
   SprinklerState,
@@ -79,6 +81,7 @@ function App({ onOpenDwg }: Props) {
   const [alternatives, setAlternatives] = useState<AlternativesResult | null>(null);
   const [cadHandoff, setCadHandoff] = useState<CadHandoff | null>(null);
   const [dwgInspection, setDwgInspection] = useState<DwgInspection | null>(null);
+  const [pascal, setPascal] = useState<PascalPublish | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,6 +147,22 @@ function App({ onOpenDwg }: Props) {
       setCadHandoff(await createCadHandoff(run.run_id));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "CAD handoff failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function buildInPascal() {
+    if (!run) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const published = await publishToPascal(run.run_id);
+      setPascal(published);
+      // Opened rather than embedded: the editor is its own application.
+      if (published.editor_url) window.open(published.editor_url, "_blank", "noopener");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "3D build failed");
     } finally {
       setBusy(false);
     }
@@ -354,6 +373,30 @@ function App({ onOpenDwg }: Props) {
                     <div><span>Approval recorded</span><h3>Approved for delivery</h3><p>{run.approved_alternative_id}</p></div>
                     <a href={manifestUrl(run.run_id)} download>Download delivery manifest</a>
                   </div>
+                  <section className="cad-capability" aria-label="3D model">
+                    <div className="cad-heading">
+                      <div><span>Optional capability</span><h3>3D model</h3></div>
+                      <strong>{pascal ? `${pascal.totals.rooms} rooms built` : "Not started"}</strong>
+                    </div>
+                    <p>Build the approved plan as a 3D scene and open it in the editor.</p>
+                    <div className="cad-actions">
+                      <button disabled={busy} onClick={buildInPascal}>Build in 3D editor</button>
+                      {pascal?.editor_url && (
+                        <a href={pascal.editor_url} rel="noreferrer" target="_blank">Open scene</a>
+                      )}
+                    </div>
+                    {pascal && (
+                      <small>
+                        {pascal.totals.levels} levels / {pascal.totals.walls} walls /{" "}
+                        {pascal.totals.doors} doors / {pascal.totals.areaSqMeters} m²
+                        {pascal.unplaced_openings.length > 0 &&
+                          ` / ${pascal.unplaced_openings.length} openings placed nowhere`}
+                      </small>
+                    )}
+                    {pascal && pascal.conversion_warnings.length > 0 && (
+                      <small>{pascal.conversion_warnings.length} conversion warnings</small>
+                    )}
+                  </section>
                   <section className="cad-capability" aria-label="Optional CAD capability">
                     <div className="cad-heading">
                       <div><span>Optional capability</span><h3>CAD handoff</h3></div>

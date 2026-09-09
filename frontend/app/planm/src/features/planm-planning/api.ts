@@ -3,6 +3,7 @@ import type {
   CadHandoff,
   DwgInspection,
   MassForm,
+  PascalPublish,
   PlanmRun,
   SprinklerState,
 } from "./types";
@@ -187,6 +188,13 @@ export const inspectCadHandoff = (runId: string, layer = "F001_ROOMS") =>
       contract_version: "planm-dwg-inspection-request/v1",
       layer,
     }),
+  });
+
+/** Build the approved alternative as a 3D scene in the Pascal editor. */
+export const publishToPascal = (runId: string) =>
+  request<PascalPublish>(`${API_ROOT}/${runId}/pascal`, {
+    method: "POST",
+    body: JSON.stringify({ contract_version: "planm-pascal-publish/v1" }),
   });
 
 export const artifactUrl = (runId: string, relativePath: string) =>

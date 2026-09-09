@@ -81,6 +81,31 @@ export interface CadHandoff {
   dwg_validation: "not_checked" | "passed";
 }
 
+export interface PascalPublish {
+  contract_version: "planm-pascal-publish/v1";
+  run_id: string;
+  alternative_id: string;
+  published: boolean;
+  scene_id: string | null;
+  /** Where to open the built scene. Relative when the editor shares this origin. */
+  editor_url: string | null;
+  totals: {
+    levels: number;
+    rooms: number;
+    walls: number;
+    doors: number;
+    windows: number;
+    items: number;
+    areaSqMeters: number;
+  };
+  /** Problems turning PLANM geometry into a Pascal plan. */
+  conversion_warnings: string[];
+  /** Openings that landed on no wall, by id. */
+  unplaced_openings: string[];
+  /** Problems Pascal reported while building, such as furniture that would not fit. */
+  pascal_warnings: string[];
+}
+
 export interface DwgInspection {
   contract_version: "planm-dwg-inspection/v1";
   alternative_id: string;

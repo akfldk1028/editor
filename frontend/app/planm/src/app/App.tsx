@@ -10,13 +10,20 @@ import "./styles.css";
  * `editor` is the Pascal 3D editor — a separate application proxied onto this
  * origin — so it is navigated to rather than rendered here.
  */
-const SURFACES = [
+type Surface = {
+  path: string;
+  label: string;
+  /** Rendered by another application, so navigated to rather than mounted. */
+  external?: boolean;
+};
+
+const SURFACES: readonly Surface[] = [
   { path: "/dwg", label: "DWG Workspace" },
   { path: "/planm", label: "PLANM Planning" },
   { path: "/editor", label: "3D Editor", external: true },
-] as const;
+];
 
-type SurfacePath = (typeof SURFACES)[number]["path"];
+type SurfacePath = string;
 
 const DEFAULT_SURFACE: SurfacePath = "/dwg";
 
