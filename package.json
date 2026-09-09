@@ -34,7 +34,8 @@
     "plan:test:agent": "npm run build:agent-runtime && node --test agents/planm/tests/*.test.ts agents/planm/tests/*.test.mjs --experimental-strip-types",
     "plan:test:browser": "playwright test -c infra/e2e/visual-review.config.cjs",
     "plan:test:frontend": "playwright test -c infra/e2e/frontend.config.cjs",
-    "plan:test:product": "playwright test -c infra/e2e/product.config.cjs"
+    "plan:test:product": "playwright test -c infra/e2e/product.config.cjs",
+    "plan:check:routes": "bash resources/scripts/check-routes.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",

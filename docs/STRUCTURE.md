@@ -119,6 +119,13 @@ http://127.0.0.1:5173
 
 서비스 정의는 `infra/dev/runtime.mjs`, 기동 순서는 `infra/dev/product.mjs`.
 
+`bun run plan:check:routes`가 이 라우터들을 전수 검사한다 — 셸 페이지, 에디터 API,
+DWG, PLANM 백엔드 10개 라우트, 브리지(`dry_run`·`plan_only` 포함), 404 계약까지.
+스택이 떠 있어야 한다.
+
+**재시작할 때는 `python`도 같이 죽여야 한다.** `bun`·`node`만 죽이면 uvicorn 백엔드가
+살아남고 오케스트레이터가 `[reuse]`로 옛 환경변수를 가진 프로세스를 그대로 쓴다.
+
 **`frontend/app/planm`은 bun 워크스페이스가 아니다.** 자체 npm 툴체인과 DWG 서비스로의 `file:` 의존성을 갖고 있어서, 루트 `workspaces`는 glob 대신 Editor 패키지를 이름으로 나열한다. biome도 이 경로를 제외한다 (PLAN은 biome 포맷이 아니다).
 
 ## 규칙에서 벗어난 세 가지 (의도된 예외)
