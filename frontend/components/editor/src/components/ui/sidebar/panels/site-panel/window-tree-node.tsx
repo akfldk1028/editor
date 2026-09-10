@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type WindowNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -57,7 +58,7 @@ export const WindowTreeNode = memo(function WindowTreeNode({
       hasChildren={false}
       icon={
         <SnapTargetIcon target={snapTarget}>
-          <Image alt="" className="object-contain" height={14} src="/icons/window.webp" width={14} />
+          <Image alt="" className="object-contain" height={14} src={assetPath('/icons/window.webp')} width={14} />
         </SnapTargetIcon>
       }
       isHovered={isHovered}

@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type ItemNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -102,10 +103,10 @@ export const ItemTreeNode = memo(function ItemTreeNode({
       icon={
         snapTarget ? (
           <SnapTargetIcon target={snapTarget}>
-            <Image alt="" className="object-contain" height={14} src={iconSrc} width={14} />
+            <Image alt="" className="object-contain" height={14} src={assetPath(iconSrc)} width={14} />
           </SnapTargetIcon>
         ) : (
-          <Image alt="" className="object-contain" height={14} src={iconSrc} width={14} />
+          <Image alt="" className="object-contain" height={14} src={assetPath(iconSrc)} width={14} />
         )
       }
       isHovered={isHovered}

@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { headers } from 'next/headers'
 import Link from 'next/link'
 import { CreateSceneButton } from '@/components/save-button'
@@ -91,7 +92,7 @@ export default async function ScenesPage() {
                       <img
                         alt={scene.name}
                         className="h-full w-full object-cover"
-                        src={scene.thumbnailUrl}
+                        src={assetPath(scene.thumbnailUrl)}
                       />
                     ) : (
                       <span className="text-muted-foreground text-xs">No thumbnail</span>

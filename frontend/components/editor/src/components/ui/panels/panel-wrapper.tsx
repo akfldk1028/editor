@@ -332,7 +332,7 @@ export function PanelWrapper({
                   alt=""
                   className="shrink-0 object-contain"
                   height={16}
-                  src={icon}
+                  src={assetPath(icon)}
                   width={16}
                 />
               ) : (

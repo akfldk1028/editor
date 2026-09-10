@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import {
   getCatalogMaterialById,
   getDynamicLibraryMaterials,
@@ -185,7 +186,7 @@ export function MaterialPicker({
                   <img
                     alt={item.label}
                     className="h-full w-full object-cover"
-                    src={item.previewThumbnailUrl}
+                    src={assetPath(item.previewThumbnailUrl)}
                   />
                 ) : (
                   <div

@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import type { AssetInput } from '@pascal-app/core'
 import NextImage from 'next/image'
 import { useEffect, useState } from 'react'
@@ -218,7 +219,7 @@ function LegacyItemsPanel({
                 alt={cat.label}
                 className={cn('size-7 object-contain', !isActive && 'opacity-60 grayscale')}
                 height={28}
-                src={cat.iconSrc}
+                src={assetPath(cat.iconSrc)}
                 width={28}
               />
               <span className="font-medium text-[10px] leading-none">{cat.label}</span>

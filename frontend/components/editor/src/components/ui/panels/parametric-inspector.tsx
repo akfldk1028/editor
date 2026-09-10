@@ -230,7 +230,7 @@ function ParamActionButton({ action, nodeId }: { action: ParamAction<AnyNode>; n
       className={disabled ? 'opacity-40 pointer-events-none' : ''}
       icon={
         action.iconSrc ? (
-          <img alt="" className="h-4 w-4 shrink-0 object-contain" src={action.iconSrc} />
+          <img alt="" className="h-4 w-4 shrink-0 object-contain" src={assetPath(action.iconSrc)} />
         ) : undefined
       }
       label={action.label}

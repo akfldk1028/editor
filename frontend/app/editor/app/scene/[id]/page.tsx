@@ -5,6 +5,8 @@ import { SceneLoader, type SceneMeta } from '@/components/scene-loader'
 
 export const dynamic = 'force-dynamic'
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? ''
+
 interface SceneWithGraph extends SceneMeta {
   graph: SceneGraph
 }
@@ -24,7 +26,9 @@ async function resolveBaseUrl(): Promise<string> {
 
 async function fetchScene(id: string): Promise<SceneWithGraph | null> {
   const base = await resolveBaseUrl()
-  const response = await fetch(`${base}/api/scenes/${encodeURIComponent(id)}`, {
+  // The editor answers under its base path when it is mounted as one surface of
+  // the product shell, and `/api/...` at that origin belongs to another service.
+  const response = await fetch(`${base}${BASE_PATH}/api/scenes/${encodeURIComponent(id)}`, {
     cache: 'no-store',
   })
   if (response.status === 404) {

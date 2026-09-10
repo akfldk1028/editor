@@ -3,6 +3,7 @@
 import { Icon } from '@iconify/react'
 import {
   acquireSceneReadOnlyLease,
+  assetPath,
   getCatalogMaterialById,
   getLibraryMaterialIdFromRef,
   getSceneMaterialIdFromRef,
@@ -705,7 +706,7 @@ function PaintCursorBadge({
           alt=""
           aria-hidden="true"
           className="h-5 w-5 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-          src="/icons/paint.webp"
+          src={assetPath('/icons/paint.webp')}
           style={{
             filter: state === 'ready' ? undefined : 'grayscale(1)',
             opacity: iconOpacity,

@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon } from '@iconify/react'
+import { assetPath } from '@pascal-app/core'
 import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import useEditor, { type FloorplanSelectionTool } from '../../store/use-editor'
 import { useFloorplanDraftPreview } from '../../store/use-floorplan-draft-preview'
@@ -139,7 +140,7 @@ export const FloorplanCursorIndicatorOverlay = memo(function FloorplanCursorIndi
               alt=""
               aria-hidden="true"
               className="h-5 w-5 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-              src={indicator.iconSrc}
+              src={assetPath(indicator.iconSrc)}
             />
           ) : (
             <Icon
@@ -173,7 +174,7 @@ export const FloorplanCursorIndicatorOverlay = memo(function FloorplanCursorIndi
                 alt=""
                 aria-hidden="true"
                 className="h-5 w-5 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-                src={indicator.iconSrc}
+                src={assetPath(indicator.iconSrc)}
               />
             ) : (
               <Icon

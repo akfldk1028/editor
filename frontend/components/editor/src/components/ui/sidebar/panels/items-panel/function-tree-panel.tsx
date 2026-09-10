@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import type { AssetInput } from '@pascal-app/core'
 import { Root as TooltipRoot } from '@radix-ui/react-tooltip'
 import NextImage from 'next/image'
@@ -150,7 +151,7 @@ export function FunctionTreePanel({
                         alt={root.name}
                         className="size-7 object-contain"
                         height={28}
-                        src={root.iconUrl}
+                        src={assetPath(root.iconUrl)}
                         width={28}
                       />
                     ) : (

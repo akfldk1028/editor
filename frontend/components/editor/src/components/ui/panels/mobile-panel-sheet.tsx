@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import { X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import Image from 'next/image'
@@ -79,7 +80,7 @@ export function MobilePanelSheet({ open, onClose, icon, title, children }: Mobil
                   alt=""
                   className="shrink-0 object-contain"
                   height={18}
-                  src={icon}
+                  src={assetPath(icon)}
                   width={18}
                 />
               )}

@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import { Plus } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import {
@@ -113,7 +114,7 @@ export function IconRail({
                     'h-6 w-6 object-contain transition-all',
                     !isActive && 'opacity-50 saturate-0',
                   )}
-                  src={panel.iconSrc}
+                  src={assetPath(panel.iconSrc)}
                 />
               </button>
             </TooltipTrigger>
@@ -144,7 +145,7 @@ export function IconRail({
                     'h-6 w-6 object-contain transition-all',
                     !isActive && 'opacity-50 saturate-0',
                   )}
-                  src={panel.iconSrc}
+                  src={assetPath(panel.iconSrc)}
                 />
               </button>
             </TooltipTrigger>

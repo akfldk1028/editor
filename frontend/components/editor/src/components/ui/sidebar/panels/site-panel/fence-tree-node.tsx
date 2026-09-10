@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type FenceNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -43,7 +44,7 @@ export const FenceTreeNode = memo(function FenceTreeNode({
       expanded={false}
       hasChildren={false}
       icon={
-        <Image alt="" className="object-contain" height={14} src="/icons/fence.webp" width={14} />
+        <Image alt="" className="object-contain" height={14} src={assetPath('/icons/fence.webp')} width={14} />
       }
       isHovered={isHovered}
       isLast={isLast}

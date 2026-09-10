@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type ChimneyNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -57,7 +58,7 @@ export const ChimneyTreeNode = memo(function ChimneyTreeNode({
             alt=""
             className="object-contain opacity-60"
             height={14}
-            src="/icons/roof.webp"
+            src={assetPath('/icons/roof.webp')}
             width={14}
           />
         </SnapTargetIcon>

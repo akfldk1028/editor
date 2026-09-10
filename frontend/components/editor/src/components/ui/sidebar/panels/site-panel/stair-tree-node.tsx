@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type StairNode, type StairSegmentNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import { AnimatePresence } from 'motion/react'
@@ -98,7 +99,7 @@ export const StairTreeNode = memo(function StairTreeNode({
         expanded={expanded}
         hasChildren={segments.length > 0}
         icon={
-          <Image alt="" className="object-contain" height={14} src="/icons/stairs.webp" width={14} />
+          <Image alt="" className="object-contain" height={14} src={assetPath('/icons/stairs.webp')} width={14} />
         }
         isDropTarget={isValidDropTarget && isDropTarget}
         isHovered={isHovered || isDropTarget}
@@ -206,7 +207,7 @@ function StairSegmentTreeNode({
             alt=""
             className="object-contain opacity-60"
             height={14}
-            src="/icons/stairs.webp"
+            src={assetPath('/icons/stairs.webp')}
             width={14}
           />
         }

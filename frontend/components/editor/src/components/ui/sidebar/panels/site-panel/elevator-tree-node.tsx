@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type ElevatorNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -49,7 +50,7 @@ export const ElevatorTreeNode = memo(function ElevatorTreeNode({
       expanded={false}
       hasChildren={false}
       icon={
-        <Image alt="" className="object-contain" height={14} src="/icons/elevator.webp" width={14} />
+        <Image alt="" className="object-contain" height={14} src={assetPath('/icons/elevator.webp')} width={14} />
       }
       isHovered={isHovered}
       isLast={isLast}

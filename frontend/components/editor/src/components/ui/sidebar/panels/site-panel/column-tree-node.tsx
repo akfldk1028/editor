@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type ColumnNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -51,7 +52,7 @@ export const ColumnTreeNode = memo(function ColumnTreeNode({
       expanded={false}
       hasChildren={false}
       icon={
-        <Image alt="" className="object-contain" height={14} src="/icons/column.webp" width={14} />
+        <Image alt="" className="object-contain" height={14} src={assetPath('/icons/column.webp')} width={14} />
       }
       isHovered={isHovered}
       isLast={isLast}

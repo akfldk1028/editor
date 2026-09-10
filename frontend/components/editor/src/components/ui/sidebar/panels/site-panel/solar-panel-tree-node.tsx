@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type SolarPanelNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -57,7 +58,7 @@ export const SolarPanelTreeNode = memo(function SolarPanelTreeNode({
             alt=""
             className="object-contain opacity-60"
             height={14}
-            src="/icons/roof.webp"
+            src={assetPath('/icons/roof.webp')}
             width={14}
           />
         </SnapTargetIcon>

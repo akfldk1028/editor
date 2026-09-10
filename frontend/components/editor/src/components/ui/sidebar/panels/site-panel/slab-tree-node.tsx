@@ -1,3 +1,4 @@
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type SlabNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -56,7 +57,7 @@ export const SlabTreeNode = memo(function SlabTreeNode({
       expanded={false}
       hasChildren={false}
       icon={
-        <Image alt="" className="object-contain" height={14} src="/icons/floor.webp" width={14} />
+        <Image alt="" className="object-contain" height={14} src={assetPath('/icons/floor.webp')} width={14} />
       }
       isHovered={isHovered}
       isLast={isLast}

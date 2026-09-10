@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import type { SceneGraph } from '@pascal-app/editor'
 import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
@@ -28,7 +29,7 @@ export function CreateSceneButton({ label = 'Create new scene' }: { label?: stri
     setIsCreating(true)
     setError(null)
     try {
-      const response = await fetch('/api/scenes', {
+      const response = await fetch(assetPath('/api/scenes'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Untitled scene', graph: EMPTY_GRAPH }),
@@ -80,7 +81,7 @@ export function SaveButton({ sceneId, name, version, getGraph }: SaveButtonProps
     setIsSaving(true)
     setStatus(null)
     try {
-      const response = await fetch(`/api/scenes/${sceneId}`, {
+      const response = await fetch(assetPath(`/api/scenes/${sceneId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +116,7 @@ export function SaveButton({ sceneId, name, version, getGraph }: SaveButtonProps
     setIsSaving(true)
     setStatus(null)
     try {
-      const response = await fetch('/api/scenes', {
+      const response = await fetch(assetPath('/api/scenes'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName, graph }),

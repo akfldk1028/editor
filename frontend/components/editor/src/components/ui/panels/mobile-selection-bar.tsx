@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import type { AnyNode } from '@pascal-app/core'
 import { Copy, Move, SlidersHorizontal, Trash2 } from 'lucide-react'
 import Image from 'next/image'
@@ -49,7 +50,7 @@ export function MobileSelectionBar({
           alt=""
           className="shrink-0 rounded object-contain"
           height={20}
-          src={resolvedIcon}
+          src={assetPath(resolvedIcon)}
           width={20}
         />
         <span className="truncate font-medium text-foreground text-sm">{resolvedLabel}</span>

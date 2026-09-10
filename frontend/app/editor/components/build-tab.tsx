@@ -562,7 +562,7 @@ export function BuildTab() {
                       alt="Modular Cabinet"
                       className="size-full object-contain transition-transform duration-200 group-hover:scale-110"
                       height={48}
-                      src={MODULAR_CABINET_ICON}
+                      src={assetPath(MODULAR_CABINET_ICON)}
                       width={48}
                     />
                   </button>

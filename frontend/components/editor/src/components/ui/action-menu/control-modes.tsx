@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import { Icon } from '@iconify/react'
 import { type LucideIcon, Trash2 } from 'lucide-react'
 import Image from 'next/image'
@@ -137,7 +138,7 @@ export function ControlModes() {
                       : 'opacity-60 grayscale group-hover:opacity-100 group-hover:grayscale-0',
                   )}
                   height={28}
-                  src={c.imageSrc}
+                  src={assetPath(c.imageSrc)}
                   width={28}
                 />
               ) : c.iconifyIcon ? (

@@ -295,7 +295,13 @@ function WallModeToggle() {
         onClick={cycle}
         type="button"
       >
-        <Image alt="" className="h-4 w-4 object-contain" height={16} src={config.icon} width={16} />
+        <Image
+          alt=""
+          className="h-4 w-4 object-contain"
+          height={16}
+          src={assetPath(config.icon)}
+          width={16}
+        />
         <span className="font-medium text-xs">{config.label}</span>
       </button>
     </ToolbarTooltip>

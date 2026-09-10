@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import {
   type AnyNodeId,
   RAISE_METRES_PER_STROKE,
@@ -73,7 +74,7 @@ export function TerrainSculptPanel() {
                   className="size-7 object-contain"
                   draggable={false}
                   height={28}
-                  src={iconSrc}
+                  src={assetPath(iconSrc)}
                   width={28}
                 />
                 <span className="text-[9px] leading-none">{hint}</span>

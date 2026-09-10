@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import { type AnyNodeId, type ShelfNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -96,7 +97,7 @@ export const ShelfTreeNode = memo(function ShelfTreeNode({
       expanded={expanded}
       hasChildren={hasChildren}
       icon={
-        <Image alt="" className="object-contain" height={14} src="/icons/shelf.webp" width={14} />
+        <Image alt="" className="object-contain" height={14} src={assetPath('/icons/shelf.webp')} width={14} />
       }
       isHovered={isHovered}
       isLast={isLast}

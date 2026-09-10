@@ -1,6 +1,6 @@
 'use client'
 
-import { emitter } from '@pascal-app/core'
+import { assetPath, emitter } from '@pascal-app/core'
 import {
   CLAY_PALETTE,
   type EdgeMode,
@@ -49,19 +49,25 @@ const levelModeLabels: Record<'stacked' | 'exploded' | 'solo', string> = {
 const wallModeConfig = {
   up: {
     icon: (props: any) => (
-      <img alt="Full height" height={28} src="/icons/room.webp" width={28} {...props} />
+      <img
+        alt="Full height"
+        height={28}
+        src={assetPath('/icons/room.webp')}
+        width={28}
+        {...props}
+      />
     ),
     label: 'Full height',
   },
   cutaway: {
     icon: (props: any) => (
-      <img alt="Cutaway" height={28} src="/icons/wallcut.webp" width={28} {...props} />
+      <img alt="Cutaway" height={28} src={assetPath('/icons/wallcut.webp')} width={28} {...props} />
     ),
     label: 'Cutaway',
   },
   down: {
     icon: (props: any) => (
-      <img alt="Low" height={28} src="/icons/walllow.webp" width={28} {...props} />
+      <img alt="Low" height={28} src={assetPath('/icons/walllow.webp')} width={28} {...props} />
     ),
     label: 'Low',
   },
@@ -114,7 +120,7 @@ function VisibilityMenu({
           <DropdownMenuItem
             onSelect={(e) => keepOpen(e, () => useViewer.getState().setShowScans(!showScans))}
           >
-            <img alt="" className="h-4 w-4 object-contain" src="/icons/mesh.webp" />
+            <img alt="" className="h-4 w-4 object-contain" src={assetPath('/icons/mesh.webp')} />
             <span>Scans</span>
             {showScans ? (
               <Eye className="ml-auto h-4 w-4 text-foreground" />
@@ -127,7 +133,11 @@ function VisibilityMenu({
           <DropdownMenuItem
             onSelect={(e) => keepOpen(e, () => useViewer.getState().setShowGuides(!showGuides))}
           >
-            <img alt="" className="h-4 w-4 object-contain" src="/icons/floorplan.webp" />
+            <img
+              alt=""
+              className="h-4 w-4 object-contain"
+              src={assetPath('/icons/floorplan.webp')}
+            />
             <span>Guides</span>
             {showGuides ? (
               <Eye className="ml-auto h-4 w-4 text-foreground" />
@@ -426,7 +436,7 @@ export const ViewerControlsBar = ({
             <img
               alt="Orbit left"
               className="h-[28px] w-[28px] -scale-x-100 object-contain opacity-70 transition-opacity group-hover:opacity-100"
-              src="/icons/rotate.webp"
+              src={assetPath('/icons/rotate.webp')}
             />
           </ActionButton>
 
@@ -441,7 +451,7 @@ export const ViewerControlsBar = ({
             <img
               alt="Orbit right"
               className="h-[28px] w-[28px] object-contain opacity-70 transition-opacity group-hover:opacity-100"
-              src="/icons/rotate.webp"
+              src={assetPath('/icons/rotate.webp')}
             />
           </ActionButton>
 
@@ -456,7 +466,7 @@ export const ViewerControlsBar = ({
             <img
               alt="Top view"
               className="h-[28px] w-[28px] object-contain opacity-70 transition-opacity group-hover:opacity-100"
-              src="/icons/topview.webp"
+              src={assetPath('/icons/topview.webp')}
             />
           </ActionButton>
         </div>

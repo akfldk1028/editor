@@ -3,6 +3,7 @@
 // Node registry bootstrap is loaded once at the root via
 // `<ClientBootstrap>` in `app/layout.tsx` — no per-page side-effect
 // import here.
+import { assetPath } from '@pascal-app/core'
 import {
   applySceneGraphToEditor,
   Editor,
@@ -45,7 +46,7 @@ const SIDEBAR_TABS: (SidebarTab & { component: React.ComponentType })[] = [
         alt=""
         className="h-8 w-8 object-contain"
         height={32}
-        src="/icons/scene.webp"
+        src={assetPath('/icons/scene.webp')}
         width={32}
       />
     ),
@@ -61,7 +62,7 @@ const SIDEBAR_TABS: (SidebarTab & { component: React.ComponentType })[] = [
         alt=""
         className="h-8 w-8 object-contain"
         height={32}
-        src="/icons/build.webp"
+        src={assetPath('/icons/build.webp')}
         width={32}
       />
     ),
@@ -77,7 +78,7 @@ const SIDEBAR_TABS: (SidebarTab & { component: React.ComponentType })[] = [
         alt=""
         className="h-8 w-8 object-contain"
         height={32}
-        src="/icons/settings.webp"
+        src={assetPath('/icons/settings.webp')}
         width={32}
       />
     ),
@@ -150,7 +151,7 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
       }
 
       try {
-        const response = await fetch(`/api/scenes/${meta.id}`, {
+        const response = await fetch(assetPath(`/api/scenes/${meta.id}`), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -196,7 +197,7 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
   )
 
   useEffect(() => {
-    const source = new EventSource(`/api/scenes/${meta.id}/events`)
+    const source = new EventSource(assetPath(`/api/scenes/${meta.id}/events`))
 
     source.addEventListener('scene', (event) => {
       let payload: LiveSceneEvent
@@ -230,7 +231,7 @@ export function SceneLoader({ initialScene, meta }: SceneLoaderProps) {
     async (_blob: Blob) => {
       // TODO(phase7): upload thumbnail via POST /api/scenes/[id]/thumbnail.
       // Stub endpoint is not yet implemented in v0.1 — skip upload for now.
-      await fetch(`/api/scenes/${meta.id}/thumbnail`, {
+      await fetch(assetPath(`/api/scenes/${meta.id}/thumbnail`), {
         method: 'POST',
         // Intentionally no body — endpoint is a stub.
       }).catch(() => {

@@ -68,7 +68,7 @@ export const RegistryTreeNode = memo(function RegistryTreeNode({
         alt=""
         className="object-contain opacity-60"
         height={14}
-        src={iconSrc}
+        src={assetPath(iconSrc)}
         width={14}
       />
     )

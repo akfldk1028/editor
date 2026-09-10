@@ -1,5 +1,6 @@
 'use client'
 
+import { assetPath } from '@pascal-app/core'
 import { type SpawnNode, useScene } from '@pascal-app/core'
 import { useViewer } from '@pascal-app/viewer'
 import Image from 'next/image'
@@ -54,7 +55,7 @@ export const SpawnTreeNode = memo(function SpawnTreeNode({
           alt=""
           className="object-contain"
           height={14}
-          src="/icons/spawn-point.webp"
+          src={assetPath('/icons/spawn-point.webp')}
           width={14}
         />
       }
