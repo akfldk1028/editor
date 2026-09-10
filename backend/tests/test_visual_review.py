@@ -151,7 +151,11 @@ def test_architectural_style_uses_monochrome_drafting_symbols_and_korean_font(
     assert report["render_style"] == "architectural"
     assert report["png_text"]["renderer"] == "pillow"
     assert report["png_text"]["fallback"] is False
-    assert report["png_text"]["font_path"].lower().endswith("malgun.ttf")
+    # Whichever CJK face the platform offers — malgun.ttf on Windows, Noto on
+    # Linux — so long as one was found and the ASCII fallback did not run.
+    assert report["png_text"]["font_path"].lower().endswith(
+        ("malgun.ttf", "notosanscjk-regular.ttc", "notosanskr-regular.ttf")
+    )
     assert "업무공간" in svg
     assert [ord(character) for character in "업무공간"] == [
         50629,
