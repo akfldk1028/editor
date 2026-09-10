@@ -73,10 +73,12 @@ jobs:
       # dist/. The backend spawns it during its own tests, so this has to come
       # first — otherwise pytest fails on a missing exports.js rather than on
       # anything about the code under test.
+      # `npm ci` rejects --prefix, so this runs in the directory instead.
       - name: Build the GitAgent runtime
+        working-directory: infra/runtimes/gitagent
         run: |
-          npm --prefix infra/runtimes/gitagent ci
-          bun run plan:build:agent-runtime
+          npm ci
+          npm run build
 
       - name: Backend tests
         run: python -m pytest -q
