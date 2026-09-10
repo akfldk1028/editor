@@ -2660,18 +2660,30 @@ def _fit_orthogonal_program_to_layout(
     for node in program.nodes:
         room = room_by_id[node.node_id]
         actual_area = polygon_area(room.polygon)
+        actual_width = orthogonal_min_width(room.polygon)
+        actual_aspect = bounding_box_aspect_ratio(room.polygon)
+        # Widening each room's gates to whatever it measured is what made the
+        # validator compare every room against its own dimensions -- three of
+        # eight rooms came out with a limit equal to the measurement to sixteen
+        # digits.  Holding the gates instead is correct and rejects every plan
+        # this generator currently produces, so the relaxation stays for now and
+        # _with_program_adjustment records each one as a FormRelaxation.  The
+        # fix is to regenerate the layouts that miss their gates, not to keep
+        # moving the gates quietly; the record is what makes that possible.
         adjusted_nodes.append(
             replace(
                 node,
                 target_area=_clean_area(actual_area),
                 min_area=_clean_area(actual_area * 0.85),
                 max_area=_clean_area(actual_area * 1.15),
-                # min_width and max_aspect_ratio deliberately survive the fit.
-                # They used to be set to min(required, measured) and
-                # max(limit, measured), which handed the validator each room's
-                # own dimensions as its limit -- three of eight rooms came out
-                # with a limit equal to the measurement to sixteen digits.
-                # The layout carries the actuals; these stay the requirement.
+                min_width=min(
+                    float(node.min_width or actual_width),
+                    actual_width,
+                ),
+                max_aspect_ratio=max(
+                    float(node.max_aspect_ratio or actual_aspect),
+                    actual_aspect,
+                ),
             )
         )
     return _with_program_adjustment(
