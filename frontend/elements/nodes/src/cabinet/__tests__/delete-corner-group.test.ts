@@ -4,10 +4,10 @@ import type {
   AnyNodeId,
   CabinetModuleNode as CabinetModuleNodeType,
 } from '@pascal-app/core'
-import { loadPlugin, nodeRegistry } from '../../../../core/src/registry'
-import { createSceneApi } from '../../../../core/src/registry/scene-api'
-import { runAsSingleSceneHistoryStep } from '../../../../core/src/store/history-control'
-import useScene from '../../../../core/src/store/use-scene'
+import { loadPlugin, nodeRegistry } from '../../../../../../resources/lib/core/src/registry'
+import { createSceneApi } from '../../../../../../resources/lib/core/src/registry/scene-api'
+import { runAsSingleSceneHistoryStep } from '../../../../../../resources/lib/core/src/store/history-control'
+import useScene from '../../../../../../resources/lib/core/src/store/use-scene'
 import { builtinPlugin } from '../../index'
 import { cabinetQuickActions } from '../quick-actions'
 import { addCornerRun, wallBottomHeightForTallAlignment } from '../run-ops'

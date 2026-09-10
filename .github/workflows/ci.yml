@@ -68,17 +68,20 @@ jobs:
           python -m pip install -e .
           python -m pip install pytest
 
+      # The GitAgent host is built from source and lives outside the bun
+      # workspace, so a fresh checkout has neither its dependencies nor a
+      # dist/. The backend spawns it during its own tests, so this has to come
+      # first — otherwise pytest fails on a missing exports.js rather than on
+      # anything about the code under test.
+      - name: Build the GitAgent runtime
+        run: |
+          npm --prefix infra/runtimes/gitagent ci
+          bun run plan:build:agent-runtime
+
       - name: Backend tests
         run: python -m pytest -q
 
-      # The GitAgent host is built from source and lives outside the bun
-      # workspace, so a fresh checkout has neither its dependencies nor a
-      # dist/. The agent tests spawn it, and without both they fail on a
-      # missing module rather than on anything about the agent.
-      - name: Install the GitAgent runtime's dependencies
-        run: npm --prefix infra/runtimes/gitagent ci
-
-      - name: Agent runtime and PLANM agent tests
+      - name: PLANM agent tests
         run: bun run plan:test:agent
 
       - name: Dev orchestrator and structure tests
