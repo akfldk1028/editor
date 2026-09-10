@@ -40,6 +40,50 @@ jobs:
       - name: Build
         run: bun run build
 
+  # PLAN was absorbed into this repository with its own toolchain, and until now
+  # nothing here ran it: a change could break 976 Python tests and still show a
+  # green tick.
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install the product package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install pytest
+
+      - name: Backend tests
+        run: python -m pytest -q
+
+      # The GitAgent host is built from source and lives outside the bun
+      # workspace, so a fresh checkout has neither its dependencies nor a
+      # dist/. The agent tests spawn it, and without both they fail on a
+      # missing module rather than on anything about the agent.
+      - name: Install the GitAgent runtime's dependencies
+        run: npm --prefix infra/runtimes/gitagent ci
+
+      - name: Agent runtime and PLANM agent tests
+        run: bun run plan:test:agent
+
+      - name: Dev orchestrator and structure tests
+        run: bun run plan:test:dev
+
   cli-smoke:
     runs-on: macos-latest
     permissions:
