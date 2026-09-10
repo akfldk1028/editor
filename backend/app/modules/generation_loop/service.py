@@ -80,7 +80,11 @@ from backend.app.schemas.result import (
     RejectedAlternativeFamilyResult,
 )
 from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPolygon
-from backend.app.schemas.program import ProgramAdjustment, ProgramGraph
+from backend.app.schemas.program import (
+    FormRelaxation,
+    ProgramAdjustment,
+    ProgramGraph,
+)
 from backend.engine.geometry import (
     bounding_box_aspect_ratio,
     orthogonal_min_width,
@@ -2656,22 +2660,18 @@ def _fit_orthogonal_program_to_layout(
     for node in program.nodes:
         room = room_by_id[node.node_id]
         actual_area = polygon_area(room.polygon)
-        actual_width = orthogonal_min_width(room.polygon)
-        actual_aspect = bounding_box_aspect_ratio(room.polygon)
         adjusted_nodes.append(
             replace(
                 node,
                 target_area=_clean_area(actual_area),
                 min_area=_clean_area(actual_area * 0.85),
                 max_area=_clean_area(actual_area * 1.15),
-                min_width=min(
-                    float(node.min_width or actual_width),
-                    actual_width,
-                ),
-                max_aspect_ratio=max(
-                    float(node.max_aspect_ratio or actual_aspect),
-                    actual_aspect,
-                ),
+                # min_width and max_aspect_ratio deliberately survive the fit.
+                # They used to be set to min(required, measured) and
+                # max(limit, measured), which handed the validator each room's
+                # own dimensions as its limit -- three of eight rooms came out
+                # with a limit equal to the measurement to sixteen digits.
+                # The layout carries the actuals; these stay the requirement.
             )
         )
     return _with_program_adjustment(
@@ -2696,6 +2696,48 @@ def _program_adjustment(reason, original_nodes, adjusted_nodes):
     )
 
 
+def _detect_form_relaxations(
+    original_nodes,
+    adjusted_nodes,
+    *,
+    reason: str,
+) -> tuple[FormRelaxation, ...]:
+    """Find room form gates this adjustment widened.
+
+    Every program adjustment funnels through ``_with_program_adjustment``, so
+    comparing the two node lists here catches relaxations wherever they happen
+    -- including in code written after this.  A gate that was unset to begin
+    with cannot be relaxed; setting one is a tightening.
+    """
+    adjusted_by_id = {node.node_id: node for node in adjusted_nodes}
+    relaxations: list[FormRelaxation] = []
+    for original in original_nodes:
+        adjusted = adjusted_by_id.get(original.node_id)
+        if adjusted is None:
+            continue
+        for field, looser in (
+            # A smaller minimum width and a larger aspect limit both admit
+            # rooms the original program would have rejected.
+            ("min_width", lambda before, after: after is None or after < before),
+            ("max_aspect_ratio", lambda before, after: after is None or after > before),
+        ):
+            before = getattr(original, field)
+            after = getattr(adjusted, field)
+            if before is None or after == before:
+                continue
+            if looser(float(before), None if after is None else float(after)):
+                relaxations.append(
+                    FormRelaxation(
+                        node_id=original.node_id,
+                        field=field,
+                        required=float(before),
+                        relaxed_to=None if after is None else float(after),
+                        reason=reason,
+                    )
+                )
+    return tuple(relaxations)
+
+
 def _with_program_adjustment(
     program,
     nodes,
@@ -2712,6 +2754,10 @@ def _with_program_adjustment(
         adjustments=(
             *program.adjustments,
             _program_adjustment(reason, program.nodes, nodes),
+        ),
+        form_relaxations=(
+            *program.form_relaxations,
+            *_detect_form_relaxations(program.nodes, nodes, reason=reason),
         ),
     )
 

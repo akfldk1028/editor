@@ -19,6 +19,29 @@ class ProgramNode:
 
 
 @dataclass(frozen=True)
+class FormRelaxation:
+    """A room form gate the generator widened to make its layout fit.
+
+    Minimum width and maximum aspect ratio are quality gates, so moving one is
+    a finding about the layout rather than a free parameter.  Recording the
+    original requirement alongside the value actually used keeps the validator
+    measuring against something meaningful.
+    """
+
+    node_id: str
+    field: str
+    required: float
+    relaxed_to: float | None
+    reason: str
+
+    def __post_init__(self) -> None:
+        if self.field not in {"min_width", "max_aspect_ratio"}:
+            raise ValueError(f"unknown form field: {self.field}")
+        if not self.reason.strip():
+            raise ValueError("form relaxation reason must not be empty")
+
+
+@dataclass(frozen=True)
 class ProgramEdge:
     source: str
     target: str
@@ -140,3 +163,5 @@ class ProgramGraph:
     # Sizing inputs we assumed rather than sourced.  These travel to the
     # delivery manifest as not_checked instead of passing for regulatory facts.
     unresolved_facts: tuple[str, ...] = ()
+    # Room form gates the generator widened along the way, oldest first.
+    form_relaxations: tuple[FormRelaxation, ...] = ()
