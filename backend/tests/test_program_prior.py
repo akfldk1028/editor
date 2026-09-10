@@ -108,7 +108,6 @@ def test_tiny_positive_mass_preserves_positive_coherent_program_areas():
 @pytest.mark.parametrize(
     ("use_type", "expected_profile", "frontage_required"),
     [
-        ("office", OFFICE_PROFILE, set()),
         ("neighborhood_commercial", COMMERCIAL_PROFILE, {"sales_a", "sales_b"}),
     ],
 )
@@ -145,6 +144,81 @@ def test_program_profiles_emit_exact_ratios_and_form_metadata(
     assert sum(node.target_area for node in graph.nodes) == analysis.area
     assert all(node.min_area == node.target_area * 0.85 for node in graph.nodes)
     assert all(node.max_area == node.target_area * 1.15 for node in graph.nodes)
+
+
+def test_office_program_keeps_form_metadata_but_sizes_areas_normatively():
+    """Office areas are no longer a fraction of the plate.
+
+    The form metadata (min width, aspect limit, zone) still comes from the
+    profile; only the areas moved to modules/program_prior/sizing.py.
+    """
+    analysis = MassAnalysis(
+        project_id="profile-metadata",
+        area=1000,
+        floor_area=1000,
+        floors=1,
+        edge_count=4,
+        street_edge_indices=[0],
+        access_edge_indices=[0],
+        bounds=(0, 0, 40, 25),
+    )
+
+    graph = generate_program_graph(analysis, floor_index=1, use_type="office")
+
+    assert {
+        node.node_id: (node.min_width, node.max_aspect_ratio, node.zone)
+        for node in graph.nodes
+    } == {
+        node_id: (min_width, aspect, zone)
+        for node_id, (_, min_width, aspect, zone) in OFFICE_PROFILE.items()
+    }
+    assert graph.source == "baseline_prior:normative_sizing"
+    assert math.isclose(sum(node.target_area for node in graph.nodes), analysis.area)
+    assert graph.unresolved_facts
+
+
+def test_office_restroom_area_tracks_occupancy_not_plate_area():
+    """The regression that motivated normative sizing.
+
+    Two plates 8% apart in area produced restrooms 2.8x apart under the old
+    ratio sizing.
+    """
+
+    def restroom_area(plate_area: float) -> float:
+        analysis = MassAnalysis(
+            project_id="occupancy",
+            area=plate_area,
+            floor_area=plate_area,
+            floors=1,
+            edge_count=4,
+            street_edge_indices=[0],
+            access_edge_indices=[0],
+            bounds=(0, 0, 40, plate_area / 40),
+        )
+        graph = generate_program_graph(analysis, floor_index=1, use_type="office")
+        return next(
+            node.target_area for node in graph.nodes if node.space_type == "restroom"
+        )
+
+    assert restroom_area(763) / restroom_area(707) < 1.25
+
+
+def test_office_program_falls_back_to_ratios_on_a_plate_that_cannot_hold_it():
+    analysis = MassAnalysis(
+        project_id="tiny",
+        area=90,
+        floor_area=90,
+        floors=1,
+        edge_count=4,
+        street_edge_indices=[0],
+        access_edge_indices=[0],
+        bounds=(0, 0, 15, 6),
+    )
+
+    graph = generate_program_graph(analysis, floor_index=1, use_type="office")
+
+    assert graph.source == "baseline_prior:ratio_fallback"
+    assert any("did not fit" in fact for fact in graph.unresolved_facts)
 
 
 def test_generate_program_graph_uses_floor_specific_plate_area():

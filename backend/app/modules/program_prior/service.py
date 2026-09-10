@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from backend.app.modules.program_prior.sizing import (
+    OFFICE_SIZING,
+    SizingContext,
+    SizingRule,
+    size_space,
+)
 from backend.app.schemas.mass import MassAnalysis
 from backend.app.schemas.program import ProgramEdge, ProgramGraph, ProgramNode
 
@@ -28,6 +34,11 @@ class RelationshipProfile:
 class ProgramProfile:
     spaces: tuple[SpaceProfile, ...]
     relationships: tuple[RelationshipProfile, ...]
+    # When present, areas come from the normative rules in ``sizing`` -- fixture
+    # counts, headcount, fixed modules -- instead of ``SpaceProfile.ratio``.
+    # A ratio makes a restroom grow with the building rather than with the
+    # people using it; see modules/program_prior/sizing.py.
+    sizing_rules: dict[str, SizingRule] | None = None
 
 
 OFFICE_PROFILE = ProgramProfile(
@@ -49,6 +60,7 @@ OFFICE_PROFILE = ProgramProfile(
         RelationshipProfile("core", "it_storage", "service_adjacent"),
         RelationshipProfile("pantry", "open_work", "functional_adjacency"),
     ),
+    sizing_rules=OFFICE_SIZING,
 )
 
 COMMERCIAL_PROFILE = ProgramProfile(
@@ -81,10 +93,12 @@ def generate_program_graph(
         raise ValueError("floor_index must be inside analyzed floor range")
 
     profile = _profile_for(use_type)
-    nodes = _nodes_from_profile(
-        analysis.area_for_floor(floor_index),
-        profile,
-    )
+    floor_area = analysis.area_for_floor(floor_index)
+    if profile.sizing_rules is not None:
+        nodes, unresolved, source = _nodes_from_sizing(floor_area, profile)
+    else:
+        nodes = _nodes_from_profile(floor_area, profile)
+        unresolved, source = (), "baseline_prior"
     if use_type == "neighborhood_commercial":
         nodes = _split_commercial_tenants(nodes)
 
@@ -94,7 +108,8 @@ def generate_program_graph(
         use_type=use_type,
         nodes=nodes,
         edges=_relationship_edges(profile, nodes),
-        source="baseline_prior",
+        source=source,
+        unresolved_facts=unresolved,
     )
 
 
@@ -125,6 +140,53 @@ def _nodes_from_profile(
         )
         for space, area in zip(profile.spaces, areas)
     ]
+
+
+def _nodes_from_sizing(
+    total_area: float,
+    profile: ProgramProfile,
+) -> tuple[list[ProgramNode], tuple[str, ...], str]:
+    """Size every space from its own driver, keeping the ratio path as fallback.
+
+    A plate can be too small to hold the normative program -- the residual space
+    goes negative.  That is a real finding about the mass, but the caller still
+    needs a program, so we fall back to ratios and say so through the graph
+    source rather than silently shrinking the restroom.
+    """
+    rules = profile.sizing_rules
+    assert rules is not None
+    context = SizingContext(net_area_m2=total_area)
+    sized = {}
+    unresolved: list[str] = []
+    for space in profile.spaces:
+        if space.space_type not in rules:
+            return _nodes_from_profile(total_area, profile), (), "baseline_prior"
+        try:
+            item = size_space(space.space_type, context, rules)
+        except ValueError as error:
+            return (
+                _nodes_from_profile(total_area, profile),
+                (f"normative sizing did not fit the plate: {error}",),
+                "baseline_prior:ratio_fallback",
+            )
+        sized[space.space_type] = item
+        unresolved.extend(item.unresolved_facts)
+
+    nodes = [
+        ProgramNode(
+            node_id=space.space_type,
+            space_type=space.space_type,
+            target_area=_clean_number(sized[space.space_type].area_m2),
+            min_area=_clean_number(sized[space.space_type].area_m2 * 0.85),
+            max_area=_clean_number(sized[space.space_type].area_m2 * 1.15),
+            frontage_required=space.frontage_required,
+            min_width=space.min_width,
+            max_aspect_ratio=space.max_aspect_ratio,
+            zone=space.zone,
+        )
+        for space in profile.spaces
+    ]
+    return nodes, tuple(dict.fromkeys(unresolved)), "baseline_prior:normative_sizing"
 
 
 def _node_exists(node_id: str, nodes: list[ProgramNode]) -> bool:

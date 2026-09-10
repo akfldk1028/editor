@@ -137,3 +137,6 @@ class ProgramGraph:
     edges: list[ProgramEdge]
     source: str
     adjustments: tuple[ProgramAdjustment, ...] = ()
+    # Sizing inputs we assumed rather than sourced.  These travel to the
+    # delivery manifest as not_checked instead of passing for regulatory facts.
+    unresolved_facts: tuple[str, ...] = ()
