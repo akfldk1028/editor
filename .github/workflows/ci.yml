@@ -50,6 +50,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The architectural renderer draws Korean labels with Pillow and falls back
+      # to an ASCII bitmap when it cannot find a CJK face, which changes what it
+      # produces and fails 19 visual-review tests. Runners ship no CJK font.
+      - name: Install a CJK font
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+          test -f /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
