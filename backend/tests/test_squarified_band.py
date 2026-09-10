@@ -138,3 +138,32 @@ def _overlaps(a, b) -> bool:
     ax1, ay1, ax2, ay2 = a.bounds
     bx1, by1, bx2, by2 = b.bounds
     return ax1 < bx2 - 1e-9 and bx1 < ax2 - 1e-9 and ay1 < by2 - 1e-9 and by1 < ay2 - 1e-9
+
+
+def test_a_single_corridor_edge_exposes_the_landlocked_room():
+    """The check this module got wrong first time round.
+
+    Touching any band edge was treated as reachable, so a pantry sitting on the
+    far side of the band from the only corridor was reported as fine.
+    """
+    result = pack_squarified(OFFICE_SPACES, OFFICE_BAND, served_edges=("top",))
+
+    landlocked = {
+        violation.space_id
+        for violation in result.violations
+        if violation.code == "room_no_corridor_access"
+    }
+    assert landlocked == {"pantry"}
+
+
+def test_serving_both_long_edges_reaches_every_room():
+    result = pack_squarified(
+        OFFICE_SPACES, OFFICE_BAND, served_edges=("top", "bottom")
+    )
+
+    assert result.violations == ()
+
+
+def test_an_unknown_served_edge_is_rejected():
+    with pytest.raises(ValueError, match="unknown served edges"):
+        pack_squarified(OFFICE_SPACES, OFFICE_BAND, served_edges=("north",))

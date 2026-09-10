@@ -148,11 +148,27 @@ class PackResult:
 _EPSILON = 1e-9
 
 
+SERVED_EDGES = ("left", "right", "top", "bottom")
+
+
 def pack_squarified(
     spaces: tuple[SpaceRequest, ...],
     band: Band,
+    *,
+    served_edges: tuple[str, ...] = SERVED_EDGES,
 ) -> PackResult:
-    """Lay the requested spaces out across the band, largest first."""
+    """Lay the requested spaces out across the band, largest first.
+
+    ``served_edges`` names the band edges a corridor runs along.  With a single
+    served edge every room must touch it, so each room's depth is the band depth
+    and aspect = depth^2 / area regardless of how the band is cut -- a treemap
+    cannot help there, and rooms it places off that edge come back as
+    ``room_no_corridor_access`` violations rather than silently unreachable.
+    """
+    unknown = sorted(set(served_edges) - set(SERVED_EDGES))
+    if unknown:
+        raise ValueError(f"unknown served edges: {', '.join(unknown)}")
+    served = frozenset(served_edges)
     if not spaces:
         return PackResult(placements=(), violations=(), leftover=band)
 
@@ -197,7 +213,7 @@ def pack_squarified(
             target_area_m2=by_id[space_id].target_area_m2,
             min_width=by_id[space_id].min_width,
             max_aspect_ratio=by_id[space_id].max_aspect_ratio,
-            touches_band_edge=_touches_band_edge(rectangle, packed),
+            touches_band_edge=_touches_band_edge(rectangle, packed, served),
         )
         for (space_id, _), rectangle in zip(tiles, rectangles)
         if space_id is not None
@@ -210,26 +226,45 @@ def pack_squarified(
     )
 
 
-def _touches_band_edge(rectangle: dict, band: Band) -> bool:
-    """Whether the rectangle keeps a face on the band's perimeter.
+def _touches_band_edge(
+    rectangle: dict,
+    band: Band,
+    served_edges: frozenset[str],
+) -> bool:
+    """Whether the rectangle reaches an edge a corridor actually runs along.
 
-    A room enclosed on all four sides by its neighbours cannot be reached from
-    the corridor running along the band, so this is a placement fact the caller
-    has to act on rather than a geometric detail.
+    Touching any band edge is not enough: a room on the far side of the band
+    from the only corridor cannot be entered.  Checking the perimeter instead of
+    the served edges is what let an earlier version of this module report a
+    landlocked pantry as reachable.
     """
     x1, y1 = rectangle["x"], rectangle["y"]
     x2, y2 = x1 + rectangle["dx"], y1 + rectangle["dy"]
-    return (
-        abs(x1 - band.x) < _EPSILON
-        or abs(y1 - band.y) < _EPSILON
-        or abs(x2 - (band.x + band.width)) < _EPSILON
-        or abs(y2 - (band.y + band.height)) < _EPSILON
-    )
+    reached = {
+        "left": abs(x1 - band.x) < _EPSILON,
+        "bottom": abs(y1 - band.y) < _EPSILON,
+        "right": abs(x2 - (band.x + band.width)) < _EPSILON,
+        "top": abs(y2 - (band.y + band.height)) < _EPSILON,
+    }
+    return any(reached[edge] for edge in served_edges)
 
 
 def _violations(placements: tuple[PlacedSpace, ...]) -> tuple[PackViolation, ...]:
     violations: list[PackViolation] = []
     for item in placements:
+        if not item.touches_band_edge:
+            violations.append(
+                PackViolation(
+                    code="room_no_corridor_access",
+                    space_id=item.space_id,
+                    message=(
+                        f"room '{item.space_id}' reaches no corridor edge of "
+                        "the band"
+                    ),
+                    required=1.0,
+                    measured=0.0,
+                )
+            )
         if (
             item.max_aspect_ratio is not None
             and item.aspect_ratio > float(item.max_aspect_ratio) + _EPSILON
