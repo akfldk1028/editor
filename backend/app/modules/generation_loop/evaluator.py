@@ -15,7 +15,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from backend.app.schemas.program import ProgramGraph
-from backend.engine.geometry import polygon_area
+from backend.engine.geometry.polygon import polygon_area
 
 
 @dataclass(frozen=True)
