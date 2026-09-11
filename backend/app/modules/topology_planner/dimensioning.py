@@ -47,7 +47,14 @@ def dimension_band(
     nodes: Sequence[ProgramNode],
     *,
     residual_room_id: str | None,
+    fill: bool = False,
 ) -> tuple[RoomWidth, ...]:
+    """``fill`` makes the rooms span the band exactly when there is no residual.
+
+    Used on a flank beside the core that would otherwise leave the primary a
+    strip narrower than its minimum: the rooms stretch within their own area
+    bands to close it, or the LP reports that they cannot.
+    """
     d = band.depth
     fixed = [node for node in nodes if node.node_id != residual_room_id]
     residual = next((node for node in nodes if node.node_id == residual_room_id), None)
@@ -88,6 +95,8 @@ def dimension_band(
     if has_res:
         total[-1] = 1.0
         a_eq, b_eq = np.array([total]), np.array([band.length])
+    elif fill:
+        a_eq, b_eq = np.array([total]), np.array([band.length])
     else:
         a_ub.append(total)
         b_ub.append(band.length)
@@ -127,8 +136,10 @@ def _width_bounds(
     target = float(node.target_area)
     min_area = float(node.min_area) if node.min_area else target * 0.85
     max_area = float(node.max_area) if node.max_area else target * 1.15
-    lo = max(min_area / d, float(node.min_width or 0.0))
-    hi: float = max_area / d
+    # A hair inside the band, so a width that lands on the bound does not read
+    # as outside it after the validator's own rounding.
+    lo = max(min_area * (1 + 1e-7) / d, float(node.min_width or 0.0))
+    hi: float = max_area * (1 - 1e-7) / d
     r = float(node.max_aspect_ratio) if node.max_aspect_ratio else math.inf
     if math.isfinite(r):
         lo = max(lo, d / r)

@@ -110,3 +110,117 @@ def test_the_proposal_source_is_recorded_on_the_round_it_produced():
 def test_max_rounds_must_be_positive():
     with pytest.raises(ValueError):
         regenerate(_mass(), proposer=RuleRepairProposer(), max_rounds=0)
+
+
+def test_a_core_override_is_forwarded_to_every_generation_call():
+    from backend.app.modules.core_planner.contracts import CoreCandidate
+
+    core = CoreCandidate(strategy="seed", polygon=((0.0, 0.0), (8.0, 0.0), (8.0, 9.0), (0.0, 9.0)),
+                         fingerprint="f", contained_floor_indices=(1,))
+    generator = _ScriptedGenerator([_building(19.68), _building(25.0)])
+
+    regenerate(_mass(), proposer=_ScriptedProposer([PrioritizeExterior(1, "restroom")]),
+               max_rounds=2, generator=generator, baseline_programs_override=BASELINE,
+               core_override=core)
+
+    assert all(call["core_override"] is core for call in generator.calls)
+
+
+def test_seed_core_is_the_best_accepted_alternatives_core():
+    from backend.app.modules.generation_loop.regeneration import seed_core_from_alternatives
+    from backend.app.schemas.layout import RoomPolygon
+
+    class Floor:
+        def __init__(self, polygon):
+            self.program = type("P", (), {"floor_index": 1})()
+            self.layout = type("L", (), {"rooms": [RoomPolygon("core", "core", polygon)]})()
+
+    class Building:
+        def __init__(self, polygon):
+            self.floor_results = (Floor(polygon),)
+
+    class Alt:
+        def __init__(self, rank, accepted, polygon):
+            self.rank, self.accepted, self.strategy = rank, accepted, "s"
+            self.building = Building(polygon)
+
+    result = type("R", (), {})()
+    result.alternatives = (Alt(1, False, [(9, 9), (10, 9), (10, 10), (9, 10)]),
+                           Alt(2, True, [(0, 0), (8, 0), (8, 9), (0, 9)]))
+
+    seed = seed_core_from_alternatives(result)
+
+    assert seed.polygon == ((0.0, 0.0), (8.0, 0.0), (8.0, 9.0), (0.0, 9.0))
+    assert seed.contained_floor_indices == (0,)  # 0-based floor identity
+
+
+def test_seed_circulation_binds_every_floor_to_the_seeded_core():
+    from backend.app.modules.generation_loop.regeneration import (
+        seed_circulation_from_alternatives,
+        seed_core_from_alternatives,
+    )
+    from backend.app.schemas.layout import RoomPolygon
+
+    core_ring = [(0, 0), (8, 0), (8, 9), (0, 9)]
+    corridor = RoomPolygon("corridor", "circulation", [(8, 0), (30, 0), (30, 1.6), (8, 1.6)])
+    stair = ((26.0, 1.6), (30.0, 1.6), (30.0, 6.0), (26.0, 6.0))
+
+    class Floor:
+        def __init__(self, index):
+            self.program = type("P", (), {"floor_index": index})()
+            self.layout = type("L", (), {
+                "rooms": [RoomPolygon("core", "core", core_ring)],
+                "circulation": [corridor],
+                "remote_stair_footprint": stair,
+            })()
+
+    class Alt:
+        rank, accepted, strategy = 1, True, "rear-right"
+        building = type("B", (), {"floor_results": (Floor(1), Floor(2))})()
+
+    result = type("R", (), {"alternatives": (Alt(),)})()
+    core = seed_core_from_alternatives(result)
+    seeds = seed_circulation_from_alternatives(result, core)
+
+    assert set(seeds) == {1, 2}
+    assert all(c.core_fingerprint == core.fingerprint for c in seeds.values())
+    assert seeds[1].remote_stair_polygon == stair
+    assert seeds[1].fingerprint == seeds[2].fingerprint
+
+
+def test_seed_circulation_is_withheld_when_a_floor_has_no_stair():
+    from backend.app.modules.generation_loop.regeneration import (
+        seed_circulation_from_alternatives,
+        seed_core_from_alternatives,
+    )
+    from backend.app.schemas.layout import RoomPolygon
+
+    class Floor:
+        program = type("P", (), {"floor_index": 1})()
+        layout = type("L", (), {
+            "rooms": [RoomPolygon("core", "core", [(0, 0), (8, 0), (8, 9), (0, 9)])],
+            "circulation": [RoomPolygon("c", "circulation", [(8, 0), (30, 0), (30, 1.6), (8, 1.6)])],
+            "remote_stair_footprint": None,
+        })()
+
+    class Alt:
+        rank, accepted, strategy = 1, True, "s"
+        building = type("B", (), {"floor_results": (Floor(),)})()
+
+    result = type("R", (), {"alternatives": (Alt(),)})()
+
+    assert seed_circulation_from_alternatives(result, seed_core_from_alternatives(result)) is None
+
+
+def test_a_topology_round_drops_exterior_requests_from_earlier_rounds():
+    from backend.app.modules.generation_loop.repair import SwitchStrategy
+
+    generator = _ScriptedGenerator([_building(19.68), _building(19.68), _building(25.0)])
+    proposer = _ScriptedProposer([PrioritizeExterior(1, "restroom"), SwitchStrategy("topology")])
+
+    regenerate(_mass(), proposer=proposer, max_rounds=3, generator=generator,
+               baseline_programs_override=BASELINE)
+
+    assert [r.room_ids for r in generator.calls[1]["exterior_allocation_requests"]] == [("restroom",)]
+    assert generator.calls[2]["layout_strategy"] == "topology"
+    assert generator.calls[2]["exterior_allocation_requests"] == ()

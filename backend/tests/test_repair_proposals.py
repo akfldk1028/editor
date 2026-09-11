@@ -88,22 +88,32 @@ def test_apply_proposal_never_mutates_its_input():
 
 def test_rule_proposer_prioritizes_the_worst_starved_room_first():
     score = LayoutScore(accepted=True, hard_violations=0, area_shortfall=0.8,
-                        relaxations=3, worst_shortfall=("restroom", 0.8))
+                        relaxations=0, worst_shortfall=("restroom", 0.8))
 
     proposal = RuleRepairProposer().propose(_request(), score)
 
     assert proposal == PrioritizeExterior(1, "restroom")
 
 
-def test_rule_proposer_switches_strategy_once_exterior_is_already_requested():
+def test_form_relaxations_switch_the_strategy_before_anything_else():
+    """A widened gate is the strategy's own failure; no room-level repair undoes it."""
     score = LayoutScore(True, 0, 0.8, 3, ("restroom", 0.8))
+
+    assert RuleRepairProposer().propose(_request(), score) == SwitchStrategy("topology")
+    assert RuleRepairProposer().propose(
+        _request(), LayoutScore(True, 0, 0.0, 1, None)
+    ) == SwitchStrategy("topology")
+
+
+def test_rule_proposer_switches_strategy_once_exterior_is_already_requested():
+    score = LayoutScore(True, 0, 0.8, 0, ("restroom", 0.8))
     request = apply_proposal(_request(), PrioritizeExterior(1, "restroom"))
 
     assert RuleRepairProposer().propose(request, score) == SwitchStrategy("topology")
 
 
 def test_rule_proposer_releases_primary_area_as_a_last_resort():
-    score = LayoutScore(True, 0, 0.8, 3, ("restroom", 0.8))
+    score = LayoutScore(True, 0, 0.8, 0, ("restroom", 0.8))
     request = apply_proposal(
         apply_proposal(_request(), PrioritizeExterior(1, "restroom")),
         SwitchStrategy("topology"),
@@ -124,6 +134,6 @@ def test_rule_proposer_has_a_source_name_for_the_trace():
 
 def test_a_starved_primary_room_goes_straight_to_the_strategy_switch():
     """Exterior priority for the residual room changes nothing about its size."""
-    score = LayoutScore(True, 0, 0.9, 3, ("open_work", 0.9))
+    score = LayoutScore(True, 0, 0.9, 0, ("open_work", 0.9))
 
     assert RuleRepairProposer().propose(_request(), score) == SwitchStrategy("topology")

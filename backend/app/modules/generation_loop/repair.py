@@ -112,6 +112,11 @@ class RuleRepairProposer:
     def propose(
         self, request: GenerationRequest, score: LayoutScore
     ) -> RepairProposal | None:
+        # A form relaxation means the strategy widened a room gate to fit its
+        # own output; no exterior request or rescale takes that back.  The
+        # topology strategy carries none by construction, so it comes first.
+        if score.relaxations > 0 and request.layout_strategy != "topology":
+            return SwitchStrategy("topology")
         if score.worst_shortfall is None:
             return None
         room_id, ratio = score.worst_shortfall

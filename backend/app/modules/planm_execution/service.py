@@ -12,7 +12,11 @@ from PIL import Image, ImageChops
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.core.json_contracts import validate_planm_contract
-from backend.app.modules.generation_loop.regeneration import regenerate
+from backend.app.modules.generation_loop.regeneration import (
+    regenerate,
+    seed_circulation_from_alternatives,
+    seed_core_from_alternatives,
+)
 from backend.app.modules.generation_loop.repair import RuleRepairProposer
 from backend.app.modules.generation_loop.service import run_building_alternatives
 from backend.app.modules.mass_analyzer.service import analyze_mass
@@ -171,22 +175,76 @@ def alternatives_regeneration_block(trace, *, proposer_name: str) -> dict:
     }
 
 
-def run_alternatives_regeneration(mass) -> dict:
+REGENERATED_ALTERNATIVE_ID = "regenerated-01"
+
+
+def regenerate_alternatives(mass, generated=None):
     """The evaluate-and-regenerate loop for the alternatives stage.
 
     Bounded by planm.maximum_stage_attempts.  A loop whose every round fails
     is reported, not raised: the stage's own alternatives are still delivered
-    and the failure is a finding in alternatives.json.
+    and the failure is a finding in alternatives.json.  Returns the report
+    block and the loop's outcome (None when every round failed).
     """
     max_rounds = int(planm_config_value("maximum_stage_attempts", default=3))
     proposer = RuleRepairProposer()
     try:
-        outcome = regenerate(mass, proposer=proposer, max_rounds=max_rounds)
+        seed_core = seed_core_from_alternatives(generated) if generated else None
+        outcome = regenerate(
+            mass,
+            proposer=proposer,
+            max_rounds=max_rounds,
+            core_override=seed_core,
+            circulation_overrides=(
+                seed_circulation_from_alternatives(generated, seed_core) if generated else None
+            ),
+        )
     except RuntimeError as error:
-        return {"proposer": proposer.source, "error": str(error), "rounds": [], "best_round_index": None}
+        return (
+            {"proposer": proposer.source, "error": str(error), "rounds": [], "best_round_index": None},
+            None,
+        )
     block = alternatives_regeneration_block(outcome.trace, proposer_name=proposer.source)
     block["score"] = score_block(outcome.score)
+    return block, outcome
+
+
+def run_alternatives_regeneration(mass, generated=None) -> dict:
+    block, _ = regenerate_alternatives(mass, generated)
     return block
+
+
+def regenerated_alternative_record(mass, outcome, output_dir: Path) -> tuple[dict, list[dict], str]:
+    """Render the loop's winning building as a stage alternative.
+
+    The loop's result is only part of the flow once review and deliver can
+    pick it up like any other alternative: rendered, reviewed, accepted on the
+    same evidence.  Returns (record, artifacts, fingerprint).
+    """
+    alt_dir = output_dir / "alternatives" / REGENERATED_ALTERNATIVE_ID
+    create_building_visual_review_artifacts(
+        outcome.building, boundary=list(mass.footprint_polygon), output_dir=alt_dir,
+        render_style="architectural",
+    )
+    report_path = alt_dir / "building.review.json"
+    report = _read_json(report_path)
+    png_paths = sorted(alt_dir.rglob("*.png"))
+    fingerprint = _sha256(to_jsonable([floor.layout for floor in outcome.building.floor_results]))
+    accepted = bool(outcome.score.accepted and report.get("accepted") and png_paths)
+    artifacts = [_artifact(report_path, output_dir), _artifact(alt_dir / "index.html", output_dir)]
+    artifacts.extend(_artifact(path, output_dir) for path in png_paths)
+    record = {
+        "alternative_id": REGENERATED_ALTERNATIVE_ID,
+        "strategy": f"regenerated:{outcome.request.layout_strategy}",
+        "rank": 0, "score": -float(outcome.score.area_shortfall), "accepted": accepted,
+        "regeneration_score": score_block(outcome.score),
+        "fingerprint": fingerprint, "report_path": _portable_path(report_path, output_dir),
+        "preview_pngs": [_portable_path(path, output_dir) for path in png_paths],
+        "internal_validation": report.get("internal_validation", {}).get("status"),
+        "render_validation": report.get("render_validation", {}).get("status"),
+        "regulatory_screening": report.get("regulatory_screening", {}).get("status", "not_checked"),
+    }
+    return record, artifacts, fingerprint
 
 
 def _result(*, skill_name: str, status: str, started_at: str, input_sha256: str,
@@ -275,8 +333,17 @@ def alternatives(input_path: Path, state_path: Path, output_dir: Path) -> dict:
     state = _load_state(state_path, "analyzed")
     mass = _load_mass(input_path)
     generated = run_building_alternatives(mass)
-    regeneration_block = run_alternatives_regeneration(mass)
+    regeneration_block, outcome = regenerate_alternatives(mass, generated)
     records, artifacts, accepted_ids, fingerprints = [], [], [], []
+    if outcome is not None:
+        # The loop's winner leads the list: it is the plan the rest of the
+        # flow should review first, and it is accepted on the same evidence.
+        record, alt_artifacts, fingerprint = regenerated_alternative_record(mass, outcome, output_dir)
+        records.append(record)
+        artifacts.extend(alt_artifacts)
+        fingerprints.append(fingerprint)
+        if record["accepted"]:
+            accepted_ids.append(record["alternative_id"])
     for alternative in generated.alternatives:
         alt_dir = output_dir / "alternatives" / alternative.alternative_id
         create_building_visual_review_artifacts(

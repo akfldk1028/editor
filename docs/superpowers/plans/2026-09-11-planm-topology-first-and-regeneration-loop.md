@@ -57,7 +57,7 @@
 - Consumes: `BuildingGenerationResult` (`backend/app/schemas/result.py:73`) with `.floor_results: tuple[GenerationResult]`; `GenerationResult.layout.rooms`, `.validation.hard_violation_count`, `.validation.accepted`, `.program.form_relaxations`; `ProgramGraph` baseline per floor.
 - Produces: `LayoutScore` dataclass with `accepted: bool`, `hard_violations: int`, `area_shortfall: float`, `relaxations: int`, `worst_shortfall: tuple[str, float] | None`, method `key() -> tuple`; function `score_building(building, *, baseline_programs: Mapping[int, ProgramGraph]) -> LayoutScore`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_layout_evaluator.py
@@ -149,12 +149,12 @@ def test_a_floor_without_a_baseline_is_an_error():
         score_building(_building(25.0), baseline_programs={})
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_layout_evaluator.py -q`
 Expected: `ImportError: cannot import name 'LayoutScore'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/app/modules/generation_loop/evaluator.py
@@ -230,12 +230,12 @@ def score_building(
     )
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest backend/tests/test_layout_evaluator.py -q`
 Expected: `6 passed`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/modules/generation_loop/evaluator.py backend/tests/test_layout_evaluator.py
@@ -263,7 +263,7 @@ Ranking is (accepted, hard violations, area shortfall, relaxations)."
   - `RuleRepairProposer.propose(request, score) -> RepairProposal | None`.
   - `LAYOUT_STRATEGIES = ("orthogonal", "topology")`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_repair_proposals.py
@@ -375,12 +375,12 @@ def test_rule_proposer_stops_when_nothing_is_short():
     assert RuleRepairProposer().propose(_request(), score) is None
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_repair_proposals.py -q`
 Expected: `ImportError ... repair`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/app/modules/generation_loop/repair.py
@@ -517,12 +517,12 @@ def _floor_of(request: GenerationRequest, room_id: str) -> int:
     raise KeyError(f"room {room_id} is on no floor")
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest backend/tests/test_repair_proposals.py -q`
 Expected: `11 passed`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/modules/generation_loop/repair.py backend/tests/test_repair_proposals.py
@@ -545,7 +545,7 @@ tries those three in order for the worst-starved room and then stops."
 - Consumes: `run_building_generation(mass, *, floor_assignments, program_overrides, exterior_allocation_requests, ...)` (`generation_loop/service.py:290`), `generate_program_graph(analysis, floor_index=, use_type=)`, `analyze_mass`, Task 1 `score_building`, Task 2 request/proposals.
 - Produces: `RegenerationRound(round_index, proposal, proposal_source, score, error)`, `RegenerationTrace(rounds, best_round_index)`, `RegenerationOutcome(building, request, score, trace)`, and `regenerate(mass, *, proposer, max_rounds, floor_assignments=None, layout_strategy="orthogonal", generator=run_building_generation) -> RegenerationOutcome`. `proposer` has `.propose(request, score) -> RepairProposal | None` and attribute `.source: str`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_regeneration_loop.py
@@ -663,12 +663,12 @@ def test_max_rounds_must_be_positive():
         regenerate(_mass(), proposer=RuleRepairProposer(), max_rounds=0)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_regeneration_loop.py -q`
 Expected: `ImportError ... regeneration`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/app/modules/generation_loop/regeneration.py
@@ -802,12 +802,12 @@ def _next(proposer, request, score):
 
 Note: `run_building_generation` does not yet accept `layout_strategy`; Task 10 adds it. Until then the test generator is scripted, and Task 5's wiring passes only the kwargs that exist. Add `source = "rule"` as a class attribute to `RuleRepairProposer` in `repair.py` as part of this task.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest backend/tests/test_regeneration_loop.py backend/tests/test_repair_proposals.py -q`
 Expected: `17 passed`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/modules/generation_loop/regeneration.py backend/app/modules/generation_loop/repair.py backend/tests/test_regeneration_loop.py
@@ -831,7 +831,7 @@ is recorded, not fatal. Nothing in the loop can widen a gate."
 - Consumes: `StructuredPlannerClient.complete_json(*, system_prompt, user_payload) -> str` (`llm_planner/service.py:19`), Task 2 vocabulary, Task 1 `LayoutScore`.
 - Produces: `LLMRepairProposer(client, *, fallback=RuleRepairProposer())` with `.source` = `"llm"` or `"rule_fallback"` after each `.propose`, `REPAIR_PROPOSAL_SCHEMA` (strict JSON schema), `REPAIR_SYSTEM_PROMPT`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_llm_repair_proposer.py
@@ -927,12 +927,12 @@ def test_an_explicit_no_change_answer_returns_none_and_is_marked_llm():
     assert proposer.source == "llm"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_llm_repair_proposer.py -q`
 Expected: `ImportError ... llm_repair`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/app/modules/generation_loop/llm_repair.py
@@ -1080,12 +1080,12 @@ And in `backend/app/modules/llm_planner/openai_client.py`, change the signature 
 
 Also widen the `StructuredPlannerClient` protocol in `llm_planner/service.py:19-25` to accept `**kwargs: Any` so existing fakes keep working.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest backend/tests/test_llm_repair_proposer.py backend/tests/test_llm_planner*.py -q`
 Expected: all pass (the existing llm_planner tests must be unaffected by the kwargs widening).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/modules/generation_loop/llm_repair.py backend/app/modules/llm_planner/openai_client.py backend/app/modules/llm_planner/service.py backend/tests/test_llm_repair_proposer.py
@@ -1109,7 +1109,7 @@ vocabulary falls back to the rule proposer and is recorded as such."
 - Consumes: Task 3 `regenerate`, Task 2 `RuleRepairProposer`, Task 4 `LLMRepairProposer`, `agents/planm/config/default.yaml` `planm.maximum_stage_attempts` (currently `3`).
 - Produces: `alternatives.json` gains `"regeneration": {"rounds": [...], "best_round_index": int, "proposer": "rule"|"llm"}`; `regenerate_plans` gains `--rounds N` (default 3) and `--llm` (uses `OpenAIResponsesPlannerClient`, requires `OPENAI_API_KEY`); `report.json` gains the same `regeneration` block and a top-level `score`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_planm_execution_regeneration.py
@@ -1146,12 +1146,12 @@ def test_trace_is_serialised_with_every_round_and_the_winner():
     json.dumps(block)  # must be plain JSON
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_planm_execution_regeneration.py -q`
 Expected: `ImportError: cannot import name 'alternatives_regeneration_block'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add to `backend/app/modules/planm_execution/service.py` (module level, near `_result`):
 
@@ -1215,14 +1215,14 @@ and include `"regeneration": regeneration_block` in the `summary` dict. Add `_co
 
 In `backend/tools/regenerate_plans.py`: add `--rounds` (int, default 3) and `--llm` (store_true); build `proposer = LLMRepairProposer(OpenAIResponsesPlannerClient()) if args.llm else RuleRepairProposer()`; call `regenerate(mass, proposer=proposer, max_rounds=args.rounds)`; render the outcome building into `run_dir / "regenerated"` with `create_building_visual_review_artifacts`; write `report["regeneration"] = alternatives_regeneration_block(outcome.trace, proposer_name=proposer.source if hasattr(proposer, "source") else "rule")` and `report["score"]` from `outcome.score` (same shape as `score_json`).
 
-- [ ] **Step 4: Run tests and the metric gate**
+- [x] **Step 4: Run tests and the metric gate**
 
 Run: `python -m pytest backend/tests/test_planm_execution_regeneration.py backend/tests/test_planm_bridge.py -q`
 Expected: pass.
 Run: `python -m backend.tools.regenerate_plans --label task5-loop`
 Expected: a `regenerated/` folder with 3 PNGs and `report.json["regeneration"]["rounds"]` with ≥ 1 round; `report.json["score"]["area_shortfall"]` **≤** the round-0 score (the loop never returns something worse than its first round).
 
-- [ ] **Step 5: Full suite, then commit**
+- [x] **Step 5: Full suite, then commit**
 
 Run: `python -m pytest backend/tests -q` → expected `≥ 1034 passed, 0 failed`.
 
@@ -1248,7 +1248,7 @@ plans tool gains --rounds and --llm and renders the regenerated winner."
 - Consumes: `ProgramGraph.nodes` (`ProgramNode.node_id`, `.space_type`, `.zone`), `ProgramGraph.edges` (`ProgramEdge.source/target/relation`; relations `service_adjacent`, `functional_adjacency`, `public_access`).
 - Produces: `AdjacencyGraph(nodes: tuple[str,...], required: frozenset[frozenset[str]], soft: frozenset[frozenset[str]])`, `CORRIDOR = "corridor"`, `build_adjacency_graph(program) -> AdjacencyGraph`, `AdjacencyGraph.missing_required(pairs_present: Iterable[tuple[str,str]]) -> tuple[tuple[str,str],...]`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_topology_graph.py
@@ -1306,12 +1306,12 @@ def test_missing_required_reports_exactly_what_is_absent():
     assert len(missing) == 2
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_topology_graph.py -q`
 Expected: `ModuleNotFoundError: backend.app.modules.topology_planner`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/app/modules/topology_planner/graph.py
@@ -1372,12 +1372,12 @@ def build_adjacency_graph(program: ProgramGraph) -> AdjacencyGraph:
     )
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest backend/tests/test_topology_graph.py -q`
 Expected: `4 passed`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/modules/topology_planner/ backend/tests/test_topology_graph.py
@@ -1399,7 +1399,7 @@ service_adjacent program edges are hard; functional adjacency is soft."
 - Consumes: plate bounds `(min_x, min_y, max_x, max_y)`, core polygon bounds, `ProgramGraph` nodes with `.zone` (`workplace|public|service|core|frontage`), corridor width (default `1.6`).
 - Produces: `Band(name: str, x0, y0, x1, y1, room_ids: tuple[str,...])`, `SlicingPlan(spine: tuple[float,float,float,float], bands: tuple[Band, Band], axis: str)`, `plan_double_loaded_spine(bounds, *, core_bounds, program, corridor_width=1.6) -> SlicingPlan`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_topology_slicing.py
@@ -1460,12 +1460,12 @@ def test_a_core_not_on_the_plate_edge_is_rejected():
         plan_double_loaded_spine(BOUNDS, core_bounds=(14.0, 10.0, 22.0, 18.0), program=_office())
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_topology_slicing.py -q`
 Expected: `ImportError ... slicing`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/app/modules/topology_planner/slicing.py
@@ -1545,12 +1545,12 @@ def plan_double_loaded_spine(
     return SlicingPlan(spine=spine, bands=(other_band, core_band), axis="x")
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest backend/tests/test_topology_slicing.py -q`
 Expected: `6 passed`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/modules/topology_planner/slicing.py backend/tests/test_topology_slicing.py
@@ -1573,7 +1573,7 @@ primary room is the residual on both. No coordinates for rooms yet."
 - Consumes: `Band` (Task 7), `ProgramNode` fields `target_area, min_area, max_area, min_width, max_aspect_ratio`.
 - Produces: `RoomWidth(room_id, width)`, `TopologyInfeasible(ValueError)` with `.constraints: tuple[str,...]`, `dimension_band(band, nodes: Sequence[ProgramNode], *, residual_room_id: str | None) -> tuple[RoomWidth, ...]`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_topology_dimensioning.py
@@ -1657,12 +1657,12 @@ def test_the_single_loaded_slab_the_lp_replaces_would_have_failed():
                        residual_room_id="open_work")
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_topology_dimensioning.py -q`
 Expected: `ImportError ... dimensioning`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Add `"scipy>=1.17,<2",` to `pyproject.toml` dependencies (alphabetically after `pyyaml`). Then:
 
@@ -1782,12 +1782,12 @@ def _width_bounds(node: ProgramNode, d: float, labels: list[str]) -> tuple[float
     return lo, hi
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest backend/tests/test_topology_dimensioning.py -q`
 Expected: `6 passed`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/modules/topology_planner/dimensioning.py backend/tests/test_topology_dimensioning.py pyproject.toml
@@ -1809,7 +1809,7 @@ infeasibility names the constraint and is never resolved by widening it."
 - Consumes: Tasks 6–8; `LayoutCandidate(candidate_id, project_id, floor_index, rooms, circulation, score, openings=[])`, `RoomPolygon(room_id, space_type, polygon)` (`backend/app/schemas/layout.py:220-236`); `CirculationCandidate.polygons` optional.
 - Produces: `generate_topology_layout(boundary, program, *, core_polygon, corridor_width=1.6) -> LayoutCandidate` whose `circulation` is one `RoomPolygon("corridor", "circulation", spine)`; raises `TopologyInfeasible` or `ValueError("missing required adjacency: ...")`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_topology_layout.py
@@ -1892,12 +1892,12 @@ def test_an_impossible_program_raises_instead_of_relaxing():
         generate_topology_layout(BOUNDARY, tight, core_polygon=CORE)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_topology_layout.py -q`
 Expected: `ImportError ... topology_planner.service`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```python
 # backend/app/modules/topology_planner/service.py
@@ -2026,12 +2026,12 @@ def _shares_door(a: Polygon, b: Polygon) -> bool:
 
 Note for the implementer: `_band_minus_core` reduces the core-side band length by the core width so the LP never places a room under the core; if `test_rooms_and_corridor_tile_the_plate_without_overlap` fails because the strip to the right of the core is unclaimed, extend the residual primary polygon in that band to `band.x1` after dimensioning (the LP's residual width plus the core width equals the leftover). Keep the adjacency verification strict; do not loosen `_DOOR`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `python -m pytest backend/tests/test_topology_layout.py -q`
 Expected: `6 passed`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/app/modules/topology_planner/service.py backend/tests/test_topology_layout.py
@@ -2055,7 +2055,7 @@ generator raises."
 - Consumes: Task 9 `generate_topology_layout`, Task 2 `LAYOUT_STRATEGIES`.
 - Produces: `run_building_generation(..., layout_strategy: str = "orthogonal")`; `"topology"` routes each office floor through `generate_topology_layout(boundary, program, core_polygon=core.polygon)`; unknown strategy → `ValueError("unknown layout strategy")`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```python
 # backend/tests/test_layout_strategy_dispatch.py
@@ -2097,12 +2097,12 @@ def test_topology_strategy_gives_the_restroom_its_target_on_every_floor():
         assert got == pytest.approx(target, rel=0.02)
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `python -m pytest backend/tests/test_layout_strategy_dispatch.py -q`
 Expected: `TypeError: run_building_generation() got an unexpected keyword argument 'layout_strategy'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 In `run_building_generation` add `layout_strategy: str = "orthogonal"` to the signature and, first thing in the body:
 
@@ -2130,14 +2130,14 @@ At the per-floor layout call (`generation_loop/service.py:673`, the `generate_or
 
 In `regeneration.py`, delete the Task 3 note; the `layout_strategy=` kwarg now exists.
 
-- [ ] **Step 4: Run tests and the metric gate**
+- [x] **Step 4: Run tests and the metric gate**
 
 Run: `python -m pytest backend/tests/test_layout_strategy_dispatch.py backend/tests/test_regeneration_loop.py backend/tests/test_generation_loop.py -q`
 Expected: pass.
 Run: `python -m backend.tools.regenerate_plans --label task10-topology --rounds 3`
 Expected in `report.json`: `regeneration.rounds` contains a `switch_strategy → topology` proposal, and the `score` block shows `relaxations == 0` and `area_shortfall` **strictly below** the baseline run `20260911-110731-area-deviation` (41 deviations, shortfalls up to 84 %). Send `regenerated/floor_00*/*.png` to the user.
 
-- [ ] **Step 5: Full suite, then commit**
+- [x] **Step 5: Full suite, then commit**
 
 Run: `python -m pytest backend/tests -q` → expected `≥ 1034 passed, 0 failed`. If the orthogonal path's tests regress, the dispatch is wrong — the `else` branch must be byte-for-byte the previous call.
 

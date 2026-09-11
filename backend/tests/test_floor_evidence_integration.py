@@ -182,7 +182,7 @@ def test_30x12_upper_office_route_recomputes_to_general_30_pass() -> None:
 
     for floor in building.floor_results[1:]:
         assert floor.egress_graph is not None
-        assert floor.egress_graph.governing_distance_m == pytest.approx(26.85)
+        assert floor.egress_graph.governing_distance_m == pytest.approx(27.97)
         governing = next(
             room
             for room in floor.egress_graph.room_results
@@ -194,14 +194,14 @@ def test_30x12_upper_office_route_recomputes_to_general_30_pass() -> None:
                 governing.route_polyline,
                 governing.route_polyline[1:],
             )
-        ) == pytest.approx(26.85)
+        ) == pytest.approx(27.97)
         travel = next(
             check
             for check in floor.validation.regulatory_screening.checks
             if check.rule_id == "KR-EGRESS-TRAVEL-DISTANCE-ART34"
         )
         assert travel.status == "pass"
-        assert travel.measured_value == pytest.approx(26.85)
+        assert travel.measured_value == pytest.approx(27.97)
 
 
 @pytest.mark.parametrize(
@@ -587,7 +587,7 @@ def test_zoning_loop_revalidates_candidate_with_same_egress_evidence(
     assert travel["measured_value"] == pytest.approx(
         payload["egress_graph"]["governing_distance_m"]
     )
-    assert travel["measured_value"] == pytest.approx(26.85)
+    assert travel["measured_value"] == pytest.approx(27.97)
     assert loop.accepted is True
     assert loop.final_needs_iteration is False
 

@@ -103,7 +103,10 @@ def generate_orthogonal_office_layout(
             core_shape,
             min_circulation_width,
         )
-        circulation_rectangles = _rectangle_cells(corridor_shape)
+        # The overlay that carves the core out of the network leaves a vertex
+        # wherever the core's outline touches it; a collinear vertex like that
+        # would split a corridor leg into a full piece and a sliver.
+        circulation_rectangles = _rectangle_cells(_without_collinear_vertices(corridor_shape))
         fixed_remote_stair = (
             Polygon(tuple((float(x), float(y)) for x, y in remote_stair_polygon))
             if remote_stair_polygon is not None
@@ -410,6 +413,28 @@ def _primary_room_ids(
         for node in nodes
         if node.space_type in _PRIMARY_SPACE_TYPES or node.node_id in rear
     )
+
+
+def _without_collinear_vertices(shape):
+    """Drop ring vertices that sit on the straight run between their neighbours."""
+    polygons = tuple(shape.geoms) if isinstance(shape, MultiPolygon) else (shape,)
+    cleaned = []
+    for polygon in polygons:
+        rings = []
+        for ring in (polygon.exterior, *polygon.interiors):
+            points = list(ring.coords)[:-1]
+            kept = [
+                point
+                for index, point in enumerate(points)
+                if not _collinear(points[index - 1], point, points[(index + 1) % len(points)])
+            ]
+            rings.append(kept if len(kept) >= 3 else points)
+        cleaned.append(Polygon(rings[0], rings[1:]))
+    return cleaned[0] if len(cleaned) == 1 else MultiPolygon(cleaned)
+
+
+def _collinear(a: Point, b: Point, c: Point) -> bool:
+    return abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) <= _TOLERANCE
 
 
 def _corridor_network(

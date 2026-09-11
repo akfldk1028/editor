@@ -66,3 +66,10 @@ def test_missing_required_is_order_insensitive_about_pairs():
     present.append(("it_storage", "core"))
 
     assert graph.missing_required(present) == ()
+
+
+def test_a_dry_service_room_prefers_the_core_but_does_not_depend_on_it():
+    graph = build_adjacency_graph(_office())
+
+    assert frozenset({"it_storage", "core"}) in graph.soft
+    assert frozenset({"it_storage", "core"}) not in graph.required

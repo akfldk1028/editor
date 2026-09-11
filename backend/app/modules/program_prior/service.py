@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from backend.app.modules.program_prior.assignable import assignable_area
 from backend.app.modules.program_prior.sizing import (
     OFFICE_SIZING,
     SizingContext,
@@ -93,7 +94,13 @@ def generate_program_graph(
         raise ValueError("floor_index must be inside analyzed floor range")
 
     profile = _profile_for(use_type)
-    floor_area = analysis.area_for_floor(floor_index)
+    plate = analysis.floor_plate(floor_index)
+    # Rooms are sized on what the plate can assign to rooms, not on its
+    # gross area: the corridor and the un-rectangular corners come off first.
+    assignable = assignable_area(
+        plate.footprint_polygon, gross_m2=plate.area, bounds=plate.bounds
+    )
+    floor_area = assignable.assignable_m2
     if profile.sizing_rules is not None:
         nodes, unresolved, source = _nodes_from_sizing(floor_area, profile)
     else:
@@ -110,6 +117,7 @@ def generate_program_graph(
         edges=_relationship_edges(profile, nodes),
         source=source,
         unresolved_facts=unresolved,
+        net_area_allowance_m2=_clean_number(assignable.allowance_m2),
     )
 
 

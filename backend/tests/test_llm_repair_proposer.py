@@ -27,7 +27,7 @@ def _request():
     return GenerationRequest((FloorAssignment(1, "office"),), {1: _office_graph()})
 
 
-SCORE = LayoutScore(True, 0, 0.6, 2, ("restroom", 0.6))
+SCORE = LayoutScore(True, 0, 0.6, 0, ("restroom", 0.6))
 
 
 def test_a_valid_answer_becomes_a_proposal_and_is_marked_llm():

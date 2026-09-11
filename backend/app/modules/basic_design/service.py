@@ -63,8 +63,15 @@ def generate_basic_design(
     street_segments: list[Segment],
     shared_structure: StructureSet | None = None,
     floor_to_floor_height_m: float | None = None,
+    exit_separation_target: float | None = None,
 ) -> BasicDesignFeatures:
-    """Generate a deterministic concept-design annotation set for a validated layout."""
+    """Generate a deterministic concept-design annotation set for a validated layout.
+
+    ``exit_separation_target`` replaces the floor's own half-diameter target
+    for placing the two protected exits.  A stacked building's stairs are
+    designed to its strictest floor, so every floor then puts its doors at
+    the same end of the same stair.
+    """
     _require_finite_points(boundary, "floor boundary", 3)
     if len(street_segments) != 1:
         raise ValueError("basic design requires exactly one supplied street edge")
@@ -84,6 +91,7 @@ def generate_basic_design(
         layout.circulation,
         layout.remote_stair_footprint,
         boundary,
+        separation_target=exit_separation_target,
     )
     resolved_height, height_source = resolve_floor_height(floor_to_floor_height_m)
     elements = _core_elements(
@@ -476,6 +484,8 @@ def _protected_exits(
     circulation: list[RoomPolygon],
     remote_stair_footprint: tuple[Point, ...] | None,
     floor_boundary: list[Point],
+    *,
+    separation_target: float | None = None,
 ) -> list[PlanLine]:
     shared = [
         segment
@@ -530,7 +540,11 @@ def _protected_exits(
         core_boundary=(start, end),
         remote_candidates=(remote_start_segment, remote_end_segment),
         opening_width=_PROTECTED_OPENING_WIDTH,
-        separation_target=_maximum_pairwise_distance(floor_boundary) / 2.0,
+        separation_target=(
+            _maximum_pairwise_distance(floor_boundary) / 2.0
+            if separation_target is None
+            else float(separation_target)
+        ),
     )
     return [
         PlanLine(

@@ -49,7 +49,8 @@ def test_generate_program_graph_for_ground_floor_commercial_office_mix():
 
     node_types = {node.space_type for node in graph.nodes}
     assert {"sales", "core", "restroom", "stock", "utility"}.issubset(node_types)
-    assert sum(node.target_area for node in graph.nodes) == 300
+    assert sum(node.target_area for node in graph.nodes) == 300 - graph.net_area_allowance_m2
+    assert graph.net_area_allowance_m2 == 1.6 * 30  # rectangle: corridor only
     assert any(edge.relation == "public_access" for edge in graph.edges)
     assert graph.source == "baseline_prior"
 
@@ -71,7 +72,7 @@ def test_generate_program_graph_for_typical_office_floor():
     areas = {node.space_type: node.target_area for node in graph.nodes}
     node_ids = {node.node_id for node in graph.nodes}
     assert areas["open_work"] > areas["core"]
-    assert sum(areas.values()) == 400
+    assert math.isclose(sum(areas.values()), 400 - graph.net_area_allowance_m2)
     assert any(edge.relation == "service_adjacent" for edge in graph.edges)
     assert all(
         edge.source in node_ids and (edge.target in node_ids or edge.target == "street")
@@ -97,7 +98,10 @@ def test_tiny_positive_mass_preserves_positive_coherent_program_areas():
         use_type="neighborhood_commercial",
     )
 
-    assert math.isclose(sum(node.target_area for node in graph.nodes), analysis.area)
+    assert math.isclose(
+        sum(node.target_area for node in graph.nodes),
+        analysis.area - graph.net_area_allowance_m2,
+    )
     for node in graph.nodes:
         assert math.isfinite(node.target_area)
         assert math.isfinite(node.min_area)
@@ -131,7 +135,7 @@ def test_program_profiles_emit_exact_ratios_and_form_metadata(
 
     assert {
         node.node_id: (
-            node.target_area / analysis.area,
+            round(node.target_area / (analysis.area - graph.net_area_allowance_m2), 9),
             node.min_width,
             node.max_aspect_ratio,
             node.zone,
@@ -141,7 +145,7 @@ def test_program_profiles_emit_exact_ratios_and_form_metadata(
     assert {
         node.node_id for node in graph.nodes if node.frontage_required
     } == frontage_required
-    assert sum(node.target_area for node in graph.nodes) == analysis.area
+    assert sum(node.target_area for node in graph.nodes) == analysis.area - graph.net_area_allowance_m2
     assert all(node.min_area == node.target_area * 0.85 for node in graph.nodes)
     assert all(node.max_area == node.target_area * 1.15 for node in graph.nodes)
 
@@ -173,7 +177,10 @@ def test_office_program_keeps_form_metadata_but_sizes_areas_normatively():
         for node_id, (_, min_width, aspect, zone) in OFFICE_PROFILE.items()
     }
     assert graph.source == "baseline_prior:normative_sizing"
-    assert math.isclose(sum(node.target_area for node in graph.nodes), analysis.area)
+    assert math.isclose(
+        sum(node.target_area for node in graph.nodes),
+        analysis.area - graph.net_area_allowance_m2,
+    )
     assert graph.unresolved_facts
 
 
@@ -261,7 +268,11 @@ def test_generate_program_graph_uses_floor_specific_plate_area():
 
     graph = generate_program_graph(analysis, floor_index=2, use_type="office")
 
-    assert sum(float(node.target_area) for node in graph.nodes) == 384
+    assert math.isclose(
+        sum(float(node.target_area) for node in graph.nodes),
+        384 - graph.net_area_allowance_m2,
+    )
+    assert graph.net_area_allowance_m2 == pytest.approx(1.6 * 24)
 
 
 @pytest.mark.parametrize(

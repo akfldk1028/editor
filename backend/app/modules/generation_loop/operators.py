@@ -224,7 +224,7 @@ def _corridor_proposals(
                 )
             ]
     scale = _room_scale(program)
-    if scale >= 1:
+    if scale >= 1 and not _carries_allowance(program):
         return []
     orderings = [
         ("original", list(program.nodes)),
@@ -342,7 +342,20 @@ def _band_rooms(nodes, start: float, end: float, low: float, high: float, *, hor
     return rooms
 
 
+def _carries_allowance(program: ProgramGraph) -> bool:
+    return float(getattr(program, "net_area_allowance_m2", 0.0) or 0.0) > 0.0
+
+
 def _room_scale(program: ProgramGraph) -> float:
+    """Fill factor that carves the corridor out of the rooms' area.
+
+    A program sized on the plate's assignable area already leaves the corridor
+    out of its rooms (``net_area_allowance_m2``), so its bands take their
+    areas whole and the corridor is exactly what remains; the 0.9 factor is
+    for programs that still sum to the gross plate.
+    """
+    if _carries_allowance(program):
+        return 1.0
     minimum_scale = max(
         (
             float(node.min_area) / float(node.target_area)

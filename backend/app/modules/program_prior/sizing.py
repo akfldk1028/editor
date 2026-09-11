@@ -29,10 +29,6 @@ SizingBasis = Literal["fixture", "occupancy", "fixed", "ratio", "residual"]
 WORKPLACE_AREA_PER_PERSON_M2 = 8.5
 _WORKPLACE_CITATION = "업무시설 적정 공간면적 설계기준 개발 연구 (국토교통부)"
 
-# Share of the plate that is not assignable workplace area at the point where
-# occupancy is estimated.  Applied before the headcount division so that the
-# restroom serving a plate is driven by the people on it, not by its gross area.
-_NET_TO_WORKPLACE_FACTOR = 0.62
 
 
 @dataclass(frozen=True)
@@ -206,13 +202,19 @@ class SizingContext:
         if not math.isfinite(self.net_area_m2) or self.net_area_m2 <= 0:
             raise ValueError("net_area_m2 must be finite and positive")
 
-    @property
-    def workplace_area_m2(self) -> float:
-        return self.net_area_m2 * _NET_TO_WORKPLACE_FACTOR
+    def workplace_area_m2(self, core_share: float = 0.0) -> float:
+        """Net workplace area the headcount standard is measured on.
 
-    @property
-    def occupants(self) -> int:
-        return occupant_load(self.workplace_area_m2)
+        The 국토부 basis takes (total - core - primary circulation);
+        ``net_area_m2`` already excludes the corridor and the corners no room
+        can take, so only the core's share comes off here.
+        """
+        if not 0.0 <= core_share < 1.0:
+            raise ValueError("core_share must be in [0, 1)")
+        return self.net_area_m2 * (1.0 - core_share)
+
+    def occupants(self, core_share: float = 0.0) -> int:
+        return occupant_load(self.workplace_area_m2(core_share))
 
 
 @dataclass(frozen=True)
@@ -320,8 +322,14 @@ def size_space(
         raise KeyError(f"no sizing rule for space type: {space_type}")
 
     if rule.basis == "fixture":
+        core_rule = rules.get("core")
+        core_share = (
+            core_rule.plate_ratio
+            if core_rule is not None and core_rule.basis == "ratio"
+            else 0.0
+        )
         schedule = restroom_schedule(
-            occupants=context.occupants,
+            occupants=context.occupants(core_share),
             jurisdiction=context.jurisdiction,
         )
         return SizedSpace(

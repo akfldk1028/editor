@@ -93,3 +93,22 @@ def test_result_order_follows_the_input_order():
     widths = dimension_band(BAND, nodes, residual_room_id="open_work")
 
     assert [w.room_id for w in widths] == ["pantry", "restroom", "open_work"]
+
+
+def test_fill_stretches_rooms_within_their_bands_to_span_the_band_exactly():
+    band = Band("f", 0.0, 0.0, 14.0, 4.05, ("restroom", "pantry"))
+
+    widths = dimension_band(band, [_node("restroom", 25.0), _node("pantry", 27.0, aspect=2.0)],
+                            residual_room_id=None, fill=True)
+
+    assert sum(w.width for w in widths) == pytest.approx(14.0)
+    for w, target in zip(widths, (25.0, 27.0)):
+        assert target * 0.85 - 1e-6 <= w.width * band.depth <= target * 1.15 + 1e-6
+
+
+def test_fill_is_infeasible_when_the_bands_cannot_reach_the_length():
+    band = Band("f", 0.0, 0.0, 30.0, 4.05, ("restroom", "pantry"))
+
+    with pytest.raises(TopologyInfeasible):
+        dimension_band(band, [_node("restroom", 25.0), _node("pantry", 27.0, aspect=2.0)],
+                       residual_room_id=None, fill=True)

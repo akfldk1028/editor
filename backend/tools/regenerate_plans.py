@@ -13,7 +13,11 @@ from datetime import datetime
 import json
 from pathlib import Path
 
-from backend.app.modules.generation_loop.regeneration import regenerate
+from backend.app.modules.generation_loop.regeneration import (
+    regenerate,
+    seed_circulation_from_alternatives,
+    seed_core_from_alternatives,
+)
 from backend.app.modules.generation_loop.repair import RuleRepairProposer
 from backend.app.modules.generation_loop.service import run_building_alternatives
 from backend.app.modules.planm_execution.service import (
@@ -125,7 +129,14 @@ def regenerate_run(manifest_path: Path, label: str | None, *, rounds: int, propo
 
     # The evaluate-and-regenerate loop, rendered beside the composer's output
     # so the two can be compared run over run.
-    outcome = regenerate(mass, proposer=proposer, max_rounds=rounds)
+    seed_core = seed_core_from_alternatives(result)
+    outcome = regenerate(
+        mass,
+        proposer=proposer,
+        max_rounds=rounds,
+        core_override=seed_core,
+        circulation_overrides=seed_circulation_from_alternatives(result, seed_core),
+    )
     create_building_visual_review_artifacts(
         outcome.building,
         boundary=list(mass.footprint_polygon),

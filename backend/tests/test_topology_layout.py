@@ -95,3 +95,27 @@ def test_an_impossible_program_raises_instead_of_relaxing():
 
     with pytest.raises(TopologyInfeasible):
         generate_topology_layout(BOUNDARY, tight, core_polygon=CORE)
+
+
+def test_a_sliver_beside_the_core_becomes_a_corridor_spur_not_a_squeezed_room():
+    """A 2 m strip between the core and the plate edge holds no room and is too
+    narrow for the primary; the corridor takes it and the core gains a second face."""
+    core = [(2.0, 18.0), (10.0, 18.0), (10.0, 26.0), (2.0, 26.0)]
+
+    layout = generate_topology_layout(BOUNDARY, _office(), core_polygon=core)
+
+    corridor = Polygon(layout.circulation[0].polygon)
+    assert corridor.area > 37.0 * 1.6 + 1.0
+    assert all(r.space_type != "circulation" for r in layout.rooms)
+    core_poly = Polygon(next(r.polygon for r in layout.rooms if r.room_id == "core"))
+    assert corridor.boundary.intersection(core_poly.boundary).length > 8.0 + 2.0
+
+
+def test_the_primary_room_is_one_polygon_wrapping_the_corridor_ends():
+    layout = generate_topology_layout(BOUNDARY, _office(), core_polygon=CORE)
+
+    ids = [r.room_id for r in layout.rooms]
+    assert ids.count("open_work") == 1
+    assert all("::" not in room_id for room_id in ids)
+    corridor = Polygon(layout.circulation[0].polygon)
+    assert corridor.bounds[2] - corridor.bounds[0] < 37.0  # the spine stops at the last room

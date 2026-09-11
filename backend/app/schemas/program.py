@@ -197,3 +197,7 @@ class ProgramGraph:
     form_relaxations: tuple[FormRelaxation, ...] = ()
     # Rooms whose target area was moved outside its own declared band.
     area_deviations: tuple[ProgramAreaDeviation, ...] = ()
+    # Gross plate area the program does not distribute to rooms: the corners
+    # no axis-aligned room can take plus a corridor across the plate.  The
+    # nodes sum to the plate less this.
+    net_area_allowance_m2: float = 0.0

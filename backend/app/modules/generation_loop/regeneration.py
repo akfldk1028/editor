@@ -19,6 +19,10 @@ from backend.app.modules.generation_loop.repair import (
     RepairProposal,
     apply_proposal,
 )
+from backend.app.modules.circulation_planner.contracts import CirculationCandidate
+from backend.app.modules.circulation_planner.service import circulation_geometry_fingerprint
+from backend.app.modules.core_planner.contracts import CoreCandidate
+from backend.app.modules.core_planner.service import core_geometry_fingerprint
 from backend.app.modules.generation_loop.service import (
     assign_floors_from_use_mix,
     run_building_generation,
@@ -62,6 +66,8 @@ def regenerate(
     layout_strategy: str = "orthogonal",
     generator: Callable = run_building_generation,
     baseline_programs_override: Mapping[int, ProgramGraph] | None = None,
+    core_override: CoreCandidate | None = None,
+    circulation_overrides: Mapping[int, CirculationCandidate] | None = None,
 ) -> RegenerationOutcome:
     if not isinstance(max_rounds, int) or isinstance(max_rounds, bool) or max_rounds < 1:
         raise ValueError("max_rounds must be a positive integer")
@@ -87,6 +93,11 @@ def regenerate(
         baseline_programs=baselines,
         layout_strategy=layout_strategy,
     )
+    fixed_kwargs: dict = {}
+    if core_override is not None:
+        fixed_kwargs["core_override"] = core_override
+    if circulation_overrides:
+        fixed_kwargs["circulation_overrides"] = dict(circulation_overrides)
 
     rounds: list[RegenerationRound] = []
     best: tuple[LayoutScore, object, GenerationRequest, int] | None = None
@@ -98,7 +109,7 @@ def regenerate(
                 break
             request = apply_proposal(request, proposal)
         try:
-            building = generator(mass, **_generator_kwargs(request))
+            building = generator(mass, **_generator_kwargs(request), **_structure_kwargs(request, fixed_kwargs))
         except (ValueError, TypeError) as error:
             rounds.append(RegenerationRound(index, proposal, source, None, str(error)))
             proposal, source = _next(proposer, request, best[0] if best else None)
@@ -128,6 +139,88 @@ def regenerate(
     )
 
 
+def seed_core_from_alternatives(result) -> CoreCandidate | None:
+    """The core the composer actually drew, so the loop refines that building.
+
+    Without it run_building_generation sizes the core from the program's
+    ratio -- 175 m2 on the sample office against the 72 m2 core every drawing
+    shows -- and the topology strategy is handed a core that sits on no edge.
+    """
+    alternatives = list(getattr(result, "alternatives", ()))
+    if not alternatives:
+        return None
+    ranked = sorted(alternatives, key=lambda item: (not item.accepted, item.rank))
+    best = ranked[0]
+    floors = best.building.floor_results
+    core = next(
+        (room for room in floors[0].layout.rooms if room.space_type == "core"), None
+    )
+    if core is None:
+        return None
+    polygon = tuple((float(x), float(y)) for x, y in core.polygon)
+    return CoreCandidate(
+        strategy=best.strategy,
+        polygon=polygon,
+        fingerprint=core_geometry_fingerprint(polygon),
+        # run_building_generation expects the 0-based identity of every floor.
+        contained_floor_indices=tuple(range(len(floors))),
+    )
+
+
+def seed_circulation_from_alternatives(
+    result, core: CoreCandidate | None
+) -> dict[int, CirculationCandidate] | None:
+    """The composer's corridors and remote stair, floor by floor, bound to its core.
+
+    run_building_generation needs both overrides to reproduce a composed
+    building: with the core alone the orthogonal path has no circulation to
+    lay rooms against.  Every floor must carry a corridor and a stair or the
+    seed is withheld.
+    """
+    if core is None:
+        return None
+    alternatives = list(getattr(result, "alternatives", ()))
+    if not alternatives:
+        return None
+    best = sorted(alternatives, key=lambda item: (not item.accepted, item.rank))[0]
+    overrides: dict[int, CirculationCandidate] = {}
+    for floor in best.building.floor_results:
+        layout = floor.layout
+        stair = layout.remote_stair_footprint
+        if not layout.circulation or stair is None:
+            return None
+        polygons = tuple(
+            tuple((float(x), float(y)) for x, y in path.polygon) for path in layout.circulation
+        )
+        stair_ring = tuple((float(x), float(y)) for x, y in stair)
+        overrides[floor.program.floor_index] = CirculationCandidate(
+            strategy=best.strategy,
+            polygons=polygons,
+            remote_stair_polygon=stair_ring,
+            fingerprint=circulation_geometry_fingerprint(
+                strategy=best.strategy,
+                core_fingerprint=core.fingerprint,
+                polygons=polygons,
+                remote_stair=stair_ring,
+            ),
+            entrance_connected=True,
+            core_connected=True,
+            stair_connected=True,
+            core_fingerprint=core.fingerprint,
+        )
+    return overrides
+
+
+def _structure_kwargs(request: GenerationRequest, fixed: dict) -> dict:
+    """The topology strategy plans its own corridor and core position, so the
+    composer's structural overrides become a dimensions hint for it rather
+    than a constraint the generator would then fail to reproduce."""
+    if request.layout_strategy != "topology":
+        return fixed
+    hint = fixed.get("core_override")
+    return {"topology_core_hint": hint} if hint is not None else {}
+
+
 def _generator_kwargs(request: GenerationRequest) -> dict:
     kwargs = {
         "floor_assignments": request.floor_assignments,
@@ -138,6 +231,12 @@ def _generator_kwargs(request: GenerationRequest) -> dict:
     # noise, and a generator that predates the strategy switch still works.
     if request.layout_strategy != "orthogonal":
         kwargs["layout_strategy"] = request.layout_strategy
+    if request.layout_strategy == "topology":
+        # Exterior priority is a repair aimed at the orthogonal cell layout.
+        # The topology strategy places rooms from the adjacency graph and the
+        # zone plan, so a request carried over from an earlier round would only
+        # fail its daylight check against a room the graph put inside.
+        kwargs["exterior_allocation_requests"] = ()
     return kwargs
 
 

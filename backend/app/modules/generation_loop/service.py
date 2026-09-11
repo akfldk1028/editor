@@ -296,7 +296,13 @@ def run_building_generation(
     core_override: CoreCandidate | None = None,
     circulation_overrides: Mapping[int, CirculationCandidate] | None = None,
     exterior_allocation_requests: Iterable[ExteriorAllocationRequest] = (),
+    layout_strategy: str = "orthogonal",
+    topology_core_hint: CoreCandidate | None = None,
 ) -> BuildingGenerationResult:
+    from backend.app.modules.generation_loop.repair import LAYOUT_STRATEGIES
+
+    if layout_strategy not in LAYOUT_STRATEGIES:
+        raise ValueError(f"unknown layout strategy: {layout_strategy}")
     requests = tuple(exterior_allocation_requests)
     if not all(isinstance(item, ExteriorAllocationRequest) for item in requests):
         raise TypeError(
@@ -662,9 +668,72 @@ def run_building_generation(
         ]
 
     layouts = []
-    for program, floor_analysis in zip(programs, floor_analyses):
+    programs = list(programs)
+    topology_inputs: list[tuple] = []
+    for index, (program, floor_analysis) in enumerate(zip(programs, floor_analyses)):
         circulation_candidate = fixed_circulation.get(program.floor_index)
-        if has_nonrectangular_floor or has_structural_override:
+        if layout_strategy == "topology":
+            # Topology before geometry: adjacency graph, double-loaded spine,
+            # LP-dimensioned rooms.  The program is not refitted afterwards, so
+            # the floor carries no form relaxations by construction.
+            from backend.app.modules.topology_planner.service import (
+                generate_topology_layout,
+            )
+
+            stair_source = (
+                circulation_candidate.remote_stair_polygon
+                if circulation_candidate is not None
+                else shared_remote_stair
+            )
+            stair_dimensions = None
+            if stair_source is not None:
+                st_min_x, st_min_y, st_max_x, st_max_y = polygon_bounds(stair_source)
+                stair_dimensions = (st_max_x - st_min_x, st_max_y - st_min_y)
+            # Topology first decides the core position too.  A core override
+            # is honoured as given (it already sits on an edge); otherwise the
+            # core -- sized from the hint or the shared core -- goes on the
+            # street edge, centred on the mass, identical on every floor.
+            if core_override is not None:
+                topology_core = core_override.polygon
+            else:
+                core_node = next(node for node in program.nodes if node.space_type == "core")
+                topology_core = _front_edge_core(
+                    topology_core_hint.polygon if topology_core_hint is not None else shared_core,
+                    analysis.bounds,
+                    floor_boundaries=tuple(
+                        plate.footprint_polygon for plate in analysis.floor_plates
+                    ),
+                    max_aspect_ratio=core_node.max_aspect_ratio,
+                    min_width=core_node.min_width,
+                )
+            # The program's core figure follows the core actually placed, and
+            # the difference moves to the residual -- the same normalisation
+            # the orthogonal branch applies to its shared core.
+            program = _normalize_program_core(program, polygon_area(topology_core))
+            programs[index] = program
+            topology_boundary = floor_analysis.boundary_for_floor(program.floor_index)
+            layout = generate_topology_layout(
+                topology_boundary,
+                program,
+                core_polygon=topology_core,
+                stair_dimensions=stair_dimensions,
+            )
+            topology_inputs.append((topology_boundary, program, topology_core, stair_dimensions))
+            if core_override is not None:
+                # Same contract as the orthogonal branch: the shared core keeps
+                # the override's exact vertex sequence on every floor.
+                layout = replace(
+                    layout,
+                    rooms=[
+                        (
+                            replace(room, polygon=core_override.polygon)
+                            if room.space_type == "core"
+                            else room
+                        )
+                        for room in layout.rooms
+                    ],
+                )
+        elif has_nonrectangular_floor or has_structural_override:
             request = requests_by_floor.get(program.floor_index)
             layout_boundary = floor_analysis.boundary_for_floor(
                 program.floor_index
@@ -733,6 +802,8 @@ def run_building_generation(
                 room_scale=room_scale,
             )
         layouts.append(layout)
+    if layout_strategy == "topology":
+        layouts = _stack_topology_stairs(layouts, topology_inputs, core_override)
     if core_override is not None and any(
         next(room for room in layout.rooms if room.space_type == "core").polygon
         != core_override.polygon
@@ -740,7 +811,7 @@ def run_building_generation(
     ):
         raise ValueError("generated floors must preserve shared core override equality")
 
-    if has_nonrectangular_floor or has_structural_override:
+    if (has_nonrectangular_floor or has_structural_override) and layout_strategy != "topology":
         programs = [
             _fit_orthogonal_program_to_layout(program, layout)
             for program, layout in zip(programs, layouts)
@@ -781,6 +852,13 @@ def run_building_generation(
                 floor_to_floor_height_m=(
                     mass.building_code_context.floor_to_floor_height_m
                     if mass.building_code_context is not None
+                    else None
+                ),
+                # The topology stack shares one stair; its doors are placed
+                # to the strictest floor so every floor gets the same stair.
+                exit_separation_target=(
+                    _building_exit_separation(analysis)
+                    if layout_strategy == "topology" and analysis.floor_plates
                     else None
                 ),
             ),
@@ -2815,6 +2893,117 @@ def _with_program_adjustment(
             *_detect_area_deviations(program.nodes, nodes, reason=reason),
         ),
     )
+
+
+def _building_exit_separation(analysis) -> float:
+    """The strictest floor's exit separation target: half its longest vertex pair."""
+    return max(
+        max(
+            math.dist(a, b)
+            for i, a in enumerate(plate.footprint_polygon)
+            for b in plate.footprint_polygon[i + 1 :]
+        )
+        / 2.0
+        for plate in analysis.floor_plates
+    )
+
+
+def _stack_topology_stairs(layouts, topology_inputs, core_override):
+    """One remote stair for every floor.
+
+    Each floor first placed its stair at the far end of its own room row; a
+    stair stacks, so the floors are regenerated against one box.  The box
+    farthest from the core is tried first -- it satisfies every floor's exit
+    separation if it fits them all -- then the next, until every floor takes
+    the same one.
+    """
+    from backend.app.modules.topology_planner.dimensioning import TopologyInfeasible
+    from backend.app.modules.topology_planner.service import generate_topology_layout
+
+    boxes = []
+    for layout in layouts:
+        footprint = layout.remote_stair_footprint
+        if footprint is not None:
+            boxes.append(tuple(polygon_bounds(footprint)))
+    if len(set(boxes)) <= 1:
+        return layouts
+    core_bounds = polygon_bounds(topology_inputs[0][2])
+    core_x = (core_bounds[0] + core_bounds[2]) / 2
+    errors = []
+    for box in sorted(set(boxes), key=lambda b: -abs((b[0] + b[2]) / 2 - core_x)):
+        stacked = []
+        try:
+            for boundary, program, core_polygon, stair_dimensions in topology_inputs:
+                layout = generate_topology_layout(
+                    boundary,
+                    program,
+                    core_polygon=core_polygon,
+                    stair_dimensions=stair_dimensions,
+                    stair_footprint=box,
+                )
+                if core_override is not None:
+                    layout = replace(
+                        layout,
+                        rooms=[
+                            replace(room, polygon=core_override.polygon)
+                            if room.space_type == "core"
+                            else room
+                            for room in layout.rooms
+                        ],
+                    )
+                stacked.append(layout)
+        except (TopologyInfeasible, ValueError) as error:
+            errors.append(str(error))
+            continue
+        return stacked
+    raise ValueError(
+        "no remote stair position serves every floor of the topology layout: "
+        + "; ".join(errors[:3])
+    )
+
+
+def _front_edge_core(
+    source: Iterable[tuple[float, float]],
+    bounds: tuple[float, float, float, float],
+    *,
+    floor_boundaries: tuple[tuple[tuple[float, float], ...], ...] | None = None,
+    max_aspect_ratio: float | None = None,
+    min_width: float | None = None,
+) -> list[tuple[float, float]]:
+    """A core of the source's area on the front edge.
+
+    With ``floor_boundaries`` the core sits at one end of the front run every
+    floor shares, so the remote stair at the corridor's other end is as far
+    from it as the plate allows; without them it is centred on the mass.
+
+    The source's proportions are kept unless they break the program's own
+    core gates -- the composer's core was itself a relaxed 2.38 against a 2.0
+    limit -- in which case the area is re-proportioned to the limit.
+    """
+    src_min_x, src_min_y, src_max_x, src_max_y = polygon_bounds(list(source))
+    width, depth = src_max_x - src_min_x, src_max_y - src_min_y
+    area = width * depth
+    limit = float(max_aspect_ratio) if max_aspect_ratio else math.inf
+    if max(width, depth) / min(width, depth) > limit + 1e-9:
+        depth = math.sqrt(area / limit)
+        width = area / depth
+    if min_width and min(width, depth) < float(min_width):
+        depth = float(min_width)
+        width = area / depth
+    min_x, min_y, max_x, _ = bounds
+    if floor_boundaries:
+        from backend.app.modules.topology_planner.service import front_edge_core_x
+
+        x0 = _clean_area(front_edge_core_x(floor_boundaries, width=width, depth=depth, min_y=min_y))
+    else:
+        centre = (min_x + max_x) / 2
+        x0 = _clean_area(centre - width / 2)
+    return [
+        (x0, min_y),
+        (_clean_area(x0 + width), min_y),
+        (_clean_area(x0 + width), _clean_area(min_y + depth)),
+        (x0, _clean_area(min_y + depth)),
+    ]
 
 
 def _is_axis_aligned_rectangle(

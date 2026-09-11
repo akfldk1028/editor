@@ -101,21 +101,14 @@ def shared_core_candidates(
         )
         for x0 in x_origins:
             for y0 in y_origins:
-                candidate_shape = box(
-                    x0,
-                    y0,
-                    x0 + candidate_width,
-                    y0 + candidate_depth,
-                )
+                # The origins are rounded; an end-aligned origin plus the raw
+                # length can overshoot the boundary by 1e-10 and lose the
+                # candidate flush with the edge, so the far corner is rounded
+                # the same way before the coverage test.
+                x1, y1 = _clean(x0 + candidate_width), _clean(y0 + candidate_depth)
+                candidate_shape = box(x0, y0, x1, y1)
                 if common.covers(candidate_shape):
-                    candidates.add(
-                        _rectangle(
-                            x0,
-                            y0,
-                            x0 + candidate_width,
-                            y0 + candidate_depth,
-                        )
-                    )
+                    candidates.add(_rectangle(x0, y0, x1, y1))
     return tuple(
         sorted(candidates, key=lambda candidate: _rectangle_bounds(candidate))
     )

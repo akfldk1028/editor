@@ -62,6 +62,12 @@ def score_building(
             room.room_id: polygon_area(room.polygon) for room in floor.layout.rooms
         }
         for node in baseline.nodes:
+            if node.space_type == "core":
+                # The core is sized by the core planner from stair and lift
+                # geometry, not by the program: the baseline's core figure is
+                # a ratio placeholder, and the validator's room_area rule
+                # already checks the core against the normalised program.
+                continue
             got = areas.get(node.node_id)
             if got is None:
                 continue
