@@ -184,6 +184,21 @@ def generate_orthogonal_office_layout(
             if circulation_candidate is not None
             else None
         ),
+        # The matching lower bound.  Without it the splitter had no reason to
+        # stop before the pieces were too small for the rooms waiting on them.
+        seed_area_bands=(
+            tuple(
+                (
+                    float(node.min_area or float(node.target_area) * 0.85),
+                    float(node.max_area or node.target_area)
+                    + max(10.0, float(node.max_area or node.target_area) * 0.10),
+                )
+                for node in non_core_nodes
+                if node.space_type not in {"open_work", "sales"}
+            )
+            if circulation_candidate is not None
+            else None
+        ),
         frontage_segments=frontage_segments,
         frontage_required_count=(
             sum(node.frontage_required for node in non_core_nodes)
@@ -1683,6 +1698,7 @@ def _subdivide_accessible_rectangles(
     *,
     required_count: int,
     bounded_area_limits: tuple[float, ...] | None = None,
+    seed_area_bands: tuple[tuple[float, float], ...] | None = None,
     frontage_segments: tuple[tuple[Point, Point], ...] = (),
     frontage_required_count: int = 0,
     frontage_min_width: float = 0.0,
@@ -1751,6 +1767,18 @@ def _subdivide_accessible_rectangles(
                 minimum_width=frontage_min_width,
             ),
         )
+        # The same shape of guard for area.  bounded_area_limits only asks for
+        # rectangles small enough, so nothing here used to stop the splitter
+        # cutting past the size the waiting rooms needed -- meeting wanted
+        # 125.1 m2 and was left 19.7.  A split that destroys the last rectangle
+        # a room could still have been served by is refused, but only if the
+        # set already had that capacity: measuring against the requirement
+        # instead would refuse every split the moment the band is short one.
+        bands_to_protect = (
+            seed_area_bands
+            if seed_area_bands and _has_banded_seed_capacity(result, seed_area_bands)
+            else ()
+        )
         options = []
         for rectangle in result:
             shared = [
@@ -1792,6 +1820,10 @@ def _subdivide_accessible_rectangles(
                         minimum_width=frontage_min_width,
                     )
                     < frontage_floor
+                ):
+                    continue
+                if bands_to_protect and not _has_banded_seed_capacity(
+                    next_rectangles, bands_to_protect
                 ):
                     continue
                 options.append(
@@ -2041,6 +2073,34 @@ def _has_bounded_seed_capacity(
         if not eligible:
             return False
         available_areas.remove(max(eligible))
+    return True
+
+
+def _has_banded_seed_capacity(
+    rectangles: list[tuple[Point, ...]],
+    area_bands: tuple[tuple[float, float], ...],
+) -> bool:
+    """Whether every room can take a rectangle inside its own area band.
+
+    ``_has_bounded_seed_capacity`` only asks whether a rectangle is small
+    enough.  Subdivision therefore had no reason to stop before the pieces were
+    far too small for the rooms waiting on them, and the area those rooms never
+    got was absorbed by the residual primary space.
+
+    Rooms are matched widest-band-last and each takes the smallest rectangle
+    that fits it, so a large rectangle is never spent on a small room while a
+    large room still needs one.
+    """
+    available = sorted(Polygon(rectangle).area for rectangle in rectangles)
+    for low, high in sorted(area_bands, key=lambda band: (band[1], band[0])):
+        eligible = [
+            area
+            for area in available
+            if low - _TOLERANCE <= area <= high + _TOLERANCE
+        ]
+        if not eligible:
+            return False
+        available.remove(min(eligible))
     return True
 
 
