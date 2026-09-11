@@ -45,7 +45,13 @@ def score_building(
     hard = 0
     shortfall_total = 0.0
     relaxations = 0
-    worst: tuple[str, float] | None = None
+    # A starved room is what a repair can act on; an oversized one is usually
+    # the residual absorbing what the starved rooms lost.  So the worst
+    # *starved* room is reported whenever there is one, and an oversized room
+    # only when nothing is short.  Ranking by |ratio| alone put a 2.3x
+    # restroom first and left the rule proposer with nothing to propose.
+    worst_starved: tuple[str, float] | None = None
+    worst_oversized: tuple[str, float] | None = None
     for floor in building.floor_results:
         floor_index = floor.program.floor_index
         baseline = baseline_programs[floor_index]  # KeyError is the contract
@@ -66,12 +72,15 @@ def score_building(
                 continue
             ratio = (target - got) / target
             shortfall_total += abs(ratio)
-            if worst is None or abs(ratio) > abs(worst[1]):
-                worst = (node.node_id, ratio)
+            if ratio > 0:
+                if worst_starved is None or ratio > worst_starved[1]:
+                    worst_starved = (node.node_id, ratio)
+            elif worst_oversized is None or ratio < worst_oversized[1]:
+                worst_oversized = (node.node_id, ratio)
     return LayoutScore(
         accepted=accepted,
         hard_violations=hard,
         area_shortfall=shortfall_total,
         relaxations=relaxations,
-        worst_shortfall=worst,
+        worst_shortfall=worst_starved or worst_oversized,
     )

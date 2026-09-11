@@ -89,3 +89,29 @@ def test_relaxations_count_against_a_building():
 def test_a_floor_without_a_baseline_is_an_error():
     with pytest.raises(KeyError):
         score_building(_building(25.0), baseline_programs={})
+
+
+def test_a_starved_room_outranks_a_larger_oversized_one_as_the_worst():
+    """The loop acts on starved rooms; an oversized room is where their area went."""
+    from backend.app.schemas.program import ProgramNode
+
+    baseline = replace(_graph(), nodes=[
+        *_graph().nodes,
+        ProgramNode(node_id="open_work", space_type="open_work", target_area=100.0,
+                    min_area=85.0, max_area=115.0, min_width=6.0, max_aspect_ratio=2.5),
+    ])
+    side_r, side_o = 19.68 ** 0.5, 230.0 ** 0.5
+    layout = LayoutCandidate(
+        project_id="eval", floor_index=1, candidate_id="c",
+        rooms=[
+            RoomPolygon("restroom", "restroom", [(0, 0), (side_r, 0), (side_r, side_r), (0, side_r)]),
+            RoomPolygon("open_work", "open_work", [(50, 0), (50 + side_o, 0), (50 + side_o, side_o), (50, side_o)]),
+        ],
+        circulation=[], score=0.0,
+    )
+    building = _Building(_Floor(layout, _graph(), _Validation(0)))
+
+    score = score_building(building, baseline_programs={1: baseline})
+
+    assert score.worst_shortfall[0] == "restroom"       # 21% short beats 130% over
+    assert score.worst_shortfall[1] == pytest.approx(0.2128, abs=1e-3)
