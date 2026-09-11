@@ -120,3 +120,10 @@ def test_rule_proposer_stops_when_nothing_is_short():
 
 def test_rule_proposer_has_a_source_name_for_the_trace():
     assert RuleRepairProposer().source == "rule"
+
+
+def test_a_starved_primary_room_goes_straight_to_the_strategy_switch():
+    """Exterior priority for the residual room changes nothing about its size."""
+    score = LayoutScore(True, 0, 0.9, 3, ("open_work", 0.9))
+
+    assert RuleRepairProposer().propose(_request(), score) == SwitchStrategy("topology")

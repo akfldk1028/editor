@@ -120,7 +120,12 @@ class RuleRepairProposer:
             # the starved rooms are what the loop acts on.
             return None
         floor_index = _floor_of(request, room_id)
-        if room_id not in request.exterior_room_ids.get(floor_index, ()):
+        # The primary room is the residual; giving it exterior priority changes
+        # nothing about what starves it.  Go straight to the strategy switch.
+        if (
+            room_id not in _PRIMARY_ROOM_IDS
+            and room_id not in request.exterior_room_ids.get(floor_index, ())
+        ):
             return PrioritizeExterior(floor_index, room_id)
         if request.layout_strategy != "topology":
             return SwitchStrategy("topology")

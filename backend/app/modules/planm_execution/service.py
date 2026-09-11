@@ -12,6 +12,8 @@ from PIL import Image, ImageChops
 
 from backend.app.core.serialization import to_jsonable
 from backend.app.core.json_contracts import validate_planm_contract
+from backend.app.modules.generation_loop.regeneration import regenerate
+from backend.app.modules.generation_loop.repair import RuleRepairProposer
 from backend.app.modules.generation_loop.service import run_building_alternatives
 from backend.app.modules.mass_analyzer.service import analyze_mass
 from backend.app.modules.visual_review.service import create_building_visual_review_artifacts
@@ -107,6 +109,86 @@ def _unresolved_facts(mass) -> list[str]:
     return unresolved
 
 
+def planm_config_value(key: str, *, default):
+    """One value from agents/planm/config/default.yaml's ``planm`` block."""
+    import yaml
+
+    path = PRODUCT_ROOT / "agents" / "planm" / "config" / "default.yaml"
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except OSError:
+        return default
+    return (data.get("planm") or {}).get(key, default)
+
+
+def score_block(score) -> dict | None:
+    """Plain-JSON view of a LayoutScore."""
+    if score is None:
+        return None
+    return {
+        "accepted": score.accepted,
+        "hard_violations": score.hard_violations,
+        "area_shortfall": round(score.area_shortfall, 4),
+        "relaxations": score.relaxations,
+        "worst_shortfall": (
+            {"room_id": score.worst_shortfall[0], "ratio": round(score.worst_shortfall[1], 4)}
+            if score.worst_shortfall
+            else None
+        ),
+    }
+
+
+def alternatives_regeneration_block(trace, *, proposer_name: str) -> dict:
+    """Plain-JSON view of a RegenerationTrace for alternatives.json."""
+    from dataclasses import asdict
+
+    actions = {
+        "PrioritizeExterior": "prioritize_exterior",
+        "SwitchStrategy": "switch_strategy",
+        "RescaleTarget": "rescale_target",
+    }
+
+    def proposal_json(proposal):
+        if proposal is None:
+            return None
+        payload = asdict(proposal)
+        payload["action"] = actions[type(proposal).__name__]
+        return payload
+
+    return {
+        "proposer": proposer_name,
+        "best_round_index": trace.best_round_index,
+        "rounds": [
+            {
+                "round_index": item.round_index,
+                "proposal": proposal_json(item.proposal),
+                "proposal_source": item.proposal_source,
+                "score": score_block(item.score),
+                "error": item.error,
+            }
+            for item in trace.rounds
+        ],
+    }
+
+
+def run_alternatives_regeneration(mass) -> dict:
+    """The evaluate-and-regenerate loop for the alternatives stage.
+
+    Bounded by planm.maximum_stage_attempts.  A loop whose every round fails
+    is reported, not raised: the stage's own alternatives are still delivered
+    and the failure is a finding in alternatives.json.
+    """
+    max_rounds = int(planm_config_value("maximum_stage_attempts", default=3))
+    proposer = RuleRepairProposer()
+    try:
+        outcome = regenerate(mass, proposer=proposer, max_rounds=max_rounds)
+    except RuntimeError as error:
+        return {"proposer": proposer.source, "error": str(error), "rounds": [], "best_round_index": None}
+    block = alternatives_regeneration_block(outcome.trace, proposer_name=proposer.source)
+    block["score"] = score_block(outcome.score)
+    return block
+
+
 def _result(*, skill_name: str, status: str, started_at: str, input_sha256: str,
             outputs: dict | None = None, violations: list[dict] | None = None,
             artifacts: list[dict] | None = None, attempt: int = 1) -> dict:
@@ -193,6 +275,7 @@ def alternatives(input_path: Path, state_path: Path, output_dir: Path) -> dict:
     state = _load_state(state_path, "analyzed")
     mass = _load_mass(input_path)
     generated = run_building_alternatives(mass)
+    regeneration_block = run_alternatives_regeneration(mass)
     records, artifacts, accepted_ids, fingerprints = [], [], [], []
     for alternative in generated.alternatives:
         alt_dir = output_dir / "alternatives" / alternative.alternative_id
@@ -222,7 +305,8 @@ def alternatives(input_path: Path, state_path: Path, output_dir: Path) -> dict:
         })
 
     summary_path = output_dir / "alternatives.json"
-    summary = {"project_id": mass.project_id, "accepted_count": len(accepted_ids),
+    summary = {"project_id": mass.project_id, "regeneration": regeneration_block,
+               "accepted_count": len(accepted_ids),
                "accepted_alternative_ids": accepted_ids, "alternatives": records,
                "comparisons": to_jsonable(generated.comparisons),
                "rejected_families": to_jsonable(generated.rejected_families)}
