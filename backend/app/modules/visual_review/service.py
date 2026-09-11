@@ -1464,7 +1464,7 @@ def _normalize_render_features(
                     "text-labels",
                     "room-label",
                     "label",
-                    (_centroid(points),),
+                    (_label_point(points),),
                     room_label,
                 )
             )
@@ -3557,6 +3557,35 @@ def _centroid(points: list[tuple[float, float]]) -> tuple[float, float]:
         sum(point[0] for point in points) / len(points),
         sum(point[1] for point in points) / len(points),
     )
+
+
+def _label_point(
+    points: tuple[tuple[float, float], ...],
+) -> tuple[float, float]:
+    """A point inside the room, in the widest part of it.
+
+    Room labels used to sit at the average of the vertices, which is outside a
+    concave room: the open work area wraps the service core on every sample
+    floor, so its label was drawn over the corridor.  The pole of
+    inaccessibility is the interior point furthest from any edge, which is also
+    where a label has the most room to sit.
+    """
+    from shapely.errors import GEOSException
+    from shapely.geometry import Polygon
+    from shapely.ops import polylabel
+
+    fallback = _centroid(list(points))
+    try:
+        polygon = Polygon(points)
+        if not polygon.is_valid:
+            polygon = polygon.buffer(0)
+        if polygon.is_empty or polygon.area <= 0:
+            return fallback
+        # Tolerance in metres: finer than this buys nothing at drawing scale.
+        pole = polylabel(polygon, tolerance=0.05)
+    except (GEOSException, ValueError):
+        return fallback
+    return (float(pole.x), float(pole.y))
 
 
 def _circulation_label_point(

@@ -83,6 +83,7 @@ from backend.app.schemas.layout import LayoutCandidate, OpeningSegment, RoomPoly
 from backend.app.schemas.program import (
     FormRelaxation,
     ProgramAdjustment,
+    ProgramAreaDeviation,
     ProgramGraph,
 )
 from backend.engine.geometry import (
@@ -2750,6 +2751,44 @@ def _detect_form_relaxations(
     return tuple(relaxations)
 
 
+def _detect_area_deviations(
+    original_nodes,
+    adjusted_nodes,
+    *,
+    reason: str,
+) -> tuple[ProgramAreaDeviation, ...]:
+    """Find rooms whose target moved outside the band the program declared.
+
+    Every adjustment that refits a target also refits the +/-15% band around it,
+    so a shortfall reads as compliance the moment it is written.  Comparing
+    against the *original* band is what makes it visible.  Movement inside the
+    band is what the band is for and is not reported.
+    """
+    adjusted_by_id = {node.node_id: node for node in adjusted_nodes}
+    deviations: list[ProgramAreaDeviation] = []
+    for original in original_nodes:
+        adjusted = adjusted_by_id.get(original.node_id)
+        if adjusted is None:
+            continue
+        requested = float(original.target_area)
+        assigned = float(adjusted.target_area)
+        if requested <= 0 or assigned <= 0 or assigned == requested:
+            continue
+        low = float(original.min_area) if original.min_area else requested * 0.85
+        high = float(original.max_area) if original.max_area else requested * 1.15
+        if low - 1e-9 <= assigned <= high + 1e-9:
+            continue
+        deviations.append(
+            ProgramAreaDeviation(
+                node_id=original.node_id,
+                requested=requested,
+                assigned=assigned,
+                reason=reason,
+            )
+        )
+    return tuple(deviations)
+
+
 def _with_program_adjustment(
     program,
     nodes,
@@ -2770,6 +2809,10 @@ def _with_program_adjustment(
         form_relaxations=(
             *program.form_relaxations,
             *_detect_form_relaxations(program.nodes, nodes, reason=reason),
+        ),
+        area_deviations=(
+            *program.area_deviations,
+            *_detect_area_deviations(program.nodes, nodes, reason=reason),
         ),
     )
 

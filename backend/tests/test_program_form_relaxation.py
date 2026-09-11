@@ -119,13 +119,11 @@ def test_a_constraint_that_starts_unset_cannot_be_relaxed(field):
     assert adjusted.form_relaxations == ()
 
 
-def test_fitting_a_program_to_its_layout_keeps_the_form_requirements():
-    """The fit must describe the layout, not redefine what the layout owed.
+def test_the_layout_fit_records_the_gates_it_widens():
+    """The fit still widens each room's gates to what it measured.
 
-    ``_fit_orthogonal_program_to_layout`` used to set each room's aspect limit
-    to ``max(limit, measured)`` and its minimum width to ``min(required,
-    measured)``, so the validator compared every room against its own
-    dimensions and passed all of them.
+    Holding them instead is correct and rejects every plan this generator
+    produces, so the relaxation stays and is recorded rather than silent.
     """
     from backend.app.modules.generation_loop.service import (
         _fit_orthogonal_program_to_layout,
@@ -150,7 +148,46 @@ def test_fitting_a_program_to_its_layout_keeps_the_form_requirements():
     )
 
     fitted = _fit_orthogonal_program_to_layout(graph, layout)
-    node = fitted.nodes[0]
 
-    assert node.max_aspect_ratio == 2.5
-    assert node.min_width == 1.8
+    assert fitted.nodes[0].max_aspect_ratio == 9.0
+    assert [(r.field, r.required, r.relaxed_to) for r in fitted.form_relaxations] == [
+        ("max_aspect_ratio", 2.5, 9.0)
+    ]
+    assert [d.node_id for d in fitted.area_deviations] == ["restroom"]
+
+
+def test_an_area_rewrite_is_recorded_as_a_deviation():
+    """The fit rewrites each target to what the layout produced.
+
+    Restroom sizing derived 25.0 m2 from its fixture schedule; the layout had
+    only a 19.68 m2 rectangle to offer and the fit moved the target onto it, so
+    the 21% shortfall vanished before anything could measure it.
+    """
+    adjusted = _adjust(_graph(), target_area=19.68, min_area=16.7, max_area=22.6)
+
+    assert len(adjusted.area_deviations) == 1
+    deviation = adjusted.area_deviations[0]
+    assert deviation.node_id == "restroom"
+    assert deviation.requested == 25.0
+    assert deviation.assigned == 19.68
+    assert deviation.shortfall_ratio == pytest.approx(0.2128, abs=1e-4)
+    assert deviation.reason == "test_adjustment"
+
+
+def test_an_area_rewrite_within_the_programmed_band_is_not_a_deviation():
+    """+/-15% is the band the program itself declares, so it is not a finding."""
+    adjusted = _adjust(_graph(), target_area=24.0)
+
+    assert adjusted.area_deviations == ()
+
+
+def test_an_oversized_rewrite_is_recorded_too():
+    adjusted = _adjust(_graph(), target_area=70.4)
+
+    assert adjusted.area_deviations[0].shortfall_ratio == pytest.approx(-1.816, abs=1e-3)
+
+
+def test_changing_only_the_form_gates_records_no_area_deviation():
+    adjusted = _adjust(_graph(), max_aspect_ratio=8.5)
+
+    assert adjusted.area_deviations == ()

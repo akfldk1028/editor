@@ -42,6 +42,36 @@ class FormRelaxation:
 
 
 @dataclass(frozen=True)
+class ProgramAreaDeviation:
+    """A room the layout could not give the area its program asked for.
+
+    The layout fit rewrites every target onto the rectangle the room actually
+    got, and the +/-15% band moves with it, so a restroom sized at 25.0 m2 from
+    its fixture schedule and handed a 19.68 m2 rectangle came out reading as if
+    19.68 had been the requirement all along.  Recording the original keeps the
+    shortfall measurable.
+    """
+
+    node_id: str
+    requested: float
+    assigned: float
+    reason: str
+
+    def __post_init__(self) -> None:
+        for label in ("requested", "assigned"):
+            value = getattr(self, label)
+            if not isinstance(value, (int, float)) or value <= 0:
+                raise ValueError(f"area deviation {label} must be positive")
+        if not self.reason.strip():
+            raise ValueError("area deviation reason must not be empty")
+
+    @property
+    def shortfall_ratio(self) -> float:
+        """Positive when the room came up short, negative when oversized."""
+        return (self.requested - self.assigned) / self.requested
+
+
+@dataclass(frozen=True)
 class ProgramEdge:
     source: str
     target: str
@@ -165,3 +195,5 @@ class ProgramGraph:
     unresolved_facts: tuple[str, ...] = ()
     # Room form gates the generator widened along the way, oldest first.
     form_relaxations: tuple[FormRelaxation, ...] = ()
+    # Rooms whose target area was moved outside its own declared band.
+    area_deviations: tuple[ProgramAreaDeviation, ...] = ()
