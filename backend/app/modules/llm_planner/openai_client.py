@@ -54,6 +54,8 @@ class OpenAIResponsesPlannerClient:
         *,
         system_prompt: str,
         user_payload: dict[str, Any],
+        response_schema: dict[str, Any] | None = None,
+        schema_name: str = "building_floor_assignments",
     ) -> str:
         self.last_response_id = None
         self.last_response_model = None
@@ -70,9 +72,9 @@ class OpenAIResponsesPlannerClient:
             text={
                 "format": {
                     "type": "json_schema",
-                    "name": "building_floor_assignments",
+                    "name": schema_name,
                     "strict": True,
-                    "schema": FLOOR_ASSIGNMENT_SCHEMA,
+                    "schema": response_schema or FLOOR_ASSIGNMENT_SCHEMA,
                 }
             },
         )

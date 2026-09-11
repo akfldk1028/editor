@@ -22,6 +22,7 @@ class StructuredPlannerClient(Protocol):
         *,
         system_prompt: str,
         user_payload: dict[str, Any],
+        **options: Any,
     ) -> str: ...
 
 
