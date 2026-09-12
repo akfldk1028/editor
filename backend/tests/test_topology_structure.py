@@ -13,7 +13,7 @@ STAIR = (4.92, 2.8)
 # The remote stair has to sit half the plate's diameter from the core's door,
 # which a core in the middle of a 37 m plate cannot give; the core goes to one
 # end of the rear edge, as the loop places it.
-CORE_AT_END = [(0.0, 18.0), (8.0, 18.0), (8.0, 26.0), (0.0, 26.0)]
+CORE_AT_END = [(0.0, 20.0), (8.0, 20.0), (8.0, 26.0), (0.0, 26.0)]  # 8 x 6, the loop's proportions
 
 
 def test_the_spine_hugs_the_core_and_runs_the_full_cover():
@@ -39,7 +39,7 @@ def test_the_remote_stair_sits_on_the_spine_inside_the_cover_and_clears_the_exit
 
 
 def test_a_fixed_stair_footprint_is_returned_as_given():
-    fixed = (30.0, 13.6, 34.92, 16.4)
+    fixed = (30.0, 15.6, 34.92, 18.4)
     structure = plan_floor_structure(
         BOUNDARY, _office(), core_polygon=CORE_AT_END, stair_dimensions=STAIR, stair_footprint=fixed
     )
@@ -55,7 +55,7 @@ def test_the_free_region_excludes_core_corridor_and_stair():
     assert free.intersection(Polygon(CORE_AT_END)).area == pytest.approx(0.0)
     assert free.intersection(box(*structure.spine)).area == pytest.approx(0.0)
     assert free.intersection(box(*structure.stair)).area == pytest.approx(0.0)
-    expected = 37 * 26 - 8 * 8 - 37 * 1.6 - STAIR[0] * STAIR[1]
+    expected = 37 * 26 - 8 * 6 - 37 * 1.6 - STAIR[0] * STAIR[1]
     assert free.area == pytest.approx(expected)
 
 

@@ -65,13 +65,30 @@ def region_to_cells(region, xs: np.ndarray, ys: np.ndarray) -> tuple[np.ndarray,
 
 
 def cells_to_polygons(grid: np.ndarray, xs: np.ndarray, ys: np.ndarray) -> dict[int, Polygon]:
-    """Union of each room id's cells on a rectilinear grid."""
+    """Union of each room id's cells on a rectilinear grid.
+
+    Cells are merged into one strip per row first, so the union works on
+    tens of rectangles rather than thousands of cells.
+    """
     polygons: dict[int, Polygon] = {}
     for room_id in np.unique(grid):
         if room_id in (EMPTY_ROOM_ID, FREE_CELL):
             continue
-        cells = [box(xs[i], ys[j], xs[i + 1], ys[j + 1]) for j, i in np.argwhere(grid == room_id)]
-        union = unary_union(cells)
+        strips = []
+        for j in range(grid.shape[0]):
+            row = grid[j] == room_id
+            if not row.any():
+                continue
+            i = 0
+            while i < row.size:
+                if not row[i]:
+                    i += 1
+                    continue
+                start = i
+                while i < row.size and row[i]:
+                    i += 1
+                strips.append(box(xs[start], ys[j], xs[i], ys[j + 1]))
+        union = unary_union(strips)
         if not union.is_empty:
             polygons[int(room_id)] = union
     return polygons

@@ -672,13 +672,13 @@ def run_building_generation(
     topology_inputs: list[tuple] = []
     for index, (program, floor_analysis) in enumerate(zip(programs, floor_analyses)):
         circulation_candidate = fixed_circulation.get(program.floor_index)
-        if layout_strategy == "topology":
-            # Topology before geometry: adjacency graph, double-loaded spine,
-            # LP-dimensioned rooms.  The program is not refitted afterwards, so
-            # the floor carries no form relaxations by construction.
-            from backend.app.modules.topology_planner.service import (
-                generate_topology_layout,
-            )
+        if layout_strategy in _STRUCTURE_FIRST_STRATEGIES:
+            # Structure before rooms: adjacency graph, double-loaded spine,
+            # core and stacked stair, then either LP-dimensioned rows
+            # (topology) or seed-and-grow partitioning (growth).  The program
+            # is not refitted afterwards, so the floor carries no form
+            # relaxations by construction.
+            generate_structure_first = _structure_first_generator(layout_strategy)
 
             stair_source = (
                 circulation_candidate.remote_stair_polygon
@@ -712,13 +712,19 @@ def run_building_generation(
             program = _normalize_program_core(program, polygon_area(topology_core))
             programs[index] = program
             topology_boundary = floor_analysis.boundary_for_floor(program.floor_index)
-            layout = generate_topology_layout(
+            extra_kwargs = (
+                {"street_segments": _street_segments_for_boundary(mass, topology_boundary)}
+                if layout_strategy == "growth"
+                else {}
+            )
+            layout = generate_structure_first(
                 topology_boundary,
                 program,
                 core_polygon=topology_core,
                 stair_dimensions=stair_dimensions,
+                **extra_kwargs,
             )
-            topology_inputs.append((topology_boundary, program, topology_core, stair_dimensions))
+            topology_inputs.append((topology_boundary, program, topology_core, stair_dimensions, extra_kwargs))
             if core_override is not None:
                 # Same contract as the orthogonal branch: the shared core keeps
                 # the override's exact vertex sequence on every floor.
@@ -802,8 +808,10 @@ def run_building_generation(
                 room_scale=room_scale,
             )
         layouts.append(layout)
-    if layout_strategy == "topology":
-        layouts = _stack_topology_stairs(layouts, topology_inputs, core_override)
+    if layout_strategy in _STRUCTURE_FIRST_STRATEGIES:
+        layouts = _stack_topology_stairs(
+            layouts, topology_inputs, core_override, _structure_first_generator(layout_strategy)
+        )
     if core_override is not None and any(
         next(room for room in layout.rooms if room.space_type == "core").polygon
         != core_override.polygon
@@ -811,7 +819,7 @@ def run_building_generation(
     ):
         raise ValueError("generated floors must preserve shared core override equality")
 
-    if (has_nonrectangular_floor or has_structural_override) and layout_strategy != "topology":
+    if (has_nonrectangular_floor or has_structural_override) and layout_strategy not in _STRUCTURE_FIRST_STRATEGIES:
         programs = [
             _fit_orthogonal_program_to_layout(program, layout)
             for program, layout in zip(programs, layouts)
@@ -858,7 +866,7 @@ def run_building_generation(
                 # to the strictest floor so every floor gets the same stair.
                 exit_separation_target=(
                     _building_exit_separation(analysis)
-                    if layout_strategy == "topology" and analysis.floor_plates
+                    if layout_strategy in _STRUCTURE_FIRST_STRATEGIES and analysis.floor_plates
                     else None
                 ),
             ),
@@ -2908,7 +2916,64 @@ def _building_exit_separation(analysis) -> float:
     )
 
 
-def _stack_topology_stairs(layouts, topology_inputs, core_override):
+_STRUCTURE_FIRST_STRATEGIES = ("topology", "growth")
+
+
+def _structure_first_generator(layout_strategy: str):
+    if layout_strategy == "growth":
+        from backend.app.modules.growth_planner.service import generate_growth_layout
+
+        return generate_growth_layout
+    from backend.app.modules.topology_planner.service import generate_topology_layout
+
+    return generate_topology_layout
+
+
+def _shared_stair_candidates(topology_inputs) -> list:
+    """Stair boxes admissible on every floor: inside each cover, each exit separation met.
+
+    Scanned along the spine of the smallest floor from both ends inward; the
+    admissibility test is the structure planner's own (it raises otherwise).
+    """
+    from backend.app.modules.topology_planner.dimensioning import TopologyInfeasible
+    from backend.app.modules.topology_planner.structure import plan_floor_structure
+
+    def structure(inputs, footprint=None):
+        boundary, program, core_polygon, stair_dimensions, _extra = inputs
+        return plan_floor_structure(
+            boundary, program, core_polygon=core_polygon,
+            stair_dimensions=stair_dimensions, stair_footprint=footprint,
+        )
+
+    try:
+        smallest = min(topology_inputs, key=lambda inputs: polygon_area(inputs[0]))
+        base = structure(smallest)
+    except (TopologyInfeasible, ValueError):
+        return []
+    if base.stair is None:
+        return []
+    length, depth = base.stair[2] - base.stair[0], base.stair[3] - base.stair[1]
+    sx0, sy0, sx1, sy1 = base.spine
+    y0, y1 = base.stair[1], base.stair[3]
+    core_x = (base.core.bounds[0] + base.core.bounds[2]) / 2
+    xs = []
+    x = sx0
+    while x + length <= sx1 + 1e-9:
+        xs.append(round(x, 6))
+        x += 0.25
+    boxes = []
+    for x in sorted(xs, key=lambda v: -abs(v + length / 2 - core_x)):
+        box = (x, y0, x + length, y1)
+        try:
+            for inputs in topology_inputs:
+                structure(inputs, box)
+        except (TopologyInfeasible, ValueError):
+            continue
+        boxes.append(box)
+    return boxes
+
+
+def _stack_topology_stairs(layouts, topology_inputs, core_override, generator=None):
     """One remote stair for every floor.
 
     Each floor first placed its stair at the far end of its own room row; a
@@ -2918,8 +2983,8 @@ def _stack_topology_stairs(layouts, topology_inputs, core_override):
     the same one.
     """
     from backend.app.modules.topology_planner.dimensioning import TopologyInfeasible
-    from backend.app.modules.topology_planner.service import generate_topology_layout
 
+    generate = generator or _structure_first_generator("topology")
     boxes = []
     for layout in layouts:
         footprint = layout.remote_stair_footprint
@@ -2929,17 +2994,25 @@ def _stack_topology_stairs(layouts, topology_inputs, core_override):
         return layouts
     core_bounds = polygon_bounds(topology_inputs[0][2])
     core_x = (core_bounds[0] + core_bounds[2]) / 2
+    # Each floor's own stair first; then every box along the spine that fits
+    # inside all floors and clears all their exit separations, farthest from
+    # the core first.
+    candidates = sorted(set(boxes), key=lambda b: -abs((b[0] + b[2]) / 2 - core_x))
+    for box in _shared_stair_candidates(topology_inputs):
+        if box not in candidates:
+            candidates.append(box)
     errors = []
-    for box in sorted(set(boxes), key=lambda b: -abs((b[0] + b[2]) / 2 - core_x)):
+    for box in candidates:
         stacked = []
         try:
-            for boundary, program, core_polygon, stair_dimensions in topology_inputs:
-                layout = generate_topology_layout(
+            for boundary, program, core_polygon, stair_dimensions, extra_kwargs in topology_inputs:
+                layout = generate(
                     boundary,
                     program,
                     core_polygon=core_polygon,
                     stair_dimensions=stair_dimensions,
                     stair_footprint=box,
+                    **extra_kwargs,
                 )
                 if core_override is not None:
                     layout = replace(

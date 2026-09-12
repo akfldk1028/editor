@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from backend.app.modules.generation_loop.evaluator import LayoutScore, score_building
 from backend.app.modules.generation_loop.repair import (
+    SwitchStrategy,
     GenerationRequest,
     RepairProposal,
     apply_proposal,
@@ -112,7 +113,7 @@ def regenerate(
             building = generator(mass, **_generator_kwargs(request), **_structure_kwargs(request, fixed_kwargs))
         except (ValueError, TypeError) as error:
             rounds.append(RegenerationRound(index, proposal, source, None, str(error)))
-            proposal, source = _next(proposer, request, best[0] if best else None)
+            proposal, source = _escalate_after_error(request) or _next(proposer, request, best[0] if best else None)
             continue
         score = score_building(building, baseline_programs=request.baseline_programs)
         rounds.append(RegenerationRound(index, proposal, source, score, None))
@@ -211,11 +212,22 @@ def seed_circulation_from_alternatives(
     return overrides
 
 
+_STRUCTURE_FIRST = ("topology", "growth")
+
+
+def _escalate_after_error(request: GenerationRequest):
+    """A structure-first strategy that could not place its rooms hands the
+    same structure to the next solver instead of asking the proposer."""
+    if request.layout_strategy == "topology":
+        return SwitchStrategy("growth"), "rule"
+    return None
+
+
 def _structure_kwargs(request: GenerationRequest, fixed: dict) -> dict:
-    """The topology strategy plans its own corridor and core position, so the
-    composer's structural overrides become a dimensions hint for it rather
-    than a constraint the generator would then fail to reproduce."""
-    if request.layout_strategy != "topology":
+    """The structure-first strategies plan their own corridor and core position,
+    so the composer's structural overrides become a dimensions hint for them
+    rather than a constraint the generator would then fail to reproduce."""
+    if request.layout_strategy not in _STRUCTURE_FIRST:
         return fixed
     hint = fixed.get("core_override")
     return {"topology_core_hint": hint} if hint is not None else {}
@@ -231,7 +243,7 @@ def _generator_kwargs(request: GenerationRequest) -> dict:
     # noise, and a generator that predates the strategy switch still works.
     if request.layout_strategy != "orthogonal":
         kwargs["layout_strategy"] = request.layout_strategy
-    if request.layout_strategy == "topology":
+    if request.layout_strategy in _STRUCTURE_FIRST:
         # Exterior priority is a repair aimed at the orthogonal cell layout.
         # The topology strategy places rooms from the adjacency graph and the
         # zone plan, so a request carried over from an earlier round would only

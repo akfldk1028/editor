@@ -6,6 +6,7 @@ import pytest
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
+from backend.app.modules.generation_loop.service import _normalize_program_core
 from backend.app.modules.growth_planner.service import generate_growth_layout
 from backend.app.modules.topology_planner.dimensioning import TopologyInfeasible
 from backend.engine.geometry import orthogonal_min_width, shared_boundary_segments
@@ -14,12 +15,17 @@ from backend.tests.test_topology_layout import BOUNDARY, _aspect, _segment_lengt
 from backend.tests.test_topology_structure import CORE_AT_END, STAIR
 
 
+def _program():
+    # The loop sizes the program's core to the core it places; so does the test.
+    return _normalize_program_core(_office(), 8.0 * 6.0)
+
+
 def _layout(**kwargs):
-    return generate_growth_layout(BOUNDARY, _office(), core_polygon=CORE_AT_END, stair_dimensions=STAIR, **kwargs)
+    return generate_growth_layout(BOUNDARY, _program(), core_polygon=CORE_AT_END, stair_dimensions=STAIR, **kwargs)
 
 
 def test_every_room_meets_its_gates_with_no_relaxation():
-    program = _office()
+    program = _program()
     layout = generate_growth_layout(BOUNDARY, program, core_polygon=CORE_AT_END, stair_dimensions=STAIR)
     nodes = {n.node_id: n for n in program.nodes}
 
@@ -73,7 +79,7 @@ def test_the_same_seed_gives_the_same_layout():
 
 
 def test_an_impossible_program_raises_instead_of_relaxing():
-    program = _office()
+    program = _program()
     tight = replace(program, nodes=[
         replace(n, max_aspect_ratio=1.01) if n.node_id == "restroom" else n for n in program.nodes
     ])

@@ -137,3 +137,14 @@ def test_a_starved_primary_room_goes_straight_to_the_strategy_switch():
     score = LayoutScore(True, 0, 0.9, 0, ("open_work", 0.9))
 
     assert RuleRepairProposer().propose(_request(), score) == SwitchStrategy("topology")
+
+
+def test_a_hard_violation_under_topology_switches_to_growth():
+    request = apply_proposal(_request(), SwitchStrategy("topology"))
+    score = LayoutScore(False, 2, 0.0, 0, None)
+
+    assert RuleRepairProposer().propose(request, score) == SwitchStrategy("growth")
+
+
+def test_growth_is_a_known_strategy():
+    assert SwitchStrategy("growth").layout_strategy == "growth"

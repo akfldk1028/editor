@@ -28,6 +28,13 @@ class RoomInfo:
     # area, checked against the cell-area matrix passed to the growth.
     target_area: float | None = None
     max_area: float | None = None
+    # Grid direction ("up"/"down"/"left"/"right") taken whenever it is open,
+    # e.g. away from the corridor so rooms fill their band's depth first.
+    prefer: str | None = None
+    # First block, in cells (defaults to min_chunk square): the width a room
+    # needs at its band's depth, so neighbours are spaced by it from the start.
+    block_w: int | None = None
+    block_h: int | None = None
     min_chunk: int = 1
     # Cells kept clear of later seeds around this room's first block, so
     # neighbours start about a room's width apart instead of boxing it in.
@@ -60,6 +67,13 @@ def _prelimit_on(room: RoomInfo, grid: np.ndarray, enabled: bool, start_ratio: f
     return int((grid == room.room_id).sum()) >= max(0.0, start_ratio) * room.target_cells
 
 
+def _window_sum(values: np.ndarray, bh: int, bw: int) -> np.ndarray:
+    """Sum of every bh x bw window; shape (H - bh + 1, W - bw + 1)."""
+    padded = np.zeros((values.shape[0] + 1, values.shape[1] + 1), dtype=np.int64)
+    padded[1:, 1:] = np.cumsum(np.cumsum(values.astype(np.int64), axis=0), axis=1)
+    return padded[bh:, bw:] - padded[:-bh, bw:] - padded[bh:, :-bw] + padded[:-bh, :-bw]
+
+
 def sample_initial_positions(
     rooms: list[RoomInfo],
     grid: np.ndarray,
@@ -68,70 +82,54 @@ def sample_initial_positions(
     seed_radius: int = 2,
     allowed: np.ndarray | list[np.ndarray] | None = None,
 ) -> None:
-    """Drop each room's first block at a free cell near its seed.
+    """Drop each room's first block (block_w x block_h, default min_chunk square).
 
-    ``allowed`` (a bool grid, or one per room) restricts where a room may
-    start; rooms are placed in order, each excluding a one-cell ring around
-    its block.
+    The block goes where it fits entirely in free cells and covers a cell of
+    the room's ``allowed`` mask (a bool grid, or one per room); a block that
+    packs against an occupied cell or the grid's edge on its left or right is
+    preferred so rows stay contiguous.  Without a fitting position the mask
+    is dropped, and without any fit the room starts as a single free cell.
+    ``seed_positions``/``seed_radius`` are kept for the vendored signature and
+    ignored: seeds here are zones, not points.
     """
-    grid_weights = np.where(grid == FREE_CELL, 1.0, 0.0)
     for index, room in enumerate(rooms):
-        if not (grid_weights > 0).any():
+        free = grid == FREE_CELL
+        if not free.any():
             raise ValueError("No empty cells available for room placement")
-        weights = grid_weights.copy()
-        mask = allowed[index] if isinstance(allowed, list) else allowed
-        if mask is not None:
-            weights = weights * np.where(mask, 1.0, 0.0)
-        if seed_positions is not None and index < len(seed_positions):
-            seed_x, seed_y = seed_positions[index]
-            for radius in range(seed_radius, seed_radius + 5):
-                local = weights.copy()
-                for j in range(grid.shape[0]):
-                    for i in range(grid.shape[1]):
-                        if math.hypot(i - seed_x, j - seed_y) > radius:
-                            local[j, i] = 0.0
-                if (local > 0).any():
-                    weights = local
-                    break
-        if not (weights > 0).any() and mask is not None:
-            # The spacing of earlier rooms swallowed this room's whole zone;
-            # its zone still binds, the spacing does not.
-            weights = np.where((grid == FREE_CELL) & mask, 1.0, 0.0)
-        if not (weights > 0).any():
-            weights = grid_weights.copy()
-        flat = weights.ravel()
-        cell_index = rng.choices(range(flat.size), weights=flat.tolist(), k=1)[0]
-        cell_y, cell_x = divmod(cell_index, grid.shape[1])
-        room.seed_cell_x, room.seed_cell_y = int(cell_x), int(cell_y)
-
         k = max(1, int(room.min_chunk))
-        placed = False
-        for dy in range(-(k - 1), 1):
-            if placed:
-                break
-            for dx in range(-(k - 1), 1):
-                x0, y0 = cell_x + dx, cell_y + dy
-                x1, y1 = x0 + k, y0 + k
-                if x0 < 0 or y0 < 0 or x1 > grid.shape[1] or y1 > grid.shape[0]:
-                    continue
-                block = grid[y0:y1, x0:x1]
-                if (block == FREE_CELL).all():
-                    grid[y0:y1, x0:x1] = room.room_id
-                    room.min_x, room.max_x, room.min_y, room.max_y = x0, x1, y0, y1
-                    placed = True
-                    break
-        if not placed:
-            room.min_x, room.max_x = cell_x, cell_x + 1
-            room.min_y, room.max_y = cell_y, cell_y + 1
-            grid[cell_y, cell_x] = room.room_id
-        # Later seeds keep ``spacing`` cells away along the row (x) and one
-        # cell across it, so rooms line up along the corridor without boxing
-        # each other in.
-        ring = max(1, int(room.spacing))
-        grid_weights[
-            max(0, room.min_y - 1): min(grid.shape[0], room.max_y + 1),
-            max(0, room.min_x - ring): min(grid.shape[1], room.max_x + ring),
-        ] = 0.0
+        bw = max(1, min(int(room.block_w or k), grid.shape[1]))
+        bh = max(1, min(int(room.block_h or k), grid.shape[0]))
+        mask = allowed[index] if isinstance(allowed, list) else allowed
+        fits = _window_sum(free, bh, bw) == bw * bh
+        if mask is not None:
+            covers = _window_sum(mask & free, bh, bw) > 0
+            positions = np.argwhere(fits & covers)
+            if len(positions) == 0:
+                positions = np.argwhere(fits)
+        else:
+            positions = np.argwhere(fits)
+        if len(positions) == 0:
+            # No block fits anywhere: start from one cell of the zone (or any).
+            cells = np.argwhere((mask & free) if mask is not None and (mask & free).any() else free)
+            y, x = cells[rng.randrange(len(cells))]
+            grid[y, x] = room.room_id
+            room.min_x, room.max_x, room.min_y, room.max_y = int(x), int(x) + 1, int(y), int(y) + 1
+            room.seed_cell_x, room.seed_cell_y = int(x), int(y)
+            continue
+        occupied = ~free
+        weights = []
+        for y0, x0 in positions:
+            x1, y1 = x0 + bw, y0 + bh
+            packed = (
+                x0 == 0 or x1 == grid.shape[1]
+                or occupied[y0:y1, x0 - 1].any() or occupied[y0:y1, x1].any()
+            )
+            weights.append(1.0 if packed else 0.05)
+        y0, x0 = positions[rng.choices(range(len(positions)), weights=weights, k=1)[0]]
+        x0, y0 = int(x0), int(y0)
+        grid[y0:y0 + bh, x0:x0 + bw] = room.room_id
+        room.min_x, room.max_x, room.min_y, room.max_y = x0, x0 + bw, y0, y0 + bh
+        room.seed_cell_x, room.seed_cell_y = x0, y0
 
 
 def grow_rect(
@@ -181,7 +179,10 @@ def grow_rect(
     best = max(sizes.values())
     if best == 0:
         return False
-    direction = rng.choice([d for d, s in sizes.items() if s == best])
+    if room.prefer in sizes and sizes[room.prefer] > 0:
+        direction = room.prefer
+    else:
+        direction = rng.choice([d for d, s in sizes.items() if s == best])
     if direction == "right":
         grid[room.min_y:room.max_y, room.max_x:room.max_x + k] = room.room_id
         room.max_x += k

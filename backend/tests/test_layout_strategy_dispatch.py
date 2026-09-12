@@ -61,3 +61,19 @@ def test_topology_strategy_stacks_the_remote_stair_on_every_floor():
     }
     assert len(footprints) == 1
     assert building.vertical_basic_design_aligned
+
+
+def test_growth_strategy_stacks_the_stair_and_carries_no_relaxations():
+    """As the loop runs it: the composer's core is a size hint, the structure puts it at the end."""
+    mass, kwargs = _inputs()
+    kwargs["topology_core_hint"] = kwargs.pop("core_override")
+    kwargs.pop("circulation_overrides")  # the structure places its own stair, as the loop lets it
+
+    building = run_building_generation(mass, **kwargs, layout_strategy="growth")
+
+    footprints = {tuple(floor.layout.remote_stair_footprint) for floor in building.floor_results}
+    assert len(footprints) == 1
+    for floor in building.floor_results:
+        assert floor.program.form_relaxations == (), floor.program.floor_index
+        assert floor.layout.candidate_id.endswith("-growth")
+    assert building.vertical_basic_design_aligned

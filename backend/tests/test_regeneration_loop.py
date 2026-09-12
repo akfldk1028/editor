@@ -224,3 +224,19 @@ def test_a_topology_round_drops_exterior_requests_from_earlier_rounds():
     assert [r.room_ids for r in generator.calls[1]["exterior_allocation_requests"]] == [("restroom",)]
     assert generator.calls[2]["layout_strategy"] == "topology"
     assert generator.calls[2]["exterior_allocation_requests"] == ()
+
+
+def test_a_topology_round_that_cannot_place_its_rooms_escalates_to_growth():
+    from backend.app.modules.generation_loop.repair import SwitchStrategy
+
+    def picky(mass, **kwargs):
+        if kwargs.get("layout_strategy") == "topology":
+            raise ValueError("no assignment of rooms satisfies every gate")
+        return _building(19.68)
+
+    outcome = regenerate(_mass(), proposer=_ScriptedProposer([SwitchStrategy("topology")]),
+                         max_rounds=3, generator=picky, baseline_programs_override=BASELINE)
+
+    assert [r.error is None for r in outcome.trace.rounds] == [True, False, True]
+    assert outcome.trace.rounds[2].proposal == SwitchStrategy("growth")
+    assert outcome.trace.rounds[2].proposal_source == "rule"

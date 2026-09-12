@@ -17,7 +17,7 @@ from backend.app.schemas.llm import FloorAssignment
 from backend.app.schemas.program import ProgramGraph
 
 
-LAYOUT_STRATEGIES = ("orthogonal", "topology")
+LAYOUT_STRATEGIES = ("orthogonal", "topology", "growth")
 _PRIMARY_ROOM_IDS = ("open_work", "sales")
 
 
@@ -115,8 +115,12 @@ class RuleRepairProposer:
         # A form relaxation means the strategy widened a room gate to fit its
         # own output; no exterior request or rescale takes that back.  The
         # topology strategy carries none by construction, so it comes first.
-        if score.relaxations > 0 and request.layout_strategy != "topology":
+        if score.relaxations > 0 and request.layout_strategy == "orthogonal":
             return SwitchStrategy("topology")
+        # The topology solver's row rules can leave a hard violation the
+        # growth solver, which partitions the same structure freely, may not.
+        if score.hard_violations > 0 and request.layout_strategy == "topology":
+            return SwitchStrategy("growth")
         if score.worst_shortfall is None:
             return None
         room_id, ratio = score.worst_shortfall
