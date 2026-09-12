@@ -24,7 +24,14 @@ class RoomInfo:
     target_cells: int
     # Growth stops once the room would exceed this many cells (None: no cap).
     max_cells: int | None = None
+    # On a rectilinear grid cells differ in size; these are the same caps in
+    # area, checked against the cell-area matrix passed to the growth.
+    target_area: float | None = None
+    max_area: float | None = None
     min_chunk: int = 1
+    # Cells kept clear of later seeds around this room's first block, so
+    # neighbours start about a room's width apart instead of boxing it in.
+    spacing: int = 1
     max_w_allowed: int | None = None
     max_h_allowed: int | None = None
     min_x: int = field(default=0)
@@ -43,8 +50,12 @@ class RoomInfo:
         return self.max_y - self.min_y
 
 
-def _prelimit_on(room: RoomInfo, grid: np.ndarray, enabled: bool, start_ratio: float) -> bool:
-    if not enabled or room.target_cells <= 0:
+def _prelimit_on(room: RoomInfo, grid: np.ndarray, enabled: bool, start_ratio: float, cell_area=None) -> bool:
+    if not enabled:
+        return False
+    if cell_area is not None and room.target_area:
+        return float(cell_area[grid == room.room_id].sum()) >= max(0.0, start_ratio) * room.target_area
+    if room.target_cells <= 0:
         return False
     return int((grid == room.room_id).sum()) >= max(0.0, start_ratio) * room.target_cells
 
@@ -55,20 +66,22 @@ def sample_initial_positions(
     rng: random.Random,
     seed_positions: list[tuple[int, int]] | None = None,
     seed_radius: int = 2,
-    allowed: np.ndarray | None = None,
+    allowed: np.ndarray | list[np.ndarray] | None = None,
 ) -> None:
     """Drop each room's first block at a free cell near its seed.
 
-    ``allowed`` (bool grid) restricts where a room may start; rooms are
-    placed in order, each excluding a one-cell ring around its block.
+    ``allowed`` (a bool grid, or one per room) restricts where a room may
+    start; rooms are placed in order, each excluding a one-cell ring around
+    its block.
     """
     grid_weights = np.where(grid == FREE_CELL, 1.0, 0.0)
     for index, room in enumerate(rooms):
         if not (grid_weights > 0).any():
             raise ValueError("No empty cells available for room placement")
         weights = grid_weights.copy()
-        if allowed is not None:
-            weights = weights * np.where(allowed, 1.0, 0.0)
+        mask = allowed[index] if isinstance(allowed, list) else allowed
+        if mask is not None:
+            weights = weights * np.where(mask, 1.0, 0.0)
         if seed_positions is not None and index < len(seed_positions):
             seed_x, seed_y = seed_positions[index]
             for radius in range(seed_radius, seed_radius + 5):
@@ -80,6 +93,10 @@ def sample_initial_positions(
                 if (local > 0).any():
                     weights = local
                     break
+        if not (weights > 0).any() and mask is not None:
+            # The spacing of earlier rooms swallowed this room's whole zone;
+            # its zone still binds, the spacing does not.
+            weights = np.where((grid == FREE_CELL) & mask, 1.0, 0.0)
         if not (weights > 0).any():
             weights = grid_weights.copy()
         flat = weights.ravel()
@@ -107,9 +124,12 @@ def sample_initial_positions(
             room.min_x, room.max_x = cell_x, cell_x + 1
             room.min_y, room.max_y = cell_y, cell_y + 1
             grid[cell_y, cell_x] = room.room_id
-        ring = 1
+        # Later seeds keep ``spacing`` cells away along the row (x) and one
+        # cell across it, so rooms line up along the corridor without boxing
+        # each other in.
+        ring = max(1, int(room.spacing))
         grid_weights[
-            max(0, room.min_y - ring): min(grid.shape[0], room.max_y + ring),
+            max(0, room.min_y - 1): min(grid.shape[0], room.max_y + 1),
             max(0, room.min_x - ring): min(grid.shape[1], room.max_x + ring),
         ] = 0.0
 
@@ -121,13 +141,14 @@ def grow_rect(
     *,
     prelimit_enabled: bool = False,
     prelimit_start_ratio: float = 0.6,
+    cell_area: np.ndarray | None = None,
 ) -> bool:
     """Extend the room's rectangle by one strip on the side with the most free cells."""
     if room.max_cells is not None and room.width * room.height >= room.max_cells:
         return False
     k = max(1, int(room.min_chunk))
     w, h = room.width, room.height
-    limit_on = _prelimit_on(room, grid, prelimit_enabled, prelimit_start_ratio)
+    limit_on = _prelimit_on(room, grid, prelimit_enabled, prelimit_start_ratio, cell_area)
     sizes: dict[str, int] = {}
 
     def strip_free(strip: np.ndarray) -> bool:
@@ -144,6 +165,17 @@ def grow_rect(
     if room.max_cells is not None:
         for direction, gain in list(sizes.items()):
             if gain and w * h + gain * k > room.max_cells:
+                sizes[direction] = 0
+    if cell_area is not None and room.max_area is not None:
+        current = float(cell_area[room.min_y:room.max_y, room.min_x:room.max_x].sum())
+        strips = {
+            "right": cell_area[room.min_y:room.max_y, room.max_x:room.max_x + k],
+            "left": cell_area[room.min_y:room.max_y, max(0, room.min_x - k):room.min_x],
+            "down": cell_area[room.max_y:room.max_y + k, room.min_x:room.max_x],
+            "up": cell_area[max(0, room.min_y - k):room.min_y, room.min_x:room.max_x],
+        }
+        for direction, gain in list(sizes.items()):
+            if gain and current + float(strips[direction].sum()) > room.max_area + 1e-9:
                 sizes[direction] = 0
 
     best = max(sizes.values())
@@ -220,19 +252,26 @@ def expand_rooms(
     l_shapes: bool = True,
     prelimit_enabled: bool = False,
     prelimit_start_ratio: float = 0.6,
+    boost: dict[int, float] | None = None,
+    cell_area: np.ndarray | None = None,
 ) -> None:
-    """Seed every room, grow rectangles until stuck, then (optionally) L-shapes."""
+    """Seed every room, grow rectangles until stuck, then (optionally) L-shapes.
+
+    ``boost`` weights which room grows next; weighting by target size lets
+    rooms grow in proportion instead of the first one blocking the rest.
+    """
     sample_initial_positions(rooms, grid, rng, seed_positions, seed_radius=seed_radius, allowed=allowed)
     growing = list(rooms)
     while growing:
-        room = select_room(growing, rng)
-        if not grow_rect(room, grid, rng, prelimit_enabled=prelimit_enabled, prelimit_start_ratio=prelimit_start_ratio):
+        room = select_room(growing, rng, boost)
+        if not grow_rect(room, grid, rng, prelimit_enabled=prelimit_enabled,
+                         prelimit_start_ratio=prelimit_start_ratio, cell_area=cell_area):
             growing = [r for r in growing if r is not room]
     if not l_shapes:
         return
     growing = list(rooms)
     while growing:
-        room = select_room(growing, rng)
+        room = select_room(growing, rng, boost)
         if not grow_l_shape(room, grid, rng):
             growing = [r for r in growing if r is not room]
 

@@ -583,8 +583,12 @@ def _lay_street_side(
     wrap_limits: tuple[float | None, float | None] = (None, None),
     exit_separation: float = 0.0,
     stair_footprint: tuple[float, float, float, float] | None = None,
+    far_end_inset: float = 0.0,
 ) -> tuple[float, list[RoomPolygon], tuple[float, float, float, float] | None]:
     """Rooms hang off the corridor at a chosen depth; the primary takes the frontage strip.
+
+    ``far_end_inset`` (empty row only) keeps the stair that far in from the
+    run's far end, leaving the primary room to wrap around the corridor there.
 
     ``wrap_limits`` are the outer ends of the primary's residuals beside the
     core (left, right); a wrap-around on that side must leave the primary's
@@ -651,7 +655,7 @@ def _lay_street_side(
                 raise TopologyInfeasible(["the stacked remote stair does not fit this floor"])
             stair = stair_footprint
         elif stair_dimensions is not None:
-            anchor = band.x1 - stair_len if far_right else band.x0
+            anchor = band.x1 - stair_len - far_end_inset if far_right else band.x0 + far_end_inset
             step = -_SCAN_STEP if far_right else _SCAN_STEP
             x = anchor
             while band.x0 - _EPS <= x and x + stair_len <= band.x1 + _EPS:

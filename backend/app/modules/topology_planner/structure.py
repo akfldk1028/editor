@@ -62,6 +62,7 @@ def plan_floor_structure(
     corridor_width: float = 1.6,
     stair_dimensions: tuple[float, float] | None = None,
     stair_footprint: tuple[float, float, float, float] | None = None,
+    stair_inset: float = 0.0,
 ) -> FloorStructure:
     """Cover, spine, bands, core and the remote stair for one floor.
 
@@ -69,7 +70,8 @@ def plan_floor_structure(
     street row is empty: against the spine at the end farther from the core,
     scanned inward until it fits the cover and its door clears the exit
     separation (half the plate's diameter).  ``stair_footprint`` fixes the box
-    instead, for stacking.
+    instead, for stacking.  ``stair_inset`` keeps the stair that far in from
+    the far end so the primary room can wrap around the corridor's end.
     """
     if stair_footprint is not None:
         stair_dimensions = (
@@ -97,6 +99,7 @@ def plan_floor_structure(
         _, _, stair = _lay_street_side(
             street_band, [], primary, spine, cover, stair_dimensions,
             core=core, exit_separation=exit_separation, stair_footprint=stair_footprint,
+            far_end_inset=stair_inset,
         )
     return FloorStructure(
         plate=plate,
