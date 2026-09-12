@@ -1,0 +1,16 @@
+This directory vendors the seed-and-grow floorplan solver of MANSION
+(AgibotGeneral/MANSION, commit f51269480bdf4d3cd79836e2c9d318421bda9bcb),
+released under the Apache License 2.0 (see LICENSE alongside this file).
+
+  grid.py            <- generation/procthor_adapter.py  (polygon_to_grid, grid_to_polygons)
+  mansion_growth.py  <- generation/llm_seed_expand.py   (RoomInfo, seed placement,
+                        rectangular / L-shaped growth, spur removal, hole filling)
+
+Changes made here: the LLM, matplotlib and file-IO code is removed; the random
+source is an injected random.Random so runs are reproducible; the per-room
+growth cap is an explicit cell count instead of a main-room ratio multiplier;
+polygon_to_grid accepts a MultiPolygon.  Nothing under C:/DK/Editor/clone is
+modified.
+
+Paper: Che et al., "MANSION: Multi-floor lANguage-to-3D Scene generatIOn for
+loNg-horizon tasks", CVPR 2026 (arXiv:2603.11554), Supplementary C.2.
