@@ -127,28 +127,52 @@ def _water_closets_ibc_business(occupants: int) -> int:
     return 2 + math.ceil((occupants - 50) / 50)
 
 
+# IBC Table 2902.1 rows used here.  Business: 1 per 25 for the first 50 then
+# 1 per 50 (water closets); this module keeps one lavatory per water closet.
+# Mercantile (retail stores, shops, salesrooms, markets): 1 per 500 water
+# closets, 1 per 750 lavatories, applied per sex.
+FixtureGroup = Literal["B", "M"]
+
+
+def _water_closets_ibc_mercantile(occupants: int) -> int:
+    return math.ceil(occupants / 500) if occupants > 0 else 0
+
+
+def _lavatories_ibc_mercantile(occupants: int) -> int:
+    return math.ceil(occupants / 750) if occupants > 0 else 0
+
+
 def restroom_schedule(
     *,
     occupants: int,
     jurisdiction: str | None = None,
+    fixture_group: FixtureGroup = "B",
 ) -> RestroomSchedule:
     """Size a restroom from its fixture schedule rather than from floor area."""
     if occupants < 0:
         raise ValueError("occupants must be non-negative")
 
+    if fixture_group not in ("B", "M"):
+        raise ValueError(f"unsupported fixture group: {fixture_group}")
+    korean_use = "업무시설" if fixture_group == "B" else "판매시설·근린생활시설"
     unresolved: list[str] = [
         "restroom fixture count assumes a 50/50 gender split; actual tenant "
         "gender ratio not_checked",
-        "IBC Table 2902.1 Group B used for water closet counts; the Korean "
-        "equivalent for 업무시설 is not_checked",
+        f"IBC Table 2902.1 Group {fixture_group} used for water closet counts; the Korean "
+        f"equivalent for {korean_use} is not_checked",
     ]
 
     male_occupants = math.ceil(occupants * _MALE_SHARE)
     female_occupants = occupants - male_occupants
 
-    male_wc = _water_closets_ibc_business(male_occupants)
-    female_wc = _water_closets_ibc_business(female_occupants)
-    urinals = male_wc
+    if fixture_group == "M":
+        male_wc = _water_closets_ibc_mercantile(male_occupants)
+        female_wc = _water_closets_ibc_mercantile(female_occupants)
+        urinals = 0  # the mercantile row requires none; urinals only substitute for closets
+    else:
+        male_wc = _water_closets_ibc_business(male_occupants)
+        female_wc = _water_closets_ibc_business(female_occupants)
+        urinals = male_wc
 
     if jurisdiction and jurisdiction.upper().startswith("KR"):
         # 공중화장실 등에 관한 법률 시행령 별표: the number of female water closets
@@ -169,7 +193,10 @@ def restroom_schedule(
         "장애인등편의법 의무 설치 대상 여부 not_checked"
     )
 
-    lavatories = male_wc + female_wc  # IBC Group B: 1 lavatory per water closet
+    if fixture_group == "M":
+        lavatories = _lavatories_ibc_mercantile(male_occupants) + _lavatories_ibc_mercantile(female_occupants)
+    else:
+        lavatories = male_wc + female_wc  # IBC Group B: 1 lavatory per water closet
 
     fixture_area = (
         (male_wc + female_wc) * STANDARD_STALL.area_m2
@@ -232,6 +259,10 @@ class SizingRule:
     minimum_m2: float = 0.0
     # ratio basis: area = plate_ratio * net_area_m2
     plate_ratio: float = 0.0
+    # fixture basis: which IBC Table 2902.1 row, and the area per occupant the
+    # headcount is taken from (0 = the office workplace standard, 8.5 m2).
+    fixture_group: str = "B"
+    area_per_person_m2: float = 0.0
 
 
 # ---------------------------------------------------------------- use profiles as data
@@ -293,9 +324,15 @@ def size_space(
             if core_rule is not None and core_rule.basis == "ratio"
             else 0.0
         )
+        occupants = (
+            math.ceil(context.workplace_area_m2(core_share) / rule.area_per_person_m2)
+            if rule.area_per_person_m2 > 0
+            else context.occupants(core_share)
+        )
         schedule = restroom_schedule(
-            occupants=context.occupants(core_share),
+            occupants=occupants,
             jurisdiction=context.jurisdiction,
+            fixture_group=rule.fixture_group,
         )
         return SizedSpace(
             space_type=space_type,

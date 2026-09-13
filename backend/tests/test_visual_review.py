@@ -1028,7 +1028,11 @@ def test_artifacts_render_circulation_in_svg_and_png(tmp_path):
     assert 'data-kind="circulation"' in svg
     assert 'fill="#d9d9d9" stroke="#38761d"' in svg
     assert ">circulation</text>" in svg
-    assert _png_pixel(review.png_path.read_bytes(), 100, 50) == (217, 217, 217)
+    # The corridor's fill, sampled near its ends: its centre carries the room
+    # labels, which move whenever the program's areas move the rooms.
+    png = review.png_path.read_bytes()
+    assert _png_pixel(png, 100, 15) == (217, 217, 217)
+    assert _png_pixel(png, 100, 85) == (217, 217, 217)
 
 
 def test_svg_renders_door_width_and_room_identity_area_labels(tmp_path):

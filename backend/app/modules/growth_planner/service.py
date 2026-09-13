@@ -62,6 +62,11 @@ ENTRY = "entry"
 _CORE_SIDE_ZONES = frozenset({"service", "core"})
 # A row of rooms along the corridor is at least this deep.
 _MIN_ROW_DEPTH = 3.0
+# Rows are packed at real dimensions -- depths in 10 cm, widths in 5 cm -- and
+# the grid is then drawn through every packed edge, so a room whose area band
+# allows one width only (a pantry at 1.80 m) is not lost to cell rounding.
+_DEPTH_STEP = 0.1
+_WIDTH_STEP = 0.05
 # Grid ids below zero block growth; these two are released to the primary
 # afterwards: the corridor beyond the last room and the wrap zone past it.
 _CORRIDOR_CELL = -2
@@ -182,7 +187,6 @@ def _solve_floor(structure: FloorStructure, program: ProgramGraph, graph, street
     grid_template, cell_areas = region_to_cells(region, xs, ys)
     cells = _cell_facts(grid_template, cell_areas, xs, ys, structure, streets)
     primary_min = float(primary.min_width or 0.0)
-    grid_template = _reserve_corridor_and_wrap(grid_template, cells, structure, primary_min)
     ids = {node.node_id: index + 1 for index, node in enumerate(growers)}
     primary_id = len(growers) + 1
 
@@ -245,6 +249,23 @@ def _solve_floor(structure: FloorStructure, program: ProgramGraph, graph, street
         if abs(moved - scale) < 1e-3:
             break
         scale = moved
+    # The grid the rooms grow on runs through every packed room edge and both
+    # row depths as well as the structure, so each packed room is a whole
+    # block of cells and its first block is exactly its packed rectangle.
+    extra_x: list[float] = []
+    extra_y: list[float] = []
+    for node in growers:
+        side, row = rows[node.node_id]
+        packed = row.span_of(node.node_id)
+        if packed is not None:
+            extra_x.extend(packed)
+            extra_y.extend(_row_y(structure, side, row.depth))
+    if extra_x:
+        xs = rectilinear_lines(anchors_x + extra_x, grid_size)
+        ys = rectilinear_lines(anchors_y + extra_y, grid_size)
+        grid_template, cell_areas = region_to_cells(region, xs, ys)
+        cells = _cell_facts(grid_template, cell_areas, xs, ys, structure, streets)
+    grid_template = _reserve_corridor_and_wrap(grid_template, cells, structure, primary_min)
     masks = []
     for node in growers:
         side, row = rows[node.node_id]
@@ -435,7 +456,7 @@ def _cell_width(cells: _Cells, flank: _Flank) -> float:
 
 def _pack(nodes: list[ProgramNode], depth: float, flanks: list[_Flank], cell_ws: list[float],
           must_touch: set[str], scale: float = 1.0) -> dict[str, tuple[int, float, tuple[float, float]]] | None:
-    """Each room's flank and width at ``depth``, in whole cells of that flank, or None when the row does not pack.
+    """Each room's flank, width and x span at ``depth``, widths in steps of ``cell_ws``, or None when the row does not pack.
 
     Rooms bound to the core go first, one per flank (every core-side flank
     starts at the core) into the flank with the least to spare, so a pocket
@@ -485,12 +506,15 @@ def _pack(nodes: list[ProgramNode], depth: float, flanks: list[_Flank], cell_ws:
 
 
 def _row_depths(cells: _Cells, structure: FloorStructure, side: str) -> list[float]:
-    """The depths a row on ``side`` can have: the grid's lines across the band, measured from the spine."""
-    _, sy0, _, sy1 = structure.spine
+    """The depths a row on ``side`` can have: every 10 cm from the minimum row depth to the band's full depth."""
     band = structure.core_band if side == "core" else structure.street_band
-    if band.y0 >= sy1 - _EPS:  # band above the spine
-        return [float(y - sy1) for y in cells.ys if sy1 + _EPS < y <= band.y1 + _EPS]
-    return sorted(float(sy0 - y) for y in cells.ys if band.y0 - _EPS <= y < sy0 - _EPS)
+    depths = []
+    step = 0
+    while _MIN_ROW_DEPTH + step * _DEPTH_STEP < band.depth - _EPS:
+        depths.append(round(_MIN_ROW_DEPTH + step * _DEPTH_STEP, 6))
+        step += 1
+    depths.append(band.depth)
+    return depths
 
 
 def _row_depth(nodes: list[ProgramNode], side: str, structure: FloorStructure, cells: _Cells,
@@ -498,8 +522,8 @@ def _row_depth(nodes: list[ProgramNode], side: str, structure: FloorStructure, c
                scale: float = 1.0, remainder_min: float = 0.0) -> _Row | None:
     """The row at the depth where every room packs into the flanks within its
     gates and the areas miss their targets least -- the leftover of a closed
-    flank (a pocket) counting as a miss.  Depths and widths are whole cells,
-    so the row that packs is the row that grows.
+    flank (a pocket) counting as a miss.  The grid is drawn through the packed
+    edges afterwards, so the row that packs is the row that grows.
 
     What the row leaves of the band behind its rooms is the primary's only
     when it is at least the primary's minimum width (``remainder_min``);
@@ -514,7 +538,7 @@ def _row_depth(nodes: list[ProgramNode], side: str, structure: FloorStructure, c
             continue
         remainder = band_depth - depth
         flanks = _flanks(structure, side, depth, span, wrap)
-        placement = _pack(nodes, depth, flanks, [_cell_width(cells, flank) for flank in flanks], must_touch, scale)
+        placement = _pack(nodes, depth, flanks, [_WIDTH_STEP] * len(flanks), must_touch, scale)
         if placement is None:
             continue
         miss = sum(abs(placement[n.node_id][1] * depth - float(n.target_area) * scale) for n in nodes)
@@ -550,15 +574,23 @@ def _room_info(node: ProgramNode, room_id: int, cells: _Cells, structure: FloorS
     block_h = max(1, int(((cy > y0 + _EPS) & (cy < y1 - _EPS)).sum()))
     cell_h = (y1 - y0) / block_h
     flank = row.flank_of(node.node_id)
-    whole = _Flank(float(cells.xs[0]), float(cells.xs[-1]), False)
-    cell_w = _cell_width(cells, flank if flank is not None else whole)
-    flank_cells = max(1, round((flank if flank is not None else whole).length / cell_w))
+    packed = row.span_of(node.node_id)
+    width = row.width_of(node)
+    if packed is not None:
+        # The grid runs through the packed edges: the block is those cells.
+        cx = (cells.xs[:-1] + cells.xs[1:]) / 2
+        block_w = max(1, int(((cx > packed[0] + _EPS) & (cx < packed[1] - _EPS)).sum()))
+        cell_w = (packed[1] - packed[0]) / block_w
+        chunk = 1
+    else:
+        whole = _Flank(float(cells.xs[0]), float(cells.xs[-1]), False)
+        cell_w = _cell_width(cells, flank if flank is not None else whole)
+        flank_cells = max(1, round((flank if flank is not None else whole).length / cell_w))
+        chunk = max(1, math.ceil(max(min_width, 2 * 0.9) / cell_w - 1e-9))
+        block_w = max(chunk, round(width / cell_w))
+        block_w = min(block_w, flank_cells) if flank is not None else block_w
     cell_area = cell_w * cell_h
     target_cells = max(1, round(target / cell_area))
-    chunk = max(1, math.ceil(max(min_width, 2 * 0.9) / cell_w - 1e-9))
-    width = row.width_of(node)
-    block_w = max(chunk, round(width / cell_w))
-    block_w = min(block_w, flank_cells) if flank is not None else block_w
     # A block that is not from a packed row was rounded up to cells: it must
     # not start over its band or its aspect limit.
     while block_w > chunk and (

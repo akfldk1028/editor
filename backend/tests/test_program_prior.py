@@ -52,7 +52,7 @@ def test_generate_program_graph_for_ground_floor_commercial_office_mix():
     assert sum(node.target_area for node in graph.nodes) == 300 - graph.net_area_allowance_m2
     assert graph.net_area_allowance_m2 == 1.6 * 30  # rectangle: corridor only
     assert any(edge.relation == "public_access" for edge in graph.edges)
-    assert graph.source == "baseline_prior"
+    assert graph.source == "baseline_prior:normative_sizing"
 
 
 def test_generate_program_graph_for_typical_office_floor():
@@ -109,17 +109,7 @@ def test_tiny_positive_mass_preserves_positive_coherent_program_areas():
         assert 0 < node.min_area < node.target_area < node.max_area
 
 
-@pytest.mark.parametrize(
-    ("use_type", "expected_profile", "frontage_required"),
-    [
-        ("neighborhood_commercial", COMMERCIAL_PROFILE, {"sales_a", "sales_b"}),
-    ],
-)
-def test_program_profiles_emit_exact_ratios_and_form_metadata(
-    use_type,
-    expected_profile,
-    frontage_required,
-):
+def test_commercial_program_keeps_form_metadata_and_sizes_from_its_sources():
     analysis = MassAnalysis(
         project_id="profile-metadata",
         area=1000,
@@ -131,23 +121,24 @@ def test_program_profiles_emit_exact_ratios_and_form_metadata(
         bounds=(0, 0, 40, 25),
     )
 
-    graph = generate_program_graph(analysis, floor_index=1, use_type=use_type)
+    graph = generate_program_graph(analysis, floor_index=1, use_type="neighborhood_commercial")
+    net = analysis.area - graph.net_area_allowance_m2
+    nodes = {node.node_id: node for node in graph.nodes}
 
     assert {
-        node.node_id: (
-            round(node.target_area / (analysis.area - graph.net_area_allowance_m2), 9),
-            node.min_width,
-            node.max_aspect_ratio,
-            node.zone,
-        )
-        for node in graph.nodes
-    } == expected_profile
-    assert {
-        node.node_id for node in graph.nodes if node.frontage_required
-    } == frontage_required
-    assert sum(node.target_area for node in graph.nodes) == analysis.area - graph.net_area_allowance_m2
-    assert all(node.min_area == node.target_area * 0.85 for node in graph.nodes)
-    assert all(node.max_area == node.target_area * 1.15 for node in graph.nodes)
+        node_id: (node.min_width, node.max_aspect_ratio, node.zone) for node_id, node in nodes.items()
+    } == {node_id: (min_width, aspect, zone) for node_id, (_, min_width, aspect, zone) in COMMERCIAL_PROFILE.items()}
+    assert {node.node_id for node in graph.nodes if node.frontage_required} == {"sales_a", "sales_b"}
+    assert graph.source == "baseline_prior:normative_sizing"
+    assert math.isclose(sum(node.target_area for node in graph.nodes), net)
+    # DOE stand-alone retail prototype shares, applied to the area outside the core.
+    assert nodes["checkout"].target_area / net == pytest.approx(0.0657 * 0.88, abs=1e-3)
+    assert nodes["stock"].target_area / net == pytest.approx(0.1656 * 0.88, abs=1e-3)
+    # The two tenants split the residual sales floor equally.
+    assert nodes["sales_a"].target_area == pytest.approx(nodes["sales_b"].target_area)
+    assert all(math.isclose(node.min_area, node.target_area * 0.85) for node in graph.nodes)
+    assert all(math.isclose(node.max_area, node.target_area * 1.15) for node in graph.nodes)
+    assert graph.unresolved_facts
 
 
 def test_office_program_keeps_form_metadata_but_sizes_areas_normatively():

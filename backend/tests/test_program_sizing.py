@@ -108,3 +108,44 @@ def test_size_space_carries_provenance_for_every_space_type():
 def test_size_space_rejects_a_plate_too_small_for_the_normative_program():
     with pytest.raises(ValueError, match="residual"):
         size_space("open_work", SizingContext(net_area_m2=40.0), OFFICE_SIZING)
+
+
+def test_mercantile_restroom_uses_one_closet_per_five_hundred_per_sex():
+    # IBC Table 2902.1 Mercantile: 1 per 500 water closets, 1 per 750 lavatories.
+    # 1000 occupants -> 500 per sex -> 1 closet and 1 lavatory each.
+    schedule = restroom_schedule(occupants=1000, fixture_group="M")
+
+    assert (schedule.male_water_closets, schedule.female_water_closets) == (1, 1)
+    assert schedule.lavatories == 2
+    assert schedule.urinals == 0
+
+
+def test_mercantile_restroom_adds_a_closet_past_five_hundred_per_sex():
+    schedule = restroom_schedule(occupants=1200, fixture_group="M")
+
+    assert (schedule.male_water_closets, schedule.female_water_closets) == (2, 2)
+    assert schedule.lavatories == 2  # 600 per sex is still under 750
+
+
+def test_mercantile_restroom_names_its_table_row_as_unresolved_korean_equivalent():
+    schedule = restroom_schedule(occupants=60, fixture_group="M")
+
+    assert any("Group M" in fact and "판매시설" in fact for fact in schedule.unresolved_facts)
+
+
+def test_an_unknown_fixture_group_is_rejected():
+    with pytest.raises(ValueError, match="fixture group"):
+        restroom_schedule(occupants=10, fixture_group="Z")
+
+
+def test_a_fixture_rule_takes_its_headcount_from_its_own_density():
+    from backend.app.modules.program_prior.sizing import load_sizing_rules
+
+    rules = load_sizing_rules("neighborhood_commercial")
+    sized = size_space("restroom", SizingContext(net_area_m2=1000.0), rules)
+
+    # 1000 m2 less the 12 % core at 5.574 m2 per person -> 158 people -> 79 per sex
+    # -> one closet each: the accessible stalls dominate the area.
+    assert sized.basis == "fixture"
+    assert sized.evidence_level == "statutory"
+    assert 10.0 < sized.area_m2 < 25.0

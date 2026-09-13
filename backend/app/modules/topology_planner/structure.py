@@ -215,12 +215,17 @@ def core_flank_width(programs: Iterable[ProgramGraph], depth: float) -> float:
         for d in depths:
             if any(_width_band(n, d) is None for n in core_side):
                 continue  # no row of that depth holds every core-side room
-            by_depth.append((d, _union(_width_band(n, d) for n in core_side)))
+            # Only a room bound to the core is ever packed into the flank
+            # between the core and the plate's end; any other room would
+            # leave the core for the longer flank.  So a floor fills the
+            # flank with one of its bound rooms or not at all.
+            by_depth.append((d, _union(_width_band(n, d) for n in bound)))
             if len(bound) >= 2:
                 accepted.extend(_union(_width_band(n, d) for n in bound))
         if len(bound) >= 2:
             required.append(_union(accepted))
-        fillable.append(by_depth)
+        if bound:
+            fillable.append(by_depth)
     if not required:
         return 0.0
     feasible = required[0]

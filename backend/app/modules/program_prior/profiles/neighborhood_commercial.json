@@ -1,6 +1,6 @@
 {
   "use_type": "neighborhood_commercial",
-  "note": "sizing_rules 없음: 모든 면적이 판 면적 비율(assumed). 산정규칙 추가가 다음 작업.",
+  "note": "근린상가 1개 층. 판매·계산·후방 비율은 DOE 단독판매점 원형모델 실 구성(매장 76.3%, 후방 16.6%, 계산대 6.6%)을 코어 제외 면적에 적용한 실무 근거. 화장실은 IBC Group M 위생기구 수. 직원실·설비실은 출처 없는 가정치.",
   "spaces": [
     {
       "space_type": "sales",
@@ -84,5 +84,61 @@
       "target": "utility",
       "relation": "service_adjacent"
     }
-  ]
+  ],
+  "sizing_rules": {
+    "sales": {
+      "basis": "residual",
+      "citation": "DOE 상업건물 원형모델 Stand-alone Retail (ASHRAE 90.1 prototype, energycodes.gov), 2,294㎡: CORE_RETAIL 69.8% + FRONT_RETAIL 6.6% = 매장 76.3%",
+      "evidence_level": "practice",
+      "minimum_m2": 30.0,
+      "rationale": "매장은 나머지 실을 뺀 잔여. 원형모델에서도 매장이 76%로 대부분을 차지한다. 두 임대칸으로 나뉜다."
+    },
+    "checkout": {
+      "basis": "ratio",
+      "citation": "DOE 상업건물 원형모델 Stand-alone Retail (ASHRAE 90.1 prototype, energycodes.gov), 2,294㎡: POINT_OF_SALE 150.8㎡ = 6.57%",
+      "evidence_level": "practice",
+      "plate_ratio": 0.0578,
+      "minimum_m2": 6.0,
+      "rationale": "원형모델 비율 6.57%는 코어 없는 단층 건물 기준이라 코어 비율(0.12)을 뺀 면적에 곱했다."
+    },
+    "stock": {
+      "basis": "ratio",
+      "citation": "DOE 상업건물 원형모델 Stand-alone Retail (ASHRAE 90.1 prototype, energycodes.gov), 2,294㎡: BACK_SPACE 379.9㎡ = 16.56%",
+      "evidence_level": "practice",
+      "plate_ratio": 0.1457,
+      "minimum_m2": 8.0,
+      "rationale": "원형모델 후방공간(창고·하역) 16.56%를 코어 제외 면적에 적용."
+    },
+    "staff": {
+      "basis": "ratio",
+      "citation": "기존 프로파일 비율 유지 (직원 수·휴게 기준 not_checked)",
+      "evidence_level": "assumed",
+      "plate_ratio": 0.05,
+      "minimum_m2": 8.0,
+      "rationale": "원형모델은 직원실을 후방공간에 포함해 따로 비율이 없다. 출처 확보 전까지 기존 비율."
+    },
+    "restroom": {
+      "basis": "fixture",
+      "citation": "IBC 2024 Table 2902.1 Mercantile (대변기 1/500, 세면기 1/750) + IBC Table 1004.5 mercantile 60 gross sf/인 + 장애인등편의법 시행규칙 별표1",
+      "evidence_level": "statutory",
+      "fixture_group": "M",
+      "area_per_person_m2": 5.574,
+      "rationale": "재실인원은 IBC 판매시설 밀도 5.57㎡/인(총면적 기준)을 코어 제외 순면적에 적용해 보수적으로 크게 잡는다. 인원이 적어 장애인 칸 치수가 면적을 좌우한다."
+    },
+    "core": {
+      "basis": "ratio",
+      "citation": "core_planner 실치수가 최종값 (여기서는 배치 전 자리확보용)",
+      "evidence_level": "assumed",
+      "plate_ratio": 0.12,
+      "rationale": "오피스와 같은 자리확보용 비율. 실제 코어는 계단폭·승강기 수로 정해지고 루프가 프로그램을 배치된 코어에 맞춘다."
+    },
+    "utility": {
+      "basis": "ratio",
+      "citation": "기존 프로파일 비율 유지 (설비 부하 기준 not_checked)",
+      "evidence_level": "assumed",
+      "plate_ratio": 0.07,
+      "minimum_m2": 6.0,
+      "rationale": "원형모델은 설비실을 별도 공간으로 두지 않는다. 출처 확보 전까지 기존 비율."
+    }
+  }
 }
