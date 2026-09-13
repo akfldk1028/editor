@@ -997,9 +997,35 @@ def _open_rectilinear(polygon: Polygon, width: float):
         nearest = min(grid, key=lambda g: abs(g - value))
         return nearest if abs(nearest - value) <= 3 * _OPEN_TOL else round(value, 6)
 
+    def rectify(ring: list[tuple[float, float]], reference: Polygon) -> list[tuple[float, float]]:
+        # The buffer can drop one corner of a step thinner than its
+        # tolerance (a 2 cm grid strip), leaving a slanted edge between the
+        # step's two sides once snapped.  Put the corner back: of the two
+        # axis-aligned corners, the one whose ring matches the unsnapped
+        # opening best.
+        points = ring[:-1] if ring and ring[0] == ring[-1] else list(ring)
+        index = 0
+        while index < len(points):
+            a, b = points[index], points[(index + 1) % len(points)]
+            if a[0] != b[0] and a[1] != b[1]:
+                options = []
+                for corner in ((a[0], b[1]), (b[0], a[1])):
+                    candidate = points[: index + 1] + [corner] + points[index + 1:]
+                    shape = Polygon(candidate)
+                    if shape.is_valid and not shape.is_empty:
+                        options.append((shape.symmetric_difference(reference).area, candidate))
+                if not options:
+                    break
+                points = min(options, key=lambda item: item[0])[1]
+            index += 1
+        return points
+
     def snap_polygon(piece: Polygon) -> Polygon:
-        shell = [(snap(x, xs), snap(y, ys)) for x, y in piece.exterior.coords]
-        holes = [[(snap(x, xs), snap(y, ys)) for x, y in ring.coords] for ring in piece.interiors]
+        shell = rectify([(snap(x, xs), snap(y, ys)) for x, y in piece.exterior.coords], piece)
+        holes = [
+            rectify([(snap(x, xs), snap(y, ys)) for x, y in ring.coords], Polygon(ring.coords))
+            for ring in piece.interiors
+        ]
         snapped = Polygon(shell, holes).buffer(0)
         return snapped
 

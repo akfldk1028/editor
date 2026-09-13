@@ -140,3 +140,28 @@ def test_a_rear_core_floor_gets_a_street_entrance_to_the_corridor():
     assert ex0 == pytest.approx(structure.spine[0])  # the corridor's end nearer the core
     assert not structure.free_region.intersects(box(*structure.entry).buffer(-1e-3))
     assert {n.node_id for n in structure.primaries} == {"sales_a", "sales_b"}
+
+
+def test_opening_a_piece_with_a_hairline_grid_step_keeps_every_edge_axis_aligned():
+    # A growth residual on a 36 x 18 plate: a 2 cm grid strip along the
+    # bottom.  The buffer dropped one corner of that step and the snapped
+    # ring came back with a slanted edge, which crashed the min-width gate.
+    from backend.app.modules.topology_planner.service import _open_rectilinear
+
+    ys_right = [18.0, 17.5382, 17.0764, 16.6145, 16.1527, 15.6909, 15.2291, 14.7673, 14.3055, 13.8436,
+                13.3818, 12.92, 12.4533, 11.9867, 11.52, 11.0533, 10.5867, 10.12, 9.72, 9.32, 8.92, 8.52,
+                8.02, 7.52, 7.02, 6.52, 6.02, 5.52, 5.02, 4.52, 4.02, 3.52, 3.02, 2.52, 2.02, 1.52, 1.02,
+                0.52, 0.02, 0.0]
+    ring = [(15.6, 11.9867), (15.6, 18.0)] + [(36.0, y) for y in ys_right]
+    ring += [(18.1014, 0.0), (18.1014, 0.02), (18.1014, 8.52), (26.5, 8.52), (26.5, 12.92), (21.58, 12.92),
+             (21.58, 10.12), (15.6, 10.12)]
+    piece = Polygon(ring)
+    assert piece.is_valid
+
+    opened = _open_rectilinear(piece, 6.0)
+
+    for part in getattr(opened, "geoms", [opened]):
+        points = list(part.exterior.coords)
+        for a, b in zip(points, points[1:]):
+            assert a[0] == b[0] or a[1] == b[1], (a, b)
+    assert abs(opened.area - piece.buffer(-2.999, join_style=2).buffer(2.999, join_style=2).area) < 0.5
