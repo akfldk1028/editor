@@ -1,0 +1,88 @@
+{
+  "use_type": "neighborhood_commercial",
+  "note": "sizing_rules 없음: 모든 면적이 판 면적 비율(assumed). 산정규칙 추가가 다음 작업.",
+  "spaces": [
+    {
+      "space_type": "sales",
+      "ratio": 0.57,
+      "min_width": 5.0,
+      "max_aspect_ratio": 3.0,
+      "zone": "frontage",
+      "frontage_required": true
+    },
+    {
+      "space_type": "checkout",
+      "ratio": 0.04,
+      "min_width": 2.4,
+      "max_aspect_ratio": 3.0,
+      "zone": "public"
+    },
+    {
+      "space_type": "stock",
+      "ratio": 0.1,
+      "min_width": 2.4,
+      "max_aspect_ratio": 2.5,
+      "zone": "service"
+    },
+    {
+      "space_type": "staff",
+      "ratio": 0.05,
+      "min_width": 2.4,
+      "max_aspect_ratio": 2.0,
+      "zone": "service"
+    },
+    {
+      "space_type": "restroom",
+      "ratio": 0.05,
+      "min_width": 1.8,
+      "max_aspect_ratio": 2.5,
+      "zone": "service"
+    },
+    {
+      "space_type": "core",
+      "ratio": 0.12,
+      "min_width": 3.0,
+      "max_aspect_ratio": 2.0,
+      "zone": "core"
+    },
+    {
+      "space_type": "utility",
+      "ratio": 0.07,
+      "min_width": 1.5,
+      "max_aspect_ratio": 2.5,
+      "zone": "service"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "sales",
+      "target": "street",
+      "relation": "public_access"
+    },
+    {
+      "source": "checkout",
+      "target": "sales",
+      "relation": "functional_adjacency"
+    },
+    {
+      "source": "stock",
+      "target": "sales",
+      "relation": "functional_adjacency"
+    },
+    {
+      "source": "staff",
+      "target": "stock",
+      "relation": "functional_adjacency"
+    },
+    {
+      "source": "core",
+      "target": "restroom",
+      "relation": "service_adjacent"
+    },
+    {
+      "source": "core",
+      "target": "utility",
+      "relation": "service_adjacent"
+    }
+  ]
+}

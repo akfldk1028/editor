@@ -4,9 +4,11 @@ from dataclasses import dataclass
 
 from backend.app.modules.program_prior.assignable import assignable_area
 from backend.app.modules.program_prior.sizing import (
-    OFFICE_SIZING,
     SizingContext,
     SizingRule,
+    _fields,
+    _read_profile,
+    load_sizing_rules,
     size_space,
 )
 from backend.app.schemas.mass import MassAnalysis
@@ -42,47 +44,21 @@ class ProgramProfile:
     sizing_rules: dict[str, SizingRule] | None = None
 
 
-OFFICE_PROFILE = ProgramProfile(
-    spaces=(
-        SpaceProfile("open_work", 0.52, 6.0, 2.5, "workplace"),
-        SpaceProfile("meeting", 0.10, 2.7, 2.0, "public"),
-        SpaceProfile("reception", 0.05, 2.4, 2.5, "public"),
-        SpaceProfile("focus", 0.06, 1.8, 1.8, "workplace"),
-        SpaceProfile("pantry", 0.03, 1.8, 2.0, "service"),
-        SpaceProfile("restroom", 0.05, 1.8, 2.5, "service"),
-        SpaceProfile("core", 0.14, 3.0, 2.0, "core"),
-        SpaceProfile("it_storage", 0.05, 1.5, 2.5, "service"),
-    ),
-    relationships=(
-        RelationshipProfile("reception", "meeting", "functional_adjacency"),
-        RelationshipProfile("open_work", "focus", "functional_adjacency"),
-        RelationshipProfile("open_work", "meeting", "functional_adjacency"),
-        RelationshipProfile("core", "restroom", "service_adjacent"),
-        RelationshipProfile("core", "it_storage", "service_adjacent"),
-        RelationshipProfile("pantry", "open_work", "functional_adjacency"),
-    ),
-    sizing_rules=OFFICE_SIZING,
-)
+def load_profile(use_type: str) -> ProgramProfile:
+    """The use type's program profile from ``profiles/<use_type>.json``."""
+    data = _read_profile(use_type)
+    return ProgramProfile(
+        spaces=tuple(SpaceProfile(**_fields(SpaceProfile, item)) for item in data["spaces"]),
+        relationships=tuple(
+            RelationshipProfile(**_fields(RelationshipProfile, item)) for item in data["relationships"]
+        ),
+        sizing_rules=load_sizing_rules(use_type),
+    )
 
-COMMERCIAL_PROFILE = ProgramProfile(
-    spaces=(
-        SpaceProfile("sales", 0.57, 5.0, 3.0, "frontage", frontage_required=True),
-        SpaceProfile("checkout", 0.04, 2.4, 3.0, "public"),
-        SpaceProfile("stock", 0.10, 2.4, 2.5, "service"),
-        SpaceProfile("staff", 0.05, 2.4, 2.0, "service"),
-        SpaceProfile("restroom", 0.05, 1.8, 2.5, "service"),
-        SpaceProfile("core", 0.12, 3.0, 2.0, "core"),
-        SpaceProfile("utility", 0.07, 1.5, 2.5, "service"),
-    ),
-    relationships=(
-        RelationshipProfile("sales", "street", "public_access"),
-        RelationshipProfile("checkout", "sales", "functional_adjacency"),
-        RelationshipProfile("stock", "sales", "functional_adjacency"),
-        RelationshipProfile("staff", "stock", "functional_adjacency"),
-        RelationshipProfile("core", "restroom", "service_adjacent"),
-        RelationshipProfile("core", "utility", "service_adjacent"),
-    ),
-)
+
+OFFICE_PROFILE = load_profile("office")
+
+COMMERCIAL_PROFILE = load_profile("neighborhood_commercial")
 
 
 def generate_program_graph(
@@ -126,7 +102,7 @@ def _profile_for(use_type: str) -> ProgramProfile:
         return OFFICE_PROFILE
     if use_type == "neighborhood_commercial":
         return COMMERCIAL_PROFILE
-    raise ValueError(f"unsupported use_type: {use_type}")
+    return load_profile(use_type)
 
 
 def _nodes_from_profile(

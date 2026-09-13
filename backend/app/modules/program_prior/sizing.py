@@ -14,8 +14,10 @@ regulatory fact.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields as dataclass_fields
+import json
 import math
+from pathlib import Path
 from typing import Literal
 
 
@@ -232,6 +234,33 @@ class SizingRule:
     plate_ratio: float = 0.0
 
 
+# ---------------------------------------------------------------- use profiles as data
+# Each use type is a JSON file in ``profiles/``: its spaces, relationships and
+# (optionally) sizing rules, every rule with its citation and evidence level.
+# A new use type is a new file; nothing here changes.
+_PROFILE_DIR = Path(__file__).resolve().parent / "profiles"
+
+
+def _fields(cls, item: dict) -> dict:
+    names = {f.name for f in dataclass_fields(cls)}
+    return {key: value for key, value in item.items() if key in names}
+
+
+def load_sizing_rules(use_type: str) -> dict[str, SizingRule] | None:
+    data = _read_profile(use_type)
+    rules = data.get("sizing_rules")
+    if rules is None:
+        return None
+    return {name: SizingRule(**_fields(SizingRule, item)) for name, item in rules.items()}
+
+
+def _read_profile(use_type: str) -> dict:
+    path = _PROFILE_DIR / f"{use_type}.json"
+    if not path.is_file():
+        raise ValueError(f"unsupported use_type: {use_type}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 @dataclass(frozen=True)
 class SizedSpace:
     space_type: str
@@ -244,71 +273,7 @@ class SizedSpace:
 
 _ASSUMED = "내부 설계 가정치 (출처 미확인)"
 
-OFFICE_SIZING: dict[str, SizingRule] = {
-    "open_work": SizingRule(
-        basis="residual",
-        citation=_WORKPLACE_CITATION,
-        evidence_level="practice",
-        minimum_m2=30.0,
-    ),
-    # These five stay on the plate ratio.  Occupancy would be the right driver
-    # for all of them, but we have no sourced coefficient -- seats per employee,
-    # area per seat -- and guessing one moved meeting space from 90 m2 to 42 m2
-    # on a 900 m2 plate, which cost the meeting room its daylight frontage.
-    # A ratio we inherited beats a number we invented; convert each one as its
-    # coefficient gets sourced.
-    "meeting": SizingRule(
-        basis="ratio",
-        citation="기존 프로파일 비율 유지 (인원당 계수 not_checked)",
-        evidence_level="assumed",
-        plate_ratio=0.10,
-        minimum_m2=14.0,
-    ),
-    "reception": SizingRule(
-        basis="ratio",
-        citation="기존 프로파일 비율 유지 (계수 not_checked)",
-        evidence_level="assumed",
-        plate_ratio=0.05,
-        minimum_m2=12.0,
-    ),
-    "focus": SizingRule(
-        basis="ratio",
-        citation="기존 프로파일 비율 유지 (인원당 계수 not_checked)",
-        evidence_level="assumed",
-        plate_ratio=0.06,
-        minimum_m2=8.0,
-    ),
-    "pantry": SizingRule(
-        basis="ratio",
-        citation="기존 프로파일 비율 유지 (인원당 계수 not_checked)",
-        evidence_level="assumed",
-        plate_ratio=0.03,
-        minimum_m2=8.0,
-    ),
-    "restroom": SizingRule(
-        basis="fixture",
-        citation="IBC Table 2902.1 (Group B) + 장애인등편의법 시행규칙 별표1",
-        evidence_level="statutory",
-    ),
-    # The core's real dimensions come from core_planner (stair width by occupant
-    # load, lift count by population, shaft).  This is only the placeholder that
-    # reserves room for it, so it stays proportional to the plate: a fixed module
-    # would swallow a small plate and starve the workplace.
-    "core": SizingRule(
-        basis="ratio",
-        citation="core_planner 실치수가 최종값 (여기서는 배치 전 자리확보용)",
-        evidence_level="assumed",
-        plate_ratio=0.14,
-        minimum_m2=40.0,
-    ),
-    "it_storage": SizingRule(
-        basis="ratio",
-        citation="기존 프로파일 비율 유지 (장비 부하 기준 not_checked)",
-        evidence_level="assumed",
-        plate_ratio=0.05,
-        minimum_m2=8.0,
-    ),
-}
+OFFICE_SIZING: dict[str, SizingRule] = load_sizing_rules("office")  # profiles/office.json
 
 
 def size_space(

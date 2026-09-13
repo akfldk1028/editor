@@ -1,0 +1,157 @@
+{
+  "use_type": "office",
+  "note": "spaces: ratio는 sizing_rules가 없을 때만 쓰는 대체값. sizing_rules의 evidence_level이 각 수치의 근거 수준(statutory/practice/assumed).",
+  "spaces": [
+    {
+      "space_type": "open_work",
+      "ratio": 0.52,
+      "min_width": 6.0,
+      "max_aspect_ratio": 2.5,
+      "zone": "workplace"
+    },
+    {
+      "space_type": "meeting",
+      "ratio": 0.1,
+      "min_width": 2.7,
+      "max_aspect_ratio": 2.0,
+      "zone": "public"
+    },
+    {
+      "space_type": "reception",
+      "ratio": 0.05,
+      "min_width": 2.4,
+      "max_aspect_ratio": 2.5,
+      "zone": "public"
+    },
+    {
+      "space_type": "focus",
+      "ratio": 0.06,
+      "min_width": 1.8,
+      "max_aspect_ratio": 1.8,
+      "zone": "workplace"
+    },
+    {
+      "space_type": "pantry",
+      "ratio": 0.03,
+      "min_width": 1.8,
+      "max_aspect_ratio": 2.0,
+      "zone": "service"
+    },
+    {
+      "space_type": "restroom",
+      "ratio": 0.05,
+      "min_width": 1.8,
+      "max_aspect_ratio": 2.5,
+      "zone": "service"
+    },
+    {
+      "space_type": "core",
+      "ratio": 0.14,
+      "min_width": 3.0,
+      "max_aspect_ratio": 2.0,
+      "zone": "core"
+    },
+    {
+      "space_type": "it_storage",
+      "ratio": 0.05,
+      "min_width": 1.5,
+      "max_aspect_ratio": 2.5,
+      "zone": "service"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "reception",
+      "target": "meeting",
+      "relation": "functional_adjacency"
+    },
+    {
+      "source": "open_work",
+      "target": "focus",
+      "relation": "functional_adjacency"
+    },
+    {
+      "source": "open_work",
+      "target": "meeting",
+      "relation": "functional_adjacency"
+    },
+    {
+      "source": "core",
+      "target": "restroom",
+      "relation": "service_adjacent"
+    },
+    {
+      "source": "core",
+      "target": "it_storage",
+      "relation": "service_adjacent"
+    },
+    {
+      "source": "pantry",
+      "target": "open_work",
+      "relation": "functional_adjacency"
+    }
+  ],
+  "sizing_rules": {
+    "open_work": {
+      "basis": "residual",
+      "citation": "업무시설 적정 공간면적 설계기준 개발 연구 (국토교통부)",
+      "evidence_level": "practice",
+      "minimum_m2": 30.0,
+      "rationale": "국토부 연구의 1인당 순업무면적 8.5㎡ 기준이 인원을 정하고, 업무공간은 나머지 실을 뺀 잔여로 둔다."
+    },
+    "meeting": {
+      "basis": "ratio",
+      "citation": "기존 프로파일 비율 유지 (인원당 계수 not_checked)",
+      "evidence_level": "assumed",
+      "minimum_m2": 14.0,
+      "plate_ratio": 0.1,
+      "rationale": "인원 기반이 맞지만 좌석/인원 계수 출처가 없다. 추정 계수로 바꿨을 때 900㎡ 판에서 90㎡가 42㎡로 줄어 채광 전면을 잃었다. 출처 확보 시 occupancy로 전환."
+    },
+    "reception": {
+      "basis": "ratio",
+      "citation": "기존 프로파일 비율 유지 (계수 not_checked)",
+      "evidence_level": "assumed",
+      "minimum_m2": 12.0,
+      "plate_ratio": 0.05,
+      "rationale": "계수 출처 없음. 기존 비율 유지."
+    },
+    "focus": {
+      "basis": "ratio",
+      "citation": "기존 프로파일 비율 유지 (인원당 계수 not_checked)",
+      "evidence_level": "assumed",
+      "minimum_m2": 8.0,
+      "plate_ratio": 0.06,
+      "rationale": "인원 기반이 맞지만 계수 출처 없음. 기존 비율 유지."
+    },
+    "pantry": {
+      "basis": "ratio",
+      "citation": "기존 프로파일 비율 유지 (인원당 계수 not_checked)",
+      "evidence_level": "assumed",
+      "minimum_m2": 8.0,
+      "plate_ratio": 0.03,
+      "rationale": "인원 기반이 맞지만 계수 출처 없음. 기존 비율 유지."
+    },
+    "restroom": {
+      "basis": "fixture",
+      "citation": "IBC Table 2902.1 (Group B) + 장애인등편의법 시행규칙 별표1",
+      "evidence_level": "statutory",
+      "rationale": "위생기구 수(IBC 2902.1 Group B)와 장애인 칸 치수(편의법 별표1)로 면적 산정. 층 크기가 아니라 인원에 따라 커진다."
+    },
+    "core": {
+      "basis": "ratio",
+      "citation": "core_planner 실치수가 최종값 (여기서는 배치 전 자리확보용)",
+      "evidence_level": "assumed",
+      "minimum_m2": 40.0,
+      "plate_ratio": 0.14,
+      "rationale": "실치수는 core_planner가 계단폭·승강기 수로 정한다. 여기서는 배치 전 자리확보용 비율이며, 고정 모듈이면 작은 판에서 업무공간을 잠식한다."
+    },
+    "it_storage": {
+      "basis": "ratio",
+      "citation": "기존 프로파일 비율 유지 (장비 부하 기준 not_checked)",
+      "evidence_level": "assumed",
+      "minimum_m2": 8.0,
+      "plate_ratio": 0.05,
+      "rationale": "장비 부하 기준 출처 없음. 기존 비율 유지."
+    }
+  }
+}
