@@ -53,7 +53,8 @@ def load_mass(manifest_path: Path) -> MassInput:
                     (float(x), float(y)) for x, y in floor["footprint_polygon"]
                 ),
             )
-            for floor in manifest["floor_footprints"]
+            # A mass with one footprint for every floor carries none.
+            for floor in manifest.get("floor_footprints", ())
         ),
         site_edges=manifest["site_edges"],
         access_candidates=manifest["access_candidates"],

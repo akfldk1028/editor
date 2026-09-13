@@ -105,6 +105,7 @@ def generate_growth_layout(
     grid_size: float = 0.5,
     trials: int = 64,
     seed: int = 0,
+    core_side: str | None = None,
 ) -> LayoutCandidate:
     primary_node = next(node for node in program.nodes if node.space_type in ("open_work", "sales"))
     graph = build_adjacency_graph(program)
@@ -124,6 +125,7 @@ def generate_growth_layout(
                 # Rooms on the street edge put the core at the rear; the
                 # public then reaches the corridor through an entrance.
                 entry=any(node.frontage_required for node in program.nodes),
+                core_side=core_side,
             )
         except TopologyInfeasible as error:
             reasons[str(error)] = reasons.get(str(error), 0) + 1

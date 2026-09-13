@@ -48,14 +48,27 @@ def plan_double_loaded_spine(
     core_bounds: tuple[float, float, float, float],
     program: ProgramGraph,
     corridor_width: float = 1.6,
+    core_side: str | None = None,
 ) -> SlicingPlan:
+    """``core_side`` ("rear" or "front") is the building's decision: a core on
+    the rear edge every floor shares stands inside a setback floor's larger
+    plate, so that floor cannot tell it from its own outline.  Without it the
+    side is read from the plate's edges, and a core on neither is rejected."""
     min_x, min_y, max_x, max_y = bounds
     _, cy0, _, cy1 = core_bounds
     width, depth = max_x - min_x, max_y - min_y
     if width < depth:
         raise ValueError("double-loaded spine expects the plate's long axis along x")
-    core_at_rear = abs(cy1 - max_y) <= _TOLERANCE
-    core_at_front = abs(cy0 - min_y) <= _TOLERANCE
+    if core_side is not None:
+        if core_side not in ("rear", "front"):
+            raise ValueError(f"core_side must be 'rear' or 'front', not {core_side!r}")
+        if cy0 < min_y - _TOLERANCE or cy1 > max_y + _TOLERANCE:
+            raise ValueError("core lies outside the plate")
+        core_at_rear = core_side == "rear"
+        core_at_front = not core_at_rear
+    else:
+        core_at_rear = abs(cy1 - max_y) <= _TOLERANCE
+        core_at_front = abs(cy0 - min_y) <= _TOLERANCE
     if not (core_at_rear or core_at_front):
         raise ValueError("core must sit on the plate's rear or front edge")
 

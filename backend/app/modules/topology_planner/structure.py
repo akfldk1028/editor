@@ -75,6 +75,7 @@ def plan_floor_structure(
     stair_footprint: tuple[float, float, float, float] | None = None,
     stair_inset: float = 0.0,
     entry: bool = False,
+    core_side: str | None = None,
 ) -> FloorStructure:
     """Cover, spine, bands, core and the remote stair for one floor.
 
@@ -97,7 +98,8 @@ def plan_floor_structure(
     core = Polygon(list(core_polygon))
     cover = _rectilinear_cover(plate)
     plan = plan_double_loaded_spine(
-        plate.bounds, core_bounds=core.bounds, program=program, corridor_width=corridor_width
+        plate.bounds, core_bounds=core.bounds, program=program, corridor_width=corridor_width,
+        core_side=core_side,
     )
     sx0, sy0, sx1, sy1 = plan.spine
     spine_x0, spine_x1 = _longest_run(cover, sy0, sy1, sx0, sx1)

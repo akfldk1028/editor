@@ -704,6 +704,7 @@ def run_building_generation(
             # is honoured as given (it already sits on an edge); otherwise the
             # core -- sized from the hint or the shared core -- goes on the
             # street edge, centred on the mass, identical on every floor.
+            core_rear = any(node.frontage_required for item in programs for node in item.nodes)
             if core_override is not None:
                 topology_core = core_override.polygon
             else:
@@ -716,7 +717,7 @@ def run_building_generation(
                     ),
                     max_aspect_ratio=core_node.max_aspect_ratio,
                     min_width=core_node.min_width,
-                    rear=any(node.frontage_required for item in programs for node in item.nodes),
+                    rear=core_rear,
                     programs=programs,
                 )
             # The program's core figure follows the core actually placed, and
@@ -730,6 +731,10 @@ def run_building_generation(
                 if layout_strategy == "growth"
                 else {}
             )
+            if core_override is None:
+                # The side is the building's: every floor opens its corridor
+                # off the same face of the shared core.
+                extra_kwargs["core_side"] = "rear" if core_rear else "front"
             layout = generate_structure_first(
                 topology_boundary,
                 program,
@@ -2952,10 +2957,11 @@ def _shared_stair_candidates(topology_inputs) -> list:
     from backend.app.modules.topology_planner.structure import plan_floor_structure
 
     def structure(inputs, footprint=None):
-        boundary, program, core_polygon, stair_dimensions, _extra = inputs
+        boundary, program, core_polygon, stair_dimensions, extra = inputs
         return plan_floor_structure(
             boundary, program, core_polygon=core_polygon,
             stair_dimensions=stair_dimensions, stair_footprint=footprint,
+            core_side=extra.get("core_side"),
         )
 
     try:
@@ -3086,6 +3092,12 @@ def _front_edge_core(
         depth = float(min_width)
         width = area / depth
     min_x, min_y, max_x, max_y = bounds
+    # The front and rear edges are the ones every floor shares: a setback
+    # floor that stops short of the mass's bounding box moves the rear edge
+    # down to its own top, or the core would hang off that floor.
+    if floor_boundaries:
+        min_y = max(min(float(y) for _, y in boundary) for boundary in floor_boundaries)
+        max_y = min(max(float(y) for _, y in boundary) for boundary in floor_boundaries)
     # Across the corridor from the core lies the primary's band: the core is
     # no deeper than what leaves that band the primary's minimum width.
     primary_min = max(

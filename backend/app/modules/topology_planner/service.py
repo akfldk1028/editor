@@ -65,6 +65,7 @@ def generate_topology_layout(
     corridor_width: float = 1.6,
     stair_dimensions: tuple[float, float] | None = None,
     stair_footprint: tuple[float, float, float, float] | None = None,
+    core_side: str | None = None,
 ) -> LayoutCandidate:
     """``stair_dimensions`` is (length along the spine, depth off it) for the
     remote egress stair.  The stair is reserved against the spine at the end
@@ -86,7 +87,8 @@ def generate_topology_layout(
     # cover rather than the plate itself.
     cover = _rectilinear_cover(plate)
     plan = plan_double_loaded_spine(
-        plate.bounds, core_bounds=core.bounds, program=program, corridor_width=corridor_width
+        plate.bounds, core_bounds=core.bounds, program=program, corridor_width=corridor_width,
+        core_side=core_side,
     )
     sx0, sy0, sx1, sy1 = plan.spine
     spine_x0, spine_x1 = _longest_run(cover, sy0, sy1, sx0, sx1)
