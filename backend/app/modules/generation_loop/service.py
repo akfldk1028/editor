@@ -50,6 +50,7 @@ from backend.app.modules.basic_design.stair import (
     resolve_floor_height,
 )
 from backend.app.modules.mass_analyzer.service import analyze_mass
+from backend.app.modules.program_prior.assignable import CORRIDOR_WIDTH_M
 from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.modules.validator.service import validate_layout
 from backend.app.modules.area_ledger.service import (
@@ -685,10 +686,20 @@ def run_building_generation(
                 if circulation_candidate is not None
                 else shared_remote_stair
             )
-            stair_dimensions = None
             if stair_source is not None:
                 st_min_x, st_min_y, st_max_x, st_max_y = polygon_bounds(stair_source)
                 stair_dimensions = (st_max_x - st_min_x, st_max_y - st_min_y)
+            else:
+                # No legacy stair candidate on this path: the remote stair is
+                # the enclosure the code requires for the floor height, its
+                # long side along the corridor.
+                stair_height, _ = resolve_floor_height(
+                    mass.building_code_context.floor_to_floor_height_m
+                    if mass.building_code_context is not None
+                    else None
+                )
+                stair_short_side, stair_long_side = required_stair_enclosure(stair_height)
+                stair_dimensions = (stair_long_side, stair_short_side)
             # Topology first decides the core position too.  A core override
             # is honoured as given (it already sits on an edge); otherwise the
             # core -- sized from the hint or the shared core -- goes on the
@@ -705,6 +716,8 @@ def run_building_generation(
                     ),
                     max_aspect_ratio=core_node.max_aspect_ratio,
                     min_width=core_node.min_width,
+                    rear=any(node.frontage_required for item in programs for node in item.nodes),
+                    programs=programs,
                 )
             # The program's core figure follows the core actually placed, and
             # the difference moves to the residual -- the same normalisation
@@ -3035,6 +3048,9 @@ def _stack_topology_stairs(layouts, topology_inputs, core_override, generator=No
     )
 
 
+_PRIMARY_TYPES = frozenset({"open_work", "sales"})
+
+
 def _front_edge_core(
     source: Iterable[tuple[float, float]],
     bounds: tuple[float, float, float, float],
@@ -3042,8 +3058,14 @@ def _front_edge_core(
     floor_boundaries: tuple[tuple[tuple[float, float], ...], ...] | None = None,
     max_aspect_ratio: float | None = None,
     min_width: float | None = None,
+    rear: bool = False,
+    programs: Iterable[ProgramGraph] = (),
 ) -> list[tuple[float, float]]:
-    """A core of the source's area on the front edge.
+    """A core of the source's area on the front edge -- or the rear edge when
+    ``rear`` (a floor has rooms that must face the street, so the street
+    edge stays free for them).  With ``programs`` the core keeps a flank
+    between itself and the plate's end when a floor has two rooms bound to
+    it (structure.core_flank_width).
 
     With ``floor_boundaries`` the core sits at one end of the front run every
     floor shares, so the remote stair at the corridor's other end is as far
@@ -3063,19 +3085,39 @@ def _front_edge_core(
     if min_width and min(width, depth) < float(min_width):
         depth = float(min_width)
         width = area / depth
-    min_x, min_y, max_x, _ = bounds
+    min_x, min_y, max_x, max_y = bounds
+    # Across the corridor from the core lies the primary's band: the core is
+    # no deeper than what leaves that band the primary's minimum width.
+    primary_min = max(
+        (float(node.min_width or 0.0) for item in programs for node in item.nodes if node.space_type in _PRIMARY_TYPES),
+        default=0.0,
+    )
+    deepest = (max_y - min_y) - CORRIDOR_WIDTH_M - primary_min
+    if depth > deepest + 1e-9:
+        depth = deepest
+        width = area / depth
+        if depth < (float(min_width) if min_width else 0.0) - 1e-9 or width / depth > limit + 1e-9:
+            from backend.app.modules.topology_planner.dimensioning import TopologyInfeasible
+
+            raise TopologyInfeasible(
+                [f"a {width:.2f} x {depth:.2f} m core is what leaves the primary its {primary_min:.2f} m "
+                 f"across a {max_y - min_y:.2f} m plate, outside the core's own gates"]
+            )
+    y0 = _clean_area(max_y - depth) if rear else min_y
     if floor_boundaries:
         from backend.app.modules.topology_planner.service import front_edge_core_x
+        from backend.app.modules.topology_planner.structure import core_flank_width
 
-        x0 = _clean_area(front_edge_core_x(floor_boundaries, width=width, depth=depth, min_y=min_y))
+        flank = core_flank_width(programs, depth)
+        x0 = _clean_area(front_edge_core_x(floor_boundaries, width=width, depth=depth, min_y=y0, flank=flank))
     else:
         centre = (min_x + max_x) / 2
         x0 = _clean_area(centre - width / 2)
     return [
-        (x0, min_y),
-        (_clean_area(x0 + width), min_y),
-        (_clean_area(x0 + width), _clean_area(min_y + depth)),
-        (x0, _clean_area(min_y + depth)),
+        (x0, y0),
+        (_clean_area(x0 + width), y0),
+        (_clean_area(x0 + width), _clean_area(y0 + depth)),
+        (x0, _clean_area(y0 + depth)),
     ]
 
 

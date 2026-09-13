@@ -69,8 +69,9 @@ def _prelimit_on(room: RoomInfo, grid: np.ndarray, enabled: bool, start_ratio: f
 
 def _window_sum(values: np.ndarray, bh: int, bw: int) -> np.ndarray:
     """Sum of every bh x bw window; shape (H - bh + 1, W - bw + 1)."""
-    padded = np.zeros((values.shape[0] + 1, values.shape[1] + 1), dtype=np.int64)
-    padded[1:, 1:] = np.cumsum(np.cumsum(values.astype(np.int64), axis=0), axis=1)
+    dtype = np.float64 if np.issubdtype(values.dtype, np.floating) else np.int64
+    padded = np.zeros((values.shape[0] + 1, values.shape[1] + 1), dtype=dtype)
+    padded[1:, 1:] = np.cumsum(np.cumsum(values.astype(dtype), axis=0), axis=1)
     return padded[bh:, bw:] - padded[:-bh, bw:] - padded[bh:, :-bw] + padded[:-bh, :-bw]
 
 
@@ -81,6 +82,7 @@ def sample_initial_positions(
     seed_positions: list[tuple[int, int]] | None = None,
     seed_radius: int = 2,
     allowed: np.ndarray | list[np.ndarray] | None = None,
+    cell_area: np.ndarray | None = None,
 ) -> None:
     """Drop each room's first block (block_w x block_h, default min_chunk square).
 
@@ -100,10 +102,28 @@ def sample_initial_positions(
         bw = max(1, min(int(room.block_w or k), grid.shape[1]))
         bh = max(1, min(int(room.block_h or k), grid.shape[0]))
         mask = allowed[index] if isinstance(allowed, list) else allowed
-        fits = _window_sum(free, bh, bw) == bw * bh
+        # The block counts against the room's area cap like any grown strip:
+        # cells differ in size across structure lines, so a block sized from
+        # one cell width can land over the cap where the cells are wider.
+        # Without a position under the cap the block narrows (then shortens).
+        capped = cell_area is not None and room.max_area is not None
+        while True:
+            fits = _window_sum(free, bh, bw) == bw * bh
+            if capped:
+                fits &= _window_sum(np.asarray(cell_area, dtype=float), bh, bw) <= room.max_area + 1e-9
+            if fits.any() or (bw <= 1 and bh <= 1):
+                break
+            if bw >= bh and bw > 1:
+                bw -= 1
+            else:
+                bh -= 1
         if mask is not None:
-            covers = _window_sum(mask & free, bh, bw) > 0
-            positions = np.argwhere(fits & covers)
+            # Entirely inside the zone when it can be, else covering a cell of it.
+            inside = _window_sum(mask & free, bh, bw) == bw * bh
+            positions = np.argwhere(fits & inside)
+            if len(positions) == 0:
+                covers = _window_sum(mask & free, bh, bw) > 0
+                positions = np.argwhere(fits & covers)
             if len(positions) == 0:
                 positions = np.argwhere(fits)
         else:
@@ -261,7 +281,8 @@ def expand_rooms(
     ``boost`` weights which room grows next; weighting by target size lets
     rooms grow in proportion instead of the first one blocking the rest.
     """
-    sample_initial_positions(rooms, grid, rng, seed_positions, seed_radius=seed_radius, allowed=allowed)
+    sample_initial_positions(rooms, grid, rng, seed_positions, seed_radius=seed_radius, allowed=allowed,
+                             cell_area=cell_area)
     growing = list(rooms)
     while growing:
         room = select_room(growing, rng, boost)

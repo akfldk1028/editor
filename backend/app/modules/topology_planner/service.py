@@ -101,7 +101,7 @@ def generate_topology_layout(
     )
     nodes = {node.node_id: node for node in program.nodes}
     core_node = next(node for node in program.nodes if node.space_type == "core")
-    primary = next((node for node in program.nodes if node.node_id in _PRIMARY), None)
+    primary = next((node for node in program.nodes if node.space_type in _PRIMARY), None)
     if primary is None:
         raise ValueError("topology layout needs a primary (residual) room")
 
@@ -193,13 +193,17 @@ def front_edge_core_x(
     width: float,
     depth: float,
     min_y: float,
+    flank: float = 0.0,
 ) -> float:
     """Left x of a core of ``width`` x ``depth`` on the front edge, at one end of the run every floor shares.
 
     A double-loaded spine puts the core at one end and the remote stair at
     the other, which is what separates the two exits by half the plate.  The
     end is the one that leaves the longer spine on the far side; ties go
-    left.  Raises TopologyInfeasible when no floor-common run holds the core.
+    left.  ``flank`` keeps that much of the run between the plate's end and
+    the core -- room for a second wet room bound to the core (see
+    structure.core_flank_width).  Raises TopologyInfeasible when no
+    floor-common run holds the core.
     """
     plates = [Polygon(list(b)) for b in boundaries]
     if not plates:
@@ -209,14 +213,15 @@ def front_edge_core_x(
         cover = _rectilinear_cover(plate)
         x0, x1 = _longest_run(cover, min_y, min_y + depth, cover.bounds[0], cover.bounds[2])
         run_x0, run_x1 = max(run_x0, x0), min(run_x1, x1)
-    if run_x1 - run_x0 < width - _EPS:
+    if run_x1 - run_x0 < width + flank - _EPS:
         raise TopologyInfeasible(
-            [f"the front edge shared by every floor is {max(0.0, run_x1 - run_x0):.2f} m, under the core's {width:.2f} m"]
+            [f"the front edge shared by every floor is {max(0.0, run_x1 - run_x0):.2f} m, "
+             f"under the core's {width:.2f} m plus its {flank:.2f} m flank"]
         )
     far_left = min(plate.bounds[0] for plate in plates)
     far_right = max(plate.bounds[2] for plate in plates)
-    at_left = run_x0
-    at_right = run_x1 - width
+    at_left = run_x0 + flank
+    at_right = run_x1 - width - flank
     # Spine beyond the core when it sits at each end.
     spine_if_left = far_right - (at_left + width)
     spine_if_right = at_right - far_left

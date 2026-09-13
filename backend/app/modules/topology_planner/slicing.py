@@ -69,16 +69,16 @@ def plan_double_loaded_spine(
     spine = (min_x, spine_y0, max_x, spine_y1)
 
     rooms = [node for node in program.nodes if node.space_type != "core"]
-    primary = tuple(node.node_id for node in rooms if node.node_id in _PRIMARY)
+    primary = tuple(node.node_id for node in rooms if node.space_type in _PRIMARY)
     core_side_ids = tuple(
         node.node_id
         for node in rooms
-        if (node.zone or "") in _CORE_SIDE_ZONES and node.node_id not in _PRIMARY
+        if (node.zone or "") in _CORE_SIDE_ZONES and node.space_type not in _PRIMARY
     )
     other_ids = tuple(
         node.node_id
         for node in rooms
-        if node.node_id not in core_side_ids and node.node_id not in _PRIMARY
+        if node.node_id not in core_side_ids and node.space_type not in _PRIMARY
     )
 
     if core_at_rear:

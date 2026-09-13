@@ -84,3 +84,21 @@ def test_holes_go_to_the_room_touching_them_most():
     filled = fill_holes_components(grid, interior)
 
     assert (filled[1:, 2:] == 1).all()  # three cells of contact with room 1, two with room 2
+
+
+def test_a_seed_block_never_starts_over_its_area_cap_where_cells_are_wider():
+    """Cells differ across structure lines: a block sized from narrow cells must not land on wide ones over the cap."""
+    from backend.app.modules.growth_planner.vendor.mansion_growth import sample_initial_positions
+
+    grid = np.zeros((4, 10), dtype=int)
+    cell_area = np.ones((4, 10))
+    cell_area[:, 5:] = 2.0  # the right half's cells are twice as big
+    room = RoomInfo(room_id=1, name="stock", target_cells=16, max_cells=None, target_area=16.0,
+                    max_area=16.0, min_chunk=1, block_w=4, block_h=4)
+    right_half = np.zeros_like(grid, dtype=bool)
+    right_half[:, 5:] = True
+
+    sample_initial_positions([room], grid, random.Random(0), allowed=right_half, cell_area=cell_area)
+
+    assert float(cell_area[grid == 1].sum()) <= 16.0 + 1e-9
+    assert (grid == 1).any()

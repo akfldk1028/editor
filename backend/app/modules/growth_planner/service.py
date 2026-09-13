@@ -58,7 +58,10 @@ from backend.engine.geometry.access import bounding_box_aspect_ratio, orthogonal
 from backend.engine.geometry.polygon import shared_boundary_with_segments_length
 
 _EPS = 1e-6
+ENTRY = "entry"
 _CORE_SIDE_ZONES = frozenset({"service", "core"})
+# A row of rooms along the corridor is at least this deep.
+_MIN_ROW_DEPTH = 3.0
 # Grid ids below zero block growth; these two are released to the primary
 # afterwards: the corridor beyond the last room and the wrap zone past it.
 _CORRIDOR_CELL = -2
@@ -98,19 +101,64 @@ def generate_growth_layout(
     trials: int = 64,
     seed: int = 0,
 ) -> LayoutCandidate:
-    primary_node = next(node for node in program.nodes if node.node_id in ("open_work", "sales"))
-    structure = plan_floor_structure(
-        boundary, program, core_polygon=core_polygon, corridor_width=corridor_width,
-        stair_dimensions=stair_dimensions, stair_footprint=stair_footprint,
-        # The stair stops short of the far end so the primary can wrap around
-        # the corridor there and be one room on both sides of it.
-        stair_inset=float(primary_node.min_width or 0.0),
-    )
+    primary_node = next(node for node in program.nodes if node.space_type in ("open_work", "sales"))
     graph = build_adjacency_graph(program)
     streets = [((float(a[0]), float(a[1])), (float(b[0]), float(b[1]))) for a, b in street_segments]
+    rng = random.Random(seed)
+    primary_min = float(primary_node.min_width or 0.0)
+    reasons: dict[str, int] = {}
+    # The stair stops short of the far end so the primary can wrap around
+    # the corridor there and be one room on both sides of it -- by at least
+    # its minimum width, and further in when the wrap has to hold a whole
+    # tenant (the pieces the stair cuts the residual into are the tenants).
+    for inset in _stair_insets(boundary, core_polygon, stair_dimensions, stair_footprint, primary_min):
+        try:
+            structure = plan_floor_structure(
+                boundary, program, core_polygon=core_polygon, corridor_width=corridor_width,
+                stair_dimensions=stair_dimensions, stair_footprint=stair_footprint, stair_inset=inset,
+                # Rooms on the street edge put the core at the rear; the
+                # public then reaches the corridor through an entrance.
+                entry=any(node.frontage_required for node in program.nodes),
+            )
+        except TopologyInfeasible as error:
+            reasons[str(error)] = reasons.get(str(error), 0) + 1
+            continue
+        best, why = _solve_floor(structure, program, graph, streets, grid_size, trials, rng)
+        if best is not None:
+            return _layout(structure, program, best)
+        for reason, count in why.items():
+            reasons[reason] = reasons.get(reason, 0) + count
+    summary = sorted(reasons.items(), key=lambda item: -item[1])[:5]
+    raise TopologyInfeasible(
+        [f"no growth trial of {trials} passed every gate"] + [f"{count}x {reason}" for reason, count in summary]
+    )
+
+
+def _stair_insets(boundary, core_polygon, stair_dimensions, stair_footprint, primary_min: float) -> list[float]:
+    """The far-end insets to try for the remote stair: the primary's minimum
+    width, then every half metre until the stair would leave the far half of
+    the run beyond the core.  One value when the stair is fixed or absent."""
+    if stair_footprint is not None or stair_dimensions is None:
+        return [primary_min]
+    min_x, _, max_x, _ = Polygon(list(boundary)).bounds
+    cx0, _, cx1, _ = Polygon(list(core_polygon)).bounds
+    room = max(max_x - cx1, cx0 - min_x) - stair_dimensions[0]
+    out = []
+    inset = primary_min
+    while inset <= room / 2 + _EPS:
+        out.append(round(inset, 3))
+        inset += 0.5
+    return out or [primary_min]
+
+
+def _solve_floor(structure: FloorStructure, program: ProgramGraph, graph, streets, grid_size: float,
+                 trials: int, rng: random.Random):
+    """Rows packed, rooms grown and gated on one structure: (best, reasons)."""
     primary = structure.primary
+    primaries = structure.primaries
     core_node = next(node for node in program.nodes if node.space_type == "core")
-    others = [node for node in program.nodes if node.node_id not in (primary.node_id, core_node.node_id)]
+    primary_ids = {node.node_id for node in primaries}
+    others = [node for node in program.nodes if node.node_id not in primary_ids and node.node_id != core_node.node_id]
     must_touch_core = {
         node.node_id for node in others if frozenset({node.node_id, core_node.node_id}) in graph.required
     }
@@ -129,14 +177,15 @@ def generate_growth_layout(
     region = structure.cover.difference(structure.core)
     if structure.stair is not None:
         region = region.difference(box(*structure.stair))
+    if structure.entry is not None:
+        region = region.difference(box(*structure.entry))
     grid_template, cell_areas = region_to_cells(region, xs, ys)
     cells = _cell_facts(grid_template, cell_areas, xs, ys, structure, streets)
-    grid_template = _reserve_corridor_and_wrap(grid_template, cells, structure, float(primary.min_width or 0.0))
-    cell_area = grid_size * grid_size
+    primary_min = float(primary.min_width or 0.0)
+    grid_template = _reserve_corridor_and_wrap(grid_template, cells, structure, primary_min)
     ids = {node.node_id: index + 1 for index, node in enumerate(growers)}
     primary_id = len(growers) + 1
 
-    rng = random.Random(seed)
     best: tuple[float, list[RoomPolygon], RoomPolygon] | None = None
     reasons: dict[str, int] = {}
     # Each side of the corridor is a row: one depth for its rooms, chosen
@@ -144,42 +193,68 @@ def generate_growth_layout(
     # rooms' widths meet their gates and their areas miss their targets least.
     # A room's first block is its width at that depth; growth then only
     # fine-tunes.  The primary takes the strip beyond the row.
-    primary_min = float(primary.min_width or 0.0)
-    core_side_nodes = [n for n in growers if (n.zone or "") in _CORE_SIDE_ZONES or n.node_id in must_touch_core]
-    street_nodes = [n for n in growers if n not in core_side_nodes]
+    wrap = _wrap(structure, primary_min)
     span = _growable_span(structure, primary_min)
-    # Beside the core the leftover strip can still be taken by a room (pocket
-    # absorption) or is waste the energy charges; on the street side it is the
-    # primary's frontage and has to be primary-wide.  A core-side row that
-    # does not pack its flanks spills its largest dry room to the street row,
-    # as the topology solver's assignment search would.
-    core_depth = street_depth = None
-    while True:
-        core_depth = _row_depth(core_side_nodes, structure.core_band.depth,
-                                lambda d: _flanks(structure, "core", d, span))
-        street_depth = _row_depth(street_nodes, structure.street_band.depth,
-                                  lambda d: _flanks(structure, "street", d, span), primary_min)
-        if core_depth is not None and street_depth is not None:
+    # What the floor has for rooms against what the program asks: every room
+    # is sized by the same factor (within its band), so a surplus does not
+    # all land in the primary and a deficit does not all come out of it.
+    # The rows are packed at that factor; what they then leave the primary
+    # (with the corridor released beyond them) is checked against its band
+    # and the factor moved until the primary is inside it.
+    for_rooms = float(cells.area[cells.interior].sum()) - box(*structure.spine).area
+    grower_target = sum(float(node.target_area) for node in growers)
+    primary_target = sum(float(node.target_area) for node in primaries)
+    scale = min(1.15, max(0.85, for_rooms / (grower_target + primary_target))) if growers else 1.0
+    for _ in range(4):
+        core_side_nodes = [n for n in growers if (n.zone or "") in _CORE_SIDE_ZONES or n.node_id in must_touch_core]
+        street_nodes = [n for n in growers if n not in core_side_nodes]
+        # Beside the core the leftover strip can still be taken by a room
+        # (pocket absorption) or is waste the energy charges; on the street
+        # side it is the primary's frontage and has to be primary-wide.  A
+        # core-side row that does not pack its flanks spills its largest dry
+        # room to the street row, as the topology solver's assignment would.
+        core_row = street_row = None
+        while True:
+            core_row = _row_depth(core_side_nodes, "core", structure, cells, span, wrap, must_touch_core, scale, primary_min)
+            street_row = _row_depth(street_nodes, "street", structure, cells, span, wrap, set(), scale, primary_min)
+            if core_row is not None and street_row is not None:
+                break
+            movable = [n for n in core_side_nodes if n.node_id not in must_touch_core]
+            if core_row is not None or not movable:
+                break
+            spilled = max(movable, key=lambda n: float(n.target_area))
+            core_side_nodes.remove(spilled)
+            street_nodes.append(spilled)
+        if core_row is None:
+            core_row = _unpacked_row(core_side_nodes, structure.core_band.depth,
+                                     _flanks(structure, "core", structure.core_band.depth, span, wrap))
+        if street_row is None:
+            street_row = _unpacked_row(street_nodes, structure.street_band.depth,
+                                       _flanks(structure, "street", structure.street_band.depth, span, wrap))
+        rows = {**{n.node_id: ("core", core_row) for n in core_side_nodes},
+                **{n.node_id: ("street", street_row) for n in street_nodes}}
+        if not growers:
             break
-        movable = [n for n in core_side_nodes if n.node_id not in must_touch_core]
-        if core_depth is not None or not movable:
+        expected = _expected_primary(structure, rows, growers, for_rooms)
+        low = sum((float(n.min_area) if n.min_area else float(n.target_area) * 0.85) for n in primaries)
+        high = sum((float(n.max_area) if n.max_area else float(n.target_area) * 1.15) for n in primaries)
+        if low - _EPS <= expected <= high + _EPS:
             break
-        spilled = max(movable, key=lambda n: float(n.target_area))
-        core_side_nodes.remove(spilled)
-        street_nodes.append(spilled)
-    core_depth = core_depth if core_depth is not None else structure.core_band.depth
-    street_depth = street_depth if street_depth is not None else structure.street_band.depth
-    depths = {
-        **{n.node_id: core_depth for n in core_side_nodes},
-        **{n.node_id: street_depth for n in street_nodes},
-    }
-    on_core_side = {n.node_id for n in core_side_nodes}
-    masks = [_seed_mask(node, cells, must_touch_core, node.node_id in on_core_side) for node in growers]
+        aim = primary_target * scale
+        moved = min(1.15, max(0.85, scale + (expected - aim) / grower_target))
+        if abs(moved - scale) < 1e-3:
+            break
+        scale = moved
+    masks = []
+    for node in growers:
+        side, row = rows[node.node_id]
+        masks.append(_seed_mask(node, cells, must_touch_core, side == "core", row.span_of(node.node_id),
+                                _row_y(structure, side, row.depth)))
     for node, mask in zip(growers, masks):
         if not mask.any():
             raise TopologyInfeasible([f"{node.node_id}: no cell of the free region can seed it in its zone"])
     for _ in range(max(1, trials)):
-        rooms = [_room_info(node, ids[node.node_id], cell_area, grid_size, depths[node.node_id]) for node in growers]
+        rooms = [_room_info(node, ids[node.node_id], cells, structure, *rows[node.node_id], scale) for node in growers]
         grid = grid_template.copy()
         try:
             expand_rooms(
@@ -195,7 +270,7 @@ def generate_growth_layout(
         grid = _absorb_pockets(grid, cells, rooms, primary)
         grid = fill_holes_components(grid, cells.interior, fill_id=primary_id)
         candidate = _candidate(
-            grid, cells, growers, ids, primary, primary_id, structure, graph,
+            grid, cells, growers, ids, primaries, primary_id, structure, graph,
             must_touch_core, streets, core_node, corridor_span,
         )
         if isinstance(candidate, str):
@@ -204,12 +279,31 @@ def generate_growth_layout(
         energy, placed, corridor = candidate
         if best is None or energy < best[0] - _EPS:
             best = (energy, placed, corridor)
-    if best is None:
-        summary = sorted(reasons.items(), key=lambda item: -item[1])[:5]
-        raise TopologyInfeasible(
-            [f"no growth trial of {trials} passed every gate"]
-            + [f"{count}x {reason}" for reason, count in summary]
-        )
+    return best, reasons
+
+
+def _expected_primary(structure: FloorStructure, rows, growers, for_rooms: float) -> float:
+    """What the packed rows leave the primary: the free area less the rows,
+    plus the corridor released beyond the last thing it serves."""
+    taken = 0.0
+    reach = [structure.core.bounds[0], structure.core.bounds[2]]
+    if structure.stair is not None:
+        reach.extend((structure.stair[0], structure.stair[2]))
+    if structure.entry is not None:
+        reach.extend((structure.entry[0], structure.entry[2]))
+    for node in growers:
+        _, row = rows[node.node_id]
+        taken += row.width_of(node) * row.depth
+        span = row.span_of(node.node_id)
+        if span is not None:
+            reach.extend(span)
+    sx0, sy0, sx1, sy1 = structure.spine
+    released = ((sx1 - min(sx1, max(reach))) + (max(sx0, min(reach)) - sx0)) * (sy1 - sy0)
+    return for_rooms - taken + released
+
+
+def _layout(structure: FloorStructure, program: ProgramGraph, best) -> LayoutCandidate:
+    core_node = next(node for node in program.nodes if node.space_type == "core")
     _, placed, corridor = best
     rooms_out = [RoomPolygon(core_node.node_id, core_node.space_type, _ring(structure.core.bounds)), *placed]
     corridor_poly = Polygon(corridor.polygon)
@@ -223,28 +317,82 @@ def generate_growth_layout(
         project_id=program.project_id,
         floor_index=program.floor_index,
         rooms=rooms_out,
-        circulation=[corridor],
+        circulation=[corridor] + (
+            [RoomPolygon(ENTRY, "circulation", _ring(structure.entry))] if structure.entry is not None else []
+        ),
         score=0.0,
         openings=openings,
         remote_stair_footprint=(tuple(_ring(structure.stair)) if structure.stair is not None else None),
     )
 
 
-def _flanks(structure: FloorStructure, side: str, depth: float, span: tuple[float, float]) -> list[float]:
-    """Lengths of the stretches a row of the given depth can occupy on one side of the spine.
+@dataclass(frozen=True)
+class _Flank:
+    """A stretch of one side of the spine a row can occupy, and whether what
+    the row leaves of it is the primary's (it ends at the wrap) or a pocket."""
+
+    x0: float
+    x1: float
+    open: bool
+    # Rooms pack from this end: the core's end beside the core, the closed
+    # end of an open flank (so its leftover stays joined to the wrap).
+    from_x1: bool = False
+
+    @property
+    def length(self) -> float:
+        return self.x1 - self.x0
+
+
+@dataclass(frozen=True)
+class _Row:
+    """One side of the corridor: its depth, its flanks and each room's flank and width."""
+
+    depth: float
+    flanks: list[_Flank]
+    placement: dict[str, tuple[int, float, tuple[float, float]]]
+
+    def flank_of(self, room_id: str) -> _Flank | None:  # noqa: D102
+        item = self.placement.get(room_id)
+        return self.flanks[item[0]] if item is not None else None
+
+    def width_of(self, node: ProgramNode) -> float:
+        item = self.placement.get(node.node_id)
+        return item[1] if item is not None else _target_width(node, self.depth)
+
+    def span_of(self, room_id: str) -> tuple[float, float] | None:
+        """The x range the packed row gives a room."""
+        item = self.placement.get(room_id)
+        return item[2] if item is not None else None
+
+
+def _target_width(node: ProgramNode, depth: float) -> float:
+    aspect = float(node.max_aspect_ratio) if node.max_aspect_ratio else math.inf
+    return max(float(node.min_width or 0.0), float(node.target_area) / depth, depth / aspect)
+
+
+def _row_y(structure: FloorStructure, side: str, depth: float) -> tuple[float, float]:
+    """The y range a row of ``depth`` on ``side`` of the spine occupies."""
+    _, sy0, _, sy1 = structure.spine
+    band = structure.core_band if side == "core" else structure.street_band
+    if band.y0 >= sy1 - _EPS:  # band above the spine
+        return sy1, min(band.y1, sy1 + depth)
+    return max(band.y0, sy0 - depth), sy0
+
+
+def _flanks(structure: FloorStructure, side: str, depth: float, span: tuple[float, float],
+            wrap: tuple[str, float] | None) -> list[_Flank]:
+    """The stretches a row of the given depth can occupy on one side of the spine.
 
     The growable span less what sits on that side (the core, the stair),
     each stretch shortened to what the outline keeps at the row's full depth.
+    The stretch that ends at the wrap is open: its leftover is the primary's.
     """
-    sx0, sy0, sx1, sy1 = structure.spine
-    band = structure.core_band if side == "core" else structure.street_band
-    if band.y0 >= sy1 - _EPS:  # band above the spine
-        y0, y1 = sy1, min(band.y1, sy1 + depth)
-    else:
-        y0, y1 = max(band.y0, sy0 - depth), sy0
+    y0, y1 = _row_y(structure, side, depth)
     blockers = [structure.core.bounds[0::2]] if side == "core" else []
     if side == "street" and structure.stair is not None:
         blockers.append(structure.stair[0::2])
+    if side == "street" and structure.entry is not None:
+        blockers.append(structure.entry[0::2])
     segments = [span]
     for b0, b1 in blockers:
         next_segments = []
@@ -257,81 +405,164 @@ def _flanks(structure: FloorStructure, side: str, depth: float, span: tuple[floa
             if a1 - b1 > _EPS:
                 next_segments.append((b1, a1))
         segments = next_segments
-    lengths = []
+    flanks = []
     for a0, a1 in segments:
         run0, run1 = _longest_run(structure.cover, y0, y1, a0, a1)
         if run1 - run0 > _EPS:
-            lengths.append(run1 - run0)
-    return lengths
+            # A street flank's leftover is the primary's frontage; beside
+            # the core only the flank that runs on to the wrap is the primary's.
+            is_open = side == "street" or (wrap is not None and (
+                (wrap[0] == "right" and run1 >= span[1] - _EPS) or (wrap[0] == "left" and run0 <= span[0] + _EPS)
+            ))
+            if side == "core":
+                from_x1 = run1 <= structure.core.bounds[0] + _EPS  # the flank left of the core
+            else:
+                from_x1 = is_open and wrap is not None and wrap[0] == "left"
+            flanks.append(_Flank(run0, run1, is_open, from_x1))
+    return flanks
 
 
-def _packs(widths: list[float], flanks: list[float]) -> bool:
-    """First-fit decreasing: every width finds a flank with room left."""
-    left = sorted(flanks, reverse=True)
-    for width in sorted(widths, reverse=True):
-        for index, room in enumerate(left):
-            if width <= room + _EPS:
-                left[index] = room - width
-                break
-        else:
-            return False
-    return True
+def _spine_polygon(structure: FloorStructure) -> Polygon:
+    return box(*structure.spine)
 
 
-def _row_depth(nodes: list[ProgramNode], band_depth: float, flanks_at, remainder_min: float = 0.0) -> float | None:
-    """The row depth at which every room's width meets its gates, the row packs
-    into the flanks, and the areas miss their targets least.
+def _cell_width(cells: _Cells, flank: _Flank) -> float:
+    """The width of the grid's cells along a flank (equal between two structure lines)."""
+    cx = (cells.xs[:-1] + cells.xs[1:]) / 2
+    count = max(1, int(((cx > flank.x0 + _EPS) & (cx < flank.x1 - _EPS)).sum()))
+    return flank.length / count
 
-    What the row leaves of the band goes to the primary, so it is either
-    nothing or at least the primary's minimum width.
+
+def _pack(nodes: list[ProgramNode], depth: float, flanks: list[_Flank], cell_ws: list[float],
+          must_touch: set[str], scale: float = 1.0) -> dict[str, tuple[int, float, tuple[float, float]]] | None:
+    """Each room's flank and width at ``depth``, in whole cells of that flank, or None when the row does not pack.
+
+    Rooms bound to the core go first, one per flank (every core-side flank
+    starts at the core) into the flank with the least to spare, so a pocket
+    beside the core stays small; the rest go first-fit decreasing into the
+    flank with the most left.  A room takes its target width when the flank
+    has it, else the most the flank has -- as long as the area that makes
+    stays in the room's band and the room keeps its minimum width and aspect.
     """
+    left = [flank.length for flank in flanks]
+    fresh = [True] * len(flanks)
+    order = sorted(range(len(nodes)), key=lambda i: (nodes[i].node_id not in must_touch, -float(nodes[i].target_area)))
+    out: dict[str, tuple[int, float, tuple[float, float]]] = {}
+    for i in order:
+        node = nodes[i]
+        bound = node.node_id in must_touch
+        target = float(node.target_area)
+        low = float(node.min_area) if node.min_area else target * 0.85
+        high = float(node.max_area) if node.max_area else target * 1.15
+        target = min(high, max(low, target * scale))
+        aspect = float(node.max_aspect_ratio) if node.max_aspect_ratio else math.inf
+        min_width = max(float(node.min_width or 0.0), depth / aspect)
+        choices: list[tuple[int, float]] = []
+        for k, flank in enumerate(flanks):
+            if bound and not fresh[k]:
+                continue
+            cw = cell_ws[k]
+            available = math.floor(left[k] / cw + 1e-9) * cw
+            width = min(math.ceil(target / depth / cw - 1e-9) * cw, available)
+            if width * depth > high + _EPS:  # rounding up to cells overshot the band
+                width = math.floor(high / depth / cw + 1e-9) * cw
+            if (width < min_width - _EPS or width > available + _EPS or width * depth < low - _EPS
+                    or width * depth > high + _EPS or width / depth > aspect + _EPS):
+                continue
+            choices.append((k, width))
+        if not choices:
+            return None
+        k, width = (min(choices, key=lambda item: left[item[0]] - item[1]) if bound
+                    else max(choices, key=lambda item: left[item[0]]))
+        flank = flanks[k]
+        # Packed from the flank's origin: after what the flank already holds.
+        used = flank.length - left[k]
+        span = (flank.x1 - used - width, flank.x1 - used) if flank.from_x1 else (flank.x0 + used, flank.x0 + used + width)
+        out[node.node_id] = (k, width, span)
+        left[k] -= width
+        fresh[k] = False
+    return out
+
+
+def _row_depths(cells: _Cells, structure: FloorStructure, side: str) -> list[float]:
+    """The depths a row on ``side`` can have: the grid's lines across the band, measured from the spine."""
+    _, sy0, _, sy1 = structure.spine
+    band = structure.core_band if side == "core" else structure.street_band
+    if band.y0 >= sy1 - _EPS:  # band above the spine
+        return [float(y - sy1) for y in cells.ys if sy1 + _EPS < y <= band.y1 + _EPS]
+    return sorted(float(sy0 - y) for y in cells.ys if band.y0 - _EPS <= y < sy0 - _EPS)
+
+
+def _row_depth(nodes: list[ProgramNode], side: str, structure: FloorStructure, cells: _Cells,
+               span: tuple[float, float], wrap: tuple[str, float] | None, must_touch: set[str],
+               scale: float = 1.0, remainder_min: float = 0.0) -> _Row | None:
+    """The row at the depth where every room packs into the flanks within its
+    gates and the areas miss their targets least -- the leftover of a closed
+    flank (a pocket) counting as a miss.  Depths and widths are whole cells,
+    so the row that packs is the row that grows.
+
+    What the row leaves of the band behind its rooms is the primary's only
+    when it is at least the primary's minimum width (``remainder_min``);
+    a thinner strip is waste and counts as a miss.
+    """
+    band_depth = (structure.core_band if side == "core" else structure.street_band).depth
     if not nodes:
-        return band_depth
-    best: tuple[float, float] | None = None
-    depth = 3.0
-    while depth <= band_depth + _EPS:
-        remainder = band_depth - depth
-        if _EPS < remainder < remainder_min - _EPS:
-            depth += 0.5
+        return _Row(band_depth, _flanks(structure, side, band_depth, span, wrap), {})
+    best: tuple[float, _Row] | None = None
+    for depth in _row_depths(cells, structure, side):
+        if depth < _MIN_ROW_DEPTH - _EPS:
             continue
-        widths = []
-        ok = True
-        for node in nodes:
-            target = float(node.target_area)
-            min_width = float(node.min_width or 0.0)
-            aspect = float(node.max_aspect_ratio) if node.max_aspect_ratio else math.inf
-            width = max(min_width, target / depth, depth / aspect)
-            low = float(node.min_area) if node.min_area else target * 0.85
-            high = float(node.max_area) if node.max_area else target * 1.15
-            if width * depth > high + _EPS or width * depth < low - _EPS or width / depth > aspect + _EPS:
-                ok = False
-                break
-            widths.append(width)
-        if ok and _packs(widths, flanks_at(depth)):
-            miss = sum(abs(w * depth - float(n.target_area)) for w, n in zip(widths, nodes))
-            if best is None or miss < best[0] - _EPS:
-                best = (miss, depth)
-        depth += 0.5
+        remainder = band_depth - depth
+        flanks = _flanks(structure, side, depth, span, wrap)
+        placement = _pack(nodes, depth, flanks, [_cell_width(cells, flank) for flank in flanks], must_touch, scale)
+        if placement is None:
+            continue
+        miss = sum(abs(placement[n.node_id][1] * depth - float(n.target_area) * scale) for n in nodes)
+        taken = [0.0] * len(flanks)
+        for k, width, _ in placement.values():
+            taken[k] += width
+        miss += sum((flank.length - used) * depth for flank, used in zip(flanks, taken) if not flank.open)
+        if _EPS < remainder < remainder_min - _EPS:
+            miss += remainder * sum(taken)
+        if best is None or miss < best[0] - _EPS:
+            best = (miss, _Row(depth, flanks, placement))
     return best[1] if best is not None else None
 
 
-def _room_info(node: ProgramNode, room_id: int, cell_area: float, grid_size: float, row_depth: float) -> RoomInfo:
+def _unpacked_row(nodes: list[ProgramNode], band_depth: float, flanks: list[_Flank]) -> _Row:
+    """The full band as the row when no depth packs: rooms keep their target widths and any flank."""
+    return _Row(band_depth, flanks, {})
+
+
+def _room_info(node: ProgramNode, room_id: int, cells: _Cells, structure: FloorStructure,
+               side: str, row: _Row, scale: float = 1.0) -> RoomInfo:
+    """A room's growth spec: its first block is the room at the row's depth
+    and its packed width, in the row's actual cells."""
     target = float(node.target_area)
-    target_cells = max(1, round(target / cell_area))
-    max_cells = None  # the area cap below is exact on the rectilinear grid
     min_width = float(node.min_width or 0.0)
     aspect = float(node.max_aspect_ratio) if node.max_aspect_ratio else None
-    # The first block is the room at the row depth: its width there, and at
-    # least the minimum width.  Rounding to cells may overshoot the area
-    # band, so the block is trimmed to the band and growth fine-tunes.
-    chunk = max(1, math.ceil(max(min_width, 2 * 0.9) / grid_size - 1e-9))
-    block_h = max(chunk, int(row_depth / grid_size + 1e-9))
-    width = max(min_width, target / row_depth, (row_depth / aspect) if aspect else 0.0)
-    block_w = max(chunk, math.ceil(width / grid_size - 1e-9))
-    # Rounding up to cells must not push the block over its aspect limit or
-    # its target; a strip of growth then lands it inside the band.
+    high = float(node.max_area) if node.max_area else target * 1.15
+    low = float(node.min_area) if node.min_area else target * 0.85
+    # The grid's cells are equal between two structure lines but not across
+    # them, so the block is counted in the cells of its own row and flank.
+    y0, y1 = _row_y(structure, side, row.depth)
+    cy = (cells.ys[:-1] + cells.ys[1:]) / 2
+    block_h = max(1, int(((cy > y0 + _EPS) & (cy < y1 - _EPS)).sum()))
+    cell_h = (y1 - y0) / block_h
+    flank = row.flank_of(node.node_id)
+    whole = _Flank(float(cells.xs[0]), float(cells.xs[-1]), False)
+    cell_w = _cell_width(cells, flank if flank is not None else whole)
+    flank_cells = max(1, round((flank if flank is not None else whole).length / cell_w))
+    cell_area = cell_w * cell_h
+    target_cells = max(1, round(target / cell_area))
+    chunk = max(1, math.ceil(max(min_width, 2 * 0.9) / cell_w - 1e-9))
+    width = row.width_of(node)
+    block_w = max(chunk, round(width / cell_w))
+    block_w = min(block_w, flank_cells) if flank is not None else block_w
+    # A block that is not from a packed row was rounded up to cells: it must
+    # not start over its band or its aspect limit.
     while block_w > chunk and (
-        block_w * block_h * cell_area > target + _EPS
+        block_w * block_h * cell_area > high + _EPS
         or (aspect and block_w > aspect * block_h + _EPS)
     ):
         block_w -= 1
@@ -341,11 +572,12 @@ def _room_info(node: ProgramNode, room_id: int, cell_area: float, grid_size: flo
         room_id=room_id,
         name=node.node_id,
         target_cells=target_cells,
-        max_cells=max_cells,
+        max_cells=None,  # the area cap below is exact on the rectilinear grid
         target_area=target,
-        # Growth stops at the target, not the band's top: what rooms take
-        # beyond their targets the primary loses below its own band.
-        max_area=target + cell_area * max(block_w, block_h),
+        # Growth stops at the target (one strip past it at most, never past
+        # the band): what rooms take beyond their targets the primary loses
+        # below its own band.
+        max_area=min(high, max(low, target * scale) + cell_area * max(block_w, block_h)),
         min_chunk=1,
         block_w=block_w,
         block_h=block_h,
@@ -361,7 +593,7 @@ def _anchors(structure: FloorStructure) -> tuple[list[float], list[float]]:
     for x, y in structure.cover.exterior.coords:
         xs.append(x)
         ys.append(y)
-    for bounds in (structure.spine, structure.core.bounds, structure.stair):
+    for bounds in (structure.spine, structure.core.bounds, structure.stair, structure.entry):
         if bounds is None:
             continue
         xs.extend((bounds[0], bounds[2]))
@@ -380,6 +612,8 @@ def _wrap(structure: FloorStructure, primary_min: float) -> tuple[str, float] | 
     reach = [structure.core.bounds[0], structure.core.bounds[2]]
     if structure.stair is not None:
         reach.extend((structure.stair[0], structure.stair[2]))
+    if structure.entry is not None:
+        reach.extend((structure.entry[0], structure.entry[2]))
     right, left = sx1 - max(reach), min(reach) - sx0
     # The zone is exactly one primary width at that end; rooms may line the
     # corridor right up to it, and the corridor stops where they stop.
@@ -424,6 +658,8 @@ def _release_to_primary(grid: np.ndarray, cells: _Cells, structure: FloorStructu
     reach = [structure.core.bounds[0], structure.core.bounds[2]]
     if structure.stair is not None:
         reach.extend((structure.stair[0], structure.stair[2]))
+    if structure.entry is not None:
+        reach.extend((structure.entry[0], structure.entry[2]))
     xs = cells.xs
     for room in rooms:
         reach.extend((float(xs[room.min_x]), float(xs[room.max_x])))
@@ -487,6 +723,49 @@ def _absorb_pockets(grid: np.ndarray, cells: _Cells, rooms, primary) -> np.ndarr
     return out
 
 
+def _assign_residual(pieces: list[Polygon], nodes) -> list | None:
+    """(node, piece) pairs: pieces to nodes by size; the largest piece cut for the nodes left over."""
+    pieces = sorted(pieces, key=lambda p: -p.area)
+    nodes = sorted(nodes, key=lambda n: -float(n.target_area))
+    if len(pieces) == len(nodes):
+        return list(zip(nodes, pieces))
+    extra = len(nodes) - len(pieces)
+    head, rest = nodes[: extra + 1], nodes[extra + 1:]
+    cut = _split_residual(pieces[0], head)
+    if cut is None:
+        return None
+    return cut + list(zip(rest, pieces[1:]))
+
+
+def _split_residual(polygon: Polygon, nodes) -> list | None:
+    """Cut the residual into one rectilinear piece per node by vertical lines, areas in proportion to targets."""
+    min_x, min_y, max_x, max_y = polygon.bounds
+    total = sum(float(node.target_area) for node in nodes)
+    pieces = []
+    left = min_x
+    remaining = polygon
+    for index, node in enumerate(nodes):
+        if index == len(nodes) - 1:
+            piece = remaining
+        else:
+            want = polygon.area * float(node.target_area) / total
+            lo, hi = left, max_x
+            for _ in range(40):  # bisection on the cut's x to the wanted area
+                mid = (lo + hi) / 2
+                if remaining.intersection(box(min_x, min_y, mid, max_y)).area < want:
+                    lo = mid
+                else:
+                    hi = mid
+            cut = round((lo + hi) / 2, 3)
+            piece = remaining.intersection(box(min_x, min_y, cut, max_y))
+            remaining = remaining.difference(box(min_x, min_y, cut, max_y))
+            left = cut
+        if piece.is_empty or piece.geom_type != "Polygon":
+            return None
+        pieces.append((node, piece))
+    return pieces
+
+
 def _cell_facts(grid: np.ndarray, area: np.ndarray, xs: np.ndarray, ys: np.ndarray,
                 structure: FloorStructure, streets) -> _Cells:
     interior = grid == FREE_CELL
@@ -514,23 +793,35 @@ def _cell_facts(grid: np.ndarray, area: np.ndarray, xs: np.ndarray, ys: np.ndarr
     return _Cells(interior, area, xs, ys, touches_corridor, touches_core, touches_street, core_side)
 
 
-def _seed_mask(node: ProgramNode, cells: _Cells, must_touch_core: set[str], core_side: bool) -> np.ndarray:
-    """Where a room's first block may go, from its row and its hard adjacencies."""
+def _seed_mask(node: ProgramNode, cells: _Cells, must_touch_core: set[str], core_side: bool,
+               span: tuple[float, float] | None, row_y: tuple[float, float]) -> np.ndarray:
+    """Where a room's first block may go: the place its packed row gives it,
+    or -- for a room no row packed -- its side of the corridor and its hard
+    adjacencies."""
+    if span is not None:
+        cx = (cells.xs[:-1] + cells.xs[1:]) / 2
+        cy = (cells.ys[:-1] + cells.ys[1:]) / 2
+        within_x = (cx > span[0] - _EPS) & (cx < span[1] + _EPS)
+        within_y = (cy > row_y[0] - _EPS) & (cy < row_y[1] + _EPS)
+        placed = cells.interior & within_y[:, None] & within_x[None, :]
+        if placed.any():
+            return placed
     if node.node_id in must_touch_core:
         both = cells.touches_core & cells.touches_corridor
         return both if both.any() else cells.touches_core
     if node.frontage_required:
         return cells.touches_street & cells.interior
     if core_side:
-        mask = cells.core_side & cells.touches_corridor
-        return mask if mask.any() else cells.touches_corridor
-    mask = ~cells.core_side & cells.touches_corridor
-    return mask if mask.any() else cells.touches_corridor
+        inside = cells.core_side & cells.touches_corridor
+        return inside if inside.any() else cells.touches_corridor
+    inside = ~cells.core_side & cells.touches_corridor
+    return inside if inside.any() else cells.touches_corridor
 
 
-def _candidate(grid, cells, growers, ids, primary, primary_id, structure, graph,
+def _candidate(grid, cells, growers, ids, primaries, primary_id, structure, graph,
                must_touch_core, streets, core_node, corridor_span):
     """Gate one grown grid; return (energy, rooms, corridor) or the reason it failed."""
+    primary = primaries[0]
     polys = cells_to_polygons(grid, cells.xs, cells.ys)
     nodes = {ids[node.node_id]: node for node in growers}
     _, sy0, _, sy1 = structure.spine
@@ -584,24 +875,36 @@ def _candidate(grid, cells, growers, ids, primary, primary_id, structure, graph,
         opened = _open_rectilinear(piece, float(primary.min_width or 0.0))
         if not opened.is_empty:
             survivors.extend(list(opened.geoms) if isinstance(opened, MultiPolygon) else [opened])
-    if len(survivors) != 1:
+    if len(survivors) > len(primaries):
         return f"{primary.node_id}: left in {len(survivors)} pieces above its minimum width"
-    opened = survivors[0]
-    opened = _without_collinear_vertices(opened)
-    ring = _coords(opened)
-    area = opened.area
-    low = float(primary.min_area) if primary.min_area else float(primary.target_area) * 0.85
-    high = float(primary.max_area) if primary.max_area else float(primary.target_area) * 1.15
-    if not (low - _EPS <= area <= high + _EPS):
-        return f"{primary.node_id}: area {area:.1f} outside [{low:.1f}, {high:.1f}]"
-    if not _shares_door(opened, spine):
-        return f"{primary.node_id}: no door-width edge on the corridor"
-    placed.append(RoomPolygon(primary.node_id, primary.space_type, ring))
-    energy += _W_RATIO * abs(area - float(primary.target_area)) / float(primary.target_area)
+    # Several residual rooms (commercial tenants) share the residual: each
+    # piece is one tenant, largest to largest, and the largest piece is cut
+    # across the corridor's direction when there are fewer pieces than tenants.
+    slices = _assign_residual(survivors, primaries)
+    if slices is None:
+        return f"{primary.node_id}: the residual cannot be cut into its tenants"
+    for node, piece in slices:
+        piece = _without_collinear_vertices(piece)
+        ring = _coords(piece)
+        area = piece.area
+        low = float(node.min_area) if node.min_area else float(node.target_area) * 0.85
+        high = float(node.max_area) if node.max_area else float(node.target_area) * 1.15
+        if not (low - _EPS <= area <= high + _EPS):
+            return f"{node.node_id}: area {area:.1f} outside [{low:.1f}, {high:.1f}]"
+        if node.min_width and orthogonal_min_width(ring) + _EPS < float(node.min_width):
+            return f"{node.node_id}: narrower than {float(node.min_width):.2f} m"
+        if not _shares_door(piece, spine):
+            return f"{node.node_id}: no door-width edge on the corridor"
+        if node.frontage_required and streets and shared_boundary_with_segments_length(ring, streets) <= _EPS:
+            return f"{node.node_id}: not on the street frontage"
+        placed.append(RoomPolygon(node.node_id, node.space_type, ring))
+        energy += _W_RATIO * abs(area - float(node.target_area)) / float(node.target_area)
 
     assigned = sum(Polygon(room.polygon).area for room in placed) + structure.core.area + spine.area
     if structure.stair is not None:
         assigned += box(*structure.stair).area
+    if structure.entry is not None:
+        assigned += box(*structure.entry).area
     energy += _W_WASTE * max(0.0, structure.cover.area - assigned) / structure.cover.area
 
     rooms_for_rules = [RoomPolygon(core_node.node_id, core_node.space_type, _ring(structure.core.bounds)), *placed]

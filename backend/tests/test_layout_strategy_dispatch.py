@@ -77,3 +77,24 @@ def test_growth_strategy_stacks_the_stair_and_carries_no_relaxations():
         assert floor.program.form_relaxations == (), floor.program.floor_index
         assert floor.layout.candidate_id.endswith("-growth")
     assert building.vertical_basic_design_aligned
+
+
+def test_a_floor_that_must_face_the_street_puts_the_core_at_the_rear():
+    """Mixed use: the ground floor's sales units need the street edge, so the core goes to the rear."""
+    from backend.tests.test_floor_evidence_integration import _mass
+
+    building = run_building_generation(_mass(), layout_strategy="growth")
+
+    ground = building.floor_results[0]
+    core = next(r.polygon for r in ground.layout.rooms if r.space_type == "core")
+    assert min(y for _, y in core) == pytest.approx(12.0 - (max(y for _, y in core) - min(y for _, y in core)))
+    sales = [r for r in ground.layout.rooms if r.space_type == "sales"]
+    assert len(sales) == 2
+    for room in sales:
+        assert min(y for _, y in room.polygon) == pytest.approx(0.0), room.room_id  # on the street edge
+    assert building.accepted
+    # The composer's own rear-fit relaxations for a 30 x 12 plate stay; the strategy adds none.
+    for floor in building.floor_results:
+        assert {item.reason for item in floor.program.form_relaxations} <= {"rear_tenant_fit", "rear_primary_fit"}
+    entry = [path for path in ground.layout.circulation if path.room_id == "entry"]
+    assert len(entry) == 1 and min(y for _, y in entry[0].polygon) == pytest.approx(0.0)
