@@ -38,6 +38,16 @@ def test_orthogonal_min_width_measures_rectangle_and_l_throat(
     assert orthogonal_min_width(polygon) == expected
 
 
-def test_orthogonal_min_width_rejects_non_orthogonal_polygon():
-    with pytest.raises(ValueError, match="axis-aligned"):
-        orthogonal_min_width([(0, 0), (3, 0), (2, 2), (0, 2)])
+def test_orthogonal_min_width_measures_non_orthogonal_polygon_by_inscribed_circle():
+    # a room whose outer wall follows a slanted facade: its width is the widest circle inside it, not the
+    # knife-edge slice at the clipped corner (planm 09-27)
+    # the widest disk that sweeps the whole shape (opening keeps >= 92% of the area, one piece): the oblique
+    # corner of this trapezoid is lost early, so it reads well under its 2 m height but far above a knife edge
+    width = orthogonal_min_width([(0, 0), (3, 0), (2, 2), (0, 2)])
+    assert 1.0 < width <= 2.0 + 1e-6
+    # a dumbbell measures its neck, not its halves
+    neck = orthogonal_min_width([(0, 0), (4, 0), (4, 1.8), (4.4, 1.8), (4.4, 0), (8.4, 0), (8.4, 4), (4.4, 4.001),
+                                 (4.4, 2.2), (4, 2.2), (4, 4.002), (0, 4.003)])
+    assert 0.35 < neck < 0.5
+    # a rectangle still measures its short side
+    assert abs(orthogonal_min_width([(0, 0), (4, 0), (4, 1.5), (0, 1.5)]) - 1.5) < 1e-6

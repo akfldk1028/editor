@@ -31,9 +31,11 @@ def shared_boundary_segments(
 def orthogonal_min_width(polygon: list[Point]) -> float:
     validate_polygon(polygon, label="polygon")
     points = polygon[:-1] if polygon[:1] == polygon[-1:] else polygon
-    for start, end in zip(points, [*points[1:], points[0]]):
-        if start[0] != end[0] and start[1] != end[1]:
-            raise ValueError("polygon edges must be axis-aligned")
+    if any(start[0] != end[0] and start[1] != end[1] for start, end in zip(points, [*points[1:], points[0]])):
+        # a room whose outer wall follows a slanted or curved facade: the shortest axis slice would read the
+        # clipped corner as a knife edge, so its width is the widest circle that fits (the short side, on a
+        # rectangle) - what furniture and a door actually need
+        return _inscribed_width(Polygon(points))
 
     shape = Polygon(points)
     min_x, min_y, max_x, max_y = shape.bounds
@@ -67,6 +69,35 @@ def orthogonal_min_width(polygon: list[Point]) -> float:
     if not widths:
         raise ValueError("polygon has no measurable width")
     return float(min(widths))
+
+
+def _inscribed_width(shape: Polygon) -> float:
+    """Diameter of the largest disk that can be swept through the whole of `shape`: the largest r whose inward
+    buffer is still one piece reaching every side of the shape's box (bisection, 1 mm). A dumbbell of two 4 m
+    halves joined by a 0.4 m neck measures 0.4 (the buffer splits there), a corridor measures its narrowest
+    run, a rectangle its short side - the bottleneck, which is what a door and a person need."""
+    shape = shape.buffer(0)
+    if shape.is_empty:
+        raise ValueError("polygon has no measurable width")
+    min_x, min_y, max_x, max_y = shape.bounds
+
+    def sweeps(r: float) -> bool:
+        # the ground a disk of radius r can reach (morphological opening): it must stay one piece and keep
+        # nearly all of the shape - only oblique corners, which no disk fills, may be lost
+        core = shape.buffer(-r)
+        if core.is_empty or core.geom_type != "Polygon":
+            return False
+        reached = core.buffer(r)
+        return reached.geom_type == "Polygon" and reached.area >= 0.92 * shape.area
+
+    lo, hi = 0.0, min(max_x - min_x, max_y - min_y) / 2 + 1e-9
+    while hi - lo > 5e-4:
+        mid = (lo + hi) / 2
+        if sweeps(mid):
+            lo = mid
+        else:
+            hi = mid
+    return float(2 * lo + 1e-3)
 
 
 def bounding_box_aspect_ratio(polygon: list[Point]) -> float:

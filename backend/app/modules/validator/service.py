@@ -662,6 +662,7 @@ def validate_layout(
     required_protected_exit_count: int = 2,
     building_code_context: BuildingCodeContext | None = None,
     egress_graph: FloorEgressGraphResult | None = None,
+    through_room_ids: frozenset[str] | None = None,
 ) -> ValidationReport:
     if not math.isfinite(min_door_width) or min_door_width <= 0:
         raise ValueError("min_door_width must be finite and positive")
@@ -798,6 +799,10 @@ def validate_layout(
         for room in valid_rooms:
             if room.room_id not in expected_set or room_counts[room.room_id] != 1:
                 continue
+            if through_room_ids and room.room_id in through_room_ids:
+                # entered through an adjoining room (small ancillary rooms; IBC 1016.2): its door is
+                # checked in _validate_openings against that room's own corridor door
+                continue
             accessible_room_count += 1
             if any(
                 shared_boundary_length(room.polygon, path.polygon) > _EPSILON
@@ -819,6 +824,7 @@ def validate_layout(
             expected_set,
             min_door_width,
             add_violation,
+            through_room_ids or frozenset(),
         )
 
     if min_circulation_width is not None:
@@ -980,6 +986,7 @@ def _validate_openings(
     expected_room_ids: set[str],
     min_door_width: float,
     add_violation,
+    through_room_ids: frozenset[str] = frozenset(),
 ) -> None:
     opening_counts = Counter(opening.opening_id for opening in layout.openings)
     rooms: dict[str, list[RoomPolygon]] = {}
@@ -989,6 +996,7 @@ def _validate_openings(
     for path in valid_circulation:
         circulation.setdefault(path.room_id, []).append(path)
     valid_door_rooms: set[str] = set()
+    through_doors: list[tuple[str, str]] = []
 
     for opening in layout.openings:
         if not opening.opening_id or opening_counts[opening.opening_id] > 1:
@@ -1004,6 +1012,52 @@ def _validate_openings(
         connected_paths = [
             item for item in opening.connects if len(circulation.get(item, [])) == 1
         ]
+        if (
+            opening.kind == "door"
+            and len(set(opening.connects)) == 2
+            and len(connected_rooms) == 2
+            and not connected_paths
+            and any(item in through_room_ids for item in connected_rooms)
+        ):
+            # a door between two rooms, one of which may be entered through the other
+            inner = next(item for item in connected_rooms if item in through_room_ids)
+            outer = next(item for item in connected_rooms if item != inner)
+            numeric = (
+                _is_finite_point(opening.start)
+                and _is_finite_point(opening.end)
+                and _is_finite_number(opening.clear_width)
+            )
+            actual = math.dist(opening.start, opening.end) if numeric else 0.0
+            geometry_ok = (
+                numeric
+                and actual > _EPSILON
+                and abs(actual - opening.clear_width) <= 1e-7
+                and any(
+                    _segment_contains(segment, (opening.start, opening.end))
+                    for segment in shared_boundary_segments(
+                        rooms[inner][0].polygon, rooms[outer][0].polygon
+                    )
+                )
+            )
+            if not geometry_ok:
+                add_violation(
+                    "door_geometry",
+                    opening.opening_id,
+                    "door geometry must match and lie within the connected shared boundary",
+                )
+                continue
+            if opening.clear_width + _EPSILON < min_door_width:
+                add_violation(
+                    "door_width",
+                    opening.opening_id,
+                    (
+                        f"door '{opening.opening_id}' width {opening.clear_width:.3f} "
+                        f"is below {min_door_width:.3f}"
+                    ),
+                )
+                continue
+            through_doors.append((inner, outer))
+            continue
         if (
             opening.kind != "door"
             or len(set(opening.connects)) != 2
@@ -1062,6 +1116,10 @@ def _validate_openings(
             continue
         valid_door_rooms.add(room_id)
 
+    # a room entered through an adjoining room counts once that room has its own corridor door
+    for inner, outer in through_doors:
+        if outer in valid_door_rooms:
+            valid_door_rooms.add(inner)
     for room_id in sorted(expected_room_ids - valid_door_rooms):
         add_violation(
             "door_missing",

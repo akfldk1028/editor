@@ -930,8 +930,9 @@ def test_non_orthogonal_or_invalid_room_geometry_does_not_crash_form_validation(
     non_orthogonal_report = validate_layout(non_orthogonal, program, boundary=BOUNDARY)
     invalid_report = validate_layout(invalid, program, boundary=BOUNDARY)
 
-    assert _violation_subjects(non_orthogonal_report, "room_min_width") == {"office"}
-    assert non_orthogonal_report.room_shapes[0].measured_min_width is None
+    # a slanted room is measured by the widest circle inside it (planm 09-27): 1 m fits, so no violation
+    assert _violation_subjects(non_orthogonal_report, "room_min_width") == set()
+    assert non_orthogonal_report.room_shapes[0].measured_min_width > 1.0
     assert _violation_subjects(invalid_report, "invalid_geometry") == {"office"}
     assert invalid_report.room_shapes[0].measured_min_width is None
 
