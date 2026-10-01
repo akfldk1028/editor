@@ -91,3 +91,7 @@ clone/
 
 # planm docs: papers are not versioned (85 MB PDFs)
 agents/planm/docs/*.pdf
+# agents other than planm live in their own repo (akfldk1028/pascal-agents); these are working copies
+agents/DiagramAgent/
+agents/drawingbookAgent/
+agents/pptAgent/
