@@ -18,14 +18,13 @@ test("the product checkout exposes only canonical top-level module ownership", a
   for (const path of [
     "frontend",
     "backend/app",
-    "agents/planm",
     "infra/runtimes/gitagent",
     "infra/services/dwg",
     "infra/dev",
   ]) {
     assert.equal(await exists(resolve(repositoryRoot, path)), true, `${path} must exist`);
   }
-  for (const path of ["agent", "agents/runtimes", "agents/dwg"]) {
+  for (const path of ["agent", "agents/runtimes", "agents/dwg", "agents/planm"]) {
     assert.equal(await exists(resolve(repositoryRoot, path)), false, `${path} must not exist`);
   }
 });

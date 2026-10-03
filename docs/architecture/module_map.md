@@ -11,7 +11,8 @@ The canonical folder ownership and dependency rules are defined in
 - `backend/app/api`: versioned HTTP routes and DTO boundaries.
 - `backend/app/modules`: PLAN product logic, run ownership, artifacts, and stage execution.
 - `backend/app/adapters`: thin process or loopback clients for PLANM Agent and DWG.
-- `agents/planm`: PLANM identity, contracts, skills, workflows, memory, and process bridge.
+- `../agents/planm` (outside this checkout, in the shared agents folder; located by
+  `backend/app/core/planm_location.py`): PLANM identity, contracts, skills, workflows, memory, and process bridge.
 - `infra/runtimes/gitagent`: generic Agent runtime; it imports no PLANM or DWG product code.
 - `infra/services/dwg`: independent DWG service and process;
   its workspace, runtime, parsers, contracts, skills, and tests stay internally owned.
@@ -25,7 +26,7 @@ Deterministic product dependency direction:
 
 Always-on Agent hosting direction:
 
-`generic GitAgent runtime API -> discover agents/planm workflow and stage skill`
+`generic GitAgent runtime API -> discover ../agents/planm workflow and stage skill`
 
 The product API does not require an LLM provider. All PLANM stages traverse the
 generic runtime discovery boundary. PLANM receives its Backend

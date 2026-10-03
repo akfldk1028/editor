@@ -7,7 +7,7 @@ normal PLAN checkout contains every DWG Frontend and Backend source file.
 
 ## Boundary
 
-- Do not copy DWG source into `backend/`, `frontend/`, `agents/planm/`, or
+- Do not copy DWG source into `backend/`, `frontend/`, `../agents/planm/`, or
   `infra/runtimes/gitagent/`.
 - Do not deep-import DWG parser, runtime, workspace feature, or CAD capability
   internals.

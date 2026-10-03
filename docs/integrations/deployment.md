@@ -10,7 +10,8 @@ Browser -> Frontend nginx -> Backend HTTP
 
 - Frontend contains only the built Vite application and reverse proxy.
 - Backend owns run state, orchestration, adapters, and the persistent run volume.
-- `agents/planm` remains a separate process boundary from Backend domain code.
+- `../agents/planm` remains a separate process boundary from Backend domain code.
+  Deployments must ship it beside the editor checkout (`<parent>/agents/planm`).
 - `infra/runtimes/gitagent` remains a generic built runtime with no PLAN or DWG imports.
   Its built discovery API is required by every deployed PLANM stage; no user
   activation switch or LLM provider is required.

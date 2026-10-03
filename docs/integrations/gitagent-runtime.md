@@ -8,7 +8,7 @@ generic GitAgent executor. Its upstream identity is recorded in
 
 - Runtime source owns generic agent loading, skills, workflows, tools, MCP,
   scheduling, telemetry, and SDK behavior.
-- `agents/planm` owns PLANM identity, contracts, skills, workflows, and memory.
+- `../agents/planm` (outside this checkout) owns PLANM identity, contracts, skills, workflows, and memory.
 - `infra/services/dwg` owns the independent DWG service and CAD runtime.
 - Runtime source must not import PLAN Backend, PLANM, or DWG product code.
 
@@ -26,7 +26,7 @@ product Agent through a hard-coded repository-relative path.
 
 ## PLANM execution
 
-Backend always starts `agents/planm/runtime/gitagent_host.mjs`. The host loads
+Backend always starts `../agents/planm/runtime/gitagent_host.mjs`. The host loads
 the configured runtime entry, discovers `planm-delivery` and the stage's named
 skill, verifies the canonical five-skill order, and executes only that skill's
 contained `scripts/run.py`. The Python bridge and deterministic Backend engine

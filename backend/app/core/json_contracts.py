@@ -8,6 +8,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from backend.app.core.planm_location import planm_agent_dir
+
 
 _SCHEMA_NAME = re.compile(r"^[a-z0-9][a-z0-9.-]*\.schema\.json$")
 
@@ -27,9 +29,7 @@ def validate_planm_contract(
 ) -> None:
     if not _SCHEMA_NAME.fullmatch(schema_name):
         raise ValueError("PLANM schema name is invalid")
-    contract_root = (
-        product_root.resolve() / "agents" / "planm" / "contracts"
-    ).resolve()
+    contract_root = (planm_agent_dir(product_root) / "contracts").resolve()
     schema_path = (contract_root / schema_name).resolve()
     try:
         schema_path.relative_to(contract_root)

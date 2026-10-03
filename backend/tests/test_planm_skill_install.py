@@ -8,7 +8,7 @@ import pytest
 
 
 INSTALLER_PATH = (
-    Path(__file__).parents[2]
+    Path(__file__).parents[3]
     / "agents"
     / "planm"
     / "install_codex_skills.py"

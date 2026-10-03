@@ -9,13 +9,14 @@ import sys
 from typing import Any
 
 from backend.app.core.json_contracts import validate_planm_contract
+from backend.app.core.planm_location import planm_agent_dir
 
 
 def build_planm_host_command(repository_root: Path) -> list[str]:
     node = shutil.which("node") or shutil.which("node.exe")
     if node is None:
         raise RuntimeError("Node.js is required to host the PLANM agent")
-    host = repository_root / "agents" / "planm" / "runtime" / "gitagent_host.mjs"
+    host = planm_agent_dir(repository_root) / "runtime" / "gitagent_host.mjs"
     return [node, str(host)]
 
 
@@ -40,7 +41,7 @@ def run_planm_stage(
         except ValueError as error:
             raise ValueError(f"{label} path escapes the owned run root") from error
     environment = os.environ.copy()
-    environment["PLANM_AGENT_DIR"] = str(repository_root / "agents" / "planm")
+    environment["PLANM_AGENT_DIR"] = str(planm_agent_dir(repository_root))
     environment["PLANM_GITAGENT_RUNTIME_ENTRY"] = str(
         repository_root / "infra" / "runtimes" / "gitagent" / "dist" / "exports.js"
     )

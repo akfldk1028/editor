@@ -11,7 +11,7 @@ review, approval, artifact delivery, and optional post-approval DWG inspection.
 | `backend/app/api/` | Versioned product HTTP routes |
 | `backend/app/modules/` | PLAN domain logic, run state, artifacts, execution |
 | `backend/app/adapters/` | Thin PLANM process and DWG loopback adapters |
-| `agents/planm/` | PLANM identity, contracts, skills, workflows, memory, runtime bridge |
+| `../agents/planm/` | PLANM identity, contracts, skills, workflows, memory, runtime bridge. Lives outside this checkout in the shared `D:\Data\25_ACE\agents` folder; Backend finds it with `backend/app/core/planm_location.py` |
 | `infra/runtimes/gitagent/` | Generic GitAgent host for PLANM skill/workflow discovery |
 | `infra/services/dwg/` | Independent DWG service: workspace, runtime, parsers, skills, and tests |
 | `backend/engine/` | Backend-owned geometry, graph, constraints, metrics, and image primitives |

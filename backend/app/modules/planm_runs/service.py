@@ -13,6 +13,7 @@ from filelock import FileLock, Timeout as FileLockTimeout
 from backend.app.adapters.planm_agent import run_planm_stage
 from backend.app.adapters.dwg_client import inspect_dwg_handoff
 from backend.app.core.json_contracts import validate_planm_contract
+from backend.app.core.planm_location import planm_agent_dir
 from backend.app.modules.cad_handoff import create_dxf_handoff
 
 
@@ -57,7 +58,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _maximum_stage_attempts(repository_root: Path) -> int:
-    config_path = repository_root / "agents" / "planm" / "config" / "default.yaml"
+    config_path = planm_agent_dir(repository_root) / "config" / "default.yaml"
     value = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     attempts = value.get("planm", {}).get("maximum_stage_attempts") if isinstance(value, dict) else None
     if not isinstance(attempts, int) or isinstance(attempts, bool) or not 1 <= attempts <= 5:

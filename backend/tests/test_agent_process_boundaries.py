@@ -13,7 +13,8 @@ import pytest
 
 
 PLAN_ROOT = Path(__file__).parents[2]
-PLANM_BRIDGE = PLAN_ROOT / "agents" / "planm" / "runtime" / "planm_bridge.py"
+PLANM_ROOT = PLAN_ROOT.parent / "agents" / "planm"
+PLANM_BRIDGE = PLANM_ROOT / "runtime" / "planm_bridge.py"
 
 
 def test_planm_bridge_has_no_backend_python_imports() -> None:
@@ -78,7 +79,7 @@ def test_backend_planm_adapter_builds_gitagent_host_command() -> None:
 
     assert Path(command[0]).name.lower() in {"node", "node.exe"}
     assert command[1] == str(
-        PLAN_ROOT / "agents" / "planm" / "runtime" / "gitagent_host.mjs"
+        PLANM_ROOT / "runtime" / "gitagent_host.mjs"
     )
     assert "planm_bridge.py" not in " ".join(command)
 
@@ -203,7 +204,8 @@ def test_backend_adapter_converts_outer_watchdog_timeout(tmp_path: Path) -> None
     from backend.app.adapters.planm_agent import run_planm_stage
 
     repository = tmp_path / "repository"
-    host = repository / "agents" / "planm" / "runtime" / "gitagent_host.mjs"
+    repository.mkdir()
+    host = tmp_path / "agents" / "planm" / "runtime" / "gitagent_host.mjs"
     host.parent.mkdir(parents=True)
     host.write_text("setTimeout(() => {}, 5000);\n", encoding="utf-8")
     run_root = tmp_path / "run"

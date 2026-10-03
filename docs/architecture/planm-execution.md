@@ -18,7 +18,7 @@
 - `violations`: the current terminal or recoverable failure
 
 Every stage request, agent state, and skill result is validated against the
-checked-in Draft 2020-12 schemas under `agents/planm/contracts`.
+checked-in Draft 2020-12 schemas under `../agents/planm/contracts`.
 
 ## Retry and resume
 

@@ -56,7 +56,9 @@ Backend -> DWG adapter -> independent DWG process, after approval only
 
 - Frontend never imports Backend, PLANM, GitAgent, or DWG internals; it consumes
   only the DWG service's public workspace and contract packages.
-- Backend modules never import `agents/planm` or `infra/services/dwg` internals.
+- Backend modules never import `../agents/planm` or `infra/services/dwg` internals.
+  PLANM lives outside this checkout; `backend/app/core/planm_location.py` is the
+  only place that knows where, and this checkout must not contain `agents/planm`.
 - PLANM never imports Backend modules or DWG internals.
 - The generic GitAgent runtime never imports PLANM, Backend, or DWG code.
 - DWG never imports PLANM or Backend modules.

@@ -9,7 +9,7 @@ import sys
 
 PLAN_ROOT = Path(__file__).parents[2]
 BRIDGE = (
-    PLAN_ROOT
+    PLAN_ROOT.parent
     / "agents"
     / "planm"
     / "runtime"
