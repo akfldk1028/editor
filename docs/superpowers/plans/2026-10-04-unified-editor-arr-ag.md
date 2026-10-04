@@ -1,10 +1,10 @@
 # Unified Editor ARR AG Implementation Plan
 
-> **For agentic workers:** Use superpowers:executing-plans to implement task-by-task. Keep checkboxes unchecked until the named verification passes. User requested this design/plan first; no relocation is part of this planning change.
+> **For agentic workers:** Use superpowers:executing-plans to implement task-by-task. Keep checkboxes unchecked until the named verification passes. Latest user correction requires per-feature integration into existing backend modules, not a bulk ARR subtree.
 
 **Goal:** ARR·AG·AG-frontend와 기존 Editor 기능을 한 제품으로 통합하고, 외부 공용 Agents는 API/A2A로 연결한다.
 
-**Architecture:** 기존 UI 라우터와 FastAPI 제품 경계를 확장한다. ARR Django 소스는 `backend/arr`로 이전한다. 전문 owner 소스·메모리·환경·실행 DB는 `D:/Data/25_ACE/agents`에 유지한다. ARR/AG 구 경로 의존만 제거하며 공용 agent 연결은 유지한다.
+**Architecture:** 기존 UI 라우터와 FastAPI 제품 경계를 확장한다. ARR 기능은 기존 `backend/app/modules/{land,regulations,massing,masterplan,parking,elevation}`에 책임별로 통합한다. 원본 트리를 통째로 담는 `backend/arr` 안은 사용자 정정으로 폐기한다. 전문 owner 소스·메모리·환경·실행 DB는 `D:/Data/25_ACE/agents`에 유지한다. ARR/AG 구 경로 의존만 제거하며 공용 agent 연결은 유지한다. 상세: `docs/architecture/2026-10-04-backend-domain-integration.md`.
 
 **Tech Stack:** 현재 고정된 Editor React/Next/Vite/TypeScript, FastAPI, ARR Django/Python, 기존 A2A/LangGraph/MCP와 DB를 유지한다. 통합을 위한 프레임워크 일괄 업그레이드는 하지 않는다.
 
@@ -56,18 +56,19 @@
 - [ ] 원본 D: Editor의 누락된 Gitagent build와 고정 dependencies를 복구한다. `bun run plan:build:agent-runtime`, `python -m pytest backend/tests -q`, 기존 product/browser 명령을 실행해 실패 목록과 원인을 저장한다. 미통과 항목은 이후 검증 baseline에 남긴다.
 - [ ] 기능 행/기준선/복원 결과만 커밋. 복원 실패 시 다음 소스 이전 단계로 가지 않는다.
 
-### Task2 — ARR 실행 소스를 Editor 내부로 이전
+### Task2 — 기능별 계산·자료·저장 소유권을 Editor에 통합
 
-**Files:** 생성 `backend/arr/`의 manifest 기반 실제 파일, `infra/config/services.json`, `infra/migration/verify_arr_relocation.py`; 수정 `infra/dev/runtime.mjs`, `runtime.test.mjs`. ARR 설정의 DB/자산 경로 변경은 새 사본에서 수행.
+**Files:** 기능별 `backend/app/modules/`, 해당 `api/routes_*.py`, `adapters/`, `backend/tests/`; 대응 기록 `docs/migrations/backend-domain-migrations.json`. 필요한 지속 서비스 설정은 `infra/config/services.json`에서 관리한다. 원본 전체 트리 복사는 하지 않는다.
 
 **Contract:** Task0의 source_owner/lifecycle/management를 사용한다. Editor 소유 서비스는 `{name,source_root,entrypoint,cwd,environment_ref,data_root,health_url,config_id}`, 공용 agent 연결은 endpoint/health/config identity를 등록한다. 제품 source_root만 Editor 상대경로다. 비밀은 environment_ref로만 참조. 기존 Django app label·URL·migration ID 유지.
 
-- [ ] `test_arr_service_resolves_only_editor_paths`를 먼저 실패시킨다. inventory가 정한 import closure를 복사하고 source hash/차이를 기록한다.
-- [ ] 별도 환경에서 Django check와 기존 domain 회귀 테스트를 실행한다. FastAPI process의 `backend` import와 충돌하지 않음을 확인한다.
+- [ ] 선택 기능의 자료·소스 복원본 해시와 호출자·저장 영향 범위를 확인한다. 기능별 하위 brief에 source→target과 rollback을 기록한다. 다른 owner를 수정하지 않는 독립 자료 조회부터 시작한다.
+- [ ] 원본 URL·체크아웃 없이 해당 Editor API가 동작하는 실패 테스트를 먼저 작성한다. 기능 모듈을 구현하고 완료된 외부 adapter 호출을 제거한다. 원본 응답·오류·필드·자료 판정의 동등성을 검증한다.
+- [ ] Django ORM/작업 의존 기능은 복원 DB에서 모델·기존 ID·상태·마이그레이션을 보존하는 저장 계층을 검증한다. FastAPI 안에서 원본 settings를 import하지 않는다.
 - [ ] 운영 ARR와 다른 임시 포트/복원 데이터로 기동하고 land/law/design API에 동일 입력을 보내 도메인 값·판정·artifact hash를 비교한다. 시간/새 UUID만 비교 제외 목록으로 명시한다.
 - [ ] 비결정적 탐색은 seed·모델·도구 버전·입력 snapshot을 고정한다. 완전 결정화가 불가능한 항목은 면적/충돌/법규 판정 등 사전에 정한 불변 조건과 허용 오차로 비교한다. 기존 실패/부분 결과를 성공으로 바꾸거나 무작위 출력 hash 불일치를 무조건 회귀로 간주하지 않는다.
-- [ ] `python infra/migration/verify_arr_relocation.py --manifest docs/migrations/unified-source-map.json`은 외부 ARR source 참조0·필수 자산 누락0이어야 한다. 실제 legacy import가 남으면 PASS 금지.
-- [ ] backend/arr와 운영 설정을 커밋. 아직 기존18320을 자동 교체하지 않는다.
+- [ ] 이전 단위마다 외부 ARR source/HTTP 의존0·필수 자산 누락0을 검증하고 기능표에 실제 완료 범위만 표시한다. 전체 서비스 전환은 모든 단위 검증 이후다.
+- [ ] 해당 기능 모듈·API·검증·운영 기록을 커밋한다. 기존18320과 공용 agents는 기능별 전환 검증 전에 자동 교체하지 않는다.
 
 ### Task3 — 공통 프로젝트와 데이터 이전
 

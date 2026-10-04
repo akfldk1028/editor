@@ -1,5 +1,21 @@
 import { test, expect } from '@playwright/test';
 
+test('local zoning catalog populates form with legacy service unconfigured', async ({page, request}) => {
+  test.skip(!process.env.EDITOR_LOCAL_ZONES, 'Requires isolated backend without a legacy URL');
+  const response = await request.get('/api/v1/land/zones');
+  expect(response.status()).toBe(200);
+  const catalog = await response.json();
+  expect(catalog.count).toBe(21);
+  expect((await request.get('/api/v1/land/stats')).status()).toBe(503);
+  await page.goto('/land');
+  const select = page.getByLabel('용도지역 직접 지정');
+  await expect(select.locator('option')).toHaveCount(catalog.count + 1);
+  await select.selectOption(catalog.zones[0].zone_name);
+  await expect(select).toHaveValue(catalog.zones[0].zone_name);
+  await page.reload();
+  await expect(select.locator('option')).toHaveCount(catalog.count + 1);
+});
+
 test('live land form reaches ARR through Editor backend', async ({page}) => {
   test.skip(!process.env.EDITOR_LIVE_LAND,'Requires configured ARR land service');
   test.setTimeout(90000);

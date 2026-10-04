@@ -1,12 +1,12 @@
 # Editor · ARR · AG · Agents 통합 제품 설계
 
-2026-10-04. 상태: 사용자 요청에 따른 목표 설계. 소스 이동·운영 전환은 아직 수행하지 않았다.
+2026-10-04. 상태: 기능별 통합 진행 중. 용도지역 목록의 Editor 소유 모듈 이전을 검증했다. 전체 소스 이전·운영 전환은 미완료다.
 
 ## 목표와 이전 결정 변경
 
 최종 제품 루트는 `D:/Data/25_ACE/editor`다. ARR·AG 제품 소스·프론트 기능·실행 설정은 Editor에서 관리한다. **공용 에이전트 소스·환경·메모리·실행 상태는 `D:/Data/25_ACE/agents`에 유지**하고 Editor 및 다른 제품이 API/A2A로 사용한다. 사용자는 Editor에서 같은 프로젝트의 대지·법규·설계·주차·도면·3D·에이전트 작업을 사용한다.
 
-사용자 재확인: 통합 후 **별도 ARR·AG·AG-frontend 프로젝트는 운영에 필요 없어야 한다.** 원래 경로를 실행하거나 원래 저장소에서 소스를 읽는 구성이 남으면 이전 미완료다. 아래 `backend/arr`라는 이름은 Editor가 소유하는 내부 모듈의 출처를 나타내며, 외부 ARR 제품을 유지한다는 뜻이 아니다. 최종 운영·수정·테스트·배포는 모두 Editor에서 수행한다.
+사용자 재확인: 통합 후 **별도 ARR·AG·AG-frontend 프로젝트는 운영에 필요 없어야 한다.** 원래 경로를 실행하거나 원래 저장소에서 소스를 읽는 구성이 남으면 이전 미완료다. 최신 정정에 따라 `backend/arr`로 원본 트리를 통째로 옮기는 안은 폐기한다. 기존 `backend/app/modules`에 기능별로 통합하며, 상세 책임은 [기능별 백엔드 통합](2026-10-04-backend-domain-integration.md)을 따른다.
 
 최신 사용자 정정: 앞서 작성한 owner 소스의 Editor 내부 이전 결정은 철회한다. 외부 공용 agents는 정상 의존성이며 ARR·AG 원본 제거 기준의 예외다. 에이전트의 운영·수정·테스트·배포는 공용 owner에서 독립 관리한다. `AG-frontend`뿐 아니라 `ARR/frontend`도 조사·이식한다. “모든 기능”은 전수 목록과 대응표로 관리한다.
 
@@ -55,14 +55,13 @@ editor/
     app/                         제품 API(FastAPI), 유일한 공개 업무 API
       api/                       기능별 /api/v1 경계
       schemas/                   제품 DTO
-      modules/                   프로젝트·실행 연결·산출물·적용 작업
+      modules/                   기존 계산 모듈과 기능별 서비스·저장
+        platform/                프로젝트·실행 연결·산출물·적용 작업
+        land/                    대지·주소·지형·지도
+        regulations/             법규 자료·검색·판정
+        {massing,masterplan,parking,elevation}/  검증된 기능 단위로 생성
       adapters/                  내부 domain 및 외부 공용 agent 호출
-    arr/                         ARR Django 서비스의 새 소스 소유 위치
-      manage.py
-      backend/                   Django settings/urls/asgi, 기존 package 유지
-      {core,land,law,design}/     기존 앱·모델·마이그레이션·도메인 엔진
-      {src,config}/              실제 import되는 지원 코드
-      tests/                     이전 후 경로·계약·회귀 검증
+    tests/                       기능별 이전·계약·회귀 검증
     mcp/                         기존 scene 저장·MCP, scene 단일 쓰기 책임
     {cli,ifc-converter}/         기존 서비스
   agents/skills/                 기존 Editor 개발 스킬만; 공용 owner 복사 금지
@@ -84,15 +83,15 @@ editor/
 
 공용 에이전트는 `D:/Data/25_ACE/agents/{OrchestratorAgent,planm,<기존 owner>,a2a,a2a_common,docs}`에 유지한다. Editor에는 API client·endpoint 설정·계약 검증·프로젝트 연결만 둔다. 코드·메모리·가상환경·실행 DB는 복제하지 않는다.
 
-`backend/arr`는 원래 ARR 경로를 영구 참조하는 링크가 아니라 새 소스 소유 위치다. `backend/arr/backend`와 Editor의 `backend` Python namespace 충돌을 피하도록 Django는 별도 환경·cwd·엔트리로 실행한다. FastAPI에서 Django의 `backend.*`를 직접 import하지 않는다. 기존 Django migration app label을 소스 이동 과정에서 바꾸지 않는다.
+FastAPI에서 원본 Django의 `backend.*`를 직접 import하지 않는다. 독립 계산·자료 기능부터 Editor 모듈로 이전하고 완료된 기능의 원본 adapter 호출을 제거한다. Django ORM/작업 기능은 복원 데이터와 기존 ID·상태·마이그레이션을 검증하는 별도 단위로 전환한다.
 
-주차 엔진 등은 우선 원래 ARR package 내부에서 작동시킨다. 기능 이름과 폴더를 맞추기 위한 대규모 내부 재배치는 동등성 검증 뒤 별도 작업이다. 공통 계약 패키지는 실제 공유 소비자가 생길 때만 추출한다.
+주차 엔진 등은 의존성 단위별로 계산·저장·실행을 구분해 이전한다. 아직 옮기지 않은 기능은 원본 서버 호출을 명시적으로 유지하고 미완료로 표시한다. 공통 계약 패키지는 실제 공유 소비자가 생길 때만 추출한다.
 
 ## 원본 → 목적지 및 기능 책임
 
 | 원본 | 최종 위치·처리 | 검증할 사용자 동작 |
 |---|---|---|
-| ARR/backend의 활성 Django 앱·실제 지원 import | backend/arr | 대지·법규·설계 API와 기존 계산 동일성 |
+| ARR/backend의 활성 계산·자료·저장·API | backend/app/modules의 해당 기능과 api/adapters | 대지·법규·설계 API와 기존 계산·저장 동일성 |
 | ARR/frontend/src/land | features/land-analysis | 지도 선택·주소/PNU·표고·경계·규제선 |
 | ARR/frontend/src/law | features/law | 검색·스트리밍·원문·분야·오류 |
 | ARR/frontend/src/design | massing/masterplan/parking/elevation 및 scene adapter | BOOK·매스 생성/수정·대안·배치·주차·입면·근거 |
@@ -108,7 +107,7 @@ editor/
 
 - Editor `project_id`를 제품 기준으로 사용한다. 기존 `owner_project_id`, `branch_id`, `scene_id/revision`, ARR `job_id/design_id/analysis reference`는 namespace를 포함한 연결표로 관리한다. 같은 문자열을 같은 객체로 가정하지 않는다.
 - 제품 DB: 프로젝트·사용자 권한·외부 ID 대응·산출물 참조. Django DB: ARR 분석/설계 기록. Orchestrator store: 실행·checkpoint·receipt. Scene store: 편집 가능한 그래프. Neo4j/vector 저장소: 기존 검색 자료. 각 데이터는 한 소유자만 쓰며, 물리 DB 병합은 이번 이전의 선행 조건이 아니다.
-- 제품 런타임의 목표 위치는 Git 외부 `D:/Data/25_ACE/runtime/editor/{product,arr,scenes,artifacts,logs}`다. 공용 agents의 실행 DB·checkpoint·메모리는 기존 owner 관리 위치에 유지한다. 제품 SQLite는 온라인 backup API 또는 쓰기 중단 후 일관된 snapshot으로 옮긴다. WAL 파일을 무시한 생파일 복사는 금지한다. Neo4j와 파일 artifact도 각각 복원 검증한다.
+- 제품 런타임의 목표 위치는 Git 외부 `D:/Data/25_ACE/runtime/editor/{product,land,regulations,design,scenes,artifacts,logs}`다. 공용 agents의 실행 DB·checkpoint·메모리는 기존 owner 관리 위치에 유지한다. 제품 SQLite는 온라인 backup API 또는 쓰기 중단 후 일관된 snapshot으로 옮긴다. WAL 파일을 무시한 생파일 복사는 금지한다. Neo4j와 파일 artifact도 각각 복원 검증한다.
 - 긴 작업은 Orchestrator가 조정하고 ARR의 기존 job ID를 연결한다. 한 사용자 요청에서 두 실행기가 같은 계산을 중복 시작하지 않는다. 실행 취소·추가 입력·재시도는 owner가 실제 지원하는 계약으로 검증한다.
 - 산출물 → 3D 적용은 입력 revision/hash·좌표계·단위·층 기준을 검증하고, 같은 artifact를 재적용해도 중복 객체가 생기지 않아야 한다. DWG·주차·입면·인테리어 모두 scene 단일 쓰기 경계를 사용한다.
 - Systems/DomainExpert/InteriorDesign의 partial/blocked는 제품 화면에도 유지한다. 폴더 이전이 전문 기능 완성을 뜻하지 않는다.

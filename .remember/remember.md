@@ -1,3 +1,9 @@
+## 2026-10-04 - User correction: integrate by backend responsibility
+
+User rejects backend/arr as the integration destination. New authoritative architecture: docs/architecture/2026-10-04-backend-domain-integration.md; main spec/plan updated. Existing backend/app/modules owns land/regulations/massing/masterplan/parking/elevation alongside existing modules. API/adapters/platform/storage retain explicit boundaries. No whole Django-tree copy under another name. Shared agents and their execution state remain external. Old inventory source hashes remain evidence; their backend/arr proposed targets are superseded by backend-domain-migrations.json.
+
+First actual absorption: GET /api/v1/land/zones now reads Editor modules/regulations/zoning_catalog.py and its21-entry data file. Removed LandClient.zones HTTP call. Data bytes match original and restored backup; real original HTTP and isolated Editor response exactly match. Chrome confirms dropdown selection/reload with legacy URL unconfigured; missing statistics still show unavailable. Tests67 pass (land/catalog14, migration53). This is catalog lookup only: analysis/stats, statutory computations, persistent data/jobs and all other ARR functions still need per-feature migration. Production services were not restarted; disposable18435 server was cleaned up. Next address/PNU provider boundary and regulation computation slices, then design storage/jobs, each with its own parity gate.
+
 ## 2026-10-04 - ARR action/import inventory and original-checkout verification
 
 Baseline correction commit: cdd79e69. Two full-suite skips are POSIX link-lock cases on Windows.

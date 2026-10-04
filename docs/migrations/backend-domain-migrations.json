@@ -1,0 +1,44 @@
+{
+  "schema": "editor-backend-domain-migrations/v1",
+  "architecture": "docs/architecture/2026-10-04-backend-domain-integration.md",
+  "supersedes": "backend/arr bulk-copy targets in earlier inventory snapshots",
+  "complete_backend_integration": false,
+  "slices": [
+    {
+      "id": "regulations-zoning-catalog",
+      "source_root": "D:/Data/25_ACE/ARR",
+      "source_commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sources": [
+        "backend/land/views.py:zones",
+        "backend/land/services/zoning_mapper.py:get_all_zones",
+        "backend/land/data/zoning_limits.json"
+      ],
+      "targets": [
+        "backend/app/modules/regulations/zoning_catalog.py",
+        "backend/app/modules/regulations/data/zoning_limits.json",
+        "backend/app/api/routes_land.py"
+      ],
+      "data_sha256": "3c65baaba1d8e7af8809be644fb3a0091fbf9e141acf22748668a4466c2f2584",
+      "preservation": "source bytes equal restored-working-tree backup and Editor data bytes",
+      "api": "GET /api/v1/land/zones",
+      "removed_dependency": "LandClient.zones HTTP call",
+      "runtime_source_owner": "editor",
+      "legacy_service_required": false,
+      "status": "verified-slice; operational services not restarted",
+      "limitations": [
+        "Only catalog lookup moved; zoning computations and statutory applicability are not reverified",
+        "Land analysis and statistics still use the existing adapter",
+        "Remaining source/DB/job moves require per-feature evidence"
+      ],
+      "rollback": "Revert this slice commit; original checkout/data are unchanged",
+      "verification": {
+        "tests": "67 passed: land/catalog14 + migration53",
+        "source_data_equal_to_backup": true,
+        "live_response_equal": "Original18320 /land/zones equals isolated18435 /api/v1/land/zones",
+        "browser": "Actual Chrome local catalog, selection and reload with legacy URL absent; full platform browser invocation exit0",
+        "evidence": ".superpowers/sdd/2026-10-04-domain-integration/verification.json",
+        "wheel": "Built with existing Python3.13/setuptools80.9.0; bundled data byte-equivalent; extracted module returns21 zones without source checkout"
+      }
+    }
+  ]
+}

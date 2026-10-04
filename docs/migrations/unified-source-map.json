@@ -506,5 +506,6 @@
       "classification": "source",
       "basis": "working-tree bytes; commit does not imply clean"
     }
-  ]
+  ],
+  "target_plan_status": "Prior backend/arr target proposal withdrawn by user; source evidence retained; actual per-feature targets in backend-domain-migrations.json"
 }

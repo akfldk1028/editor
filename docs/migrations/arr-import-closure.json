@@ -16923,5 +16923,6 @@
   "counts": {
     "module_identities": 604,
     "unique_physical_files": 604
-  }
+  },
+  "target_plan_status": "Prior backend/arr target proposal withdrawn by user; source evidence retained; actual per-feature targets in backend-domain-migrations.json"
 }

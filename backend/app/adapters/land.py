@@ -42,13 +42,6 @@ class LandClient:
             raise LandContractError()
         return value
 
-    async def zones(self):
-        value=await self.request('zones')
-        if not isinstance(value.get('zones'),list) or not all(isinstance(z,dict) and
-            isinstance(z.get('zone_name'),str) for z in value['zones']):
-            raise LandContractError()
-        return {'zones':value['zones'],'count':len(value['zones'])}
-
     async def stats(self):
         value=await self.request('stats')
         if not all(type(value.get(k)) in (int,float) and value[k]>=0 for k in

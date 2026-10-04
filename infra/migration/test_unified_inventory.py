@@ -1,5 +1,7 @@
 import importlib.util
 import hashlib
+import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -76,3 +78,18 @@ def test_source_drift_invalidates_migration_evidence(tmp_path):
     file.write_bytes(b'changed')
     with pytest.raises(ValueError, match='source changed'):
         module.validate_sources(rows)
+
+
+def test_new_inventory_does_not_plan_a_legacy_named_backend_tree(tmp_path, monkeypatch):
+    module = load_module()
+    root = tmp_path / 'source'
+    (root / 'backend/backend').mkdir(parents=True)
+    (root / 'backend/land').mkdir()
+    (root / 'backend/backend/urls.py').write_text("urlpatterns=[path('land/', include('land.urls'))]", encoding='utf-8')
+    (root / 'backend/land/urls.py').write_text("urlpatterns=[path('zones/', views.zones)]", encoding='utf-8')
+    matrix, sources = tmp_path / 'matrix.json', tmp_path / 'sources.json'
+    monkeypatch.setattr(module, 'source_record', lambda root, file, target: {'source': str(file), 'target': target})
+    monkeypatch.setattr(sys, 'argv', ['inventory', '--arr', str(root), '--matrix', str(matrix), '--source-map', str(sources)])
+    module.main()
+    assert json.loads(matrix.read_text())['features'][0]['target'] == 'backend/app/api/routes_land.py'
+    assert all(row['target'].startswith('reference-only:') for row in json.loads(sources.read_text())['files'])

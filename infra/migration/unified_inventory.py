@@ -137,9 +137,9 @@ def main():
         module = operation['entrypoint'].split('/')[0]
         rows.append({**operation, 'source_root': str(args.arr), 'entrypoint': 'backend/' + operation['entrypoint'],
                      'ui_actions': [], 'api_operations': [operation['route']], 'data_owner': 'ARR domain',
-                     'target': 'backend/arr/' + module if operation['mounted'] else None,
+                     'target': 'backend/app/api/routes_' + module + '.py' if operation['mounted'] else None,
                      'disposition': 'migrate' if operation['mounted'] else 'defer',
-                     'reason': 'Preserve mounted domain API' if operation['mounted'] else 'Not mounted by current root URL configuration',
+                     'reason': 'Product API entry; domain/storage decomposition requires per-feature review' if operation['mounted'] else 'Not mounted by current root URL configuration',
                      'status': 'inventoried-not-migrated', 'evidence': ['Static URL declaration; HTTP method and UI action review pending']})
     validate_coverage(operations, rows)
     args.matrix.parent.mkdir(parents=True, exist_ok=True)
@@ -148,7 +148,7 @@ def main():
         'CLI and registered agents', 'Shared agent transitive dependencies', 'Assets and preservation'], 'features': rows}, indent=2) + '\n', encoding='utf-8')
     files = sorted({args.arr / row['entrypoint'] for row in rows} | {args.arr / 'backend/backend/urls.py'})
     args.source_map.write_text(json.dumps({'schema': 'editor-unified-source-map/v1', 'complete_import_closure': False,
-        'files': [source_record(args.arr, file, 'backend/arr/' + file.relative_to(args.arr / 'backend').as_posix()) for file in files]}, indent=2) + '\n', encoding='utf-8')
+        'files': [source_record(args.arr, file, 'reference-only: per-feature source mapping pending') for file in files]}, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'declared_routes': len(rows), 'mounted_routes': sum(row['mounted'] for row in rows)}))
 
 

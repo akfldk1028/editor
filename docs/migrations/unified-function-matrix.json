@@ -1776,14 +1776,15 @@
       "api_operations": [
         "GET /land/zones/"
       ],
-      "data_owner": "ARR domain",
-      "target": "backend/arr/land",
+      "data_owner": "Editor regulations module",
+      "target": "backend/app/modules/regulations/zoning_catalog.py",
       "disposition": "migrate",
       "reason": "Preserve mounted domain API",
-      "status": "inventoried-not-migrated",
+      "status": "verified-slice; operational services not restarted",
       "evidence": [
         "Static URL declaration; HTTP method and UI action review pending",
-        "Handler resolved statically; method decorator found"
+        "Handler resolved statically; method decorator found",
+        "backend-domain-migrations.json#regulations-zoning-catalog"
       ],
       "handler_source": "backend/land/views.py:226",
       "declared_http_methods": [
@@ -6788,6 +6789,8 @@
     "arr-import-closure.json",
     "shared-agent-legacy-dependencies.json",
     "arr-required-assets.json",
-    "arr-runtime-baseline.json"
-  ]
+    "arr-runtime-baseline.json",
+    "backend-domain-migrations.json"
+  ],
+  "target_plan_status": "Bulk backend/arr targets are historical proposals, superseded by backend-domain-migrations.json and feature-module architecture"
 }

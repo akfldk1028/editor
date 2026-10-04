@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.app.adapters.land import LandClient, LandContractError, LandUnavailable, LandRejected
+from backend.app.modules.regulations.zoning_catalog import CatalogUnavailable, get_zones
 
 
 class LandRequest(BaseModel):
@@ -40,7 +41,11 @@ def create_land_router(client=None, *, public_origin=None):
         except LandContractError: raise HTTPException(502,'Invalid ARR land response') from None
 
     @router.get('/zones')
-    async def zones(): return await respond(owner.zones())
+    def zones():
+        try:
+            return get_zones()
+        except CatalogUnavailable:
+            raise HTTPException(503, 'Zoning catalog unavailable') from None
 
     @router.get('/stats')
     async def stats(): return await respond(owner.stats())

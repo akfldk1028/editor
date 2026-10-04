@@ -1,0 +1,910 @@
+{
+  "zones": [
+    {
+      "zone_name": "제1종전용주거지역",
+      "category": "주거지역",
+      "bcr_default": 50,
+      "far_default": 100,
+      "bcr_article": "국토계획법 시행령 제84조제1항제1호",
+      "far_article": "국토계획법 시행령 제85조제1항제1호",
+      "restriction_keywords": [
+        "전용주거",
+        "건폐율",
+        "단독주택"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": true,
+        "rules": [
+          {
+            "condition": "H <= 10m",
+            "setback_m": 1.5
+          },
+          {
+            "condition": "H > 10m",
+            "formula": "H * 0.5"
+          }
+        ],
+        "direction": "정북방향",
+        "article": "건축법 제61조제1항, 시행령 제86조제1항 (2023.9.12 개정)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 15,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "제2종전용주거지역",
+      "category": "주거지역",
+      "bcr_default": 50,
+      "far_default": 150,
+      "bcr_article": "국토계획법 시행령 제84조제1항제1호",
+      "far_article": "국토계획법 시행령 제85조제1항제2호",
+      "restriction_keywords": [
+        "전용주거",
+        "건폐율",
+        "공동주택"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": true,
+        "rules": [
+          {
+            "condition": "H <= 10m",
+            "setback_m": 1.5
+          },
+          {
+            "condition": "H > 10m",
+            "formula": "H * 0.5"
+          }
+        ],
+        "direction": "정북방향",
+        "article": "건축법 제61조제1항, 시행령 제86조제1항 (2023.9.12 개정)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 15,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "제1종일반주거지역",
+      "category": "주거지역",
+      "bcr_default": 60,
+      "far_default": 200,
+      "bcr_article": "국토계획법 시행령 제84조제1항제2호",
+      "far_article": "국토계획법 시행령 제85조제1항제3호",
+      "restriction_keywords": [
+        "일반주거",
+        "건폐율",
+        "4층 이하"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": true,
+        "rules": [
+          {
+            "condition": "H <= 10m",
+            "setback_m": 1.5
+          },
+          {
+            "condition": "H > 10m",
+            "formula": "H * 0.5"
+          }
+        ],
+        "direction": "정북방향",
+        "article": "건축법 제61조제1항, 시행령 제86조제1항 (2023.9.12 개정)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 15,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "제2종일반주거지역",
+      "category": "주거지역",
+      "bcr_default": 60,
+      "far_default": 250,
+      "bcr_article": "국토계획법 시행령 제84조제1항제2호",
+      "far_article": "국토계획법 시행령 제85조제1항제4호",
+      "restriction_keywords": [
+        "일반주거",
+        "건폐율",
+        "용적률"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": true,
+        "rules": [
+          {
+            "condition": "H <= 10m",
+            "setback_m": 1.5
+          },
+          {
+            "condition": "H > 10m",
+            "formula": "H * 0.5"
+          }
+        ],
+        "direction": "정북방향",
+        "article": "건축법 제61조제1항, 시행령 제86조제1항 (2023.9.12 개정)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 15,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "제3종일반주거지역",
+      "category": "주거지역",
+      "bcr_default": 50,
+      "far_default": 300,
+      "bcr_article": "국토계획법 시행령 제84조제1항제2호",
+      "far_article": "국토계획법 시행령 제85조제1항제5호",
+      "restriction_keywords": [
+        "일반주거",
+        "건폐율",
+        "용적률"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": true,
+        "rules": [
+          {
+            "condition": "H <= 10m",
+            "setback_m": 1.5
+          },
+          {
+            "condition": "H > 10m",
+            "formula": "H * 0.5"
+          }
+        ],
+        "direction": "정북방향",
+        "article": "건축법 제61조제1항, 시행령 제86조제1항 (2023.9.12 개정)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 15,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "준주거지역",
+      "category": "주거지역",
+      "bcr_default": 70,
+      "far_default": 500,
+      "bcr_article": "국토계획법 시행령 제84조제1항제3호",
+      "far_article": "국토계획법 시행령 제85조제1항제6호",
+      "restriction_keywords": [
+        "준주거",
+        "건폐율",
+        "주거 상업"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용, 준주거 제외)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 15,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "중심상업지역",
+      "category": "상업지역",
+      "bcr_default": 90,
+      "far_default": 1500,
+      "bcr_article": "국토계획법 시행령 제84조제1항제4호",
+      "far_article": "국토계획법 시행령 제85조제1항제7호",
+      "restriction_keywords": [
+        "중심상업",
+        "건폐율",
+        "도심"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 10,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "일반상업지역",
+      "category": "상업지역",
+      "bcr_default": 80,
+      "far_default": 1300,
+      "bcr_article": "국토계획법 시행령 제84조제1항제4호",
+      "far_article": "국토계획법 시행령 제85조제1항제8호",
+      "restriction_keywords": [
+        "일반상업",
+        "건폐율",
+        "상업"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 10,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "근린상업지역",
+      "category": "상업지역",
+      "bcr_default": 70,
+      "far_default": 900,
+      "bcr_article": "국토계획법 시행령 제84조제1항제4호",
+      "far_article": "국토계획법 시행령 제85조제1항제9호",
+      "restriction_keywords": [
+        "근린상업",
+        "건폐율",
+        "근린생활"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 10,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "유통상업지역",
+      "category": "상업지역",
+      "bcr_default": 80,
+      "far_default": 1100,
+      "bcr_article": "국토계획법 시행령 제84조제1항제4호",
+      "far_article": "국토계획법 시행령 제85조제1항제10호",
+      "restriction_keywords": [
+        "유통상업",
+        "건폐율",
+        "유통"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 10,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "전용공업지역",
+      "category": "공업지역",
+      "bcr_default": 70,
+      "far_default": 300,
+      "bcr_article": "국토계획법 시행령 제84조제1항제5호",
+      "far_article": "국토계획법 시행령 제85조제1항제11호",
+      "restriction_keywords": [
+        "전용공업",
+        "건폐율",
+        "공장"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 10,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "일반공업지역",
+      "category": "공업지역",
+      "bcr_default": 70,
+      "far_default": 350,
+      "bcr_article": "국토계획법 시행령 제84조제1항제5호",
+      "far_article": "국토계획법 시행령 제85조제1항제12호",
+      "restriction_keywords": [
+        "일반공업",
+        "건폐율",
+        "공업"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 10,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "준공업지역",
+      "category": "공업지역",
+      "bcr_default": 70,
+      "far_default": 400,
+      "bcr_article": "국토계획법 시행령 제84조제1항제5호",
+      "far_article": "국토계획법 시행령 제85조제1항제13호",
+      "restriction_keywords": [
+        "준공업",
+        "건폐율",
+        "공업 주거"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 10,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "보전녹지지역",
+      "category": "녹지지역",
+      "bcr_default": 20,
+      "far_default": 80,
+      "bcr_article": "국토계획법 시행령 제84조제1항제6호",
+      "far_article": "국토계획법 시행령 제85조제1항제14호",
+      "restriction_keywords": [
+        "보전녹지",
+        "건폐율",
+        "보전"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 20,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "생산녹지지역",
+      "category": "녹지지역",
+      "bcr_default": 20,
+      "far_default": 100,
+      "bcr_article": "국토계획법 시행령 제84조제1항제6호",
+      "far_article": "국토계획법 시행령 제85조제1항제15호",
+      "restriction_keywords": [
+        "생산녹지",
+        "건폐율",
+        "생산"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 20,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "자연녹지지역",
+      "category": "녹지지역",
+      "bcr_default": 20,
+      "far_default": 100,
+      "bcr_article": "국토계획법 시행령 제84조제1항제6호",
+      "far_article": "국토계획법 시행령 제85조제1항제16호",
+      "restriction_keywords": [
+        "자연녹지",
+        "건폐율",
+        "자연"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 20,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "보전관리지역",
+      "category": "관리지역",
+      "bcr_default": 20,
+      "far_default": 80,
+      "bcr_article": "국토계획법 시행령 제84조제1항제7호가목",
+      "far_article": "국토계획법 시행령 제85조제1항제17호가목",
+      "restriction_keywords": [
+        "보전관리",
+        "건폐율",
+        "자연환경"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 20,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "생산관리지역",
+      "category": "관리지역",
+      "bcr_default": 20,
+      "far_default": 80,
+      "bcr_article": "국토계획법 시행령 제84조제1항제7호나목",
+      "far_article": "국토계획법 시행령 제85조제1항제17호나목",
+      "restriction_keywords": [
+        "생산관리",
+        "건폐율",
+        "농림업"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 20,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "계획관리지역",
+      "category": "관리지역",
+      "bcr_default": 40,
+      "far_default": 100,
+      "bcr_article": "국토계획법 시행령 제84조제1항제7호다목",
+      "far_article": "국토계획법 시행령 제85조제1항제17호다목",
+      "restriction_keywords": [
+        "계획관리",
+        "건폐율",
+        "비도시"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 20,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "농림지역",
+      "category": "농림지역",
+      "bcr_default": 20,
+      "far_default": 80,
+      "bcr_article": "국토계획법 시행령 제84조제1항제8호",
+      "far_article": "국토계획법 시행령 제85조제1항제18호",
+      "restriction_keywords": [
+        "농림지역",
+        "건폐율",
+        "농업"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 20,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    },
+    {
+      "zone_name": "자연환경보전지역",
+      "category": "자연환경보전지역",
+      "bcr_default": 20,
+      "far_default": 80,
+      "bcr_article": "국토계획법 시행령 제84조제1항제9호",
+      "far_article": "국토계획법 시행령 제85조제1항제19호",
+      "restriction_keywords": [
+        "자연환경보전",
+        "건폐율",
+        "보전"
+      ],
+      "height_limit_m": null,
+      "height_limit_article": "건축법 제60조, 국토계획법 시행령 제80조",
+      "sunlight_setback": {
+        "applies": false,
+        "rules": [],
+        "direction": null,
+        "article": "건축법 제61조제1항 (전용·일반주거지역만 적용)"
+      },
+      "road_diagonal": {
+        "multiplier": null,
+        "note": "삭제 (시행령 §82 개정, 가로구역별 높이제한으로 대체)",
+        "article": "건축법 제60조, 시행령 제82조"
+      },
+      "corner_cutoff": {
+        "required": true,
+        "min_road_width_m": 8,
+        "article": "건축법 제46조제1항, 시행령 제31조",
+        "note": "8m 미만 도로 모퉁이 (교차각별: <90°→3~4m, 90~120°→2~3m, ≥120°→불필요)"
+      },
+      "adjacent_setback_m": 0.5,
+      "adjacent_setback_article": "민법 제242조(경계로부터 0.5m); 건축법 제58조·시행령 제80조의2·건축조례 별표(용도·규모별 1~3m로 상향)",
+      "building_line_article": "건축법 제46-47조",
+      "landscaping": {
+        "threshold_m2": 200,
+        "min_pct": 20,
+        "article": "건축법 제42조, 시행령 제27조"
+      },
+      "parking_article": "주차장법 시행령 별표1"
+    }
+  ]
+}
