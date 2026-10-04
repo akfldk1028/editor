@@ -7,7 +7,7 @@ from typing import Literal
 
 from backend.app.modules.building_quality import BuildingQualityReport
 from backend.app.modules.generation_loop.contracts import ExteriorAllocationRequest
-from backend.app.schemas.result import BuildingGenerationResult
+from backend.app.schemas.result import BuildingGenerationResult, NoCoreCandidatesDiagnostic
 
 
 @dataclass(frozen=True)
@@ -188,8 +188,16 @@ class StructuralAlternativeRejection:
     quality_report: BuildingQualityReport | None = None
     generator_repairs: tuple[GeneratorRepairProvenance, ...] = ()
     generator_repair_attempt: GeneratorRepairAttempt | None = None
+    diagnostic: NoCoreCandidatesDiagnostic | None = None
 
     def __post_init__(self) -> None:
+        if self.reason_type == "no_core_candidates" and self.diagnostic is None:
+            raise ValueError("empty core search rejection requires diagnostic evidence")
+        if self.diagnostic is not None and (
+            not isinstance(self.diagnostic, NoCoreCandidatesDiagnostic)
+            or self.reason_type != self.diagnostic.code
+        ):
+            raise ValueError("structural rejection diagnostic must match its reason")
         if any(
             not isinstance(value, str) or not value.strip()
             for value in (self.strategy, self.reason_type, self.reason)

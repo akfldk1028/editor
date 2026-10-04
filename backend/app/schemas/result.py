@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from backend.app.schemas.area import BuildingAreaLedger, FloorAreaLedger
@@ -153,11 +154,83 @@ class BuildingAlternativeResult:
 
 
 @dataclass(frozen=True)
+class CoreSearchAttempt:
+    minimum_width_m: float
+    minimum_depth_m: float
+    widen: bool
+    candidate_count: int
+
+    def __post_init__(self) -> None:
+        if any(
+            type(value) not in (int, float) or not math.isfinite(value) or value <= 0
+            for value in (self.minimum_width_m, self.minimum_depth_m)
+        ):
+            raise ValueError("core search dimensions must be finite and positive")
+        if (
+            type(self.widen) is not bool
+            or type(self.candidate_count) is not int
+            or self.candidate_count < 0
+        ):
+            raise ValueError("core search count and widening evidence are invalid")
+
+
+@dataclass(frozen=True)
+class NoCoreCandidatesDiagnostic:
+    code: str
+    message: str
+    shared_intersection_area_m2: float
+    shared_intersection_bounds_m: tuple[float, float, float, float] | None
+    requested_core_area_m2: float
+    attempts: tuple[CoreSearchAttempt, ...]
+
+    def __post_init__(self) -> None:
+        if (
+            self.code != "no_core_candidates"
+            or not isinstance(self.message, str)
+            or not self.message.strip()
+        ):
+            raise ValueError("empty core search diagnostic requires its code and message")
+        if any(
+            type(value) not in (int, float) or not math.isfinite(value)
+            for value in (self.shared_intersection_area_m2, self.requested_core_area_m2)
+        ):
+            raise ValueError("core search areas must be finite")
+        if self.shared_intersection_area_m2 < 0 or self.requested_core_area_m2 <= 0:
+            raise ValueError("core search areas are invalid")
+        bounds = self.shared_intersection_bounds_m
+        if bounds is not None and (
+            not isinstance(bounds, tuple)
+            or len(bounds) != 4
+            or any(type(v) not in (int, float) or not math.isfinite(v) for v in bounds)
+            or bounds[0] > bounds[2]
+            or bounds[1] > bounds[3]
+        ):
+            raise ValueError("core search intersection bounds are invalid")
+        if bounds is None and self.shared_intersection_area_m2 > 0:
+            raise ValueError("positive intersection requires bounds")
+        if (
+            not isinstance(self.attempts, tuple)
+            or not self.attempts
+            or any(
+                not isinstance(attempt, CoreSearchAttempt) or attempt.candidate_count != 0
+                for attempt in self.attempts
+            )
+        ):
+            raise ValueError("empty core search requires zero-count attempt evidence")
+
+
+@dataclass(frozen=True)
 class RejectedAlternativeFamilyResult:
     family: str
     reasons: tuple[str, ...]
+    diagnostics: tuple[NoCoreCandidatesDiagnostic, ...] = ()
 
     def __post_init__(self) -> None:
+        if not isinstance(self.diagnostics, tuple) or any(
+            not isinstance(diagnostic, NoCoreCandidatesDiagnostic)
+            for diagnostic in self.diagnostics
+        ):
+            raise TypeError("family diagnostics must be immutable evidence records")
         if not isinstance(self.family, str) or not self.family.strip():
             raise ValueError("rejected alternative family must be non-empty")
         if (

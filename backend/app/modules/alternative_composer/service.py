@@ -41,7 +41,11 @@ from backend.app.modules.program_prior.service import generate_program_graph
 from backend.app.schemas.llm import FloorAssignment, SUPPORTED_USE_TYPES
 from backend.app.schemas.mass import MassInput
 from backend.app.schemas.program import ProgramGraph
-from backend.app.schemas.result import BuildingGenerationResult
+from backend.app.schemas.result import (
+    BuildingGenerationResult,
+    CoreSearchAttempt,
+    NoCoreCandidatesDiagnostic,
+)
 
 
 @dataclass(frozen=True)
@@ -132,12 +136,27 @@ def compose_structural_alternatives(
             for program in programs.values()
         ),
     )
-    cores = generate_shared_core_candidates(
-        boundaries,
-        required_area=requested_core_area,
-        minimum_width=7.6,
-        minimum_depth=5.2,
-    )
+    search_attempts: list[CoreSearchAttempt] = []
+
+    def search_cores(
+        minimum_width: float,
+        minimum_depth: float,
+        *,
+        widen: bool = False,
+    ) -> tuple[CoreCandidate, ...]:
+        candidates = generate_shared_core_candidates(
+            boundaries,
+            required_area=requested_core_area,
+            minimum_width=minimum_width,
+            minimum_depth=minimum_depth,
+            widen=widen,
+        )
+        search_attempts.append(
+            CoreSearchAttempt(minimum_width, minimum_depth, widen, len(candidates))
+        )
+        return candidates
+
+    cores = search_cores(7.6, 5.2)
     floor_height = resolve_floor_height(
         (
             mass.building_code_context.floor_to_floor_height_m
@@ -198,15 +217,7 @@ def compose_structural_alternatives(
         # This plate did not offer two workable cores among the strategy
         # leaders, so take the runners-up each strategy had already ranked
         # rather than leave the mass without a second alternative.
-        evaluate(
-            generate_shared_core_candidates(
-                boundaries,
-                required_area=requested_core_area,
-                minimum_width=7.6,
-                minimum_depth=5.2,
-                widen=True,
-            )
-        )
+        evaluate(search_cores(7.6, 5.2, widen=True))
     if distinct_so_far() < 2:
         # The minimums above size a core for a corridor arriving on its width:
         # one stair depth and a lobby across the other way. A family that meets
@@ -215,13 +226,30 @@ def compose_structural_alternatives(
         # cores that satisfy the subdivision whichever edge the corridor
         # reaches, and only once the cheaper shapes have come up short.
         square_edge = minimum_core_edge(floor_height)
-        evaluate(
-            generate_shared_core_candidates(
-                boundaries,
-                required_area=requested_core_area,
-                minimum_width=square_edge,
-                minimum_depth=square_edge,
-                widen=True,
+        evaluate(search_cores(square_edge, square_edge, widen=True))
+
+    if all(attempt.candidate_count == 0 for attempt in search_attempts):
+        common = Polygon(boundaries[0])
+        for boundary in boundaries[1:]:
+            common = common.intersection(Polygon(boundary))
+        message = (
+            "No supported core candidates fit the shared floor region; "
+            "this is a generator limitation, not a legal impossibility finding."
+        )
+        diagnostic = NoCoreCandidatesDiagnostic(
+            code="no_core_candidates",
+            message=message,
+            shared_intersection_area_m2=float(common.area),
+            shared_intersection_bounds_m=None if common.is_empty else tuple(common.bounds),
+            requested_core_area_m2=requested_core_area,
+            attempts=tuple(search_attempts),
+        )
+        rejected.append(
+            StructuralAlternativeRejection(
+                strategy="shared_core_search",
+                reason_type=diagnostic.code,
+                reason=message,
+                diagnostic=diagnostic,
             )
         )
 

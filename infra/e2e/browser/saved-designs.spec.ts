@@ -141,6 +141,60 @@ test('unsupported saved mass cannot start a guessed alternative',async({page})=>
   expect(posts).toBe(0);
 });
 
+test('empty core search explains generator dimensions separately from unresolved legal facts',async({page})=>{
+  await page.route('**/design/selection/mass',r=>r.fulfill({json:{mass}}));
+  await page.route('**/api/v1/planm/runs',r=>{
+    expect(r.request().postDataJSON().mass).toEqual({...mass,use_mix:{office:1}});
+    return r.fulfill({json:{contract_version:'planm-run/v1',run_id:'empty-core',project_id:'design-project',status:'blocked',stage:'alternatives',
+      approved_alternative_id:null,violations:[{code:'insufficient_accepted_alternatives',message:'Two accepted alternatives required'}],unresolved_facts:['jurisdiction','effective_date']}});
+  });
+  await page.route('**/api/v1/planm/runs/empty-core/alternatives',r=>r.fulfill({json:{project_id:'design-project',accepted_count:0,accepted_alternative_ids:[],alternatives:[],
+    rejected_families:[{family:'polygonal',reasons:['No supported core fits'],diagnostics:[{code:'no_core_candidates',message:'No core candidates after all searches',
+      shared_intersection_area_m2:21.2634169978,shared_intersection_bounds_m:[0,0,6.4351,7.9084],requested_core_area_m2:2.9769,
+      attempts:[{minimum_width_m:7.6,minimum_depth_m:5.2,widen:false,candidate_count:0},{minimum_width_m:7.6,minimum_depth_m:5.2,widen:true,candidate_count:0},
+        {minimum_width_m:6.8,minimum_depth_m:6.8,widen:true,candidate_count:0}]}]}]}}));
+  await page.goto('/planm?designProject=binding');
+  await page.getByLabel('계획 검토 용도').selectOption('office');
+  await page.getByRole('button',{name:'선택한 형상으로 평면 계획 시작',exact:true}).click();
+  const evidence=page.getByRole('region',{name:'Halt evidence'});
+  await expect(evidence.getByRole('heading',{name:'현재 생성기의 코어 후보가 없습니다',exact:true})).toBeVisible();
+  await expect(evidence).toContainText('21.26 m²');
+  await expect(evidence).toContainText('39.52 m²');
+  await expect(evidence).toContainText('46.24 m²');
+  await expect(evidence).toContainText('법적 불가능 판정이 아닙니다');
+  await expect(evidence.getByRole('row')).toHaveCount(4);
+  await expect(page.locator('.unresolved-facts')).toContainText('jurisdiction');
+  await expect(evidence).not.toContainText('jurisdiction');
+  await expect(evidence.getByRole('link',{name:'프로젝트의 저장된 설계 다시 보기'})).toHaveAttribute('href','/projects/binding');
+  await expect(page.getByRole('button',{name:/Approve concept|Build in 3D editor/})).toHaveCount(0);
+});
+
+test('actual saved footprint halts with core search evidence and unchanged source geometry',async({page,request})=>{
+  test.skip(!process.env.EDITOR_CORE_DIAGNOSTIC||!process.env.EDITOR_DESIGN_PROJECT,'Requires isolated saved-shape pipeline fixture');
+  test.setTimeout(120000);
+  const projectId=process.env.EDITOR_DESIGN_PROJECT!;
+  const response=await request.get(`/api/v1/platform/projects/${encodeURIComponent(projectId)}/design/selection/mass`);
+  expect(response.ok()).toBeTruthy();const original=(await response.json()).mass;
+  await page.goto(`/planm?designProject=${encodeURIComponent(projectId)}`);
+  await page.getByLabel('계획 검토 용도').selectOption('office');
+  const creating=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().endsWith('/api/v1/planm/runs'));
+  await page.getByRole('button',{name:'선택한 형상으로 평면 계획 시작',exact:true}).click();
+  const created=await creating;expect(created.ok()).toBeTruthy();
+  expect(created.request().postDataJSON().mass).toEqual({...original,use_mix:{office:1}});
+  const run=await created.json();
+  const evidence=page.getByRole('region',{name:'Halt evidence'});
+  await expect(evidence.getByRole('heading',{name:'현재 생성기의 코어 후보가 없습니다',exact:true})).toBeVisible({timeout:90000});
+  await expect(evidence).toContainText('21.26 m²');await expect(evidence).toContainText('39.52 m²');
+  const final=await request.get(`/api/v1/planm/runs/${run.run_id}`);const finalRun=await final.json();
+  expect(finalRun.status).toBe('blocked');expect(finalRun.approved_alternative_id).toBeNull();
+  expect(finalRun.unresolved_facts.length).toBeGreaterThan(0);
+  const result=await request.get(`/api/v1/planm/runs/${run.run_id}/alternatives`);const alternatives=await result.json();
+  expect(alternatives.accepted_count).toBe(0);expect(alternatives.alternatives).toHaveLength(0);
+  expect(alternatives.rejected_families.some((family:{diagnostics?:Array<{code:string}>})=>family.diagnostics?.some(d=>d.code==='no_core_candidates'))).toBeTruthy();
+  await evidence.scrollIntoViewIfNeeded();await evidence.screenshot({path:'test-results/no-core-candidates-actual.png'});
+  await test.info().attach('actual-run.json',{body:JSON.stringify({run_id:run.run_id,finalRun,alternatives}),contentType:'application/json'});
+});
+
 test('a delayed previous run poll cannot replace the newly started saved-mass run',async({page})=>{
   let posts=0;let release!:()=>void;let completed!:()=>void;
   const gate=new Promise<void>(resolve=>{release=resolve;});

@@ -50,3 +50,7 @@ The current PLANM program keys are `office` and `neighborhood_commercial`. The e
 ## Remaining completion boundary
 
 The archive-to-Editor selection and geometry handoff are exercised. This particular candidate has not completed alternatives, review, delivery, approval, or 3D publication. No result from this run supports a claim of end-to-end design completion. Source agents remain external to Editor and retain responsibility for the missing project and domain facts.
+
+## Implemented follow-up
+
+The empty-search rejection and halt display are implemented and verified in [empty core search evidence](2026-10-04-empty-core-search-evidence.md). This preserves the blocked result and existing gates; it does not implement the proposed compatibility preflight, small-building typologies, or native ARR optimizer. The next ownership unit is [native design execution](2026-10-04-native-design-execution-plan.md).

@@ -1096,6 +1096,10 @@ def _composed_building_alternatives(
                     f"{rejection.strategy}: {rejection.reason}"
                     for rejection in composition.rejections
                 ),
+                diagnostics=tuple(
+                    rejection.diagnostic for rejection in composition.rejections
+                    if rejection.diagnostic is not None
+                ),
             ),
         )
         if composition.rejections

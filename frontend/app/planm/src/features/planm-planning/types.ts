@@ -32,6 +32,16 @@ export interface Alternative {
 export interface RejectedFamily {
   family: string;
   reasons: string[];
+  diagnostics?: CoreSearchDiagnostic[];
+}
+
+export interface CoreSearchDiagnostic {
+  code: string;
+  message: string;
+  shared_intersection_area_m2: number;
+  shared_intersection_bounds_m: [number, number, number, number] | null;
+  requested_core_area_m2: number;
+  attempts: Array<{minimum_width_m: number; minimum_depth_m: number; widen: boolean; candidate_count: number}>;
 }
 
 export interface AlternativesResult {

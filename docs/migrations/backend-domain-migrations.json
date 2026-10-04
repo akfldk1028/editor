@@ -322,16 +322,17 @@
         "actual_planm": "normalize/analyze passed; alternatives blocked: insufficient_accepted_alternatives",
         "build": "passed",
         "runtime": "8 passed",
-        "review": "Independent storage/geometry/frontend review, no remaining material finding"
+        "review": "Independent storage/geometry/frontend review, no remaining material finding",
+        "empty_core_diagnostic": "Exact savedshape realrun reports no_core_candidates with3zero-count searches; existing rejection retained"
       },
       "documentation": "docs/integrations/2026-10-04-design-archive.md",
       "remaining": [
         "Explicit frontage and richer program inputs",
-        "Successful accepted alternatives and DWG/scene publish-reopen",
         "Complex mass representations",
         "Native job-spec and durable optimizer/cancel/resume",
         "External artifact catalog/delivery",
-        "Final source reconciliation and operational cutover"
+        "Final source reconciliation and operational cutover",
+        "Native optimizer per docs/integrations/2026-10-04-native-design-execution-plan.md; supported alternatives and DWG/scene publish-reopen remain"
       ]
     },
     {

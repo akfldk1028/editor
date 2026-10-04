@@ -29,11 +29,11 @@ import type {
 } from "./types";
 import { registerPlanmDrawing } from "../../integrations/dwg/api";
 import {SavedMassBrief} from './SavedMassBrief';
+import {HaltEvidence} from './HaltEvidence';
 
 const stages = ["normalize", "analyze", "alternatives", "review", "deliver"];
 const settledStatuses = ["delivered", "approved"];
 const haltedStatuses = ["needs_input", "retryable", "blocked"];
-const requiredAcceptedCount = 2;
 
 const shapeFamilies: Array<{ value: ShapeFamily; label: string }> = [
   { value: "rectangle", label: "Rectangle" },
@@ -375,7 +375,7 @@ function App({ onOpenDwg }: Props) {
                 </div>
               )}
               {haltedStatuses.includes(run.status) && (
-                <HaltEvidence run={run} alternatives={alternatives} />
+                <HaltEvidence run={run} alternatives={alternatives} designProject={designProject} />
               )}
               {alternatives && (
                 <div className="alternatives-grid">
@@ -477,56 +477,6 @@ function PlatePreview({ form }: { form: MassForm }) {
       </svg>
       <span>{width} × {depth} m · {Math.round(area)} m² · street on edge 0</span>
     </div>
-  );
-}
-
-function HaltEvidence({
-  run,
-  alternatives,
-}: {
-  run: PlanmRun;
-  alternatives: AlternativesResult | null;
-}) {
-  const violations = run.violations ?? [];
-  const rejected = alternatives?.rejected_families ?? [];
-  return (
-    <section className="halt-evidence" aria-label="Halt evidence">
-      <div className="halt-heading">
-        <div>
-          <span>Halted at {run.stage}</span>
-          <h3>
-            {alternatives
-              ? `This mass reached ${alternatives.accepted_count} of ${requiredAcceptedCount} accepted alternatives.`
-              : "The run stopped before it produced alternatives."}
-          </h3>
-        </div>
-      </div>
-      {violations.length > 0 && (
-        <ul className="violation-list">
-          {violations.map((violation) => (
-            <li key={violation.code}>
-              <code>{violation.code}</code>
-              <p>{violation.message}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-      {rejected.length > 0 && (
-        <div className="rejected-families">
-          <h4>Refused core families</h4>
-          <ul>
-            {rejected.map((family) => (
-              <li key={family.family}>
-                <strong>{family.family}</strong>
-                {family.reasons.map((reason) => (
-                  <span key={reason}>{reason}</span>
-                ))}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </section>
   );
 }
 
