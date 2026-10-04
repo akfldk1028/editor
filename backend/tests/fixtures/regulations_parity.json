@@ -1,0 +1,521 @@
+{
+  "source_sha256": {
+    "regulation_calculator.py": "6f3a8255537a25f0e78bd13cf02284f8da015d9454b02258c97214df1a453a64",
+    "regulation_calculator_ext.py": "e91632b98b43b8d604ae174f74b2312519645af382600ad4f8f848c4e85012e1",
+    "legal_use.py": "a0055fafabeb0621a62e515c5cff1e08fa61c0b70268460133fd9a46c7bd7e06",
+    "ordinance_evidence.py": "aa9e0f739c57ee4146fe8192a459357106045c75e3c36b9ea7968f9b9c423adc",
+    "zoning_use_evidence.py": "5c01fb44d4ed165fc8543ac45b1137477572f5e480e97047557e509378a2f2e1",
+    "overlay_resolver.py": "4b2a52a1a33ac37bec2bbbb046b1b95f109a5a3cd32d8e100bf8250c99fa978f"
+  },
+  "data_sha256": {
+    "zoning_limits_extended.json": "027210efc6ee737be988bc10855fa120e27e1768d875a993aac19accf2b84d3f",
+    "overlay_zones.json": "7dae3e9c276d321efb748b9e973c4a2c11f5fd37bacf2a85f513cc5791cf7bb3",
+    "parking_national.json": "659488f6cc75d0acc0f171400cfdca2af3a30f3ec7ff45f34cd37015ccfcc25d",
+    "accessible_parking_applicability.json": "eb35c4570d6025d28a669a2e87a9adc9e9b53998f157ed4126c91f45da53578b",
+    "ordinance_overrides/11.json": "f50410e815269111d28d13a91dbc440b89054bf7c9e3a45a7be2b82d0c77e669",
+    "ordinance_overrides/11680.json": "969cf4886c59d16327ed907319b7bb354f38c4699489394f30fe5486abdfe31b",
+    "ordinance_overrides/41150.json": "7cf3d9ddc84326a21f1817cf8e0fc192ed3d02d8ac335b09b48f069f50e62015"
+  },
+  "cases": [
+    {
+      "name": "zone-0",
+      "input": {
+        "zone_names": [
+          "제1종전용주거지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "f7055f5cd72a0f6a4eddcb9901443545ee09b1e79ac646dd361a70fb774a376a"
+    },
+    {
+      "name": "zone-1",
+      "input": {
+        "zone_names": [
+          "제2종전용주거지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "16c4e11f3eec08ab96aa764a9a51447e2e5a6ac6977e3af8e08f7a1edb1e8057"
+    },
+    {
+      "name": "zone-2",
+      "input": {
+        "zone_names": [
+          "제1종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "476a1b4dac0ba4aaf68993146989761dd20b7f5344d1c9faa36e7ddf47d8a82d"
+    },
+    {
+      "name": "zone-3",
+      "input": {
+        "zone_names": [
+          "제2종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "4c69546e47d900e41d0311278203a9acf774ba4dabb56da566c7e2e35ac1e242"
+    },
+    {
+      "name": "zone-4",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "10f7ef68c00a9b3c51247a38c148cf2739d914e94b77a33e55ea31083fcbbc52"
+    },
+    {
+      "name": "zone-5",
+      "input": {
+        "zone_names": [
+          "준주거지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "f4f323075292dbc0e7bdebc82a8d53f367847c2039c0ea4f632600d81d11b9ab"
+    },
+    {
+      "name": "zone-6",
+      "input": {
+        "zone_names": [
+          "중심상업지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "9a33e59281087a393d597767870245e77a807769971fc87fdca93ff70c7a6b3c"
+    },
+    {
+      "name": "zone-7",
+      "input": {
+        "zone_names": [
+          "일반상업지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "6def3fceb07adc360d7292c07333d1f53c9eb0a929bb6e35790d39e81542641e"
+    },
+    {
+      "name": "zone-8",
+      "input": {
+        "zone_names": [
+          "근린상업지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "e63f4c0e9c321cf677c45fc2702a54100f52b6dd963007c676a5e9cd9137355a"
+    },
+    {
+      "name": "zone-9",
+      "input": {
+        "zone_names": [
+          "유통상업지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "cfcb4a146ada470e13c903f14f371b9c5ae30d054ff15c4204e77e1e2b4c948c"
+    },
+    {
+      "name": "zone-10",
+      "input": {
+        "zone_names": [
+          "전용공업지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "82fe0a9f3e1e1cbf3f92558de8ae272b6f240ea0cef461236595f9488679daa0"
+    },
+    {
+      "name": "zone-11",
+      "input": {
+        "zone_names": [
+          "일반공업지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "60ce891ae28b3526857f55615ea8bda61754eae6b3aed199a06217a7be8fbb37"
+    },
+    {
+      "name": "zone-12",
+      "input": {
+        "zone_names": [
+          "준공업지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "3ca7622ec70445a18cbba3d51a303a1987cc16092aa9e3989f902826bd08fffe"
+    },
+    {
+      "name": "zone-13",
+      "input": {
+        "zone_names": [
+          "보전녹지지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "76bb62dd6e6d5babe19cf91f6e8ce87f77dc923ff99b97f55c96fbc4cdcf64ed"
+    },
+    {
+      "name": "zone-14",
+      "input": {
+        "zone_names": [
+          "생산녹지지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "3e3221351da950b6ae943aa91414bd975667e8f3a429b2cfcd2c932234954d32"
+    },
+    {
+      "name": "zone-15",
+      "input": {
+        "zone_names": [
+          "자연녹지지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "65f224e907d21f03e8a4cbb03968c311da88b47373769d7c1a80221c7e89cbd0"
+    },
+    {
+      "name": "zone-16",
+      "input": {
+        "zone_names": [
+          "보전관리지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "0646be77fc9d1980e011d6a524d3fee16a29a47c0c89f28bd2fac70426d02d6b"
+    },
+    {
+      "name": "zone-17",
+      "input": {
+        "zone_names": [
+          "생산관리지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "69428dff0b1abaa15516aa9462e7086f6dcccd97accad7df3190ac560d63ab89"
+    },
+    {
+      "name": "zone-18",
+      "input": {
+        "zone_names": [
+          "계획관리지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "5a9e38948e5fc1242a83352c65ec853a9c8614c6f4d38d158d1b717132704681"
+    },
+    {
+      "name": "zone-19",
+      "input": {
+        "zone_names": [
+          "농림지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "e6413b8c38acbaf1957b0257f4e3bffff5f72f5dc7195109167788d24d36cfd6"
+    },
+    {
+      "name": "zone-20",
+      "input": {
+        "zone_names": [
+          "자연환경보전지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "184215f64c2a3631848f6cb3e2363917fbeaba22f25a32e7ffcac6f87e527a79"
+    },
+    {
+      "name": "municipal-office-95",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "building_type": "업무시설",
+        "floor_area_m2": 95
+      },
+      "response_sha256": "57d35c154f38d0065ca89bd204cb33d88425f1753db933a788ae87afdb95b31f"
+    },
+    {
+      "name": "municipal-office-100",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "building_type": "업무시설",
+        "floor_area_m2": 100
+      },
+      "response_sha256": "3ba4a565536e3bb24d5281cf609747640f29aad583b51ed9b294a38a9d12184c"
+    },
+    {
+      "name": "municipal-office-240",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "building_type": "업무시설",
+        "floor_area_m2": 240
+      },
+      "response_sha256": "5c1cac2c598e980b8cab09ba97351ef64b228dac531fa4d927ccd2b1464412dd"
+    },
+    {
+      "name": "municipal-office-250",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "building_type": "업무시설",
+        "floor_area_m2": 250
+      },
+      "response_sha256": "b4b9c9066ebf1891bf6d7f89a01440d2495a79e84339aed7eaa3ccc849fc1b3c"
+    },
+    {
+      "name": "municipal-office-900",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "building_type": "업무시설",
+        "floor_area_m2": 900
+      },
+      "response_sha256": "3905d22949c98c6e923bb0c33c3bf70cc75a1d5cf298d6f9c5a19ba3c2fc318f"
+    },
+    {
+      "name": "municipal-office-1000",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "building_type": "업무시설",
+        "floor_area_m2": 1000
+      },
+      "response_sha256": "5cf05f975402e0555c0ff449878aef12d84f0914b13161dd6c98fe4beb079dd5"
+    },
+    {
+      "name": "municipal-office-2000",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "building_type": "업무시설",
+        "floor_area_m2": 2000
+      },
+      "response_sha256": "094341b6b5e17e3e1af09b0e78e8db0d83659d7c7a79b192ce6053fd5498c168"
+    },
+    {
+      "name": "municipal-office-10000",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "building_type": "업무시설",
+        "floor_area_m2": 10000
+      },
+      "response_sha256": "697e5fe0501fba39ed2d14ced3edf2fc3f183d829038e49f4ca0dec500369c99"
+    },
+    {
+      "name": "seoul-restricted",
+      "input": {
+        "zone_names": [
+          "일반상업지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "11680",
+        "building_type": "업무시설",
+        "floor_area_m2": 2000
+      },
+      "response_sha256": "7e7cf163790c915d5db5ed8a356a61c2e19496df261612b20074c8891d04f6ff"
+    },
+    {
+      "name": "future-snapshot",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2020-01-01",
+        "sigungu_code": "11680"
+      },
+      "response_sha256": "998592b09af6ee8c8d34c9f6a3cc9dba70bd0f05f6c69f5590be33483c0b4560"
+    },
+    {
+      "name": "unrecognized",
+      "input": {
+        "zone_names": [
+          "unknown"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "a82be1bfa9729fdfc66536d53944074097d00289b6905a30fd04c3c434e2c881"
+    },
+    {
+      "name": "empty",
+      "input": {
+        "zone_names": [],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "f4abdbbd9a319836e395c776ab7aca1dcee3b2c8aa31daad42b0b5e068ea5492"
+    },
+    {
+      "name": "multi-without-area",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역",
+          "자연녹지지역"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "eb8331073a739cdbe50b781b2d404256a829ca948d28f58b128ef2b53ce1d22f"
+    },
+    {
+      "name": "multi-with-area",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역",
+          "자연녹지지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "zone_areas": {
+          "제3종일반주거지역": 1000,
+          "자연녹지지역": 200
+        },
+        "sigungu_code": "41150"
+      },
+      "response_sha256": "b2c99816c7d919e7e2c95b1deafd96cab4095d882e2e481f52a22fb14d523aa4"
+    },
+    {
+      "name": "overlay",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역",
+          "지구단위계획구역",
+          "높이제한지구(20m)",
+          "도로"
+        ],
+        "assessment_date": "2026-10-04"
+      },
+      "response_sha256": "e6ac8c31bf1d76f17ec99429e57346012812c2f0c328605e43f706b8f02c0649"
+    },
+    {
+      "name": "mixed-program",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "sigungu_code": "41150",
+        "program_uses": [
+          {
+            "id": "office",
+            "building_type": "업무시설",
+            "floor_area_m2": 1200
+          },
+          {
+            "id": "retail",
+            "building_type": "제2종 근린생활시설",
+            "floor_area_m2": 260
+          }
+        ]
+      },
+      "response_sha256": "fc9790a7a1fc1d85eea2c208c795fee64104523de461e6b661e592452e18f041"
+    },
+    {
+      "name": "housing-daylight",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "building_type": "아파트",
+        "land_info": {
+          "daylighting_context": {
+            "windows_facing_boundary": true
+          }
+        }
+      },
+      "response_sha256": "ffe3cbc1f82183d54da0aa8f320e8a474371ead7ca63d47dc91e15532a0b8256"
+    },
+    {
+      "name": "use-38",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "building_type": "data centre",
+        "floor_area_m2": 2000,
+        "sigungu_code": "41150"
+      },
+      "response_sha256": "c0214bbd1b33888d6280db7eea8cd5b36049f1a34531e6045c8ce6e04af4bb45"
+    },
+    {
+      "name": "use-39",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "building_type": "officetel",
+        "floor_area_m2": 2000,
+        "sigungu_code": "41150"
+      },
+      "response_sha256": "b12fb150ceb1306a700ce6a94fb40d1d1996574f01dc2830cd0c82ad44d8febf"
+    },
+    {
+      "name": "use-40",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "building_type": "unknown",
+        "floor_area_m2": 2000,
+        "sigungu_code": "41150"
+      },
+      "response_sha256": "e3fc4687f7cca810ce7df32264ec912e0c3c8489b532f9ed92339f6fc7b57c5f"
+    },
+    {
+      "name": "use-41",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "building_type": "창고시설",
+        "floor_area_m2": 2000,
+        "sigungu_code": "41150"
+      },
+      "response_sha256": "e4626815c3107476256c55f705b1a2aca0690e89e0e8212e759eb166a6982a85"
+    },
+    {
+      "name": "use-42",
+      "input": {
+        "zone_names": [
+          "제3종일반주거지역"
+        ],
+        "assessment_date": "2026-10-04",
+        "building_type": "단독주택",
+        "floor_area_m2": 2000,
+        "sigungu_code": "41150"
+      },
+      "response_sha256": "86fb4040012a383bfb5c41daa2705556222cff99d04afb1aac4c1ff62b834dd3"
+    }
+  ]
+}

@@ -137,6 +137,38 @@
         "No new UI or live provider verification in this slice"
       ],
       "rollback": "Revert slice; original sources and operational data unchanged"
+    },
+    {
+      "id": "land-raw-analysis-and-local-audit",
+      "api": [
+        "POST /api/v1/land/analyze (raw, include_law=false)",
+        "GET /api/v1/land/stats?scope=editor"
+      ],
+      "targets": [
+        "backend/app/modules/regulations/calculator.py",
+        "backend/app/modules/regulations/extended.py",
+        "backend/app/modules/land/analysis.py",
+        "backend/app/modules/land/repository.py",
+        "frontend/app/planm/src/features/land-analysis/LandPage.tsx"
+      ],
+      "runtime_source_owner": "editor",
+      "legacy_service_required": false,
+      "status": "bounded raw branch verified; other analyze branches and historical stats remain legacy",
+      "verification": {
+        "backend": "261 passed,41 subtests",
+        "source_calculator_cases": 43,
+        "source_assembled_response_cases": 24,
+        "browser": "17 passed,7 unrelated skipped; actual Editor HTTP save/count",
+        "build": "passed",
+        "boundaries": "2 passed",
+        "wheel": "9 data resources byte-equivalent; extracted analysis passed"
+      },
+      "documentation": "docs/integrations/2026-10-04-land-analysis-absorption.md",
+      "remaining": [
+        "PNU/address/geometry/law branches",
+        "Historical DB migration",
+        "Operational configuration/reload and live providers"
+      ]
     }
   ]
 }

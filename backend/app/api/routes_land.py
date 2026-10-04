@@ -1,12 +1,16 @@
 import os
+import sqlite3
 from typing import Annotated, Literal
 from fastapi import APIRouter, HTTPException, Request
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.app.adapters.land import LandClient, LandContractError, LandUnavailable, LandRejected
 from backend.app.modules.regulations.zoning_catalog import CatalogUnavailable, get_zones
 from backend.app.modules.land.pnu import normalize_pnu, parse_pnu
 from backend.app.adapters.vworld import VworldClient
 from backend.app.schemas.regulations import ZoningLimitsRequest
+from backend.app.modules.land.analysis import analyze_zones
+from backend.app.modules.land.repository import LandRepository
 
 
 class LandRequest(BaseModel):
@@ -57,12 +61,18 @@ class ParcelRequest(BaseModel):
         return self
 
 
-def create_land_router(client=None, *, public_origin=None, address_client=None):
+def create_land_router(client=None, *, public_origin=None, address_client=None, repository=None):
     owner=client or LandClient(os.environ.get('EDITOR_ARR_URL'),
         analysis_timeout=float(os.environ.get('EDITOR_ARR_ANALYSIS_TIMEOUT','180')))
     origin=public_origin or os.environ.get('EDITOR_PUBLIC_URL','http://127.0.0.1:5173')
     router=APIRouter(prefix='/api/v1/land',tags=['land'])
     addresses=address_client or VworldClient(os.environ.get('VWORLD_API_KEY', ''))
+
+    def local_repository():
+        if repository is not None:
+            return repository
+        directory = os.environ.get('EDITOR_LAND_DATA_DIR')
+        return LandRepository(directory) if directory else None
 
     def check_origin(request):
         if request.headers.get('sec-fetch-site')=='cross-site' or (request.headers.get('origin') and request.headers['origin']!=origin):
@@ -99,7 +109,17 @@ def create_land_router(client=None, *, public_origin=None, address_client=None):
             raise HTTPException(503, 'Zoning catalog unavailable') from None
 
     @router.get('/stats')
-    async def stats(): return await respond(owner.stats())
+    async def stats(scope: Literal['legacy', 'editor'] = 'legacy'):
+        if scope == 'legacy':
+            return await respond(owner.stats())
+        try:
+            local = local_repository()
+            if local is None:
+                raise HTTPException(503, 'Land storage is not configured')
+            return {**await run_in_threadpool(local.stats), 'scope': 'editor_local',
+                    'legacy_history_included': False}
+        except (OSError, ValueError, sqlite3.Error):
+            raise HTTPException(503, 'Land statistics unavailable') from None
 
     @router.post('/zoning-limits')
     def zoning_limits(body: ZoningLimitsRequest, request: Request):
@@ -117,6 +137,15 @@ def create_land_router(client=None, *, public_origin=None, address_client=None):
     @router.post('/analyze')
     async def analyze(body: LandRequest, request: Request):
         check_origin(request)
+        if body.input_type == 'raw' and not body.include_law:
+            try:
+                local = local_repository()
+            except (OSError, ValueError):
+                local = None
+            try:
+                return await run_in_threadpool(analyze_zones, body.model_dump(), local)
+            except (CatalogUnavailable, OSError):
+                raise HTTPException(503, 'Regulation references unavailable') from None
         return await respond(owner.analyze(body.model_dump()))
 
     return router

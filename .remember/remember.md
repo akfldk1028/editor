@@ -1,3 +1,7 @@
+## 2026-10-04 - Raw analysis vertical cut
+
+Actual raw/no-law analyze now uses Editor calculators, formatter and local atomic audit/result repository; existing /land supports zone-only action and local-scope stats.261 backend+41 subtests,43 calculation/24 assembled source parity cases; build,boundary2,Chrome17 passed7 skipped with actual isolated18438 HTTP save/count. Wheel9 resources and extracted analysis pass. Storage optional configuration EDITOR_LAND_DATA_DIR absolute; absent/failure explicitly unsaved. Other modes and default legacy stats remain delegated; no historical DB import or operational reload. Next land attributes/cache and PNU/address orchestration, geometry/law branches. Full integration incomplete.
+
 ## 2026-10-04 - Integration loop: zoning calculation absorbed
 
 Editor owns POST /api/v1/land/zoning-limits and regulations/zoning_limits.py. Original/backup-equivalent overlap data,34 source differential cases;91 related tests pass. API rejects duplicate/blank zones and incomplete/nonpositive/unknown area splits. Scope remains national_reference, permit_compliance_verified=false and original unverified threshold evidence retained. Independent review no blocker. Full analyze/stats still legacy. Active next loop: actual raw-zone analyze plus local audit/stats, then providers/geometry/law. See docs/integrations/2026-10-04-land-analysis-absorption.md. Originals, shared services and data unchanged.

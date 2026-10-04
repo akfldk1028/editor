@@ -28,46 +28,63 @@ function Fields({value}:{value:Record<string,unknown>|null}) {
 }
 
 export default function LandPage() {
-  const [input,setInput]=useState('');const [type,setType]=useState<'address'|'pnu'>('address');
+  const [input,setInput]=useState('');const [type,setType]=useState<'address'|'pnu'|'raw'>('address');
   const [zone,setZone]=useState('');const [includeLaw,setIncludeLaw]=useState(true);
   const [zones,setZones]=useState<LandZone[]>([]);const [stats,setStats]=useState<LandStats|null>(null);
   const [result,setResult]=useState<LandResult|null>(null);const [busy,setBusy]=useState(false);
   const [error,setError]=useState<string|null>(null);const [metadataErrors,setMetadataErrors]=useState<string[]>([]);
+  const [statsError,setStatsError]=useState<string|null>(null);
+  const [statsRevision,setStatsRevision]=useState(0);
   const active=useRef<AbortController|null>(null);
+  const localAnalysis=type==='raw'&&!includeLaw;
+  const canAnalyze=type==='raw'?Boolean(zone):Boolean(input.trim());
   useEffect(()=>{
     const controller=new AbortController();
     const failed=(e:Error)=>{if(!controller.signal.aborted)setMetadataErrors(old=>[...old,e.message]);};
     landZones(controller.signal).then(v=>{if(!controller.signal.aborted)setZones(v);}).catch(failed);
-    landStats(controller.signal).then(v=>{if(!controller.signal.aborted)setStats(v);}).catch(failed);
-    return ()=>{controller.abort();active.current?.abort();};
+    return ()=>controller.abort();
   },[]);
+  useEffect(()=>{
+    const controller=new AbortController();
+    setStats(null);setStatsError(null);
+    landStats(controller.signal,localAnalysis?'editor':'legacy')
+      .then(value=>{if(!controller.signal.aborted)setStats(value);})
+      .catch(reason=>{if(!controller.signal.aborted)setStatsError(reason instanceof Error?reason.message:'통계 조회 실패');});
+    return ()=>controller.abort();
+  },[localAnalysis,statsRevision]);
+  useEffect(()=>{
+    active.current?.abort();setResult(null);setError(null);setBusy(false);
+    return ()=>active.current?.abort();
+  },[input,type,zone,includeLaw]);
   const regulations=result?.regulations;
   const extended=regulations?.extended as Record<string,unknown>|undefined;
-  return <div className="land-analysis"><h1>대지 분석</h1><p>주소 또는 PNU로 대지 정보와 규제 근거를 확인합니다.</p>
+  return <div className="land-analysis"><h1>대지 분석</h1><p>주소·PNU 또는 용도지역으로 대지 정보와 규제 근거를 확인합니다.</p>
     <form onSubmit={async event=>{
-      event.preventDefault();if(busy||!input.trim())return;
+      event.preventDefault();if(busy||!canAnalyze)return;
       active.current?.abort();const controller=new AbortController();active.current=controller;
       setBusy(true);setError(null);setResult(null);
       try {
-        const value=await analyzeLand({input:input.trim(),input_type:type,zones:zone?[zone]:[],include_law:includeLaw},controller.signal);
-        if(!controller.signal.aborted)setResult(value);
-        landStats(controller.signal).then(v=>{if(!controller.signal.aborted)setStats(v);}).catch(()=>{});
+        const value=await analyzeLand({input:type==='raw'?'':input.trim(),input_type:type,zones:zone?[zone]:[],include_law:includeLaw},controller.signal);
+        if(!controller.signal.aborted){setResult(value);setStatsRevision(previous=>previous+1);}
       } catch(reason) {if(!controller.signal.aborted)setError(reason instanceof Error?reason.message:'대지 분석 실패');}
       finally {if(!controller.signal.aborted)setBusy(false);}
     }}>
-      <label>입력 형식<select value={type} onChange={e=>setType(e.target.value as 'address'|'pnu')}><option value="address">주소</option><option value="pnu">PNU</option></select></label>
-      <label>주소 또는 PNU<input required maxLength={500} value={input} onChange={e=>{
+      <label>입력 형식<select value={type} onChange={e=>setType(e.target.value as 'address'|'pnu'|'raw')}><option value="address">주소</option><option value="pnu">PNU</option><option value="raw">용도지역만 분석</option></select></label>
+      {type!=='raw'&&<label>주소 또는 PNU<input required maxLength={500} value={input} onChange={e=>{
         const value=e.target.value;setInput(value);setType(/^[0-9]{19}$/.test(value.replace(/-/g,''))?'pnu':'address');
-      }}/></label>
-      <label>용도지역 직접 지정<select value={zone} onChange={e=>setZone(e.target.value)}><option value="">자동 조회</option>{zones.map(z=><option key={z.zone_name} value={z.zone_name}>{z.zone_name}</option>)}</select></label>
-      <ResolutionLookup input={input} inputType={type}/>
+      }}/></label>}
+      <label>용도지역 직접 지정<select required={type==='raw'} value={zone} onChange={e=>setZone(e.target.value)}><option value="">{type==='raw'?'용도지역 선택':'자동 조회'}</option>{zones.map(z=><option key={z.zone_name} value={z.zone_name}>{z.zone_name}</option>)}</select></label>
+      {type!=='raw'&&<ResolutionLookup input={input} inputType={type}/>}
       <label><input type="checkbox" checked={includeLaw} onChange={e=>setIncludeLaw(e.target.checked)}/>법령 원문 검색</label>
-      <button type="submit" disabled={busy||!input.trim()}>{busy?'분석 중…':'대지 분석'}</button>
+      <button type="submit" disabled={busy||!canAnalyze}>{busy?'분석 중…':'대지 분석'}</button>
     </form>
-    <ParcelLookup input={input} inputType={type}/>
+    {type!=='raw'&&<ParcelLookup input={input} inputType={type}/>}
+    {type==='raw'&&<p>필지 위치와 면적이 없는 용도지역 참고 분석입니다. 적용 조례와 필지 조건은 별도로 확인해야 합니다.</p>}
     {metadataErrors.map((message,i)=><p role="status" key={i}>{message}</p>)}
     {error&&<p role="alert">{error}</p>}
     {result&&<>
+      {result.storage?.saved===true&&<p role="status">분석 결과를 저장했습니다.</p>}
+      {result.storage?.saved===false&&<p role="alert">분석 결과를 저장하지 못했습니다. 현재 결과를 확인한 뒤 다시 시도해 주세요.</p>}
       <section><h2>분석 판정</h2>{result.assessment?<>
         <p>{result.assessment.status==='needs_evidence'?'추가 근거가 필요합니다.':result.assessment.status}</p>
         <p>{result.assessment.permit_compliance_verified?'ARR에서 허가 적합성 확인을 보고했습니다.':'허가 적합성은 검증되지 않았습니다.'}</p>
@@ -86,7 +103,11 @@ export default function LandPage() {
         {!result.law_articles?.articles.length&&<p>조회된 법령 원문이 없습니다.</p>}</section>
       <section><h2>제한 사항</h2><ul>{result.restrictions.map((v,i)=><li key={i}>{v}</li>)}</ul></section>
     </>}
-    {stats&&<section><h2>ARR 분석 통계</h2><p>조회 {stats.total_queries}건 · 오류 {stats.error_count}건 · 평균 {stats.avg_response_time_ms}ms</p>
-      <ul>{stats.by_input_type.map(v=><li key={v.input_type}>{v.input_type==='address'?'주소':v.input_type==='pnu'?'PNU':'용도지역 직접 지정'}: {v.count}건</li>)}</ul></section>}
+    <section><h2>{localAnalysis?'Editor 저장 분석 통계':'ARR 분석 통계'}</h2>
+      {localAnalysis&&<p>기존 서비스의 과거 분석 기록은 포함하지 않습니다.</p>}
+      {statsError&&<p role="status">{statsError}</p>}
+      {stats&&<><p>조회 {stats.total_queries}건 · 오류 {stats.error_count}건 · 평균 {stats.avg_response_time_ms}ms</p>
+      <ul>{stats.by_input_type.map(v=><li key={v.input_type}>{v.input_type==='address'?'주소':v.input_type==='pnu'?'PNU':'용도지역 직접 지정'}: {v.count}건</li>)}</ul></>}
+    </section>
   </div>;
 }

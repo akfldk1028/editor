@@ -94,3 +94,17 @@ Observed bytes on 2026-10-04; hash equality is provenance evidence, not legal cu
 | `ordinance_overrides/41150.json` | `7cf3d9ddc84326a21f1817cf8e0fc192ed3d02d8ac335b09b48f069f50e62015` |
 
 Read fully: core calculator, extended calculator, formatter, config, legal-use classifier, ordinance evidence, zoning-use evidence and persistence helpers. Read analysis entry/core flow and inspected imports/config/data references of provider and geometry dependencies. Full geometry implementation audits and live-provider verification remain implementation prerequisites for their respective slices.
+
+## Implemented first vertical cut
+
+Editor now executes existing POST /api/v1/land/analyze locally only for input_type=raw and include_law=false. Current public request model accepts input/zones/include_law only; geometry/program/provider requests are not silently routed through this narrow branch. PNU/address and raw requests with law search remain delegated. Optional advisory extraction is explicitly disabled on this branch; no hidden HTTP/LLM client is imported.
+
+Local modules own core/extended calculations, overlays, program normalization and response formatting. Seven newly bundled data files match preserved source bytes. Mandatory reference loss/corruption fails closed with503; missing/ineligible optional municipal snapshots remain missing evidence. The national reference is not promoted to a municipal limit: raw zones without jurisdiction retain null permit-facing BCR/FAR and show national ceilings separately.
+
+LandRepository atomically saves full request/result and audit fields with UUID/UTC timestamp in EDITOR_LAND_DATA_DIR/land.sqlite. Configure an absolute directory, normally runtime/editor/land; no data is created on app import. Storage failures retain the calculation but return storage.saved=false. Successful records survive repository reopening. This does not import original Django history. GET /api/v1/land/stats?scope=editor counts these local records with legacy_history_included=false; default statistics still query legacy records. No mixed-history totals are fabricated.
+
+Existing /land route now offers zone-only analysis, hides parcel-only inputs in that mode, and displays saved status and correctly scoped statistics. In-flight responses are cancelled when inputs/scope change. No new frontend root or router was created.
+
+Verification:261 backend tests and41 subtests passed (one existing Starlette/httpx deprecation warning);43 fixed-date calculator differential cases plus24 complete assembled response comparisons. Fresh wheel contains9 byte-identical JSON resources including3 municipal snapshots; isolated extracted wheel runs analysis outside the source checkout. Frontend build and2 boundary checks pass. Chrome17 passed,7 unrelated opt-in checks skipped, including actual Editor HTTP18438 with original ARR service unconfigured, local save and count increment. Independent reviewer found no blocker. Evidence: .superpowers/sdd/2026-10-04-local-analysis/{browser.json,wheel-verification.json}. Source providers and current legal accuracy were not reverified.
+
+Next cut: Vworld land attributes and local cache, then PNU/address orchestration, zone allocation/neighbor roads/setbacks, law search/advisory provider, historical row migration. Existing operational services and source databases were not changed. Whole ARR/selected AG integration remains incomplete.

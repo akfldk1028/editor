@@ -1,0 +1,11 @@
+{
+  "__comment": "서울특별시 강남구 건축 조례 override (예시). 실제 조례 수치로 교체 필요.",
+  "sigungu_code": "11680",
+  "sigungu_name": "강남구",
+  "overrides": {
+    "제3종일반주거지역": {
+      "adjacent_setback_m": 1.0,
+      "corner_cutoff": { "default_cutoff_m": 4 }
+    }
+  }
+}
