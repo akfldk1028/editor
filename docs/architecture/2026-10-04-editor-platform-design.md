@@ -38,7 +38,7 @@
 | 모든 기능을 새 앱으로 재작성 | 표면적으로 단일 구조 | 기존 편집기·실행 근거·연구 결과를 대체하는 비용이 큼 |
 | **보존 이전 후 기능별 통합** | 기존 자산과 검증 경로 유지, 단계별 되돌리기 가능 | 전환 기간에 독립 앱/서비스를 명시적으로 관리해야 함 |
 
-세 번째 방식을 제안한다. 초기에는 기존 PLANM 셸과 Next 편집기를 유지한다. 최종 사용자 작업 화면은 Next 편집 앱의 프로젝트 작업 공간에 모으되, 기존 PLANM·DWG·Studio 기능은 계약을 통해 편입한다. 첫 이전과 동시에 모든 라우터를 바꾸지 않는다.
+세 번째 방식으로 진행한다. 2026-10-04 사용자 지시에 따라 프론트 통합은 **기존 라우터에 경로를 추가**한다. 기존 PLANM 셸의 `/dwg`, `/planm`, `/editor`와 Next 편집기의 scene 경로를 보존한다. 제품 셸에 `/projects`, `/projects/:projectId`, `/agents`, `/runs/:runId`를 추가하고, 편집 화면으로의 연결은 명시적인 project/scene ID로 한다. Next로 전체 셸을 교체하거나 AG root router를 중첩하지 않는다.
 
 ## 4. 디렉터리와 소유권
 
@@ -46,8 +46,8 @@
 editor/
   AG-frontend/                 이전한 기존 Vite 앱; 통합 전 비교 기준
   AG/                          기존 AG 이력·소스·연구 자료 보존 영역
-  frontend/app/editor/         최종 프로젝트 작업 공간, 편집 도구와 에이전트 패널
-  frontend/app/planm/          기존 PLANM/DWG 셸; 검증될 때까지 유지
+  frontend/app/editor/         기존 Next 편집 도구와 scene 경로 유지
+  frontend/app/planm/          기존 제품 셸에 프로젝트·에이전트 라우트 추가
   frontend/components/viewer/  editor-agnostic 3D 렌더링
   frontend/components/editor/ 재사용 편집 컴포넌트
   frontend/elements/           기존 UI·노드 요소
@@ -64,7 +64,7 @@ editor/
 
 `AG/`, `AG-frontend/`는 사용자가 지정한 이전 위치를 명확히 하기 위한 1차 보존 경계다. 무조건 root workspace glob에 추가하지 않는다. 실행할 패키지만 allowlist로 선택한다. AG 연구 데이터·vendor checkout·가상환경·결과 디렉터리를 자동으로 빌드/배포하지 않는다.
 
-기능 이식 시 AG UI는 `frontend/app/editor/features/agent-workspace/`로, 재사용 DTO는 `resources/lib/platform-contracts/`로 들어간다. AG 백엔드 통째 복사나 core/viewer에 UI 의존성을 추가하는 방식은 금지한다. 이전 완료 뒤에도 원본 역할을 가진 AG 패키지와 연구 자료는 editor 아래 보존할 수 있지만, 제품 실행 권한은 한 곳만 갖는다.
+기능 이식 시 AG UI는 `frontend/app/planm/src/features/agent-workspace/`로, 재사용 DTO는 `resources/lib/platform-contracts/`로 들어간다. AG 백엔드 통째 복사나 core/viewer에 UI 의존성을 추가하는 방식은 금지한다. 이전 완료 뒤에도 원본 역할을 가진 AG 패키지와 연구 자료는 editor 아래 보존할 수 있지만, 제품 실행 권한은 한 곳만 갖는다.
 
 ## 5. 제품 데이터와 실행의 책임
 

@@ -12,6 +12,8 @@
 
 ## Global Constraints
 
+- 2026-10-04 사용자 지시: 기존 프론트 라우터에 경로를 추가한다. `/dwg`, `/planm`, `/editor`, 기존 scene 경로를 유지하며 제품 셸에 `/projects`, `/projects/:projectId`, `/agents`, `/runs/:runId`를 추가한다. 전체 셸/라우터 교체는 하지 않는다.
+
 - Windows 실제 루트는 `D:/Data/25_ACE/editor`. 기존 서비스 터미널 창을 띄우지 않는다.
 - 사용자 데이터·dirty/untracked/ignored 파일·Git 이력을 보존한다. `git reset --hard`, 원본 history rewrite, 일괄 삭제 금지.
 - `AG/`, `AG-frontend/`는 먼저 보존 이전하고 기능 통합은 별도 검증한다. 원본 위치 제거는 이 계획의 실행 완료와 별도 작업이다.
@@ -84,7 +86,7 @@ Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실
 
 ### Task 5 — artifact·scene 조회의 첫 세로 기능
 
-**Files:** 신규 `backend/app/modules/artifacts/{service,repository}.py`, `api/routes_platform_artifacts.py`, `backend/tests/test_platform_artifacts.py`; UI 신규 `frontend/app/editor/features/agent-workspace/`의 결과 조회 컴포넌트와 client tests.
+**Files:** 신규 `backend/app/modules/artifacts/{service,repository}.py`, `api/routes_platform_artifacts.py`, `backend/tests/test_platform_artifacts.py`; UI 신규 `frontend/app/planm/src/features/agent-workspace/`의 결과 조회 컴포넌트와 client tests.
 
 **Interface:** `ArtifactRef{id,project_id,run_id,kind,sha256,media_type,source_versions,selection_status,diagnostic_only}`. Browser는 opaque ID로 요청한다. 로컬 owner 경로는 서버 내부 매핑에만 둔다.
 
@@ -96,9 +98,11 @@ Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실
 
 ### Task 6 — AG UI 기능별 이식과 Studio 경계
 
+라우터 추가는 기존 `frontend/app/planm/src/app/App.tsx`의 surface 선택을 확장하는 전용 route matcher로 구현한다. `/projects/:projectId` 등은 segment 단위로 해석해 `/projects-other`를 오인하지 않으며, 기존 앱 링크·back/forward·deep link를 유지한다. 새 라우팅 라이브러리 도입은 필수가 아니다.
+
 **Files:** 기존 이전본 `AG-frontend/src/features/*`, `src/shared/api/{client,ws,mcpWs}.ts`를 근거로 editor 앱 `features/agent-workspace/`에 필요한 기능을 이식한다. 신규 `backend/app/adapters/studio_client.py`, `backend/tests/test_studio_adapter.py`; 공개 DTO만 계약 패키지에 둔다.
 
-**Interface:** agent panel에 project binding, API client, capability와 source revision을 주입한다. Next 앱의 route/sidebar가 소유하며 AG root router를 중첩하지 않는다. Studio 실험은 `/api/integrations/studio`와 명시적 WS 경계로 분리한다.
+**Interface:** agent panel에 project binding, API client, capability와 source revision을 주입한다. 기존 제품 셸의 route/navigation이 소유하며 AG root router를 중첩하지 않는다. Studio 실험은 `/api/integrations/studio`와 명시적 WS 경계로 분리한다.
 
 - [ ] 먼저 실행 이력/owner 상태/누락 입력 표시, 다음 submit/stream, 다음 필요한 Team Builder/MCP 관리 순으로 기능을 고른다.
 - [ ] i18n/theme/localStorage의 import-time 접근을 SSR 경계 밖으로 옮긴다. 기존 local/sessionStorage 이전 정책과 승인 캐시의 사용자/project scope를 명시한다.
