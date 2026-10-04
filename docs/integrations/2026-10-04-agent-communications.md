@@ -57,14 +57,57 @@ Active run polling refreshes saved records, not token streaming.
   Evidence: `.superpowers/sdd/2026-10-04-run-communications/browser.json`;
   screenshot `test-results/editor-saved-a2a-communications.png` inspected.
 
-## Remaining work
+## Follow-up: explicit invocation identity and collaboration flow
 
-1. Record explicit sender/recipient and correlation on future calls and downstream
-   agent-to-agent hops; preserve missing evidence for historical records.
-2. Connect the ARR collaboration topology to those actual edges. Port direct
+New owner calls now persist locally authored `invocation_trace` after result
+validation and before receipt storage. It binds run/task/tool and records
+`from_agent=orchestrator`, `to_agent=<dispatched owner>`. Wire metadata carries the
+same explicit fields. A remote response cannot substitute its own routing claim.
+Historical receipt replay is left untouched; missing identities stay missing.
+
+The existing communication API needs no new endpoint. Frontend responsibilities:
+
+| Path within `features/agent-workspace/` | Responsibility |
+|---|---|
+| `api/communications.ts` | Validate the communication contract |
+| `runs/communication-flow.ts` | Group recorded target identities and counts |
+| `runs/RunCommunicationFlow.tsx` | Accessible target selection and edge display |
+| `runs/RunCommunications.tsx` | Selection state and filtered request/reply cards |
+| `runs/communications.css` | Scoped flow/card layout, including narrow screens |
+
+There is no parallel frontend root, graph-library dependency, global bus state or
+inferred sequence. All calls to a recorded target are grouped, including failed
+attempts; an edge is an invocation relationship, not successful transport or
+design approval. Missing-target calls remain visible in the unfiltered list.
+
+Fresh verification run `5903c8c9257f495297453b6b7417ab1a` used isolated state and
+actual Law8301, MasterPlan18312 and Elevation18327 A2A health calls. All three
+returned succeeded and TASK_STATE evidence; new local target identities were
+law/masterplan/elevation. Owner8794 and Editor18437 then served this run to
+Chrome5186. The product binding was seeded only in the isolated test database;
+this verifies read/display, not project creation or scene validation.
+
+Checks: expanded owner graph/execution/wire/editor suite119 passed; identity suite
+with two additional edge cases10 passed. Frontend build/boundary2 passed.
+Chrome14 passed,7 unrelated opt-in cases skipped; includes grouping, unknown
+identities, actual new A2A targets, reload/filter and390px layout. Two new UI tests
+failed before controls existed, then passed. Independent owner-side reviewer found
+no UI blocker. Evidence is `.superpowers/sdd/2026-10-04-communication-flow/`;
+`test-results/editor-live-communication-flow.png` inspected. Disposable HTTP
+servers were stopped and existing shared services were not restarted.
+
+MasterPlan's downstream Law client copies the upper trace, updates caller/hop and
+adds parent_task_id. Its inherited from_agent/to_agent **must not** be interpreted
+as a new peer edge. This slice renders only the locally bound top-level invocation.
+
+## Next gates
+
+1. Extend explicit identity and correlation to downstream agent-to-agent hops;
+   preserve missing evidence for historical records.
+2. Extend the top-level collaboration flow to verified downstream edges. Port direct
    commands only through durable project-bound execution, with approval/resume
    semantics; do not adopt the unscoped global bus as a product write boundary.
-3. Verify newly executed A2A exchanges in the upgraded operational gateway and
+3. Load the verified changes in the operational gateway and
    implement interrupted/resumed dialogue. Existing gateways need the updated
    code loaded before the new display is available.
 4. Continue parcel provider/address linkage and remaining ARR/AG feature slices.

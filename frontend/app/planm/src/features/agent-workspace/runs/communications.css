@@ -3,3 +3,13 @@
 .run-communications h3 { margin-top: 0; }
 .run-communications summary { cursor: pointer; padding: 8px 0; }
 .run-communications pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; padding: 12px; background: #f4f6f5; }
+.communication-flow { padding: 18px; border: 1px solid #d8ddd9; border-radius: 8px; margin: 16px 0; }
+.communication-flow-graph { display: grid; grid-template-columns: minmax(110px, 1fr) 2fr; align-items: center; gap: 12px; margin: 16px 0; }
+.communication-flow-source { padding: 16px 8px; border: 1px solid #92b2a1; border-radius: 8px; text-align: center; background: #edf5ef; overflow-wrap: anywhere; }
+.communication-flow-targets { display: grid; gap: 8px; }
+.communication-flow-edge { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.communication-flow-arrow { font-size: 24px; color: #4a705b; }
+.communication-flow-edge button { display: grid; gap: 4px; width: 100%; text-align: left; overflow-wrap: anywhere; min-width: 0; }
+.communication-flow-edge button[aria-pressed=true] { border-color: #326947; background: #edf5ef; }
+.communication-flow-edge span { font-size: 13px; }
+@media (max-width: 480px) { .communication-flow { padding: 12px; } .communication-flow-graph { grid-template-columns: 110px minmax(0, 1fr); gap: 4px; } }
