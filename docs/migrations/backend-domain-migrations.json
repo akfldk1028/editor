@@ -333,6 +333,33 @@
         "External artifact catalog/delivery",
         "Final source reconciliation and operational cutover"
       ]
+    },
+    {
+      "id": "execution-artifact-preservation",
+      "api": "Explicit offline import CLI; product serving remains pending",
+      "runtime_source_owner": "editor",
+      "legacy_service_required": false,
+      "targets": [
+        "backend/app/modules/design/artifacts.py",
+        "backend/app/modules/design/import_artifacts.py"
+      ],
+      "verification": {
+        "backend": "39 design tests passed including7preservation tests",
+        "actual_capture": {
+          "cache_files": 1735,
+          "portfolio_files": 4894,
+          "total_bytes": 2942554974
+        },
+        "review": "Independent integrity/path/concurrency review; requested regressions added"
+      },
+      "documentation": "docs/integrations/2026-10-04-design-artifact-preservation.md",
+      "remaining": [
+        "Product catalog and explicit project attachments",
+        "Bounded artifact serving and historical PNG/elevation/passport UI",
+        "Unresolved original execution/candidate links",
+        "Future source snapshot reconciliation",
+        "Native generation and full scene export/reopen"
+      ]
     }
   ]
 }
