@@ -83,7 +83,10 @@
       "targets": [
         "backend/app/api/routes_land.py",
         "backend/app/adapters/vworld.py",
-        "backend/app/modules/land/parcel_geometry.py"
+        "backend/app/modules/land/parcel_geometry.py",
+        "frontend/app/planm/src/features/land-analysis/ParcelLookup.tsx",
+        "frontend/app/planm/src/features/land-analysis/ParcelPreview.tsx",
+        "frontend/app/planm/src/features/land-analysis/parcel-api.ts"
       ],
       "api": [
         "POST /api/v1/land/reverse",
@@ -91,14 +94,18 @@
       ],
       "legacy_service_required": false,
       "runtime_source_owner": "editor",
-      "status": "API/provider fixture verified; UI and live provider pending",
+      "status": "API and browser verified with provider fixtures; live provider pending",
       "verification": {
         "targeted_tests": "42 passed; one existing deprecation warning",
-        "documentation": "docs/integrations/2026-10-04-land-parcels.md"
+        "documentation": "docs/integrations/2026-10-04-land-parcels.md",
+        "browser": "9 passed,5 unrelated opt-in cases skipped; includes real Editor HTTP with upstream provider fixture",
+        "frontend_build": "passed",
+        "module_boundaries": "2 passed",
+        "review": "Independent read-only reviewer: no blocker; added in-flight cancellation test"
       },
       "remaining": [
-        "Existing land-page controls and boundary preview",
         "Live Vworld provider verification",
+        "Address-result-to-boundary flow",
         "Project persistence and scene application"
       ],
       "rollback": "Revert slice; originals and runtime state unchanged"

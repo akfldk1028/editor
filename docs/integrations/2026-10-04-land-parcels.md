@@ -35,12 +35,34 @@ holes, exterior-vs-net-area selection, HTTP/malformed/empty/missing-key failures
 geometry rejection and successful API calls with no legacy URL configured.
 `git diff --check` passes.
 
-These are in-process API/provider contract tests, not live Vworld evidence.
-No browser or production service was exercised in this slice. Next connect the
-existing land-page coordinate/PNU controls and boundary preview, then verify
-the browser flow and real owner-managed provider configuration. Analysis/stats
-still depend on the legacy adapter. Project persistence and scene application,
-remaining ARR/AG features and specialist completion remain separate gates.
+The follow-up UI slice connects the existing `/land` page to these endpoints.
+`ParcelLookup.tsx` owns inputs/request cancellation/status, `parcel-api.ts` owns
+response validation, and `ParcelPreview.tsx` owns SVG rendering. Existing HTTP
+transport is reused. No new dependency, route shell or map engine was added.
+Holes use even-odd fill; MultiPolygon parts stay separate. Input changes cancel
+pending requests and clear old results. The preview labels its coordinate-based
+scope explicitly and does not write to a project or scene.
+
+Actual Chrome: 9 passed, 5 unrelated opt-in cases skipped. This includes four
+parcel UI response-fixture cases and one browser-to-real-Editor-HTTP case with
+only the upstream Vworld transport replaced by a fixture. The original three UI
+tests first failed on missing controls, then passed after implementation.
+Frontend build and both module-boundary tests pass; all 42 targeted backend
+tests pass again. A separate read-only reviewer found no blocker and recommended
+the added in-flight cancellation test. Screenshot inspected at
+`test-results/editor-parcel-preview.png`. Browser log is under
+`.superpowers/sdd/2026-10-04-land-parcel-ui/browser.log`.
+
+The isolated test server used port18436 and the expected frontend origin5186.
+It was stopped after verification. The Python wrapper's final console print
+hit Windows cp949 encoding; the saved UTF-8 Playwright log confirms 9 passing
+tests and server cleanup was verified. This was a reporting-tool issue.
+
+Real Vworld calls and production services were not exercised. Next verify
+owner-managed provider configuration and address-result-to-boundary flow.
+Analysis/stats still depend on the legacy adapter. Project persistence and scene
+application, remaining ARR/AG features and specialist completion remain separate
+gates.
 
 Rollback: revert this slice; original sources, databases and services were not
 modified. No dependency or lockfile changes; existing Shapely is reused.

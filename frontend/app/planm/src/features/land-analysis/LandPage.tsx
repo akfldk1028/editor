@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {analyzeLand,landZones,landStats,type LandResult,type LandZone,type LandStats} from './api';
 import './land.css';
 import ResolutionLookup from './ResolutionLookup';
+import ParcelLookup from './ParcelLookup';
 
 const labels:Record<string,string>={bcr:'건폐율',far:'용적률',height:'높이',sunlight_setback:'일조 이격',
   corner_cutoff:'가각전제',road_diagonal:'도로 사선',building_line:'건축선',adjacent_setback:'인접 대지 이격',
@@ -63,6 +64,7 @@ export default function LandPage() {
       <label><input type="checkbox" checked={includeLaw} onChange={e=>setIncludeLaw(e.target.checked)}/>법령 원문 검색</label>
       <button type="submit" disabled={busy||!input.trim()}>{busy?'분석 중…':'대지 분석'}</button>
     </form>
+    <ParcelLookup input={input} inputType={type}/>
     {metadataErrors.map((message,i)=><p role="status" key={i}>{message}</p>)}
     {error&&<p role="alert">{error}</p>}
     {result&&<>

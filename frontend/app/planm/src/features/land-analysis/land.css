@@ -8,3 +8,6 @@
 .land-analysis dl > div { display: grid; grid-template-columns: minmax(110px, 1fr) 3fr; gap: 16px; padding: 6px 0; }
 .land-analysis dd { margin: 0; }
 .land-analysis [role=alert] { color: #a31515; }
+.land-analysis .parcel-preview { margin: 16px 0; max-width: 480px; }
+.land-analysis .parcel-preview svg { display: block; width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; }
+.land-analysis .parcel-preview path { fill: #bfdbfe; stroke: #1d4ed8; stroke-width: 1.5; }

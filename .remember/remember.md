@@ -1,3 +1,7 @@
+## 2026-10-04 - Parcel UI connected and reviewed
+
+Existing /land now connects PNU and coordinate boundary lookup. ParcelLookup controls requests/cancellation, parcel-api validates responses, ParcelPreview renders Polygon holes and MultiPolygon. No new dependencies or scene writes. Frontend build,2 boundary tests,42 backend tests pass. Chrome9 pass5 opt-in cases skipped, including real Editor HTTP backed by Vworld fixture. Independent reviewer found no blocker; delayed-request cancellation test added. Actual provider and address-to-boundary flow remain next; full integration is incomplete. See docs/integrations/2026-10-04-land-parcels.md. Test server18436 stopped; shared services untouched.
+
 ## 2026-10-04 - Parcel API absorption
 
 Editor now owns reverse and parcel-geometry endpoints through adapters/vworld.py and modules/land/parcel_geometry.py, without ARR imports/HTTP.42 targeted tests pass. Original exterior-area selection and holes retained; reverse keeps MultiPolygon and fallback address. Invalid geometry fails closed. In-process fixture/API verification only: UI/real Vworld not verified. Next connect existing land controls and boundary preview, verify browser and provider, then analysis/statistics ownership. See docs/integrations/2026-10-04-land-parcels.md. Original sources, shared agents, services and state unchanged; full integration remains incomplete.

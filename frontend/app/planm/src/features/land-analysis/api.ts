@@ -12,7 +12,7 @@ export interface LandZone {zone_name:string;bcr_default:number;far_default:numbe
 export interface LandStats {total_queries:number;error_count:number;avg_response_time_ms:number;by_input_type:{input_type:string;count:number}[]}
 export interface LandInput {input:string;input_type:'address'|'pnu';zones:string[];include_law:boolean}
 
-async function request(path:string,signal:AbortSignal,body?:LandInput|Pick<LandInput,'input'|'input_type'>) {
+export async function request(path:string,signal:AbortSignal,body?:LandInput|Pick<LandInput,'input'|'input_type'>|{pnu:string}|{x:number;y:number}) {
   const response=await fetch('/api/v1/land/'+path,{signal,method:body?'POST':'GET',
     headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});
   if (!response.ok) throw new Error(`대지 분석 서비스 연결 실패 (${response.status})`);
