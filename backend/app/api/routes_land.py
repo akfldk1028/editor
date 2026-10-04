@@ -8,17 +8,27 @@ from backend.app.adapters.land import LandClient, LandContractError, LandUnavail
 from backend.app.modules.regulations.zoning_catalog import CatalogUnavailable, get_zones
 from backend.app.modules.land.pnu import normalize_pnu, parse_pnu
 from backend.app.adapters.vworld import VworldClient
+from backend.app.adapters.vworld_land import VworldLandClient
+from backend.app.adapters.vworld_geometry import VworldGeometryClient
 from backend.app.schemas.regulations import ZoningLimitsRequest
-from backend.app.modules.land.analysis import analyze_zones
+from backend.app.modules.land.analysis import analyze_land
+from backend.app.modules.land.analysis_request import normalize_program_request
+from backend.app.modules.land.parcel_geometry import parcel_geometry
+from backend.app.modules.land.attributes import LandAttributes
 from backend.app.modules.land.repository import LandRepository
 
 
 class LandRequest(BaseModel):
-    model_config=ConfigDict(strict=True,extra='forbid')
+    model_config=ConfigDict(strict=True,extra='forbid',allow_inf_nan=False)
     input: str=Field(max_length=500)
     input_type: Literal['address','pnu','raw']
     zones: list[Annotated[str,Field(min_length=1,max_length=100)]]=Field(default_factory=list,max_length=50)
     include_law: bool=True
+    geometry: dict | None=None
+    building_type: str=Field(default='',max_length=200)
+    floor_area_m2: float | None=Field(default=None,gt=0)
+    program_uses: list[dict] | None=Field(default=None,min_length=1,max_length=100)
+    assessment_date: str | None=None
 
     @model_validator(mode='after')
     def check_input(self):
@@ -29,6 +39,10 @@ class LandRequest(BaseModel):
             if not self.zones: raise ValueError('zones are required')
         elif not self.input:
             raise ValueError('input is required')
+        for name, value in normalize_program_request(self.model_dump()).items():
+            setattr(self, name, value)
+        if self.geometry is not None:
+            self.geometry = parcel_geometry(self.geometry)
         return self
 
 
@@ -61,12 +75,15 @@ class ParcelRequest(BaseModel):
         return self
 
 
-def create_land_router(client=None, *, public_origin=None, address_client=None, repository=None):
+def create_land_router(client=None, *, public_origin=None, address_client=None, repository=None,
+                       attribute_client=None, geometry_client=None):
     owner=client or LandClient(os.environ.get('EDITOR_ARR_URL'),
         analysis_timeout=float(os.environ.get('EDITOR_ARR_ANALYSIS_TIMEOUT','180')))
     origin=public_origin or os.environ.get('EDITOR_PUBLIC_URL','http://127.0.0.1:5173')
     router=APIRouter(prefix='/api/v1/land',tags=['land'])
     addresses=address_client or VworldClient(os.environ.get('VWORLD_API_KEY', ''))
+    attributes=attribute_client or VworldLandClient(os.environ.get('VWORLD_API_KEY', ''))
+    geometries=geometry_client or VworldGeometryClient(os.environ.get('VWORLD_API_KEY', ''))
 
     def local_repository():
         if repository is not None:
@@ -137,15 +154,19 @@ def create_land_router(client=None, *, public_origin=None, address_client=None, 
     @router.post('/analyze')
     async def analyze(body: LandRequest, request: Request):
         check_origin(request)
-        if body.input_type == 'raw' and not body.include_law:
+        datum_enabled = os.environ.get('ENABLE_DATUM_ELEVATION', 'false').lower() == 'true'
+        if not body.include_law and not datum_enabled:
             try:
                 local = local_repository()
             except (OSError, ValueError):
                 local = None
             try:
-                return await run_in_threadpool(analyze_zones, body.model_dump(), local)
+                result = await analyze_land(body.model_dump(), addresses,
+                    LandAttributes(attributes, local), geometries, local)
+                return {**result, 'execution_owner': 'editor'}
             except (CatalogUnavailable, OSError):
                 raise HTTPException(503, 'Regulation references unavailable') from None
-        return await respond(owner.analyze(body.model_dump()))
+        result = await respond(owner.analyze(body.model_dump()))
+        return {**result, 'execution_owner': 'legacy'}
 
     return router

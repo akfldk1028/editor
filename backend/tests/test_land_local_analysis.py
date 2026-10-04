@@ -39,10 +39,10 @@ def test_raw_analysis_runs_and_persists_without_arr(monkeypatch, tmp_path):
     assert stats['scope'] == 'editor_local'
 
 
-def test_other_analysis_modes_still_require_legacy(monkeypatch, tmp_path):
+def test_law_analysis_still_requires_legacy(monkeypatch, tmp_path):
     client = client_for(monkeypatch, tmp_path)
     for body in [dict(raw_body(), include_law=True),
-                 {'input': '1168011200101280003', 'input_type': 'pnu', 'include_law': False}]:
+                 {'input': '1168011200101280003', 'input_type': 'pnu', 'include_law': True}]:
         assert client.post('/api/v1/land/analyze', json=body).status_code == 503
     assert client.get('/api/v1/land/stats?scope=editor').json()['total_queries'] == 0
 

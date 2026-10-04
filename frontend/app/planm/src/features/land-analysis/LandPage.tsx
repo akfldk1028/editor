@@ -36,7 +36,7 @@ export default function LandPage() {
   const [statsError,setStatsError]=useState<string|null>(null);
   const [statsRevision,setStatsRevision]=useState(0);
   const active=useRef<AbortController|null>(null);
-  const localAnalysis=type==='raw'&&!includeLaw;
+  const localAnalysis=result?.execution_owner?result.execution_owner==='editor':type==='raw'&&!includeLaw;
   const canAnalyze=type==='raw'?Boolean(zone):Boolean(input.trim());
   useEffect(()=>{
     const controller=new AbortController();
@@ -58,6 +58,7 @@ export default function LandPage() {
   },[input,type,zone,includeLaw]);
   const regulations=result?.regulations;
   const extended=regulations?.extended as Record<string,unknown>|undefined;
+  const landCache=result?.land_info?.cache;
   return <div className="land-analysis"><h1>대지 분석</h1><p>주소·PNU 또는 용도지역으로 대지 정보와 규제 근거를 확인합니다.</p>
     <form onSubmit={async event=>{
       event.preventDefault();if(busy||!canAnalyze)return;
@@ -85,6 +86,9 @@ export default function LandPage() {
     {result&&<>
       {result.storage?.saved===true&&<p role="status">분석 결과를 저장했습니다.</p>}
       {result.storage?.saved===false&&<p role="alert">분석 결과를 저장하지 못했습니다. 현재 결과를 확인한 뒤 다시 시도해 주세요.</p>}
+      {landCache?.stale===true&&<p role="alert">최신 토지 정보를 조회하지 못해 이전에 저장한 토지 정보를 사용했습니다.
+        {typeof landCache.fetched_at==='string'&&landCache.fetched_at?` 조회 시각: ${landCache.fetched_at}`:' 이전 조회 시각은 확인되지 않았습니다.'}
+        {' '}현재 토지 정보와 다를 수 있습니다.</p>}
       <section><h2>분석 판정</h2>{result.assessment?<>
         <p>{result.assessment.status==='needs_evidence'?'추가 근거가 필요합니다.':result.assessment.status}</p>
         <p>{result.assessment.permit_compliance_verified?'ARR에서 허가 적합성 확인을 보고했습니다.':'허가 적합성은 검증되지 않았습니다.'}</p>

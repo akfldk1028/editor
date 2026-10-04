@@ -68,7 +68,7 @@ def test_land_route_validates_input_and_origin_before_owner_call():
     for body in [{'input':'','input_type':'address'}, {'input':'bad','input_type':'pnu'},
         {'input':'x','input_type':'address','url':'http://other'}]:
         assert client.post('/api/v1/land/analyze',json=body).status_code==422
-    body={'input':'11680-11200-10128-0003','input_type':'pnu','include_law':False}
+    body={'input':'11680-11200-10128-0003','input_type':'pnu','include_law':True}
     assert client.post('/api/v1/land/analyze',json=body,headers={'Origin':'https://other.example'}).status_code==403
     assert sent==[]
     assert client.post('/api/v1/land/analyze',json=body).status_code==200

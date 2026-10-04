@@ -1,3 +1,7 @@
+## 2026-10-04 - PNU/address analysis and geometry absorbed
+
+Editor owns no-law/default-datum raw/PNU/address analysis incl attributes/cache, area split, road/neighbors and setback/sunlight geometry. Existing frontend uses execution_owner for stats and shows cached timestamps.320 backend+41 subtests,5 complete original-response cases,Chrome20pass8skip through actual18439 HTTP/providerfixtures;build,boundary2,extractedwheel geometry pass. MultiPolygon query selection difference caught RED/GREEN and preserved. SQLite schema1->2 retains analyses, adds cache; original data untouched. Full integration incomplete: law/advisory next, then datum/history and design/job/artifact/selectedAG. Live Vworld,3D UI parity and operational reload remain unverified. See docs/integrations/2026-10-04-land-parcel-analysis.md.
+
 ## 2026-10-04 - Raw analysis vertical cut
 
 Actual raw/no-law analyze now uses Editor calculators, formatter and local atomic audit/result repository; existing /land supports zone-only action and local-scope stats.261 backend+41 subtests,43 calculation/24 assembled source parity cases; build,boundary2,Chrome17 passed7 skipped with actual isolated18438 HTTP save/count. Wheel9 resources and extracted analysis pass. Storage optional configuration EDITOR_LAND_DATA_DIR absolute; absent/failure explicitly unsaved. Other modes and default legacy stats remain delegated; no historical DB import or operational reload. Next land attributes/cache and PNU/address orchestration, geometry/law branches. Full integration incomplete.

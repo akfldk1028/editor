@@ -1,0 +1,1266 @@
+{
+  "source_sha256": {
+    "land/views.py": "1503ef6b899d6ef5fa728ff68467093e1c088aec2e2e2f5d42be4d2cfb5e3a70",
+    "land/services/setback_geometry.py": "a4e2b6397ccb6e845fec486c55c283e2d54de98debaa47d02aae9c4cdcc6cecd",
+    "land/formatters.py": "cccab66f005bf80ed58fa1e42cb889f1071cabfb9c39cd230aae42d00befab0f",
+    "land/services/zone_geometry.py": "8091bbcb8dd896a675143b73458b52312e4a96ecf604783726dd6d70d0222b48",
+    "design/services/site_geometry.py": "54bce036973b7f5c5dcad7646e050756c79f73c1f766446e7faeb41b24b6a662"
+  },
+  "cases": [
+    {
+      "name": "municipal-road-neighbors",
+      "body": {
+        "input": "4115011300106840001",
+        "input_type": "pnu",
+        "zones": [],
+        "include_law": false,
+        "assessment_date": "2026-10-04",
+        "building_type": "업무시설",
+        "floor_area_m2": 2000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              127,
+              37
+            ],
+            [
+              127.0002,
+              37
+            ],
+            [
+              127.0002,
+              37.0002
+            ],
+            [
+              127,
+              37.0002
+            ],
+            [
+              127,
+              37
+            ]
+          ]
+        ]
+      },
+      "land_info": {
+        "success": true,
+        "pnu": "4115011300106840001",
+        "zones": [
+          "제2종일반주거지역"
+        ],
+        "land_area_m2": 400,
+        "official_land_price": 1000,
+        "land_use_situation": "대",
+        "source": "vworld"
+      },
+      "zone_features": [
+        {
+          "properties": {
+            "uname": "제2종일반주거지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "uname": "자연녹지지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "cadastral_features": [
+        {
+          "properties": {
+            "lndcgrCode": "07",
+            "jibun": "12-3도"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "pnu": "1168011200101280003",
+            "jibun": "13-1대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0002
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "11대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "15대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.1,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.1
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "geometry_failure": false,
+      "response_sha256": "6e28c958dd56d4bac79c3f62a40d7bd190c0ac17d655ca542737f29973b86cb3",
+      "has_setbacks": true
+    },
+    {
+      "name": "seoul-municipal",
+      "body": {
+        "input": "1168011200101280003",
+        "input_type": "pnu",
+        "zones": [],
+        "include_law": false,
+        "assessment_date": "2026-10-04",
+        "building_type": "업무시설",
+        "floor_area_m2": 2000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              127,
+              37
+            ],
+            [
+              127.0002,
+              37
+            ],
+            [
+              127.0002,
+              37.0002
+            ],
+            [
+              127,
+              37.0002
+            ],
+            [
+              127,
+              37
+            ]
+          ]
+        ]
+      },
+      "land_info": {
+        "success": true,
+        "pnu": "1168011200101280003",
+        "zones": [
+          "제2종일반주거지역"
+        ],
+        "land_area_m2": 400,
+        "official_land_price": 1000,
+        "land_use_situation": "대",
+        "source": "vworld"
+      },
+      "zone_features": [
+        {
+          "properties": {
+            "uname": "제2종일반주거지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "uname": "자연녹지지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "cadastral_features": [
+        {
+          "properties": {
+            "lndcgrCode": "07",
+            "jibun": "12-3도"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "pnu": "1168011200101280003",
+            "jibun": "13-1대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0002
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "11대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "15대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.1,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.1
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "geometry_failure": false,
+      "response_sha256": "cb4d01cc4762f472e3cec597b44231975499deb581ebb956e9afa4bab9be0108",
+      "has_setbacks": true
+    },
+    {
+      "name": "multi-zone-split",
+      "body": {
+        "input": "4115011300106840001",
+        "input_type": "pnu",
+        "zones": [],
+        "include_law": false,
+        "assessment_date": "2026-10-04",
+        "building_type": "업무시설",
+        "floor_area_m2": 2000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              127,
+              37
+            ],
+            [
+              127.0002,
+              37
+            ],
+            [
+              127.0002,
+              37.0002
+            ],
+            [
+              127,
+              37.0002
+            ],
+            [
+              127,
+              37
+            ]
+          ]
+        ]
+      },
+      "land_info": {
+        "success": true,
+        "pnu": "4115011300106840001",
+        "zones": [
+          "제2종일반주거지역",
+          "자연녹지지역"
+        ],
+        "land_area_m2": 400,
+        "official_land_price": 1000,
+        "land_use_situation": "대",
+        "source": "vworld"
+      },
+      "zone_features": [
+        {
+          "properties": {
+            "uname": "제2종일반주거지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "uname": "자연녹지지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "cadastral_features": [
+        {
+          "properties": {
+            "lndcgrCode": "07",
+            "jibun": "12-3도"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "pnu": "1168011200101280003",
+            "jibun": "13-1대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0002
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "11대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "15대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.1,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.1
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "geometry_failure": false,
+      "response_sha256": "dc886594cd431366034ecec2e8af9590d18e3d6abca98afa016a14c087b88361",
+      "has_setbacks": true
+    },
+    {
+      "name": "multi-zone-provider-failure",
+      "body": {
+        "input": "4115011300106840001",
+        "input_type": "pnu",
+        "zones": [],
+        "include_law": false,
+        "assessment_date": "2026-10-04",
+        "building_type": "업무시설",
+        "floor_area_m2": 2000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              127,
+              37
+            ],
+            [
+              127.0002,
+              37
+            ],
+            [
+              127.0002,
+              37.0002
+            ],
+            [
+              127,
+              37.0002
+            ],
+            [
+              127,
+              37
+            ]
+          ]
+        ]
+      },
+      "land_info": {
+        "success": true,
+        "pnu": "4115011300106840001",
+        "zones": [
+          "제2종일반주거지역",
+          "자연녹지지역"
+        ],
+        "land_area_m2": 400,
+        "official_land_price": 1000,
+        "land_use_situation": "대",
+        "source": "vworld"
+      },
+      "zone_features": [
+        {
+          "properties": {
+            "uname": "제2종일반주거지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "uname": "자연녹지지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "cadastral_features": [
+        {
+          "properties": {
+            "lndcgrCode": "07",
+            "jibun": "12-3도"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "pnu": "1168011200101280003",
+            "jibun": "13-1대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0002
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "11대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "15대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.1,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.1
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "geometry_failure": true,
+      "response_sha256": "fea4c40ba7b9c00b849b687beae86c65b804f174b977c34a5b7fb570fd926725",
+      "has_setbacks": true
+    },
+    {
+      "name": "no-zone",
+      "body": {
+        "input": "4115011300106840001",
+        "input_type": "pnu",
+        "zones": [],
+        "include_law": false,
+        "assessment_date": "2026-10-04",
+        "building_type": "업무시설",
+        "floor_area_m2": 2000
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              127,
+              37
+            ],
+            [
+              127.0002,
+              37
+            ],
+            [
+              127.0002,
+              37.0002
+            ],
+            [
+              127,
+              37.0002
+            ],
+            [
+              127,
+              37
+            ]
+          ]
+        ]
+      },
+      "land_info": {
+        "success": true,
+        "pnu": "4115011300106840001",
+        "zones": [],
+        "land_area_m2": 400,
+        "official_land_price": 1000,
+        "land_use_situation": "대",
+        "source": "vworld"
+      },
+      "zone_features": [
+        {
+          "properties": {
+            "uname": "제2종일반주거지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "uname": "자연녹지지역"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.00015,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37.0002
+                ],
+                [
+                  127.00015,
+                  37
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "cadastral_features": [
+        {
+          "properties": {
+            "lndcgrCode": "07",
+            "jibun": "12-3도"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37
+                ],
+                [
+                  127.00030000000001,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "pnu": "1168011200101280003",
+            "jibun": "13-1대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127.0002,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0004
+                ],
+                [
+                  127,
+                  37.0002
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "11대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127,
+                  37
+                ],
+                [
+                  127.0002,
+                  37
+                ],
+                [
+                  127.0002,
+                  37.0002
+                ],
+                [
+                  127,
+                  37.0002
+                ],
+                [
+                  127,
+                  37
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "properties": {
+            "jibun": "15대"
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  127.1,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.1
+                ],
+                [
+                  127.101,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.101
+                ],
+                [
+                  127.1,
+                  37.1
+                ]
+              ]
+            ]
+          }
+        }
+      ],
+      "geometry_failure": false,
+      "response_sha256": "9f65853f8fadbb87cc623d1ee94632ef6e77749ac332ac3c4c6e4e5d054a1721",
+      "has_setbacks": false
+    }
+  ]
+}
