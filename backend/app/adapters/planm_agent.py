@@ -69,6 +69,7 @@ def run_planm_stage(
             capture_output=True,
             text=True,
             timeout=timeout_seconds,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
         )
     except subprocess.TimeoutExpired as error:
         raise TimeoutError(
