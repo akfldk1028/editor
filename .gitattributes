@@ -17,3 +17,6 @@
 *.ifc binary
 *.glb binary
 *.gltf binary
+
+# Preserved reference snapshots are verified against original byte hashes.
+backend/app/modules/regulations/data/**/*.json -text
