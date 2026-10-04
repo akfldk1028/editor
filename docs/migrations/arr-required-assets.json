@@ -1,0 +1,836 @@
+{
+  "schema": "editor-arr-required-assets/v1",
+  "complete_asset_closure": false,
+  "target_status": "planned external product data root; no relocation performed",
+  "files": [
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N33E126.tif",
+      "sha256": "61cdc972f8e3a8c05da9fd52ed965f86eb6e21579f583a69da0a566211059221",
+      "bytes": 8820433,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N33E126.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N33E128.tif",
+      "sha256": "8d0d95ed8e17efc0c6944efcfa0dd31ab32bc9ffe45e55674d9cfe3c4c31b6d3",
+      "bytes": 105848,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N33E128.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N33E129.tif",
+      "sha256": "446d35312057a8621bd2b0858c05d8c4c2f7fc7761adcf410b27b7dc4d0dc451",
+      "bytes": 11116872,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N33E129.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N33E130.tif",
+      "sha256": "974a4ee09503e4d08ad609ce1ff99a23e6d13461d38a0535e11c4546415417c0",
+      "bytes": 37476173,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N33E130.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N33E131.tif",
+      "sha256": "30ad13bcb8752c73585136504a22d741a665d771ccbc66ad05c7997010ec0f7e",
+      "bytes": 24989710,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N33E131.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N33E132.tif",
+      "sha256": "978be9710b7e5cdc1a6a1043875a1b0c46d25f3f7b9a26725ff936c95622bfe4",
+      "bytes": 26392554,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N33E132.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N34E125.tif",
+      "sha256": "e6665fa5d115376ce6ce3ffb52ddf231a9876f2448760bb1f930295ea3fa09cd",
+      "bytes": 1395399,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N34E125.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N34E126.tif",
+      "sha256": "7e886d6b9a2e951dedc9176113418930e4657c17c92845c1d7c8a5a14a4e8e9e",
+      "bytes": 26025882,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N34E126.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N34E127.tif",
+      "sha256": "4372a3c58515e5a3c769dcfa7aae50bd9b528686f20156da3d0f73dfa2db3f99",
+      "bytes": 17762299,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N34E127.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N34E128.tif",
+      "sha256": "babf0edcea1bb270ceb3f3fb45aa095676f7555f6e9856ddb09111ac0c0e3b19",
+      "bytes": 5970354,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N34E128.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N34E129.tif",
+      "sha256": "5eed44d79aa4f08e4fced5224e951d08ff3a30f6c29d9055cd8e427e1a993837",
+      "bytes": 4158318,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N34E129.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N34E130.tif",
+      "sha256": "ad2302418a119146ca91c4e760596d83fb80631e991fce842ab0ca7074cfd24e",
+      "bytes": 2216269,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N34E130.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N34E131.tif",
+      "sha256": "c67bd03b25efd5052b335ff328b50bb70f370bb74e6f9cf4574e4f615f4b85ac",
+      "bytes": 27562115,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N34E131.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N34E132.tif",
+      "sha256": "c037a21f7fd94fd9578d027616c94d4ed7eaf423f984efd79f29847fdfb38666",
+      "bytes": 40133629,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N34E132.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N35E125.tif",
+      "sha256": "d963668157d5c75ec0d03d922bef77516f834ca6ff140bf60670857e103b8136",
+      "bytes": 132624,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N35E125.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N35E126.tif",
+      "sha256": "de25b78d939cea3d3582cba2845ea99b22770b2d246572f21602bcfce126cd32",
+      "bytes": 28862336,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N35E126.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N35E127.tif",
+      "sha256": "cba7be6c567073110da11ace1a454b5fc37ea604c583f60ff79ef08766a360a2",
+      "bytes": 48350062,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N35E127.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N35E128.tif",
+      "sha256": "e0dded2916256a50ba6972590676269eea48496ae9a1f89a0b37353fb51628be",
+      "bytes": 48282057,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N35E128.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N35E129.tif",
+      "sha256": "2749f616c0a47b8e510df77026c4578b2cb869b0d1940d0544345fdb18faad37",
+      "bytes": 18359741,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N35E129.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N35E132.tif",
+      "sha256": "74975e5fb19b6f2b13a15767bf832fa5146879c341c39446baad6dd58c817741",
+      "bytes": 12219134,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N35E132.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N36E125.tif",
+      "sha256": "9f7a2f0061c33aea91632c2c88b6fae114ead5cd2fd96420baf342c2ac06923e",
+      "bytes": 146640,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N36E125.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N36E126.tif",
+      "sha256": "a53f177c57f1b9477e59d3426b65ecd6f7645891554d87e2aaf444a3474b3f55",
+      "bytes": 31029477,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N36E126.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N36E127.tif",
+      "sha256": "5acd8774fc11205e1029b20a59f3444750ac5546a5186e936b8bf334a0f9f48e",
+      "bytes": 49583060,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N36E127.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N36E128.tif",
+      "sha256": "8af5b10b27529358db96d8b019c8c5fee09426dcc48a831fe5f16514febd47f8",
+      "bytes": 48490284,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N36E128.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N36E129.tif",
+      "sha256": "1ece0425f75768c8e557c49cd4dd3988f55b4eaa8b28a831ab21b8bbe5fe61a8",
+      "bytes": 21247924,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N36E129.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N36E132.tif",
+      "sha256": "71ebc09cdea984778db35faa9e26ece615d14b5d6d87599f89a3ea3227f229ec",
+      "bytes": 219090,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N36E132.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N37E124.tif",
+      "sha256": "a6aecca0f6333383516fdb5819504f0446d0d413afeec9f9eeca4e247852f58d",
+      "bytes": 577794,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N37E124.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N37E125.tif",
+      "sha256": "a983c349e5ef34fa3516929b26d0d25b1dd2c857a946c739d7c05561746cd378",
+      "bytes": 8307868,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N37E125.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N37E126.tif",
+      "sha256": "f530dd28308ecd6c5ceb0405dc1ffb7113bcafdec30d023de50f16dc433a274f",
+      "bytes": 29862574,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N37E126.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N37E127.tif",
+      "sha256": "4f8fef79da8c18ed9a9a0fb97b3d2695c4681181e013e039d87044e5479f7df6",
+      "bytes": 49403795,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N37E127.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N37E128.tif",
+      "sha256": "69036070795162395dcea060375abba2d448dc2a5b74949844784466191b707c",
+      "bytes": 45141829,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N37E128.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N37E129.tif",
+      "sha256": "089d1ab46d897b9bc325249767fe3787d7cb54a1c614041b6f9b2935a8707c0a",
+      "bytes": 8758373,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N37E129.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N37E130.tif",
+      "sha256": "779be0ecc06dbaba9a3bbe4bfd2e83e760bb875e1a960cc6d2e21f75a5e1a0bf",
+      "bytes": 516549,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N37E130.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N37E131.tif",
+      "sha256": "426112447add8371adb2a20768bb4b460a8348bb841e5a60fb44b379c9fd67e4",
+      "bytes": 94228,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N37E131.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N38E124.tif",
+      "sha256": "c7c725610e1dd2095d388305123f2370782213a981fed43c0fd5124ec44607f7",
+      "bytes": 3342624,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N38E124.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N38E125.tif",
+      "sha256": "afd55fc111533635163a9d2ba9adfc411015e9303fd8337d4478d1ee1c03a164",
+      "bytes": 45858273,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N38E125.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N38E126.tif",
+      "sha256": "b871d71df0f4fd8f63e9696bd49e15cf753a4e8a040f3f35d7b0fef2b3e061a9",
+      "bytes": 49183981,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N38E126.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N38E127.tif",
+      "sha256": "295f132528e85087584a65e104d5c97afae29c9001b338822ce5e12521a94a06",
+      "bytes": 46332224,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N38E127.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N38E128.tif",
+      "sha256": "ef70790d1e4c889f6a0965b7f39fb8627e5682ddad7cc893cf61084af8c7c012",
+      "bytes": 18904152,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N38E128.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N39E124.tif",
+      "sha256": "0064a96acda06e3e11c1dc600b9386cc1e3c4a4b0216f2d96e9e789b46fbbfd9",
+      "bytes": 13250100,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N39E124.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N39E125.tif",
+      "sha256": "5855d3ef72252f6a3b8db372993c8501521b35f9a28b76fcb43de1922554061c",
+      "bytes": 40719607,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N39E125.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N39E126.tif",
+      "sha256": "bb8a55ac3f5ae2ab60c30bf9c3fc56fa5a9ec705d775a68511c2e8b6f7574e8e",
+      "bytes": 47757201,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N39E126.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N39E127.tif",
+      "sha256": "f4e3aaddb861813244cbc9886323931a210c4e36085f9b4b0f72cc120e5c82c0",
+      "bytes": 29825339,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N39E127.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/elevation/data/copernicus_glo30/N39E128.tif",
+      "sha256": "71ea74134e51170639184c79554bda9e706f0ec41b2f5d943166b29fe87ddf30",
+      "bytes": 136662,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/elevation/data/copernicus_glo30/N39E128.tif",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uac1c\ubc1c\uc81c\ud55c\uad6c\uc5ed\uc758_\uc9c0\uc815_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ud2b9\ubcc4\uc870\uce58\ubc95_\ubc95\ub960.json",
+      "sha256": "a2ae2c883d5cfeda62adb0952a3b8a83314ddf63c940169d8a32f8e1c8ee4ff1",
+      "bytes": 198023,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uac1c\ubc1c\uc81c\ud55c\uad6c\uc5ed\uc758_\uc9c0\uc815_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ud2b9\ubcc4\uc870\uce58\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uac1c\ubc1c\uc81c\ud55c\uad6c\uc5ed\uc758_\uc9c0\uc815_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ud2b9\ubcc4\uc870\uce58\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "d93fdfc7ee560ce5ffde0b58c169b75e51987cdf5fa680bab4ed090d1f4d1f06",
+      "bytes": 306861,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uac1c\ubc1c\uc81c\ud55c\uad6c\uc5ed\uc758_\uc9c0\uc815_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ud2b9\ubcc4\uc870\uce58\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uac74\ucd95\ubc95_\ubc95\ub960.json",
+      "sha256": "6a4d382352c2c0aee3103f087db30370f252bbee96221747b155787a527416f1",
+      "bytes": 566470,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uac74\ucd95\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uac74\ucd95\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "85e7b184f8af3c0351126b9b21cf6bc85742b9cbb695fcf6f49e9fb1f3a9d662",
+      "bytes": 211997,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uac74\ucd95\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uac74\ucd95\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "026cb440f9e5f799c1c623d5c47c18f75442fe43350587015f17594681ba45b9",
+      "bytes": 742910,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uac74\ucd95\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uacbd\uad00\ubc95_\ubc95\ub960.json",
+      "sha256": "627ffce0d78ebeacc586d4760748fb33330f0ad0535bb2b268fe66f22cfa68c0",
+      "bytes": 96603,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uacbd\uad00\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uacbd\uad00\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "7f454c0eeb4b1e4128b5d60952129e89291f04776dad71830e418e3a4ddc5f14",
+      "bytes": 72288,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uacbd\uad00\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uad6d\ud1a0\uc758_\uacc4\ud68d_\ubc0f_\uc774\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "sha256": "c78578a643a62e10f41575dbe912c9ee80d2f8c4904c845bf2024cefe9bb0310",
+      "bytes": 727730,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uad6d\ud1a0\uc758_\uacc4\ud68d_\ubc0f_\uc774\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uad6d\ud1a0\uc758_\uacc4\ud68d_\ubc0f_\uc774\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "53f87742b5f46cf791f8b7e9cf32001ea86404e514806aecf8d410d5520c484f",
+      "bytes": 87029,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uad6d\ud1a0\uc758_\uacc4\ud68d_\ubc0f_\uc774\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uad6d\ud1a0\uc758_\uacc4\ud68d_\ubc0f_\uc774\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "sha256": "8c895c988238fd086241fc6f19f8a95ce5a2e1aebdf58994e47b34062fbede83",
+      "bytes": 906968,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uad6d\ud1a0\uc758_\uacc4\ud68d_\ubc0f_\uc774\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uad70\uc0ac\uae30\uc9c0_\ubc0f_\uad70\uc0ac\uc2dc\uc124_\ubcf4\ud638\ubc95_\ubc95\ub960.json",
+      "sha256": "a7f53bcd319389d68bd86c0540a8f736ca5c80260d3bd5cdf89c842845754704",
+      "bytes": 115472,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uad70\uc0ac\uae30\uc9c0_\ubc0f_\uad70\uc0ac\uc2dc\uc124_\ubcf4\ud638\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uad70\uc0ac\uae30\uc9c0_\ubc0f_\uad70\uc0ac\uc2dc\uc124_\ubcf4\ud638\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "f6db2785fbc3313a344c86c43848e682c94c88149db9df6650d4872d9aaa2acb",
+      "bytes": 46760,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uad70\uc0ac\uae30\uc9c0_\ubc0f_\uad70\uc0ac\uc2dc\uc124_\ubcf4\ud638\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uad70\uc0ac\uae30\uc9c0_\ubc0f_\uad70\uc0ac\uc2dc\uc124_\ubcf4\ud638\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "669b3c4adac2a21f0ee0053d1a6e028b28fcabc368e1de7ed50d50791a574a85",
+      "bytes": 107541,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uad70\uc0ac\uae30\uc9c0_\ubc0f_\uad70\uc0ac\uc2dc\uc124_\ubcf4\ud638\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub179\uc0c9\uac74\ucd95\ubb3c_\uc870\uc131_\uc9c0\uc6d0\ubc95_\ubc95\ub960.json",
+      "sha256": "387b004ef93f292aad922c95ff348f16c14a94d2df1fb987193e64d71602e3b1",
+      "bytes": 182110,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub179\uc0c9\uac74\ucd95\ubb3c_\uc870\uc131_\uc9c0\uc6d0\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub179\uc0c9\uac74\ucd95\ubb3c_\uc870\uc131_\uc9c0\uc6d0\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "11933234e7bbb6a25b7162fc3df13827fbefd9ade1188a2a31f1641f2231781e",
+      "bytes": 78016,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub179\uc0c9\uac74\ucd95\ubb3c_\uc870\uc131_\uc9c0\uc6d0\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub179\uc0c9\uac74\ucd95\ubb3c_\uc870\uc131_\uc9c0\uc6d0\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "66f945f3f9492c25f5a7e67248457456d8ced102a72a225acd7bd1018863acb0",
+      "bytes": 73942,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub179\uc0c9\uac74\ucd95\ubb3c_\uc870\uc131_\uc9c0\uc6d0\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub18d\uc9c0\ubc95_\ubc95\ub960.json",
+      "sha256": "d17bbe65452d2661817f1c8f399b75880fd3a615b9e336f252f369742a7d2594",
+      "bytes": 286405,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub18d\uc9c0\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub18d\uc9c0\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "c966bc4ff16dd45f43c2ed3191942bb122cb19a8ae510aca5aa08074a66398df",
+      "bytes": 234287,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub18d\uc9c0\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub18d\uc9c0\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "ed9ee466325800ef82e073efc26426eed3a0ff44a1752ab3faa64249c92da4bd",
+      "bytes": 449392,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub18d\uc9c0\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\ub85c\ubc95_\ubc95\ub960.json",
+      "sha256": "cfccd4f72c85eff65a17c08f5f0ba617aafbe6090c8ca8d598426921f9aaf007",
+      "bytes": 370990,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\ub85c\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\ub85c\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "00f78f95ae0e7231a6a2bc693cb882e939fde492f4a01a505cfab98622640dbe",
+      "bytes": 102233,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\ub85c\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\ub85c\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "ce39c5bb43fc8fc053ab4a4782b919992c0ccf4e04a144c75b71ea926afc804a",
+      "bytes": 339823,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\ub85c\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\uc2dc_\ubc0f_\uc8fc\uac70\ud658\uacbd\uc815\ube44\ubc95_\ubc95\ub960.json",
+      "sha256": "b12d77766c6a7d54b7a25faf724a28b1ebd68c419aa850deb9bab8b5af4707d4",
+      "bytes": 818801,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\uc2dc_\ubc0f_\uc8fc\uac70\ud658\uacbd\uc815\ube44\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\uc2dc_\ubc0f_\uc8fc\uac70\ud658\uacbd\uc815\ube44\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "3a88e80645628e761af09addc2402896a069cfd2cc4fe6d82505313e605f70c4",
+      "bytes": 101869,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\uc2dc_\ubc0f_\uc8fc\uac70\ud658\uacbd\uc815\ube44\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\uc2dc_\ubc0f_\uc8fc\uac70\ud658\uacbd\uc815\ube44\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "d69a92acf62e232715bd2383572cdf319ca5f1bf0ce30b8bff28bd135e25c0b4",
+      "bytes": 541987,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\uc2dc_\ubc0f_\uc8fc\uac70\ud658\uacbd\uc815\ube44\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\uc2dc\uacf5\uc6d0_\ubc0f_\ub179\uc9c0_\ub4f1\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "sha256": "440fe82bfbf90e057ed09ea9b81bf7769b0764f84fbbd8dbc777f51f7c08c654",
+      "bytes": 212047,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\uc2dc\uacf5\uc6d0_\ubc0f_\ub179\uc9c0_\ub4f1\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\uc2dc\uacf5\uc6d0_\ubc0f_\ub179\uc9c0_\ub4f1\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "623ff9c12d749ece5f09d54859d774cb7ed332516be2cba8fdc6e6e36ec40cd8",
+      "bytes": 91468,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\uc2dc\uacf5\uc6d0_\ubc0f_\ub179\uc9c0_\ub4f1\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ub3c4\uc2dc\uacf5\uc6d0_\ubc0f_\ub179\uc9c0_\ub4f1\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "sha256": "7dd8b3bdb92862ccf08dc50081a38b5fceadd553daeacab3abc2967b3be70847",
+      "bytes": 157584,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ub3c4\uc2dc\uacf5\uc6d0_\ubc0f_\ub179\uc9c0_\ub4f1\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ubb38\ud654\uc720\uc0b0\uc758_\ubcf4\uc874_\ubc0f_\ud65c\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "sha256": "7e5878d0358089fec3d170a6fc988b27006d9b50e54afbe879ba80e5aaaea7f6",
+      "bytes": 462836,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ubb38\ud654\uc720\uc0b0\uc758_\ubcf4\uc874_\ubc0f_\ud65c\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ubb38\ud654\uc720\uc0b0\uc758_\ubcf4\uc874_\ubc0f_\ud65c\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "77b0442deffc676dbfdd639261f30a4ffecf67652ecfe3b8ebdfc43645b57177",
+      "bytes": 195867,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ubb38\ud654\uc720\uc0b0\uc758_\ubcf4\uc874_\ubc0f_\ud65c\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ubb38\ud654\uc720\uc0b0\uc758_\ubcf4\uc874_\ubc0f_\ud65c\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "sha256": "e6fbeaf0f204ce457bf92e7bfa7b194e3fa2b04c7eebf58af5e3eb439734ef1b",
+      "bytes": 240288,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ubb38\ud654\uc720\uc0b0\uc758_\ubcf4\uc874_\ubc0f_\ud65c\uc6a9\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc0b0\uc9c0\uad00\ub9ac\ubc95_\ubc95\ub960.json",
+      "sha256": "661d0a652b31760bac67433513ebc35f9861c55d0e929a9e67278a6a25d396fc",
+      "bytes": 352609,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc0b0\uc9c0\uad00\ub9ac\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc0b0\uc9c0\uad00\ub9ac\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "9a072fb5f2e8c23c0d44ff307b8be221fa294843e09c049bf029a9dc1d8932c9",
+      "bytes": 341803,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc0b0\uc9c0\uad00\ub9ac\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc0b0\uc9c0\uad00\ub9ac\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "3105eadfd1a22855c4f211919236b6c2ad49666d4e96ac76694a3cdde12752d5",
+      "bytes": 576440,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc0b0\uc9c0\uad00\ub9ac\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc18c\ubc29\uc2dc\uc124_\uc124\uce58_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "sha256": "b35ae4e4eb41a0db138c29ee854dc9fdd7ada98a28b2578cb9e2f4d1e5777d91",
+      "bytes": 229068,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc18c\ubc29\uc2dc\uc124_\uc124\uce58_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc18c\ubc29\uc2dc\uc124_\uc124\uce58_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "18426ce25b3c00199062cc26eb78bd3f915bfd5eb7b863e5620fc316b885dbf1",
+      "bytes": 169566,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc18c\ubc29\uc2dc\uc124_\uc124\uce58_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc18c\ubc29\uc2dc\uc124_\uc124\uce58_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "sha256": "0c600229fc3dfe45a77eaed016ce26a7c4367ea90acd340b4da19515c6a4c78d",
+      "bytes": 154769,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc18c\ubc29\uc2dc\uc124_\uc124\uce58_\ubc0f_\uad00\ub9ac\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc218\ub3c4\ubc95_\ubc95\ub960.json",
+      "sha256": "ac250692e75d4f65dac54e33a825ac31598b23cad92f8da8b84bca2d34c32de9",
+      "bytes": 382831,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc218\ub3c4\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc218\ub3c4\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "c504b5f9cbb4023edfb6d0108af7777886588f035863c86c7733ba1b695071ed",
+      "bytes": 168173,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc218\ub3c4\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc218\ub3c4\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "2e1137336605d9746b2d2a294f2d686645350cd40d64de78708195f11add1452",
+      "bytes": 265088,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc218\ub3c4\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc790\uc5f0\uacf5\uc6d0\ubc95_\ubc95\ub960.json",
+      "sha256": "607e39b0db003dc0e1375a13a9909cfda57c22f32d4921e17899e1513319ba9a",
+      "bytes": 240047,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc790\uc5f0\uacf5\uc6d0\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc790\uc5f0\uacf5\uc6d0\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "9f923b6d2d141d00fe6bbbc95f7c62a5e5eb4d2e147d933f8d93faf155ee1d6e",
+      "bytes": 64639,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc790\uc5f0\uacf5\uc6d0\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc790\uc5f0\uacf5\uc6d0\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "fb9f5b30c08a86e921c88e4192ee39b9525050f5ea90e0e1cd6de22b18915cd6",
+      "bytes": 212058,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc790\uc5f0\uacf5\uc6d0\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc7a5\uc560\uc778\u318d\ub178\uc778\u318d\uc784\uc0b0\ubd80_\ub4f1\uc758_\ud3b8\uc758\uc99d\uc9c4_\ubcf4\uc7a5\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "sha256": "2278906cc3124fee994d7a4da58facebcaebacbad7b3959c8e20ec8f4e69f7b1",
+      "bytes": 94604,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc7a5\uc560\uc778\u318d\ub178\uc778\u318d\uc784\uc0b0\ubd80_\ub4f1\uc758_\ud3b8\uc758\uc99d\uc9c4_\ubcf4\uc7a5\uc5d0_\uad00\ud55c_\ubc95\ub960_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc7a5\uc560\uc778\u318d\ub178\uc778\u318d\uc784\uc0b0\ubd80_\ub4f1\uc758_\ud3b8\uc758\uc99d\uc9c4_\ubcf4\uc7a5\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "4b34e84ea7706d600b5e32e2318e7ebc6f5e4625c3abffa5b18677ec36c41cc5",
+      "bytes": 33872,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc7a5\uc560\uc778\u318d\ub178\uc778\u318d\uc784\uc0b0\ubd80_\ub4f1\uc758_\ud3b8\uc758\uc99d\uc9c4_\ubcf4\uc7a5\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc7a5\uc560\uc778\u318d\ub178\uc778\u318d\uc784\uc0b0\ubd80_\ub4f1\uc758_\ud3b8\uc758\uc99d\uc9c4_\ubcf4\uc7a5\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "sha256": "36bc0ea4d28b0d0114403bc1c487104552613bb1b7a459098e70abf98d717da2",
+      "bytes": 57210,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc7a5\uc560\uc778\u318d\ub178\uc778\u318d\uc784\uc0b0\ubd80_\ub4f1\uc758_\ud3b8\uc758\uc99d\uc9c4_\ubcf4\uc7a5\uc5d0_\uad00\ud55c_\ubc95\ub960_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc8fc\ucc28\uc7a5\ubc95_\ubc95\ub960.json",
+      "sha256": "9f0d219ddeb1d8dde0408d12148ab35e5dc4decb1c7ce0149ee803ace28a2372",
+      "bytes": 231488,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc8fc\ucc28\uc7a5\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc8fc\ucc28\uc7a5\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "5b003ba1c4461ce936f8f5daa3b2f9930efe957cb230782642c7300d062c7f44",
+      "bytes": 196826,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc8fc\ucc28\uc7a5\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc8fc\ucc28\uc7a5\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "238297e9afbde796867b7383ec6935d070d5a79de73346848352fdc673839a33",
+      "bytes": 108077,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc8fc\ucc28\uc7a5\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc8fc\ud0dd\ubc95_\ubc95\ub960.json",
+      "sha256": "f1dd40107d5674eb0df9b8d4be0e403e3b2fb009132144c7cc5511341c28edc3",
+      "bytes": 526570,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc8fc\ud0dd\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc8fc\ud0dd\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "3f6a849819cbcef947a4a953c39886d54a7d94263a6ff8d65ca7b554c861a3cb",
+      "bytes": 216314,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc8fc\ud0dd\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\uc8fc\ud0dd\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "6074506693c7461e7370c6125e9fc83526d0812a543634b634ba886d75d02f50",
+      "bytes": 496358,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\uc8fc\ud0dd\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ud558\uc218\ub3c4\ubc95_\ubc95\ub960.json",
+      "sha256": "a25152308f35e1df80f2d86dbd8a4a69e276fa0fde36926c976433c4d8b82a6f",
+      "bytes": 335376,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ud558\uc218\ub3c4\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ud558\uc218\ub3c4\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "96bb71cdd3af8c1ee3f5bda02c12e3c9ffe053646368ae71c7f33f138d9b479a",
+      "bytes": 255197,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ud558\uc218\ub3c4\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ud558\uc218\ub3c4\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "4df6ab92c89936dde532e4fc400ed71a434b74f2a8b277939b7c61a3846ecfca",
+      "bytes": 174906,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ud558\uc218\ub3c4\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ud559\uad50\ubcf4\uac74\ubc95_\ubc95\ub960.json",
+      "sha256": "c155d2994135e206bf1f571169b5765536d8084cfa3c5a4d9dc8fedeb5521d1f",
+      "bytes": 74888,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ud559\uad50\ubcf4\uac74\ubc95_\ubc95\ub960.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ud559\uad50\ubcf4\uac74\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "sha256": "222bc37bafa9ff48bb0ea66bc1ae4258c35e438d0ba4e9f790603dfd15b3f970",
+      "bytes": 25827,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ud559\uad50\ubcf4\uac74\ubc95_\uc2dc\ud589\uaddc\uce59.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/data/api_backup_20260910/\ud559\uad50\ubcf4\uac74\ubc95_\uc2dc\ud589\ub839.json",
+      "sha256": "5f489136a755b51b5a71c2ceebfee51e6ac6a78c605c6cc8a1757ca4a8955cbf",
+      "bytes": 89042,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/data/api_backup_20260910/\ud559\uad50\ubcf4\uac74\ubc95_\uc2dc\ud589\ub839.json",
+      "status": "preserved; target configuration and relocation pending"
+    },
+    {
+      "source": "D:/Data/25_ACE/ARR/backend/law/relationship_embedding/data/relationship_contexts_with_embeddings.json",
+      "sha256": "2212c900f80a3f2b501f923a73e64a78e45ee80b4524d54721da9a9a14032fe1",
+      "bytes": 870788549,
+      "classification": "required_asset",
+      "target": "D:/Data/25_ACE/runtime/editor/arr/assets/law/relationship_embedding/data/relationship_contexts_with_embeddings.json",
+      "status": "preserved; target configuration and relocation pending"
+    }
+  ],
+  "pending": [
+    "Runtime readers must use configured asset root",
+    "Other runtime artifact and external book/model dependencies",
+    "Isolated domain equivalence tests"
+  ]
+}

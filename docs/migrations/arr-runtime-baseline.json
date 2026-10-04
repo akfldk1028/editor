@@ -1,0 +1,38 @@
+{
+  "observed_date": "2026-10-04",
+  "status": "installed-environment-observation; isolated relocation not yet validated",
+  "live_listener": "127.0.0.1:18320",
+  "live_process_observed": 25676,
+  "executable": "C:/Python313/python.exe",
+  "python_version": "3.13.7",
+  "entrypoint": "D:/Data/25_ACE/agents/MasterPlanagent/runs/revision-intent-20261001/current_entry.py arr",
+  "source_cwd": "D:/Data/25_ACE/ARR/backend",
+  "runtime_policy": {
+    "hidden_subprocesses": true,
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "installed_versions": {
+    "Django": "6.0.2",
+    "channels": "4.3.2",
+    "shapely": "2.1.0",
+    "httpx": "0.28.1",
+    "pymoo": "0.6.1.6",
+    "numpy": "2.4.3",
+    "manifold3d": "3.4.1",
+    "rasterio": "1.5.0",
+    "torch": "2.8.0+cu126",
+    "uvicorn": "0.46.0"
+  },
+  "declared_environment_difference": {
+    "source": "ARR/backend/requirements.txt",
+    "torch_requirement": "torch==2.12.0+cpu",
+    "action": "Preserve observed environment as baseline; resolve isolated constraints before installing or changing production packages"
+  },
+  "limitations": [
+    "Process identity was observed at this time; do not reuse stored PID without checking identity",
+    "Metadata was read with the same executable in a fresh process; not proof of every module already loaded by the live daemon",
+    "No source move, environment upgrade, migration, operational restart or GPU capability test"
+  ]
+}

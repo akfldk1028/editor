@@ -3,12 +3,13 @@
   "scope": "ARR/AG API declarations, UI groups, ARR management commands, AG CLI and shared phase/registry roles; action and transitive asset inventory incomplete",
   "complete_inventory": false,
   "pending": [
-    "ARR UI actions",
-    "AG lightweight UI actions",
-    "AG backend operations",
-    "CLI and registered agents",
-    "Shared agent transitive dependencies",
-    "Assets and preservation"
+    "Remaining ARR UI actions and runtime parity and backend bindings",
+    "AG lightweight per-action HTTP/WS bindings",
+    "AG static /files mount and WebSocket message operations",
+    "ARR Electron IPC and auxiliary frontend/backend/server reachability",
+    "Nested Django admin model operations",
+    "Shared owner transitive source/asset dependencies and affected-owner preservation",
+    "Runtime asset consumption closure and isolated environment version reconciliation"
   ],
   "features": [
     {
@@ -5430,6 +5431,1363 @@
       "evidence": [
         "pyproject autogenstudio entrypoint and @app.command decorators"
       ]
+    },
+    {
+      "id": "arr-action:law-search",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/law/LawChat.tsx",
+      "line": 130,
+      "ui_actions": [
+        "Submit text, Enter or example query"
+      ],
+      "api_operations": [
+        "POST /law/search/ OR POST /law/domain/{domainId}/search/ via useLawChat"
+      ],
+      "activation": "/law; nonempty query and not busy; streamingMode=false by default",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/law",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#law-search",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:law-stream",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/law/hooks/use-law-search-stream.ts",
+      "line": 75,
+      "ui_actions": [
+        "Submit streaming law search"
+      ],
+      "api_operations": [
+        "GET SSE /law/search/stream?query=&limit=&domain_id=; onmessage progress.status complete/error"
+      ],
+      "activation": "/law with streaming toggle enabled",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/law",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#law-stream",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:law-stop",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/law/hooks/use-law-search-stream.ts",
+      "line": 111,
+      "ui_actions": [
+        "Stop streaming search"
+      ],
+      "api_operations": [
+        "EventSource.close via cleanup; local status error"
+      ],
+      "activation": "/law during streaming",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/law",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#law-stop",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Client disconnection is not evidence of backend cancellation."
+      ]
+    },
+    {
+      "id": "arr-action:law-domain-health",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/law/contexts/LawAPIContext.tsx",
+      "line": 7,
+      "ui_actions": [
+        "Load domain choices and connection state"
+      ],
+      "api_operations": [
+        "GET /law/domains/; GET /law/health/"
+      ],
+      "activation": "LawAPIProvider mount",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/law",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#law-domain-health",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:law-article",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/law/components/ArticleDetailPanel.tsx",
+      "line": 37,
+      "ui_actions": [
+        "Open selected full article"
+      ],
+      "api_operations": [
+        "GET /law/article/?full_id="
+      ],
+      "activation": "Selected article with full ID",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/law",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#law-article",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:law-map",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/law/hooks/use-map-law-search.ts",
+      "line": 141,
+      "ui_actions": [
+        "Click parcel and analyze"
+      ],
+      "api_operations": [
+        "POST /land/reverse/ then quick POST /land/analyze/ or agent SSE"
+      ],
+      "activation": "/law; analysisMode initially agent; map ready and not busy",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/land-analysis",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#law-map",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:law-address",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/law/hooks/use-map-law-search.ts",
+      "line": 176,
+      "ui_actions": [
+        "Search address or PNU in law map"
+      ],
+      "api_operations": [
+        "Land resolve/reverse/analyze clients or agent SSE"
+      ],
+      "activation": "/law map search; mode-dependent",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/land-analysis",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#law-address",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:land-agent",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/land/hooks/use-agent-analyze.ts",
+      "line": 86,
+      "ui_actions": [
+        "Stream deep agent land analysis"
+      ],
+      "api_operations": [
+        "GET SSE /land/agent-analyze/stream?{params}; message events; stop closes EventSource"
+      ],
+      "activation": "Invoked from law map agent mode",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/land-analysis",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#land-agent",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Shared agent reachability, actual event schemas and cancellation semantics require contract verification."
+      ]
+    },
+    {
+      "id": "arr-action:land-map-click",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/land/LandMap.tsx",
+      "line": 37,
+      "ui_actions": [
+        "Select parcel and display regulation/setback overlays"
+      ],
+      "api_operations": [
+        "useLandAnalysis.analyzeByCoordinate: reverse then analyze"
+      ],
+      "activation": "/land; OpenLayers map click",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/land-analysis",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#land-map-click",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:land-search",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/land/LandMap.tsx",
+      "line": 58,
+      "ui_actions": [
+        "Search address/PNU and fly to result"
+      ],
+      "api_operations": [
+        "POST /land/resolve/ for non-PNU; useLandAnalysis.analyzeByInput -> POST /land/analyze/"
+      ],
+      "activation": "/land search bar",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/land-analysis",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#land-search",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:map-config",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/land/hooks/use-vworld-3d.ts",
+      "line": 310,
+      "ui_actions": [
+        "Initialize 3D map"
+      ],
+      "api_operations": [
+        "GET /land/map-config/; Vworld external tile/WMS/Cesium assets"
+      ],
+      "activation": "3D map hook mount used by law/design",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/land-analysis",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#map-config",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "External key/origin permissions, Cesium assets, terrain and coordinate parity remain unresolved."
+      ]
+    },
+    {
+      "id": "arr-action:design-site",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/DesignPage.tsx",
+      "line": 431,
+      "ui_actions": [
+        "Search PNU/address, select map parcel, or open pnu/address query link"
+      ],
+      "api_operations": [
+        "POST /design/site-boundary/ then POST /design/auto-constraints/"
+      ],
+      "activation": "/design; clears selection/preview/floorplan and disconnects old stream",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-site",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-building-type",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/DesignPage.tsx",
+      "line": 452,
+      "ui_actions": [
+        "Change building type and reload constraints"
+      ],
+      "api_operations": [
+        "POST /design/auto-constraints/"
+      ],
+      "activation": "Only reloads with activePnu and site polygon",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/program",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-building-type",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-start",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/DesignPage.tsx",
+      "line": 481,
+      "ui_actions": [
+        "Start mass optimization with algorithm/population/generation options"
+      ],
+      "api_operations": [
+        "POST /design/jobs/ via useDesignJob.startJob; GET SSE /design/jobs/{id}/stream"
+      ],
+      "activation": "/design; site polygon needed by hook; default algorithm maas_legal_envelope",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-start",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Client runJob POST declaration is not used by startJob; backend stream/start semantics need review."
+      ]
+    },
+    {
+      "id": "arr-action:design-stream",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/hooks/use-optimization-stream.ts",
+      "line": 176,
+      "ui_actions": [
+        "Display live optimization and final Pareto results"
+      ],
+      "api_operations": [
+        "GET SSE /design/jobs/{jobId}/stream; started/generation/complete/error/cancelled; GET /design/jobs/{jobId}/results/"
+      ],
+      "activation": "After job creation; completed results fallback/recovery in hook",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-stream",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-cancel",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/DesignPage.tsx",
+      "line": 509,
+      "ui_actions": [
+        "Cancel current job"
+      ],
+      "api_operations": [
+        "POST /design/jobs/{jobId}/cancel/ then stream.disconnect"
+      ],
+      "activation": "Requires current job",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-cancel",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-select",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/DesignPage.tsx",
+      "line": 549,
+      "ui_actions": [
+        "Select Pareto mass and optionally create quick floor plan"
+      ],
+      "api_operations": [
+        "Local selectedDesign/3D mass; generateFloorPlan after 250ms when autoFloorPlan=true"
+      ],
+      "activation": "Requires selected design and matching stream GeoJSON; autoFloorPlan defaults true",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-select",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-floorplan",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/DesignPage.tsx",
+      "line": 521,
+      "ui_actions": [
+        "Generate selected mass floorplan; choose result/algorithm"
+      ],
+      "api_operations": [
+        "POST /design/floor-plan/; footprint_geojson, building type room preset, cell_size 3, options"
+      ],
+      "activation": "Selected design with matching GeoJSON; manual button or automatic selection",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/planm-planning",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-floorplan",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Floorplan schema/units, room presets and scene import not verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-view",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/DesignPage.tsx",
+      "line": 864,
+      "ui_actions": [
+        "Switch mass/floor view, toggle all Pareto masses and automatic floorplans"
+      ],
+      "api_operations": [
+        "Local React viewTab/showAllPareto/autoFloorPlan state"
+      ],
+      "activation": "/design result controls",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-view",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-patch",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/InteractiveDesignPanel.tsx",
+      "line": 226,
+      "ui_actions": [
+        "Generate modification candidates from user text"
+      ],
+      "api_operations": [
+        "POST /design/interactive/patch/"
+      ],
+      "activation": "InteractiveDesignPanel; nonempty message",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-patch",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-preview",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/InteractiveDesignPanel.tsx",
+      "line": 251,
+      "ui_actions": [
+        "Compute and select modification preview"
+      ],
+      "api_operations": [
+        "POST /design/interactive/preview/; onPreviewCandidate updates page GeoJSON"
+      ],
+      "activation": "Requires patch plan/site polygon/site area",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-preview",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Preview selection is page state; durable scene write is not established."
+      ]
+    },
+    {
+      "id": "arr-action:design-legal-variants",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/InteractiveDesignPanel.tsx",
+      "line": 280,
+      "ui_actions": [
+        "Generate up to six MAAS legal variants"
+      ],
+      "api_operations": [
+        "POST /design/maas/legal-variants/"
+      ],
+      "activation": "Requires mass and site polygon",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-legal-variants",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-operation",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/InteractiveDesignPanel.tsx",
+      "line": 345,
+      "ui_actions": [
+        "Apply push/pull operation and display candidate/reviews"
+      ],
+      "api_operations": [
+        "POST /design/interactive/operation/"
+      ],
+      "activation": "Requires mass and site polygon",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-operation",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-aesthetic",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/InteractiveDesignPanel.tsx",
+      "line": 405,
+      "ui_actions": [
+        "Generate facade/image and optionally display texture/glTF"
+      ],
+      "api_operations": [
+        "POST /design/jobs/{jobId}/results/{designId}/aesthetic/; provider/style/attach_to_evidence"
+      ],
+      "activation": "Requires persisted job and mass design ID; page suppresses texture projection when skipped",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/elevation",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-aesthetic",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Provider credentials/costs and generated asset ownership/reapplication require migration verification."
+      ]
+    },
+    {
+      "id": "arr-action:design-evidence",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/InteractiveDesignPanel.tsx",
+      "line": 146,
+      "ui_actions": [
+        "Load selected design evidence"
+      ],
+      "api_operations": [
+        "GET /design/jobs/{jobId}/results/{designId}/evidence/"
+      ],
+      "activation": "Interactive panel selected design",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-evidence",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-agent-bus",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/InteractiveDesignPanel.tsx",
+      "line": 163,
+      "ui_actions": [
+        "Send agent review/bus messages and refresh status"
+      ],
+      "api_operations": [
+        "GET {AG_LIGHT_BASE}/health; GET /bus/log; POST /bus/send"
+      ],
+      "activation": "Interactive panel; VITE_AG_LIGHT_URL or http://127.0.0.1:8200",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/agent-workspace",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-agent-bus",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Must replace AG-light dependency with owned shared-agent contracts; bus message admission not verified."
+      ]
+    },
+    {
+      "id": "arr-action:design-mas-dialogue",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/DefaultAgentFlowPanel.tsx",
+      "line": 89,
+      "ui_actions": [
+        "Display agent dialogue and send event"
+      ],
+      "api_operations": [
+        "fetchMASDialogue plus GET /bus/log and POST /bus/send"
+      ],
+      "activation": "DefaultAgentFlowPanel",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/agent-workspace",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#design-mas-dialogue",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "mas-dialogue.ts contains FALLBACK_MAS_TRANSCRIPT; displayed fallback does not establish live collaboration."
+      ]
+    },
+    {
+      "id": "arr-action:book-initial-load",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/book-language-flow/BookLanguageFlow.tsx",
+      "line": 612,
+      "ui_actions": [
+        "Load BOOK language graph, evaluation portfolio and creative portfolio"
+      ],
+      "api_operations": [
+        "GET /design/maas/language-system/; GET /design/maas/portfolio-evaluations/; GET /design/maas/creative-portfolios/"
+      ],
+      "activation": "/design/language renders BookLanguageFlow standalone; also embedded where imported",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#book-initial-load",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:book-outcome-graph",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/book-language-flow/BookLanguageFlow.tsx",
+      "line": 656,
+      "ui_actions": [
+        "Load outcome graph slice for selected context"
+      ],
+      "api_operations": [
+        "GET /design/maas/outcome-graph/?{query}"
+      ],
+      "activation": "Book graph state effect",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#book-outcome-graph",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:book-archive",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/book-language-flow/BookLanguageFlow.tsx",
+      "line": 677,
+      "ui_actions": [
+        "Load archive and select run; poll archive every 3 seconds"
+      ],
+      "api_operations": [
+        "GET /design/maas/executed-masses/?run_id="
+      ],
+      "activation": "Book flow mount/run choice; reconciles latest/publishable run",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#book-archive",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:book-passport",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/book-language-flow/BookLanguageFlow.tsx",
+      "line": 737,
+      "ui_actions": [
+        "Select mass and inspect execution passport/evidence"
+      ],
+      "api_operations": [
+        "GET /design/maas/executed-masses/{index}/passport/?run_id="
+      ],
+      "activation": "Nonempty archive selected mass/run",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#book-passport",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:book-execute",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/book-language-flow/BookLanguageFlow.tsx",
+      "line": 1024,
+      "ui_actions": [
+        "Execute selected archived mass and load resulting archive/passport"
+      ],
+      "api_operations": [
+        "POST /design/maas/single-executions/ followed by GET executed manifest/passport"
+      ],
+      "activation": "EXECUTE SELECTED MASS action; selected archived mass",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#book-execute",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:book-vlm",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/book-language-flow/useSingleMassVlmReview.ts",
+      "line": 39,
+      "ui_actions": [
+        "Run bounded paid VLM review and refresh passport"
+      ],
+      "api_operations": [
+        "POST /design/maas/single-executions/{executionId}/vlm-review/ with reference_limit clamped to 0..3; GET passport"
+      ],
+      "activation": "Requires selected run prefix single-execution: and not already running",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#book-vlm",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Paid review cost/authorization and actual number of provider requests require backend contract review; frontend reference_limit is not a request-count guarantee. Not executed in this research."
+      ]
+    },
+    {
+      "id": "arr-action:book-geometry-passport",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/book-language-flow/GeometryContractEvidence.tsx",
+      "line": 27,
+      "ui_actions": [
+        "Inspect geometry passport and preview; expand execution flow"
+      ],
+      "api_operations": [
+        "GET /design/maas/geometry-shapes/{index}/passport/; preview image URL helper"
+      ],
+      "activation": "Selected geometry shape in BOOK evidence component",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#book-geometry-passport",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:book-navigation",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/design/components/book-language-flow/BookLanguageFlow.tsx",
+      "line": 990,
+      "ui_actions": [
+        "Select graph node, reset selection, fullscreen, graph/archive/creative views and pagination"
+      ],
+      "api_operations": [
+        "Local graph selection/view/page state and derived evidence components"
+      ],
+      "activation": "BookLanguageFlow buttons and canvas callbacks",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/massing",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#book-navigation",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:login",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Login.tsx",
+      "line": 96,
+      "ui_actions": [
+        "Log in with credentials"
+      ],
+      "api_operations": [
+        "POST proxy /api/login; setAuth and navigate"
+      ],
+      "activation": "Public /login route",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#login",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:signup",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/SignUp.tsx",
+      "line": 94,
+      "ui_actions": [
+        "Register account"
+      ],
+      "api_operations": [
+        "POST proxy /api/register"
+      ],
+      "activation": "Public /signup route",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#signup",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:oauth",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Login.tsx",
+      "line": 149,
+      "ui_actions": [
+        "Google/GitHub OAuth login"
+      ],
+      "api_operations": [
+        "Stack signInWithOAuth; auth-code-received IPC; POST https://api.stack-auth.com/api/v1/auth/oauth/token; POST proxy /api/login-by_stack?token="
+      ],
+      "activation": "Requires HAS_STACK_KEYS; signup duplicates this flow",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#oauth",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Desktop deep link/callback and browser auth alternatives need product decision; no auth guard on declared routes."
+      ]
+    },
+    {
+      "id": "arr-action:auth-storage",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/store/authStore.ts",
+      "line": 143,
+      "ui_actions": [
+        "Persist identity/token/appearance/language and logout state"
+      ],
+      "api_operations": [
+        "Zustand persist auth-storage; local logout reset"
+      ],
+      "activation": "Auth store consumed by settings and HTTP clients",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#auth-storage",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Identity ownership and migration of local credentials/settings unresolved; do not conflate with Django principal."
+      ]
+    },
+    {
+      "id": "arr-action:history-list",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Dashboard/Project.tsx",
+      "line": 212,
+      "ui_actions": [
+        "List saved task history"
+      ],
+      "api_operations": [
+        "GET proxy /api/chat/histories"
+      ],
+      "activation": "/history projects tab",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/projects",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#history-list",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:history-delete",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Dashboard/Project.tsx",
+      "line": 149,
+      "ui_actions": [
+        "Delete saved history after modal confirmation"
+      ],
+      "api_operations": [
+        "DELETE proxy /api/chat/history/{id}; remove local task"
+      ],
+      "activation": "History selected record",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/projects",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#history-delete",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:history-replay",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Dashboard/Project.tsx",
+      "line": 166,
+      "ui_actions": [
+        "Replay/open prior task"
+      ],
+      "api_operations": [
+        "chatStore.replay/task selection; navigate /"
+      ],
+      "activation": "History replay/selection",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/agent-workspace",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#history-replay",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Router currently redirects / to /law; importing Home does not mount it. Task replay destination is not a verified working workflow."
+      ]
+    },
+    {
+      "id": "arr-action:history-control",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Dashboard/Project.tsx",
+      "line": 194,
+      "ui_actions": [
+        "Pause/resume task from history"
+      ],
+      "api_operations": [
+        "PUT local-backend /task/{taskId}/take-control with action pause/resume"
+      ],
+      "activation": "History task control",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/agent-workspace",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#history-control",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:history-share",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Dashboard/Project.tsx",
+      "line": 163,
+      "ui_actions": [
+        "Share saved task"
+      ],
+      "api_operations": [
+        "lib/share.ts share(taskId)"
+      ],
+      "activation": "History share action",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/agent-workspace",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#history-share",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Share helper transport and remote audience policy need follow-up."
+      ]
+    },
+    {
+      "id": "arr-action:settings-general",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/General.tsx",
+      "line": 107,
+      "ui_actions": [
+        "Change appearance/language/profile and logout"
+      ],
+      "api_operations": [
+        "authStore and profile proxy calls; getPlatform Electron API"
+      ],
+      "activation": "/setting/general; unguarded desktop API call on effect",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-general",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Browser route declaration does not establish browser compatibility; desktop call can be unavailable."
+      ]
+    },
+    {
+      "id": "arr-action:settings-privacy",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/Privacy.tsx",
+      "line": 41,
+      "ui_actions": [
+        "Read/toggle privacy fields individually/all"
+      ],
+      "api_operations": [
+        "GET/PUT proxy /api/user/privacy"
+      ],
+      "activation": "/setting/privacy",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-privacy",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:settings-logs",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/Privacy.tsx",
+      "line": 104,
+      "ui_actions": [
+        "Find/reveal log directory"
+      ],
+      "api_operations": [
+        "IPC get-log-folder; reveal-in-folder"
+      ],
+      "activation": "/setting/privacy; unguarded ipcRenderer",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-logs",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Browser equivalent and per-user log ownership unresolved."
+      ]
+    },
+    {
+      "id": "arr-action:settings-models",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/Models.tsx",
+      "line": 98,
+      "ui_actions": [
+        "List/validate/create/update/delete/prefer cloud or local model providers"
+      ],
+      "api_operations": [
+        "GET /api/providers; POST local /model/validate; POST /api/provider; PUT/DELETE /api/provider/{id}; POST /api/provider/prefer"
+      ],
+      "activation": "/setting/models; proxy provider calls, local validation",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-models",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:settings-api",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/API.tsx",
+      "line": 54,
+      "ui_actions": [
+        "Save API configuration"
+      ],
+      "api_operations": [
+        "POST proxy /api/configs"
+      ],
+      "activation": "/setting/api",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-api",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:settings-mcp-import",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/MCP.tsx",
+      "line": 382,
+      "ui_actions": [
+        "Import/install local MCP configuration"
+      ],
+      "api_operations": [
+        "POST proxy /api/mcp/import/local; IPC mcp-install"
+      ],
+      "activation": "/setting/mcp; desktop config update guarded by ipcRenderer",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-mcp-import",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:settings-mcp-update",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/MCP.tsx",
+      "line": 307,
+      "ui_actions": [
+        "Update MCP configuration/environment and enable status"
+      ],
+      "api_operations": [
+        "PUT proxy /api/mcp/users/{id}; IPC mcp-update"
+      ],
+      "activation": "/setting/mcp; config dialogs and toggle",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-mcp-update",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:settings-mcp-delete",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/MCP.tsx",
+      "line": 413,
+      "ui_actions": [
+        "Remove installed MCP"
+      ],
+      "api_operations": [
+        "DELETE proxy /api/mcp/users/{id}; IPC mcp-remove"
+      ],
+      "activation": "/setting/mcp confirmation",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-mcp-delete",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:settings-mcp-market",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/MCPMarket.tsx",
+      "line": 213,
+      "ui_actions": [
+        "Browse/filter/install/remove marketplace MCP"
+      ],
+      "api_operations": [
+        "GET proxy /api/mcps; POST /api/mcp/install?mcp_id=; DELETE /api/mcp/users/{id}; IPC mcp-install/remove"
+      ],
+      "activation": "/setting/mcp_market",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-mcp-market",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Runtime behavior, authorization and Editor replacement parity have not been verified."
+      ]
+    },
+    {
+      "id": "arr-action:settings-integrations",
+      "source_root": "D:/Data/25_ACE/ARR/frontend",
+      "entrypoint": "src/pages/Setting/components/IntegrationList.tsx",
+      "line": 134,
+      "ui_actions": [
+        "Authorize integrations and save/remove local environment config"
+      ],
+      "api_operations": [
+        "GET/POST/DELETE proxy /api/configs; oauth-authorized/oauth-callback-url IPC; envWrite/envRemove"
+      ],
+      "activation": "Settings integrations; Notion/Google Calendar local install calls",
+      "data_owner": "ARR product; transport and data ownership must be preserved per linked action inventory",
+      "target": "frontend/app/planm/src/features/settings",
+      "disposition": "adapt",
+      "reason": "Preserve reachable behavior through existing Editor router and product API; unresolved source behavior is not activated automatically",
+      "status": "inventoried-not-migrated",
+      "evidence": [
+        "arr-ui-action-inventory.json#settings-integrations",
+        "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability."
+      ],
+      "unresolved": [
+        "Auxiliary local FastAPI server and remote configuration server are distinct dependencies; credential storage ownership unresolved."
+      ]
     }
+  ],
+  "supporting_inventories": [
+    "arr-ui-action-inventory.json",
+    "arr-import-closure.json",
+    "shared-agent-legacy-dependencies.json",
+    "arr-required-assets.json",
+    "arr-runtime-baseline.json"
   ]
 }

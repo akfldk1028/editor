@@ -37,9 +37,11 @@
 
 **Contract:** `{source_owner: editor|agents, lifecycle: session|persistent, management: editor-session|domain-host|agent-host}`. Editor launcher는 editor-session만 start/stop한다. persistent 서비스는 probe-only이며 기동·복구 안내를 제공한다. ARR domain host는 Editor 소스를 사용하지만 공용 소비자가 있으면 persistent다.
 
-- [ ] `test_shared_offline_never_spawns`, `test_shutdown_leaves_shared_and_reused_services_running`, `test_ui_exit_keeps_domain_host_alive`를 먼저 실패시킨 뒤 lifecycle 분기를 구현한다. `node --test infra/dev/product-lifecycle.test.mjs infra/dev/runtime.test.mjs` PASS가 gate다.
+- [x] `test_shared_offline_never_spawns`, `test_shutdown_leaves_shared_and_reused_services_running`, `test_ui_exit_keeps_domain_host_alive`를 먼저 실패시킨 뒤 lifecycle 분기를 구현한다. `node --test infra/dev/product-lifecycle.test.mjs infra/dev/runtime.test.mjs` PASS가 gate다.
 - [ ] domain→agent→제품 순서의 health와 미기동 시 동작을 정의한다. core 편집 기능이 가능하면 제품을 열되 연결 기능은 unavailable로 표시한다. 공용 서버를 임의 재기동하지 않는다.
-- [ ] 현재 `product.mjs`가 `ensureService(services.orchestrator)`를 호출해 생성한 API를 shutdown 대상으로 넣는 동작을 제거하는 작업이다. 아직 수정되지 않았음을 운영 기록에 명시하고 검증 후 별도 커밋한다.
+- [x] 현재 `product.mjs`가 `ensureService(services.orchestrator)`를 호출해 생성한 API를 shutdown 대상으로 넣는 동작을 제거하는 작업이다. 아직 수정되지 않았음을 운영 기록에 명시하고 검증 후 별도 커밋한다.
+
+2026-10-04 검증: `b5c2c5ea`, `5c800eb8`. dev21 PASS; 실제 격리 HTTP 프로세스로 재사용/공용 서비스 생존 확인. ARR domain→owner→제품 순서 구현. 제품 전체의 미기동 UI 표시는 아직 미검증이므로 Task0 전체 완료는 아니다. 근거: `docs/integrations/2026-10-04-service-lifecycle.md`.
 
 ### Task1 — 전수 기능·의존성·복원 기준선
 

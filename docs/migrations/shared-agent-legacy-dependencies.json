@@ -65,7 +65,47 @@
       "target_reference": "Editor ARR source in isolated owner profile; owner workspace and state remain external",
       "compatibility_test": "Existing Mass cycle source/config identity and artifact validation without old ARR checkout",
       "status": "pending"
+    },
+    {
+      "consumer": "MasterPlanagent operational launcher",
+      "evidence": "runs/revision-intent-20261001/current_entry.py; live ARR18320 process25676 command inspected",
+      "dependency_kind": "process-cwd-and-source-root",
+      "old_reference": "D:/Data/25_ACE/ARR/backend with C:/Python313/python.exe; hidden subprocess wrapper and BLAS thread caps",
+      "target_reference": "Editor persistent domain-host entry with explicit source/data roots, hidden subprocesses and preserved thread limits",
+      "compatibility_test": "Isolated ARR startup from Editor source with old source inaccessible; shared client requests continue after Editor UI exit",
+      "status": "pending"
+    },
+    {
+      "consumer": "Lawagent MCP/A2A",
+      "evidence": "Lawagent/mcp/server.py:76-78,101-102,107-109,164-165; a2a_service/server.py:113",
+      "dependency_kind": "http",
+      "old_reference": "ARR_BASE_URL overrides ARR_BACKEND_URL (default http://127.0.0.1:18000); optional ARR_HOST_HEADER; LAW_SEARCH_URL and WORKER_URL independent",
+      "target_reference": "Owner isolated profile points ARR_BASE_URL to Editor persistent domain; preserve Host header and independent search/worker endpoints",
+      "compatibility_test": "Actual MCP/A2A request to relocated /law/agent and /land/agent seams preserves source payload, errors and needs_evidence; original source unavailable",
+      "status": "pending"
+    },
+    {
+      "consumer": "MassAgent workspace provisioning and cycle",
+      "evidence": "MassAgent/skills/mass-workspace/scripts/provision.py:9-21,47-69; skills/mass-cycle/scripts/bridge.py:11-17; cycle.py:150,354,873",
+      "dependency_kind": "source-relative-tools-and-mutable-workspace",
+      "old_reference": "ARR_BACKEND/tmp_mass_check/<scope>/tools; MASSV2_WS tools added to sys.path; tools derive backend from parents[3]; corpus inputs and runs/sweeps copied into scoped workspace",
+      "target_reference": "Editor owns domain/tool source; shared agent execution state remains external. Replace parent-depth source inference with explicit backend path before separating workspace data",
+      "compatibility_test": "Provision two isolated scopes; imports resolve Editor source and mutations remain in each external owner workspace; corpus and sweep snapshots preserved; no cross-scope writes",
+      "status": "blocked-on-source-data-path-decoupling"
+    },
+    {
+      "consumer": "Lawagent audit and verification tools",
+      "evidence": "Lawagent/skills/law-audit/scripts/audit.sh:7,34,68-73; scripts/verify_parking_counts.py:27,141; scripts/verify_ordinance_snapshots.py:18",
+      "dependency_kind": "management-command-and-local-import",
+      "old_reference": "audit.sh sources own lawagent.env then cd ARR_BACKEND to run manage.py audit_maas_agent_collaboration; verification scripts infer sibling ARR/backend from owner location",
+      "target_reference": "Explicit Editor domain source for audit command and test-only source imports; preserve Lawagent/runs/law-audit output ownership and original candidate snapshots",
+      "compatibility_test": "Frozen audit inputs produce equivalent three-state evidence via relocated management command; verification scripts resolve Editor source with legacy checkout absent",
+      "status": "pending"
     }
   ],
-  "remaining": ["Mass skill/script asset closure", "Lawagent MCP endpoint variants", "All owner config and editable-install scans", "Inactive and research references classified separately"]
+  "remaining": [
+    "Mass workspace tool and corpus transitive asset closure; source-relative workspace layout must be decoupled without relocating shared agent state",
+    "All owner config and editable-install scans",
+    "Inactive and research references classified separately"
+  ]
 }
