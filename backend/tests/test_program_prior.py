@@ -29,6 +29,20 @@ COMMERCIAL_PROFILE = {
 }
 
 
+@pytest.mark.parametrize('area', [528, 528.125, 0.01])
+def test_equal_office_ratios_do_not_gain_priority_from_residual_roundoff(area):
+    analysis = MassAnalysis(
+        project_id='equal-support-areas', area=area, floor_area=area, floors=1,
+        edge_count=4, street_edge_indices=[0], access_edge_indices=[],
+        bounds=(0, 0, 30, 20),
+    )
+    graph = generate_program_graph(analysis, floor_index=1, use_type='office')
+    areas = {node.node_id: node.target_area for node in graph.nodes}
+    assert areas['it_storage'] == areas['restroom'] == areas['reception']
+    assert sum(areas.values()) == pytest.approx(area)
+    assert all(0 < node.min_area < node.target_area < node.max_area for node in graph.nodes)
+
+
 def test_generate_program_graph_for_ground_floor_commercial_office_mix():
     analysis = MassAnalysis(
         project_id="mixed",

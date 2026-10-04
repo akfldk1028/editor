@@ -110,7 +110,11 @@ def _nodes_from_profile(
     total_area: float, profile: ProgramProfile
 ) -> list[ProgramNode]:
     areas = [total_area * space.ratio for space in profile.spaces]
-    areas[-1] = total_area - sum(areas[:-1])
+    # Correct roundoff on the largest space so equal small-room ratios stay tied.
+    largest = max(range(len(areas)), key=areas.__getitem__)
+    areas[largest] = total_area - sum(
+        area for index, area in enumerate(areas) if index != largest
+    )
     return [
         ProgramNode(
             node_id=space.space_type,
