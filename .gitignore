@@ -91,3 +91,4 @@ clone/
 
 # Local analysis records and imported provider history.
 /runtime/editor/land/
+/runtime/editor/design/

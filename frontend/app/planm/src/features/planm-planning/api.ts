@@ -6,6 +6,7 @@ import type {
   PascalPublish,
   PlanmRun,
   SprinklerState,
+  SavedDesignMass,
 } from "./types";
 
 const API_ROOT = "/api/v1/planm/runs";
@@ -113,7 +114,7 @@ const sprinklerFacts: Record<SprinklerState, Record<string, boolean>> = {
  * Only facts the brief actually asserts are sent. An unasserted fact stays out
  * of the payload so the screening reports it as unresolved instead of assumed.
  */
-export function buildingCodeContext(form: MassForm): Record<string, unknown> | undefined {
+export function buildingCodeContext(form: Pick<MassForm, 'jurisdiction' | 'effectiveDate' | 'travelLimit' | 'sprinkler'>): Record<string, unknown> | undefined {
   const asserted: Record<string, unknown> = {};
   if (form.jurisdiction) asserted.jurisdiction = form.jurisdiction;
   if (form.effectiveDate) asserted.effective_date = form.effectiveDate;
@@ -156,6 +157,31 @@ export function createRun(form: MassForm): Promise<PlanmRun> {
       },
     }),
   });
+}
+
+export async function selectedDesignMass(projectId: string, signal: AbortSignal): Promise<SavedDesignMass> {
+  const response = await fetch(`/api/v1/platform/projects/${encodeURIComponent(projectId)}/design/selection/mass`, {signal});
+  if (!response.ok) {
+    if (response.status === 422) throw new Error('선택한 설계 형상은 현재 평면 계획 입력으로 변환할 수 없습니다. 원본 후보를 확인하고 지원되는 후보를 선택하세요. (422)');
+    if (response.status === 404) throw new Error('프로젝트에 저장된 설계 선택을 찾을 수 없습니다.');
+    throw new Error(`선택한 설계를 불러오지 못했습니다. (${response.status})`);
+  }
+  const value = await response.json();
+  const mass = value?.mass as SavedDesignMass | undefined;
+  const points = (ring: unknown): ring is Array<[number, number]> => Array.isArray(ring) && ring.length >= 3 &&
+    ring.every(point => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite));
+  if (!mass || typeof mass.project_id !== 'string' || !Number.isInteger(mass.floors) || mass.floors < 1 ||
+    !points(mass.footprint_polygon) || !Array.isArray(mass.floor_footprints) ||
+    !mass.floor_footprints.every(floor => Number.isInteger(floor.floor_index) && points(floor.footprint_polygon)) ||
+    !mass.source_provenance || typeof mass.source_provenance.source?.source_id !== 'string' ||
+    typeof mass.source_provenance.source.job_id !== 'string' || !Number.isInteger(mass.source_provenance.source.result_pk))
+    throw new Error('선택한 설계의 평면 계획 입력 형식이 올바르지 않습니다.');
+  return mass;
+}
+
+export function createRunFromMass(mass: SavedDesignMass): Promise<PlanmRun> {
+  return request<PlanmRun>(API_ROOT, {method: 'POST',
+    body: JSON.stringify({contract_version: 'planm-run-create/v1', mass})});
 }
 
 export const getRun = (runId: string) => request<PlanmRun>(`${API_ROOT}/${runId}`);

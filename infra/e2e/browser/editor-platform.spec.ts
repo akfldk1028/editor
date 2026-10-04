@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+test.beforeEach(async ({page}) => {
+  await page.route('**/api/v1/platform/projects/*/design/jobs',r=>r.fulfill({json:{items:[]}}));
+  await page.route('**/api/v1/platform/projects/*/design/selection',r=>r.fulfill({json:null}));
+});
+
 test('local zoning catalog populates form with legacy service unconfigured', async ({page, request}) => {
   test.skip(!process.env.EDITOR_LOCAL_ZONES, 'Requires isolated backend without a legacy URL');
   const response = await request.get('/api/v1/land/zones');

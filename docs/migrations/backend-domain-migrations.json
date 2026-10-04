@@ -293,6 +293,46 @@
         "Live providers and complete 2D/3D UX",
         "Operational dependency cutover"
       ]
+    },
+    {
+      "id": "saved-design-archive-planm-handoff",
+      "api": "/api/v1/platform/projects/{project_id}/design",
+      "runtime_source_owner": "editor",
+      "legacy_service_required": false,
+      "targets": [
+        "backend/app/modules/design",
+        "backend/app/api/routes_design.py",
+        "frontend/app/planm/src/features/agent-workspace/projects/SavedDesigns.tsx",
+        "frontend/app/planm/src/features/planm-planning/SavedMassBrief.tsx"
+      ],
+      "verification": {
+        "backend": "59 passed",
+        "actual_import": {
+          "jobs": 540,
+          "results": 18601,
+          "revisions": 2,
+          "all_original_rows_equal": true,
+          "repeat_duplicates": 0
+        },
+        "mass_probe": {
+          "total": 16964,
+          "convertible": 8162
+        },
+        "browser": "7 mocked passed; isolated imported archive flow separately verified",
+        "actual_planm": "normalize/analyze passed; alternatives blocked: insufficient_accepted_alternatives",
+        "build": "passed",
+        "runtime": "8 passed",
+        "review": "Independent storage/geometry/frontend review, no remaining material finding"
+      },
+      "documentation": "docs/integrations/2026-10-04-design-archive.md",
+      "remaining": [
+        "Explicit frontage and richer program inputs",
+        "Successful accepted alternatives and DWG/scene publish-reopen",
+        "Complex mass representations",
+        "Native job-spec and durable optimizer/cancel/resume",
+        "External artifact catalog/delivery",
+        "Final source reconciliation and operational cutover"
+      ]
     }
   ]
 }

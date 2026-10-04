@@ -5,6 +5,8 @@ import {
   createCadHandoff,
   publishToPascal,
   createRun,
+  createRunFromMass,
+  selectedDesignMass,
   footprintPolygon,
   getAlternatives,
   getRun,
@@ -22,8 +24,11 @@ import type {
   ShapeFamily,
   SprinklerState,
   TravelLimit,
+  SavedDesignMass,
+  SavedMassProgram,
 } from "./types";
 import { registerPlanmDrawing } from "../../integrations/dwg/api";
+import {SavedMassBrief} from './SavedMassBrief';
 
 const stages = ["normalize", "analyze", "alternatives", "review", "deliver"];
 const settledStatuses = ["delivered", "approved"];
@@ -84,6 +89,18 @@ function App({ onOpenDwg }: Props) {
   const [pascal, setPascal] = useState<PascalPublish | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [designProject] = useState(() => new URLSearchParams(window.location.search).get('designProject'));
+  const [savedMass, setSavedMass] = useState<SavedDesignMass | null>(null);
+  const [savedMassError, setSavedMassError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!designProject) return;
+    const controller = new AbortController();
+    selectedDesignMass(designProject, controller.signal)
+      .then(value => {if (!controller.signal.aborted) setSavedMass(value);})
+      .catch(reason => {if (!controller.signal.aborted) setSavedMassError(reason instanceof Error ? reason.message : '선택한 설계 조회 실패');});
+    return () => controller.abort();
+  }, [designProject]);
 
   const completedStage = useMemo(() => {
     if (!run) return -1;
@@ -93,15 +110,16 @@ function App({ onOpenDwg }: Props) {
 
   useEffect(() => {
     if (!run || !["queued", "running"].includes(run.status)) return;
+    let cancelled = false;
     const timer = window.setTimeout(async () => {
       try {
         const next = await getRun(run.run_id);
-        setRun(next);
+        if (!cancelled) setRun(next);
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : "Status polling failed");
+        if (!cancelled) setError(reason instanceof Error ? reason.message : "Status polling failed");
       }
     }, 900);
-    return () => window.clearTimeout(timer);
+    return () => {cancelled = true; window.clearTimeout(timer);};
   }, [run]);
 
   useEffect(() => {
@@ -137,6 +155,21 @@ function App({ onOpenDwg }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function startSavedMass(program: SavedMassProgram) {
+    if (!savedMass || busy) return;
+    setBusy(true); setError(null); setRun(null); setAlternatives(null);
+    setCadHandoff(null); setDwgInspection(null); setPascal(null);
+    const supplemented = {...savedMass, use_mix: program.use_mix,
+      ...(program.building_code_context ? {building_code_context: {
+        ...(savedMass.building_code_context && typeof savedMass.building_code_context === 'object' ? savedMass.building_code_context : {}),
+        ...program.building_code_context,
+      }} : {}),
+    };
+    try {setRun(await createRunFromMass(supplemented));}
+    catch (reason) {setError(reason instanceof Error ? reason.message : '평면 계획 실행 실패');}
+    finally {setBusy(false);}
   }
 
   async function prepareCad() {
@@ -234,7 +267,8 @@ function App({ onOpenDwg }: Props) {
       <div className="workspace">
         <aside className="brief-panel reveal delay-2">
           <div className="section-label"><span>01</span> Project brief</div>
-          <form onSubmit={submit}>
+          {designProject ? <SavedMassBrief projectId={designProject} mass={savedMass} error={savedMassError}
+            busy={busy} onStart={startSavedMass} /> : <form onSubmit={submit}>
             <label>
               Project ID
               <input value={form.projectId} onChange={(event) => setForm({ ...form, projectId: event.target.value })} required />
@@ -310,7 +344,7 @@ function App({ onOpenDwg }: Props) {
             <button className="primary-action" disabled={busy} type="submit">
               {busy ? "Starting run…" : "Generate alternatives"}<span>↗</span>
             </button>
-          </form>
+          </form>}
         </aside>
 
         <section className="results-panel reveal delay-3" aria-live="polite">

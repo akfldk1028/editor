@@ -71,6 +71,31 @@ export interface MassForm {
   sprinkler: SprinklerState;
 }
 
+export interface SavedDesignMass {
+  project_id: string;
+  floors: number;
+  footprint_polygon: Array<[number, number]>;
+  floor_footprints: Array<{floor_index: number; footprint_polygon: Array<[number, number]>}>;
+  source_provenance: {
+    source: {source_id: string; job_id: string; result_pk: number; row_sha256: string};
+    mass_sha256: string;
+    source_crs: string;
+    projected_crs: string;
+    units: string;
+    origin_projected: [number, number];
+    origin_wgs84: [number, number];
+    height_m: number;
+    building_type: unknown;
+    representation: string;
+  };
+  [key: string]: unknown;
+}
+
+export interface SavedMassProgram {
+  use_mix: Record<string, number>;
+  building_code_context?: Record<string, unknown>;
+}
+
 export interface CadHandoff {
   contract_version: "planm-cad-handoff/v1";
   alternative_id: string;

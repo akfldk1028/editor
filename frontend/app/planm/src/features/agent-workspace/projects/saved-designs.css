@@ -1,0 +1,14 @@
+.saved-designs { margin-top: 28px; padding-top: 20px; border-top: 1px solid #d8ddd9; }
+.saved-designs h3 { margin: 20px 0 10px; font-size: 16px; }
+.saved-designs ul { list-style: none; padding: 0; }
+.saved-designs li { padding: 12px 0; border-bottom: 1px solid #e3e8e4; }
+.saved-designs li p { margin: 6px 0; }
+.saved-designs button { margin: 4px 8px 4px 0; }
+.saved-designs button:disabled { opacity: .5; }
+.saved-designs .design-pagination { display: flex; align-items: center; gap: 12px; }
+.saved-designs .design-detail { margin-top: 20px; }
+.saved-designs pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3f6f3; padding: 12px; font-size: 12px; }
+.saved-design-footprint { margin: 16px 0; }
+.saved-design-footprint svg { width: min(100%, 480px); display: block; border: 1px solid #d8ddd9; background: #f6f8f5; }
+.saved-design-footprint path { fill: #3b796044; stroke: #265e47; stroke-width: 1.5; }
+.saved-design-footprint figcaption { margin-top: 8px; color: #56615b; font-size: 13px; }
