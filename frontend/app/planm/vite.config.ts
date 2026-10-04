@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
 /**
  * One origin, three surfaces.
@@ -10,15 +10,15 @@ import { defineConfig } from "vite";
  * serves its own pages and assets under that prefix and nothing needs
  * rewriting here.
  */
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
-      "/api/v1": "http://127.0.0.1:8000",
+      "/api/v1": loadEnv(mode, '.', 'EDITOR_').EDITOR_BACKEND_URL || "http://127.0.0.1:8000",
       "/api": "http://127.0.0.1:4317",
       // ws for Next's dev hot-reload socket.
       "/editor": { target: "http://127.0.0.1:3002", ws: true },
     },
   },
-});
+}));

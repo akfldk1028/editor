@@ -1,5 +1,17 @@
 import { test, expect } from '@playwright/test';
 
+test('live catalog through Editor backend and owner', async ({page, request}) => {
+  test.skip(!process.env.EDITOR_LIVE_CATALOG, 'Requires separately started owner and Editor backend');
+  const response = await request.get('/api/v1/platform/agents');
+  expect(response.ok()).toBeTruthy();
+  const agents = await response.json();
+  expect(agents.length).toBeGreaterThan(0);
+  await page.goto('/agents');
+  await expect(page.locator('.agent-workspace article')).toHaveCount(agents.length);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await page.screenshot({path:'test-results/editor-live-agents.png', fullPage:true});
+});
+
 test('routing: agent deep link, search, history and reload', async ({ page }) => {
   await page.route('**/api/v1/platform/agents', route => route.fulfill({json: [{
     agent_id: 'systems', label: 'Systems', capabilities: ['systems.review'],

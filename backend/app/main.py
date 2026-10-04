@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI
 
 from backend.app.api.routes_pascal import create_pascal_router
+from backend.app.api.routes_platform import create_platform_router
 from backend.app.api.routes_planm_runs import create_planm_runs_router
 from backend.app.modules.generation_loop.service import run_generation_loop
 from backend.app.modules.planm_runs import PlanmRunService
@@ -35,6 +36,7 @@ def create_app(
         create_planm_runs_router(service, execute_inline=execute_inline)
     )
     application.include_router(create_pascal_router(service))
+    application.include_router(create_platform_router())
     application.state.planm_runs = service
     return application
 

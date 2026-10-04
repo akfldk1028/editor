@@ -1,3 +1,7 @@
+## 2026-10-04 - Live owner catalog increment
+
+Read docs/integrations/2026-10-04-agent-list-implementation.md. Product API contracts6 and owner registry/projection19 tests passed. Real owner HTTP8791 through Editor TestClient returned200/25 rows. Full backend hidden launch rejected by automatic approval review (blocked by policy); live browser test skipped, not passed. Existing Chrome mocked UI2/build pass. Task2 is implemented but full browser/live gate pending; Task3 project bindings and Task4 runs are unimplemented. Owner read-only catalog launcher80736; listener child68284 observed. Do not infer domain completion from available card.
+
 ## 2026-10-04 - First UI slice implemented
 
 Added lazy /agents page with scoped CSS, exact route matcher, read-only validated Editor API client and explicit loading/error/empty states. Source mapping records AG-frontend search/list adaptation. Route tests 2 passed; restored runtime planm build and boundary tests 2 passed; Chrome Playwright 2 passed (mocked API, not live owner integration). Agent JS chunk 2.64kB / gzip1.21kB. Original checkout lacks dependencies; used preserved restored runtime with npm ci in planm only. Next: real owner catalog HTTP and Editor adapter (Task2). Project/run routes explicitly unavailable until later tasks.
