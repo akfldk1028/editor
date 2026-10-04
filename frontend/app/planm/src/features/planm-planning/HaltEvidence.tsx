@@ -79,4 +79,3 @@ function CoreSearchEvidence({diagnostic}: {diagnostic: CoreSearchDiagnostic}) {
     <p>미확인 규정 사실은 별도로 확인해야 합니다. 이 결과로 형상이나 계획 용도를 변경하지 않습니다.</p>
   </section>;
 }
-
