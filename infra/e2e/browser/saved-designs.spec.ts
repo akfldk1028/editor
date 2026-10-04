@@ -23,6 +23,7 @@ async function mockProject(page: Page, options: {conflict?:boolean;unavailable?:
   await page.route('**/api/v1/platform/projects/binding/runs',r=>r.fulfill({json:[]}));
   await page.route('**/api/v1/platform/projects/binding/design/**',async r=>{
     const url=new URL(r.request().url());const path=url.pathname.split('/design')[1];const post=r.request().method()==='POST';
+    if(path==='/executions')return r.fulfill({json:{items:[]}});
     if(options.unavailable)return r.fulfill({status:503,json:{detail:'unavailable'}});
     if(path==='/jobs'&&post){
       expect(r.request().postDataJSON()).toEqual({source_id:job.source_id,job_id:job.job_id,scene_revision:3});
@@ -91,7 +92,8 @@ test('stale scene selection remains unsaved and unavailable archive remains an e
   await expect(page.getByRole('alert')).toContainText('409');
   await expect(page.getByTestId('saved-design-selection')).toHaveCount(0);
   await page.unroute('**/api/v1/platform/projects/binding/design/**');
-  await page.route('**/api/v1/platform/projects/binding/design/**',r=>r.fulfill({status:503,json:{detail:'unavailable'}}));
+  await page.route('**/api/v1/platform/projects/binding/design/**',r=>new URL(r.request().url()).pathname.endsWith('/executions')
+    ?r.fulfill({json:{items:[]}}):r.fulfill({status:503,json:{detail:'unavailable'}}));
   await page.reload();
   await expect(page.getByRole('alert')).toContainText('503');
   await expect(page.getByText('연결된 설계 작업이 없습니다.',{exact:true})).toHaveCount(0);

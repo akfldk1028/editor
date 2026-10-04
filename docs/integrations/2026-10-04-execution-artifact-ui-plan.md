@@ -1,6 +1,6 @@
 # Saved execution artifacts: bounded project UI plan
 
-Status: proposed implementation plan, 2026-10-04. This change is not implemented. Inspected `design-artifact-inventory.md`, `design/artifacts.py`, `routes_design.py`, `ProjectService`, and the existing ProjectPage/SavedDesigns workflow.
+Status: implementation tracked in [execution artifact delivery](2026-10-04-execution-artifact-delivery.md), 2026-10-04. Catalog/attachments use a separate execution-catalog.sqlite within the existing design storage root; ProjectService remains the identity authority. Source-filter controls remain a follow-up; bounded combined-source pagination is implemented. Inspected `design-artifact-inventory.md`, `design/artifacts.py`, `routes_design.py`, `ProjectService`, and the existing ProjectPage/SavedDesigns workflow.
 
 ## Scope and identity
 

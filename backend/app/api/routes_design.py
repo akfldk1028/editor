@@ -5,9 +5,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
-from backend.app.adapters.orchestrator import OwnerContractError, OwnerUnavailable
-from backend.app.modules.platform.projects import BindingConflict
-from backend.app.schemas.platform import ProjectCreate
+from backend.app.api.design_access import DesignAccess
+from backend.app.api.routes_execution_artifacts import create_execution_router
 
 
 class DesignAttachment(BaseModel):
@@ -21,8 +20,10 @@ class DesignSelection(DesignAttachment):
     result_pk: int = Field(gt=0)
 
 
-def create_design_router(projects_service, allowed_origin, repository=None):
+def create_design_router(projects_service, allowed_origin, repository=None, execution_catalog=None):
     router = APIRouter(prefix='/projects/{project_id}/design', tags=['design'])
+    access = DesignAccess(projects_service, allowed_origin)
+    binding, mutate = access.binding, access.mutate
 
     def store():
         if repository is not None:
@@ -32,29 +33,6 @@ def create_design_router(projects_service, allowed_origin, repository=None):
         if not directory:
             raise HTTPException(503, 'Design storage is not configured')
         return DesignRepository(directory)
-
-    def binding(project_id):
-        value = projects_service().repository.get('local', project_id)
-        if value is None:
-            raise HTTPException(404, 'Project not found')
-        return value
-
-    async def mutate(project_id, body, request):
-        origin = request.headers.get('origin')
-        if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != allowed_origin):
-            raise HTTPException(403, 'Cross-origin design changes are not allowed')
-        value = binding(project_id)
-        if value.scene_revision != body.scene_revision:
-            raise HTTPException(409, 'Scene revision changed')
-        try:
-            await projects_service().create('local', ProjectCreate(**value.model_dump(exclude={'project_id'})))
-        except BindingConflict:
-            raise HTTPException(409, 'Project or scene revision changed') from None
-        except OwnerUnavailable:
-            raise HTTPException(503, 'Project source unavailable') from None
-        except OwnerContractError:
-            raise HTTPException(502, 'Project source contract invalid') from None
-        return value
 
     async def read(operation):
         try:
@@ -136,4 +114,7 @@ def create_design_router(projects_service, allowed_origin, repository=None):
         except MassBridgeError as error:
             raise HTTPException(422, error.code) from None
 
-    return router
+    combined = APIRouter()
+    combined.include_router(router)
+    combined.include_router(create_execution_router(projects_service, allowed_origin, execution_catalog))
+    return combined

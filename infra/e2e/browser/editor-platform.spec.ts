@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 test.beforeEach(async ({page}) => {
   await page.route('**/api/v1/platform/projects/*/design/jobs',r=>r.fulfill({json:{items:[]}}));
   await page.route('**/api/v1/platform/projects/*/design/selection',r=>r.fulfill({json:null}));
+  await page.route('**/api/v1/platform/projects/*/design/executions*',r=>r.fulfill({json:{items:[]}}));
 });
 
 test('local zoning catalog populates form with legacy service unconfigured', async ({page, request}) => {

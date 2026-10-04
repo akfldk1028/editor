@@ -4,6 +4,7 @@ import '../agents/agents.css';
 import {TaskComposer} from '../runs/TaskComposer';
 import {RunList} from '../runs/RunList';
 import {SavedDesigns} from './SavedDesigns';
+import {SavedExecutions} from './SavedExecutions';
 
 export default function ProjectPage({projectId}: {projectId: string}) {
   const [project, setProject] = useState<ProjectBinding | null>(null);
@@ -22,6 +23,7 @@ export default function ProjectPage({projectId}: {projectId: string}) {
       <p>연결된 장면: {project.scene_id} · 기준 버전 {project.scene_revision}</p>
       <a href={'/editor/scene/' + encodeURIComponent(project.scene_id)}>3D 장면 열기</a>
       <SavedDesigns key={project.project_id} project={project} />
+      <SavedExecutions key={project.project_id} project={project} />
       <TaskComposer key={project.project_id} projectId={project.project_id} onSubmitted={() => setRefresh(value=>value+1)} />
       <RunList projectId={project.project_id} refresh={refresh} />
     </>}
