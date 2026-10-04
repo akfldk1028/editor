@@ -5,6 +5,8 @@ import { DwgWorkspace } from "../integrations/dwg/workspace";
 import { PlanmPlanningSurface } from "../features/planm-planning/PlanmPlanningSurface";
 import "./styles.css";
 const AgentsPage = lazy(() => import("../features/agent-workspace/agents/AgentsPage"));
+const ProjectsPage = lazy(() => import("../features/agent-workspace/projects/ProjectsPage"));
+const ProjectPage = lazy(() => import("../features/agent-workspace/projects/ProjectPage"));
 
 /**
  * The product surfaces, addressed by path so a page can be linked and reloaded.
@@ -23,6 +25,7 @@ const SURFACES: readonly Surface[] = [
   { path: "/dwg", label: "DWG Workspace" },
   { path: "/planm", label: "PLANM Planning" },
   { path: "/agents", label: "Agents" },
+  { path: "/projects", label: "Projects" },
   { path: "/editor", label: "3D Editor", external: true },
 ];
 
@@ -39,6 +42,7 @@ export function App() {
   const [surface, setSurface] = useState<SurfacePath>(() =>
     surfaceFromLocation(window.location.pathname),
   );
+  const route = resolveProductRoute(surface);
 
   // Keep the address bar and the rendered surface in step, both ways, so the
   // back button and a pasted link behave the way any other page would.
@@ -78,7 +82,11 @@ export function App() {
       <section className="product-surface">
         {surface === "/agents" ? (
           <Suspense fallback={<p role="status">화면을 불러오는 중…</p>}><AgentsPage /></Suspense>
-        ) : surface.startsWith('/projects') || surface.startsWith('/runs/') ? (
+        ) : route.kind === 'projects' ? (
+          <Suspense fallback={<p role="status">불러오는 중…</p>}><ProjectsPage /></Suspense>
+        ) : route.kind === 'project' ? (
+          <Suspense fallback={<p role="status">불러오는 중…</p>}><ProjectPage projectId={route.projectId} /></Suspense>
+        ) : surface.startsWith('/runs/') ? (
           <p role="status">프로젝트·실행 화면은 아직 연결되지 않았습니다.</p>
         ) : surface === "/planm" ? (
           <PlanmPlanningSurface onOpenDwg={() => setSurface("/dwg")} />

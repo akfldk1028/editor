@@ -24,6 +24,7 @@ async function main() {
   try {
     // Everything that does not depend on another service starts together.
     await Promise.all([
+      ensureService(services.orchestrator),
       ensureService(services.pascalMcp),
       ensureService(services.dwg),
       ensureService(services.editor),

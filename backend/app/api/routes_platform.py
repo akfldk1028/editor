@@ -1,14 +1,29 @@
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from backend.app.adapters.orchestrator import OrchestratorClient, OwnerContractError, OwnerUnavailable
 from backend.app.schemas.platform import AgentSummary
+from backend.app.schemas.platform import ProjectBinding, ProjectCreate
+from backend.app.adapters.platform_scenes import PlatformScenes
+from backend.app.modules.platform.repository import ProjectRepository
+from backend.app.modules.platform.projects import ProjectService, BindingConflict
 
 
-def create_platform_router(client: OrchestratorClient | None = None) -> APIRouter:
+def create_platform_router(client: OrchestratorClient | None = None, *, project_service=None, public_origin=None) -> APIRouter:
     owner = client or OrchestratorClient(os.environ.get('EDITOR_ORCHESTRATOR_URL'))
     router = APIRouter(prefix='/api/v1/platform', tags=['platform'])
+    allowed_origin = public_origin or os.environ.get('EDITOR_PUBLIC_URL', 'http://127.0.0.1:5173')
+
+    def projects_service():
+        nonlocal project_service
+        if project_service is None:
+            data_dir = os.environ.get('EDITOR_PLATFORM_DATA_DIR')
+            if not data_dir:
+                raise HTTPException(503, 'Platform storage is not configured')
+            project_service = ProjectService(ProjectRepository(data_dir), owner,
+                PlatformScenes(os.environ.get('EDITOR_SCENE_URL')))
+        return project_service
 
     @router.get('/agents', response_model=list[AgentSummary])
     async def agents():
@@ -18,5 +33,30 @@ def create_platform_router(client: OrchestratorClient | None = None) -> APIRoute
             raise HTTPException(503, 'Orchestrator catalog unavailable') from None
         except OwnerContractError:
             raise HTTPException(502, 'Orchestrator catalog contract invalid') from None
+
+    @router.get('/projects', response_model=list[ProjectBinding])
+    async def projects():
+        return projects_service().repository.list('local')
+
+    @router.get('/projects/{project_id}', response_model=ProjectBinding)
+    async def project(project_id: str):
+        value = projects_service().repository.get('local', project_id)
+        if value is None:
+            raise HTTPException(404, 'Project not found')
+        return value
+
+    @router.post('/projects', response_model=ProjectBinding, status_code=201)
+    async def create_project(body: ProjectCreate, request: Request):
+        origin = request.headers.get('origin')
+        if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != allowed_origin):
+            raise HTTPException(403, 'Cross-origin project changes are not allowed')
+        try:
+            return await projects_service().create('local', body)
+        except BindingConflict:
+            raise HTTPException(409, 'Project, branch or scene revision does not match') from None
+        except OwnerUnavailable:
+            raise HTTPException(503, 'Project source unavailable') from None
+        except OwnerContractError:
+            raise HTTPException(502, 'Project source contract invalid') from None
 
     return router

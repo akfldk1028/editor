@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AgentSummary(BaseModel):
@@ -10,3 +10,16 @@ class AgentSummary(BaseModel):
     connection_status: str
     checked_at: str | None
     evidence_ref: str | None
+
+
+class ProjectCreate(BaseModel):
+    model_config = ConfigDict(strict=True, extra='forbid')
+    owner_project_id: str = Field(min_length=1, max_length=200)
+    branch_id: str = Field(min_length=1, max_length=200)
+    scene_id: str = Field(min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
+    scene_revision: int = Field(ge=0)
+    scene_project_id: str | None = Field(default=None, max_length=200)
+
+
+class ProjectBinding(ProjectCreate):
+    project_id: str

@@ -38,6 +38,16 @@ test("service definitions keep one product URL and explicit module working direc
   assert.equal(services.frontend.cwd, resolve(repositoryRoot, "frontend/app/planm"));
 });
 
+test('platform startup wires the external owner and separate product data', () => {
+  const services = createServiceDefinitions(repositoryRoot, 'win32');
+  assert.equal(services.backend.env.EDITOR_ORCHESTRATOR_URL, 'http://127.0.0.1:8791');
+  assert.equal(services.backend.env.EDITOR_SCENE_URL, 'http://127.0.0.1:3002/editor');
+  assert.equal(services.orchestrator.cwd, resolve(repositoryRoot, '../agents/OrchestratorAgent'));
+  assert.ok(services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'read-only',config_id:services.orchestrator.configId}}));
+  assert.ok(!services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'read-only',config_id:'different-database'}}));
+  assert.ok(!services.orchestrator.validate({body:{service:'autogen-studio'}}));
+});
+
 test("the editor and the bridge that reaches it are part of the product", () => {
   const services = createServiceDefinitions(repositoryRoot, "win32");
 

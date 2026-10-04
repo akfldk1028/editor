@@ -1,3 +1,7 @@
+## 2026-10-04 - Reviewed project binding and live browser passed
+
+Read docs/integrations/2026-10-04-project-bindings.md. Task3 UI/API/storage implemented. Products18 tests, owner20, dev12, actual Chrome4 (2 live) passed; build passed. Fixed cross-owner scene binding, scene404 errors, independent Pascal project mapping, explicit Origin, atomic SQLite v2 migration, malformed scene contract and wrong owner DB reuse. First review0 blockers; followup findings fixed. Actual browser-to-owner catalog/project now verified, overriding prior startup limitation. Task4 durable request/input/history/results is next and still unimplemented. Local single-user profile only.
+
 ## 2026-10-04 - Live owner catalog increment
 
 Read docs/integrations/2026-10-04-agent-list-implementation.md. Product API contracts6 and owner registry/projection19 tests passed. Real owner HTTP8791 through Editor TestClient returned200/25 rows. Full backend hidden launch rejected by automatic approval review (blocked by policy); live browser test skipped, not passed. Existing Chrome mocked UI2/build pass. Task2 is implemented but full browser/live gate pending; Task3 project bindings and Task4 runs are unimplemented. Owner read-only catalog launcher80736; listener child68284 observed. Do not infer domain completion from available card.

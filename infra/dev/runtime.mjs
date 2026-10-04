@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { createHash } from 'node:crypto';
 
 function npmCommand(platform) {
   return platform === "win32" ? "npm.cmd" : "npm";
@@ -13,13 +14,30 @@ export const EDITOR_BASE_PATH = "/editor";
 
 export function createServiceDefinitions(repositoryRoot, platform = process.platform) {
   const npm = npmCommand(platform);
+  const ownerRoot = resolve(process.env.ORCHESTRATOR_AGENT_DIR || resolve(repositoryRoot, '../agents/OrchestratorAgent'));
+  const ownerState = resolve(ownerRoot, 'runtime/orchestrator/design.sqlite');
+  const ownerConfigId = createHash('sha256').update(platform === 'win32' ? ownerState.toLowerCase() : ownerState).digest('hex');
   return {
+    orchestrator: {
+      name: 'orchestrator-editor-api',
+      command: resolve(ownerRoot, '.venv-orchestrator', platform === 'win32' ? 'Scripts/python.exe' : 'bin/python'),
+      args: ['-m', 'orchestrator.editor_api', '--port', '8791'],
+      cwd: ownerRoot,
+      healthUrl: 'http://127.0.0.1:8791/editor/v1/health',
+      timeoutMs: 30_000,
+      configId: ownerConfigId,
+      validate: ({body}) => body?.service === 'orchestrator-editor-api' && body?.mode === 'read-only' && body?.config_id === ownerConfigId,
+    },
     backend: {
       name: "backend",
       command: "python",
       args: ["-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", "8000"],
       cwd: resolve(repositoryRoot),
       env: {
+        EDITOR_ORCHESTRATOR_URL: 'http://127.0.0.1:8791',
+        EDITOR_PUBLIC_URL: `http://127.0.0.1:${FRONTEND_PORT}`,
+        EDITOR_SCENE_URL: `http://127.0.0.1:${EDITOR_PORT}${EDITOR_BASE_PATH}`,
+        EDITOR_PLATFORM_DATA_DIR: process.env.EDITOR_PLATFORM_DATA_DIR || resolve(repositoryRoot, '../runtime/editor-platform'),
         PASCAL_MCP_URL: `http://127.0.0.1:${PASCAL_MCP_PORT}/mcp`,
         PASCAL_EDITOR_URL: `http://127.0.0.1:${FRONTEND_PORT}${EDITOR_BASE_PATH}`,
       },
