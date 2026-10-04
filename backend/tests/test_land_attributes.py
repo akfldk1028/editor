@@ -77,6 +77,8 @@ def test_schema_upgrade_preserves_analysis_rows(tmp_path):
     identifier = repo.save({'input_type': 'raw'}, {'kept': True}, 1)
     with sqlite3.connect(repo.path) as db:
         db.execute('DROP TABLE IF EXISTS land_cache')
+        for table in ('legacy_queries', 'legacy_results', 'legacy_sources', 'history_imports'):
+            db.execute('DROP TABLE ' + table)
         db.execute('PRAGMA user_version=1')
     lookup(Provider(success()), LandRepository(tmp_path))
     assert repo.get(identifier)['result'] == {'kept': True}

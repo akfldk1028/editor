@@ -7,17 +7,16 @@ This is the current status, not another target architecture or completion claim.
 |---|---|---|
 | Product shell | Existing Editor routes extended with agents/projects/runs/land | Complete selected original user workflows |
 | ARR local feature ownership | Zones, overlap limits, PNU parsing, address/parcel provider adapters under Editor modules/adapters | Real provider checks; remaining calculation/data/job ownership |
-| ARR analysis/statistics | Raw/PNU/address analysis including law search, geometry, optional datum and local statistics owned by Editor | Historical records/statistics import and live provider verification |
+| ARR analysis/statistics | Analysis and all stats scopes local; 466 historical queries,364 results and54 caches imported losslessly | Live providers; reconcile later source writes at final cutover |
 | Design/parking/3D | Existing Editor capabilities and earlier isolated scene evidence | Entire ARR source/data/artifact migration and end-to-end equivalence not established |
 | Selected AG work management | Catalog, project binding, health run/history | General task inputs, attachments, stop/resume, direct commands and selected results UX |
 | Communication | Saved request/reply and top-level flow; new real A2A health3 verified | Downstream peer hops, full topology and streaming |
 | Shared agents | Remain in D:/Data/25_ACE/agents by user decision | Complete consumer/owner contracts; specialists still partial |
 | Runtime cutover | Per-slice source changes committed; isolated validation | Load verified operational changes and prove original ARR/AG roots are unnecessary |
 
-Concrete remaining dependency: `backend/app/api/routes_land.py` builds LandClient
-from EDITOR_ARR_URL for default historical statistics. Analysis no longer calls it. `infra/config/services.json`
+Land analysis/statistics no longer import or call the ARR adapter. Remaining dependencies include design/jobs/artifacts, shared-agent source paths and the lifecycle probe. `infra/config/services.json`
 marks ARR as legacy-pending-relocation. The domain migration manifest explicitly
-sets complete_backend_integration=false. Eight local backend feature slices
+sets complete_backend_integration=false. Nine local backend feature slices
 are recorded there; that is not a percentage of the full migration.
 
 Completion requires selected AG functions and all required ARR product functions
@@ -26,6 +25,6 @@ ARR/AG service/source roots excluded from runtime. Shared agents are intentional
 external and do not need relocation. Original directories must not be deleted
 before those gates and preservation checks pass.
 
-Continuation: import historical records/cache/statistics, then design/jobs/artifacts. Downstream communication identity remains pending. Track both workstreams
+Continuation: design/jobs/artifacts and their user workflows. Downstream communication identity remains pending. Track both workstreams
 in the existing function matrix and per-feature migration manifest; do not treat
 successive UI slices as completion of backend absorption.

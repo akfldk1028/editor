@@ -92,8 +92,12 @@ def test_database_failure_is_explicit_and_keeps_calculation(monkeypatch, tmp_pat
 
 def test_local_stats_do_not_call_legacy_or_claim_historical_migration(monkeypatch, tmp_path):
     client = client_for(monkeypatch, tmp_path)
-    assert client.get('/api/v1/land/stats').status_code == 503
+    assert client.get('/api/v1/land/stats').json()['scope'] == 'editor_all'
     response = client.get('/api/v1/land/stats?scope=editor')
     assert response.status_code == 200
     assert response.json()['legacy_history_included'] is False
-    assert client.get('/api/v1/land/stats?scope=all').status_code == 422
+    assert client.get('/api/v1/land/stats?scope=all').status_code == 200
+    imported = client.get('/api/v1/land/stats?scope=imported').json()
+    assert imported['scope'] == 'editor_imported'
+    assert imported['total_queries'] == 0
+    assert client.get('/api/v1/land/stats?scope=legacy').status_code == 422

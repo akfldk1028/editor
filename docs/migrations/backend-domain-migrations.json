@@ -256,6 +256,43 @@
         "Design/jobs/artifacts and selected AG workflows",
         "Operational dependency cutover"
       ]
+    },
+    {
+      "id": "land-history-cache-statistics",
+      "api": "GET /api/v1/land/stats (all/editor/imported)",
+      "runtime_source_owner": "editor",
+      "legacy_service_required": false,
+      "targets": [
+        "backend/app/modules/land/history.py",
+        "backend/app/modules/land/cache_import.py",
+        "backend/app/modules/land/import_records.py",
+        "backend/app/modules/land/repository.py",
+        "backend/app/api/routes_land.py",
+        "frontend/app/planm/src/features/land-analysis/LandPage.tsx"
+      ],
+      "verification": {
+        "backend": "434 passed,41 subtests;27 platform passed",
+        "actual_import": {
+          "queries": 466,
+          "results": 364,
+          "land_caches": 37,
+          "zone_caches": 17,
+          "source_id": "arr-land-main",
+          "all_original_rows_equal": true,
+          "repeat_duplicates": 0
+        },
+        "browser": "21 mock passed,15 opt-in skipped;1 additional actual HTTP imported-history flow passed",
+        "build": "passed",
+        "boundaries": "2 passed",
+        "runtime": "8 passed"
+      },
+      "documentation": "docs/integrations/2026-10-04-land-history.md",
+      "remaining": [
+        "Reconcile future source writes at final cutover",
+        "Design/jobs/artifacts and selected AG workflows",
+        "Live providers and complete 2D/3D UX",
+        "Operational dependency cutover"
+      ]
     }
   ]
 }

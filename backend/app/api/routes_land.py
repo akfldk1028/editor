@@ -4,7 +4,6 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from backend.app.adapters.land import LandClient, LandContractError, LandUnavailable, LandRejected
 from backend.app.modules.regulations.zoning_catalog import CatalogUnavailable, get_zones
 from backend.app.modules.land.pnu import normalize_pnu, parse_pnu
 from backend.app.adapters.vworld import VworldClient
@@ -79,11 +78,9 @@ class ParcelRequest(BaseModel):
         return self
 
 
-def create_land_router(client=None, *, public_origin=None, address_client=None, repository=None,
+def create_land_router(*, public_origin=None, address_client=None, repository=None,
                        attribute_client=None, geometry_client=None, law_client=None, extraction_client=None,
                        datum_service_factory=None):
-    owner=client or LandClient(os.environ.get('EDITOR_ARR_URL'),
-        analysis_timeout=float(os.environ.get('EDITOR_ARR_ANALYSIS_TIMEOUT','180')))
     origin=public_origin or os.environ.get('EDITOR_PUBLIC_URL','http://127.0.0.1:5173')
     router=APIRouter(prefix='/api/v1/land',tags=['land'])
     addresses=address_client or VworldClient(os.environ.get('VWORLD_API_KEY', ''))
@@ -145,12 +142,6 @@ def create_land_router(client=None, *, public_origin=None, address_client=None, 
         check_origin(request)
         return await addresses.fetch_parcel_geometry(body.pnu)
 
-    async def respond(operation):
-        try: return await operation
-        except LandRejected: raise HTTPException(422,'ARR rejected the land input') from None
-        except LandUnavailable: raise HTTPException(503,'ARR land service unavailable') from None
-        except LandContractError: raise HTTPException(502,'Invalid ARR land response') from None
-
     @router.get('/zones')
     def zones():
         try:
@@ -159,15 +150,14 @@ def create_land_router(client=None, *, public_origin=None, address_client=None, 
             raise HTTPException(503, 'Zoning catalog unavailable') from None
 
     @router.get('/stats')
-    async def stats(scope: Literal['legacy', 'editor'] = 'legacy'):
-        if scope == 'legacy':
-            return await respond(owner.stats())
+    async def stats(scope: Literal['all', 'imported', 'editor'] = 'all'):
         try:
             local = local_repository()
             if local is None:
                 raise HTTPException(503, 'Land storage is not configured')
-            return {**await run_in_threadpool(local.stats), 'scope': 'editor_local',
-                    'legacy_history_included': False}
+            return {**await run_in_threadpool(local.stats, scope),
+                    'scope': {'all':'editor_all', 'imported':'editor_imported', 'editor':'editor_local'}[scope],
+                    'legacy_history_included': scope != 'editor'}
         except (OSError, ValueError, sqlite3.Error):
             raise HTTPException(503, 'Land statistics unavailable') from None
 

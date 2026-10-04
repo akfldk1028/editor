@@ -21,22 +21,43 @@ class LandRepository:
         with closing(sqlite3.connect(self.path, timeout=10)) as db, db:
             db.row_factory = sqlite3.Row
             db.execute('BEGIN IMMEDIATE')
-            version = db.execute('PRAGMA user_version').fetchone()[0]
-            if version not in (0, 1, 2):
-                raise ValueError('unsupported land database version')
-            if version == 0:
-                db.execute('''CREATE TABLE analyses (
-                    analysis_id TEXT PRIMARY KEY, created_at TEXT NOT NULL,
-                    input_type TEXT NOT NULL, request_json TEXT NOT NULL,
-                    result_json TEXT NOT NULL, elapsed_ms REAL NOT NULL,
-                    error TEXT NOT NULL)''')
-            if version < 2:
-                db.execute('''CREATE TABLE land_cache (
-                    pnu TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, result_json TEXT NOT NULL)''')
-                db.execute('''CREATE TABLE IF NOT EXISTS zone_cache (
-                    cache_key TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, features_json TEXT NOT NULL)''')
-                db.execute('PRAGMA user_version=2')
+            self._ensure_schema(db)
             yield db
+
+    @staticmethod
+    def _ensure_schema(db):
+        version = db.execute('PRAGMA user_version').fetchone()[0]
+        if version not in (0, 1, 2, 3):
+            raise ValueError('unsupported land database version')
+        if version == 0:
+            db.execute('''CREATE TABLE analyses (
+                analysis_id TEXT PRIMARY KEY, created_at TEXT NOT NULL,
+                input_type TEXT NOT NULL, request_json TEXT NOT NULL,
+                result_json TEXT NOT NULL, elapsed_ms REAL NOT NULL,
+                error TEXT NOT NULL)''')
+        if version < 2:
+            db.execute('''CREATE TABLE land_cache (
+                pnu TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, result_json TEXT NOT NULL)''')
+            db.execute('''CREATE TABLE IF NOT EXISTS zone_cache (
+                cache_key TEXT PRIMARY KEY, fetched_at TEXT NOT NULL, features_json TEXT NOT NULL)''')
+            db.execute('PRAGMA user_version=2')
+        if version < 3:
+            db.execute('CREATE TABLE legacy_sources (source_id TEXT PRIMARY KEY, created_at TEXT NOT NULL)')
+            db.execute("""CREATE TABLE legacy_results (
+                source_id TEXT NOT NULL, source_pk INTEGER NOT NULL, created_at TEXT NOT NULL,
+                row_json TEXT NOT NULL, row_sha256 TEXT NOT NULL,
+                PRIMARY KEY(source_id, source_pk))""")
+            db.execute("""CREATE TABLE legacy_queries (
+                source_id TEXT NOT NULL, source_pk INTEGER NOT NULL, created_at TEXT NOT NULL,
+                row_json TEXT NOT NULL, row_sha256 TEXT NOT NULL,
+                input_type TEXT NOT NULL, elapsed_ms REAL NOT NULL, error TEXT NOT NULL,
+                analysis_result_id INTEGER,
+                PRIMARY KEY(source_id, source_pk))""")
+            db.execute("""CREATE TABLE history_imports (
+                source_id TEXT NOT NULL, snapshot_sha256 TEXT NOT NULL, imported_at TEXT NOT NULL,
+                query_count INTEGER NOT NULL, result_count INTEGER NOT NULL,
+                PRIMARY KEY(source_id, snapshot_sha256))""")
+            db.execute('PRAGMA user_version=3')
 
     def save(self, request: dict, result: dict, elapsed_ms: float, error: str = '') -> str:
         if not isinstance(request, dict) or not isinstance(result, dict):
@@ -64,16 +85,48 @@ class LandRepository:
                 'request': json.loads(row['request_json']), 'result': json.loads(row['result_json']),
                 'elapsed_ms': row['elapsed_ms'], 'error': row['error']}
 
-    def stats(self) -> dict:
+    def stats(self, scope='editor') -> dict:
+        if scope not in ('editor', 'imported', 'all'):
+            raise ValueError('Invalid statistics scope')
+        sources = []
+        if scope in ('editor', 'all'):
+            sources.append('SELECT input_type,elapsed_ms,error FROM analyses')
+        if scope in ('imported', 'all'):
+            sources.append('SELECT input_type,elapsed_ms,error FROM legacy_queries')
+        combined = ' UNION ALL '.join(sources)
         with self._transaction() as db:
-            totals = db.execute('''SELECT COUNT(*) AS total, AVG(elapsed_ms) AS average,
-                                  SUM(CASE WHEN error <> '' THEN 1 ELSE 0 END) AS errors
-                                  FROM analyses''').fetchone()
-            groups = db.execute('''SELECT input_type, COUNT(*) AS count FROM analyses
-                                   GROUP BY input_type ORDER BY count DESC, input_type ASC''').fetchall()
+            totals = db.execute('SELECT COUNT(*) AS total, AVG(elapsed_ms) AS average, '
+                "SUM(CASE WHEN error <> '' THEN 1 ELSE 0 END) AS errors FROM (" + combined + ')').fetchone()
+            groups = db.execute('SELECT input_type, COUNT(*) AS count FROM (' + combined + ') '
+                'GROUP BY input_type ORDER BY count DESC,input_type ASC').fetchall()
         return {'total_queries': totals['total'], 'avg_response_time_ms': round(totals['average'] or 0, 2),
                 'error_count': totals['errors'] or 0,
                 'by_input_type': [{'input_type': row['input_type'], 'count': row['count']} for row in groups]}
+
+    def get_history(self, source_id, kind, source_pk):
+        if kind not in ('queries', 'results'):
+            raise ValueError('Invalid history kind')
+        with self._transaction() as db:
+            row = db.execute('SELECT * FROM legacy_' + kind + ' WHERE source_id=? AND source_pk=?',
+                             (source_id, source_pk)).fetchone()
+        return self._history_record(row) if row else None
+
+    def list_history(self, kind='queries', source_id=None, limit=50, offset=0):
+        if kind not in ('queries', 'results') or type(limit) is not int or not 1 <= limit <= 100 or type(offset) is not int or offset < 0:
+            raise ValueError('Invalid history pagination')
+        where = ' WHERE source_id=?' if source_id is not None else ''
+        parameters = [source_id] if source_id is not None else []
+        with self._transaction() as db:
+            rows = db.execute('SELECT * FROM legacy_' + kind + where +
+                ' ORDER BY created_at DESC,source_id,source_pk DESC LIMIT ? OFFSET ?',
+                parameters + [limit, offset]).fetchall()
+        return [self._history_record(row) for row in rows]
+
+    @staticmethod
+    def _history_record(row):
+        return {'source_id': row['source_id'], 'source_pk': row['source_pk'],
+                'created_at': row['created_at'], 'row_sha256': row['row_sha256'],
+                'row': json.loads(row['row_json'])}
 
     @staticmethod
     def _validate_land_cache(pnu, result):

@@ -23,11 +23,11 @@ test('local zoning catalog populates form with legacy service unconfigured', asy
   await expect(page.getByRole('alert')).toContainText('not configured');
 });
 
-test('live land form reaches ARR through Editor backend', async ({page}) => {
-  test.skip(!process.env.EDITOR_LIVE_LAND,'Requires configured ARR land service');
+test('live land form runs analysis in Editor', async ({page}) => {
+  test.skip(!process.env.EDITOR_LIVE_LAND,'Requires configured Editor land providers');
   test.setTimeout(90000);
   await page.goto('/land');
-  await expect(page.getByRole('heading',{name:'ARR 분석 통계'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'대지 분석 통계'})).toBeVisible();
   await page.getByLabel('주소 또는 PNU').fill('1168011200101280003');
   await page.getByLabel('용도지역 직접 지정').selectOption({index:1});
   await page.getByLabel('법령 원문 검색').uncheck();
@@ -45,7 +45,7 @@ test('live land form reaches ARR through Editor backend', async ({page}) => {
 
 test('land analysis shows partial results and flat legal articles without hiding errors', async ({page}) => {
   await page.route('**/api/v1/land/zones',r=>r.fulfill({json:{zones:[{zone_name:'제2종일반주거지역',bcr_default:60,far_default:250}],count:1}}));
-  await page.route('**/api/v1/land/stats',r=>r.fulfill({json:{total_queries:1,error_count:0,avg_response_time_ms:2,by_input_type:[]}}));
+  await page.route('**/api/v1/land/stats*',r=>r.fulfill({json:{total_queries:1,error_count:0,avg_response_time_ms:2,by_input_type:[]}}));
   await page.route('**/api/v1/land/analyze',r=>{
     expect(r.request().postDataJSON()).toMatchObject({input:'1168011200101280003',input_type:'pnu',include_law:true});
     return r.fulfill({json:{pnu:{pnu:'1168011200101280003'},land_info:null,zone_info:null,

@@ -14,7 +14,9 @@ export interface LandResult {
     provenance?:{actual_provider?:string|null;providers?:string[];fallback_used?:boolean}|null}|null}|null;
 }
 export interface LandZone {zone_name:string;bcr_default:number;far_default:number}
-export interface LandStats {total_queries:number;error_count:number;avg_response_time_ms:number;by_input_type:{input_type:string;count:number}[]}
+export type LandStatsScope = 'editor'|'imported'|'all';
+export interface LandStats {total_queries:number;error_count:number;avg_response_time_ms:number;by_input_type:{input_type:string;count:number}[];
+  scope?:'editor_local'|'editor_imported'|'editor_all'}
 export interface LandInput {input:string;input_type:'address'|'pnu'|'raw';zones:string[];include_law:boolean}
 
 export async function request(path:string,signal:AbortSignal,body?:LandInput|Pick<LandInput,'input'|'input_type'>|{pnu:string}|{x:number;y:number}) {
@@ -42,8 +44,8 @@ export async function landZones(signal:AbortSignal):Promise<LandZone[]> {
   if (!Array.isArray(value?.zones)) throw new Error('용도지역 응답 형식이 올바르지 않습니다.');
   return value.zones;
 }
-export async function landStats(signal:AbortSignal,scope:'editor'|'legacy'='legacy'):Promise<LandStats> {
-  return request(scope==='editor'?'stats?scope=editor':'stats',signal);
+export async function landStats(signal:AbortSignal,scope:LandStatsScope='all'):Promise<LandStats> {
+  return request(`stats?scope=${scope}`,signal);
 }
 
 export type LandResolution = {valid:true;parsed:{pnu:string}} | {

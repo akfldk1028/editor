@@ -5,7 +5,6 @@ import httpx
 import uvicorn
 from fastapi import FastAPI
 
-from backend.app.adapters.land import LandClient
 from backend.app.adapters.law_search import LawSearchClient
 from backend.app.adapters.regulation_extraction import RegulationExtractionClient
 from backend.app.api.routes_land import create_land_router
@@ -28,7 +27,7 @@ async def complete(**kwargs):
 search = LawSearchClient('https://fixture.invalid',transport=httpx.MockTransport(provider))
 extraction = RegulationExtractionClient(search,enabled=True,api_key='fixture-only',completion=complete)
 app = FastAPI()
-app.include_router(create_land_router(LandClient(None), public_origin='http://127.0.0.1:5186',
+app.include_router(create_land_router( public_origin='http://127.0.0.1:5186',
     repository=LandRepository(os.environ['EDITOR_LAND_DATA_DIR']),law_client=search,extraction_client=extraction))
 
 if __name__ == '__main__':

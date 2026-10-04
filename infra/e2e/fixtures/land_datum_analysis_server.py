@@ -5,7 +5,6 @@ import uvicorn
 from fastapi import FastAPI
 
 from backend.app.adapters.elevation import ElevationClient
-from backend.app.adapters.land import LandClient
 from backend.app.adapters.vworld import VworldClient
 from backend.app.adapters.vworld_land import VworldLandClient
 from backend.app.adapters.vworld_geometry import VworldGeometryClient
@@ -40,7 +39,7 @@ def elevation(request):
 os.environ['ENABLE_DATUM_ELEVATION']='true'
 transport=httpx.MockTransport(vworld)
 app=FastAPI()
-app.include_router(create_land_router(LandClient(None),public_origin='http://127.0.0.1:5186',
+app.include_router(create_land_router(public_origin='http://127.0.0.1:5186',
     address_client=VworldClient('fixture-only',transport=transport),
     repository=LandRepository(os.environ['EDITOR_LAND_DATA_DIR']),
     attribute_client=VworldLandClient('fixture-only',transport=transport,year=2026),

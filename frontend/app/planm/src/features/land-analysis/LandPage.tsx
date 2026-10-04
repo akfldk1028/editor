@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {analyzeLand,landZones,landStats,type LandResult,type LandZone,type LandStats} from './api';
+import {analyzeLand,landZones,landStats,type LandResult,type LandZone,type LandStats,type LandStatsScope} from './api';
 import './land.css';
 import ResolutionLookup from './ResolutionLookup';
 import ParcelLookup from './ParcelLookup';
@@ -41,8 +41,8 @@ export default function LandPage() {
   const [error,setError]=useState<string|null>(null);const [metadataErrors,setMetadataErrors]=useState<string[]>([]);
   const [statsError,setStatsError]=useState<string|null>(null);
   const [statsRevision,setStatsRevision]=useState(0);
+  const [statsScope,setStatsScope]=useState<LandStatsScope>('all');
   const active=useRef<AbortController|null>(null);
-  const localAnalysis=result?.execution_owner?result.execution_owner==='editor':type==='raw'&&!includeLaw;
   const canAnalyze=type==='raw'?Boolean(zone):Boolean(input.trim());
   useEffect(()=>{
     const controller=new AbortController();
@@ -53,11 +53,11 @@ export default function LandPage() {
   useEffect(()=>{
     const controller=new AbortController();
     setStats(null);setStatsError(null);
-    landStats(controller.signal,localAnalysis?'editor':'legacy')
+    landStats(controller.signal,statsScope)
       .then(value=>{if(!controller.signal.aborted)setStats(value);})
       .catch(reason=>{if(!controller.signal.aborted)setStatsError(reason instanceof Error?reason.message:'통계 조회 실패');});
     return ()=>controller.abort();
-  },[localAnalysis,statsRevision]);
+  },[statsScope,statsRevision]);
   useEffect(()=>{
     active.current?.abort();setResult(null);setError(null);setBusy(false);
     return ()=>active.current?.abort();
@@ -98,11 +98,11 @@ export default function LandPage() {
         {' '}현재 토지 정보와 다를 수 있습니다.</p>}
       <section><h2>분석 판정</h2>{result.assessment?<>
         <p>{result.assessment.status==='needs_evidence'?'추가 근거가 필요합니다.':result.assessment.status}</p>
-        <p>{result.assessment.permit_compliance_verified?'ARR에서 허가 적합성 확인을 보고했습니다.':'허가 적합성은 검증되지 않았습니다.'}</p>
+        <p>{result.assessment.permit_compliance_verified?'분석 결과에 허가 적합성 확인이 보고되었습니다.':'허가 적합성은 검증되지 않았습니다.'}</p>
         <ul>{result.assessment.missing_evidence.map((v,i)=><li key={i}>{v==='complete_design_applicability_and_permit_checks'?'설계 전체 적용성 및 허가 요건 검토가 필요합니다.':v}</li>)}</ul>
         {result.assessment.scope&&<p>분석 범위: {result.assessment.scope==='regulation_lookup_and_partial_calculation'?'규제 조회 및 일부 계산':result.assessment.scope}</p>}
         <details><summary>조례 및 용도 검토 근거</summary><p>{valueText(result.assessment.municipal_coverage)}</p><p>{valueText(result.assessment.use_permission)}</p></details>
-      </>:<p>ARR에서 분석 판정 정보를 제공하지 않았습니다.</p>}</section>
+      </>:<p>분석 판정 정보가 제공되지 않았습니다.</p>}</section>
       {result.warning&&<p role="status">{result.warning}</p>}
       {result.errors?.map((message,i)=><p role="alert" key={i}>{message}</p>)}
       <section><h2>필지 정보</h2><Fields value={result.pnu}/><Fields value={result.land_info}/><Fields value={result.zone_info}/></section>
@@ -132,8 +132,13 @@ export default function LandPage() {
       </section>}
       <section><h2>제한 사항</h2><ul>{result.restrictions.map((v,i)=><li key={i}>{v}</li>)}</ul></section>
     </>}
-    <section><h2>{localAnalysis?'Editor 저장 분석 통계':'ARR 분석 통계'}</h2>
-      {localAnalysis&&<p>기존 서비스의 과거 분석 기록은 포함하지 않습니다.</p>}
+    <section aria-labelledby="land-stats-heading"><h2 id="land-stats-heading">대지 분석 통계</h2>
+      <label>통계 기록 범위<select value={statsScope} onChange={e=>setStatsScope(e.target.value as LandStatsScope)}>
+        <option value="all">전체 저장 기록</option><option value="editor">Editor 신규 기록</option>
+        <option value="imported">가져온 과거 기록</option>
+      </select></label>
+      <p>{statsScope==='editor'?'Editor에서 새로 저장한 분석 기록입니다.':statsScope==='imported'
+        ?'Editor로 실제 가져온 과거 기록만 포함합니다.':'Editor 신규 기록과 실제 가져온 과거 기록을 합산합니다.'}</p>
       {statsError&&<p role="status">{statsError}</p>}
       {stats&&<><p>조회 {stats.total_queries}건 · 오류 {stats.error_count}건 · 평균 {stats.avg_response_time_ms}ms</p>
       <ul>{stats.by_input_type.map(v=><li key={v.input_type}>{v.input_type==='address'?'주소':v.input_type==='pnu'?'PNU':'용도지역 직접 지정'}: {v.count}건</li>)}</ul></>}

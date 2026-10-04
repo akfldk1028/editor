@@ -41,7 +41,8 @@ test("service definitions keep one product URL and explicit module working direc
 test('platform startup wires the external owner and separate product data', () => {
   const services = createServiceDefinitions(repositoryRoot, 'win32');
   assert.equal(services.backend.env.EDITOR_ORCHESTRATOR_URL, 'http://127.0.0.1:8791');
-  assert.equal(services.backend.env.EDITOR_ARR_URL, process.env.EDITOR_ARR_URL || 'http://127.0.0.1:18320');
+  assert.equal(services.backend.env.EDITOR_LAND_DATA_DIR, process.env.EDITOR_LAND_DATA_DIR || resolve(repositoryRoot, 'runtime/editor/land'));
+  assert.equal(services.backend.env.EDITOR_ARR_URL, undefined);
   assert.equal(services.backend.env.EDITOR_SCENE_URL, 'http://127.0.0.1:3002/editor');
   assert.equal(services.orchestrator.cwd, undefined);
   assert.equal(services.orchestrator.command, undefined);

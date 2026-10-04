@@ -4,7 +4,6 @@ import httpx
 import uvicorn
 from fastapi import FastAPI
 
-from backend.app.adapters.land import LandClient
 from backend.app.adapters.vworld import VworldClient
 from backend.app.adapters.vworld_land import VworldLandClient
 from backend.app.adapters.vworld_geometry import VworldGeometryClient
@@ -44,7 +43,7 @@ repository.put_land_cache(CACHED_PNU, {'success':True,'pnu':CACHED_PNU,'zones':[
     'source':'vworld','zones_fetched':True})
 transport = httpx.MockTransport(provider)
 app = FastAPI()
-app.include_router(create_land_router(LandClient(None), public_origin='http://127.0.0.1:5186',
+app.include_router(create_land_router( public_origin='http://127.0.0.1:5186',
     repository=repository, address_client=VworldClient('fixture-only',transport=transport),
     attribute_client=VworldLandClient('fixture-only',transport=transport,year=2026),
     geometry_client=VworldGeometryClient('fixture-only',transport=transport)))

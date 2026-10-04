@@ -2,7 +2,6 @@
 import httpx
 import uvicorn
 from fastapi import FastAPI
-from backend.app.adapters.land import LandClient
 from backend.app.adapters.vworld import VworldClient
 from backend.app.api.routes_land import create_land_router
 
@@ -19,7 +18,7 @@ def provider(request):
 
 
 app=FastAPI()
-app.include_router(create_land_router(LandClient(None),public_origin='http://127.0.0.1:5186',
+app.include_router(create_land_router(public_origin='http://127.0.0.1:5186',
     address_client=VworldClient('fixture-only',transport=httpx.MockTransport(provider))))
 
 if __name__=='__main__':

@@ -4,7 +4,7 @@ const polygon = [[[127,37],[127.01,37],[127.01,37.01],[127,37.01],[127,37]],
   [[127.002,37.002],[127.004,37.002],[127.004,37.004],[127.002,37.004],[127.002,37.002]]];
 test.beforeEach(async ({page}) => {
   await page.route('**/api/v1/land/zones',r=>r.fulfill({json:{zones:[]}}));
-  await page.route('**/api/v1/land/stats',r=>r.fulfill({json:{total_queries:0,error_count:0,avg_response_time_ms:0,by_input_type:[]}}));
+  await page.route('**/api/v1/land/stats*',r=>r.fulfill({json:{total_queries:0,error_count:0,avg_response_time_ms:0,by_input_type:[]}}));
 });
 
 test('PNU boundary preview keeps holes and clears when input changes',async ({page})=>{
