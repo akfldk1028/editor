@@ -1,0 +1,71 @@
+{
+  "schema": "editor-shared-legacy-dependencies/v1",
+  "complete_inventory": false,
+  "status": "source-reviewed; no operational endpoints changed",
+  "dependencies": [
+    {
+      "consumer": "SystemsAgent",
+      "evidence": "systemsagent/paths.py:arr_overhead",
+      "dependency_kind": "python-import",
+      "old_reference": "ARR_BACKEND -> ARR/backend/design/maas/masterplan/ramp_overhead.py",
+      "target_reference": "ARR_BACKEND -> editor/backend/arr; retain canonical design namespace and source identity check",
+      "compatibility_test": "Compare overhead_clearance results on frozen inputs with old source unavailable",
+      "status": "pending"
+    },
+    {
+      "consumer": "ProgramAgent",
+      "evidence": "programagent/paths.py:ensure_arr_backend",
+      "dependency_kind": "python-import-and-statutory-data",
+      "old_reference": "ARR_BACKEND_DIR -> ARR/backend/law",
+      "target_reference": "ARR_BACKEND_DIR -> editor/backend/arr with law package and required data preserved",
+      "compatibility_test": "Compare building-use annex and facility rule loads from relocated source",
+      "status": "pending"
+    },
+    {
+      "consumer": "MasterPlanagent",
+      "evidence": "masterplanagent/legacy_arr.py; masterplanagent/paths.py",
+      "dependency_kind": "python-import",
+      "old_reference": "ARR_BACKEND; design.maas.masterplan.mass_source; design.maas.massv2.parcel_policy",
+      "target_reference": "editor/backend/arr; maintain canonical object identity and explicit legacy-only entry",
+      "compatibility_test": "Run plan_request_from_mass and retained scene tests with old source unavailable",
+      "status": "pending"
+    },
+    {
+      "consumer": "MasterPlanagent",
+      "evidence": "config/arr_planning.json",
+      "dependency_kind": "http",
+      "old_reference": "ARR_MASTERPLAN_URL=http://127.0.0.1:18320",
+      "target_reference": "Editor-owned persistent ARR domain endpoint; isolated endpoint before cutover",
+      "compatibility_test": "Actual planning HTTP response and non-recursive domain/agent execution",
+      "status": "pending"
+    },
+    {
+      "consumer": "KMassAgent",
+      "evidence": "kmassagent/paths.py:bootstrap",
+      "dependency_kind": "python-import",
+      "old_reference": "ARR_BACKEND=D:/Data/25_ACE/ARR/backend plus external MasterPlanagent",
+      "target_reference": "ARR_BACKEND=Editor domain source; MasterPlanagent remains external",
+      "compatibility_test": "Run frozen mass-to-masterplan request preserving imported type identity",
+      "status": "pending"
+    },
+    {
+      "consumer": "SiteContextAgent",
+      "evidence": "sitecontextagent/arr.py:backend,base_url",
+      "dependency_kind": "http-and-environment-file",
+      "old_reference": "ARR_BASE_URL default 18000; ARR_BACKEND/.env",
+      "target_reference": "Persistent Editor domain endpoint; owner environment supplies key without old .env path",
+      "compatibility_test": "Parcel/roads HTTP plus own Vworld configuration with old checkout inaccessible",
+      "status": "pending"
+    },
+    {
+      "consumer": "OrchestratorAgent/MassAgent",
+      "evidence": "OrchestratorAgent/orchestrator/adapters/mass.py:ENV_KEYS",
+      "dependency_kind": "child-process-environment",
+      "old_reference": "ARR_BACKEND passed into existing Mass cycle",
+      "target_reference": "Editor ARR source in isolated owner profile; owner workspace and state remain external",
+      "compatibility_test": "Existing Mass cycle source/config identity and artifact validation without old ARR checkout",
+      "status": "pending"
+    }
+  ],
+  "remaining": ["Mass skill/script asset closure", "Lawagent MCP endpoint variants", "All owner config and editable-install scans", "Inactive and research references classified separately"]
+}

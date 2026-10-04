@@ -1,0 +1,510 @@
+{
+  "schema": "editor-unified-source-map/v1",
+  "complete_import_closure": false,
+  "files": [
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\agents\\urls.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "6c4fa3c6098e76644e808b9bd13f5a02cbb673b3b9542a7825fca2b332d8c8ed",
+      "target": "backend/arr/agents/urls.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\backend\\urls.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "fc811b49dd637d973ef5c2ff57bf87379796013a1ce91867032dd32c26c473fd",
+      "target": "backend/arr/backend/urls.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\urls.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "938dbec9dc5cb1d6ac682d66360e9c007c2d4e7709d34e1cc95e3240c1d1241e",
+      "target": "backend/arr/design/urls.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\gemini\\urls.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "160e6044787104a9c565b5f6efe04289bab4c9c2d07aa6d2a0d091c5c04cfdf0",
+      "target": "backend/arr/gemini/urls.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\graph_db\\urls.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "6129e97844cf50d52baedf902cc9ea4e2f22541ce0b3a317040add80ddd740dc",
+      "target": "backend/arr/graph_db/urls.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\land\\urls.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "4a2239153c2c11ea3d0a8b9bebbb38001d9019005539e569a50f8d3e35c89591",
+      "target": "backend/arr/land/urls.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\law\\urls.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "2e5b6467ded3df51ae3fcb87a92fa4bb5ce6148163ed593ca61ea587c626428b",
+      "target": "backend/arr/law/urls.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\parser\\urls.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "61d864919fd18d316f5229391e9d2d53b6fbc7c952f26ac0d6ef863256ad2f7c",
+      "target": "backend/arr/parser/urls.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\frontend\\src\\routers\\index.tsx",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "6bc1f2ed68eba00b31cd098e498d91e047b2f558d1ba82a2562bdea8fbaf8169",
+      "target": "frontend/app/planm/src/app",
+      "classification": "source",
+      "basis": "Route reference only; adapt selected features, not wholesale copy"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG-frontend\\src\\app\\router.tsx",
+      "commit": "3f372a90816fa9b14e49f32ca6f019f94013c2e6",
+      "sha256": "acbe5f7a45a1750969b0dbabc803165a2dc36a0f0bdd33f6141e86c6b5229d46",
+      "target": "frontend/app/planm/src/app",
+      "classification": "source",
+      "basis": "Route reference only; adapt selected features, not wholesale copy"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\delivered_mass_views.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "5f19a3cdffd79948cf3dc62226ad566e5015bfec4827baa0680abca798a3b8ff",
+      "target": "backend/arr/design/delivered_mass_views.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\masterplan_operations_views.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "9342605ce318577eab99f0b0aabbe0136973a7cafa05cbfddb3be03385c03796",
+      "target": "backend/arr/design/masterplan_operations_views.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\program_floor_plan_views.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "4485813b4ca69cbefe9a9957204b03cc9c482af224015e0ede7d298c500cb383",
+      "target": "backend/arr/design/program_floor_plan_views.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\views.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "a235ca353c7bea271578f90037864dd5e58c7cacf766fa7ecc69fbac4d1dd355",
+      "target": "backend/arr/design/views.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\gemini\\views.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "c43c45c8533b89d9b1329fdbd676667edbffabd95301ecbcb1fe4f750f9b3630",
+      "target": "backend/arr/gemini/views.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\graph_db\\views.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "3cd287a449869a2564aead85fc6385e0d703ef8729f4fa4afd2ac336b430a840",
+      "target": "backend/arr/graph_db/views.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\land\\views.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "1503ef6b899d6ef5fa728ff68467093e1c088aec2e2e2f5d42be4d2cfb5e3a70",
+      "target": "backend/arr/land/views.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\land\\views_agent.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "53b1342bc8427d0b5b5df021293205cc00e461f8303224fdebf96520cc0e2599",
+      "target": "backend/arr/land/views_agent.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\law\\views.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "86e03cba3955c8ea500e93ba10f64c007eee2afb1cf56d79088aa787f513f1e9",
+      "target": "backend/arr/law/views.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\law\\views_agent.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "3f153fbf01a8133c935527f04b5ae0ae02a892edfc7ba4d46922e79993a7c7a7",
+      "target": "backend/arr/law/views_agent.py",
+      "classification": "source",
+      "basis": "Current handler source; transitive import/asset closure still pending"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\app.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "a5426a91cfb6fc84714c02c6c685b6c6dee47a9f386ba31d24cb6cbbfd1b0a2a",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\auth\\authroutes.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "4c40bf1d2b5010b5b84a64d92cac149ca428670fb4e8d9a0ea4573ebd4d3287f",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\a2a.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "d05162a30e7f6da8a51e4b59920c8dedb4e5d40a7569eeb96c95cdefaf43a393",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\gallery.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "2bf6d225e92cdce2788b0a0241e068d8d6da2202a509aacedbece92d3bf646e8",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\mcp.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "36d48dd612bf5b87bf67e9ef4be0e572616871cf872a42b4479cd0fd94a2b45e",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\runs.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "0f3374438304b9aeb65b8361b046b96b96442e29dc401a6b78c91edab56230b9",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\sessions.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "9d50b5d3be29d3eb2a08480c822fc00a70f8b084477510a5b9e899b93106c95e",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\settingsroute.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "f92286b2e31ca859f92854100f61bae72572ebd2eb24fb26379c836cd621cc48",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\teams.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "ee977ed5618c98d733a755563e5645c04be4241c1bdd11451bb21257a19b18e3",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\validation.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "fc4e596579bc14d511b01eea7390667ff8e166d1642f11a260adea3c3d478ad0",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\web\\routes\\ws.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "292121cbd653d6041749526d9e39662184d9919678b1358ca05742830a82222b",
+      "target": "backend/app/modules/platform",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\agents\\management\\commands\\create_second_agent.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "b81d17c89dc1bc00a231284e9d83fd86dd671227125ae8c59f446b4d5b19d7db",
+      "target": "backend/arr/agents/management/commands/create_second_agent.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\agents\\management\\commands\\create_test_agent.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "eecd9ec2d2492600d71562a8f45633f6bd3bb7e2bb64a24e635ca573afae3fbc",
+      "target": "backend/arr/agents/management/commands/create_test_agent.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\agents\\management\\commands\\test_agent_conversations.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "6bb544cbfd458aade6672cc2bcf5929302e0c252542dec70b1f31bf8d3759b78",
+      "target": "backend/arr/agents/management/commands/test_agent_conversations.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\agents\\management\\commands\\test_langgraph.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "ee8166a85faa671bbac810357c787df47e55948a9591ccb3abdd946bec1b41d2",
+      "target": "backend/arr/agents/management/commands/test_langgraph.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\agents\\management\\commands\\test_neo4j.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "9898e7f6e2aa0821cca2fdfe6e76e6ed8b18048305d2ff678ed2689a92aee53d",
+      "target": "backend/arr/agents/management/commands/test_neo4j.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\agents\\management\\commands\\test_worker_communication.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "3af7f487c69b542b8a1d1267ee4a68f1bc28c49f188d8b27ec4f8a400fe606e8",
+      "target": "backend/arr/agents/management/commands/test_worker_communication.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\agents\\management\\commands\\test_worker_structure.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "e0412b72e170bfb39f3bc97747b25c14ce6703c5c668843520f7d7eec2a2021c",
+      "target": "backend/arr/agents/management/commands/test_worker_structure.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\audit_maas_agent_collaboration.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "c84036861af1a03ec44ed4719e08107ab7c897fdc7cc13789c0c4de891a4f4ec",
+      "target": "backend/arr/design/management/commands/audit_maas_agent_collaboration.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\audit_maas_book_scans.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "93a524ed671bc59a90edaeae313668866704ad000f15cb220a2a844780d93b9e",
+      "target": "backend/arr/design/management/commands/audit_maas_book_scans.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\audit_maas_executed_masses.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "0d717e22b81bc5078bc076ff1f3f85b37ff82b7c7e50f5247d6e82f45599bd35",
+      "target": "backend/arr/design/management/commands/audit_maas_executed_masses.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\audit_maas_portfolio_board.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "76c15cadf5023c6e510254be752f1e35c8eb8221dfe63671705bf8a29ee8f848",
+      "target": "backend/arr/design/management/commands/audit_maas_portfolio_board.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\benchmark_maas_algorithms.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "22cabf3c473816643c0c492ff8902fd986e0d46a0058c4044dadb9d05d108c58",
+      "target": "backend/arr/design/management/commands/benchmark_maas_algorithms.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\benchmark_maas_book_program_portfolios.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "56ba5d9974aca405238e76729bc94bd247bdf47c5d5be0da6063719570542c6d",
+      "target": "backend/arr/design/management/commands/benchmark_maas_book_program_portfolios.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\benchmark_maas_geometry_language.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "57f97d16f7afb5367bbf63f6dda4bb008772e9d720562042deb2d5e82ddf00de",
+      "target": "backend/arr/design/management/commands/benchmark_maas_geometry_language.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\bootstrap_mass_brain_memory.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "e4c56f4f19a4fea98a36bcadbfe75c9995f58cd150637cd2895adde236ffd604",
+      "target": "backend/arr/design/management/commands/bootstrap_mass_brain_memory.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\execute_maas_single_mass.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "3f01366a8d010610bc57e85cb81c692238ceb9e6d5e111f8dc9237324ea5dd26",
+      "target": "backend/arr/design/management/commands/execute_maas_single_mass.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\export_maas_elevation_handoff.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "deb79c1170365c08c732e8e97898d688caa00383df61a3a89e0825ab401acbec",
+      "target": "backend/arr/design/management/commands/export_maas_elevation_handoff.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\export_maas_language_memory.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "8ad365f47a8bb6591a7da1c44057f0e1b8b3a5aa0996b1b7f5bfa5250db95ad1",
+      "target": "backend/arr/design/management/commands/export_maas_language_memory.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\export_maas_training_data.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "3e1f6a653019d00f0ac12a8ff637ec62c3fe9ff39170b8ffe4267657dc3a1b11",
+      "target": "backend/arr/design/management/commands/export_maas_training_data.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\generate_maas_creative_100.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "3cd3cc21fb8ed2f3a392dc3d69a16fc0548e27e618b0a83d76a1a89c617d004d",
+      "target": "backend/arr/design/management/commands/generate_maas_creative_100.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\generate_maas_elevation_proposals.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "909931d65017494ce9ce77f09b7a3f20da74f9784e757151d51e531dc90a885b",
+      "target": "backend/arr/design/management/commands/generate_maas_elevation_proposals.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\generate_maas_fresh_batch.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "7ddc1c14395740fb281e114ba22f226a250b6757c3e2b2be6972ded984e5c7fc",
+      "target": "backend/arr/design/management/commands/generate_maas_fresh_batch.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\generate_massv2.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "a03c8c24ea79e51c9ee2f8503e534992c13b49134ab98ab937c0cb112fcf0894",
+      "target": "backend/arr/design/management/commands/generate_massv2.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\rebuild_maas_cumulative_candidate_pool.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "37d64ed67a570bbbdf7dd849d1cb91dd0184410228ed820eae6b3b129e273adb",
+      "target": "backend/arr/design/management/commands/rebuild_maas_cumulative_candidate_pool.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\refresh_maas_service_cache.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "fe84763a0ca0a3052d7cb971f41ef8e3398dd52f3e570383791a451d0cbae077",
+      "target": "backend/arr/design/management/commands/refresh_maas_service_cache.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\render_parti_sequence.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "67c75b32fa577930cdb7dd259606b1e48ea5caf0eeed5a993c3789baac1f1446",
+      "target": "backend/arr/design/management/commands/render_parti_sequence.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\design\\management\\commands\\sync_mass_brain_book_corpus.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "36f4b58b3b4e6d419e603545950ede15f5179a1b6a2651ef9393f78884c6f614",
+      "target": "backend/arr/design/management/commands/sync_mass_brain_book_corpus.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\graph_db\\management\\commands\\listen_neo4j.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "2b0dbcae1a249a74503eb7be7f8de5afe0609400416a4271fa56c0c7e3bce125",
+      "target": "backend/arr/graph_db/management/commands/listen_neo4j.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\ARR\\backend\\law\\management\\commands\\build_statute_citations.py",
+      "commit": "e986361589c68d44e15d6c11df87e1cf0cad878d",
+      "sha256": "fea19e1dabd36fb6477a5d12a9a9bc2dc94729e9b68c58f06127d56734c8f1e4",
+      "target": "backend/arr/law/management/commands/build_statute_citations.py",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\agents\\OrchestratorAgent\\orchestrator\\registry.py",
+      "commit": "48f5f487aa82d23ea02bac3a6a68bbc416c31239",
+      "sha256": "cb311766521555f1279a690c244871bc1434e3867f51747d349276bcddb8ed2f",
+      "target": "external-shared-owner (reference only)",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\agents\\OrchestratorAgent\\orchestrator\\phases.py",
+      "commit": "48f5f487aa82d23ea02bac3a6a68bbc416c31239",
+      "sha256": "27bd17eb6d2ba148c82f325f7ca0a3554dc37fb1289aa34568ddb6e3c31560db",
+      "target": "external-shared-owner (reference only)",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG\\autogen_a2a_kit\\autogen_source\\python\\packages\\autogen-studio\\autogenstudio\\cli.py",
+      "commit": "179fe49607a33e2eca5337bb099cde78be96055b",
+      "sha256": "ea5025268d97fb137d6c64e3171bf7db7b84b637b60b32734d03d38f6a389869",
+      "target": "reference-only; excluded CLI",
+      "classification": "source",
+      "basis": "working-tree bytes; commit does not imply clean"
+    }
+  ]
+}
