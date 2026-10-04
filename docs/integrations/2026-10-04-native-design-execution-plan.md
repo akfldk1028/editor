@@ -67,4 +67,4 @@ Source plan `ARR/docs/superpowers/plans/2026-07-28-ten-alternative-mass-portfoli
 
 ## Current limit
 
-This investigation performed no native generation run and changed no source implementation. Existing archive preservation and selected-mass PLANM handoff are useful integration evidence, but neither means the original optimizer or full MAAS execution has moved into Editor. ARR/AG directory removal remains gated on the remaining live entrypoint inventory and independent source-unavailable execution tests.
+The specification creation unit is implemented in Editor; see `2026-10-04-native-design-job-creation.md` for its API, consumer, deliberate validation differences and verification evidence. No native optimizer run is implemented by that unit. Next is step 2: complete additive computation and durable execution. Existing archive preservation and selected-mass PLANM handoff are useful integration evidence, but neither means the original optimizer or full MAAS execution has moved into Editor. ARR/AG directory removal remains gated on the remaining live entrypoint inventory and independent source-unavailable execution tests.

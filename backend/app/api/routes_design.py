@@ -7,6 +7,7 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.app.api.design_access import DesignAccess
 from backend.app.api.routes_execution_artifacts import create_execution_router
+from backend.app.api.routes_native_design import create_native_design_router
 
 
 class DesignAttachment(BaseModel):
@@ -20,7 +21,7 @@ class DesignSelection(DesignAttachment):
     result_pk: int = Field(gt=0)
 
 
-def create_design_router(projects_service, allowed_origin, repository=None, execution_catalog=None):
+def create_design_router(projects_service, allowed_origin, repository=None, execution_catalog=None, native_design_service=None):
     router = APIRouter(prefix='/projects/{project_id}/design', tags=['design'])
     access = DesignAccess(projects_service, allowed_origin)
     binding, mutate = access.binding, access.mutate
@@ -117,4 +118,5 @@ def create_design_router(projects_service, allowed_origin, repository=None, exec
     combined = APIRouter()
     combined.include_router(router)
     combined.include_router(create_execution_router(projects_service, allowed_origin, execution_catalog))
+    combined.include_router(create_native_design_router(projects_service, allowed_origin, native_design_service))
     return combined

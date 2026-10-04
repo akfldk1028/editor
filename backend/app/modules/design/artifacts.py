@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import stat
 import tempfile
 
 
@@ -25,7 +26,14 @@ def _relative(value):
 
 
 def _linked(path):
-    return path.is_symlink() or path.is_junction()
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return False
+    # Windows junctions are reparse points even on Python 3.11, which lacks is_junction.
+    return stat.S_ISLNK(info.st_mode) or bool(
+        getattr(info, 'st_file_attributes', 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+    )
 
 
 def _safe_path(root, relative):

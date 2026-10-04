@@ -25,6 +25,7 @@ async function setup(page:Page,options:{conflict?:boolean;delayed?:Promise<void>
     const url=new URL(r.request().url());const path=url.pathname.split('/design')[1];
     if(r.request().method()==='POST')writes.push(path);
     if(path==='/jobs')return r.fulfill({json:{items:[]}});
+    if(path==='/native-jobs')return r.fulfill({json:{items:[]}});
     if(path==='/selection')return r.fulfill({json:null});
     if(path==='/executions'&&r.request().method()==='POST'){
       expect(r.request().postDataJSON().scene_revision).toBe(4);

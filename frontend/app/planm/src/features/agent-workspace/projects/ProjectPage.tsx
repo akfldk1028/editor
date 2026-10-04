@@ -5,6 +5,7 @@ import {TaskComposer} from '../runs/TaskComposer';
 import {RunList} from '../runs/RunList';
 import {SavedDesigns} from './SavedDesigns';
 import {SavedExecutions} from './SavedExecutions';
+import {NativeDesignJobs} from './NativeDesignJobs';
 
 export default function ProjectPage({projectId}: {projectId: string}) {
   const [project, setProject] = useState<ProjectBinding | null>(null);
@@ -22,6 +23,7 @@ export default function ProjectPage({projectId}: {projectId: string}) {
       <h1>{project.owner_project_id}</h1><p>브랜치: {project.branch_id}</p>
       <p>연결된 장면: {project.scene_id} · 기준 버전 {project.scene_revision}</p>
       <a href={'/editor/scene/' + encodeURIComponent(project.scene_id)}>3D 장면 열기</a>
+      <NativeDesignJobs key={project.project_id} project={project} />
       <SavedDesigns key={project.project_id} project={project} />
       <SavedExecutions key={project.project_id} project={project} />
       <TaskComposer key={project.project_id} projectId={project.project_id} onSubmitted={() => setRefresh(value=>value+1)} />

@@ -1,0 +1,13 @@
+.native-design-jobs { margin-top: 28px; padding-top: 20px; border-top: 1px solid #d8ddd9; }
+.native-design-jobs fieldset { min-width: 0; padding: 18px; border: 1px solid #d8ddd9; }
+.native-design-jobs label { display: grid; gap: 8px; margin: 14px 0; }
+.native-design-jobs textarea { width: 100%; resize: vertical; padding: 10px; font: 13px/1.5 monospace; border: 1px solid #c2cdc5; border-radius: 4px; }
+.native-design-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 0 18px; }
+.native-design-jobs button { margin: 6px 8px 6px 0; }
+.native-design-jobs ul { list-style: none; padding: 0; }
+.native-design-jobs li { padding: 12px 0; border-bottom: 1px solid #e3e8e4; overflow-wrap: anywhere; }
+.native-design-jobs small { display: block; overflow-wrap: anywhere; }
+.native-design-jobs pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3f6f3; padding: 12px; font-size: 12px; }
+.native-design-state { color: #56615b; }
+.native-design-pagination { display: flex; align-items: center; gap: 12px; }
+.native-design-detail { margin-top: 20px; }
