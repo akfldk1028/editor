@@ -1,7 +1,8 @@
-"""Non-destructive, stored-ZIP snapshots. Links are recorded, never followed/restored.
+"""Non-destructive, stored-ZIP snapshots. Link targets are never followed.
 
 Exit 0: verified complete regular-file snapshot/restore; 2: recorded links require
-separate restoration; 1: failure. This is not a live-database consistency backup.
+separate restoration; 1: failure. Raw Windows link restoration is explicit opt-in.
+This is not a live-database consistency backup.
 """
 import argparse
 import base64
@@ -22,6 +23,69 @@ CHUNK = 1024 * 1024
 
 class SnapshotError(ValueError):
     pass
+
+
+def _windows():
+    return os.name == 'nt'
+
+
+def _validated_reparse(row, for_restore=False):
+    try:
+        raw = base64.b64decode(row['reparse_data_base64'], validate=True)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise SnapshotError('raw reparse metadata missing or invalid') from exc
+    if (not 8 <= len(raw) <= 16384 or hashlib.sha256(raw).hexdigest() != row.get('reparse_data_sha256')
+            or struct.unpack_from('<I', raw)[0] != row.get('reparse_tag')
+            or struct.unpack_from('<H', raw, 4)[0] + 8 != len(raw)):
+        raise SnapshotError('reparse metadata tag/size/hash mismatch')
+    if for_restore:
+        if row['reparse_tag'] not in (0xA0000003, 0xA000000C, 0xA000001D):
+            raise SnapshotError('unsupported reparse restoration tag')
+        signature = row.get('signature')
+        if (not isinstance(signature, list) or len(signature) != 7
+                or type(signature[6]) is not int or not signature[6] & 1024):
+            raise SnapshotError('Windows reparse directory attributes missing')
+    return raw
+
+
+def _restore_reparse(path, row):
+    if not _windows():
+        raise SnapshotError('raw reparse restoration requires Windows')
+    raw = _validated_reparse(row, for_restore=True)
+    path = _plain_directory(Path(path).parent) / Path(path).name
+    if os.path.lexists(path):
+        raise SnapshotError('reparse restore path must not already exist')
+    directory = bool(row['signature'][6] & 16)
+    if directory:
+        path.mkdir()
+    else:
+        with path.open('xb'):
+            pass
+    import ctypes
+    from ctypes import wintypes
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    create = kernel.CreateFileW
+    create.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
+                       wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    create.restype = wintypes.HANDLE
+    control = kernel.DeviceIoControl
+    control.argtypes = [wintypes.HANDLE, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD,
+                       ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD), ctypes.c_void_p]
+    control.restype = wintypes.BOOL
+    close = kernel.CloseHandle
+    close.argtypes = [wintypes.HANDLE]; close.restype = wintypes.BOOL
+    handle = create(str(path), 0x40000000, 7, None, 3, 0x00200000 | 0x02000000, None)
+    if handle == ctypes.c_void_p(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        buffer = ctypes.create_string_buffer(raw)
+        returned = wintypes.DWORD()
+        if not control(handle, 0x000900A4, buffer, len(raw), None, 0, ctypes.byref(returned), None):
+            raise ctypes.WinError(ctypes.get_last_error())
+    finally:
+        close(handle)
+    if _read_reparse_data(path) != raw or bool(path.lstat().st_file_attributes & 16) != directory:
+        raise SnapshotError('restored reparse bytes or directory flag differ')
 
 
 def _safe_path(value):
@@ -88,7 +152,9 @@ def _link_metadata(path, info):
 
 
 def _signature(info):
-    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns,
+    # Windows may report directory allocation size or zero for the same NTFS directory.
+    size = 0 if _windows() and stat.S_ISDIR(info.st_mode) and not _is_link(info) else info.st_size
+    return (info.st_dev, info.st_ino, info.st_mode, size, info.st_mtime_ns,
             getattr(info, 'st_ctime_ns', 0), getattr(info, 'st_file_attributes', 0))
 
 
@@ -158,12 +224,14 @@ def _copy_file(path, row, archive):
     return digest.hexdigest()
 
 
-def _result(rows):
+def _result(rows, links_restored=False):
     links = [row for row in rows if row['kind'] == 'link']
-    return {'schema': SCHEMA, 'status': 'incomplete_links' if links else 'complete',
+    return {'schema': SCHEMA, 'status': 'incomplete_links' if links and not links_restored else 'complete',
             'files': sum(row['kind'] == 'file' for row in rows),
             'directories': sum(row['kind'] == 'directory' for row in rows),
-            'bytes': sum(row.get('size', 0) for row in rows), 'unresolved_links': links}
+            'bytes': sum(row.get('size', 0) for row in rows),
+            'restored_links': len(links) if links_restored else 0,
+            'unresolved_links': [] if links_restored else links}
 
 
 def _tree_changes(before, after, limit=8):
@@ -233,9 +301,7 @@ def _validate_rows(rows, require_hash=True):
             raise SnapshotError('invalid file size/hash')
         if row['kind'] == 'link':
             if 'reparse_data_base64' in row:
-                raw = base64.b64decode(row['reparse_data_base64'], validate=True)
-                if len(raw) < 8 or hashlib.sha256(raw).hexdigest() != row.get('reparse_data_sha256'):
-                    raise SnapshotError('reparse metadata hash mismatch')
+                _validated_reparse(row)
             elif not isinstance(row.get('target'), str):
                 raise SnapshotError('link target metadata missing')
     for name in names:
@@ -278,16 +344,51 @@ def _verified_manifest(archive):
     return manifest
 
 
-def verify(archive_path):
+def _verify_restored(rows, root):
+    root = _plain_directory(root)
+    observed = {row['path']: row for row in _inventory(root)}
+    if set(observed) != {row['path'] for row in rows}:
+        raise SnapshotError('restored tree paths differ from manifest')
+    for row in rows:
+        actual = observed[row['path']]
+        if actual['kind'] != row['kind']:
+            raise SnapshotError('restored kind differs: ' + row['path'])
+        if row['kind'] == 'file':
+            path = root / row['path']
+            before = path.lstat()
+            flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_NOFOLLOW', 0)
+            with os.fdopen(os.open(path, flags), 'rb') as stream:
+                opened = os.fstat(stream.fileno())
+                if _is_link(opened) or (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino):
+                    raise SnapshotError('restored file changed while opening')
+                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                if _signature(os.fstat(stream.fileno())) != _signature(opened):
+                    raise SnapshotError('restored file changed while verifying')
+            if (actual['size'] != row['size'] or digest != row['sha256']
+                    or _signature(path.lstat()) != _signature(before)):
+                raise SnapshotError('restored file size/hash mismatch: ' + row['path'])
+        elif row['kind'] == 'link':
+            for key in ('reparse_tag', 'reparse_data_base64', 'reparse_data_sha256', 'target'):
+                if actual.get(key) != row.get(key):
+                    raise SnapshotError('restored link metadata differs: ' + row['path'])
+            if bool(actual['signature'][6] & 16) != bool(row['signature'][6] & 16):
+                raise SnapshotError('restored link directory flag differs')
+    return _result(rows, links_restored=True)
+
+
+def verify(archive_path, restored_root=None):
     try:
         with zipfile.ZipFile(archive_path) as archive:
-            return _result(_verified_manifest(archive)['entries'])
+            rows = _verified_manifest(archive)['entries']
+            return _verify_restored(rows, restored_root) if restored_root is not None else _result(rows)
     except Exception as exc:
         if isinstance(exc, SnapshotError): raise
         raise SnapshotError('verification failed: ' + str(exc)) from exc
 
 
-def restore(archive_path, target):
+def restore(archive_path, target, *, restore_reparse=False):
+    if restore_reparse and not _windows():
+        raise SnapshotError('raw reparse restoration requires Windows')
     target = Path(target)
     target = _plain_directory(target.parent) / target.name
     if os.path.lexists(target):
@@ -295,6 +396,10 @@ def restore(archive_path, target):
     try:
         with zipfile.ZipFile(archive_path) as archive:
             rows = _verified_manifest(archive)['entries']
+            if restore_reparse:
+                for row in rows:
+                    if row['kind'] == 'link':
+                        _validated_reparse(row, for_restore=True)
             target.mkdir()
             for row in sorted(rows, key=lambda row: (row['path'].count('/'), row['path'])):
                 path = target / row['path']
@@ -307,11 +412,15 @@ def restore(archive_path, target):
                             output.write(block); digest.update(block)
                     if digest.hexdigest() != row['sha256']:
                         raise SnapshotError('archive changed during restore')
-            # Restore mtimes after creating children; never restore link targets.
+            if restore_reparse:
+                for row in rows:
+                    if row['kind'] == 'link':
+                        _restore_reparse(target / row['path'], row)
+            # Manifest parents are plain directories; no operation enters a link.
             for row in sorted(rows, key=lambda row: row['path'].count('/'), reverse=True):
                 if row['kind'] != 'link' and type(row.get('mtime_ns')) is int:
                     os.utime(target / row['path'], ns=(row['mtime_ns'], row['mtime_ns']))
-            return _result(rows)
+            return _verify_restored(rows, target) if restore_reparse else _result(rows)
     except Exception as exc:
         if isinstance(exc, SnapshotError): raise
         raise SnapshotError('restore failed; target may contain partial files: ' + str(exc)) from exc
@@ -321,12 +430,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     p = commands.add_parser('create'); p.add_argument('source'); p.add_argument('archive')
-    p = commands.add_parser('verify'); p.add_argument('archive')
+    p = commands.add_parser('verify'); p.add_argument('archive'); p.add_argument('--root')
     p = commands.add_parser('restore'); p.add_argument('archive'); p.add_argument('target')
+    p.add_argument('--restore-reparse', action='store_true')
     args = parser.parse_args()
     try:
         result = (create(args.source, args.archive) if args.command == 'create' else
-                  verify(args.archive) if args.command == 'verify' else restore(args.archive, args.target))
+                  verify(args.archive, restored_root=args.root) if args.command == 'verify' else
+                  restore(args.archive, args.target, restore_reparse=args.restore_reparse))
         print(json.dumps(result, ensure_ascii=True))
         return 2 if result['status'] == 'incomplete_links' else 0
     except (ValueError, OSError) as exc:

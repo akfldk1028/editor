@@ -114,6 +114,33 @@ def test_hash_read_failure_and_changed_during_hash_are_explicit(tmp_path, monkey
     assert not manifest['complete'] and manifest['errors']
 
 
+@pytest.mark.skipif(os.name != 'nt', reason='Windows directory stat-size semantics')
+def test_directory_allocation_size_is_not_content_change_but_mtime_is(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    source = tmp_path / 'source'
+    source.mkdir()
+    (source / 'child.txt').write_bytes(b'preserved')
+    actual_lstat = Path.lstat
+    counter = {'value': 0}
+    alter_mtime = {'value': False}
+    def unstable_directory_info(path, *args, **kwargs):
+        actual = actual_lstat(path, *args, **kwargs)
+        if path != source:
+            return actual
+        counter['value'] += 1
+        values = {key: getattr(actual, key) for key in dir(actual) if key.startswith('st_')}
+        values['st_size'] = 65536 if counter['value'] % 2 else 0
+        if alter_mtime['value'] and counter['value'] % 2:
+            values['st_mtime_ns'] += 1
+        return SimpleNamespace(**values)
+    monkeypatch.setattr(Path, 'lstat', unstable_directory_info)
+    tool = load()
+    manifest = tool.scan(source)
+    assert manifest['complete'], manifest['errors']
+    alter_mtime['value'] = True
+    assert not tool.scan(source)['complete']
+
+
 def test_raw_reparse_metadata_is_compared_and_required_for_unknown_target(tmp_path, monkeypatch):
     from hashlib import sha256
     from base64 import b64encode

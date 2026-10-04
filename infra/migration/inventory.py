@@ -45,7 +45,9 @@ def linked(info):
 
 
 def fingerprint(info):
-    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+    # Windows directory allocation size can vary by stat path without a tree change.
+    size = 0 if os.name == 'nt' and stat.S_ISDIR(info.st_mode) and not linked(info) else info.st_size
+    return (info.st_dev, info.st_ino, size, info.st_mtime_ns, info.st_ctime_ns)
 
 
 def hash_file(path, before):
