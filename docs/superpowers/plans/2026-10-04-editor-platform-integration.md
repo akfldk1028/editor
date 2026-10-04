@@ -12,6 +12,8 @@
 
 ## Global Constraints
 
+- 추가 사용자 확정: AG는 Editor에 기능적으로 통합하고 **모든 에이전트를 Editor에 연결**한다. 단순 폴더 이전/외부 콘솔 링크로 완료 처리하지 않는다. 각 agent/capability의 실제 호출·상태·결과 근거가 전체 연결표에 있어야 한다.
+
 - 2026-10-04 사용자 지시: 기존 프론트 라우터에 경로를 추가한다. `/dwg`, `/planm`, `/editor`, 기존 scene 경로를 유지하며 제품 셸에 `/projects`, `/projects/:projectId`, `/agents`, `/runs/:runId`를 추가한다. 전체 셸/라우터 교체는 하지 않는다.
 
 - Windows 실제 루트는 `D:/Data/25_ACE/editor`. 기존 서비스 터미널 창을 띄우지 않는다.
@@ -74,6 +76,8 @@ Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실
 
 ### Task 4 — Orchestrator owner HTTP 경계와 멱등 실행
 
+추가 산출물: `docs/integrations/agent-connection-matrix.md`. 모든 현재 agent registry/owner manifest를 조사하고 ID·capability·adapter·Editor route·actual task ID·결과 표시·blocked 사유를 매핑한다. 대표 agent 하나만 통과한 것을 전체 연결 완료로 보고하지 않는다.
+
 **Files:** Orchestrator owner의 신규 `orchestrator/service_api.py`, owner `tests/orchestrator/test_service_api.py`; editor 신규 `backend/app/adapters/orchestrator_client.py`, `api/routes_platform_runs.py`, `schemas/platform_runs.py`, `backend/tests/test_platform_runs.py`.
 
 **Interface:** owner service가 기존 `submit(project,branch,request_id,request)`, run/status, queued_input, ordered events를 감싼다. 제품 DTO는 run_id/provider_run_id/source_versions/request_hash/transport_state/owner_status를 구분한다. 미지원 cancel은 capability=false로 반환하며 임의 상태 변경은 하지 않는다.
@@ -97,6 +101,8 @@ Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실
 - [ ] 저장 scene 재열기와 기존 Pascal 게시 API 회귀를 실행하고 커밋한다.
 
 ### Task 6 — AG UI 기능별 이식과 Studio 경계
+
+Editor의 `/agents`에는 전체 agent와 capability를 제공한다. 선택 agent 호출과 프로젝트 작업, 진행/입력 요청, 결과 근거가 같은 Editor 라우팅 흐름으로 연결돼야 한다. AG 기능은 이 제품 경험에 통합하며, 개발자용 legacy 비교 화면은 최종 통합을 대신하지 않는다.
 
 라우터 추가는 기존 `frontend/app/planm/src/app/App.tsx`의 surface 선택을 확장하는 전용 route matcher로 구현한다. `/projects/:projectId` 등은 segment 단위로 해석해 `/projects-other`를 오인하지 않으며, 기존 앱 링크·back/forward·deep link를 유지한다. 새 라우팅 라이브러리 도입은 필수가 아니다.
 
