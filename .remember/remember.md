@@ -6,7 +6,11 @@ Read [source map and evidence](../docs/migrations/2026-10-04-source-map.md) and 
 
 Followup 93f11598: explicit opt-in raw Windows reparse restore and directory-size comparison fix; 42 migration tests passed. AG snapshot v2 failed on four directory allocation-size-only changes; v3 is being created with narrowly corrected comparison. Browser scene reopen now passed with one canvas/no page errors. Actual restored backend OpenAPI/config/schema reads passed, but /health is undefined (404).
 
-Task1 NOT complete: AG large archive/293-link restoration, PLANM publish/Studio baselines and storage strategy remain. No source folders moved, no product routes/API integration implemented. Agent matrix is declared inventory, not proof of live connections. Systems/DomainExpert/Interior remain partial. Continue preservation gates before Task2, without resetting dirty AG research or deleting originals. Detailed receipts remain outside Git; do not commit private source snapshots.
+Further progress: AG files-v3.zip created429653files/12828462346bytes with293recordedlinks; full opt-in restore is running. Editor5e36616f enables explicit owner path/hidden stage host. PLANM151c59d fixes actual lost stdout through hidden wrappers (19Python+4Node tests). Isolated run858fab437a334726904a2116bde47539 generated and published alternative-c into scene868e0a5e9231/version2/321nodes. Real API reread and browser2D/3D passed; graphhash unchanged. Evidence and non-legal-approval limits in source-map326468e5. Owner remains outside Editor.
+
+Studio isolated environment (restored source) now passed health/session/run-create/WS ping; additional run detail GET returned500 due string timestamps receiving .isoformat. Preserve this known defect for actual Studio integration; model execution was never started. Source declared dependencies required separate compatible MCP1.25.0 after MCP2.3.0 import failure; original venv was untouched.
+
+Task1 NOT complete: AG full restore/hash/link validation and source inventory are still running; remaining Studio evidence and storage strategy must be recorded. No source folders moved, no product routes/API integration implemented. Agent matrix is declared inventory, not proof of live connections. Systems/DomainExpert/Interior remain partial. Continue preservation gates before Task2, without resetting dirty AG research or deleting originals. Detailed receipts remain outside Git; do not commit private source snapshots.
 
 ## 2026-10-04 - Editor platform integration planning
 
