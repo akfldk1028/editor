@@ -117,7 +117,19 @@ editor/
 
 프로젝트 화면은 대지 → 법규 → 프로그램 → 매스 → 배치/주차 → 평면 → 입면/실내/설비 → 검토 흐름으로 연결한다. `/projects/:projectId/<feature>`에서 같은 context를 사용한다. 기존 `/dwg`, `/planm`, `/editor`, `/land`, `/agents`, `/runs/:id`와 scene 링크는 초기 이식 동안 보존하고, 이후에도 유효한 진입 또는 명시적 프로젝트 선택으로 연결한다.
 
-최종 사용자 주소는 하나다. workbench가 UI 진입점, Next editor는 같은 origin의 `/editor`, FastAPI는 `/api/v1`을 담당한다. Django·scene MCP는 제품 서비스, 공용 worker·A2A는 외부 서비스다. registry에 `ownership: product | shared`를 기록한다. Editor 기동 도구는 제품 소유 프로세스만 관리하고 공용 서비스는 endpoint/health/config identity를 확인해 연결한다. Editor 종료·재시작 시 공용 프로세스를 중단하지 않는다. 공용 서비스 기동·복구는 owner 운영 도구가 담당한다.
+최종 사용자 주소는 하나다. workbench가 UI 진입점, Next editor는 같은 origin의 `/editor`, FastAPI는 `/api/v1`을 담당한다. Django·scene MCP는 제품 서비스, 공용 worker·A2A는 외부 서비스다. registry는 아래 source_owner/lifecycle/management 계약을 사용한다. Editor 기동 도구는 세션 소유 프로세스만 관리하고 지속 서비스는 endpoint/health/config identity를 확인해 연결한다. Editor 종료·재시작 시 공용 프로세스를 중단하지 않는다. 공용 서비스 기동·복구는 별도 호스트 운영 도구가 담당한다.
+
+### 재검토 보완: 소스 소유와 프로세스 수명 구분
+
+`ownership`만으로 프로세스 종료 권한을 결정하지 않는다. registry는 `source_owner: editor | agents`, `lifecycle: session | persistent`, `management: editor-session | domain-host | agent-host`를 구분한다. Editor 종료는 자신이 생성한 `management=editor-session` 프로세스만 종료한다. 재사용한 프로세스는 종료하지 않는다.
+
+Editor 내부 ARR 도메인 서비스도 공용 agents와 다른 제품이 사용한다면 `source_owner=editor, lifecycle=persistent, management=domain-host`다. 소스는 Editor에 있지만 UI 세션과 별도로 기동·유지한다. 공용 agent는 `source_owner=agents, lifecycle=persistent, management=agent-host`다. 브라우저/작업창을 닫았다고 계산 서비스가 꺼지지 않아야 한다.
+
+의존 순서는 데이터/도메인 호스트 → 공용 agent 호스트 → 제품 세션이다. 에이전트의 domain 요청은 계산 전용 경계로 전달하며, 동일 요청을 다시 Orchestrator에 보내는 제품 workflow API를 호출하지 않는다. 내부 호출에 run/context ID, hop count와 기한을 전달해 순환·무한 대기를 검증한다. domain readiness는 agent readiness를 필수로 기다리지 않는다.
+
+ARR 소스 이전 검사는 제품뿐 아니라 공용 agent의 `ARR_BACKEND`·editable install·sys.path·작업 스크립트·자산 참조도 포함한다. 발견된 각 의존에 HTTP 전환 또는 새 Editor 소유 package 경로를 명시한다. 공용 agent가 Editor 소스를 import해야 하는 기존 예외는 별도 환경과 버전 계약으로 고정하고 순환 import를 금지한다. 원본 ARR 경로가 에이전트를 통해 간접 참조돼도 이전 완료가 아니다.
+
+소비자 격리는 이름 앞에 prefix를 붙이는 것만으로 완료되지 않는다. 서버가 인증된 consumer_id/principal을 결정하고 project/branch/run/artifact/interrupt의 소유권을 확인한다. 새 binding은 tenant scope와 함께 기존 owner ID로 대응시킨다. 기존 local 데이터는 명시적 legacy scope에 남기며 다른 제품으로 자동 공개하지 않는다.
 
 ## 전체 완료 기준
 

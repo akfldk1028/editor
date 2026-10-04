@@ -1,3 +1,9 @@
+## 2026-10-04 - Unified plan re-review before implementation
+
+Reviewed current product launcher, run boundaries and shared agent ARR configuration against the unified plan. Findings and revisions: Editor docs/migrations/2026-10-04-unified-plan-review.md. Task0 now precedes migration: shared agent gateway probe-only, session vs persistent lifecycle separated from source ownership. ARR domain host may be persistent despite Editor source ownership because other consumers depend on it. Scan transitive agent ARR_BACKEND/import/assets as well as HTTP endpoints. Product data migration stays a rehearsal until final Task8 cutover; drain/snapshot/rollback gates required. Consumer/principal isolation must be enforced by owner contracts, not inferred from local actor or key prefixes. Task6/7 split into bounded sub-briefs. Shared agents remain D:/Data/25_ACE/agents; never relocate their state/memory.
+
+Documentation-only correction. Current launcher/runtime have NOT yet been fixed to these lifecycle rules. No process restart, source relocation or database writes. Next: Task0 lifecycle tests, then Task1 complete inventory and restore/build baseline. Product integration and specialist functionality remain incomplete.
+
 ## 2026-10-04 - AUTHORITATIVE CORRECTION: shared agents stay external
 
 User explicitly keeps D:/Data/25_ACE/agents independent because multiple products use these agents. RETRACT the earlier plan to relocate owner source, environments, memory or execution databases into Editor. ARR/AG/AG-frontend product functions still move into Editor; shared agents are connected via API/A2A. Editor contains clients, contracts, endpoint configuration and product UI only. Shared services retain their own lifecycle and must not be stopped when Editor exits. Consumer/project isolation and existing client compatibility are required verification gates; current local-only behavior is not proven multi-consumer isolation.
