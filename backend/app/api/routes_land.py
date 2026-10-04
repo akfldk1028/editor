@@ -10,6 +10,8 @@ from backend.app.modules.land.pnu import normalize_pnu, parse_pnu
 from backend.app.adapters.vworld import VworldClient
 from backend.app.adapters.vworld_land import VworldLandClient
 from backend.app.adapters.vworld_geometry import VworldGeometryClient
+from backend.app.adapters.law_search import LawSearchClient
+from backend.app.adapters.regulation_extraction import RegulationExtractionClient
 from backend.app.schemas.regulations import ZoningLimitsRequest
 from backend.app.modules.land.analysis import analyze_land
 from backend.app.modules.land.analysis_request import normalize_program_request
@@ -76,7 +78,7 @@ class ParcelRequest(BaseModel):
 
 
 def create_land_router(client=None, *, public_origin=None, address_client=None, repository=None,
-                       attribute_client=None, geometry_client=None):
+                       attribute_client=None, geometry_client=None, law_client=None, extraction_client=None):
     owner=client or LandClient(os.environ.get('EDITOR_ARR_URL'),
         analysis_timeout=float(os.environ.get('EDITOR_ARR_ANALYSIS_TIMEOUT','180')))
     origin=public_origin or os.environ.get('EDITOR_PUBLIC_URL','http://127.0.0.1:5173')
@@ -84,6 +86,11 @@ def create_land_router(client=None, *, public_origin=None, address_client=None, 
     addresses=address_client or VworldClient(os.environ.get('VWORLD_API_KEY', ''))
     attributes=attribute_client or VworldLandClient(os.environ.get('VWORLD_API_KEY', ''))
     geometries=geometry_client or VworldGeometryClient(os.environ.get('VWORLD_API_KEY', ''))
+    laws=law_client or LawSearchClient(os.environ.get('LAW_BACKEND_URL'), os.environ.get('AG_LIGHT_URL'))
+    extraction=extraction_client or RegulationExtractionClient(laws,
+        enabled=os.environ.get('LLM_EXTRACTION_ENABLED', 'false').lower() == 'true',
+        api_key=os.environ.get('OPENAI_API_KEY', ''),
+        model=os.environ.get('LLM_EXTRACTION_MODEL', 'gpt-4o-mini'))
 
     def local_repository():
         if repository is not None:
@@ -155,14 +162,15 @@ def create_land_router(client=None, *, public_origin=None, address_client=None, 
     async def analyze(body: LandRequest, request: Request):
         check_origin(request)
         datum_enabled = os.environ.get('ENABLE_DATUM_ELEVATION', 'false').lower() == 'true'
-        if not body.include_law and not datum_enabled:
+        if not datum_enabled:
             try:
                 local = local_repository()
             except (OSError, ValueError):
                 local = None
             try:
                 result = await analyze_land(body.model_dump(), addresses,
-                    LandAttributes(attributes, local), geometries, local)
+                    LandAttributes(attributes, local), geometries, local,
+                    law_client=laws, extraction_client=extraction)
                 return {**result, 'execution_owner': 'editor'}
             except (CatalogUnavailable, OSError):
                 raise HTTPException(503, 'Regulation references unavailable') from None

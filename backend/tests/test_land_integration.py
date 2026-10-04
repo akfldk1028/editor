@@ -55,7 +55,8 @@ def test_land_analysis_timeout_allows_owner_partial_law_response():
     asyncio.run(client.analyze({'input':'x','input_type':'address'}))
 
 
-def test_land_route_validates_input_and_origin_before_owner_call():
+def test_land_route_validates_input_and_origin_before_owner_call(monkeypatch):
+    monkeypatch.setenv('ENABLE_DATUM_ELEVATION', 'true')
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     from backend.app.api.routes_land import create_land_router

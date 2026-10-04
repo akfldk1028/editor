@@ -39,12 +39,17 @@ def test_raw_analysis_runs_and_persists_without_arr(monkeypatch, tmp_path):
     assert stats['scope'] == 'editor_local'
 
 
-def test_law_analysis_still_requires_legacy(monkeypatch, tmp_path):
+def test_law_analysis_with_no_provider_is_explicit_partial(monkeypatch, tmp_path):
+    monkeypatch.delenv('LAW_BACKEND_URL', raising=False)
+    monkeypatch.delenv('AG_LIGHT_URL', raising=False)
     client = client_for(monkeypatch, tmp_path)
     for body in [dict(raw_body(), include_law=True),
                  {'input': '1168011200101280003', 'input_type': 'pnu', 'include_law': True}]:
-        assert client.post('/api/v1/land/analyze', json=body).status_code == 503
-    assert client.get('/api/v1/land/stats?scope=editor').json()['total_queries'] == 0
+        response = client.post('/api/v1/land/analyze', json=body)
+        assert response.status_code == 200
+        assert response.json()['execution_owner'] == 'editor'
+        assert response.json().get('errors') or response.json().get('warning')
+    assert client.get('/api/v1/land/stats?scope=editor').json()['total_queries'] == 2
 
 
 def test_missing_storage_does_not_claim_saved(monkeypatch, tmp_path):

@@ -14,7 +14,8 @@ const labels:Record<string,string>={bcr:'건폐율',far:'용적률',height:'높�
   category:'분류',required:'필수 여부',applies:'적용 여부',direction:'방향',multiplier:'배수',min_pct:'최소 (%)',
   threshold_m2:'면적 기준 (㎡)',applies_when:'적용 조건',allowed_summary:'허용 범위',prohibited_summary:'제한 범위',
   reference_table:'참조표',min_frontage_m:'최소 접도 길이 (m)',min_area_m2:'최소 면적 (㎡)',
-  coordinate_x:'X 좌표',coordinate_y:'Y 좌표'};
+  coordinate_x:'X 좌표',coordinate_y:'Y 좌표',sunlight:'일조',building_designation:'건축지정선',
+  adjacent_setback_m:'인접 대지 이격 (m)',sunlight_applies:'일조 적용',sunlight_rules:'일조 규칙',notes:'참고'};
 
 function valueText(value:unknown):string {
   if (value===null || value===undefined) return '자료 없음';
@@ -105,6 +106,15 @@ export default function LandPage() {
       <section><h2>법령 근거</h2>{result.law_articles?.articles.map((law,i)=><article key={i}><h3>{law.law_name} {law.article}</h3><p>{law.content}</p></article>)}
         {result.law_articles?.errors.map((message,i)=><p role="alert" key={i}>{message}</p>)}
         {!result.law_articles?.articles.length&&<p>조회된 법령 원문이 없습니다.</p>}</section>
+      {result.advisory&&<section aria-labelledby="advisory-heading"><h2 id="advisory-heading">검토용 추출 제안</h2>
+        <p>추출 제안은 계산값에 반영되지 않습니다. 적용 조문과 대지 조건을 별도로 검토해야 합니다.</p>
+        {result.advisory.status==='unavailable'?<p role="status">추출 제안을 제공할 수 없습니다.</p>:<>
+          <p>미검증 제안</p>
+          {Object.entries(result.advisory.proposals).map(([kind,proposal])=><article key={kind}>
+            <h3>{labels[kind]||kind}</h3><Fields value={proposal}/>
+          </article>)}
+        </>}
+      </section>}
       <section><h2>제한 사항</h2><ul>{result.restrictions.map((v,i)=><li key={i}>{v}</li>)}</ul></section>
     </>}
     <section><h2>{localAnalysis?'Editor 저장 분석 통계':'ARR 분석 통계'}</h2>

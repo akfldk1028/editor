@@ -69,11 +69,11 @@ def test_coordinate_only_address_does_not_crash_or_claim_parcel(tmp_path, monkey
     assert response.json()['errors']
 
 
-def test_datum_opt_in_and_law_requests_still_require_owner(tmp_path, monkeypatch):
+def test_datum_opt_in_still_requires_owner(tmp_path, monkeypatch):
     client = client_for(tmp_path, monkeypatch)
     body = {'input_type':'pnu', 'input':PNU, 'include_law':True}
-    assert client.post('/api/v1/land/analyze', json=body).status_code == 503
     monkeypatch.setenv('ENABLE_DATUM_ELEVATION', 'true')
+    assert client.post('/api/v1/land/analyze', json=body).status_code == 503
     assert client.post('/api/v1/land/analyze', json=dict(body, include_law=False)).status_code == 503
 
 

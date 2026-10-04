@@ -200,6 +200,33 @@
         "Regulation line and3D UI parity",
         "Operational dependency cutover"
       ]
+    },
+    {
+      "id": "land-law-search-and-advisory",
+      "api": "POST /api/v1/land/analyze (datum disabled, include_law true/false)",
+      "runtime_source_owner": "editor",
+      "legacy_service_required": false,
+      "targets": [
+        "backend/app/adapters/law_search.py",
+        "backend/app/adapters/regulation_extraction.py",
+        "backend/app/modules/land/evidence.py",
+        "backend/app/modules/land/analysis.py",
+        "frontend/app/planm/src/features/land-analysis/LandPage.tsx"
+      ],
+      "verification": {
+        "backend": "367 passed,41 subtests",
+        "browser": "20 passed,11 unrelated skipped; actual Editor HTTP/provider+completion fixtures",
+        "build": "passed",
+        "boundaries": "2 passed",
+        "review": "Metadata, loop reuse and sibling cancellation regressions fixed"
+      },
+      "documentation": "docs/integrations/2026-10-04-land-law-analysis.md",
+      "remaining": [
+        "Real configured search/extraction providers",
+        "Datum analyze branch",
+        "Historical statistics/records",
+        "Operational cutover and remaining design/AG features"
+      ]
     }
   ]
 }

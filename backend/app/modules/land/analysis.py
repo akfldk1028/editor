@@ -8,6 +8,7 @@ from backend.app.modules.regulations import calculator, extended, overlays, zoni
 from .analysis_request import normalize_program_request
 from .analysis_response import build_restrictions, format_regulations
 from .pnu import parse_pnu
+from .evidence import collect_evidence
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +19,12 @@ def analyze_zones(body, repository=None):
     return save_result(body, result, started, repository)
 
 
-def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None):
+def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, proposals=None):
     program = normalize_program_request(body)
     jurisdiction = pnu_info['sido'] + pnu_info['sigungu'] if pnu_info else ''
+    extractor = (lambda zones, kind: proposals.get(kind)) if proposals else None
     reg = calculator.calculate_all(names, land_info, sigungu_code=jurisdiction,
-        zone_areas=zone_areas, use_llm_extraction=False, **program)
+        zone_areas=zone_areas, use_llm_extraction=bool(extractor), extractor=extractor, **program)
     schedule = program['program_uses']
     if schedule is None and program['building_type']:
         schedule = [{'id': 'single_use', 'building_type': program['building_type'],
@@ -66,7 +68,8 @@ def save_result(body, result, started, repository):
     return result
 
 
-async def analyze_land(body, addresses, attributes, geometry_provider, repository=None):
+async def analyze_land(body, addresses, attributes, geometry_provider, repository=None,
+                       *, law_client=None, extraction_client=None):
     from backend.app.modules.regulations.setbacks import compute_setback_lines
     from .geometry_queries import GeometryQueries
     started = perf_counter()
@@ -102,7 +105,15 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
         if geometry and sum(zoning_limits.lookup(name) is not None for name in names) > 1:
             zone_areas, split_errors = await queries.split(geometry)
             errors.extend(split_errors)
-        result, reg = await run_in_threadpool(calculate, body, names, pnu_info, land_info, zone_areas)
+        law, advisory = await collect_evidence(names, include_law=body.get('include_law', True),
+            law_client=law_client, extraction_client=extraction_client)
+        result, reg = await run_in_threadpool(calculate, body, names, pnu_info, land_info, zone_areas,
+            advisory['proposals'] if advisory else None)
+        result['law_articles'] = law
+        if law:
+            errors.extend(law['errors'])
+        if advisory is not None:
+            result['advisory'] = advisory
         if geometry:
             roads, neighbors, frontage_errors = await queries.frontages(geometry)
             errors.extend(frontage_errors)

@@ -7,7 +7,7 @@ This is the current status, not another target architecture or completion claim.
 |---|---|---|
 | Product shell | Existing Editor routes extended with agents/projects/runs/land | Complete selected original user workflows |
 | ARR local feature ownership | Zones, overlap limits, PNU parsing, address/parcel provider adapters under Editor modules/adapters | Real provider checks; remaining calculation/data/job ownership |
-| ARR analysis/statistics | Raw/PNU/address no-law analysis with default geometry and local statistics owned by Editor; law/datum branches use LandClient | Remove legacy service dependency after feature parity |
+| ARR analysis/statistics | Raw/PNU/address analysis including law search, default geometry and local statistics owned by Editor; datum branch uses LandClient | Remove legacy service dependency after feature parity |
 | Design/parking/3D | Existing Editor capabilities and earlier isolated scene evidence | Entire ARR source/data/artifact migration and end-to-end equivalence not established |
 | Selected AG work management | Catalog, project binding, health run/history | General task inputs, attachments, stop/resume, direct commands and selected results UX |
 | Communication | Saved request/reply and top-level flow; new real A2A health3 verified | Downstream peer hops, full topology and streaming |
@@ -15,9 +15,9 @@ This is the current status, not another target architecture or completion claim.
 | Runtime cutover | Per-slice source changes committed; isolated validation | Load verified operational changes and prove original ARR/AG roots are unnecessary |
 
 Concrete remaining dependency: `backend/app/api/routes_land.py` builds LandClient
-from EDITOR_ARR_URL; Law/datum analysis and default historical stats still use it. `infra/config/services.json`
+from EDITOR_ARR_URL; Datum analysis and default historical stats still use it. `infra/config/services.json`
 marks ARR as legacy-pending-relocation. The domain migration manifest explicitly
-sets complete_backend_integration=false. Six local backend feature slices
+sets complete_backend_integration=false. Seven local backend feature slices
 are recorded there; that is not a percentage of the full migration.
 
 Completion requires selected AG functions and all required ARR product functions
@@ -26,6 +26,6 @@ ARR/AG service/source roots excluded from runtime. Shared agents are intentional
 external and do not need relocation. Original directories must not be deleted
 before those gates and preservation checks pass.
 
-Continuation: absorb law search/advisory, then datum and historical records. Downstream communication identity remains pending. Track both workstreams
+Continuation: absorb datum with provider provenance, then historical records. Downstream communication identity remains pending. Track both workstreams
 in the existing function matrix and per-feature migration manifest; do not treat
 successive UI slices as completion of backend absorption.

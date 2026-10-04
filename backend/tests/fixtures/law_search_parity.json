@@ -1,0 +1,84 @@
+{
+  "source_sha256": "5dd0cba05b4ba83ec9860e09f396e0b43c429726f231c99b050cfd2bf118074b",
+  "records": [
+    {
+      "hang_id": "one",
+      "content": "keep",
+      "similarity": 0.25,
+      "article": "Article 1",
+      "law_name": "Law",
+      "source_id": "record-1"
+    },
+    {
+      "content": "low",
+      "similarity": 0.24
+    },
+    {
+      "content": "noise",
+      "law_name": "수도법"
+    },
+    {
+      "content": "missing-score",
+      "law_name": "Law"
+    }
+  ],
+  "primary_expected": {
+    "query": "query",
+    "results": [
+      {
+        "hang_id": "one",
+        "content": "keep",
+        "similarity": 0.25,
+        "article": "Article 1",
+        "law_name": "Law",
+        "source_id": "record-1"
+      },
+      {
+        "content": "missing-score",
+        "law_name": "Law"
+      }
+    ]
+  },
+  "zone_queries": {
+    "queries": [
+      "건폐율",
+      "용적률",
+      "건축제한",
+      "높이제한",
+      "일조권",
+      "가각전제",
+      "건축물 높이제한 전면도로",
+      "건축선",
+      "인접대지",
+      "주차장",
+      "조경",
+      "건축지정선",
+      "용도제한",
+      "접도의무",
+      "대지분할",
+      "인동간격",
+      "공개공지",
+      "내화구조",
+      "개발행위허가",
+      "소방시설",
+      "건축물 에너지절약설계",
+      "zone 건폐율",
+      "zone 건축제한"
+    ],
+    "limit": 5,
+    "timeout": 120
+  },
+  "building_queries": {
+    "queries": [
+      "building 건폐율",
+      "building 용적률",
+      "building 높이제한",
+      "building 건축제한",
+      "building 주차",
+      "one building",
+      "two building"
+    ],
+    "limit": 5,
+    "timeout": 60
+  }
+}

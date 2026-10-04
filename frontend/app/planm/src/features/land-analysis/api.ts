@@ -9,6 +9,7 @@ export interface LandResult {
     scope?:string;municipal_coverage?:unknown;use_permission?:unknown};
   storage?:{saved:boolean;analysis_id?:string;error?:string};
   execution_owner?:'editor'|'legacy';
+  advisory?:{status:'unverified_proposal'|'unavailable';proposals:Record<string,Record<string,unknown>>};
 }
 export interface LandZone {zone_name:string;bcr_default:number;far_default:number}
 export interface LandStats {total_queries:number;error_count:number;avg_response_time_ms:number;by_input_type:{input_type:string;count:number}[]}
@@ -25,6 +26,13 @@ export async function analyzeLand(body:LandInput,signal:AbortSignal):Promise<Lan
   if (!value || !Array.isArray(value.restrictions)) throw new Error('대지 분석 응답 형식이 올바르지 않습니다.');
   if(value.execution_owner!==undefined&&value.execution_owner!=='editor'&&value.execution_owner!=='legacy')
     throw new Error('분석 기록 범위가 올바르지 않습니다.');
+  if(value.advisory!==undefined){
+    const advisory=value.advisory;
+    if(!advisory||!['unverified_proposal','unavailable'].includes(advisory.status)||
+      !advisory.proposals||typeof advisory.proposals!=='object'||Array.isArray(advisory.proposals)||
+      !Object.values(advisory.proposals).every(proposal=>proposal!==null&&typeof proposal==='object'&&!Array.isArray(proposal)))
+      throw new Error('검토용 추출 제안의 응답 형식이 올바르지 않습니다.');
+  }
   return value;
 }
 export async function landZones(signal:AbortSignal):Promise<LandZone[]> {
