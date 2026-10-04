@@ -1,3 +1,7 @@
+## 2026-10-04 - First UI slice implemented
+
+Added lazy /agents page with scoped CSS, exact route matcher, read-only validated Editor API client and explicit loading/error/empty states. Source mapping records AG-frontend search/list adaptation. Route tests 2 passed; restored runtime planm build and boundary tests 2 passed; Chrome Playwright 2 passed (mocked API, not live owner integration). Agent JS chunk 2.64kB / gzip1.21kB. Original checkout lacks dependencies; used preserved restored runtime with npm ci in planm only. Next: real owner catalog HTTP and Editor adapter (Task2). Project/run routes explicitly unavailable until later tasks.
+
 ## 2026-10-04 - Folder-first merge preparation
 
 Preservation update: full AG files-v3 restoration finished with exit 0, status complete, 429653 files, 50219 directories, 12828462346 bytes, 293 restored links, unresolved_links []. Receipt: %LOCALAPPDATA%/CodexMigrationBackups/editor-platform-20261004/AG/restore-snapshot-v3.json. This is backup restoration, not relocation or product integration.

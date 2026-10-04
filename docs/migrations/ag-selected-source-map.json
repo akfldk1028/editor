@@ -1,0 +1,12 @@
+{
+  "files": [
+    {
+      "source": "D:\\Data\\25_ACE\\AG-frontend\\src\\features\\agents\\AgentsPage.tsx",
+      "source_commit": "3f372a90816fa9b14e49f32ca6f019f94013c2e6",
+      "source_sha256": "b295d254a4517e4d4849f376fffc43cfcece79fb8d7afe90f96197a67bdc1505",
+      "target": "frontend/app/planm/src/features/agent-workspace/agents/AgentsPage.tsx",
+      "method": "Adapted search/list layout; replaced Studio API, mutations and stores",
+      "validation": "planm build; editor-platform.spec.ts"
+    }
+  ]
+}

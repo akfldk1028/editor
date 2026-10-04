@@ -35,7 +35,8 @@
     "plan:test:browser": "playwright test -c infra/e2e/visual-review.config.cjs",
     "plan:test:frontend": "playwright test -c infra/e2e/frontend.config.cjs",
     "plan:test:product": "playwright test -c infra/e2e/product.config.cjs",
-    "plan:check:routes": "bash resources/scripts/check-routes.sh"
+    "plan:check:routes": "bash resources/scripts/check-routes.sh",
+    "platform:test:e2e": "playwright test -c infra/e2e/editor-platform.config.cjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",

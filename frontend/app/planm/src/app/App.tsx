@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { resolveProductRoute } from "./routes";
 import { DwgWorkspace } from "../integrations/dwg/workspace";
 
 import { PlanmPlanningSurface } from "../features/planm-planning/PlanmPlanningSurface";
 import "./styles.css";
+const AgentsPage = lazy(() => import("../features/agent-workspace/agents/AgentsPage"));
 
 /**
  * The product surfaces, addressed by path so a page can be linked and reloaded.
@@ -20,16 +22,17 @@ type Surface = {
 const SURFACES: readonly Surface[] = [
   { path: "/dwg", label: "DWG Workspace" },
   { path: "/planm", label: "PLANM Planning" },
+  { path: "/agents", label: "Agents" },
   { path: "/editor", label: "3D Editor", external: true },
 ];
 
 type SurfacePath = string;
 
-const DEFAULT_SURFACE: SurfacePath = "/dwg";
 
 function surfaceFromLocation(pathname: string): SurfacePath {
-  const match = SURFACES.find((surface) => pathname.startsWith(surface.path));
-  return match ? match.path : DEFAULT_SURFACE;
+  const route = resolveProductRoute(pathname);
+  return route.kind === 'project' || route.kind === 'run' || route.kind === 'projects'
+    ? pathname : `/${route.kind}`;
 }
 
 export function App() {
@@ -73,7 +76,11 @@ export function App() {
         )}
       </nav>
       <section className="product-surface">
-        {surface === "/planm" ? (
+        {surface === "/agents" ? (
+          <Suspense fallback={<p role="status">화면을 불러오는 중…</p>}><AgentsPage /></Suspense>
+        ) : surface.startsWith('/projects') || surface.startsWith('/runs/') ? (
+          <p role="status">프로젝트·실행 화면은 아직 연결되지 않았습니다.</p>
+        ) : surface === "/planm" ? (
           <PlanmPlanningSurface onOpenDwg={() => setSurface("/dwg")} />
         ) : (
           <DwgWorkspace />

@@ -1,0 +1,12 @@
+.agent-workspace { padding: 24px; max-width: 1280px; margin: auto; }
+.agent-workspace header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.agent-workspace h1 { margin: 0; font-size: 24px; }
+.agent-workspace h2 { font-size: 17px; margin: 0 0 8px; }
+.agent-workspace p, .agent-workspace small { color: #56615b; }
+.agent-workspace button, .agent-workspace input { border: 1px solid #bdc8c0; border-radius: 6px; background: white; padding: 10px 14px; }
+.agent-workspace input { width: min(100%, 380px); margin: 16px 0; }
+.agent-workspace-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.agent-workspace article { border: 1px solid #d8ddd9; border-radius: 8px; padding: 18px; background: white; overflow-wrap: anywhere; }
+.agent-workspace dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 13px; }
+.agent-workspace dd { margin: 0; }
+.agent-workspace [role=alert] { color: #a32c22; }
