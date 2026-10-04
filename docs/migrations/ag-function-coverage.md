@@ -14,8 +14,9 @@
 ## 기능별 현황
 
 2026-10-04 추가: ARR `DefaultAgentFlowPanel`의 대화·흐름도·직접 명령도 통합 대상이다.
-현재 Editor 실행 상세에는 저장된 요청·응답 표시를 연결했고 실제 A2A 기록의 복사본으로 HTTP/브라우저 검증했다.
-직접 에이전트 간 중계 대화, 토폴로지, 직접 명령 및 스트리밍은 남아 있다.
+현재 Editor 실행 상세에는 저장된 요청·응답과 오케스트레이터→에이전트 흐름도를 연결했다.
+새 실제 A2A health 호출 3건의 기록·필터·새로고침을 검증했다. 에이전트 간 하위 중계 대화,
+하위 토폴로지, 직접 명령 및 스트리밍은 남아 있다. 전체 통합 완료가 아니다.
 상세: `../integrations/2026-10-04-agent-communications.md`.
 
 | 원본 화면/기능 | 원본 백엔드 또는 저장 | Editor 대응 | 상태 / 남은 검증 |
@@ -27,9 +28,9 @@
 | `/mcp`: 연결·도구 탐색·호출 | MCP WebSocket bridge | 기존 Editor MCP는 scene 도구용 | 범용 MCP 관리 미이식. 기존 scene MCP를 동등 기능으로 간주하지 않음 |
 | `/gallery`: 구성 조회·팀 가져오기·동기화·검증 | gallery, teams, validate/test | 미구현 | 1차 보류. 원본 New Gallery는 disabled이며 생성 완료 기능으로 계산하지 않음 |
 | `/deploy`: 서비스 정보·배포 안내 | health/version, 안내 콘텐츠 | 기존 Editor 기동 도구 | 원본 화면 미이식. Editor 기동 검증과 Studio 배포 안내를 분리해야 함 |
-| `/land`: 주소/PNU·규제·법령·통계 | ARR land/analyze, zones, stats; resolve는 미호출 함수 | `/land` → Editor `/api/v1/land` → ARR18320 | 조회·표시 구현, 실제 PNU/수동 지역·통계 검증. 주소/실제 법령 검색 및 프로젝트 저장·scene 적용은 미검증/미구현. 원본 법령 형식 불일치와 누락된 owner 판정 보완 |
+| `/land`: 주소/PNU·규제·법령·통계 | ARR land/analyze, zones, stats; resolve는 미호출 함수 | `/land` → Editor `/api/v1/land`; analyze/stats는 아직 ARR | zones·PNU·주소/필지 provider adapter는 Editor 소유. 필지 화면은 provider fixture까지 검증, 실제 Vworld 미검증. 분석·통계 소유권 이전, 프로젝트 저장·scene 적용 남음 |
 | `/settings`: 사용자 설정 | settings API, 로컬 설정 | Editor 기존 설정 | AG 설정 항목별 대응 미완성 |
-| `/flow`: 별도 실행 흐름 창 | Playground 실행 상태 공유 | 실행 상세 | 미이식. 실행 상세만으로 흐름 시각화 완료 아님 |
+| `/flow`: 별도 실행 흐름 창 | Playground 실행 상태 공유 | 실행 상세의 기록 기반 흐름도 | 일부 구현. 오케스트레이터→에이전트 호출만 검증. 원본 별도 창·하위 에이전트 간 중계·토큰 스트리밍은 미이식 |
 | auth | auth/type, login-url, me | 현재 로컬 단일 사용자 | 다중 사용자 인증·권한 미이식 |
 | streaming, tool-approval | 실행 WS, input_response | owner pending input 경계 | 미완성. 상태 polling은 메시지 스트리밍·승인 재개와 동등하지 않음 |
 | export, context-usage | Playground 표시·메시지 export·토큰 합산 | 미구현 | 실제 모델 context 측정이나 서버 산출물로 확대하지 않음 |
