@@ -1,3 +1,13 @@
+## 2026-10-04 - ARR action/import inventory and original-checkout verification
+
+Baseline correction commit: cdd79e69. Two full-suite skips are POSIX link-lock cases on Windows.
+
+Inventory implementation commit 3b27f173: 303 matrix rows including54 ARR actions; reproducible AST-only extractor inventories604 unique source candidates. All604 current hashes match restored backup files. UI381 file/line/snippet references checked. Migration52 and dev21 tests pass. Review caught missing-app and builtin-fromlist scanner gaps; RED/GREEN fixes included. Closure remains incomplete for dynamic dependencies/assets/runtime paths. Eleven shared dependencies include MassAgent source-relative workspace layout and Lawagent audit command paths; shared state stays external.
+
+Original Editor frontend frozen dependency install and TypeScript/Vite build pass without lockfile changes. Chrome4 mocked regression cases and2 live cases (ARR PNU analysis and25-owner catalog through isolated backend18434) pass. Live project/run fixtures and complete drawing/parking/3D workflow were not rerun. No production service restart or source cutover. Full backend baseline correction rerun completed:1020 passed,2 skipped,55 warnings in629.81seconds; existing literal geometry expectation unchanged. See docs/migrations/2026-10-04-unified-execution-baseline.md and local backend-after.xml evidence.
+
+ARR backup independent disk hashes completed for127815 files/10541365900bytes. Additional210 ignored assets and12 supplemental source/research files are preserved with matching hashes;10 SQLite backups pass integrity. Next resolve Mass source/data paths, dynamic/asset closure and isolated domain environment before backend/arr source import. Specialists remain partial/blocked.
+
 ## 2026-10-04 - ARR registration and unified migration execution
 
 ARR persistent registration now probes before shared owner and product sessions. 21 dev tests pass, including isolated real HTTP child-process shutdown/failure tests. Live ARR18320 Django/law dependency health accepted; default owner8791 editor health returns404 (incompatible), not a permissions diagnosis. Full product degraded UI remains unverified. See docs/integrations/2026-10-04-service-lifecycle.md.
