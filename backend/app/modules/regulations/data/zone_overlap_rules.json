@@ -1,0 +1,39 @@
+{
+  "schema_version": "arr.land.zone_overlap_rules.v1",
+  "_comment": "국토계획법 제84조 - 둘 이상의 용도지역등에 걸치는 대지의 적용기준. 수치는 코드가 아니라 여기 있다: 조문이 개정되면 이 파일만 바뀐다.",
+
+  "capacity_rule": {
+    "method": "area_weighted_average",
+    "applies_to": ["bcr", "far"],
+    "article": "국토의 계획 및 이용에 관한 법률 제84조",
+    "note": "제84조①의 가중평균과 제84조③의 각각 적용은 대지 전체의 건축가능 규모에서 같은 값을 낸다 - 각각 적용해도 총량은 sum(면적_i x 한도_i)이고 그것을 대지면적으로 나누면 면적 가중평균이다. 두 항이 갈리는 것은 '그 밖의 건축제한'을 어느 용도지역 규정으로 보느냐다."
+  },
+
+  "other_restrictions_rule": {
+    "when_weighted": {
+      "source_zone": "largest_area",
+      "article": "국토의 계획 및 이용에 관한 법률 제84조제1항",
+      "text": "그 밖의 건축 제한 등에 관한 사항은 그 대지 중 가장 넓은 면적이 속하는 용도지역등에 관한 규정을 적용한다"
+    },
+    "when_each": {
+      "source_zone": "per_part",
+      "article": "국토의 계획 및 이용에 관한 법률 제84조제3항",
+      "text": "하나의 대지가 녹지지역과 그 밖의 용도지역등에 걸쳐 있는 경우에는 제1항에도 불구하고 각각의 용도지역등의 건축물 및 토지에 관한 규정을 적용한다",
+      "also": "건축법 제54조제3항"
+    }
+  },
+
+  "green_zone": {
+    "category": "녹지지역",
+    "_comment": "이름 목록이 아니라 zoning_limits.json 의 category 로 판정한다. 새 녹지 용도지역이 생겨도 코드는 그대로다.",
+    "article": "국토의 계획 및 이용에 관한 법률 제36조"
+  },
+
+  "small_part_threshold": {
+    "default_m2": 330,
+    "road_strip_m2": 660,
+    "article": "국토의 계획 및 이용에 관한 법률 시행령 제94조",
+    "verified_in_corpus": false,
+    "_warning": "이 수치는 우리 Neo4j 법령 코퍼스에서 확인하지 못했다 - 시행령이 적재되어 있지 않아 law_search 가 건축법 제94조로 샌다. 시행령을 law_downloader 로 적재한 뒤 재확인할 것. resolve_limits 는 이 값을 쓸 때마다 근거와 미검증 사실을 응답에 실어 보낸다."
+  }
+}

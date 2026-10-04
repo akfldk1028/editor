@@ -6,6 +6,7 @@ from backend.app.adapters.land import LandClient, LandContractError, LandUnavail
 from backend.app.modules.regulations.zoning_catalog import CatalogUnavailable, get_zones
 from backend.app.modules.land.pnu import normalize_pnu, parse_pnu
 from backend.app.adapters.vworld import VworldClient
+from backend.app.schemas.regulations import ZoningLimitsRequest
 
 
 class LandRequest(BaseModel):
@@ -99,6 +100,19 @@ def create_land_router(client=None, *, public_origin=None, address_client=None):
 
     @router.get('/stats')
     async def stats(): return await respond(owner.stats())
+
+    @router.post('/zoning-limits')
+    def zoning_limits(body: ZoningLimitsRequest, request: Request):
+        from backend.app.modules.regulations.zoning_limits import resolve_limits
+        check_origin(request)
+        try:
+            known={zone['zone_name'] for zone in get_zones()['zones']}
+            if body.zone_areas is not None and not set(body.zones)<=known:
+                raise HTTPException(422,'Area split contains an unknown zone')
+            return {'limits':resolve_limits(body.zones,body.zone_areas),
+                'scope':'national_reference','permit_compliance_verified':False}
+        except CatalogUnavailable:
+            raise HTTPException(503,'Zoning reference unavailable') from None
 
     @router.post('/analyze')
     async def analyze(body: LandRequest, request: Request):

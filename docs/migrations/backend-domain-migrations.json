@@ -109,6 +109,34 @@
         "Project persistence and scene application"
       ],
       "rollback": "Revert slice; originals and runtime state unchanged"
+    },
+    {
+      "id": "regulations-zoning-overlap",
+      "sources": [
+        "ARR/backend/land/services/zoning_mapper.py",
+        "ARR/backend/land/data/zone_overlap_rules.json"
+      ],
+      "targets": [
+        "backend/app/modules/regulations/zoning_limits.py",
+        "backend/app/modules/regulations/data/zone_overlap_rules.json",
+        "backend/app/schemas/regulations.py",
+        "backend/app/api/routes_land.py"
+      ],
+      "api": "POST /api/v1/land/zoning-limits",
+      "runtime_source_owner": "editor",
+      "legacy_service_required": false,
+      "verification": {
+        "tests": "91 passed: zoning module/API/catalog and land integration/resolution/parcels",
+        "original_differential_cases": 34,
+        "source_and_backup_hashes": "backend/tests/fixtures/zoning_limits_parity.json",
+        "review": "Independent API/module review; no blocker"
+      },
+      "limitations": [
+        "National reference calculation only; municipal calculation and full analyze remain legacy",
+        "Preserved threshold_verified_in_corpus=false; no new statutory validation",
+        "No new UI or live provider verification in this slice"
+      ],
+      "rollback": "Revert slice; original sources and operational data unchanged"
     }
   ]
 }
