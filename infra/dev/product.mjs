@@ -10,6 +10,7 @@ import {
   stopOwnedProcesses,
   waitForService,
 } from "./runtime.mjs";
+import { canManageService, ensureService as ensureManagedService, settleStartup } from './lifecycle.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const logRoot = resolve(repositoryRoot, "logs/dev");
@@ -23,11 +24,11 @@ async function main() {
   await mkdir(logRoot, { recursive: true });
   try {
     // Everything that does not depend on another service starts together.
-    await Promise.all([
-      ensureService(services.orchestrator),
-      ensureService(services.pascalMcp),
-      ensureService(services.dwg),
-      ensureService(services.editor),
+    await ensureService(services.orchestrator);
+    await settleStartup([
+      () => ensureService(services.pascalMcp),
+      () => ensureService(services.dwg),
+      () => ensureService(services.editor),
     ]);
     // The backend reads PASCAL_MCP_URL when it publishes, so bring it up after.
     await ensureService(services.backend);
@@ -52,26 +53,19 @@ async function main() {
 }
 
 async function ensureService(service) {
-  const current = await probeService(service);
-  if (current.state === "healthy") {
-    console.log(`[reuse] ${service.name}: ${service.healthUrl}`);
-    return;
-  }
-  if (current.state === "occupied") {
-    throw new Error(`${service.name} port is occupied by an incompatible service (${current.detail}).`);
-  }
-
-  const child = startService(service);
-  const readiness = await waitForService(service, {
-    isExited: () => child.exitCode !== null,
+  const result = await ensureManagedService(service, {
+    probe: probeService, start: startService, wait: waitForService,
   });
-  if (readiness.state !== "healthy") {
-    throw new Error(`${service.name} did not become ready (${readiness.detail ?? readiness.state}).`);
+  if (result.action === 'external' && result.state !== 'healthy') {
+    console.warn(`[unavailable] ${service.name}: ${result.detail ?? result.state}. Restore through ${service.management} operations; Editor will not restart it.`);
+  } else {
+    console.log(`[${result.action}] ${service.name}: ${service.healthUrl}`);
   }
-  console.log(`[ready] ${service.name}: ${service.healthUrl}`);
+  return result;
 }
 
 function startService(service) {
+  if (!canManageService(service)) throw new Error(`Editor cannot manage ${service.name}`);
   const log = createWriteStream(resolve(logRoot, `${service.name}.log`), { flags: "a" });
   log.write(`\n[${new Date().toISOString()}] ${service.command} ${service.args.join(" ")}\n`);
   const child = spawn(service.command, service.args, {
@@ -81,10 +75,10 @@ function startService(service) {
     windowsHide: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  ownedProcesses.push({ name: service.name, pid: child.pid, child, log });
+  ownedProcesses.push({ ...service, created: true, pid: child.pid, child, log });
   child.stdout.on("data", (chunk) => writeServiceOutput(service.name, chunk, log, false));
   child.stderr.on("data", (chunk) => writeServiceOutput(service.name, chunk, log, true));
-  child.once("error", (error) => log.write(`[spawn-error] ${error.message}\n`));
+  child.once("error", (error) => { child.spawnFailed = true; log.write(`[spawn-error] ${error.message}\n`); });
   console.log(`[start] ${service.name}`);
   return child;
 }

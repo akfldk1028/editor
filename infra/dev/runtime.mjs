@@ -1,5 +1,9 @@
 import { resolve } from "node:path";
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { canManageService } from './lifecycle.mjs';
+
+const registry = JSON.parse(readFileSync(new URL('../config/services.json', import.meta.url), 'utf8'));
 
 function npmCommand(platform) {
   return platform === "win32" ? "npm.cmd" : "npm";
@@ -17,12 +21,9 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
   const ownerRoot = resolve(process.env.ORCHESTRATOR_AGENT_DIR || resolve(repositoryRoot, '../agents/OrchestratorAgent'));
   const ownerState = resolve(ownerRoot, 'runtime/orchestrator/design.sqlite');
   const ownerConfigId = createHash('sha256').update(platform === 'win32' ? ownerState.toLowerCase() : ownerState).digest('hex');
-  return {
+  const definitions = {
     orchestrator: {
       name: 'orchestrator-editor-api',
-      command: resolve(ownerRoot, '.venv-orchestrator', platform === 'win32' ? 'Scripts/python.exe' : 'bin/python'),
-      args: ['-m', 'orchestrator.editor_api', '--port', '8791', '--enable-submissions'],
-      cwd: ownerRoot,
       healthUrl: 'http://127.0.0.1:8791/editor/v1/health',
       timeoutMs: 30_000,
       configId: ownerConfigId,
@@ -108,6 +109,10 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       validate: ({ body }) => body?.status === "ok" && body?.app === "editor",
     },
   };
+  return Object.fromEntries(Object.entries(definitions).map(([key, service]) => {
+    if (!registry[key]) throw new Error(`Missing lifecycle registration: ${key}`);
+    return [key, { ...service, ...registry[key] }];
+  }));
 }
 
 export async function probeService(service, fetchImpl = fetch) {
@@ -155,7 +160,7 @@ export async function waitForService(service, options = {}) {
 
 export async function stopOwnedProcesses(ownedProcesses, killProcess) {
   for (const processInfo of [...ownedProcesses].reverse()) {
-    await killProcess(processInfo);
+    if (processInfo.created === true && canManageService(processInfo)) await killProcess(processInfo);
   }
 }
 

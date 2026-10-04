@@ -1,3 +1,9 @@
+## 2026-10-04 - Editor integration: lifecycle protection implemented
+
+Task0 implementation now removes external orchestrator launch commands. infra/config/services.json separates source ownership, lifecycle and management; launcher probes shared owner without spawning/restarting it. Only explicitly created editor-session processes may be stopped. Startup failure waits for concurrent starts before cleanup. New lifecycle tests plus existing dev tests: 18 passed. No live services restarted, no source/data relocated. This supersedes the earlier statement that the launcher guard is not implemented.
+
+Task0 remains partial: actual ARR domain registration/probe ordering and live product degraded-mode verification still pending. ARR persistent policy has a unit test, not a live ARR shutdown test. Next add a source-grounded ARR health contract, then Task1 complete feature/dependency inventory, preservation and original-checkout build baseline. Entire ARR/AG absorption and Systems/DomainExpert/Interior completion remain unverified. Shared agents stay external.
+
 ## 2026-10-04 - Unified plan re-review before implementation
 
 Reviewed current product launcher, run boundaries and shared agent ARR configuration against the unified plan. Findings and revisions: Editor docs/migrations/2026-10-04-unified-plan-review.md. Task0 now precedes migration: shared agent gateway probe-only, session vs persistent lifecycle separated from source ownership. ARR domain host may be persistent despite Editor source ownership because other consumers depend on it. Scan transitive agent ARR_BACKEND/import/assets as well as HTTP endpoints. Product data migration stays a rehearsal until final Task8 cutover; drain/snapshot/rollback gates required. Consumer/principal isolation must be enforced by owner contracts, not inferred from local actor or key prefixes. Task6/7 split into bounded sub-briefs. Shared agents remain D:/Data/25_ACE/agents; never relocate their state/memory.

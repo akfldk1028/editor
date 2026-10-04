@@ -43,8 +43,9 @@ test('platform startup wires the external owner and separate product data', () =
   assert.equal(services.backend.env.EDITOR_ORCHESTRATOR_URL, 'http://127.0.0.1:8791');
   assert.equal(services.backend.env.EDITOR_ARR_URL, process.env.EDITOR_ARR_URL || 'http://127.0.0.1:18320');
   assert.equal(services.backend.env.EDITOR_SCENE_URL, 'http://127.0.0.1:3002/editor');
-  assert.equal(services.orchestrator.cwd, resolve(repositoryRoot, '../agents/OrchestratorAgent'));
-  assert.ok(services.orchestrator.args.includes('--enable-submissions'));
+  assert.equal(services.orchestrator.cwd, undefined);
+  assert.equal(services.orchestrator.command, undefined);
+  assert.equal(services.orchestrator.management, 'agent-host');
   assert.ok(services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'local-execution',config_id:services.orchestrator.configId}}));
   assert.ok(!services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'read-only',config_id:services.orchestrator.configId}}));
   assert.ok(!services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'read-only',config_id:'different-database'}}));
@@ -129,9 +130,10 @@ test("waitForService retries offline probes until the contract is healthy", asyn
 
 test("stopOwnedProcesses never receives reused services", async () => {
   const killed = [];
+  const ownership = { source_owner: 'editor', lifecycle: 'session', management: 'editor-session', created: true };
   await stopOwnedProcesses(
-    [{ name: "backend", pid: 101 }, { name: "frontend", pid: 202 }],
-    async (process) => killed.push(process),
+    [{ ...ownership, name: "backend", pid: 101 }, { ...ownership, name: "frontend", pid: 202 }],
+    async ({ name, pid }) => killed.push({ name, pid }),
   );
 
   assert.deepEqual(killed, [
