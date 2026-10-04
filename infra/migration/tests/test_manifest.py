@@ -12,6 +12,12 @@ import pytest
 TOOL = Path(__file__).parents[1] / 'inventory.py'
 
 
+@pytest.fixture(autouse=True)
+def isolated_git_configuration(monkeypatch):
+    monkeypatch.setenv('GIT_CONFIG_NOSYSTEM', '1')
+    monkeypatch.setenv('GIT_CONFIG_GLOBAL', os.devnull)
+
+
 def load():
     spec = importlib.util.spec_from_file_location('migration_inventory', TOOL)
     module = importlib.util.module_from_spec(spec)
@@ -148,7 +154,7 @@ def test_nested_repository_unborn_branch_and_external_git_pointer(tmp_path):
     (worktree / '.git').write_text('gitdir: ../../outside/private')
     manifest = tool.scan(source)
     assert not manifest['complete']
-    assert {'path': 'worktree', 'code': 'external_git_pointer_not_inspected'} in manifest['errors']
+    assert any(error['path'] == 'worktree' and error['code'] == 'external_git_pointer_not_inspected' for error in manifest['errors'])
 
 
 def test_source_inside_parent_repository_is_scoped(tmp_path):
@@ -177,6 +183,50 @@ def test_source_inside_parent_repository_is_scoped(tmp_path):
     assert repo['untracked'] == ['new.txt']
     assert repo['ignored'] == ['private.ignored']
     assert {item['path'] for item in repo['status']} == {'inside.txt', 'new.txt'}
+
+
+@pytest.mark.parametrize('filter_command', ['clean', 'process'])
+def test_configured_clean_filter_is_never_executed(tmp_path, filter_command):
+    source = tmp_path / 'filtered'
+    source.mkdir()
+    git(source, 'init', '-q')
+    (source / 'tracked.txt').write_text('original')
+    git(source, 'add', '.')
+    git(source, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture')
+    marker = tmp_path / 'filter-was-executed'
+    script = tmp_path / 'dangerous-filter.py'
+    script.write_text('import sys\nfrom pathlib import Path\nPath(sys.argv[1]).write_text("unsafe")\nsys.stdout.write(sys.stdin.read())\n')
+    command = f'"{Path(sys.executable).as_posix()}" "{script.as_posix()}" "{marker.as_posix()}"'
+    git(source, 'config', f'filter.fixture.{filter_command}', command)
+    (source / '.gitattributes').write_text('*.txt filter=fixture\n')
+    (source / 'tracked.txt').write_text('modified')
+    manifest = load().scan(source)
+    assert not marker.exists(), 'inventory executed a configured external clean filter'
+    repo = manifest['repositories'][0]
+    assert repo['status'] is None
+    assert repo['status_inspected'] is False
+    assert repo['status_skip_reason'] == 'configured_external_filters'
+    assert repo['external_filter_keys'] == [f'filter.fixture.{filter_command}']
+    assert not manifest['complete']
+    assert manifest['filesystem_complete'] is True
+    assert manifest['git_state_complete'] is False
+    assert manifest['errors']
+
+
+def test_configured_but_unused_filter_does_not_block_git_inventory(tmp_path):
+    source = tmp_path / 'unused-filter'
+    source.mkdir()
+    git(source, 'init', '-q')
+    (source / 'tracked.txt').write_text('file')
+    git(source, 'add', '.')
+    git(source, 'config', 'filter.unused.clean', 'must-never-execute-fixture')
+    manifest = load().scan(source)
+    assert manifest['complete']
+    assert manifest['filesystem_complete'] and manifest['git_state_complete']
+    repo = manifest['repositories'][0]
+    assert repo['status_inspected']
+    assert repo['active_filter_keys'] == []
+    assert repo['external_filter_keys'] == ['filter.unused.clean']
 
 
 def test_incomplete_scan_cli_exits_nonzero_and_keeps_error_manifest(tmp_path):

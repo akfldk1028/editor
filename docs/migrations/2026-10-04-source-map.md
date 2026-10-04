@@ -59,4 +59,13 @@ AG-frontend 재시도 `source-retry-diagnostic.zip`은21,208개 파일·226,374,
 
 ## 실행 원칙과 다음 검증
 
+### 후속 검증 기록
+
+- 사용자 추가 지시: AG 기능 자체를 Editor에 통합하고 모든 에이전트를 Editor에서 발견·호출·상태/결과 확인할 수 있어야 한다. 설계 반영 commit `53b87575`. [연결표](../integrations/agent-connection-matrix.md)는 선언된 25개 중앙 profile과 별도 PLANM/도면/PPT/Studio 구성요소를 구분한다. 선언 수는 실제 연결 성공 수가 아니다.
+- AG-frontend `verify-restored.json`, editor `verify-restored-v2.json`: 각각 독립 manifest 비교에서 verified=true, missing/changed/extra/errors 모두 빈 목록. editor archive는 `4a4bebe2` 시점이며 이후 설계 commit까지 포함하는 최신 백업이라고 주장하지 않는다.
+- 검증 후 editor 복원본에만 의존성을 설치해 실행 baseline 작업 공간으로 사용했다. 보존 archive는 변경하지 않았다. 의존성 설치 이후 복원 작업 공간은 원본과 byte-identical한 상태가 아니다.
+- Git status의 clean/process filter가 LFS 저장소 등을 변경할 수 있음을 임시 marker fixture로 재현했다. inventory는 실제 tracked 경로에 적용되는 외부 filter가 있으면 status를 생략하고 `git_state_complete=false`를 기록한다. 파일 보존과 Git 상태 조사 완료를 구분한다. 후속 migration suite: **32 passed**.
+- 격리된 editor 복원 환경에서 capture-protocol/core/MCP build 3개 통과. 별도 `runtime-baseline/pascal.db`에 scene POST 201, GET 200 및 graph 일치 확인. 브라우저 검증은 진행 중이며 PLANM/Studio 실행 통과를 의미하지 않는다.
+- 임시 Windows fixture에서 junction/일반 symlink/LX_SYMLINK raw metadata 복원이 각각 성공했다. 전체 AG 링크 293개 복원 성공을 의미하지 않는다. AG archive와 실제 전체 복원 검증은 아직 진행 중이다.
+
 Task1에서 실제 파일 snapshot·복원 결과와 링크 지원 범위를 확정하고 실행 baseline을 수립한다. 이 검증 없이 Task2 폴더 이동을 완료 처리하지 않는다. D:의 원본 보존+복사 여유가 작은 점은 Task2 실행 전에 재검사한다. 기존 연구 프로세스와 서비스는 광범위하게 종료하지 않는다.

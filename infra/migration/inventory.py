@@ -74,10 +74,11 @@ def case_collisions(paths):
 
 
 def git_inventory(root):
-    env = {**os.environ, 'GIT_OPTIONAL_LOCKS': '0', 'GIT_TERMINAL_PROMPT': '0'}
-    def run(*args, optional=False):
+    env = {**os.environ, 'GIT_OPTIONAL_LOCKS': '0', 'GIT_TERMINAL_PROMPT': '0', 'GIT_NO_LAZY_FETCH': '1'}
+    def run(*args, optional=False, stdin=None):
         result = subprocess.run(['git', '-c', 'core.fsmonitor=false', '-C', str(root), *args],
-                                capture_output=True, env=env)
+                                capture_output=True, env=env,
+                                input=stdin.encode('utf-8', errors='surrogateescape') if stdin is not None else None)
         if result.returncode:
             if optional and result.returncode == 1:
                 return None
@@ -90,19 +91,42 @@ def git_inventory(root):
             mode, blob, stage = metadata.split()
             index.append({'path': path, 'mode': mode, 'blob': blob, 'stage': int(stage)})
     source_subpath = run('rev-parse', '--show-prefix').strip()
-    records = iter(run('status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames', '--', '.').split('\0'))
-    status_rows = []
-    for record in records:
-        if record:
-            name = record[3:]
-            if source_subpath and not name.startswith(source_subpath):
-                raise ValueError('git_status_outside_source')
-            item = {'status': record[:2], 'path': name[len(source_subpath):]}
-            status_rows.append(item)
+    filter_keys = run('config', '--name-only', '--get-regexp', r'^filter\..*\.(clean|process)$', optional=True)
+    filter_keys = sorted(set(filter_keys.splitlines())) if filter_keys else []
+    active_filter_keys = []
+    if filter_keys and index:
+        paths = sorted({entry['path'] for entry in index})
+        attributes = run('check-attr', '-z', '--stdin', 'filter', stdin='\0'.join(paths) + '\0').split('\0')
+        if attributes[-1] != '' or len(attributes[:-1]) != len(paths) * 3:
+            raise ValueError('git_filter_attributes_unknown')
+        active_names = set()
+        for offset in range(0, len(attributes) - 1, 3):
+            name, attribute, value = attributes[offset:offset + 3]
+            if name != paths[offset // 3] or attribute != 'filter':
+                raise ValueError('git_filter_attributes_unknown')
+            if value not in ('unspecified', 'unset'):
+                active_names.add(value)
+        active_filter_keys = [key for key in filter_keys if key[len('filter.'):].rsplit('.', 1)[0] in active_names]
+    # Even read-only status can run clean/process filters and mutate LFS storage.
+    status_rows = None if active_filter_keys else []
+    if not active_filter_keys:
+        records = run('status', '--porcelain=v1', '-z', '--untracked-files=all', '--no-renames',
+                      '--ignore-submodules=all', '--', '.').split('\0')
+        for record in records:
+            if record:
+                name = record[3:]
+                if source_subpath and not name.startswith(source_subpath):
+                    raise ValueError('git_status_outside_source')
+                status_rows.append({'status': record[:2], 'path': name[len(source_subpath):]})
     commit = run('rev-parse', '--verify', '--quiet', 'HEAD', optional=True)
     branch = run('symbolic-ref', '--quiet', '--short', 'HEAD', optional=True)
     return {'commit': commit.strip() if commit else None,
             'branch': branch.strip() if branch else None, 'index': index, 'status': status_rows,
+            'status_inspected': not active_filter_keys,
+            'status_skip_reason': 'configured_external_filters' if active_filter_keys else None,
+            'status_submodules': 'excluded; nested repositories inventoried separately within source',
+            'external_filter_keys': filter_keys,
+            'active_filter_keys': active_filter_keys,
             'git_root': run('rev-parse', '--show-toplevel').strip(),
             'source_subpath': source_subpath,
             'untracked': [p for p in run('ls-files', '--others', '--exclude-standard', '-z').split('\0') if p],
@@ -124,10 +148,11 @@ def scan(source, metadata_only=False):
     result = {'schema_version': SCHEMA, 'source': str(Path(source).absolute()),
               'created_at': datetime.now(timezone.utc).isoformat(),
               'mode': 'metadata_only' if metadata_only else 'sha256',
-              'complete': False, 'entries': entries, 'repositories': repositories, 'errors': errors,
+              'complete': False, 'filesystem_complete': False, 'git_state_complete': False,
+              'entries': entries, 'repositories': repositories, 'errors': errors,
               'scope': 'link_targets_excluded; stop writers for a consistent preservation scan'}
-    def error(path, code):
-        errors.append({'path': str(path), 'code': code})
+    def error(path, code, scope='filesystem'):
+        errors.append({'path': str(path), 'code': code, 'scope': scope})
     try:
         root = safe_root(source)
     except (OSError, ValueError) as exc:
@@ -142,9 +167,12 @@ def scan(source, metadata_only=False):
                 raise ValueError('git_marker_is_link')
             if not marker.is_dir():
                 raise ValueError('external_git_pointer_not_inspected')
-            repositories.append({'path': relative, **git_inventory(directory)})
+            repo = {'path': relative, **git_inventory(directory)}
+            repositories.append(repo)
+            if not repo['status_inspected']:
+                error(relative, 'git_status_not_inspected_external_filters', 'git')
         except (OSError, ValueError) as exc:
-            error(relative, str(exc) if isinstance(exc, ValueError) else type(exc).__name__)
+            error(relative, str(exc) if isinstance(exc, ValueError) else type(exc).__name__, 'git')
 
     # Only query enclosing repository metadata; all file lists stay source-scoped.
     if not (root / '.git').exists() and not (root / '.git').is_symlink():
@@ -155,7 +183,7 @@ def scan(source, metadata_only=False):
             except FileNotFoundError:
                 continue
             except OSError as exc:
-                error('.', type(exc).__name__)
+                error('.', type(exc).__name__, 'git')
                 break
             repository(root, marker)
             break
@@ -205,7 +233,9 @@ def scan(source, metadata_only=False):
     visit(root)
     for collision in case_collisions([entry['path'] for entry in entries]):
         error(collision[0], 'case_collision:' + collision[1])
-    result['complete'] = not errors
+    result['filesystem_complete'] = not any(error['scope'] == 'filesystem' for error in errors)
+    result['git_state_complete'] = not any(error['scope'] == 'git' for error in errors)
+    result['complete'] = result['filesystem_complete'] and result['git_state_complete']
     return result
 
 
