@@ -1,3 +1,9 @@
+## 2026-10-04 - AUTHORITATIVE CORRECTION: shared agents stay external
+
+User explicitly keeps D:/Data/25_ACE/agents independent because multiple products use these agents. RETRACT the earlier plan to relocate owner source, environments, memory or execution databases into Editor. ARR/AG/AG-frontend product functions still move into Editor; shared agents are connected via API/A2A. Editor contains clients, contracts, endpoint configuration and product UI only. Shared services retain their own lifecycle and must not be stopped when Editor exits. Consumer/project isolation and existing client compatibility are required verification gates; current local-only behavior is not proven multi-consumer isolation.
+
+Design and plan corrected: docs/architecture/2026-10-04-unified-editor-arr-ag.md and docs/superpowers/plans/2026-10-04-unified-editor-arr-ag.md. Task4 is shared connection/isolation, not relocation. Final old-source exclusion applies to ARR/AG/AG-frontend, not shared agents. Documentation only; no source/data/process changes.
+
 ## 2026-10-04 - AUTHORITATIVE: one Editor product including ARR and AG
 
 User explicitly clarified that separate ARR/AG/AG-frontend projects become unnecessary after absorption. Source, frontend functions, backend domains and professional agent ownership move under D:/Data/25_ACE/editor; old roots remain protected backups, not runtime dependencies. Read Editor docs/architecture/2026-10-04-unified-editor-arr-ag.md and docs/superpowers/plans/2026-10-04-unified-editor-arr-ag.md. This supersedes permanent external ARR/owner-source assumptions. Editor-owned internal Django/A2A processes may remain isolated; they must start from Editor-contained sources/configuration. Final verification must work with no old source paths available.

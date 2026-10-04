@@ -2,9 +2,9 @@
 
 > **For agentic workers:** Use superpowers:executing-plans to implement task-by-task. Keep checkboxes unchecked until the named verification passes. User requested this design/plan first; no relocation is part of this planning change.
 
-**Goal:** ARR·AG·AG-frontend·전문 Agents와 기존 Editor 기능을 Editor 한 제품/저장소/프로젝트 체계로 통합한다.
+**Goal:** ARR·AG·AG-frontend와 기존 Editor 기능을 한 제품으로 통합하고, 외부 공용 Agents는 API/A2A로 연결한다.
 
-**Architecture:** 기존 UI 라우터와 FastAPI 제품 경계를 확장한다. ARR Django 소스는 `backend/arr`, 전문 owner는 `agents/<기존 이름>`으로 이전하며 내부 서비스 경계를 유지한다. 제품 데이터 연결과 실제 기능 검증 후 구 경로 의존을 제거한다.
+**Architecture:** 기존 UI 라우터와 FastAPI 제품 경계를 확장한다. ARR Django 소스는 `backend/arr`로 이전한다. 전문 owner 소스·메모리·환경·실행 DB는 `D:/Data/25_ACE/agents`에 유지한다. ARR/AG 구 경로 의존만 제거하며 공용 agent 연결은 유지한다.
 
 **Tech Stack:** 현재 고정된 Editor React/Next/Vite/TypeScript, FastAPI, ARR Django/Python, 기존 A2A/LangGraph/MCP와 DB를 유지한다. 통합을 위한 프레임워크 일괄 업그레이드는 하지 않는다.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- 유일한 최종 제품 소스 루트는 `D:/Data/25_ACE/editor`다. 원본 폴더는 보호한다.
+- 제품 루트는 `D:/Data/25_ACE/editor`, 공용 agent 루트는 `D:/Data/25_ACE/agents`다. agent 소스·환경·메모리·실행 DB는 이전하지 않는다. ARR/AG 원본 폴더는 보호한다.
 - 기존 dirty 파일·결과·DB·Git 이력·필수 자산 보존. 전체 root 덮어쓰기, reset/clean, 운영 DB 초기화 금지.
 - Windows 기동은 숨김. DB/비밀/venv/node_modules/대용량 결과를 Git에 넣지 않는다.
 - 기존 React/Three 버전과 core/viewer 독립성 보존. 원본 프론트 router/provider/lockfile을 그대로 합치지 않는다.
@@ -23,7 +23,7 @@
 
 - 같은 project/scene 문자열이 다른 DB에서 다른 대상을 뜻하는 경우 → Task3 소유권/namespace 검증.
 - 실행 중 이전, 응답 유실, 중복 재시도 → Task2/4/7 중복 실행·복구 검증.
-- Windows 절대경로·junction·cwd와 Django backend namespace 충돌 → Task1/2/4 새 경로 전용 검증.
+- Windows 절대경로·junction·cwd와 Django backend namespace 충돌 → Task1/2 새 경로 검증 및 Task4 공용 서비스 연결 검증.
 - 좌표/단위/층 불일치, 오래된 scene revision → Task6/7 적용 거절과 멱등 검증.
 - 부분 법규·불완전 전문 결과를 완성으로 표시하거나 기존 화면 기능을 누락 → Task1/5/6/8 기능 대응과 판정 보존 검증.
 
@@ -47,7 +47,7 @@
 
 **Files:** 생성 `backend/arr/`의 manifest 기반 실제 파일, `infra/config/services.json`, `infra/migration/verify_arr_relocation.py`; 수정 `infra/dev/runtime.mjs`, `runtime.test.mjs`. ARR 설정의 DB/자산 경로 변경은 새 사본에서 수행.
 
-**Contract:** service row `{name,source_root,entrypoint,cwd,environment_ref,data_root,health_url,config_id}`. source_root는 Editor 상대경로, 비밀은 environment_ref로만 참조. 기존 Django app label·URL·migration ID 유지.
+**Contract:** service row에 `ownership: product | shared`를 둔다. 제품 서비스는 `{name,source_root,entrypoint,cwd,environment_ref,data_root,health_url,config_id}`, 공용 서비스는 endpoint/health/config identity를 등록한다. 제품 source_root만 Editor 상대경로다. 비밀은 environment_ref로만 참조. 기존 Django app label·URL·migration ID 유지.
 
 - [ ] `test_arr_service_resolves_only_editor_paths`를 먼저 실패시킨다. inventory가 정한 import closure를 복사하고 source hash/차이를 기록한다.
 - [ ] 별도 환경에서 Django check와 기존 domain 회귀 테스트를 실행한다. FastAPI process의 `backend` import와 충돌하지 않음을 확인한다.
@@ -61,21 +61,23 @@
 
 **Contract:** `SourceBinding={project_id,owner_kind,owner_project_id,owner_ref,branch_id,revision,content_hash}`. `ArtifactRef={artifact_id,project_id,run_id,source_binding_id,media_type,content_hash}`. 원본 결과 ID와 신규 제품 ID의 대응을 영속 저장한다.
 
+이전 대상은 Editor·ARR·AG 제품 데이터다. 공용 agents 실행 DB·checkpoint·memory는 이전하지 않고 서비스가 제공하는 참조만 제품에 연결한다.
+
 - [ ] 다른 project의 동일 ID 접근거부, 재시도 중복 binding 방지, 이전 후 기존 결과 재열기 테스트를 RED→GREEN으로 구현한다.
 - [ ] 실제 DB schema/count/FK/파일 hash를 읽어 restore rehearsal을 수행한다. `python -m pytest backend/tests/test_source_bindings.py -q` PASS, restore 전후 count/FK/hash 일치가 gate다.
 - [ ] SQLite online backup 또는 계획된 쓰기 중단으로 데이터 이전. 운영 쓰기 시작 전 원본/신규 중 한 소유자만 선택한다. rollback은 새 쓰기 발생 시 역이전 ledger를 적용한 뒤 전환하도록 기록한다.
 - [ ] 변환 도구·schema·증거를 커밋. 데이터를 소스와 함께 커밋하지 않는다.
 
-### Task4 — 전문 Agents 소스·기동·메모리 통합
+### Task4 — 공용 Agents 연결·다중 소비자 격리
 
-**Files:** manifest에 등록된 `agents/<원래 이름>/`, `agents/a2a_common`, `agents/a2a`, `agents/docs`; 수정 `infra/config/services.json`, `infra/dev/runtime.mjs`, owner의 실제 경로 설정. 생성 `infra/e2e/agent-relocation.spec.mjs`.
+**Files:** 수정 `backend/app/adapters/orchestrator.py`, `infra/config/services.json`, `infra/dev/runtime.mjs`, `runtime.test.mjs`; 생성 `infra/e2e/agent-connection.spec.mjs`. owner 계약 변경이 필요하면 `D:/Data/25_ACE/agents/<owner>`의 코드/tests/memory에서 수행한다.
 
-**Contract:** agent_id/skill ID/A2A task ID와 기존 tool 입력 계약 유지. Orchestrator만 전역 실행 조정; owner별 환경·domain 책임 유지.
+**Contract:** agent_id/skill ID/A2A task ID 유지. 공용 서비스 ownership=shared. 소비자/프로젝트 scope는 신뢰할 수 있는 서버 연결·인증 정보로 결정하며 브라우저 임의 값에 맡기지 않는다. 현재 local actor 구성을 다중 소비자 격리 완료로 간주하지 않는다.
 
-- [ ] 한 owner씩 새 경로의 import/기동 테스트 RED→GREEN. `.git`·venv·결과를 맹목 복사하지 않고 Git bundle과 provenance를 별도 보존한다.
-- [ ] owner별 tests와 실제 도구 호출을 실행한다. card health 외에 source binding·receipt·실행 재개까지 확인한다. `node --test infra/e2e/agent-relocation.spec.mjs`에서 필수 owner 모두 통과해야 한다.
-- [ ] Orchestrator와 worker는 대기열/실행 작업·checkpoint를 보존한 후 마지막에 전환한다. 이중 worker 실행을 방지한다.
-- [ ] 각 owner MD/memory를 새 경로로 갱신하고 해당 이전만 커밋한다. 미완성 전문 결과는 partial/blocked 유지.
+- [ ] Editor 종료 시 shared 프로세스를 종료하지 않는 테스트를 RED→GREEN으로 구현한다. 공용 코드·메모리·환경·실행 DB를 Editor에 복사하지 않는다.
+- [ ] 실제 도구 호출·source binding·receipt·실행 복구를 검증한다. `node --test infra/e2e/agent-connection.spec.mjs`에서 필수 owner 연결과 미기동 오류 처리를 확인한다.
+- [ ] 두 소비자가 같은 요청 키·프로젝트 문자열을 사용해도 작업/결과/취소 범위가 섞이지 않는 계약 테스트를 수행한다. owner의 ARR 호출 설정은 새 Editor domain endpoint로 갱신하되 기존 소비자 계약을 유지한다.
+- [ ] 공용 worker 기동·복구는 owner 운영 도구에서 관리한다. Editor의 중복 기동·공용 worker 종료를 방지한다. 제품 연결과 owner 계약 변경은 각각의 저장소에 커밋하고 메모리를 갱신한다. partial/blocked 유지.
 
 ### Task5 — ARR 대지·지도·법규 UI 기능 완결
 
@@ -114,8 +116,8 @@
 **Files:** `frontend/app/planm` → `frontend/app/workbench`의 별도 rename; 모든 workspace/dev/build/E2E 경로 참조; `infra/dev/product.mjs`, `infra/config/services.json`; 생성 `infra/migration/verify_self_contained.py`, `infra/e2e/unified-product.config.cjs`.
 
 - [ ] rename 이전/이후 라우트·build·테스트가 동일하게 통과하도록 경로 회귀 테스트를 먼저 작성한다. 기능 변경과 rename을 같은 커밋에 넣지 않는다.
-- [ ] 원본 ARR/AG/AG-frontend/agents 경로 없이 새 checkout·복원 데이터에서 한 명령으로 기동한다. 원본 폴더를 삭제해 시험하지 않고 경로가 제공되지 않는 격리 환경을 사용한다.
-- [ ] `python infra/migration/verify_self_contained.py`, 전체 backend/owner tests, frontend build, 기존 DWG/PLANM/scene와 신규 E2E를 실행한다. 외부 원본 source 접근0, 필수 기능 미검증0이 gate다.
+- [ ] 원본 ARR/AG/AG-frontend 경로 없이 새 Editor checkout·제품 복원 데이터에서 기동하고, 별도로 운영 중인 공용 agents에 연결한다. 이전 대상 원본은 삭제하지 않고 격리 환경에서 검증한다.
+- [ ] `python infra/migration/verify_self_contained.py`, backend/owner tests, frontend build, 기존 DWG/PLANM/scene와 신규 E2E를 실행한다. ARR/AG 외부 원본 source 접근0, 공용 agents 연결·소비자 격리 통과, 필수 기능 미검증0이 gate다.
 - [ ] 실제 재부팅 복구·백업 복원·rollback 후 같은 프로젝트 결과를 확인한다. 운영 URL/프로세스 identity/로그 위치를 기록한다.
 - [ ] 이전 완료 기능표와 최종 메모리를 커밋한다. 원본은 보호된 archive로 남기며 별도 승인 없이 삭제하지 않는다.
 
