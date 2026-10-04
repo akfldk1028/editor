@@ -13,6 +13,11 @@
 
 ## 기능별 현황
 
+2026-10-04 추가: ARR `DefaultAgentFlowPanel`의 대화·흐름도·직접 명령도 통합 대상이다.
+현재 Editor 실행 상세에는 저장된 요청·응답 표시를 연결했고 실제 A2A 기록의 복사본으로 HTTP/브라우저 검증했다.
+직접 에이전트 간 중계 대화, 토폴로지, 직접 명령 및 스트리밍은 남아 있다.
+상세: `../integrations/2026-10-04-agent-communications.md`.
+
 | 원본 화면/기능 | 원본 백엔드 또는 저장 | Editor 대응 | 상태 / 남은 검증 |
 |---|---|---|---|
 | `/` Playground: 작업 입력·세션·실행 | sessions, runs, 실행 WebSocket | 프로젝트 내 작업 입력, `/runs/:id`, platform API → owner | 구현 중. 현재 health 템플릿만. 일반 작업·첨부·메시지·중단·재개 미완성 |

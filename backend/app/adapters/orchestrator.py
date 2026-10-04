@@ -3,6 +3,7 @@ from urllib.parse import urlencode, quote
 from pydantic import TypeAdapter, ValidationError
 
 from backend.app.schemas.platform import AgentSummary
+from backend.app.schemas.communications import RunCommunications
 
 
 class OwnerUnavailable(Exception):
@@ -86,7 +87,17 @@ class OrchestratorClient:
             raise OwnerContractError()
         if not isinstance(value.get('receipt_task_ids'),list) or not all(isinstance(v,str) for v in value['receipt_task_ids']) or type(value.get('pending_input')) is not bool:
             raise OwnerContractError()
-        return {key:value[key] for key in (*fields,'receipt_task_ids','pending_input')}
+        keys=('communications','communications_available','communications_truncated')
+        try:
+            communication=RunCommunications.model_validate({key:value[key] for key in keys} if any(key in value for key in keys)
+                else dict(communications=[],communications_available=False,communications_truncated=False))
+            if not communication.communications_available and (communication.communications or communication.communications_truncated):
+                raise ValueError('unavailable communications contain records')
+            if len({item.id for item in communication.communications})!=len(communication.communications):
+                raise ValueError('duplicate communication identity')
+        except (ValidationError, ValueError, KeyError) as exc:
+            raise OwnerContractError() from exc
+        return {**{key:value[key] for key in (*fields,'receipt_task_ids','pending_input')},**communication.model_dump()}
 
     async def list_runs(self, project, branch, prefix):
         response = await self.get('/editor/v1/runs?' + urlencode({'project':project,'branch':branch,'prefix':prefix}))

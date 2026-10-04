@@ -1,0 +1,5 @@
+.run-communications { margin: 24px 0; }
+.run-communications article { margin: 12px 0; }
+.run-communications h3 { margin-top: 0; }
+.run-communications summary { cursor: pointer; padding: 8px 0; }
+.run-communications pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; padding: 12px; background: #f4f6f5; }

@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {getRun,type RunSummary} from '../api/runs';
 import '../agents/agents.css';
+import RunCommunications from './RunCommunications';
 
 export default function RunPage({runId}:{runId:string}) {
   const projectId=new URLSearchParams(window.location.search).get('project_id');
@@ -26,6 +27,7 @@ export default function RunPage({runId}:{runId:string}) {
       <p>실행 ID: {run.run_id}</p><p>상태: <strong data-testid="run-status">{run.status}</strong></p>
       <p>작업: {run.goal}</p>{run.pending_input && <p>추가 입력이 필요합니다. 입력 응답 화면은 아직 연결되지 않았습니다.</p>}
       <h2>완료된 호출 기록</h2><ul>{run.receipt_task_ids.map(id => <li key={id}>{id}</li>)}</ul>
+      <RunCommunications run={run}/>
       <p>실행 상태는 설계 승인이나 전문 분야의 완료를 의미하지 않습니다.</p>
     </>}</div>;
 }

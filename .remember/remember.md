@@ -1,3 +1,7 @@
+## 2026-10-04 - Agent communication display
+
+User explicitly includes ARR agent dialogue frontend. Source DefaultAgentFlowPanel offers dialogue/topology/direct commands; mas-dialogue.ts substitutes fixed benchmark on outage, not live evidence. Existing Editor run detail now displays owner saved requests/replies with strict bounded contracts and missing-capability states. Owner13/Editor33/boundary2 tests and build pass. Chrome12 pass6 skipped: actual prior A2A receipts via copied DBs and owner8794/Editor18437 HTTP, not newly executed calls. Reviewer Unicode mismatch fixed RED/GREEN. Original services/state preserved; disposable servers stopped. Next explicit future sender/recipient trace, downstream peer hops, topology and durable direct commands; continue parcel provider gates. See docs/integrations/2026-10-04-agent-communications.md.
+
 ## 2026-10-04 - Parcel UI connected and reviewed
 
 Existing /land now connects PNU and coordinate boundary lookup. ParcelLookup controls requests/cancellation, parcel-api validates responses, ParcelPreview renders Polygon holes and MultiPolygon. No new dependencies or scene writes. Frontend build,2 boundary tests,42 backend tests pass. Chrome9 pass5 opt-in cases skipped, including real Editor HTTP backed by Vworld fixture. Independent reviewer found no blocker; delayed-request cancellation test added. Actual provider and address-to-boundary flow remain next; full integration is incomplete. See docs/integrations/2026-10-04-land-parcels.md. Test server18436 stopped; shared services untouched.

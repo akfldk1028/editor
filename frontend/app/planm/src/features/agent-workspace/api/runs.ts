@@ -1,4 +1,6 @@
-export interface RunSummary {
+import {parseCommunications,type Communications} from './communications';
+
+export interface RunSummary extends Communications {
   run_id: string; request_id: string; owner_project_id: string; branch_id: string;
   goal: string; status: string; receipt_task_ids: string[]; pending_input: boolean;
 }
@@ -17,7 +19,7 @@ function parseRun(value: unknown): RunSummary {
     !Array.isArray(item.receipt_task_ids) || !item.receipt_task_ids.every(id => typeof id === 'string') || typeof item.pending_input !== 'boolean') {
     throw new Error('실행 응답 형식이 올바르지 않습니다.');
   }
-  return item;
+  return {...item,...parseCommunications(value as Record<string,unknown>)};
 }
 export async function getRunContext(projectId: string, signal?: AbortSignal): Promise<RunContext> {
   const value = await request(`/projects/${encodeURIComponent(projectId)}/context`,{signal});
