@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { ensureService, settleStartup, canManageService } from './lifecycle.mjs';
 import { createServiceDefinitions, stopOwnedProcesses } from './runtime.mjs';
 
@@ -61,6 +63,50 @@ test('registry makes the external owner probe-only without a launch command', ()
   assert.equal(services.orchestrator.management, 'agent-host');
   assert.equal(services.orchestrator.command, undefined);
   for (const [name, service] of Object.entries(services)) {
-    if (name !== 'orchestrator') assert.equal(canManageService(service), true, name);
+    if (!['orchestrator', 'arr'].includes(name)) assert.equal(canManageService(service), true, name);
   }
 });
+
+test('ARR host is probe-only and reports law dependency readiness separately', () => {
+  const { arr } = createServiceDefinitions(process.cwd());
+  assert.ok(arr, 'ARR must have an explicit lifecycle registration');
+  assert.equal(canManageService(arr), false);
+  assert.equal(arr.command, undefined);
+  assert.equal(arr.healthUrl, `${process.env.EDITOR_ARR_URL || 'http://127.0.0.1:18320'}/law/health/`);
+  assert.ok(arr.validate({ body: { status: 'ok', django: true, ready: false } }));
+  assert.ok(!arr.validate({ body: { status: 'ok' } }));
+  assert.match(arr.describe({ body: { status: 'ok', django: true, ready: false } }), /unavailable/);
+});
+
+for (const failure of [false, true]) {
+  test(`isolated HTTP processes survive ${failure ? 'startup failure' : 'session shutdown'} according to ownership`, async () => {
+    const children = [];
+    const launch = async policy => {
+      const child = spawn(process.execPath, ['-e', `
+        require('node:http').createServer((req,res)=>res.end('alive'))
+          .listen(0,'127.0.0.1',function(){process.send(this.address().port)});
+      `], { windowsHide: true, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
+      children.push(child);
+      const [port] = await once(child, 'message');
+      return { ...policy, child, pid: child.pid, url: `http://127.0.0.1:${port}` };
+    };
+    const terminate = async ({ child }) => {
+      if (child.exitCode !== null || child.signalCode !== null) return;
+      const exited = once(child, 'exit');
+      child.kill();
+      await exited;
+    };
+    try {
+      const owned = await launch({ ...session, created: true });
+      const reused = await launch({ ...session, created: false });
+      const domain = await launch({ ...session, lifecycle: 'persistent', management: 'domain-host', created: false });
+      const agent = await launch({ ...shared, created: false });
+      if (failure) await assert.rejects(settleStartup([async () => { throw new Error('startup failed'); }]), /startup failed/);
+      await stopOwnedProcesses([owned, reused, domain, agent], terminate);
+      await assert.rejects(fetch(owned.url));
+      for (const service of [reused, domain, agent]) assert.equal(await (await fetch(service.url)).text(), 'alive');
+    } finally {
+      await Promise.all(children.map(child => terminate({ child })));
+    }
+  });
+}

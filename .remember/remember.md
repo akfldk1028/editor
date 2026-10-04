@@ -1,3 +1,9 @@
+## 2026-10-04 - ARR registration and unified migration execution
+
+ARR persistent registration now probes before shared owner and product sessions. 21 dev tests pass, including isolated real HTTP child-process shutdown/failure tests. Live ARR18320 Django/law dependency health accepted; default owner8791 editor health returns404 (incompatible), not a permissions diagnosis. Full product degraded UI remains unverified. See docs/integrations/2026-10-04-service-lifecycle.md.
+
+Task1 is running: unified-function-matrix.json records 151 feature/route rows, including 80 mounted ARR route declarations (admin root included), inactive ARR declarations and ARR/AG lightweight page groups. This is partial static coverage, not all actions or implementation. Source hashes and seven shared-agent dependency entries recorded. 46 migration tests pass. Original Editor Gitagent npm ci with existing lockfile and plan:build:agent-runtime pass; full backend suite is running, no overall pass claimed. ARR history bundle verifies and all refs restored in protected bare repository; working-tree archive/restore is in progress. Do not begin ARR runtime cutover before full preservation and baseline gates.
+
 ## 2026-10-04 - Editor integration: lifecycle protection implemented
 
 Task0 implementation now removes external orchestrator launch commands. infra/config/services.json separates source ownership, lifecycle and management; launcher probes shared owner without spawning/restarting it. Only explicitly created editor-session processes may be stopped. Startup failure waits for concurrent starts before cleanup. New lifecycle tests plus existing dev tests: 18 passed. No live services restarted, no source/data relocated. This supersedes the earlier statement that the launcher guard is not implemented.

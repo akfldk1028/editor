@@ -22,6 +22,15 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
   const ownerState = resolve(ownerRoot, 'runtime/orchestrator/design.sqlite');
   const ownerConfigId = createHash('sha256').update(platform === 'win32' ? ownerState.toLowerCase() : ownerState).digest('hex');
   const definitions = {
+    arr: {
+      name: 'arr-domain',
+      healthUrl: `${(process.env.EDITOR_ARR_URL || 'http://127.0.0.1:18320').replace(/\/$/, '')}/law/health/`,
+      timeoutMs: 5_000,
+      validate: ({ body }) => body?.status === 'ok' && body?.django === true,
+      describe: ({ body }) => body?.ready === true
+        ? 'Django reachable; law dependency ready; other domain operations not verified'
+        : 'Django reachable; law dependency unavailable; other domain operations not verified',
+    },
     orchestrator: {
       name: 'orchestrator-editor-api',
       healthUrl: 'http://127.0.0.1:8791/editor/v1/health',
@@ -131,7 +140,7 @@ export async function probeService(service, fetchImpl = fetch) {
       }
     }
     if (response.ok && service.validate({ response, body })) {
-      return { state: "healthy" };
+      return { state: "healthy", ...(service.describe ? { detail: service.describe({ response, body }) } : {}) };
     }
     return { state: "occupied", detail: `HTTP ${response.status} or incompatible contract` };
   } catch (error) {

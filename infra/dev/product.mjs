@@ -24,6 +24,7 @@ async function main() {
   await mkdir(logRoot, { recursive: true });
   try {
     // Everything that does not depend on another service starts together.
+    await ensureService(services.arr);
     await ensureService(services.orchestrator);
     await settleStartup([
       () => ensureService(services.pascalMcp),
@@ -60,6 +61,7 @@ async function ensureService(service) {
     console.warn(`[unavailable] ${service.name}: ${result.detail ?? result.state}. Restore through ${service.management} operations; Editor will not restart it.`);
   } else {
     console.log(`[${result.action}] ${service.name}: ${service.healthUrl}`);
+    if (result.detail) console.log(`  ${result.detail}`);
   }
   return result;
 }
