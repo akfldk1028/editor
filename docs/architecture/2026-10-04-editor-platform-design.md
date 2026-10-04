@@ -48,10 +48,10 @@
 
 ## 4. 디렉터리와 소유권
 
+**최신 구조 결정:** [기능별 폴더 구조](editor-agent-folder-structure.md)와 [1차 실행 계획](../superpowers/plans/2026-10-04-lightweight-editor-merge.md)을 따른다. 아래 트리에서 원본 보존 폴더와 신규 공용 계약 패키지를 기본 제품 구조에서 제거했다.
+
 ```text
 editor/
-  AG-frontend/                 이전한 기존 Vite 앱; 통합 전 비교 기준
-  AG/                          기존 AG 이력·소스·연구 자료 보존 영역
   frontend/app/editor/         기존 Next 편집 도구와 scene 경로 유지
   frontend/app/planm/          기존 제품 셸에 프로젝트·에이전트 라우트 추가
   frontend/components/viewer/  editor-agnostic 3D 렌더링
@@ -62,7 +62,6 @@ editor/
   backend/app/adapters/        Orchestrator·PLANM·DWG 등 실제 owner 계약 어댑터
   backend/mcp/                 기존 scene 저장·MCP 경계
   resources/lib/core/          순수 scene 데이터/로직; HTTP·Three.js·작업 UI 금지
-  resources/lib/platform-contracts/  새 공개 DTO/client 계약 패키지(구현 예정)
   infra/dev/                   제품 서비스 manifest·상태 확인·기동
   infra/docker/                경로가 분리된 reverse proxy와 배포 설정
   docs/                        설계, 결정, 이전 manifest
@@ -70,7 +69,7 @@ editor/
 
 `AG/`, `AG-frontend/`는 필요시 소스 대조를 위한 보존 경계이며 실제 제품 소스와 별개다. 기능 조사 전에 전체 AG를 제품 경로에 자동 import하지 않는다. root workspace glob을 확장하지 않는다. 선별한 기능의 의존성만 검토해 사용하고, 연구 데이터·vendor checkout·가상환경·결과 디렉터리를 빌드/배포하지 않는다.
 
-기능 이식 시 AG UI는 `frontend/app/planm/src/features/agent-workspace/`로, 재사용 DTO는 `resources/lib/platform-contracts/`로 들어간다. AG 백엔드 통째 복사나 core/viewer에 UI 의존성을 추가하는 방식은 금지한다. 이전 완료 뒤에도 원본 역할을 가진 AG 패키지와 연구 자료는 editor 아래 보존할 수 있지만, 제품 실행 권한은 한 곳만 갖는다.
+기능 이식 시 AG UI는 `frontend/app/planm/src/features/agent-workspace/`로, 첫 소비자용 DTO는 그 아래 `api/`로 들어간다. 공용 계약 패키지는 두 번째 실제 소비자가 생길 때 검토한다. AG 백엔드 통째 복사나 core/viewer에 UI 의존성을 추가하는 방식은 금지한다. 원본과 연구 자료는 기존 위치와 별도 보호된 백업에 보존하며 제품 실행 권한은 한 곳만 갖는다.
 
 ## 5. 제품 데이터와 실행의 책임
 
@@ -116,7 +115,7 @@ scene 원본, owner proposal, 선택된 설계, diagnostic-only 자료를 구분
 
 이전 전 editor/AG/상위 저장소의 commit·index·dirty 상태와 대상 경로의 전체 파일 manifest를 만든다. tracked/untracked/ignored를 구분하고, reparse point의 실제 경로를 기록한다. Git bundle은 이력, 별도 파일 snapshot은 미커밋·ignored 데이터를 보존한다. 자격증명은 소스 커밋과 공개 manifest에 넣지 않는다.
 
-권장 이력 정책: AG는 임시 clone에서 이력을 prefix `AG/`로 가져오는 subtree 방식, AG-frontend는 상위 저장소의 해당 경로만 임시 clone에서 분리해 `AG-frontend/`로 import한다. 소스 저장소에 filter/rewrite를 실행하지 않는다. `.git` 삭제나 우연한 gitlink 생성으로 해결하지 않는다.
+이력 정책: 전체 이력은 검증한 Git bundle과 복원 refs로 보존한다. subtree/경로 분리 리허설은 백업 검증이며 전체 제품 import가 아니다. 실제 이식 파일의 원본 commit·SHA256·대상 경로를 출처 manifest에 기록한다. 소스 저장소에 filter/rewrite를 실행하지 않으며 `.git` 삭제나 우연한 gitlink 생성을 허용하지 않는다.
 
 AG의 dirty overlay와 연구 결과는 별도로 복사·검증하고, 실행에 필요한 변경만 검토 후 커밋한다. 제외된 파일도 snapshot/이전 대상에 남는다. 거대한 결과나 민감 파일을 무조건 새 저장소에 stage하지 않는다. 이력 크기 때문에 subtree가 부적합하면 실행 전에 ADR로 대안을 선택한다.
 

@@ -1,3 +1,9 @@
+## 2026-10-04 - Folder-first merge preparation
+
+Preservation update: full AG files-v3 restoration finished with exit 0, status complete, 429653 files, 50219 directories, 12828462346 bytes, 293 restored links, unresolved_links []. Receipt: %LOCALAPPDATA%/CodexMigrationBackups/editor-platform-20261004/AG/restore-snapshot-v3.json. This is backup restoration, not relocation or product integration.
+
+Read `docs/architecture/editor-agent-folder-structure.md` and `docs/superpowers/plans/2026-10-04-lightweight-editor-merge.md` next. First scope: agent catalog/status, project bindings, requests/progress/input/history/results. Keep existing planm shell folder and routes; place selected UI under features/agent-workspace/{agents,projects,runs,api,components}. Backend modules/platform plus adapters/orchestrator; owner implementation remains in its repository. No whole AG source import or premature shared contracts package. Next implementation is Task 1 routing/list UI, then Task 2 real catalog API. Product implementation remains unstarted.
+
 ## 2026-10-04 - Latest user correction: lightweight frontend, selective migration
 
 AUTHORITATIVE: Editor is the ONLY target product. User intentionally made `D:/Data/25_ACE/AG-frontend` lightweight; inspect THAT frontend, not AutoGen Studio's own frontend. Inventory actual pages/functions/API calls, then port only selected useful functionality into existing Editor routes/backend. NOT all AG features. All architectural agents connect through Editor, which does not mean importing the entire AG platform. No permanent Studio service, `/agentlab` product or blanket AG backend dependency.

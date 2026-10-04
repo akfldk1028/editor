@@ -1,5 +1,7 @@
 # Editor Platform Integration Implementation Plan
 
+Latest first-slice execution plan: [lightweight merge](2026-10-04-lightweight-editor-merge.md). Folder placement follows [folder structure](../../architecture/editor-agent-folder-structure.md); these supersede whole-source import and premature shared-package steps below.
+
 > **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans to execute one reviewed task at a time. This commit contains planning only; unchecked steps have not run.
 
 **Goal:** editor를 유일한 제품으로 삼고, 경량 AG-frontend의 실제 기능을 조사·선별해 프로젝트·편집·에이전트 요청·결과 검토 흐름에 단계적으로 이식한다. AG 원본/이력 보존과 제품 채택은 구분한다.
