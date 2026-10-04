@@ -7,6 +7,8 @@ from fastapi import FastAPI
 
 from backend.app.api.routes_pascal import create_pascal_router
 from backend.app.api.routes_platform import create_platform_router
+from backend.app.api.routes_land import create_land_router
+from backend.app.adapters.land import LandClient
 from backend.app.adapters.orchestrator import OrchestratorClient
 from backend.app.modules.platform.projects import ProjectService
 from backend.app.api.routes_planm_runs import create_planm_runs_router
@@ -22,6 +24,7 @@ def create_app(
     platform_client: OrchestratorClient | None = None,
     platform_projects: ProjectService | None = None,
     platform_public_origin: str | None = None,
+    land_client: LandClient | None = None,
 ) -> FastAPI:
     configured_root = os.environ.get("PLANM_REPOSITORY_ROOT")
     root = (
@@ -43,6 +46,7 @@ def create_app(
     application.include_router(create_pascal_router(service))
     application.include_router(create_platform_router(platform_client, project_service=platform_projects,
         public_origin=platform_public_origin))
+    application.include_router(create_land_router(land_client,public_origin=platform_public_origin))
     application.state.planm_runs = service
     return application
 

@@ -35,6 +35,7 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       cwd: resolve(repositoryRoot),
       env: {
         EDITOR_ORCHESTRATOR_URL: 'http://127.0.0.1:8791',
+        EDITOR_ARR_URL: process.env.EDITOR_ARR_URL || 'http://127.0.0.1:18320',
         EDITOR_PUBLIC_URL: `http://127.0.0.1:${FRONTEND_PORT}`,
         EDITOR_SCENE_URL: `http://127.0.0.1:${EDITOR_PORT}${EDITOR_BASE_PATH}`,
         EDITOR_PLATFORM_DATA_DIR: process.env.EDITOR_PLATFORM_DATA_DIR || resolve(repositoryRoot, '../runtime/editor-platform'),

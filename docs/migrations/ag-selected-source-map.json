@@ -7,6 +7,30 @@
       "target": "frontend/app/planm/src/features/agent-workspace/agents/AgentsPage.tsx",
       "method": "Adapted search/list layout; replaced Studio API, mutations and stores",
       "validation": "planm build; editor-platform.spec.ts"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG-frontend\\src\\features\\land\\LandPage.tsx",
+      "source_commit": "3f372a90816fa9b14e49f32ca6f019f94013c2e6",
+      "source_sha256": "7dc77a91590109e58126f40347d78256b35d909a13852eb139e8eb52830857b4",
+      "target": "frontend/app/planm/src/features/land-analysis/LandPage.tsx",
+      "method": "Adapted input/result sections into existing Editor shell; scoped CSS; no shared Studio stores",
+      "validation": "pytest test_land_integration; planm build; editor-platform.spec.ts land tests"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG-frontend\\src\\features\\land\\components\\LandSearchForm.tsx",
+      "source_commit": "3f372a90816fa9b14e49f32ca6f019f94013c2e6",
+      "source_sha256": "6a514068ccc8ebb6d69aac6b7c458b65b03dd5357c8c965ac13eea2813dc816d",
+      "target": "frontend/app/planm/src/features/land-analysis/LandPage.tsx",
+      "method": "Preserved address/PNU detection and zone override; normalized PNU at backend boundary",
+      "validation": "pytest test_land_integration; planm build; editor-platform.spec.ts land tests"
+    },
+    {
+      "source": "D:\\Data\\25_ACE\\AG-frontend\\src\\shared\\api\\arrClient.ts",
+      "source_commit": "3f372a90816fa9b14e49f32ca6f019f94013c2e6",
+      "source_sha256": "fc36a5f5b345417b957fed400506bac57ec67b2d8a76ef5dfb647f27ce11935d",
+      "target": "frontend/app/planm/src/features/land-analysis/api.ts",
+      "method": "Replaced direct ARR proxy with Editor API; current flat law articles normalized by server",
+      "validation": "pytest test_land_integration; planm build; editor-platform.spec.ts land tests"
     }
   ]
 }

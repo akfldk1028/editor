@@ -1,5 +1,5 @@
 export type ProductRoute =
-  | { kind: 'dwg' | 'planm' | 'editor' | 'agents' | 'projects' }
+  | { kind: 'dwg' | 'planm' | 'editor' | 'agents' | 'projects' | 'land' }
   | { kind: 'project'; projectId: string }
   | { kind: 'run'; runId: string };
 
@@ -7,8 +7,8 @@ export function resolveProductRoute(pathname: string): ProductRoute {
   const parts = pathname.replace(/\/$/, '').split('/').slice(1);
   const [surface, rawId] = parts;
   if (surface === 'editor') return { kind: 'editor' };
-  if (parts.length === 1 && ['dwg', 'planm', 'agents', 'projects'].includes(surface)) {
-    return { kind: surface as 'dwg' | 'planm' | 'agents' | 'projects' };
+  if (parts.length === 1 && ['dwg', 'planm', 'agents', 'projects', 'land'].includes(surface)) {
+    return { kind: surface as 'dwg' | 'planm' | 'agents' | 'projects' | 'land' };
   }
   if (parts.length === 2 && rawId) {
     try {

@@ -1,5 +1,48 @@
 import { test, expect } from '@playwright/test';
 
+test('live land form reaches ARR through Editor backend', async ({page}) => {
+  test.skip(!process.env.EDITOR_LIVE_LAND,'Requires configured ARR land service');
+  test.setTimeout(90000);
+  await page.goto('/land');
+  await expect(page.getByRole('heading',{name:'ARR 분석 통계'})).toBeVisible();
+  await page.getByLabel('주소 또는 PNU').fill('1168011200101280003');
+  await page.getByLabel('용도지역 직접 지정').selectOption({index:1});
+  await page.getByLabel('법령 원문 검색').uncheck();
+  const responsePromise=page.waitForResponse(r=>r.url().endsWith('/api/v1/land/analyze'),{timeout:70000});
+  await page.locator('form').getByRole('button',{name:'대지 분석',exact:true}).click();
+  const response=await responsePromise;
+  expect(response.status()).toBe(200);
+  const result=await response.json();
+  expect(result.pnu.pnu).toBe('1168011200101280003');
+  await expect(page.getByRole('heading',{name:'규제 요약',exact:true})).toBeVisible();
+  expect(result.assessment.permit_compliance_verified).toBe(false);
+  await expect(page.getByText('허가 적합성은 검증되지 않았습니다.',{exact:true})).toBeVisible();
+  await page.screenshot({path:'test-results/editor-live-land.png',fullPage:true});
+});
+
+test('land analysis shows partial results and flat legal articles without hiding errors', async ({page}) => {
+  await page.route('**/api/v1/land/zones',r=>r.fulfill({json:{zones:[{zone_name:'제2종일반주거지역',bcr_default:60,far_default:250}],count:1}}));
+  await page.route('**/api/v1/land/stats',r=>r.fulfill({json:{total_queries:1,error_count:0,avg_response_time_ms:2,by_input_type:[]}}));
+  await page.route('**/api/v1/land/analyze',r=>{
+    expect(r.request().postDataJSON()).toMatchObject({input:'1168011200101280003',input_type:'pnu',include_law:true});
+    return r.fulfill({json:{pnu:{pnu:'1168011200101280003'},land_info:null,zone_info:null,
+      regulations:{bcr:{limit_pct:60,article:'규제 근거'},extended:{x:{name:'추가 규제',rule:'확인 필요',article:'추가 근거'}}},
+      law_articles:{articles:[{law_name:'시험 법령',article:'제1조',content:'검증용 법령 내용'}],total_count:1,errors:['검색 일부 실패']},
+      restrictions:['도로 확인 필요'],errors:['필지 형상 미확인'],warning:'부분 분석 결과',
+      assessment:{status:'needs_evidence',permit_compliance_verified:false,missing_evidence:['필요한 조례 근거']}}});
+  });
+  await page.goto('/land');
+  await page.getByLabel('주소 또는 PNU').fill('1168011200101280003');
+  await page.locator('form').getByRole('button',{name:'대지 분석',exact:true}).click();
+  await expect(page.getByText('부분 분석 결과',{exact:true})).toBeVisible();
+  await expect(page.getByText('필지 형상 미확인',{exact:true})).toBeVisible();
+  await expect(page.getByText('검색 일부 실패',{exact:true})).toBeVisible();
+  await expect(page.getByText('검증용 법령 내용',{exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'추가 규제',exact:true})).toBeVisible();
+  await expect(page.getByText('허가 적합성은 검증되지 않았습니다.',{exact:true})).toBeVisible();
+  await expect(page.getByText('필요한 조례 근거',{exact:true})).toBeVisible();
+});
+
 test('live execution through Editor form, worker and persisted history', async ({page}) => {
   test.skip(!process.env.EDITOR_LIVE_RUN_PROJECT, 'Requires isolated owner worker and project binding');
   test.setTimeout(120000);

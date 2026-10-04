@@ -3,7 +3,7 @@ import test from 'node:test';
 import { resolveProductRoute } from '../src/app/routes.ts';
 
 test('existing surfaces and exact agent routes', () => {
-  for (const path of ['/dwg', '/planm', '/agents']) {
+  for (const path of ['/dwg', '/planm', '/agents', '/land']) {
     assert.equal(resolveProductRoute(path).kind, path.slice(1));
   }
   assert.equal(resolveProductRoute('/agents/').kind, 'agents');

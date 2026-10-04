@@ -1,0 +1,88 @@
+import {useEffect,useRef,useState} from 'react';
+import {analyzeLand,landZones,landStats,type LandResult,type LandZone,type LandStats} from './api';
+import './land.css';
+
+const labels:Record<string,string>={bcr:'건폐율',far:'용적률',height:'높이',sunlight_setback:'일조 이격',
+  corner_cutoff:'가각전제',road_diagonal:'도로 사선',building_line:'건축선',adjacent_setback:'인접 대지 이격',
+  parking:'주차',landscaping:'조경',limit_pct:'상한 (%)',limit_m:'상한 (m)',min_m:'최소 (m)',setback_m:'이격 (m)',
+  article:'근거',rules:'규칙',rule:'규칙',pnu:'PNU',address:'주소',land_area_m2:'대지 면적 (㎡)',source:'출처',
+  official_land_price:'공시지가',land_use_situation:'토지 이용',zones:'용도지역',matched:'일치 지역 수',unmatched:'미확인 지역',
+  sido:'시도 코드',sigungu:'시군구 코드',eupmyeondong:'읍면동 코드',ri:'리 코드',land_type:'토지 구분 코드',
+  land_type_name:'토지 구분',main_number:'본번',sub_number:'부번',success:'조회 성공',name:'이름',
+  category:'분류',required:'필수 여부',applies:'적용 여부',direction:'방향',multiplier:'배수',min_pct:'최소 (%)',
+  threshold_m2:'면적 기준 (㎡)',applies_when:'적용 조건',allowed_summary:'허용 범위',prohibited_summary:'제한 범위',
+  reference_table:'참조표',min_frontage_m:'최소 접도 길이 (m)',min_area_m2:'최소 면적 (㎡)',
+  coordinate_x:'X 좌표',coordinate_y:'Y 좌표'};
+
+function valueText(value:unknown):string {
+  if (value===null || value===undefined) return '자료 없음';
+  if (typeof value==='boolean') return value?'예':'아니요';
+  if (Array.isArray(value)) return value.map(valueText).join(' · ');
+  if (typeof value==='object') return Object.entries(value).map(([k,v])=>`${labels[k]||k}: ${valueText(v)}`).join(' / ');
+  return String(value);
+}
+function Fields({value}:{value:Record<string,unknown>|null}) {
+  return value ? <dl>{Object.entries(value).map(([key,item])=><div key={key}><dt>{labels[key]||key}</dt><dd>{valueText(item)}</dd></div>)}</dl> : <p>자료 없음</p>;
+}
+
+export default function LandPage() {
+  const [input,setInput]=useState('');const [type,setType]=useState<'address'|'pnu'>('address');
+  const [zone,setZone]=useState('');const [includeLaw,setIncludeLaw]=useState(true);
+  const [zones,setZones]=useState<LandZone[]>([]);const [stats,setStats]=useState<LandStats|null>(null);
+  const [result,setResult]=useState<LandResult|null>(null);const [busy,setBusy]=useState(false);
+  const [error,setError]=useState<string|null>(null);const [metadataErrors,setMetadataErrors]=useState<string[]>([]);
+  const active=useRef<AbortController|null>(null);
+  useEffect(()=>{
+    const controller=new AbortController();
+    const failed=(e:Error)=>{if(!controller.signal.aborted)setMetadataErrors(old=>[...old,e.message]);};
+    landZones(controller.signal).then(v=>{if(!controller.signal.aborted)setZones(v);}).catch(failed);
+    landStats(controller.signal).then(v=>{if(!controller.signal.aborted)setStats(v);}).catch(failed);
+    return ()=>{controller.abort();active.current?.abort();};
+  },[]);
+  const regulations=result?.regulations;
+  const extended=regulations?.extended as Record<string,unknown>|undefined;
+  return <div className="land-analysis"><h1>대지 분석</h1><p>주소 또는 PNU로 대지 정보와 규제 근거를 확인합니다.</p>
+    <form onSubmit={async event=>{
+      event.preventDefault();if(busy||!input.trim())return;
+      active.current?.abort();const controller=new AbortController();active.current=controller;
+      setBusy(true);setError(null);setResult(null);
+      try {
+        const value=await analyzeLand({input:input.trim(),input_type:type,zones:zone?[zone]:[],include_law:includeLaw},controller.signal);
+        if(!controller.signal.aborted)setResult(value);
+        landStats(controller.signal).then(v=>{if(!controller.signal.aborted)setStats(v);}).catch(()=>{});
+      } catch(reason) {if(!controller.signal.aborted)setError(reason instanceof Error?reason.message:'대지 분석 실패');}
+      finally {if(!controller.signal.aborted)setBusy(false);}
+    }}>
+      <label>입력 형식<select value={type} onChange={e=>setType(e.target.value as 'address'|'pnu')}><option value="address">주소</option><option value="pnu">PNU</option></select></label>
+      <label>주소 또는 PNU<input required maxLength={500} value={input} onChange={e=>{
+        const value=e.target.value;setInput(value);setType(/^[0-9]{19}$/.test(value.replace(/-/g,''))?'pnu':'address');
+      }}/></label>
+      <label>용도지역 직접 지정<select value={zone} onChange={e=>setZone(e.target.value)}><option value="">자동 조회</option>{zones.map(z=><option key={z.zone_name} value={z.zone_name}>{z.zone_name}</option>)}</select></label>
+      <label><input type="checkbox" checked={includeLaw} onChange={e=>setIncludeLaw(e.target.checked)}/>법령 원문 검색</label>
+      <button type="submit" disabled={busy||!input.trim()}>{busy?'분석 중…':'대지 분석'}</button>
+    </form>
+    {metadataErrors.map((message,i)=><p role="status" key={i}>{message}</p>)}
+    {error&&<p role="alert">{error}</p>}
+    {result&&<>
+      <section><h2>분석 판정</h2>{result.assessment?<>
+        <p>{result.assessment.status==='needs_evidence'?'추가 근거가 필요합니다.':result.assessment.status}</p>
+        <p>{result.assessment.permit_compliance_verified?'ARR에서 허가 적합성 확인을 보고했습니다.':'허가 적합성은 검증되지 않았습니다.'}</p>
+        <ul>{result.assessment.missing_evidence.map((v,i)=><li key={i}>{v==='complete_design_applicability_and_permit_checks'?'설계 전체 적용성 및 허가 요건 검토가 필요합니다.':v}</li>)}</ul>
+        {result.assessment.scope&&<p>분석 범위: {result.assessment.scope==='regulation_lookup_and_partial_calculation'?'규제 조회 및 일부 계산':result.assessment.scope}</p>}
+        <details><summary>조례 및 용도 검토 근거</summary><p>{valueText(result.assessment.municipal_coverage)}</p><p>{valueText(result.assessment.use_permission)}</p></details>
+      </>:<p>ARR에서 분석 판정 정보를 제공하지 않았습니다.</p>}</section>
+      {result.warning&&<p role="status">{result.warning}</p>}
+      {result.errors?.map((message,i)=><p role="alert" key={i}>{message}</p>)}
+      <section><h2>필지 정보</h2><Fields value={result.pnu}/><Fields value={result.land_info}/><Fields value={result.zone_info}/></section>
+      <section><h2>규제 요약</h2>{regulations?Object.entries(regulations).filter(([key])=>key!=='extended').map(([key,value])=>
+        <article key={key}><h3>{labels[key]||key}</h3><p>{valueText(value)}</p></article>):<p>확인된 규제 자료가 없습니다.</p>}</section>
+      {extended&&<section><h2>추가 규제</h2><Fields value={extended}/></section>}
+      <section><h2>법령 근거</h2>{result.law_articles?.articles.map((law,i)=><article key={i}><h3>{law.law_name} {law.article}</h3><p>{law.content}</p></article>)}
+        {result.law_articles?.errors.map((message,i)=><p role="alert" key={i}>{message}</p>)}
+        {!result.law_articles?.articles.length&&<p>조회된 법령 원문이 없습니다.</p>}</section>
+      <section><h2>제한 사항</h2><ul>{result.restrictions.map((v,i)=><li key={i}>{v}</li>)}</ul></section>
+    </>}
+    {stats&&<section><h2>ARR 분석 통계</h2><p>조회 {stats.total_queries}건 · 오류 {stats.error_count}건 · 평균 {stats.avg_response_time_ms}ms</p>
+      <ul>{stats.by_input_type.map(v=><li key={v.input_type}>{v.input_type==='address'?'주소':v.input_type==='pnu'?'PNU':'용도지역 직접 지정'}: {v.count}건</li>)}</ul></section>}
+  </div>;
+}

@@ -8,6 +8,7 @@ const AgentsPage = lazy(() => import("../features/agent-workspace/agents/AgentsP
 const ProjectsPage = lazy(() => import("../features/agent-workspace/projects/ProjectsPage"));
 const ProjectPage = lazy(() => import("../features/agent-workspace/projects/ProjectPage"));
 const RunPage = lazy(() => import("../features/agent-workspace/runs/RunPage"));
+const LandPage = lazy(() => import("../features/land-analysis/LandPage"));
 
 /**
  * The product surfaces, addressed by path so a page can be linked and reloaded.
@@ -27,6 +28,7 @@ const SURFACES: readonly Surface[] = [
   { path: "/planm", label: "PLANM Planning" },
   { path: "/agents", label: "Agents" },
   { path: "/projects", label: "Projects" },
+  { path: "/land", label: "대지 분석" },
   { path: "/editor", label: "3D Editor", external: true },
 ];
 
@@ -83,6 +85,8 @@ export function App() {
       <section className="product-surface">
         {surface === "/agents" ? (
           <Suspense fallback={<p role="status">화면을 불러오는 중…</p>}><AgentsPage /></Suspense>
+        ) : route.kind === 'land' ? (
+          <Suspense fallback={<p role="status">불러오는 중…</p>}><LandPage /></Suspense>
         ) : route.kind === 'projects' ? (
           <Suspense fallback={<p role="status">불러오는 중…</p>}><ProjectsPage /></Suspense>
         ) : route.kind === 'project' ? (

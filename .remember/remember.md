@@ -1,3 +1,9 @@
+## 2026-10-04 - ARR land UI/API increment
+
+Editor /land now uses its own API and explicit ARR adapter (no AG runtime). Read docs/integrations/2026-10-04-land-analysis.md and docs/migrations/ag-function-coverage.md. Live PNU/manual-zone/no-law query passed through isolated backend18434 to ARR18320; missing geometry and needs_evidence/permit_compliance_verified:false remain visible. Source grouped/flat law mismatch normalized. 34 backend integration/regression tests, dev12, route2/boundary2, frontend build, Chrome live land1 + mock land/health/routing4 passed. Address and live law lookup, project association/persistence and scene application remain unverified/unimplemented. Full original checkout backend regression remains blocked by missing Gitagent dist artifact. Do not claim full AG or specialist completion.
+
+Health increment commits: Editor c4f3d4cb, owner0287731. Next restore/check original build prerequisites, verify address/law and project-bound result contract, then continue general work input/results/resume. No original sources removed, no dependency/lockfile additions, no push. ARR and shared owner worker were not restarted; only isolated backend18434 was reloaded hidden after process identity check.
+
 ## 2026-10-04 - AG product coverage correction and bounded execution slice
 
 User requires frontend/backend absorption, not merely agent connectivity. Read Editor docs/migrations/ag-function-coverage.md and docs/integrations/2026-10-04-execution-slice.md. Catalog/project commits remain verified; Task4 now has health-only request/list/detail/reload with immutable retry identities. Actual browser run 21685e9df3834a52be72c14dfc3bfa0c succeeded with three real completed A2A replies. General Playground inputs, attachments, messages, resume, artifacts and full AG coverage remain incomplete. Next independently map ARR land UI/API into existing Editor product modules; preserve prior selective migration decisions and originals.
