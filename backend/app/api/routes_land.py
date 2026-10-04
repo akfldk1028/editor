@@ -40,6 +40,22 @@ class ResolutionRequest(BaseModel):
         return self
 
 
+class ReverseRequest(BaseModel):
+    model_config=ConfigDict(strict=True, extra='forbid', allow_inf_nan=False)
+    x: float=Field(ge=124, le=133)
+    y: float=Field(ge=33, le=44)
+
+
+class ParcelRequest(BaseModel):
+    model_config=ConfigDict(strict=True, extra='forbid')
+    pnu: str=Field(min_length=1, max_length=100)
+
+    @model_validator(mode='after')
+    def check_pnu(self):
+        self.pnu=normalize_pnu(self.pnu)
+        return self
+
+
 def create_land_router(client=None, *, public_origin=None, address_client=None):
     owner=client or LandClient(os.environ.get('EDITOR_ARR_URL'),
         analysis_timeout=float(os.environ.get('EDITOR_ARR_ANALYSIS_TIMEOUT','180')))
@@ -57,6 +73,16 @@ def create_land_router(client=None, *, public_origin=None, address_client=None):
         if body.input_type=='pnu':
             return {'valid':True, 'parsed':parse_pnu(body.input)}
         return await addresses.resolve_address(body.input)
+
+    @router.post('/reverse')
+    async def reverse(body: ReverseRequest, request: Request):
+        check_origin(request)
+        return await addresses.reverse_geocode(body.x, body.y)
+
+    @router.post('/parcel-geometry')
+    async def geometry(body: ParcelRequest, request: Request):
+        check_origin(request)
+        return await addresses.fetch_parcel_geometry(body.pnu)
 
     async def respond(operation):
         try: return await operation

@@ -74,6 +74,34 @@
         "Analysis/statistics still use legacy adapter"
       ],
       "rollback": "Revert this slice; no production DB/state changed"
+    },
+    {
+      "id": "land-parcel-lookup",
+      "sources": [
+        "ARR/backend/land/services/pnu_resolver.py:reverse_geocode,fetch_parcel_geometry"
+      ],
+      "targets": [
+        "backend/app/api/routes_land.py",
+        "backend/app/adapters/vworld.py",
+        "backend/app/modules/land/parcel_geometry.py"
+      ],
+      "api": [
+        "POST /api/v1/land/reverse",
+        "POST /api/v1/land/parcel-geometry"
+      ],
+      "legacy_service_required": false,
+      "runtime_source_owner": "editor",
+      "status": "API/provider fixture verified; UI and live provider pending",
+      "verification": {
+        "targeted_tests": "42 passed; one existing deprecation warning",
+        "documentation": "docs/integrations/2026-10-04-land-parcels.md"
+      },
+      "remaining": [
+        "Existing land-page controls and boundary preview",
+        "Live Vworld provider verification",
+        "Project persistence and scene application"
+      ],
+      "rollback": "Revert slice; originals and runtime state unchanged"
     }
   ]
 }
