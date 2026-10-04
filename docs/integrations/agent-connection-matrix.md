@@ -1,6 +1,6 @@
 # Agent connection matrix — CURRENT / TARGET
 
-Checked 2026-10-04, read-only architecture inventory. This document is the only file authored by this inventory task. Existing preservation work remains in progress; this is not Task 4 implementation, a folder migration, a service rollout, or proof that all agents are live.
+Initial read-only architecture inventory checked 2026-10-04; subsequent isolated runtime evidence is listed separately below. Existing preservation work remains in progress; this is not Task 4 implementation, a folder migration, or proof that all agents are connected to Editor.
 
 ## Evidence and counting
 
@@ -56,11 +56,23 @@ These rows are deliberately not counted as additional live central agents. Scaff
 | pptagent (manifest ID; folder pptAgent) | `A/pascalAgents/pptAgent/agent.yaml` | Manifest declares deterministic architecture PPTX deck generation, engine-owned state; domain transport/callability unverified | not yet | `/agents` after callable-tool verification |
 | AutoGen Studio / AG | `G/autogen_a2a_kit/autogen_source/python/packages/autogen-studio/autogenstudio/web/app.py` | Actual Studio API mounts teams, sessions, runs, WebSocket, A2A import/registry and other routes; declared startup port 8081 | not yet; standalone source/runtime, no unified Editor surface observed | `/agentlab` for team/workflow experiments; `/agents` links/discovery for verified domain adapters only |
 
-PLANM source details: [backend adapter](../../backend/app/adapters/planm_agent.py), [owner resolver](../../backend/app/core/planm_location.py), [run API](../../backend/app/api/routes_planm_runs.py). Resolver points to sibling `agents/planm`; no folder was moved by this task. `/api/v1/planm/runs` is already a separate backend contract. Treating it as central `plan` would silently replace ARR's current provider contract.
+PLANM source details: [backend adapter](../../backend/app/adapters/planm_agent.py), [owner resolver](../../backend/app/core/planm_location.py), [run API](../../backend/app/api/routes_planm_runs.py). Resolver defaults to sibling `agents/planm` and now accepts an explicit absolute server-configured `PLANM_AGENT_DIR`; no owner folder was moved. `/api/v1/planm/runs` is already a separate backend contract. Treating it as central `plan` would silently replace ARR's current provider contract.
 
 AG source details: `G/start_with_key.ps1` names the actual autogen-studio source root; only matching startup-path lines were inspected, not secret assignments. Studio [web app](../../../AG/autogen_a2a_kit/autogen_source/python/packages/autogen-studio/autogenstudio/web/app.py) and [A2A routes](../../../AG/autogen_a2a_kit/autogen_source/python/packages/autogen-studio/autogenstudio/web/routes/a2a.py) were read directly. `G/autogen_a2a_kit/AG-cli/mcp/autogen_studio_server.py` also references the Studio URL. The sibling `D:/Data/25_ACE/AG-frontend` is a separate checkout, not evidence of integration. Studio team execution/A2A import is not the central source-revision/effects/issue-closure execution contract.
 
 Shared `a2a_common`, protocol libraries, JSON_MODULES, Gitagent runtimes, skills, vendor/reference clones and dynamic experiment teams are infrastructure, not additional canonical domain agents. They are intentionally excluded from the profile count. This bounded inventory inspected owner-level manifests and selected actual adapters; it does not claim to have enumerated every vendored example or plugin.
+
+## Subsequent isolated runtime observations
+
+These observations establish existing component baselines, not the new unified `/agents` surface. Source/receipt details are in the [migration record](../migrations/2026-10-04-source-map.md). Original project databases were not used.
+
+| Component | Observed flow | Evidence / limitation |
+|---|---|---|
+| PLANM → Editor | Actual deterministic API generation, fixture alternative selection, MCP publish, scene API reopen and browser 2D/3D | Run `858fab437a334726904a2116bde47539`, scene `868e0a5e9231`, version2,321nodes. Existing bridge only; unresolved regulatory inputs remain. Editor `5e36616f`, tested PLANM wrapper changes subsequently committed `151c59d`. |
+| Studio / AG | Isolated source+venv on8081: health, session create/read, CREATED run, WebSocket ping/pong | No start/model execution. Additional run detail GET500 due raw SQL timestamp string handling. AutoGen0.7.5 + MCP1.25.0 in isolated environment; original venv/source unchanged. |
+| AG-frontend | Restored source unit96tests and TypeScript/Vite build | Not yet integrated into Editor navigation/API; standalone browser-to-Studio execution not claimed. |
+
+The 25 central catalog rows above remain unverified for the new Editor connection. Component startup or one provider's successful baseline must not promote all rows to verified.
 
 ## TARGET connection rules and acceptance boundary
 
