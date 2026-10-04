@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AgentSummary(BaseModel):
@@ -23,3 +24,17 @@ class ProjectCreate(BaseModel):
 
 class ProjectBinding(ProjectCreate):
     project_id: str
+
+
+class RunCreate(BaseModel):
+    model_config = ConfigDict(strict=True, extra='forbid')
+    request: dict
+    scene_revision: int = Field(ge=0)
+    source_versions: dict[str, Annotated[int, Field(ge=0)]]
+
+    @field_validator('request')
+    @classmethod
+    def supported_request(cls, value):
+        if value != {'goal':'health'}:
+            raise ValueError('Only the health template is currently supported')
+        return value

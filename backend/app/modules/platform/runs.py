@@ -1,0 +1,40 @@
+from backend.app.schemas.platform import ProjectCreate
+from .projects import BindingConflict
+
+
+class RunService:
+    def __init__(self, projects, owner):
+        self.projects, self.owner = projects, owner
+
+    def binding(self, actor, project_id):
+        binding = self.projects.repository.get(actor, project_id)
+        if binding is None:
+            raise LookupError('project not found')
+        return binding
+
+    async def context(self, actor, project_id):
+        binding = self.binding(actor, project_id)
+        return {'scene_revision':binding.scene_revision,
+            'source_versions':await self.owner.context(binding.owner_project_id, binding.branch_id)}
+
+    async def submit(self, actor, project_id, key, body):
+        binding = self.binding(actor, project_id)
+        if body.scene_revision != binding.scene_revision:
+            raise BindingConflict('scene revision changed')
+        request_id = f'editor:{project_id}:{key}'
+        previous = await self.owner.list_runs(binding.owner_project_id,binding.branch_id,request_id)
+        if not any(run['request_id'] == request_id for run in previous):
+            await self.projects.create(actor, ProjectCreate(**binding.model_dump(exclude={'project_id'})))
+        return await self.owner.submit_run({'project':binding.owner_project_id,'branch':binding.branch_id,
+            'request_id':request_id, 'request':body.request,'source_versions':body.source_versions})
+
+    async def list(self, actor, project_id):
+        binding = self.binding(actor, project_id)
+        return await self.owner.list_runs(binding.owner_project_id,binding.branch_id,f'editor:{project_id}:')
+
+    async def get(self, actor, project_id, run_id):
+        binding = self.binding(actor, project_id)
+        run = await self.owner.get_run(run_id,binding.owner_project_id,binding.branch_id)
+        if not run.get('request_id','').startswith(f'editor:{project_id}:'):
+            raise LookupError('run not found in project')
+        return run

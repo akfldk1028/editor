@@ -43,7 +43,9 @@ test('platform startup wires the external owner and separate product data', () =
   assert.equal(services.backend.env.EDITOR_ORCHESTRATOR_URL, 'http://127.0.0.1:8791');
   assert.equal(services.backend.env.EDITOR_SCENE_URL, 'http://127.0.0.1:3002/editor');
   assert.equal(services.orchestrator.cwd, resolve(repositoryRoot, '../agents/OrchestratorAgent'));
-  assert.ok(services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'read-only',config_id:services.orchestrator.configId}}));
+  assert.ok(services.orchestrator.args.includes('--enable-submissions'));
+  assert.ok(services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'local-execution',config_id:services.orchestrator.configId}}));
+  assert.ok(!services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'read-only',config_id:services.orchestrator.configId}}));
   assert.ok(!services.orchestrator.validate({body:{service:'orchestrator-editor-api',mode:'read-only',config_id:'different-database'}}));
   assert.ok(!services.orchestrator.validate({body:{service:'autogen-studio'}}));
 });

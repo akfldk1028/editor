@@ -1,4 +1,5 @@
 import httpx
+from urllib.parse import urlencode, quote
 from pydantic import TypeAdapter, ValidationError
 
 from backend.app.schemas.platform import AgentSummary
@@ -9,6 +10,10 @@ class OwnerUnavailable(Exception):
 
 
 class OwnerContractError(Exception):
+    pass
+
+
+class OwnerRejected(Exception):
     pass
 
 
@@ -36,12 +41,78 @@ class OrchestratorClient:
         except ValueError as exc:
             raise OwnerContractError() from exc
 
-    async def get(self, path):
+    async def context(self, project, branch):
+        response = await self.get('/editor/v1/context?' + urlencode({'project':project,'branch':branch}))
+        value = self.json(response)
+        if not isinstance(value, dict) or not all(isinstance(k,str) and type(v) is int and v >= 0 for k,v in value.items()):
+            raise OwnerContractError()
+        return value
+
+    async def submit_run(self, body):
+        if not self.base_url:
+            raise OwnerUnavailable()
+        try:
+            async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False) as client:
+                response = await client.post(self.base_url.rstrip('/') + '/editor/v1/runs',
+                    json=body, headers={'X-Editor-Client':'local'})
+                if response.status_code == 409:
+                    raise OwnerRejected()
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise OwnerUnavailable() from exc
+        value = self.bound_run(self.json(response), body['project'], body['branch'])
+        if value['request_id'] != body['request_id']:
+            raise OwnerContractError()
+        return value
+
+    @staticmethod
+    def json(response):
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise OwnerContractError() from exc
+
+    @classmethod
+    def bound_run(cls, value, project, branch):
+        run = cls.parse_run(value)
+        if run['owner_project_id'] != project or run['branch_id'] != branch:
+            raise OwnerContractError()
+        return run
+
+    @staticmethod
+    def parse_run(value):
+        fields = ('run_id','owner_project_id','branch_id','request_id','goal','status')
+        if not isinstance(value,dict) or not all(isinstance(value.get(key),str) for key in fields):
+            raise OwnerContractError()
+        if not isinstance(value.get('receipt_task_ids'),list) or not all(isinstance(v,str) for v in value['receipt_task_ids']) or type(value.get('pending_input')) is not bool:
+            raise OwnerContractError()
+        return {key:value[key] for key in (*fields,'receipt_task_ids','pending_input')}
+
+    async def list_runs(self, project, branch, prefix):
+        response = await self.get('/editor/v1/runs?' + urlencode({'project':project,'branch':branch,'prefix':prefix}))
+        values = self.json(response)
+        if not isinstance(values,list):
+            raise OwnerContractError()
+        runs = [self.bound_run(value,project,branch) for value in values]
+        if any(not run['request_id'].startswith(prefix) for run in runs):
+            raise OwnerContractError()
+        return runs
+
+    async def get_run(self, run_id, project, branch):
+        response = await self.get('/editor/v1/runs/' + quote(run_id,safe='') + '?' + urlencode({'project':project,'branch':branch}), missing=True)
+        run = self.bound_run(self.json(response),project,branch)
+        if run['run_id'] != run_id:
+            raise OwnerContractError()
+        return run
+
+    async def get(self, path, *, missing=False):
         if not self.base_url:
             raise OwnerUnavailable()
         try:
             async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False) as client:
                 response = await client.get(self.base_url.rstrip('/') + path)
+                if missing and response.status_code == 404:
+                    raise LookupError('run not found')
                 response.raise_for_status()
         except httpx.HTTPError as exc:
             raise OwnerUnavailable() from exc

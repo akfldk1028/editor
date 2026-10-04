@@ -8,6 +8,7 @@ from backend.app.schemas.platform import ProjectBinding, ProjectCreate
 from backend.app.adapters.platform_scenes import PlatformScenes
 from backend.app.modules.platform.repository import ProjectRepository
 from backend.app.modules.platform.projects import ProjectService, BindingConflict
+from backend.app.api.routes_platform_runs import create_run_router
 
 
 def create_platform_router(client: OrchestratorClient | None = None, *, project_service=None, public_origin=None) -> APIRouter:
@@ -59,4 +60,5 @@ def create_platform_router(client: OrchestratorClient | None = None, *, project_
         except OwnerContractError:
             raise HTTPException(502, 'Project source contract invalid') from None
 
+    router.include_router(create_run_router(projects_service, owner, allowed_origin))
     return router

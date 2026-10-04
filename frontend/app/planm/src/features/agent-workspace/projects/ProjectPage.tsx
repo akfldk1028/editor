@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { getProject, type ProjectBinding } from '../api/projects';
 import '../agents/agents.css';
+import {TaskComposer} from '../runs/TaskComposer';
+import {RunList} from '../runs/RunList';
 
 export default function ProjectPage({projectId}: {projectId: string}) {
   const [project, setProject] = useState<ProjectBinding | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refresh,setRefresh] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
     setProject(null); setError(null);
@@ -17,7 +20,8 @@ export default function ProjectPage({projectId}: {projectId: string}) {
       <h1>{project.owner_project_id}</h1><p>브랜치: {project.branch_id}</p>
       <p>연결된 장면: {project.scene_id} · 기준 버전 {project.scene_revision}</p>
       <a href={'/editor/scene/' + encodeURIComponent(project.scene_id)}>3D 장면 열기</a>
-      <p>에이전트 작업 요청과 실행 이력은 아직 연결되지 않았습니다.</p>
+      <TaskComposer key={project.project_id} projectId={project.project_id} onSubmitted={() => setRefresh(value=>value+1)} />
+      <RunList projectId={project.project_id} refresh={refresh} />
     </>}
   </div>;
 }

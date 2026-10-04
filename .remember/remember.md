@@ -1,3 +1,11 @@
+## 2026-10-04 - AG product coverage correction and bounded execution slice
+
+User requires frontend/backend absorption, not merely agent connectivity. Read Editor docs/migrations/ag-function-coverage.md and docs/integrations/2026-10-04-execution-slice.md. Catalog/project commits remain verified; Task4 now has health-only request/list/detail/reload with immutable retry identities. Actual browser run 21685e9df3834a52be72c14dfc3bfa0c succeeded with three real completed A2A replies. General Playground inputs, attachments, messages, resume, artifacts and full AG coverage remain incomplete. Next independently map ARR land UI/API into existing Editor product modules; preserve prior selective migration decisions and originals.
+
+Checks: platform27, owner6, dev12, route2/boundary2, Chrome live1+mock3 and frontend build passed. Full backend regression is NOT green: original D: checkout lacks infra/runtimes/gitagent/dist/exports.js; test_backend_planm_adapter_runs_versioned_normalize_stage fails. Full run interrupted, fail-fast reproduces. Build/dependencies verified in isolated restored runtime only.
+
+Hidden isolated owner8793 listener58748, backend18433 listener85636, existing isolated worker uses platform-live/owner-run. Only these test API processes were reloaded after identity verification. Original shared worker/Sheet unchanged. Normal launcher now requires local-execution gateway; old read-only8791 is incompatible and full launcher has not been exercised. Recheck PIDs and command identity before restarting anything.
+
 ## 2026-10-04 - Reviewed project binding and live browser passed
 
 Read docs/integrations/2026-10-04-project-bindings.md. Task3 UI/API/storage implemented. Products18 tests, owner20, dev12, actual Chrome4 (2 live) passed; build passed. Fixed cross-owner scene binding, scene404 errors, independent Pascal project mapping, explicit Origin, atomic SQLite v2 migration, malformed scene contract and wrong owner DB reuse. First review0 blockers; followup findings fixed. Actual browser-to-owner catalog/project now verified, overriding prior startup limitation. Task4 durable request/input/history/results is next and still unimplemented. Local single-user profile only.

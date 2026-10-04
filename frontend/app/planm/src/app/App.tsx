@@ -7,6 +7,7 @@ import "./styles.css";
 const AgentsPage = lazy(() => import("../features/agent-workspace/agents/AgentsPage"));
 const ProjectsPage = lazy(() => import("../features/agent-workspace/projects/ProjectsPage"));
 const ProjectPage = lazy(() => import("../features/agent-workspace/projects/ProjectPage"));
+const RunPage = lazy(() => import("../features/agent-workspace/runs/RunPage"));
 
 /**
  * The product surfaces, addressed by path so a page can be linked and reloaded.
@@ -86,8 +87,8 @@ export function App() {
           <Suspense fallback={<p role="status">불러오는 중…</p>}><ProjectsPage /></Suspense>
         ) : route.kind === 'project' ? (
           <Suspense fallback={<p role="status">불러오는 중…</p>}><ProjectPage projectId={route.projectId} /></Suspense>
-        ) : surface.startsWith('/runs/') ? (
-          <p role="status">프로젝트·실행 화면은 아직 연결되지 않았습니다.</p>
+        ) : route.kind === 'run' ? (
+          <Suspense fallback={<p role="status">불러오는 중…</p>}><RunPage runId={route.runId} /></Suspense>
         ) : surface === "/planm" ? (
           <PlanmPlanningSurface onOpenDwg={() => setSurface("/dwg")} />
         ) : (

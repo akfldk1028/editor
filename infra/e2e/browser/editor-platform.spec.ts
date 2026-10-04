@@ -1,5 +1,44 @@
 import { test, expect } from '@playwright/test';
 
+test('live execution through Editor form, worker and persisted history', async ({page}) => {
+  test.skip(!process.env.EDITOR_LIVE_RUN_PROJECT, 'Requires isolated owner worker and project binding');
+  test.setTimeout(120000);
+  const projectId=process.env.EDITOR_LIVE_RUN_PROJECT!;
+  await page.goto('/projects/'+projectId);
+  await page.getByRole('button',{name:'기본 서비스 상태 점검',exact:true}).click();
+  await page.getByRole('link',{name:'요청한 실행 열기'}).click();
+  const url=page.url();
+  await expect(page.getByTestId('run-status')).toHaveText('succeeded',{timeout:90000});
+  await expect(page.locator('.agent-workspace li')).toHaveCount(3);
+  await page.reload();
+  await expect(page).toHaveURL(url);
+  await expect(page.getByTestId('run-status')).toHaveText('succeeded');
+  await page.screenshot({path:'test-results/editor-live-run.png',fullPage:true});
+});
+
+test('execution retry preserves request across reload and context changes', async ({page}) => {
+  let version = 1;
+  const requests: {key:string|null;body:unknown}[] = [];
+  await page.route('**/api/v1/platform/projects/binding', route => route.fulfill({json:{
+    project_id:'binding',owner_project_id:'p',branch_id:'main',scene_id:'scene',scene_revision:1,scene_project_id:null}}));
+  await page.route('**/api/v1/platform/projects/binding/context', route => route.fulfill({json:{scene_revision:1,source_versions:{mass:version}}}));
+  await page.route('**/api/v1/platform/projects/binding/runs', route => {
+    if (route.request().method() === 'GET') return route.fulfill({json:[]});
+    requests.push({key:route.request().headers()['idempotency-key'],body:route.request().postDataJSON()});
+    return requests.length === 1 ? route.fulfill({status:503,json:{detail:'external_outcome_unknown'}})
+      : route.fulfill({status:202,json:{run_id:'r',request_id:'k',owner_project_id:'p',branch_id:'main',goal:'health',status:'queued',receipt_task_ids:[],pending_input:false}});
+  });
+  await page.goto('/projects/binding');
+  await page.getByRole('button',{name:'기본 서비스 상태 점검',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('같은 요청');
+  version = 2;
+  await page.reload();
+  await page.getByRole('button',{name:/기본 서비스 상태 점검|이전 요청 다시 확인/}).click();
+  await expect(page.getByRole('link',{name:'요청한 실행 열기'})).toBeVisible();
+  expect(requests).toHaveLength(2);
+  expect(requests[1]).toEqual(requests[0]);
+});
+
 test('live project binding persists and rejects stale scene revision', async ({page}) => {
   test.skip(!process.env.EDITOR_LIVE_PROJECTS, 'Requires isolated project binding fixture');
   await page.goto('/projects');
