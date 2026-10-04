@@ -72,3 +72,13 @@ AG-frontend 재시도 `source-retry-diagnostic.zip`은21,208개 파일·226,374,
 - 실제 복원본 FastAPI의 읽기 전용 baseline: OpenAPI/docs200, 없는 run404, `/health`404(미구현). 실제 PLANM config/schema 읽기 통과. 원본 editor 경로를 owner 탐색 anchor로만 사용하고 모든 runs는 별도 빈 경로로 설정했다. `runtime-baseline/backend/receipt.json`에 근거가 있다. PLANM 실행/게시에는 고정된 sibling owner 탐색, Gitagent 빌드 누락, 단계 subprocess 숨김 실행 검증이 남아 있다.
 
 Task1에서 실제 파일 snapshot·복원 결과와 링크 지원 범위를 확정하고 실행 baseline을 수립한다. 이 검증 없이 Task2 폴더 이동을 완료 처리하지 않는다. D:의 원본 보존+복사 여유가 작은 점은 Task2 실행 전에 재검사한다. 기존 연구 프로세스와 서비스는 광범위하게 종료하지 않는다.
+
+### 실제 실행 후속 결과
+
+- AG snapshot v3 생성 성공: 일반 파일429,653개, 디렉터리50,219개, 12,828,462,346bytes, 링크293개. archive 크기13,160,330,382bytes. 생성 결과 `incomplete_links`/exit2는 링크의 기록만 끝났다는 뜻이다. `restored-files-v3 --restore-reparse` 전체 복원과 최종 검증은 진행 중이다.
+- AG-frontend 복원본 `npm.cmd run test:unit`:12files/96tests 통과. `npm.cmd run build`:TypeScript/Vite 통과. 선택한 소스·설정194개 해시 불변. `AG-frontend/runtime-baseline/`에 로그와 receipt를 남겼다.
+- Editor `5e36616f`: 명시적 절대경로 `PLANM_AGENT_DIR`, Windows stage host 숨김 실행. 관련9개 테스트를 직접 재실행했다. 복원 환경에 해당2개 파일을 overlay하고 Gitagent의 자체 lockfile로 `npm ci` 및 build를 수행했다. 따라서 뒤의 PLANM baseline은 최초 archive 그대로의 실행이 아니라 명시된 수정 후 실행이다.
+- PLANM owner `6a059ee`와 `151c59d`: Node host·5개 skill wrapper·bridge 숨김 실행, 실제 Windows에서 중간 wrapper가 잃던 stdout/stderr를 명시적 pipe로 전달. 최초 failed run `ca87743cb91a4b10800cf740d6e5eb7b`와 경계별629bytes→0bytes 증거는 보존했다. Python19(실제5개 subprocess 사슬 포함), Node4 통과. Owner memory commit `4d904cd` 및 후속 `151c59d`에 맥락 기록.
+- 수정 후 실제 PLANM API run `858fab437a334726904a2116bde47539`: delivered, accepted alternatives `alternative-c`,`alternative-a`. 격리 fixture에서 `alternative-c` 선택 후 실제 MCP3917 게시와 Next3002 재조회 통과. scene `868e0a5e9231`, version2, nodeCount321(5levels/50zones/124walls/40doors), 변환 경고 없음. 관할·기준일·층 법규 맥락·피난거리 분류는 unresolved로 보존한다. 법적 승인이나 전체 agent 연결 완료가 아니다.
+- 근거: `runtime-baseline/planm-live-v2/{receipt,scene-summary}.json`. 실행 시작 당시 owner HEAD와 수정 중 파일 상태를 구분한다. 테스트된 wrapper 수정은 이후 `151c59d`로 커밋됐다. 전용 Backend18432는 종료했고 격리 MCP/Next는 유지했다. 게시 장면의 브라우저 시각 검증은 후속 진행 중이다.
+- Studio 소스 subtree만 별도 보관·검증·복원:79,919files/916,154,297bytes/links0. 기존 venv의 autogen-ext0.5.7은 소스가 요구하는 `StreamableHttpServerParams`를 제공하지 않아 시작 실패했다. 별도 venv에 선언 의존성을 설치한 뒤에도 MCP2.3.0의 `RequestContext` 호환 문제가 드러났다. 원본 venv와 제품 소스는 변경하지 않고 격리 환경에서 재검증 중이다. 실패를 세션/WS 통과로 기록하지 않는다.
