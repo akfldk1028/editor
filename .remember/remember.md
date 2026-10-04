@@ -4,7 +4,9 @@ Execution root: D:/Data/25_ACE/editor, branch docs/editor-platform-plan-20261004
 
 Read [source map and evidence](../docs/migrations/2026-10-04-source-map.md) and [agent matrix](../docs/integrations/agent-connection-matrix.md). Backups outside source: %LOCALAPPDATA%/CodexMigrationBackups/editor-platform-20261004. Git bundles verified/restored; editor and AG-frontend file restore comparisons passed. Isolated editor runtime copy has dependencies added after comparison and uses its own pascal.db. Migration suite 32 passed; source inventory skips active external Git filters instead of allowing status to mutate LFS storage.
 
-Task1 NOT complete: AG large archive/293-link restoration, browser/runtime baselines and storage strategy remain. No source folders moved, no product routes/API integration implemented. Agent matrix is declared inventory, not proof of live connections. Systems/DomainExpert/Interior remain partial. Continue preservation gates before Task2, without resetting dirty AG research or deleting originals. Detailed receipts remain outside Git; do not commit private source snapshots.
+Followup 93f11598: explicit opt-in raw Windows reparse restore and directory-size comparison fix; 42 migration tests passed. AG snapshot v2 failed on four directory allocation-size-only changes; v3 is being created with narrowly corrected comparison. Browser scene reopen now passed with one canvas/no page errors. Actual restored backend OpenAPI/config/schema reads passed, but /health is undefined (404).
+
+Task1 NOT complete: AG large archive/293-link restoration, PLANM publish/Studio baselines and storage strategy remain. No source folders moved, no product routes/API integration implemented. Agent matrix is declared inventory, not proof of live connections. Systems/DomainExpert/Interior remain partial. Continue preservation gates before Task2, without resetting dirty AG research or deleting originals. Detailed receipts remain outside Git; do not commit private source snapshots.
 
 ## 2026-10-04 - Editor platform integration planning
 

@@ -43,7 +43,7 @@ Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실
 
 **Interface:** manifest에 source_root/resolved_root/git_root/commit/branch/index_status/file_kind/relative_path/size/sha256/link_target을 기록한다. secret 파일은 내용 없이 보호된 별도 manifest에 기록한다. destructive mode는 없다.
 
-- [ ] fixture로 tracked/dirty/untracked/ignored/공백·한글 경로/reparse point/같은 이름 충돌을 시험한다. 링크는 의도한 루트 밖으로 따라가지 않는다.
+- [x] fixture로 tracked/dirty/untracked/ignored/공백·한글 경로/reparse point/같은 이름 충돌을 시험한다. 링크는 의도한 루트 밖으로 따라가지 않는다. `93f11598` 기준 전체 migration suite 42개 통과. 실제 대용량 복원 gate는 아래 별도 항목이다.
 - [ ] `git -C <source> rev-parse --show-toplevel`, `status --porcelain=v1`, 파일 inventory를 수집한다. AG-frontend는 상위 Git 경로라는 사실을 assert한다.
 - [ ] editor/AG/상위 저장소의 Git bundle과 dirty index/worktree patch, 전체 로컬 데이터 snapshot을 별도로 만든다. 복원한 임시 경로에서 파일 해시와 commit을 검사한다.
 - [ ] 실행 중 서비스의 실제 command/cwd/DB/artifact 위치·포트·설정 이름을 기록한다. env 비밀 값은 보고서/커밋에 넣지 않는다.

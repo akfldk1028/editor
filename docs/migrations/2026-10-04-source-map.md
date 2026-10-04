@@ -65,7 +65,10 @@ AG-frontend 재시도 `source-retry-diagnostic.zip`은21,208개 파일·226,374,
 - AG-frontend `verify-restored.json`, editor `verify-restored-v2.json`: 각각 독립 manifest 비교에서 verified=true, missing/changed/extra/errors 모두 빈 목록. editor archive는 `4a4bebe2` 시점이며 이후 설계 commit까지 포함하는 최신 백업이라고 주장하지 않는다.
 - 검증 후 editor 복원본에만 의존성을 설치해 실행 baseline 작업 공간으로 사용했다. 보존 archive는 변경하지 않았다. 의존성 설치 이후 복원 작업 공간은 원본과 byte-identical한 상태가 아니다.
 - Git status의 clean/process filter가 LFS 저장소 등을 변경할 수 있음을 임시 marker fixture로 재현했다. inventory는 실제 tracked 경로에 적용되는 외부 filter가 있으면 status를 생략하고 `git_state_complete=false`를 기록한다. 파일 보존과 Git 상태 조사 완료를 구분한다. 후속 migration suite: **32 passed**.
-- 격리된 editor 복원 환경에서 capture-protocol/core/MCP build 3개 통과. 별도 `runtime-baseline/pascal.db`에 scene POST 201, GET 200 및 graph 일치 확인. 브라우저 검증은 진행 중이며 PLANM/Studio 실행 통과를 의미하지 않는다.
+- 격리된 editor 복원 환경에서 capture-protocol/core/MCP build 3개 및 UI 관련 build 4개 통과. 별도 `editor/runtime-baseline/pascal.db`에 scene POST 201, GET 200 및 graph 일치 확인. 실제 Chrome `/scenes`, `/scene/restore-baseline-built-20261004` 각각 HTTP200, canvas1, pageerrors0. 기본 빈 부지의 재열기이며 고급 편집/PLANM/Studio 실행 통과를 의미하지 않는다.
 - 임시 Windows fixture에서 junction/일반 symlink/LX_SYMLINK raw metadata 복원이 각각 성공했다. 전체 AG 링크 293개 복원 성공을 의미하지 않는다. AG archive와 실제 전체 복원 검증은 아직 진행 중이다.
+- AG snapshot v2의 최종 비교 실패는 디렉터리 4개의 `st_size`만 20480/65536→0으로 달라진 사례였다. Windows 일반 디렉터리의 allocation 크기를 signature에서만 정규화하고 파일·링크 크기와 디렉터리 identity/time, 전체 경로 비교는 유지했다. 테스트에서 크기 조회 차이는 허용하고 mtime 변경은 여전히 거부한다.
+- `93f11598`: 명시적 `restore --restore-reparse` 지원. 새로운 경로에 일반 파일을 먼저 복원하고 링크를 마지막에 생성해 원시 bytes와 파일 해시를 다시 검증한다. 기본 동작은 계속 기록 전용이며 Windows 외 선택형 복원은 거부한다. 전체 migration suite **42 passed**. AG snapshot v3 재시도 중이며 실제 전체 복원 성공은 아직 주장하지 않는다.
+- 실제 복원본 FastAPI의 읽기 전용 baseline: OpenAPI/docs200, 없는 run404, `/health`404(미구현). 실제 PLANM config/schema 읽기 통과. 원본 editor 경로를 owner 탐색 anchor로만 사용하고 모든 runs는 별도 빈 경로로 설정했다. `runtime-baseline/backend/receipt.json`에 근거가 있다. PLANM 실행/게시에는 고정된 sibling owner 탐색, Gitagent 빌드 누락, 단계 subprocess 숨김 실행 검증이 남아 있다.
 
 Task1에서 실제 파일 snapshot·복원 결과와 링크 지원 범위를 확정하고 실행 baseline을 수립한다. 이 검증 없이 Task2 폴더 이동을 완료 처리하지 않는다. D:의 원본 보존+복사 여유가 작은 점은 Task2 실행 전에 재검사한다. 기존 연구 프로세스와 서비스는 광범위하게 종료하지 않는다.
