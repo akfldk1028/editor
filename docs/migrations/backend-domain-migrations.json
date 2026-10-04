@@ -227,6 +227,35 @@
         "Historical statistics/records",
         "Operational cutover and remaining design/AG features"
       ]
+    },
+    {
+      "id": "land-datum-elevation",
+      "api": "POST /api/v1/land/analyze (optional datum enabled)",
+      "runtime_source_owner": "editor",
+      "legacy_service_required": false,
+      "targets": [
+        "backend/app/adapters/elevation.py",
+        "backend/app/modules/land/datum",
+        "backend/app/modules/regulations/setbacks.py",
+        "backend/app/api/routes_land.py",
+        "frontend/app/planm/src/features/land-analysis/LandPage.tsx"
+      ],
+      "verification": {
+        "backend": "415 passed,41 subtests",
+        "original_datum_cases": 6,
+        "browser": "3 passed including actual Editor HTTP/provider fixtures",
+        "build": "passed",
+        "boundaries": "2 passed",
+        "review": "Independent review: zero-road, sample and band limits, provenance fixes verified"
+      },
+      "documentation": "docs/integrations/2026-10-04-land-datum-analysis.md",
+      "remaining": [
+        "Historical records/cache/statistics migration",
+        "Live configured terrain provider and survey accuracy",
+        "Regulation-line/3D rendered parity",
+        "Design/jobs/artifacts and selected AG workflows",
+        "Operational dependency cutover"
+      ]
     }
   ]
 }

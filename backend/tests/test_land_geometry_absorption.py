@@ -28,9 +28,9 @@ def test_zone_intersections_equal_source_without_double_counting(case):
     assert set(actual) == {'A', 'B'}
 
 
-def test_datum_true_is_explicitly_unsupported():
+def test_datum_true_requires_explicit_service():
     module = importlib.import_module('backend.app.modules.regulations.setbacks')
-    with pytest.raises(NotImplementedError, match='datum'):
+    with pytest.raises(ValueError, match='service'):
         module.compute_setback_lines(FIXTURE['setbacks'][0]['parcel'], {}, compute_datum=True)
 
 

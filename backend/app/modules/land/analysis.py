@@ -69,7 +69,7 @@ def save_result(body, result, started, repository):
 
 
 async def analyze_land(body, addresses, attributes, geometry_provider, repository=None,
-                       *, law_client=None, extraction_client=None):
+                       *, law_client=None, extraction_client=None, datum_service=None):
     from backend.app.modules.regulations.setbacks import compute_setback_lines
     from .geometry_queries import GeometryQueries
     started = perf_counter()
@@ -118,7 +118,11 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
             roads, neighbors, frontage_errors = await queries.frontages(geometry)
             errors.extend(frontage_errors)
             result['setback_lines'] = await run_in_threadpool(compute_setback_lines, geometry, reg,
-                compute_datum=False, road_frontages=roads or None, neighbor_parcels=neighbors or None)
+                compute_datum=datum_service is not None, datum_service=datum_service,
+                road_frontages=roads or None, neighbor_parcels=neighbors or None)
+            datum = result['setback_lines'].get('datum_result')
+            if datum and datum.get('elevation_source') == 'failed':
+                errors.append('Datum elevation unavailable')
     if errors:
         result['errors'] = list(dict.fromkeys(errors))
     return await run_in_threadpool(save_result, body, result, started, repository)

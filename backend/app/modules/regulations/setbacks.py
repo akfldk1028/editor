@@ -16,6 +16,7 @@ land↔design 의존성을 피하기 위해 독립 인스턴스 사용.
 
 import logging
 import math
+from dataclasses import replace
 
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Point, Polygon, mapping, shape
 from shapely.ops import transform, unary_union
@@ -45,6 +46,7 @@ def compute_setback_lines(
     compute_datum: bool = False,
     road_frontages: list[dict] | None = None,
     neighbor_parcels: list[dict] | None = None,
+    datum_service=None,
 ) -> dict:
     """
     필지 polygon + 규제 수치 → 규제선 GeoJSON dict.
@@ -52,9 +54,8 @@ def compute_setback_lines(
     Args:
         parcel_geojson: GeoJSON geometry (Polygon from Vworld)
         regulations: regulation_calculator.calculate_all() 결과
-        compute_datum: True raises NotImplementedError until the elevation
-            provider is migrated. False preserves relative envelope heights
-            with elevation_source=None.
+        compute_datum: True requests an explicitly supplied datum service.
+            Relative envelope heights remain unchanged.
         road_frontages: Vworld 인접 도로 필지에서 추출한 공유변/도로폭 정보.
             있으면 최장변 휴리스틱 대신 실제 도로 접면 기준으로 road edge를 분류.
 
@@ -68,8 +69,8 @@ def compute_setback_lines(
             "datum_result": None,
         }
     """
-    if compute_datum:
-        raise NotImplementedError("datum elevation has not been migrated")
+    if compute_datum and datum_service is None:
+        raise ValueError("Enabled datum requires an explicit service")
     result = {
         "buildable_area": None,
         "north_setback": None,
@@ -117,6 +118,19 @@ def compute_setback_lines(
         return result
 
     classified = _classify_edges(edges, parcel_utm, road_frontages=road_frontages)
+    datum = None
+    if compute_datum:
+        from backend.app.modules.land.datum import DatumContext, DatumResult, DatumCase
+        from backend.app.modules.land.datum.context_geometry import road_centerline, neighbor_polygon
+        try:
+            datum = datum_service.compute(DatumContext(parcel_wgs=parcel,
+                road_centerline_wgs=road_centerline(road_frontages),
+                neighbor_parcel_wgs=neighbor_polygon(neighbor_parcels, classified['north'])))
+        except ValueError:
+            datum = DatumResult(elevation_m=None, case=DatumCase.FLAT,
+                basis='datum_context_unavailable', elevation_source='failed',
+                notes=['Geometry exceeds datum calculation constraints; absolute datum was not applied'])
+        result['datum_result'] = _datum_to_dict(datum)
 
     # 정북 일조사선 (2D multi-height lines + 3D envelope)
     if sunlight_applies and classified["north"]:
@@ -125,8 +139,10 @@ def compute_setback_lines(
         )
         result["sunlight_envelope"] = compute_sunlight_envelope(
             classified["north"], parcel_utm, sunlight_rules,
-            datum=None,
+            datum=_sunlight_datum(datum),
         )
+        if datum is not None and datum.elevation_source == 'failed' and result['sunlight_envelope']:
+            result['sunlight_envelope'].update(datum_elevation_m=None, elevation_source='failed')
 
     # 인접대지 이격선
     if classified["adjacent"] and adjacent_m > 0:
@@ -169,6 +185,23 @@ def compute_setback_lines(
         )
 
     return result
+
+
+def _sunlight_datum(datum):
+    if datum is None or datum.elevation_source == 'failed':
+        return None
+    if datum.neighbor_avg_datum_m is not None:
+        from backend.app.modules.land.datum import DatumCase
+        return replace(datum, elevation_m=float(datum.neighbor_avg_datum_m),
+            case=DatumCase.NEIGHBOR_AVG_86, basis='neighbor_avg_86')
+    return datum
+
+
+def _datum_to_dict(datum):
+    fields = ('elevation_m','basis','elevation_source','parcel_datum_m','road_datum_m',
+        'neighbor_datum_m','neighbor_avg_datum_m','parcel_segments','road_samples',
+        'neighbor_segments','split_bands','split_polygons','notes','provenance')
+    return {**{key:getattr(datum,key,None) for key in fields}, 'case':datum.case.value}
 
 
 def _compute_buildable_area(parcel_utm: Polygon, setback_m: float) -> dict | None:
@@ -876,4 +909,3 @@ def _point_along_edge_from(
         remaining -= seg_len
 
     return None
-

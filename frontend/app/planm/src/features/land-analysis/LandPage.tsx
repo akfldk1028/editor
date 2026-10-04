@@ -28,6 +28,11 @@ function Fields({value}:{value:Record<string,unknown>|null}) {
   return value ? <dl>{Object.entries(value).map(([key,item])=><div key={key}><dt>{labels[key]||key}</dt><dd>{valueText(item)}</dd></div>)}</dl> : <p>자료 없음</p>;
 }
 
+const datumBasis:Record<string,string>={ground_flat:'평탄 대지',ground_weighted_avg:'대지 경계 길이 가중평균',
+  ground_split_3m_profile:'대지 경계 표고의 3m 구간별 평균',road_centerline:'도로 중심선',
+  road_centerline_weighted_avg:'도로 중심선 가중평균',site_above_road_half_raise:'대지와 도로 고저차의 절반 반영',
+  neighbor_avg_86:'대지와 정북 인접지 평균',elevation_fetch_failed:'고도 자료 조회 실패',datum_context_unavailable:'기준 지반고 계산을 위한 필지 자료 없음'};
+
 export default function LandPage() {
   const [input,setInput]=useState('');const [type,setType]=useState<'address'|'pnu'|'raw'>('address');
   const [zone,setZone]=useState('');const [includeLaw,setIncludeLaw]=useState(true);
@@ -60,6 +65,7 @@ export default function LandPage() {
   const regulations=result?.regulations;
   const extended=regulations?.extended as Record<string,unknown>|undefined;
   const landCache=result?.land_info?.cache;
+  const datum=result?.setback_lines?.datum_result;
   return <div className="land-analysis"><h1>대지 분석</h1><p>주소·PNU 또는 용도지역으로 대지 정보와 규제 근거를 확인합니다.</p>
     <form onSubmit={async event=>{
       event.preventDefault();if(busy||!canAnalyze)return;
@@ -100,6 +106,15 @@ export default function LandPage() {
       {result.warning&&<p role="status">{result.warning}</p>}
       {result.errors?.map((message,i)=><p role="alert" key={i}>{message}</p>)}
       <section><h2>필지 정보</h2><Fields value={result.pnu}/><Fields value={result.land_info}/><Fields value={result.zone_info}/></section>
+      {datum&&<section aria-labelledby="datum-heading"><h2 id="datum-heading">기준 지반고</h2>
+        <dl><div><dt>절대고도</dt><dd>{datum.elevation_source!=='failed'&&typeof datum.elevation_m==='number'&&Number.isFinite(datum.elevation_m)
+          ?`${Number(datum.elevation_m.toFixed(3))} m`:'미확인 절대고도'}</dd></div>
+          <div><dt>출처</dt><dd>{datum.elevation_source==='failed'?'조회 실패':datum.elevation_source||'미확인'}</dd></div>
+          <div><dt>계산 근거</dt><dd>{datumBasis[datum.basis]||datum.basis}</dd></div></dl>
+        {datum.elevation_source==='mixed'&&datum.provenance?.providers?.length&&<p>사용한 고도 자료: {datum.provenance.providers.join(' · ')}</p>}
+        {datum.provenance?.fallback_used&&<p>대체 고도 자료를 사용했습니다.</p>}
+        {datum.notes?.map((note,index)=><p key={index}>{note}</p>)}
+      </section>}
       <section><h2>규제 요약</h2>{regulations?Object.entries(regulations).filter(([key])=>key!=='extended').map(([key,value])=>
         <article key={key}><h3>{labels[key]||key}</h3><p>{valueText(value)}</p></article>):<p>확인된 규제 자료가 없습니다.</p>}</section>
       {extended&&<section><h2>추가 규제</h2><Fields value={extended}/></section>}

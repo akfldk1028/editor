@@ -10,6 +10,8 @@ export interface LandResult {
   storage?:{saved:boolean;analysis_id?:string;error?:string};
   execution_owner?:'editor'|'legacy';
   advisory?:{status:'unverified_proposal'|'unavailable';proposals:Record<string,Record<string,unknown>>};
+  setback_lines?:{datum_result?:{elevation_m:number|null;elevation_source:string;basis:string;notes?:string[]|null;
+    provenance?:{actual_provider?:string|null;providers?:string[];fallback_used?:boolean}|null}|null}|null;
 }
 export interface LandZone {zone_name:string;bcr_default:number;far_default:number}
 export interface LandStats {total_queries:number;error_count:number;avg_response_time_ms:number;by_input_type:{input_type:string;count:number}[]}

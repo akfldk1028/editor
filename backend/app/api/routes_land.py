@@ -12,6 +12,8 @@ from backend.app.adapters.vworld_land import VworldLandClient
 from backend.app.adapters.vworld_geometry import VworldGeometryClient
 from backend.app.adapters.law_search import LawSearchClient
 from backend.app.adapters.regulation_extraction import RegulationExtractionClient
+from backend.app.adapters.elevation import ElevationClient
+from backend.app.modules.land.datum import DatumService, DatumSettings
 from backend.app.schemas.regulations import ZoningLimitsRequest
 from backend.app.modules.land.analysis import analyze_land
 from backend.app.modules.land.analysis_request import normalize_program_request
@@ -78,7 +80,8 @@ class ParcelRequest(BaseModel):
 
 
 def create_land_router(client=None, *, public_origin=None, address_client=None, repository=None,
-                       attribute_client=None, geometry_client=None, law_client=None, extraction_client=None):
+                       attribute_client=None, geometry_client=None, law_client=None, extraction_client=None,
+                       datum_service_factory=None):
     owner=client or LandClient(os.environ.get('EDITOR_ARR_URL'),
         analysis_timeout=float(os.environ.get('EDITOR_ARR_ANALYSIS_TIMEOUT','180')))
     origin=public_origin or os.environ.get('EDITOR_PUBLIC_URL','http://127.0.0.1:5173')
@@ -91,6 +94,29 @@ def create_land_router(client=None, *, public_origin=None, address_client=None, 
         enabled=os.environ.get('LLM_EXTRACTION_ENABLED', 'false').lower() == 'true',
         api_key=os.environ.get('OPENAI_API_KEY', ''),
         model=os.environ.get('LLM_EXTRACTION_MODEL', 'gpt-4o-mini'))
+    datum_enabled = os.environ.get('ENABLE_DATUM_ELEVATION', 'false').lower() == 'true'
+    datum_environment = {name: os.environ.get(name, default) for name, default in {
+        'ELEVATION_PROVIDER': 'open_meteo', 'NGII_LIDAR_URL': 'http://localhost:5000',
+        'NGII_DEM_LOCAL_PATH': '', 'DATUM_EDGE_SUBSAMPLE': 'true',
+        'DATUM_EDGE_SUBSAMPLE_THRESHOLD_M': '10.0', 'DATUM_EDGE_SUBSAMPLE_STEP_M': '5.0',
+        'DATUM_MEDIAN_FILTER': 'true', 'DATUM_MEDIAN_FILTER_WINDOW': '3',
+    }.items()}
+
+    def new_datum_service():
+        if not datum_enabled:
+            return None
+        if datum_service_factory is not None:
+            return datum_service_factory()
+        settings = DatumSettings(
+            edge_subsample=datum_environment['DATUM_EDGE_SUBSAMPLE'].lower() == 'true',
+            edge_subsample_threshold_m=float(datum_environment['DATUM_EDGE_SUBSAMPLE_THRESHOLD_M']),
+            edge_subsample_step_m=float(datum_environment['DATUM_EDGE_SUBSAMPLE_STEP_M']),
+            median_filter=datum_environment['DATUM_MEDIAN_FILTER'].lower() == 'true',
+            median_filter_window=int(datum_environment['DATUM_MEDIAN_FILTER_WINDOW']))
+        provider = ElevationClient(datum_environment['ELEVATION_PROVIDER'],
+            opentopodata_url=datum_environment['NGII_LIDAR_URL'],
+            local_dem_path=datum_environment['NGII_DEM_LOCAL_PATH'], timeout=5)
+        return DatumService(provider, settings)
 
     def local_repository():
         if repository is not None:
@@ -161,20 +187,20 @@ def create_land_router(client=None, *, public_origin=None, address_client=None, 
     @router.post('/analyze')
     async def analyze(body: LandRequest, request: Request):
         check_origin(request)
-        datum_enabled = os.environ.get('ENABLE_DATUM_ELEVATION', 'false').lower() == 'true'
-        if not datum_enabled:
-            try:
-                local = local_repository()
-            except (OSError, ValueError):
-                local = None
-            try:
-                result = await analyze_land(body.model_dump(), addresses,
-                    LandAttributes(attributes, local), geometries, local,
-                    law_client=laws, extraction_client=extraction)
-                return {**result, 'execution_owner': 'editor'}
-            except (CatalogUnavailable, OSError):
-                raise HTTPException(503, 'Regulation references unavailable') from None
-        result = await respond(owner.analyze(body.model_dump()))
-        return {**result, 'execution_owner': 'legacy'}
+        try:
+            local = local_repository()
+        except (OSError, ValueError):
+            local = None
+        try:
+            datum_service = new_datum_service()
+        except (ValueError, OSError):
+            raise HTTPException(503, 'Datum configuration unavailable') from None
+        try:
+            result = await analyze_land(body.model_dump(), addresses,
+                LandAttributes(attributes, local), geometries, local,
+                law_client=laws, extraction_client=extraction, datum_service=datum_service)
+            return {**result, 'execution_owner': 'editor'}
+        except (CatalogUnavailable, OSError):
+            raise HTTPException(503, 'Regulation references unavailable') from None
 
     return router
