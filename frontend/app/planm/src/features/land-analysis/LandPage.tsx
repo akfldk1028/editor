@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {analyzeLand,landZones,landStats,type LandResult,type LandZone,type LandStats} from './api';
 import './land.css';
+import ResolutionLookup from './ResolutionLookup';
 
 const labels:Record<string,string>={bcr:'건폐율',far:'용적률',height:'높이',sunlight_setback:'일조 이격',
   corner_cutoff:'가각전제',road_diagonal:'도로 사선',building_line:'건축선',adjacent_setback:'인접 대지 이격',
@@ -58,6 +59,7 @@ export default function LandPage() {
         const value=e.target.value;setInput(value);setType(/^[0-9]{19}$/.test(value.replace(/-/g,''))?'pnu':'address');
       }}/></label>
       <label>용도지역 직접 지정<select value={zone} onChange={e=>setZone(e.target.value)}><option value="">자동 조회</option>{zones.map(z=><option key={z.zone_name} value={z.zone_name}>{z.zone_name}</option>)}</select></label>
+      <ResolutionLookup input={input} inputType={type}/>
       <label><input type="checkbox" checked={includeLaw} onChange={e=>setIncludeLaw(e.target.checked)}/>법령 원문 검색</label>
       <button type="submit" disabled={busy||!input.trim()}>{busy?'분석 중…':'대지 분석'}</button>
     </form>

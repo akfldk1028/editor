@@ -39,6 +39,41 @@
         "evidence": ".superpowers/sdd/2026-10-04-domain-integration/verification.json",
         "wheel": "Built with existing Python3.13/setuptools80.9.0; bundled data byte-equivalent; extracted module returns21 zones without source checkout"
       }
+    },
+    {
+      "id": "land-address-pnu-resolution",
+      "sources": [
+        "ARR/backend/land/services/pnu_resolver.py",
+        "ARR/backend/land/views.py:resolve"
+      ],
+      "source_sha256": "768c430b448530f87798421439b0f961f5b527cb9fa19f25dbf399b47c4871fb",
+      "targets": [
+        "backend/app/modules/land/pnu.py",
+        "backend/app/adapters/vworld.py",
+        "backend/app/api/routes_land.py",
+        "frontend/app/planm/src/features/land-analysis/ResolutionLookup.tsx"
+      ],
+      "api": "POST /api/v1/land/resolve",
+      "legacy_service_required": false,
+      "runtime_source_owner": "editor",
+      "status": "PNU and browser verified; address provider contract tested with fixtures, real provider unverified",
+      "verification": {
+        "tests": "21 land/resolution/catalog passed",
+        "browser": "5 passed,4 unrelated live fixtures skipped",
+        "original_pnu_parity_cases": 3,
+        "frontend_build": "passed",
+        "source_backup_equal": true
+      },
+      "intentional_differences": [
+        "ASCII digits and normalized hyphens match existing Editor boundary; invalid input422 instead of legacy400",
+        "Malformed/non-finite provider coordinates fail closed; response errors do not echo provider URLs"
+      ],
+      "remaining": [
+        "Real Vworld address lookup with owner-managed key",
+        "Reverse geocoding/parcel geometry",
+        "Analysis/statistics still use legacy adapter"
+      ],
+      "rollback": "Revert this slice; no production DB/state changed"
     }
   ]
 }

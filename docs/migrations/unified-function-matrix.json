@@ -1724,14 +1724,15 @@
       "api_operations": [
         "POST /land/resolve/"
       ],
-      "data_owner": "ARR domain",
-      "target": "backend/arr/land",
+      "data_owner": "Editor land module",
+      "target": "backend/app/modules/land/pnu.py + backend/app/adapters/vworld.py",
       "disposition": "migrate",
       "reason": "Preserve mounted domain API",
-      "status": "inventoried-not-migrated",
+      "status": "PNU verified; address provider live verification pending",
       "evidence": [
         "Static URL declaration; HTTP method and UI action review pending",
-        "Handler resolved statically; method decorator found"
+        "Handler resolved statically; method decorator found",
+        "backend-domain-migrations.json#land-address-pnu-resolution"
       ],
       "handler_source": "backend/land/views.py:192",
       "declared_http_methods": [

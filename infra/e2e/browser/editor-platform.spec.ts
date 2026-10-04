@@ -14,6 +14,13 @@ test('local zoning catalog populates form with legacy service unconfigured', asy
   await expect(select).toHaveValue(catalog.zones[0].zone_name);
   await page.reload();
   await expect(select.locator('option')).toHaveCount(catalog.count + 1);
+  await page.getByLabel('주소 또는 PNU').fill('11680-11200-10128-0003');
+  await page.getByRole('button',{name:'주소/PNU 확인',exact:true}).click();
+  await expect(page.getByText('PNU 코드 형식 확인: 1168011200101280003',{exact:true})).toBeVisible();
+  await page.getByLabel('주소 또는 PNU').fill('address without configured provider');
+  await expect(page.getByText('PNU 코드 형식 확인: 1168011200101280003',{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'주소/PNU 확인',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('not configured');
 });
 
 test('live land form reaches ARR through Editor backend', async ({page}) => {

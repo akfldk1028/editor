@@ -1,0 +1,11 @@
+# Address and PNU resolution slice
+
+Continue the approved feature-module integration. Source: ARR land/services/pnu_resolver.py and land/views.py:resolve. Target: modules/land/pnu.py (pure parsing), adapters/vworld.py (provider HTTP), POST /api/v1/land/resolve (product validation), existing land page (explicit code/address lookup).
+
+Preserve parsed PNU fields and the provider's success/address/pnu/coordinates/geocoded_address envelope. Coordinate-only success must not invent a PNU. Product validation uses strict ASCII19 digits, optional hyphen normalization and422, matching the existing analyze boundary; source endpoint used400 and accepted Unicode digits. PNU parsing establishes syntax only, not existence of a parcel.
+
+Address lookup retains PARCEL then ROAD fallback. Editor reads VWORLD_API_KEY from its own server environment; no legacy configuration imports or browser keys. Missing key/provider failure returns success:false with a safe error; HTTP exception text/URLs must not expose credentials. Reverse lookup, parcel geometry, analysis/statistics remain outside this slice.
+
+Gates: failing offline API/provider-contract tests; source-field equivalence; frontend build and browser code lookup with ARR unset; explicit missing-key handling. Real provider lookup requires configured credentials and is reported separately. No production process or DB changes. Rollback reverts this slice; source and saved results remain intact.
+
+Verification: initial6 tests failed before implementation; final land/resolution/catalog21 pass. TypeScript/Vite build passes. Real original ARR HTTP matches3 canonical PNU cases; source file matches preserved backup. Chrome5 tests pass,4 unrelated live fixtures skipped, including actual form PNU lookup and clearing old result when input changes. Address key intentionally unset: UI reports unavailable; PARCEL/ROAD fallback and coordinate-only responses are fixture-tested, not real provider verification. Browser initially received403 because isolated server expected5173 while test frontend used5186; test configuration corrected, origin guard unchanged. Evidence: `.superpowers/sdd/2026-10-04-land-resolution/verification.json`. Disposable server stopped; operational services unchanged.
