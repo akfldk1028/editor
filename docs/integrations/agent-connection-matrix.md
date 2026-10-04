@@ -2,6 +2,8 @@
 
 Initial read-only architecture inventory checked 2026-10-04; subsequent isolated runtime evidence is listed separately below. Existing preservation work remains in progress; this is not Task 4 implementation, a folder migration, or proof that all agents are connected to Editor.
 
+Latest user correction: Editor is the sole target product. The intentionally lightweight `D:/Data/25_ACE/AG-frontend` is the frontend reference; inventory its real features/API calls and port only selected capabilities. Standalone AG/Studio operation, permanent `/agentlab`, and all-feature migration are not targets. Preserved source/history and legacy runtime probes do not approve production adoption.
+
 ## Evidence and counting
 
 Source root abbreviations: `A = D:/Data/25_ACE/agents`, `E = D:/Data/25_ACE/editor`, `G = D:/Data/25_ACE/AG`. Relative links below resolve from this document.
@@ -54,7 +56,7 @@ These rows are deliberately not counted as additional live central agents. Scaff
 | DiagramAgent (folder identity) | `A/pascalAgents/DiagramAgent/agent.yaml` | Owner scaffold present; domain transport/callability unverified | not yet | `/agents` after canonical identity/tool verification |
 | drawingbookAgent (folder identity) | `A/pascalAgents/drawingbookAgent/agent.yaml` | Owner scaffold present; domain transport/callability unverified | not yet | `/agents` after canonical identity/tool verification |
 | pptagent (manifest ID; folder pptAgent) | `A/pascalAgents/pptAgent/agent.yaml` | Manifest declares deterministic architecture PPTX deck generation, engine-owned state; domain transport/callability unverified | not yet | `/agents` after callable-tool verification |
-| AutoGen Studio / AG | `G/autogen_a2a_kit/autogen_source/python/packages/autogen-studio/autogenstudio/web/app.py` | Actual Studio API mounts teams, sessions, runs, WebSocket, A2A import/registry and other routes; declared startup port 8081 | not yet; standalone source/runtime, no unified Editor surface observed | `/agentlab` for team/workflow experiments; `/agents` links/discovery for verified domain adapters only |
+| AutoGen Studio / AG | `G/autogen_a2a_kit/autogen_source/python/packages/autogen-studio/autogenstudio/web/app.py` | Legacy API/source reference; actual used subset is determined from lightweight AG-frontend call sites | no product adoption; temporary baseline server stopped | Only selected functionality moves into Editor frontend/backend; no separate Studio product/runtime |
 
 PLANM source details: [backend adapter](../../backend/app/adapters/planm_agent.py), [owner resolver](../../backend/app/core/planm_location.py), [run API](../../backend/app/api/routes_planm_runs.py). Resolver defaults to sibling `agents/planm` and now accepts an explicit absolute server-configured `PLANM_AGENT_DIR`; no owner folder was moved. `/api/v1/planm/runs` is already a separate backend contract. Treating it as central `plan` would silently replace ARR's current provider contract.
 
@@ -69,7 +71,7 @@ These observations establish existing component baselines, not the new unified `
 | Component | Observed flow | Evidence / limitation |
 |---|---|---|
 | PLANM → Editor | Actual deterministic API generation, fixture alternative selection, MCP publish, scene API reopen and browser 2D/3D | Run `858fab437a334726904a2116bde47539`, scene `868e0a5e9231`, version2,321nodes. Existing bridge only; unresolved regulatory inputs remain. Editor `5e36616f`, tested PLANM wrapper changes subsequently committed `151c59d`. |
-| Studio / AG | Isolated source+venv on8081: health, session create/read, CREATED run, WebSocket ping/pong | No start/model execution. Additional run detail GET500 due raw SQL timestamp string handling. AutoGen0.7.5 + MCP1.25.0 in isolated environment; original venv/source unchanged. |
+| Studio / AG | Historical isolated probe: health, session create/read, CREATED run, WebSocket ping/pong; temporary8081 server now stopped | No start/model execution. Extra run detail GET500 is legacy evidence, not an automatic feature/fix requirement. Original venv/source unchanged. |
 | AG-frontend | Restored source unit96tests and TypeScript/Vite build | Not yet integrated into Editor navigation/API; standalone browser-to-Studio execution not claimed. |
 
 The 25 central catalog rows above remain unverified for the new Editor connection. Component startup or one provider's successful baseline must not promote all rows to verified.
@@ -78,6 +80,6 @@ The 25 central catalog rows above remain unverified for the new Editor connectio
 
 1. Add `/agents` to existing Editor navigation while preserving `/editor`, `/planm`, `/dwg`; expose the central catalog as declared/local/not-declared first. Observe live owner cards separately and timestamp results. Missing card skills remain unknown, not synthesized from folder names.
 2. Connect explicit selected tools through existing central execution adapters with source revisions, exact request bindings, bounded artifact receipts, and partial/blocked/failed states. Read-only inspection must not silently execute paid models or mutate shared design state.
-3. Add AG functionality through an explicit `/agentlab` surface/API integration for team/session/run management. Do not replace the domain coordinator with an AutoGen experiment engine or duplicate its registry as an authoritative domain catalog.
+3. Inventory the lightweight AG-frontend first, then extract selected UI and backend functions into Editor. No permanent Studio server/proxy or separate `/agentlab` product. Do not replace the domain coordinator or duplicate its authoritative registry. An unused legacy endpoint defect is not automatically migration scope.
 4. Keep PLANM's working Editor bridge intact; design a declared central adapter separately before claiming unified execution. Keep unimplemented roles visible with precise blockers, rather than offering fake success buttons.
 5. Completion evidence must include route reload/navigation, declared-vs-observed statuses, explicit execution/error handling, streamed run results, artifact hash/source-revision checks, and proof that blocked roles/owner failures do not become successful design acceptance. No such new Editor integration has been implemented or tested by this document-only task.

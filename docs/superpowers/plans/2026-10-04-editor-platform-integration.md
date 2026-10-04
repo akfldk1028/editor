@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use superpowers:subagent-driven-development or superpowers:executing-plans to execute one reviewed task at a time. This commit contains planning only; unchecked steps have not run.
 
-**Goal:** editor를 메인으로 AG-frontend/AG를 보존 이전하고, 프로젝트·편집·에이전트 요청·결과 검토가 연결되는 제품을 단계적으로 구축한다.
+**Goal:** editor를 유일한 제품으로 삼고, 경량 AG-frontend의 실제 기능을 조사·선별해 프로젝트·편집·에이전트 요청·결과 검토 흐름에 단계적으로 이식한다. AG 원본/이력 보존과 제품 채택은 구분한다.
 
 **Architecture:** 기존 editor UI/scene 저장, FastAPI/PLANM 서비스를 확장한다. Orchestrator는 건축 작업의 durable 실행을, 각 owner는 도메인 판단을 유지한다. 제품 API는 명시적 계약으로 연결한다.
 
@@ -12,13 +12,15 @@
 
 ## Global Constraints
 
+- **최신 사용자 정정:** AG는 최종 제품/별도 서버로 사용하지 않는다. 가볍게 만든 `D:/Data/25_ACE/AG-frontend`를 프론트 조사 기준으로 삼고, 실제 기능과 호출 API를 먼저 조사해 필요한 것만 Editor에 이전한다. 전체 AG 기능 이식, 영구 Studio 서버/프록시, 별도 `/agentlab` 제안은 철회한다. 기능 선별 전 전체 AG를 실제 Editor에 일괄 import하지 않는다. 보존 백업/이력 리허설과 실제 제품 채택을 구분한다.
+
 - 추가 사용자 확정: AG는 Editor에 기능적으로 통합하고 **모든 에이전트를 Editor에 연결**한다. 단순 폴더 이전/외부 콘솔 링크로 완료 처리하지 않는다. 각 agent/capability의 실제 호출·상태·결과 근거가 전체 연결표에 있어야 한다.
 
 - 2026-10-04 사용자 지시: 기존 프론트 라우터에 경로를 추가한다. `/dwg`, `/planm`, `/editor`, 기존 scene 경로를 유지하며 제품 셸에 `/projects`, `/projects/:projectId`, `/agents`, `/runs/:runId`를 추가한다. 전체 셸/라우터 교체는 하지 않는다.
 
 - Windows 실제 루트는 `D:/Data/25_ACE/editor`. 기존 서비스 터미널 창을 띄우지 않는다.
 - 사용자 데이터·dirty/untracked/ignored 파일·Git 이력을 보존한다. `git reset --hard`, 원본 history rewrite, 일괄 삭제 금지.
-- `AG/`, `AG-frontend/`는 먼저 보존 이전하고 기능 통합은 별도 검증한다. 원본 위치 제거는 이 계획의 실행 완료와 별도 작업이다.
+- `AG/`, `AG-frontend/` 원본과 결과물은 먼저 보존한다. 실제 제품 이전은 선별 범위에 한하며, 원본 위치 제거는 별도 작업이다.
 - PLANM 및 전문 에이전트는 `D:/Data/25_ACE/agents`의 현재 소유 경계를 유지한다.
 - products의 actor/project/scene/provider ID와 revision namespace를 명시한다. Browser email/localStorage는 권한 근거가 아니다.
 - blocked/partial/diagnostic 결과는 성공·승인 설계로 자동 승격하지 않는다.
@@ -35,7 +37,7 @@
 ## 순서와 담당
 
 Task1 → Task2 → Task3 → Task4/5 → Task6 → Task7 → Task8 순서다. Task4 owner 작업과 Task5 artifact 조회는 계약이 확정되면 병렬 진행할 수 있다.
-Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실행 서비스 경계, AG 담당은 Studio adapter와 기존 소스 검증, 전문 owner는 도메인 산출물을 맡는다.
+Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실행 서비스 경계, AG 조사 담당은 경량 프론트 기능과 실제 사용 API의 선별·출처 검증, 전문 owner는 도메인 산출물을 맡는다.
 
 ### Task 1 — 이전 inventory와 복원 가능한 baseline
 
@@ -50,14 +52,15 @@ Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실
 - [ ] 대표 baseline: editor 저장 scene 재열기, PLANM→Pascal 게시, AG 세션/WS, 현재 Sheet 도면·주차·3D. 실행한 결과와 실패를 구분해 저장한다.
 - [ ] 도구·manifest 형식·baseline 보고서만 커밋한다. 실패 시 여기서 이동을 중단하고 원본 상태로 조사한다.
 
-### Task 2 — editor 안으로 보존 이전
+### Task 2 — 기능 선별과 필요한 소스·데이터의 보존 이전
 
-**Files:** 새 `AG/`, `AG-frontend/`, `docs/migrations/import-manifest.json`, 필요 시 `.gitignore`의 명시적 제외 규칙. 기존 `package.json` glob은 자동 확장하지 않는다.
+**Files:** `docs/integrations/ag-frontend-feature-inventory.md`, `ag-backend-feature-inventory.md`, `docs/migrations/import-manifest.json`; 선별한 제품 소스와 필요한 비교용 보존 경계. 기존 `package.json` glob은 자동 확장하지 않는다.
 
 **Interface:** old_root → new_root, source commit, imported commit, preserved overlay/ignored files, backup location, active runtime path를 기록한다.
 
 - [ ] 임시 clone에서 AG history를 prefix `AG/`에 import하는 rehearsal을 수행한다. AG-frontend는 상위 저장소의 해당 경로 이력만 disposable clone에서 분리한다. 원본 refs는 수정하지 않는다.
-- [ ] editor feature branch에서 committed history를 import하고, dirty/untracked/ignored overlay를 별도로 복사한다. 민감/대형/생성 자료는 Git stage와 별도로 보존한다.
+- [ ] AG-frontend 실제 라우터·화면·API 호출별로 이전 후보/Editor 중복/보류·제외를 기록하고 채택 범위를 정한다. 모든 기능이 자동 승인된 것으로 간주하지 않는다.
+- [ ] editor feature branch에서 선별한 소스를 이전하고 출처 commit/이력을 연결한다. dirty/untracked/ignored 결과와 전체 원본 이력은 별도 보호된 보존 영역에 유지한다. 전체 AG subtree import 리허설 성공을 제품 전체 포함 승인으로 간주하지 않는다.
 - [ ] `git ls-files --stage`에서 의도하지 않은160000 gitlink가 없는지, import 후 이력이 조회되는지, 모든 보존 파일의 해시가 일치하는지 검사한다.
 - [ ] 새 경로 실행 설정을 준비하되 기존 위치의 서비스를 동시에 중복 실행하지 않는다. API prefix/포트 충돌은 Task8 전까지 독립 profile로 격리한다.
 - [ ] 기존 경로를 지우지 않고 이전 manifest·검증된 소스 변경만 커밋한다. rollback은 설정/실행 경로를 기존 위치로 돌리는 절차를 실제 시험한다.
@@ -100,21 +103,21 @@ Editor 담당은 제품 UI/API/저장·이전 도구, Orchestrator 담당은 실
 - [ ] 결과가 새 제품 UI에 보이는 첫 milestone을 실제 브라우저로 확인한다. 이 단계에는 설계 적용 mutation이 없다.
 - [ ] 저장 scene 재열기와 기존 Pascal 게시 API 회귀를 실행하고 커밋한다.
 
-### Task 6 — AG UI 기능별 이식과 Studio 경계
+### Task 6 — 경량 AG-frontend의 선별 기능을 Editor로 이식
 
 Editor의 `/agents`에는 전체 agent와 capability를 제공한다. 선택 agent 호출과 프로젝트 작업, 진행/입력 요청, 결과 근거가 같은 Editor 라우팅 흐름으로 연결돼야 한다. AG 기능은 이 제품 경험에 통합하며, 개발자용 legacy 비교 화면은 최종 통합을 대신하지 않는다.
 
 라우터 추가는 기존 `frontend/app/planm/src/app/App.tsx`의 surface 선택을 확장하는 전용 route matcher로 구현한다. `/projects/:projectId` 등은 segment 단위로 해석해 `/projects-other`를 오인하지 않으며, 기존 앱 링크·back/forward·deep link를 유지한다. 새 라우팅 라이브러리 도입은 필수가 아니다.
 
-**Files:** 기존 이전본 `AG-frontend/src/features/*`, `src/shared/api/{client,ws,mcpWs}.ts`를 근거로 editor 앱 `features/agent-workspace/`에 필요한 기능을 이식한다. 신규 `backend/app/adapters/studio_client.py`, `backend/tests/test_studio_adapter.py`; 공개 DTO만 계약 패키지에 둔다.
+**Files:** 경량 `AG-frontend/src/features/*`, `src/shared/api/{client,ws,mcpWs}.ts`의 실제 사용 지점을 근거로 editor 앱 `features/agent-workspace/`와 `backend/app/modules/`에 선별 기능을 이식한다. 해당 기능의 API/회귀 테스트를 추가하고 공개 DTO만 계약 패키지에 둔다. Studio 전체 client/backend를 기본 도입하지 않는다.
 
-**Interface:** agent panel에 project binding, API client, capability와 source revision을 주입한다. 기존 제품 셸의 route/navigation이 소유하며 AG root router를 중첩하지 않는다. Studio 실험은 `/api/integrations/studio`와 명시적 WS 경계로 분리한다.
+**Interface:** agent panel에 project binding, Editor API client, capability와 source revision을 주입한다. 기존 제품 셸의 route/navigation이 소유하며 AG root router를 중첩하지 않는다. 채택 기능은 Editor Backend와 실제 owner 계약을 사용한다. 기존 AG 서버가 꺼진 상태에서도 이전된 기능이 동작해야 한다.
 
-- [ ] 먼저 실행 이력/owner 상태/누락 입력 표시, 다음 submit/stream, 다음 필요한 Team Builder/MCP 관리 순으로 기능을 고른다.
+- [ ] 조사표를 기준으로 기능을 고른다. 실행 이력/owner 상태/누락 입력, submit/stream은 우선 후보이며 Team Builder/MCP/Gallery 등은 필요성·중복·의존성을 확인하기 전 자동 포함하지 않는다.
 - [ ] i18n/theme/localStorage의 import-time 접근을 SSR 경계 밖으로 옮긴다. 기존 local/sessionStorage 이전 정책과 승인 캐시의 사용자/project scope를 명시한다.
 - [ ] `/flow` 팝아웃, BroadcastChannel, `/editor` basePath, 새로고침/뒤로가기, WS 끊김/복구, 승인 재요청을 테스트한다.
 - [ ] `bun run check-types`를 별도로 통과시킨다. Next의 `ignoreBuildErrors` 설정 때문에 build 성공만으로 타입 정상 판정하지 않는다.
-- [ ] AG 기존 `npm run test:unit`, `npm run build`, `npm run test:e2e`와 새 UI 테스트를 비교한다. 실행하지 않은 legacy 기능은 완료로 표시하지 않는다.
+- [ ] 경량 AG-frontend 기존 `npm run test:unit`, `npm run build`, 관련 E2E와 새 UI 테스트를 비교한다. 제외 기능을 옮긴 것으로 표시하지 않는다. AG 서버가 꺼진 상태에서 채택 기능의 실제 Editor 흐름을 검증한다.
 - [ ] 기능 단위 커밋과 source mapping을 남긴다. lockfile/React/Zod/TypeScript 정리는 별도 diff로 하고 초기 이전과 섞지 않는다.
 
 ### Task 7 — 명시적 제안 적용과 동시 수정 보호
@@ -133,7 +136,7 @@ Editor의 `/agents`에는 전체 agent와 capability를 제공한다. 선택 age
 **Files:** 기존 `infra/dev/{product,runtime}.mjs`, `infra/docker/{compose.yml,nginx.conf}`, `infra/e2e/{frontend,product}.config.cjs`, 관련 dev tests; 신규 `infra/e2e/editor-platform.config.cjs`, `infra/e2e/browser/editor-platform.spec.ts`; `package.json`, `docs/SETUP.md`, `docs/STRUCTURE.md`, `.remember/` 인계.
 
 - [ ] 서비스별 URL/cwd/health identity/port를 manifest로 명시한다. ARR은 확인된 별도 주소를 사용하며 PLANM8000과 혼동하지 않는다. 내부 Compose expose와 host publish도 구분한다.
-- [ ] 단일 public origin의 `/api/v1/platform`, `/api/v1/planm`, DWG, Studio, scene 경로와 WS upgrade가 정확한 owner에 도달하는지 contract test를 만든다.
+- [ ] 단일 public origin의 `/api/v1/platform`, `/api/v1/planm`, DWG, scene 경로와 필요한 stream이 정확한 owner에 도달하는지 contract test를 만든다. Studio 서버를 기본 기동 목록에 포함하지 않는다.
 - [ ] Windows hidden startup, 실제 pid+creation time 기반 stop, 이미 실행 중인 다른 owner를 죽이지 않는 동작을 검사한다. 기존 CLI의 광범위 kill을 통합 launcher에 재사용하지 않는다.
 - [ ] 기존 frontend/product Playwright config의 `npm --prefix frontend run dev`를 실제 `frontend/app/planm` 위치로 수정한다. 신규 config는 `testDir: browser`, `testMatch: editor-platform.spec.ts`를 명시하고 `package.json`에 `platform:test:e2e`를 연결한다. 기존 config의 제한된 planm testMatch가 신규 테스트를 건너뛰지 않도록 discovery를 검사한다.
 - [ ] `bun run plan:test:dev`, `bun run plan:test:frontend`, `bun run plan:test:product`, backend tests, explicit types, `bun run platform:test:e2e`를 수행한다. 오래된 `plan:test:agent`의 checkout 내부 경로는 외부 PLANM 위치 계약에 맞춘 뒤 실행한다.
