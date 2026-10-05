@@ -1699,10 +1699,10 @@
         "GET /land/agent-analyze/stream"
       ],
       "data_owner": "ARR domain",
-      "target": "backend/arr/land",
+      "target": "backend/app/modules/land/agent_analysis.py",
       "disposition": "migrate",
-      "reason": "Preserve mounted domain API",
-      "status": "inventoried-not-migrated",
+      "reason": "Quick analysis then the seeded Land Swarm Analysis Team runs in-process; same SSE contract",
+      "status": "migrated",
       "evidence": [
         "Static URL declaration; HTTP method and UI action review pending",
         "Handler resolved statically; method decorator found"
@@ -1805,10 +1805,10 @@
         "GET /land/stats/"
       ],
       "data_owner": "ARR domain",
-      "target": "backend/arr/land",
+      "target": "backend/app/api/routes_land.py",
       "disposition": "migrate",
-      "reason": "Preserve mounted domain API",
-      "status": "inventoried-not-migrated",
+      "reason": "Native land repository statistics",
+      "status": "migrated",
       "evidence": [
         "Static URL declaration; HTTP method and UI action review pending",
         "Handler resolved statically; method decorator found"
@@ -1831,10 +1831,10 @@
         "GET /land/map-config/"
       ],
       "data_owner": "ARR domain",
-      "target": "backend/arr/land",
+      "target": "backend/app/api/routes_land_map.py",
       "disposition": "migrate",
-      "reason": "Preserve mounted domain API",
-      "status": "inventoried-not-migrated",
+      "reason": "Serves VWORLD_BROWSER_API_KEY only",
+      "status": "migrated",
       "evidence": [
         "Static URL declaration; HTTP method and UI action review pending",
         "Handler resolved statically; method decorator found"
@@ -1857,10 +1857,10 @@
         "GET /land/elevation-grid/"
       ],
       "data_owner": "ARR domain",
-      "target": "backend/arr/land",
-      "disposition": "migrate",
-      "reason": "Preserve mounted domain API",
-      "status": "inventoried-not-migrated",
+      "target": null,
+      "disposition": "exclude",
+      "reason": "No UI caller in ARR or the editor; the unused renderElevationGrid renderer was removed",
+      "status": "excluded",
       "evidence": [
         "Static URL declaration; HTTP method and UI action review pending",
         "Handler resolved statically; method decorator found"
@@ -2195,10 +2195,10 @@
         "GET /law/stats/"
       ],
       "data_owner": "ARR domain",
-      "target": "backend/arr/law",
-      "disposition": "migrate",
-      "reason": "Preserve mounted domain API",
-      "status": "inventoried-not-migrated",
+      "target": null,
+      "disposition": "exclude",
+      "reason": "Aggregates the Django SearchLog model; the editor keeps no law search log",
+      "status": "excluded",
       "evidence": [
         "Static URL declaration; HTTP method and UI action review pending",
         "Handler resolved statically; method decorator found"

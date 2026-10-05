@@ -87,7 +87,7 @@
       "action": "Submit text, Enter or example query",
       "api_method_event": "POST /law/search/ OR POST /law/domain/{domainId}/search/ via useLawChat",
       "activation": "/law; nonempty query and not busy; streamingMode=false by default",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -104,7 +104,7 @@
       "action": "Submit streaming law search",
       "api_method_event": "GET SSE /law/search/stream?query=&limit=&domain_id=; onmessage progress.status complete/error",
       "activation": "/law with streaming toggle enabled",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -121,7 +121,7 @@
       "action": "Stop streaming search",
       "api_method_event": "EventSource.close via cleanup; local status error",
       "activation": "/law during streaming",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -138,7 +138,7 @@
       "action": "Load domain choices and connection state",
       "api_method_event": "GET /law/domains/; GET /law/health/",
       "activation": "LawAPIProvider mount",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -155,7 +155,7 @@
       "action": "Open selected full article",
       "api_method_event": "GET /law/article/?full_id=",
       "activation": "Selected article with full ID",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -172,7 +172,7 @@
       "action": "Click parcel and analyze",
       "api_method_event": "POST /land/reverse/ then quick POST /land/analyze/ or agent SSE",
       "activation": "/law; analysisMode initially agent; map ready and not busy",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -189,7 +189,7 @@
       "action": "Search address or PNU in law map",
       "api_method_event": "Land resolve/reverse/analyze clients or agent SSE",
       "activation": "/law map search; mode-dependent",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -206,7 +206,7 @@
       "action": "Stream deep agent land analysis",
       "api_method_event": "GET SSE /land/agent-analyze/stream?{params}; message events; stop closes EventSource",
       "activation": "Invoked from law map agent mode",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -223,7 +223,7 @@
       "action": "Select parcel and display regulation/setback overlays",
       "api_method_event": "useLandAnalysis.analyzeByCoordinate: reverse then analyze",
       "activation": "/land; OpenLayers map click",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -240,7 +240,7 @@
       "action": "Search address/PNU and fly to result",
       "api_method_event": "POST /land/resolve/ for non-PNU; useLandAnalysis.analyzeByInput -> POST /land/analyze/",
       "activation": "/land search bar",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -257,7 +257,7 @@
       "action": "Initialize 3D map",
       "api_method_event": "GET /land/map-config/; Vworld external tile/WMS/Cesium assets",
       "activation": "3D map hook mount used by law/design",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -274,7 +274,7 @@
       "action": "Search PNU/address, select map parcel, or open pnu/address query link",
       "api_method_event": "POST /design/site-boundary/ then POST /design/auto-constraints/",
       "activation": "/design; clears selection/preview/floorplan and disconnects old stream",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -291,7 +291,7 @@
       "action": "Change building type and reload constraints",
       "api_method_event": "POST /design/auto-constraints/",
       "activation": "Only reloads with activePnu and site polygon",
-      "proposed_feature_target": "frontend/app/workbench/src/features/program",
+      "proposed_feature_target": "frontend/app/editor/src/features/program",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -308,7 +308,7 @@
       "action": "Start mass optimization with algorithm/population/generation options",
       "api_method_event": "POST /design/jobs/ via useDesignJob.startJob; GET SSE /design/jobs/{id}/stream",
       "activation": "/design; site polygon needed by hook; default algorithm maas_legal_envelope",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -325,7 +325,7 @@
       "action": "Display live optimization and final Pareto results",
       "api_method_event": "GET SSE /design/jobs/{jobId}/stream; started/generation/complete/error/cancelled; GET /design/jobs/{jobId}/results/",
       "activation": "After job creation; completed results fallback/recovery in hook",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -342,7 +342,7 @@
       "action": "Cancel current job",
       "api_method_event": "POST /design/jobs/{jobId}/cancel/ then stream.disconnect",
       "activation": "Requires current job",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -359,7 +359,7 @@
       "action": "Select Pareto mass and optionally create quick floor plan",
       "api_method_event": "Local selectedDesign/3D mass; generateFloorPlan after 250ms when autoFloorPlan=true",
       "activation": "Requires selected design and matching stream GeoJSON; autoFloorPlan defaults true",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -376,7 +376,7 @@
       "action": "Generate selected mass floorplan; choose result/algorithm",
       "api_method_event": "POST /design/floor-plan/; footprint_geojson, building type room preset, cell_size 3, options",
       "activation": "Selected design with matching GeoJSON; manual button or automatic selection",
-      "proposed_feature_target": "frontend/app/workbench/src/features/planm-planning",
+      "proposed_feature_target": "frontend/app/editor/src/features/planm-planning",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -393,7 +393,7 @@
       "action": "Switch mass/floor view, toggle all Pareto masses and automatic floorplans",
       "api_method_event": "Local React viewTab/showAllPareto/autoFloorPlan state",
       "activation": "/design result controls",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -410,7 +410,7 @@
       "action": "Generate modification candidates from user text",
       "api_method_event": "POST /design/interactive/patch/",
       "activation": "InteractiveDesignPanel; nonempty message",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -427,7 +427,7 @@
       "action": "Compute and select modification preview",
       "api_method_event": "POST /design/interactive/preview/; onPreviewCandidate updates page GeoJSON",
       "activation": "Requires patch plan/site polygon/site area",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -444,7 +444,7 @@
       "action": "Generate up to six MAAS legal variants",
       "api_method_event": "POST /design/maas/legal-variants/",
       "activation": "Requires mass and site polygon",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -461,7 +461,7 @@
       "action": "Apply push/pull operation and display candidate/reviews",
       "api_method_event": "POST /design/interactive/operation/",
       "activation": "Requires mass and site polygon",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -478,7 +478,7 @@
       "action": "Generate facade/image and optionally display texture/glTF",
       "api_method_event": "POST /design/jobs/{jobId}/results/{designId}/aesthetic/; provider/style/attach_to_evidence",
       "activation": "Requires persisted job and mass design ID; page suppresses texture projection when skipped",
-      "proposed_feature_target": "frontend/app/workbench/src/features/elevation",
+      "proposed_feature_target": "frontend/app/editor/src/features/elevation",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -495,7 +495,7 @@
       "action": "Load selected design evidence",
       "api_method_event": "GET /design/jobs/{jobId}/results/{designId}/evidence/",
       "activation": "Interactive panel selected design",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -512,7 +512,7 @@
       "action": "Send agent review/bus messages and refresh status",
       "api_method_event": "GET {AG_LIGHT_BASE}/health; GET /bus/log; POST /bus/send",
       "activation": "Interactive panel; VITE_AG_LIGHT_URL or http://127.0.0.1:8200",
-      "proposed_feature_target": "frontend/app/workbench/src/features/agent-workspace",
+      "proposed_feature_target": "frontend/app/editor/src/features/agent-workspace",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -529,7 +529,7 @@
       "action": "Display agent dialogue and send event",
       "api_method_event": "fetchMASDialogue plus GET /bus/log and POST /bus/send",
       "activation": "DefaultAgentFlowPanel",
-      "proposed_feature_target": "frontend/app/workbench/src/features/agent-workspace",
+      "proposed_feature_target": "frontend/app/editor/src/features/agent-workspace",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -546,7 +546,7 @@
       "action": "Load BOOK language graph, evaluation portfolio and creative portfolio",
       "api_method_event": "GET /design/maas/language-system/; GET /design/maas/portfolio-evaluations/; GET /design/maas/creative-portfolios/",
       "activation": "/design/language renders BookLanguageFlow standalone; also embedded where imported",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -563,7 +563,7 @@
       "action": "Load outcome graph slice for selected context",
       "api_method_event": "GET /design/maas/outcome-graph/?{query}",
       "activation": "Book graph state effect",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -580,7 +580,7 @@
       "action": "Load archive and select run; poll archive every 3 seconds",
       "api_method_event": "GET /design/maas/executed-masses/?run_id=",
       "activation": "Book flow mount/run choice; reconciles latest/publishable run",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -597,7 +597,7 @@
       "action": "Select mass and inspect execution passport/evidence",
       "api_method_event": "GET /design/maas/executed-masses/{index}/passport/?run_id=",
       "activation": "Nonempty archive selected mass/run",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -614,7 +614,7 @@
       "action": "Execute selected archived mass and load resulting archive/passport",
       "api_method_event": "POST /design/maas/single-executions/ followed by GET executed manifest/passport",
       "activation": "EXECUTE SELECTED MASS action; selected archived mass",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -631,7 +631,7 @@
       "action": "Run bounded paid VLM review and refresh passport",
       "api_method_event": "POST /design/maas/single-executions/{executionId}/vlm-review/ with reference_limit clamped to 0..3; GET passport",
       "activation": "Requires selected run prefix single-execution: and not already running",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -648,7 +648,7 @@
       "action": "Inspect geometry passport and preview; expand execution flow",
       "api_method_event": "GET /design/maas/geometry-shapes/{index}/passport/; preview image URL helper",
       "activation": "Selected geometry shape in BOOK evidence component",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -665,7 +665,7 @@
       "action": "Select graph node, reset selection, fullscreen, graph/archive/creative views and pagination",
       "api_method_event": "Local graph selection/view/page state and derived evidence components",
       "activation": "BookLanguageFlow buttons and canvas callbacks",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -682,7 +682,7 @@
       "action": "Log in with credentials",
       "api_method_event": "POST proxy /api/login; setAuth and navigate",
       "activation": "Public /login route",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -699,7 +699,7 @@
       "action": "Register account",
       "api_method_event": "POST proxy /api/register",
       "activation": "Public /signup route",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -716,7 +716,7 @@
       "action": "Google/GitHub OAuth login",
       "api_method_event": "Stack signInWithOAuth; auth-code-received IPC; POST https://api.stack-auth.com/api/v1/auth/oauth/token; POST proxy /api/login-by_stack?token=",
       "activation": "Requires HAS_STACK_KEYS; signup duplicates this flow",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -733,7 +733,7 @@
       "action": "Persist identity/token/appearance/language and logout state",
       "api_method_event": "Zustand persist auth-storage; local logout reset",
       "activation": "Auth store consumed by settings and HTTP clients",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -750,7 +750,7 @@
       "action": "List saved task history",
       "api_method_event": "GET proxy /api/chat/histories",
       "activation": "/history projects tab",
-      "proposed_feature_target": "frontend/app/workbench/src/features/projects",
+      "proposed_feature_target": "frontend/app/editor/src/features/projects",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -767,7 +767,7 @@
       "action": "Delete saved history after modal confirmation",
       "api_method_event": "DELETE proxy /api/chat/history/{id}; remove local task",
       "activation": "History selected record",
-      "proposed_feature_target": "frontend/app/workbench/src/features/projects",
+      "proposed_feature_target": "frontend/app/editor/src/features/projects",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -784,7 +784,7 @@
       "action": "Replay/open prior task",
       "api_method_event": "chatStore.replay/task selection; navigate /",
       "activation": "History replay/selection",
-      "proposed_feature_target": "frontend/app/workbench/src/features/agent-workspace",
+      "proposed_feature_target": "frontend/app/editor/src/features/agent-workspace",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -801,7 +801,7 @@
       "action": "Pause/resume task from history",
       "api_method_event": "PUT local-backend /task/{taskId}/take-control with action pause/resume",
       "activation": "History task control",
-      "proposed_feature_target": "frontend/app/workbench/src/features/agent-workspace",
+      "proposed_feature_target": "frontend/app/editor/src/features/agent-workspace",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -818,7 +818,7 @@
       "action": "Share saved task",
       "api_method_event": "lib/share.ts share(taskId)",
       "activation": "History share action",
-      "proposed_feature_target": "frontend/app/workbench/src/features/agent-workspace",
+      "proposed_feature_target": "frontend/app/editor/src/features/agent-workspace",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -835,7 +835,7 @@
       "action": "Change appearance/language/profile and logout",
       "api_method_event": "authStore and profile proxy calls; getPlatform Electron API",
       "activation": "/setting/general; unguarded desktop API call on effect",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -852,7 +852,7 @@
       "action": "Read/toggle privacy fields individually/all",
       "api_method_event": "GET/PUT proxy /api/user/privacy",
       "activation": "/setting/privacy",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -869,7 +869,7 @@
       "action": "Find/reveal log directory",
       "api_method_event": "IPC get-log-folder; reveal-in-folder",
       "activation": "/setting/privacy; unguarded ipcRenderer",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -886,7 +886,7 @@
       "action": "List/validate/create/update/delete/prefer cloud or local model providers",
       "api_method_event": "GET /api/providers; POST local /model/validate; POST /api/provider; PUT/DELETE /api/provider/{id}; POST /api/provider/prefer",
       "activation": "/setting/models; proxy provider calls, local validation",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -903,7 +903,7 @@
       "action": "Save API configuration",
       "api_method_event": "POST proxy /api/configs",
       "activation": "/setting/api",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -920,7 +920,7 @@
       "action": "Import/install local MCP configuration",
       "api_method_event": "POST proxy /api/mcp/import/local; IPC mcp-install",
       "activation": "/setting/mcp; desktop config update guarded by ipcRenderer",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -937,7 +937,7 @@
       "action": "Update MCP configuration/environment and enable status",
       "api_method_event": "PUT proxy /api/mcp/users/{id}; IPC mcp-update",
       "activation": "/setting/mcp; config dialogs and toggle",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -954,7 +954,7 @@
       "action": "Remove installed MCP",
       "api_method_event": "DELETE proxy /api/mcp/users/{id}; IPC mcp-remove",
       "activation": "/setting/mcp confirmation",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -971,7 +971,7 @@
       "action": "Browse/filter/install/remove marketplace MCP",
       "api_method_event": "GET proxy /api/mcps; POST /api/mcp/install?mcp_id=; DELETE /api/mcp/users/{id}; IPC mcp-install/remove",
       "activation": "/setting/mcp_market",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -988,7 +988,7 @@
       "action": "Authorize integrations and save/remove local environment config",
       "api_method_event": "GET/POST/DELETE proxy /api/configs; oauth-authorized/oauth-callback-url IPC; envWrite/envRemove",
       "activation": "Settings integrations; Notion/Google Calendar local install calls",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "Source handler/call inspected; route-declared or conditionally rendered does not prove runtime availability.",
       "status": "inventoried-not-migrated",
       "unresolved": [
@@ -1933,7 +1933,7 @@
         "expression": "ipcMain.handle('get-browser-port', () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-browser-port', () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -1950,7 +1950,7 @@
         "expression": "ipcMain.handle('get-app-version', () => app.getVersion());"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-app-version', () => app.getVersion());",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -1967,7 +1967,7 @@
         "expression": "ipcMain.handle('get-backend-port', () => backendPort);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-backend-port', () => backendPort);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -1984,7 +1984,7 @@
         "expression": "ipcMain.handle('restart-backend', async () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('restart-backend', async () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2001,7 +2001,7 @@
         "expression": "ipcMain.handle('get-system-language', getSystemLanguage);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-system-language', getSystemLanguage);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2018,7 +2018,7 @@
         "expression": "ipcMain.handle('is-fullscreen', () => win?.isFullScreen() || false);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('is-fullscreen', () => win?.isFullScreen() || false);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2035,7 +2035,7 @@
         "expression": "ipcMain.handle('get-home-dir', () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-home-dir', () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2052,7 +2052,7 @@
         "expression": "ipcMain.handle('get-email-folder-path', async (event, email: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-email-folder-path', async (event, email: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2069,7 +2069,7 @@
         "expression": "ipcMain.handle('execute-command', async (event, command: string, email: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('execute-command', async (event, command: string, email: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2086,7 +2086,7 @@
         "expression": "ipcMain.handle('export-log', async () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('export-log', async () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2103,7 +2103,7 @@
         "expression": "ipcMain.handle('upload-log', async (event, email: string, taskId: string, baseUrl: string, token: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('upload-log', async (event, email: string, taskId: string, baseUrl: string, token: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2120,7 +2120,7 @@
         "expression": "ipcMain.handle('mcp-install', async (event, name, mcp) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('mcp-install', async (event, name, mcp) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2137,7 +2137,7 @@
         "expression": "ipcMain.handle('mcp-remove', async (event, name) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('mcp-remove', async (event, name) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2154,7 +2154,7 @@
         "expression": "ipcMain.handle('mcp-update', async (event, name, mcp) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('mcp-update', async (event, name, mcp) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2171,7 +2171,7 @@
         "expression": "ipcMain.handle('mcp-list', async () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('mcp-list', async () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2188,7 +2188,7 @@
         "expression": "ipcMain.handle('check-install-browser', async () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('check-install-browser', async () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2205,7 +2205,7 @@
         "expression": "ipcMain.handle('start-browser-import', async (event, args) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('start-browser-import', async (event, args) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2222,7 +2222,7 @@
         "expression": "ipcMain.on('window-close', (_, data) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.on('window-close', (_, data) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2239,7 +2239,7 @@
         "expression": "ipcMain.on('window-minimize', () => win?.minimize());"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.on('window-minimize', () => win?.minimize());",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2256,7 +2256,7 @@
         "expression": "ipcMain.on('window-toggle-maximize', () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.on('window-toggle-maximize', () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2273,7 +2273,7 @@
         "expression": "ipcMain.handle('select-file', async (event, options = {}) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('select-file', async (event, options = {}) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2290,7 +2290,7 @@
         "expression": "ipcMain.handle(\"reveal-in-folder\", async (event, filePath: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle(\"reveal-in-folder\", async (event, filePath: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2307,7 +2307,7 @@
         "expression": "ipcMain.handle('read-file', async (event, filePath: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('read-file', async (event, filePath: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2324,7 +2324,7 @@
         "expression": "ipcMain.handle('delete-folder', async (event, email: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('delete-folder', async (event, email: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2341,7 +2341,7 @@
         "expression": "ipcMain.handle('get-mcp-config-path', async (event, email: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-mcp-config-path', async (event, email: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2358,7 +2358,7 @@
         "expression": "ipcMain.handle('get-env-path', async (_event, email) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-env-path', async (_event, email) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2375,7 +2375,7 @@
         "expression": "ipcMain.handle('get-env-has-key', async (_event, email, key) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-env-has-key', async (_event, email, key) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2392,7 +2392,7 @@
         "expression": "ipcMain.handle('env-write', async (_event, email, { key, value }) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('env-write', async (_event, email, { key, value }) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2409,7 +2409,7 @@
         "expression": "ipcMain.handle('env-remove', async (_event, email, key) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('env-remove', async (_event, email, key) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2426,7 +2426,7 @@
         "expression": "ipcMain.handle('open-win', (_, arg) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('open-win', (_, arg) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2443,7 +2443,7 @@
         "expression": "ipcMain.handle('open-file', async (_, type: string, filePath: string, isShowSourceCode: boolean) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('open-file', async (_, type: string, filePath: string, isShowSourceCode: boolean) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2460,7 +2460,7 @@
         "expression": "ipcMain.handle('download-file', async (_, url: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('download-file', async (_, url: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2477,7 +2477,7 @@
         "expression": "ipcMain.handle('get-file-list', async (_, email: string, taskId: string, projectId?: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-file-list', async (_, email: string, taskId: string, projectId?: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2494,7 +2494,7 @@
         "expression": "ipcMain.handle('delete-task-files', async (_, email: string, taskId: string, projectId?: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('delete-task-files', async (_, email: string, taskId: string, projectId?: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2511,7 +2511,7 @@
         "expression": "ipcMain.handle('create-project-structure', async (_, email: string, projectId: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('create-project-structure', async (_, email: string, projectId: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2528,7 +2528,7 @@
         "expression": "ipcMain.handle('get-project-list', async (_, email: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-project-list', async (_, email: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2545,7 +2545,7 @@
         "expression": "ipcMain.handle('get-tasks-in-project', async (_, email: string, projectId: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-tasks-in-project', async (_, email: string, projectId: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2562,7 +2562,7 @@
         "expression": "ipcMain.handle('move-task-to-project', async (_, email: string, taskId: string, projectId: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('move-task-to-project', async (_, email: string, taskId: string, projectId: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2579,7 +2579,7 @@
         "expression": "ipcMain.handle('get-project-file-list', async (_, email: string, projectId: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-project-file-list', async (_, email: string, projectId: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2596,7 +2596,7 @@
         "expression": "ipcMain.handle('get-log-folder', async (_, email: string) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-log-folder', async (_, email: string) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2613,7 +2613,7 @@
         "expression": "ipcMain.handle(name, async (_, ...args) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle(name, async (_, ...args) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2630,7 +2630,7 @@
         "expression": "ipcMain.handle('install-dependencies', async () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('install-dependencies', async () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2647,7 +2647,7 @@
         "expression": "ipcMain.handle('check-tool-installed', async () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('check-tool-installed', async () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2664,7 +2664,7 @@
         "expression": "ipcMain.handle('get-installation-status', async () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('get-installation-status', async () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2681,7 +2681,7 @@
         "expression": "ipcMain.handle('check-update', async () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('check-update', async () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2698,7 +2698,7 @@
         "expression": "ipcMain.handle('start-download', (event: Electron.IpcMainInvokeEvent) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('start-download', (event: Electron.IpcMainInvokeEvent) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2715,7 +2715,7 @@
         "expression": "ipcMain.handle('quit-and-install', () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcMain.handle('quit-and-install', () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2732,7 +2732,7 @@
         "expression": "return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2749,7 +2749,7 @@
         "expression": "return ipcRenderer.send(channel, ...omit)"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "return ipcRenderer.send(channel, ...omit)",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2766,7 +2766,7 @@
         "expression": "return ipcRenderer.invoke(channel, ...omit)"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "return ipcRenderer.invoke(channel, ...omit)",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2783,7 +2783,7 @@
         "expression": "closeWindow: (isForceQuit?: boolean) => ipcRenderer.send('window-close', {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "closeWindow: (isForceQuit?: boolean) => ipcRenderer.send('window-close', {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2800,7 +2800,7 @@
         "expression": "minimizeWindow: () => ipcRenderer.send('window-minimize'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "minimizeWindow: () => ipcRenderer.send('window-minimize'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2817,7 +2817,7 @@
         "expression": "toggleMaximizeWindow: () => ipcRenderer.send('window-toggle-maximize'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "toggleMaximizeWindow: () => ipcRenderer.send('window-toggle-maximize'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2834,7 +2834,7 @@
         "expression": "isFullScreen: () => ipcRenderer.invoke('is-fullscreen'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "isFullScreen: () => ipcRenderer.invoke('is-fullscreen'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2851,7 +2851,7 @@
         "expression": "selectFile: (options?: any) => ipcRenderer.invoke('select-file', options),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "selectFile: (options?: any) => ipcRenderer.invoke('select-file', options),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2868,7 +2868,7 @@
         "expression": "triggerMenuAction: (action: string) => ipcRenderer.send('menu-action', action),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "triggerMenuAction: (action: string) => ipcRenderer.send('menu-action', action),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2885,7 +2885,7 @@
         "expression": "onExecuteAction: (callback: (action: string) => void) => ipcRenderer.on('execute-action', (event, action) => callback(action)),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "onExecuteAction: (callback: (action: string) => void) => ipcRenderer.on('execute-action', (event, action) => callback(action)),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2902,7 +2902,7 @@
         "expression": "getHomeDir: () => ipcRenderer.invoke('get-home-dir'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "getHomeDir: () => ipcRenderer.invoke('get-home-dir'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2919,7 +2919,7 @@
         "expression": "createWebView: (id: string, url: string) => ipcRenderer.invoke('create-webview', id, url),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "createWebView: (id: string, url: string) => ipcRenderer.invoke('create-webview', id, url),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2936,7 +2936,7 @@
         "expression": "hideWebView: (id: string) => ipcRenderer.invoke('hide-webview', id),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "hideWebView: (id: string) => ipcRenderer.invoke('hide-webview', id),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2953,7 +2953,7 @@
         "expression": "changeViewSize: (id: string, size: Size) => ipcRenderer.invoke('change-view-size', id, size),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "changeViewSize: (id: string, size: Size) => ipcRenderer.invoke('change-view-size', id, size),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2970,7 +2970,7 @@
         "expression": "onWebviewNavigated: (callback: (id: string, url: string) => void) => ipcRenderer.on('webview-navigated', (event, id, url) => callback(id, url)),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "onWebviewNavigated: (callback: (id: string, url: string) => void) => ipcRenderer.on('webview-navigated', (event, id, url) => callback(id, url)),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -2987,7 +2987,7 @@
         "expression": "showWebview: (id: string) => ipcRenderer.invoke('show-webview', id),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "showWebview: (id: string) => ipcRenderer.invoke('show-webview', id),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3004,7 +3004,7 @@
         "expression": "getActiveWebview: () => ipcRenderer.invoke('get-active-webview'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "getActiveWebview: () => ipcRenderer.invoke('get-active-webview'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3021,7 +3021,7 @@
         "expression": "setSize: (size: Size) => ipcRenderer.invoke('set-size', size),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "setSize: (size: Size) => ipcRenderer.invoke('set-size', size),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3038,7 +3038,7 @@
         "expression": "hideAllWebview: () => ipcRenderer.invoke('hide-all-webview'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "hideAllWebview: () => ipcRenderer.invoke('hide-all-webview'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3055,7 +3055,7 @@
         "expression": "getShowWebview: () => ipcRenderer.invoke('get-show-webview'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "getShowWebview: () => ipcRenderer.invoke('get-show-webview'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3072,7 +3072,7 @@
         "expression": "webviewDestroy: (webviewId: string) => ipcRenderer.invoke('webview-destroy', webviewId),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "webviewDestroy: (webviewId: string) => ipcRenderer.invoke('webview-destroy', webviewId),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3089,7 +3089,7 @@
         "expression": "exportLog: () => ipcRenderer.invoke('export-log'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "exportLog: () => ipcRenderer.invoke('export-log'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3106,7 +3106,7 @@
         "expression": "uploadLog: (email: string, taskId: string, baseUrl: string, token: string) => ipcRenderer.invoke('upload-log', email, taskId, baseUrl, token),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "uploadLog: (email: string, taskId: string, baseUrl: string, token: string) => ipcRenderer.invoke('upload-log', email, taskId, baseUrl, token),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3123,7 +3123,7 @@
         "expression": "mcpInstall: (name: string, mcp: any) => ipcRenderer.invoke('mcp-install', name, mcp),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "mcpInstall: (name: string, mcp: any) => ipcRenderer.invoke('mcp-install', name, mcp),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3140,7 +3140,7 @@
         "expression": "mcpRemove: (name: string) => ipcRenderer.invoke('mcp-remove', name),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "mcpRemove: (name: string) => ipcRenderer.invoke('mcp-remove', name),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3157,7 +3157,7 @@
         "expression": "mcpUpdate: (name: string, mcp: any) => ipcRenderer.invoke('mcp-update', name, mcp),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "mcpUpdate: (name: string, mcp: any) => ipcRenderer.invoke('mcp-update', name, mcp),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3174,7 +3174,7 @@
         "expression": "mcpList: () => ipcRenderer.invoke('mcp-list'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "mcpList: () => ipcRenderer.invoke('mcp-list'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3191,7 +3191,7 @@
         "expression": "envWrite: (email: string, kv: { key: string, value: string }) => ipcRenderer.invoke('env-write', email, kv),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "envWrite: (email: string, kv: { key: string, value: string }) => ipcRenderer.invoke('env-write', email, kv),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3208,7 +3208,7 @@
         "expression": "envRemove: (email: string, key: string) => ipcRenderer.invoke('env-remove', email, key),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "envRemove: (email: string, key: string) => ipcRenderer.invoke('env-remove', email, key),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3225,7 +3225,7 @@
         "expression": "getEnvPath: (email: string) => ipcRenderer.invoke('get-env-path', email),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "getEnvPath: (email: string) => ipcRenderer.invoke('get-env-path', email),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3242,7 +3242,7 @@
         "expression": "executeCommand: (command: string,email:string) => ipcRenderer.invoke('execute-command', command,email),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "executeCommand: (command: string,email:string) => ipcRenderer.invoke('execute-command', command,email),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3259,7 +3259,7 @@
         "expression": "readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3276,7 +3276,7 @@
         "expression": "deleteFolder: (email: string) => ipcRenderer.invoke('delete-folder', email),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "deleteFolder: (email: string) => ipcRenderer.invoke('delete-folder', email),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3293,7 +3293,7 @@
         "expression": "getMcpConfigPath: (email: string) => ipcRenderer.invoke('get-mcp-config-path', email),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "getMcpConfigPath: (email: string) => ipcRenderer.invoke('get-mcp-config-path', email),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3310,7 +3310,7 @@
         "expression": "checkAndInstallDepsOnUpdate: () => ipcRenderer.invoke('install-dependencies'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "checkAndInstallDepsOnUpdate: () => ipcRenderer.invoke('install-dependencies'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3327,7 +3327,7 @@
         "expression": "checkInstallBrowser: () => ipcRenderer.invoke('check-install-browser'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "checkInstallBrowser: () => ipcRenderer.invoke('check-install-browser'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3344,7 +3344,7 @@
         "expression": "getInstallationStatus: () => ipcRenderer.invoke('get-installation-status'),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "getInstallationStatus: () => ipcRenderer.invoke('get-installation-status'),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3361,7 +3361,7 @@
         "expression": "ipcRenderer.on('install-dependencies-start', callback);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcRenderer.on('install-dependencies-start', callback);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3378,7 +3378,7 @@
         "expression": "ipcRenderer.on('install-dependencies-log', (event, data) => callback(data));"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcRenderer.on('install-dependencies-log', (event, data) => callback(data));",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3395,7 +3395,7 @@
         "expression": "ipcRenderer.on('install-dependencies-complete', (event, data) => callback(data));"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcRenderer.on('install-dependencies-complete', (event, data) => callback(data));",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3412,7 +3412,7 @@
         "expression": "ipcRenderer.on('update-notification', (event, data) => callback(data));"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "ipcRenderer.on('update-notification', (event, data) => callback(data));",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3429,7 +3429,7 @@
         "expression": "startBrowserImport: (args?: any) => ipcRenderer.invoke('start-browser-import', args),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "startBrowserImport: (args?: any) => ipcRenderer.invoke('start-browser-import', args),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3446,7 +3446,7 @@
         "expression": "getEmailFolderPath: (email: string) => ipcRenderer.invoke('get-email-folder-path', email),"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "getEmailFolderPath: (email: string) => ipcRenderer.invoke('get-email-folder-path', email),",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3463,7 +3463,7 @@
         "expression": "const port = await window.ipcRenderer.invoke('get-backend-port')"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const port = await window.ipcRenderer.invoke('get-backend-port')",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3480,7 +3480,7 @@
         "expression": "return handleResponse(fetch(fullUrl + query, options), data)"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "return handleResponse(fetch(fullUrl + query, options), data)",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3497,7 +3497,7 @@
         "expression": "return handleResponse(fetch(fullUrl, options), data)"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "return handleResponse(fetch(fullUrl, options), data)",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3514,7 +3514,7 @@
         "expression": "return handleResponse(fetch(fullUrl + query, options))"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "return handleResponse(fetch(fullUrl + query, options))",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3531,7 +3531,7 @@
         "expression": "return handleResponse(fetch(fullUrl, options))"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "return handleResponse(fetch(fullUrl, options))",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3548,7 +3548,7 @@
         "expression": "return handleResponse(fetch(fullUrl, options))"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "return handleResponse(fetch(fullUrl, options))",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3565,7 +3565,7 @@
         "expression": "const es = new EventSource(`/design/jobs/${jobId}/stream`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const es = new EventSource(`/design/jobs/${jobId}/stream`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3582,7 +3582,7 @@
         "expression": "es.addEventListener('started', (e) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "es.addEventListener('started', (e) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3599,7 +3599,7 @@
         "expression": "es.addEventListener('generation', (e) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "es.addEventListener('generation', (e) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3616,7 +3616,7 @@
         "expression": "es.addEventListener('complete', (e) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "es.addEventListener('complete', (e) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3633,7 +3633,7 @@
         "expression": "es.addEventListener('error', (e) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "es.addEventListener('error', (e) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3650,7 +3650,7 @@
         "expression": "es.addEventListener('cancelled', () => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "es.addEventListener('cancelled', () => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3667,7 +3667,7 @@
         "expression": "const res = await fetch(`${BASE}/jobs/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/jobs/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3684,7 +3684,7 @@
         "expression": "const res = await fetch(`${BASE}/jobs/${jobId}/`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/jobs/${jobId}/`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3701,7 +3701,7 @@
         "expression": "await fetch(`${BASE}/jobs/${jobId}/cancel/`, { method: 'POST' });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "await fetch(`${BASE}/jobs/${jobId}/cancel/`, { method: 'POST' });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3718,7 +3718,7 @@
         "expression": "const res = await fetch(`${BASE}/jobs/${jobId}/run/`, { method: 'POST' });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/jobs/${jobId}/run/`, { method: 'POST' });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3735,7 +3735,7 @@
         "expression": "const res = await fetch(`${BASE}/jobs/${jobId}/results/`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/jobs/${jobId}/results/`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3752,7 +3752,7 @@
         "expression": "const res = await fetch(`${BASE}/jobs/${jobId}/results/${designId}/evidence/`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/jobs/${jobId}/results/${designId}/evidence/`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3769,7 +3769,7 @@
         "expression": "const res = await fetch(`${AG_LIGHT_BASE}/health`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${AG_LIGHT_BASE}/health`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3786,7 +3786,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/language-system/`, { signal });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/language-system/`, { signal });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3803,7 +3803,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/outcome-graph/?${query}`, { signal });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/outcome-graph/?${query}`, { signal });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3820,7 +3820,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/geometry-shapes/${index}/passport/`, { signal });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/geometry-shapes/${index}/passport/`, { signal });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3837,7 +3837,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/executed-masses/${query}`, { signal });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/executed-masses/${query}`, { signal });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3854,7 +3854,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/creative-portfolios/${query}`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/creative-portfolios/${query}`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3871,7 +3871,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/portfolio-evaluations/${query}`, { signal });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/portfolio-evaluations/${query}`, { signal });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3888,7 +3888,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/executed-masses/${index}/passport/${query}`, { signal });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/executed-masses/${index}/passport/${query}`, { signal });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3905,7 +3905,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/single-executions/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/single-executions/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3922,7 +3922,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/single-executions/${encodeURIComponent(executionId)}/vlm-review/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/single-executions/${encodeURIComponent(executionId)}/vlm-review/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3939,7 +3939,7 @@
         "expression": "const res = await fetch(`${AG_LIGHT_BASE}/bus/log?limit=${encodeURIComponent(String(limit))}`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${AG_LIGHT_BASE}/bus/log?limit=${encodeURIComponent(String(limit))}`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3956,7 +3956,7 @@
         "expression": "const res = await fetch(`${AG_LIGHT_BASE}/bus/send`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${AG_LIGHT_BASE}/bus/send`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3973,7 +3973,7 @@
         "expression": "const res = await fetch(`${BASE}/site-boundary/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/site-boundary/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -3990,7 +3990,7 @@
         "expression": "const res = await fetch(`${BASE}/auto-constraints/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/auto-constraints/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4007,7 +4007,7 @@
         "expression": "const res = await fetch(`${BASE}/floor-plan/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/floor-plan/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4024,7 +4024,7 @@
         "expression": "const res = await fetch(`${BASE}/constraints/visualize/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/constraints/visualize/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4041,7 +4041,7 @@
         "expression": "const res = await fetch(`${BASE}/interactive/patch/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/interactive/patch/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4058,7 +4058,7 @@
         "expression": "const res = await fetch(`${BASE}/interactive/preview/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/interactive/preview/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4075,7 +4075,7 @@
         "expression": "const res = await fetch(`${BASE}/interactive/operation/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/interactive/operation/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4092,7 +4092,7 @@
         "expression": "const res = await fetch(`${BASE}/maas/legal-variants/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/maas/legal-variants/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4109,7 +4109,7 @@
         "expression": "const res = await fetch(`${BASE}/jobs/${params.job_id}/results/${params.design_id}/aesthetic/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(`${BASE}/jobs/${params.job_id}/results/${params.design_id}/aesthetic/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4126,7 +4126,7 @@
         "expression": "const res = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/massing",
+      "proposed_feature_target": "frontend/app/editor/src/features/massing",
       "static_evidence": "const res = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' } });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4143,7 +4143,7 @@
         "expression": "const es = new EventSource(url);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "const es = new EventSource(url);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4160,7 +4160,7 @@
         "expression": "const configRes = await fetch('/land/map-config/');"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "const configRes = await fetch('/land/map-config/');",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4177,7 +4177,7 @@
         "expression": "const res = await fetch('/land/analyze/', {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "const res = await fetch('/land/analyze/', {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4194,7 +4194,7 @@
         "expression": "const res = await fetch('/land/resolve/', {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "const res = await fetch('/land/resolve/', {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4211,7 +4211,7 @@
         "expression": "const res = await fetch('/land/zones/');"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "const res = await fetch('/land/zones/');",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4228,7 +4228,7 @@
         "expression": "const res = await fetch('/land/reverse/', {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "const res = await fetch('/land/reverse/', {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4245,7 +4245,7 @@
         "expression": "const res = await fetch(url);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/land-analysis",
+      "proposed_feature_target": "frontend/app/editor/src/features/land-analysis",
       "static_evidence": "const res = await fetch(url);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4262,7 +4262,7 @@
         "expression": "const eventSource = new EventSource(url);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "const eventSource = new EventSource(url);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4279,7 +4279,7 @@
         "expression": "const res = await fetch('/law/search/', {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "const res = await fetch('/law/search/', {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4296,7 +4296,7 @@
         "expression": "const res = await fetch(`/law/domain/${domainId}/search/`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "const res = await fetch(`/law/domain/${domainId}/search/`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4313,7 +4313,7 @@
         "expression": "const res = await fetch('/law/domains/');"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "const res = await fetch('/law/domains/');",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4330,7 +4330,7 @@
         "expression": "const res = await fetch('/law/health/');"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "const res = await fetch('/law/health/');",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4347,7 +4347,7 @@
         "expression": "const res = await fetch(`/law/article/?full_id=${encodeURIComponent(fullId)}`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/law",
+      "proposed_feature_target": "frontend/app/editor/src/features/law",
       "static_evidence": "const res = await fetch(`/law/article/?full_id=${encodeURIComponent(fullId)}`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4364,7 +4364,7 @@
         "expression": "await proxyFetchDelete(`/api/chat/history/${id}`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/agent-workspace",
+      "proposed_feature_target": "frontend/app/editor/src/features/agent-workspace",
       "static_evidence": "await proxyFetchDelete(`/api/chat/history/${id}`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4381,7 +4381,7 @@
         "expression": "fetchPut(`/task/${taskId}/take-control`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/agent-workspace",
+      "proposed_feature_target": "frontend/app/editor/src/features/agent-workspace",
       "static_evidence": "fetchPut(`/task/${taskId}/take-control`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4398,7 +4398,7 @@
         "expression": "const res = await proxyFetchGet(`/api/chat/histories`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/agent-workspace",
+      "proposed_feature_target": "frontend/app/editor/src/features/agent-workspace",
       "static_evidence": "const res = await proxyFetchGet(`/api/chat/histories`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4415,7 +4415,7 @@
         "expression": "const data = await proxyFetchPost(\"/api/login\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const data = await proxyFetchPost(\"/api/login\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4432,7 +4432,7 @@
         "expression": "const data = await proxyFetchPost(\"/api/login-by_stack?token=\" + token, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const data = await proxyFetchPost(\"/api/login-by_stack?token=\" + token, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4449,7 +4449,7 @@
         "expression": "const res = await fetch("
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await fetch(",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4466,7 +4466,7 @@
         "expression": "window.ipcRenderer?.on(\"auth-code-received\", handleAuthCode);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "window.ipcRenderer?.on(\"auth-code-received\", handleAuthCode);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4483,7 +4483,7 @@
         "expression": "window.ipcRenderer?.on(\"before-close\", handleBeforeClose);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "window.ipcRenderer?.on(\"before-close\", handleBeforeClose);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4500,7 +4500,7 @@
         "expression": "proxyFetchGet(\"/api/config/info\").then((res) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/config/info\").then((res) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4517,7 +4517,7 @@
         "expression": "proxyFetchGet(\"/api/configs\").then((res) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/configs\").then((res) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4534,7 +4534,7 @@
         "expression": "await proxyFetchPost(\"/api/configs\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/configs\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4551,7 +4551,7 @@
         "expression": "const configsRes = await proxyFetchGet(\"/api/configs\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const configsRes = await proxyFetchGet(\"/api/configs\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4568,7 +4568,7 @@
         "expression": "await proxyFetchPost(\"/api/configs\", configPayload);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/configs\", configPayload);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4585,7 +4585,7 @@
         "expression": "const tokenResult = await proxyFetchPost("
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const tokenResult = await proxyFetchPost(",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4602,7 +4602,7 @@
         "expression": "window.ipcRenderer?.on(\"oauth-authorized\", handler);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "window.ipcRenderer?.on(\"oauth-authorized\", handler);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4619,7 +4619,7 @@
         "expression": "window.ipcRenderer?.on(\"oauth-callback-url\", handler);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "window.ipcRenderer?.on(\"oauth-callback-url\", handler);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4636,7 +4636,7 @@
         "expression": "await proxyFetchDelete(`/api/configs/${config.id}`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchDelete(`/api/configs/${config.id}`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4653,7 +4653,7 @@
         "expression": "const res = await fetch(url);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await fetch(url);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4670,7 +4670,7 @@
         "expression": "const res = await fetch(\"https://api.exa.ai/search\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await fetch(\"https://api.exa.ai/search\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4687,7 +4687,7 @@
         "expression": "proxyFetchGet(\"/api/configs\")"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/configs\")",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4704,7 +4704,7 @@
         "expression": "await proxyFetchPost(\"/api/configs\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/configs\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4721,7 +4721,7 @@
         "expression": "await proxyFetchPost(\"/api/configs\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/configs\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4738,7 +4738,7 @@
         "expression": "const res = await proxyFetchGet(\"/api/configs\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await proxyFetchGet(\"/api/configs\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4755,7 +4755,7 @@
         "expression": "proxyFetchGet(\"/api/configs\").then((configsRes) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/configs\").then((configsRes) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4772,7 +4772,7 @@
         "expression": "proxyFetchGet(\"/api/config/info\").then((res) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/config/info\").then((res) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4789,7 +4789,7 @@
         "expression": "const response = await fetchPost(\"/install/tool/notion\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const response = await fetchPost(\"/install/tool/notion\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4806,7 +4806,7 @@
         "expression": "await proxyFetchPost(\"/api/configs\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/configs\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4823,7 +4823,7 @@
         "expression": "const response = await fetchPost(\"/install/tool/google_calendar\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const response = await fetchPost(\"/install/tool/google_calendar\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4840,7 +4840,7 @@
         "expression": "await proxyFetchPost(\"/api/configs\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/configs\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4857,7 +4857,7 @@
         "expression": "proxyFetchGet(\"/api/mcp/users\")"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/mcp/users\")",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4874,7 +4874,7 @@
         "expression": "await proxyFetchPut(`/api/mcp/users/${id}`, { status: checked ? 1 : 2 });"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPut(`/api/mcp/users/${id}`, { status: checked ? 1 : 2 });",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4891,7 +4891,7 @@
         "expression": "await proxyFetchPut(`/api/mcp/users/${showConfig.id}`, mcpData);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPut(`/api/mcp/users/${showConfig.id}`, mcpData);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4908,7 +4908,7 @@
         "expression": "window.ipcRenderer.invoke(\"mcp-update\", mcpData.mcp_name, payload);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "window.ipcRenderer.invoke(\"mcp-update\", mcpData.mcp_name, payload);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4925,7 +4925,7 @@
         "expression": "await proxyFetchPut(`/api/mcp/users/${showConfig.id}`, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPut(`/api/mcp/users/${showConfig.id}`, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4942,7 +4942,7 @@
         "expression": "let res = await proxyFetchPost(\"/api/mcp/import/local\", data);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "let res = await proxyFetchPost(\"/api/mcp/import/local\", data);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4959,7 +4959,7 @@
         "expression": "await window.ipcRenderer.invoke(\"mcp-install\", key, value);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await window.ipcRenderer.invoke(\"mcp-install\", key, value);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4976,7 +4976,7 @@
         "expression": "await proxyFetchDelete(`/api/mcp/users/${deleteTarget.id}`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchDelete(`/api/mcp/users/${deleteTarget.id}`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -4993,7 +4993,7 @@
         "expression": "await window.ipcRenderer.invoke(\"mcp-remove\", deleteTarget.mcp_key);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await window.ipcRenderer.invoke(\"mcp-remove\", deleteTarget.mcp_key);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5010,7 +5010,7 @@
         "expression": "await proxyFetchPost(\"/api/configs\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/configs\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5027,7 +5027,7 @@
         "expression": "proxyFetchGet(\"/api/mcp/users\").then((res) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/mcp/users\").then((res) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5044,7 +5044,7 @@
         "expression": "proxyFetchGet(\"/api/mcp/categories\").then((res) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/mcp/categories\").then((res) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5061,7 +5061,7 @@
         "expression": "const res = await proxyFetchGet(\"/api/mcps\", params);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await proxyFetchGet(\"/api/mcps\", params);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5078,7 +5078,7 @@
         "expression": "const res = await proxyFetchPost(\"/api/mcp/install?mcp_id=\" + id);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await proxyFetchPost(\"/api/mcp/install?mcp_id=\" + id);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5095,7 +5095,7 @@
         "expression": "await window.ipcRenderer.invoke("
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await window.ipcRenderer.invoke(",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5112,7 +5112,7 @@
         "expression": "await proxyFetchDelete(`/api/mcp/users/${id}`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchDelete(`/api/mcp/users/${id}`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5129,7 +5129,7 @@
         "expression": "await window.ipcRenderer.invoke(\"mcp-remove\", deleteTarget.key);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await window.ipcRenderer.invoke(\"mcp-remove\", deleteTarget.key);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5146,7 +5146,7 @@
         "expression": "const res = await proxyFetchGet(\"/api/providers\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await proxyFetchGet(\"/api/providers\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5163,7 +5163,7 @@
         "expression": "const res = await fetchPost(\"/model/validate\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await fetchPost(\"/model/validate\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5180,7 +5180,7 @@
         "expression": "await proxyFetchPut(`/api/provider/${provider_id}`, data);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPut(`/api/provider/${provider_id}`, data);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5197,7 +5197,7 @@
         "expression": "await proxyFetchPost(\"/api/provider\", data);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/provider\", data);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5214,7 +5214,7 @@
         "expression": "const res = await proxyFetchGet(\"/api/providers\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await proxyFetchGet(\"/api/providers\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5231,7 +5231,7 @@
         "expression": "const res = await fetchPost(\"/model/validate\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await fetchPost(\"/model/validate\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5248,7 +5248,7 @@
         "expression": "await proxyFetchPost(\"/api/provider\", data);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/provider\", data);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5265,7 +5265,7 @@
         "expression": "const res = await proxyFetchGet(\"/api/providers\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await proxyFetchGet(\"/api/providers\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5282,7 +5282,7 @@
         "expression": "await proxyFetchPost(\"/api/provider/prefer\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/provider/prefer\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5299,7 +5299,7 @@
         "expression": "await proxyFetchPost(\"/api/provider/prefer\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchPost(\"/api/provider/prefer\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5316,7 +5316,7 @@
         "expression": "await proxyFetchDelete(`/api/provider/${localProviderId}`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchDelete(`/api/provider/${localProviderId}`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5333,7 +5333,7 @@
         "expression": "await proxyFetchDelete(`/api/provider/${provider_id}`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "await proxyFetchDelete(`/api/provider/${provider_id}`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5350,7 +5350,7 @@
         "expression": "const configsRes = await proxyFetchGet(\"/api/configs\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const configsRes = await proxyFetchGet(\"/api/configs\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5367,7 +5367,7 @@
         "expression": "const res = await proxyFetchGet(\"/api/subscription\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await proxyFetchGet(\"/api/subscription\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5384,7 +5384,7 @@
         "expression": "const res = await proxyFetchGet(`/api/user/current_credits`);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await proxyFetchGet(`/api/user/current_credits`);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5401,7 +5401,7 @@
         "expression": "proxyFetchGet(\"/api/user/privacy\")"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchGet(\"/api/user/privacy\")",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5418,7 +5418,7 @@
         "expression": "proxyFetchPut(\"/api/user/privacy\", requestData);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchPut(\"/api/user/privacy\", requestData);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5435,7 +5435,7 @@
         "expression": "proxyFetchPut(\"/api/user/privacy\", requestData).catch((err) =>"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "proxyFetchPut(\"/api/user/privacy\", requestData).catch((err) =>",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5452,7 +5452,7 @@
         "expression": "window.ipcRenderer.invoke(\"get-log-folder\", email).then((logFolder) => {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "window.ipcRenderer.invoke(\"get-log-folder\", email).then((logFolder) => {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5469,7 +5469,7 @@
         "expression": "window.ipcRenderer.invoke(\"reveal-in-folder\", logFolder + \"/\");"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "window.ipcRenderer.invoke(\"reveal-in-folder\", logFolder + \"/\");",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5486,7 +5486,7 @@
         "expression": "const data = await proxyFetchPost(\"/api/register\", {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const data = await proxyFetchPost(\"/api/register\", {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5503,7 +5503,7 @@
         "expression": "const data = await proxyFetchPost(\"/api/login-by_stack?token=\" + token, {"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const data = await proxyFetchPost(\"/api/login-by_stack?token=\" + token, {",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5520,7 +5520,7 @@
         "expression": "const res = await fetch("
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "const res = await fetch(",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
@@ -5537,7 +5537,7 @@
         "expression": "window.ipcRenderer?.on(\"auth-code-received\", handleAuthCode);"
       },
       "activation": "Declaration/call site only; reachability is not inferred by this extraction",
-      "proposed_feature_target": "frontend/app/workbench/src/features/settings",
+      "proposed_feature_target": "frontend/app/editor/src/features/settings",
       "static_evidence": "window.ipcRenderer?.on(\"auth-code-received\", handleAuthCode);",
       "unresolved": [
         "Resolve full dynamic URL, enclosing UI control and transitive server/IPC handler where not covered by curated actions."
