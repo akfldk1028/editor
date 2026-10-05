@@ -12,6 +12,7 @@ import {
   waitForService,
 } from "./runtime.mjs";
 import { canManageService, ensureService as ensureManagedService, settleStartup } from './lifecycle.mjs';
+import { checkWorkspaceLinks } from './workspace-links.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const logRoot = resolve(repositoryRoot, "logs/dev");
@@ -25,6 +26,7 @@ await main();
 async function main() {
   await mkdir(logRoot, { recursive: true });
   try {
+    if (native) checkWorkspaceLinks(repositoryRoot);
     // Everything that does not depend on another service starts together.
     if (services.arr) await ensureService(services.arr);
     await ensureService(services.orchestrator);

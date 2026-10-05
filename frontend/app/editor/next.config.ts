@@ -23,9 +23,6 @@ const nextConfig: NextConfig = {
   logging: {
     browserToTerminal: true,
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   // MCP / package metadata returns `/editor/<id>` (hosted route). This open-source
   // app serves saved scenes at `/scene/<id>` — redirect so links and bookmarks work.
   async redirects() {
