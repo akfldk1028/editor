@@ -25,6 +25,8 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
     { href: '/land', label: i18n.t('nav.land'), Icon: MapPin },
     { href: '/map', label: 'VWorld 지도', Icon: MapPin },
     { href: '/law', label: '법규 검색 · 3D 지도', Icon: MapPin },
+    { href: '/design', label: '매스 · 평면 설계', Icon: Box },
+    { href: '/design/language', label: '설계 언어 · 실행 근거', Icon: Box },
     { href: '/agents', label: 'A2A Agents', Icon: Box },
     { href: '/dialogue', label: '에이전트 협업 대화', Icon: Box },
     { href: '/flow', label: '협업 흐름도', Icon: Box },

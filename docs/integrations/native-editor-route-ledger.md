@@ -6,6 +6,8 @@ Latest scope correction: [original views and every nested element](2026-10-05-or
 
 Latest implementation and runtime: [native original LawChat and live VWorld](2026-10-05-native-law-vworld.md). Native backend18449 is configured and running; real 2D cadastral imagery and 3D buildings rendered. Final native browser suite11 passed; law retrieval returned zero live results, and whole-product/view parity remains open.
 
+Latest design increment: [original design workspace and archived evidence](2026-10-05-native-design-workspace.md). `/design` and `/design/language` now mount original views; original execution workflows remain open.
+
 ## Placement
 
 - `app/`: native route entries/layouts and explicit API handlers.
@@ -30,9 +32,9 @@ Latest implementation and runtime: [native original LawChat and live VWorld](202
 | AG PlaygroundPage and LiveAgentFlow | `/playground` (planned) | Not ported into native Editor. Need original sessions, input, streaming, stop, agent detail, attachments and relevant helper interactions; native owner currently supports only health submission. Free-form execution needs a real contract, not a fabricated submit button. |
 | AG FlowPage / popup | `/flow` (partial destination) | Native `/flow` currently hosts ARR's record-based graph. AG popup/channel/session operations are still not ported; this row remains open. |
 | ARR AGLightFlow / topology / direct command tabs | `/flow` | Original node/edge/toolbar UI ported with bound observed request/response records, fullscreen/Escape, labels, grid/reset and selection details. Offline Chrome component interactions passed. Native route/API execution, original configured topology and direct command tabs remain open. No fabricated A2A edges. |
-| ARR DesignPage | `/design` (planned) | Original control panel, maps, generation, candidates, inspector, Pareto, legal basis, daylight section, passport and interactive panels not yet native. Earlier PLANM implementation does not close this row. |
+| ARR DesignPage | `/design` | Original composition ported, controls and live VWorld route return verified. Native boundary and land analysis adapters connected. Generation, streaming, cancellation, floor-plan, interactive execution and populated result parity remain open. |
 | ARR drawing/parking/3D and floor-plan generation | Within native design + Editor scene | Native backend work exists, but original full UI and real-project save/reopen loop still open. Preserve imported job/candidate/artifact identities. Native additive execution is not proof of all original algorithms. |
-| ARR BookLanguagePage | `/design/language` (planned) | Not ported; trace real document/language services before connecting controls. |
+| ARR BookLanguagePage | `/design/language` | Original graph/tabs/evidence composition ported. Native catalog snapshot and 18 saved MASS run groups connected, with verified image/passport bytes. New execution, creative portfolios, complete metadata and replay remain open. |
 | ARR LawChat | `/law` | Original connected view ported with native law BFF/FastAPI and real VWorld3D. Fixture search/card/detail/close/reset/reload and live map return passed. Populated provider retrieval, original article hierarchy/history and advanced-analysis execution remain open. |
 | AG History and session comparison | `/history` (planned) | Original list/detail/comparison not native. Bind real project/run history and distinguish transcript comparison from design artifact verification. |
 | Native project/job/execution pages currently in PLANM | Native project/design routes (planned) | Preserve implemented bindings, idempotency, immutable candidates, executions and source revisions. Move UI into native Editor without replacing original design screens with simplified substitutes. |

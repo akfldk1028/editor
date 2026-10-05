@@ -1,0 +1,82 @@
+{
+  "provider": "autogen_agentchat.teams.SelectorGroupChat",
+  "component_type": "team",
+  "label": "MAAS Legal Design Team (법규-주차-매스 협업팀)",
+  "description": "기존 AG/AutoGen SelectorGroupChat 패턴을 사용하여 ARR 법규 Graph DB, 주차 산정, LLM 건축언어 제안, MassDSL 검증, MAAS geometry, grammar critique, evidence review를 협업 검토하는 팀.",
+  "config": {
+    "name": "SelectorGroupChat",
+    "description": "law_graph_agent -> parking_agent -> llm_architect_agent -> massdsl_agent -> maas_geometry_agent -> grammar_critic_agent -> review_agent workflow for legal-design optimization.",
+    "participants": [
+      {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "label": "Law Graph Agent (법규그래프)",
+        "description": "ARR 법규 Graph DB와 구조화 주차 규칙을 검증하고 법규 근거를 제공하는 에이전트",
+        "config": {
+          "name": "law_graph_agent",
+          "description": "Verify and cite ARR law Graph DB parking rules."
+        }
+      },
+      {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "label": "Parking Agent (주차검토)",
+        "description": "Graph DB 주차 산정과 MAAS 주차 좌표 후보 생성을 검증하는 에이전트",
+        "config": {
+          "name": "parking_agent",
+          "description": "Check parking counts and Graph DB to MAAS layout integration."
+        }
+      },
+      {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "label": "LLM Architect Agent (건축언어)",
+        "description": "법규/주차 조건을 받은 뒤 LLM 건축언어, primary/secondary language, composition rule, authored parameter source를 검토하는 에이전트",
+        "config": {
+          "name": "llm_architect_agent",
+          "description": "Own LLM-authored architectural language before MassDSL validation."
+        }
+      },
+      {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "label": "MassDSL Agent (매스언어)",
+        "description": "LLM 건축언어 evidence를 MassDSL grammar proposal로 검증/변환하는 에이전트",
+        "config": {
+          "name": "massdsl_agent",
+          "description": "Validate LLM architectural language as a MassDSL verb sequence proposal."
+        }
+      },
+      {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "label": "MAAS Geometry Agent (매스수정)",
+        "description": "주차 repair request를 MAAS mass 조정 관점으로 해석하는 에이전트",
+        "config": {
+          "name": "maas_geometry_agent",
+          "description": "Translate parking/legal repair requests into MAAS mass operations."
+        }
+      },
+      {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "label": "Grammar Critic Agent (문법검토)",
+        "description": "MassDSL/geometry 결과가 건축적 도형언어와 evidence를 충분히 갖췄는지 비평하는 에이전트",
+        "config": {
+          "name": "grammar_critic_agent",
+          "description": "Critique mass grammar diversity, section connectors, and evidence completeness."
+        }
+      },
+      {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "label": "Review Agent (최종검토)",
+        "description": "법규 evidence, 주차 layout, geometry repair를 종합해 최종 판단을 내리는 에이전트",
+        "config": {
+          "name": "review_agent",
+          "description": "Summarize structured evidence and decisions without polluting law Graph DB with raw chat."
+        }
+      }
+    ]
+  }
+}

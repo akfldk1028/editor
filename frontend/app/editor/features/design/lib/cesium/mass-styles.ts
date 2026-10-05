@@ -1,0 +1,33 @@
+export const SHAPE_LABELS: Record<string, string> = {
+  additive: '자유형',
+  subtractive: '감산형',
+  grid: '격자형',
+  lshape: 'ㄱ자형',
+  ushape: 'ㄷ자형',
+  cross: '십자형',
+  courtyard: '중정형',
+  tower_podium: '타워+기단',
+  hshape: 'H자형',
+  radial: '방사형',
+  freeform: '자유형',
+  rectangle: '직사각형',
+  L: 'L형',
+  U: 'U형',
+};
+
+export const SHAPE_COLORS: Record<string, string> = {
+  additive: '#60a5fa',
+  subtractive: '#a78bfa',
+  grid: '#34d399',
+  lshape: '#f97316',
+  ushape: '#06b6d4',
+  cross: '#ef4444',
+  courtyard: '#f472b6',
+  tower_podium: '#eab308',
+  hshape: '#8b5cf6',
+  radial: '#14b8a6',
+  freeform: '#60a5fa',
+  rectangle: '#60a5fa',
+  L: '#f97316',
+  U: '#06b6d4',
+};
