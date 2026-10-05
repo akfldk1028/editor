@@ -121,13 +121,13 @@ def test_disabled_datum_never_constructs_provider(tmp_path, monkeypatch):
 
 
 def test_default_datum_factory_uses_explicit_environment_settings(tmp_path, monkeypatch):
-    from backend.app.api import routes_land
+    from backend.app.modules.land import services
     captured = []
     class Provider:
         provenance = {'actual_provider': 'fixture_dem'}
         def __init__(self, provider, **kwargs): captured.append((provider, kwargs))
         def fetch(self, points): return [25.0] * len(points)
-    monkeypatch.setattr(routes_land, 'ElevationClient', Provider)
+    monkeypatch.setattr(services, 'ElevationClient', Provider)
     monkeypatch.setenv('ELEVATION_PROVIDER', 'ngii_local_dem')
     monkeypatch.setenv('NGII_DEM_LOCAL_PATH', 'fixture.tif')
     monkeypatch.setenv('DATUM_EDGE_SUBSAMPLE', 'false')

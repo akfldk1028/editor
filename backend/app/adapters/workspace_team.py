@@ -2,6 +2,9 @@ import base64
 import io
 import asyncio
 
+from backend.app.adapters.workspace_credentials import apply_environment
+from backend.app.adapters.workspace_tool_policy import check_tool_component
+
 
 TEXT_ATTACHMENT_TYPES = frozenset(
     {
@@ -38,6 +41,8 @@ SUPPORTED_PROVIDERS = frozenset(
         "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
         "autogen_ext.models.anthropic.AnthropicChatCompletionClient",
         "autogen_ext.models.ollama.OllamaChatCompletionClient",
+        # Scripted replies, no network: demos and execution tests without a key.
+        "autogen_ext.models.replay.ReplayChatCompletionClient",
         "autogen_core.model_context.UnboundedChatCompletionContext",
         "autogen_core.model_context.BufferedChatCompletionContext",
         "autogen_core.model_context.HeadAndTailChatCompletionContext",
@@ -50,12 +55,19 @@ def validate_components(value):
     # Saved template loading permits only these non-executable component classes.
     if isinstance(value, dict):
         provider = value.get("provider")
-        if provider is not None and (
-            not isinstance(provider, str) or provider not in SUPPORTED_PROVIDERS
-        ):
-            raise ValueError(
-                "Unsupported executable team component; check /runs/capabilities. Code, browser and MCP components require their explicit isolated execution integration"
-            )
+        if provider is not None:
+            if not isinstance(provider, str):
+                raise ValueError(UNSUPPORTED)
+            if provider not in SUPPORTED_PROVIDERS:
+                if not check_tool_component(value):
+                    raise ValueError(UNSUPPORTED)
+                # A tool container or MCP workbench: its own tool schemas carry no
+                # provider, so only the nested components are checked.
+                config = value.get("config")
+                if isinstance(config, dict):
+                    validate_components(config.get("tools", []))
+                    validate_components(config.get("model_client"))
+                return
         for child in value.values():
             validate_components(child)
     elif isinstance(value, list):
@@ -63,10 +75,14 @@ def validate_components(value):
             validate_components(child)
 
 
-def load_team(component, input_callback):
+UNSUPPORTED = "Unsupported executable team component; check /runs/capabilities. Code, browser and stdio MCP components require their explicit isolated execution integration"
+
+
+def load_team(component, input_callback, environment=()):
     from autogen_agentchat.base import Team
     from autogen_agentchat.agents import UserProxyAgent
 
+    component = apply_environment(component, environment)
     validate_components(component)
     team = Team.load_component(component)
 

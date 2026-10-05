@@ -15,12 +15,6 @@ VWORLD_API_KEY: str = os.getenv("VWORLD_API_KEY", "")
 LAW_BACKEND_URL: str = os.getenv("LAW_BACKEND_URL", "").strip()
 AG_LIGHT_URL: str = os.getenv("AG_LIGHT_URL", "").strip()
 
-# ── AutoGen Studio ───────────────────────────────────
-AUTOGEN_STUDIO_URL: str = os.getenv("AUTOGEN_STUDIO_URL", "http://localhost:8081")
-AUTOGEN_STUDIO_USER: str = os.getenv("AUTOGEN_STUDIO_USER", "guestuser@gmail.com")
-AUTOGEN_WS_TIMEOUT: int = 300  # seconds (3 agents × ~60s each + tool calls + selector)
-LAND_TEAM_LABEL: str = "Land Swarm Analysis Team"
-
 # ── LLM Extraction (법조문 → 규제 수치 동적 추출) ────
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 LLM_EXTRACTION_ENABLED: bool = os.getenv("LLM_EXTRACTION_ENABLED", "true").lower() == "true"

@@ -6,6 +6,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.app.modules.workspace.execution import WorkspaceExecution
 from backend.app.modules.workspace.execution_repository import ExecutionConflict
 from backend.app.adapters.workspace_team import SUPPORTED_PROVIDERS
+from backend.app.adapters.workspace_tool_policy import (
+    CONTAINER_PROVIDERS,
+    EDITOR_TOOL_PROVIDERS,
+    MCP_PROVIDERS,
+)
 
 
 class ExecutionCreate(BaseModel):
@@ -31,7 +36,7 @@ class ExecutionInput(BaseModel):
     response: str = Field(min_length=1, max_length=100000)
 
 
-def create_execution_router(directory):
+def create_execution_router(directory, environment):
     service = WorkspaceExecution(directory)
 
     @asynccontextmanager
@@ -49,7 +54,10 @@ def create_execution_router(directory):
             "execution_mode": "single_worker",
             "supported_providers": sorted(SUPPORTED_PROVIDERS),
             "template_code_execution": False,
-            "template_mcp_execution": False,
+            "template_mcp_execution": "http_only",
+            "template_mcp_providers": sorted(MCP_PROVIDERS),
+            "template_tools": sorted(EDITOR_TOOL_PROVIDERS),
+            "template_workbenches": sorted(CONTAINER_PROVIDERS),
         }
 
     def call(operation):
@@ -76,7 +84,10 @@ def create_execution_router(directory):
     async def start(identifier: str, body: ExecutionStart):
         call(
             lambda: service.start(
-                identifier, body.task, [item.model_dump() for item in body.files]
+                identifier,
+                body.task,
+                [item.model_dump() for item in body.files],
+                environment(),
             )
         )
         return {"run_id": identifier, "status": "active"}

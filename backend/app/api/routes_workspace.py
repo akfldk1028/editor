@@ -1,11 +1,11 @@
 import os
 import sqlite3
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from backend.app.schemas.workspace import SettingsUpdate
 
 from backend.app.modules.workspace.settings import SettingsConflict, SettingsRepository
+from backend.app.modules.workspace.storage import resolve_directory
 from backend.app.api.routes_workspace_catalog import create_catalog_router
 from backend.app.api.routes_workspace_sessions import create_sessions_router
 from backend.app.api.routes_workspace_execution import create_execution_router
@@ -23,16 +23,17 @@ def create_workspace_router(*, public_origin=None):
     router = APIRouter(prefix='/api/v1/workspace', tags=['workspace'], dependencies=[Depends(same_origin)])
 
     def directory():
-        storage_root = os.environ.get('EDITOR_WORKSPACE_DATA_DIR')
-        if not storage_root:
-            platform = os.environ.get('EDITOR_PLATFORM_DATA_DIR')
-            if not platform:
-                raise HTTPException(503, 'Workspace storage is not configured')
-            storage_root = Path(platform) / 'workspace'
+        storage_root = resolve_directory()
+        if storage_root is None:
+            raise HTTPException(503, 'Workspace storage is not configured')
         return storage_root
 
     def settings():
         return SettingsRepository(directory())
+
+    def environment():
+        # Saved variables reach model clients at load time; see adapters/workspace_credentials.py.
+        return settings().get()['config'].get('environment', [])
 
     @router.get('/settings')
     def get_settings():
@@ -59,7 +60,7 @@ def create_workspace_router(*, public_origin=None):
         return {'version': '1.0.0', 'service': 'editor-workspace'}
 
     router.include_router(create_sessions_router(directory))
-    router.include_router(create_execution_router(directory))
+    router.include_router(create_execution_router(directory, environment))
     router.include_router(create_mcp_router())
-    router.include_router(create_catalog_router(directory))
+    router.include_router(create_catalog_router(directory, environment))
     return router

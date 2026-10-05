@@ -1,8 +1,10 @@
 import sqlite3
 from typing import Literal
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from backend.app.modules.workspace.catalog import CatalogRepository, CatalogConflict, validate_component
+from backend.app.modules.workspace.component_test import test_component
+from backend.app.modules.workspace.seeds import DEFAULT_GALLERY, DEFAULT_TEAMS
 from backend.app.modules.workspace.validation import validate_template_shape
 
 
@@ -20,12 +22,25 @@ class ValidationPayload(TeamPayload):
     pass
 
 
-def create_catalog_router(directory):
+class ComponentTestPayload(TeamPayload):
+    timeout: int = Field(default=30, ge=1, le=120)
+
+
+def create_catalog_router(directory, environment):
     router = APIRouter()
+    seeded = set()
+
+    def repository():
+        path = directory()
+        repo = CatalogRepository(path)
+        if str(path) not in seeded:
+            repo.seed_defaults(DEFAULT_TEAMS, DEFAULT_GALLERY)
+            seeded.add(str(path))
+        return repo
 
     def operation(callback):
         try:
-            return callback(CatalogRepository(directory()))
+            return callback(repository())
         except CatalogConflict as error:
             raise HTTPException(409, str(error)) from None
         except LookupError:
@@ -70,6 +85,17 @@ def create_catalog_router(directory):
     def validate(body: ValidationPayload):
         try:
             return validate_component(body.component)
+        except RecursionError:
+            raise HTTPException(422, 'Component nesting exceeds supported depth') from None
+
+    @router.post('/validate/test')
+    async def validate_test(body: ComponentTestPayload):
+        try:
+            saved = environment()
+        except (HTTPException, sqlite3.Error, OSError):
+            saved = []
+        try:
+            return await test_component(body.component, saved, body.timeout)
         except RecursionError:
             raise HTTPException(422, 'Component nesting exceeds supported depth') from None
 

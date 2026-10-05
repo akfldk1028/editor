@@ -56,7 +56,7 @@ class WorkspaceExecution:
         self._lock, self._repository = handle, repo
         return repo
 
-    def start(self, identifier, task, files):
+    def start(self, identifier, task, files, environment=()):
         repo = self.repository()
         run = repo.get_run(identifier)
         component = json.loads(run["team_snapshot"])
@@ -64,13 +64,13 @@ class WorkspaceExecution:
         message = make_task(task, files)
         repo.claim(identifier, task)
         self.tasks[identifier] = asyncio.create_task(
-            self.execute(identifier, run, component, message)
+            self.execute(identifier, run, component, message, environment)
         )
         self.tasks[identifier].add_done_callback(
             lambda _: self.tasks.pop(identifier, None)
         )
 
-    async def execute(self, identifier, run, component, message):
+    async def execute(self, identifier, run, component, message, environment=()):
         repo = self.repository()
         started = time.monotonic()
         team = None
@@ -95,7 +95,7 @@ class WorkspaceExecution:
             from autogen_agentchat.base import TaskResult
             from autogen_agentchat.messages import ModelClientStreamingChunkEvent
 
-            team = load_team(component, user_input)
+            team = load_team(component, user_input, environment)
             previous = repo.previous_state(run)
             if previous is not None:
                 await team.load_state(previous)

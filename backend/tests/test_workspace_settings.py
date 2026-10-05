@@ -38,3 +38,25 @@ def test_environment_roundtrip_does_not_mutate_process_environment(tmp_path, mon
     saved = client(tmp_path, monkeypatch).get('/api/v1/workspace/settings').json()
     assert saved['config']['environment'][0]['value'] == 'test-placeholder'
     assert 'EDITOR_TEST_SAVED_ONLY' not in os.environ
+
+
+def test_apply_environment_fills_only_missing_model_fields_and_leaves_input_untouched():
+    import copy
+    import os
+    from backend.app.adapters.workspace_credentials import apply_environment
+
+    openai = 'autogen_ext.models.openai.OpenAIChatCompletionClient'
+    team = {'provider': 'autogen_agentchat.teams.RoundRobinGroupChat', 'component_type': 'team', 'config': {'participants': [
+        {'provider': 'autogen_agentchat.agents.AssistantAgent', 'component_type': 'agent', 'config': {'name': 'a',
+         'model_client': {'provider': openai, 'component_type': 'model', 'config': {'model': 'gpt-4o-mini'}}}},
+        {'provider': 'autogen_agentchat.agents.AssistantAgent', 'component_type': 'agent', 'config': {'name': 'b',
+         'model_client': {'provider': openai, 'component_type': 'model', 'config': {'model': 'gpt-4o-mini', 'api_key': 'explicit'}}}},
+    ]}}
+    before = copy.deepcopy(team)
+    filled = apply_environment(team, [{'name': 'OPENAI_API_KEY', 'value': 'saved-key', 'type': 'secret', 'required': False},
+                                      {'name': 'OPENAI_BASE_URL', 'value': '', 'type': 'string', 'required': False}])
+    first, second = (p['config']['model_client']['config'] for p in filled['config']['participants'])
+    assert first['api_key'] == 'saved-key' and 'base_url' not in first
+    assert second['api_key'] == 'explicit'
+    assert team == before
+    assert 'OPENAI_API_KEY' not in os.environ or os.environ['OPENAI_API_KEY'] != 'saved-key'

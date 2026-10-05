@@ -196,19 +196,181 @@ def test_terminal_execution_cannot_be_reopened_by_late_events(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "provider",
+    "component",
     [
-        "builtins.eval",
-        "autogen_ext.tools.mcp.StdioMcpTool",
-        "autogen_ext.agents.web_surfer.MultimodalWebSurfer",
-        "autogen_ext.code_executors.local.LocalCommandLineCodeExecutor",
+        {"provider": "builtins.eval", "config": {}},
+        {"provider": "autogen_ext.tools.mcp.StdioMcpTool", "config": {}},
+        {"provider": "autogen_ext.agents.web_surfer.MultimodalWebSurfer", "config": {}},
+        {
+            "provider": "autogen_ext.code_executors.local.LocalCommandLineCodeExecutor",
+            "config": {},
+        },
+        {
+            "provider": "autogen_core.tools.FunctionTool",
+            "config": {"source_code": "def f(): pass", "name": "f"},
+        },
+        {"provider": "autogen_ext.tools.http.HttpTool", "config": {}},
+        {
+            "provider": "autogen_ext.tools.mcp.McpWorkbench",
+            "config": {
+                "server_params": {"type": "StdioServerParams", "command": "npx"}
+            },
+        },
     ],
 )
-def test_unsafe_template_component_is_rejected_before_loading(provider):
+def test_unsafe_template_component_is_rejected_before_loading(component):
     from backend.app.adapters.workspace_team import validate_components
 
     with pytest.raises(ValueError):
-        validate_components({"provider": provider, "config": {}})
+        validate_components(component)
+
+
+def exported_assistant(name="assistant", model_client=None):
+    # The shape AssistantAgent.dump_component() produces: an empty static workbench
+    # is always present, so a template exported from a Studio is rejected unless
+    # the container provider is allowed.
+    return {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "config": {
+            "name": name,
+            "description": "An agent",
+            "reflect_on_tool_use": False,
+            "tool_call_summary_format": "{result}",
+            "model_client": model_client
+            or {
+                "provider": "autogen_ext.models.openai.OpenAIChatCompletionClient",
+                "component_type": "model",
+                "config": {"model": "gpt-4o-mini"},
+            },
+            "workbench": [
+                {
+                    "provider": "autogen_core.tools.StaticStreamWorkbench",
+                    "component_type": "workbench",
+                    "config": {"tools": []},
+                }
+            ],
+        },
+    }
+
+
+def test_exported_assistant_agent_with_static_stream_workbench_validates():
+    from backend.app.adapters.workspace_team import validate_components
+
+    validate_components(exported_assistant())
+
+
+def test_http_mcp_workbench_passes_policy_without_connecting():
+    from backend.app.adapters.workspace_team import validate_components
+
+    validate_components(
+        {
+            "provider": "autogen_ext.tools.mcp.McpWorkbench",
+            "component_type": "workbench",
+            "config": {
+                "server_params": {
+                    "type": "StreamableHttpServerParams",
+                    "url": "http://127.0.0.1:9/mcp",
+                }
+            },
+        }
+    )
+
+
+def test_start_passes_saved_environment_to_team_loader(tmp_path, monkeypatch):
+    from backend.app.modules.workspace import execution as module
+    from backend.app.modules.workspace.execution import WorkspaceExecution
+
+    session = native_session(tmp_path)
+    seen = []
+
+    def spy(component, input_callback, environment=()):
+        seen.append(list(environment))
+        raise RuntimeError("loader stub")
+
+    monkeypatch.setattr(module, "load_team", spy)
+    saved = [{"name": "OPENAI_API_KEY", "value": "saved-secret-value"}]
+
+    async def scenario():
+        service = WorkspaceExecution(lambda: tmp_path)
+        repo = service.repository()
+        run = repo.create_run(session)
+        service.start(run["run_id"], "task", [], saved)
+        await service.tasks[run["run_id"]]
+        state = repo.events(run["run_id"])
+        await service.close()
+        return state
+
+    state = asyncio.run(scenario())
+    assert seen == [saved]
+    assert state["status"] == "error"
+    assert "saved-secret-value" not in str(state["events"])
+
+
+def test_capabilities_reports_http_only_mcp_and_editor_tools(tmp_path, monkeypatch):
+    monkeypatch.setenv("EDITOR_WORKSPACE_DATA_DIR", str(tmp_path))
+    app = FastAPI()
+    app.include_router(create_workspace_router(public_origin="http://testserver"))
+    with TestClient(app) as client:
+        body = client.get("/api/v1/workspace/runs/capabilities").json()
+    assert body["template_mcp_execution"] == "http_only"
+    assert "autogen_core.tools.StaticStreamWorkbench" in body["template_workbenches"]
+    assert "backend.app.adapters.workspace_tools.LandAnalyzeTool" in body["template_tools"]
+    assert (
+        "autogen_ext.models.replay.ReplayChatCompletionClient"
+        in body["supported_providers"]
+    )
+
+
+def replay_model(replies):
+    return {
+        "provider": "autogen_ext.models.replay.ReplayChatCompletionClient",
+        "component_type": "model",
+        "config": {"chat_completions": list(replies)},
+    }
+
+
+def test_replay_model_team_runs_to_completion_without_network(tmp_path, monkeypatch):
+    # The first execution of a real AssistantAgent through the editor runner.
+    monkeypatch.setenv("EDITOR_WORKSPACE_DATA_DIR", str(tmp_path))
+    app = FastAPI()
+    app.include_router(create_workspace_router(public_origin="http://testserver"))
+    with TestClient(app) as client:
+        team = client.post(
+            "/api/v1/workspace/teams",
+            json={
+                "component": {
+                    "provider": "autogen_agentchat.teams.RoundRobinGroupChat",
+                    "component_type": "team",
+                    "config": {
+                        "participants": [exported_assistant(model_client=replay_model(["4"]))],
+                        "termination_condition": {
+                            "provider": "autogen_agentchat.conditions.MaxMessageTermination",
+                            "component_type": "termination",
+                            "config": {"max_messages": 2},
+                        },
+                    },
+                }
+            },
+        )
+        assert team.status_code == 201, team.text
+        session = client.post(
+            "/api/v1/workspace/sessions",
+            json={"name": "Replay", "team_id": team.json()["id"]},
+        ).json()
+        run = client.post("/api/v1/workspace/runs", json={"session_id": session["id"]})
+        path = "/api/v1/workspace/runs/" + str(run.json()["run_id"])
+        assert client.post(path + "/start", json={"task": "What is 2+2?", "files": []}).status_code == 202
+        for _ in range(200):
+            state = client.get(path + "/events").json()
+            if state["status"] in ("complete", "error"):
+                break
+            time.sleep(0.05)
+        assert state["status"] == "complete", state
+        assert any(
+            e["type"] == "message" and e["data"].get("content") == "4"
+            for e in state["events"]
+        ), state["events"]
 
 
 @pytest.mark.parametrize("shutdown", [False, True])

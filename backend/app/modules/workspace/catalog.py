@@ -62,6 +62,27 @@ class CatalogRepository:
                 raise LookupError('Template not found')
         return {'deleted': True, 'id': identifier}
 
+    def seed_defaults(self, teams, gallery):
+        # A seed is inserted once per name; a user's later deletion is not undone.
+        entries = [(f"team:{team['label']}", 'teams', {'component': team}) for team in teams]
+        entries.append((f"gallery:{gallery['name']}", 'galleries', {'config': gallery}))
+        now = datetime.now(timezone.utc).isoformat()
+        with self.connect() as db:
+            db.execute('CREATE TABLE IF NOT EXISTS seeds (name TEXT PRIMARY KEY, record_id INTEGER NOT NULL)')
+            seeded = {row[0] for row in db.execute('SELECT name FROM seeds')}
+            for name, kind, payload in entries:
+                if name in seeded:
+                    continue
+                identifier = db.execute('INSERT INTO records(kind,version,payload,created_at,updated_at) VALUES (?,0,?,?,?)',
+                                        (kind, self.encode(payload), now, now)).lastrowid
+                db.execute('INSERT INTO seeds VALUES (?,?)', (name, identifier))
+
+    def find_team(self, label):
+        for record in self.list('teams'):
+            if record['component'].get('label') == label:
+                return record['component']
+        return None
+
 
 def validate_component(component):
     errors = []

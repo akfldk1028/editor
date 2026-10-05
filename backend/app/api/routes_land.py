@@ -1,24 +1,17 @@
 import os
 import sqlite3
 from typing import Annotated, Literal
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.app.modules.regulations.zoning_catalog import CatalogUnavailable, get_zones
 from backend.app.modules.land.pnu import normalize_pnu, parse_pnu
-from backend.app.adapters.vworld import VworldClient
-from backend.app.adapters.vworld_land import VworldLandClient
-from backend.app.adapters.vworld_geometry import VworldGeometryClient
-from backend.app.adapters.law_search import LawSearchClient
-from backend.app.adapters.regulation_extraction import RegulationExtractionClient
-from backend.app.adapters.elevation import ElevationClient
-from backend.app.modules.land.datum import DatumService, DatumSettings
 from backend.app.schemas.regulations import ZoningLimitsRequest
-from backend.app.modules.land.analysis import analyze_land
+from backend.app.modules.land.agent_analysis import agent_analysis_events, configured_team, sse
 from backend.app.modules.land.analysis_request import normalize_program_request
 from backend.app.modules.land.parcel_geometry import parcel_geometry
-from backend.app.modules.land.attributes import LandAttributes
-from backend.app.modules.land.repository import LandRepository
+from backend.app.modules.land.services import DatumConfigurationError, LandServices
 from backend.app.api.routes_land_map import create_land_map_router
 
 
@@ -81,46 +74,14 @@ class ParcelRequest(BaseModel):
 
 def create_land_router(*, public_origin=None, address_client=None, repository=None,
                        attribute_client=None, geometry_client=None, law_client=None, extraction_client=None,
-                       datum_service_factory=None):
+                       datum_service_factory=None, services=None, agent_team=None, agent_environment=None):
     origin=public_origin or os.environ.get('EDITOR_PUBLIC_URL','http://127.0.0.1:5173')
     router=APIRouter(prefix='/api/v1/land',tags=['land'])
-    addresses=address_client or VworldClient(os.environ.get('VWORLD_API_KEY', ''))
-    attributes=attribute_client or VworldLandClient(os.environ.get('VWORLD_API_KEY', ''))
-    geometries=geometry_client or VworldGeometryClient(os.environ.get('VWORLD_API_KEY', ''))
-    laws=law_client or LawSearchClient(os.environ.get('LAW_BACKEND_URL'), os.environ.get('AG_LIGHT_URL'))
-    extraction=extraction_client or RegulationExtractionClient(laws,
-        enabled=os.environ.get('LLM_EXTRACTION_ENABLED', 'false').lower() == 'true',
-        api_key=os.environ.get('OPENAI_API_KEY', ''),
-        model=os.environ.get('LLM_EXTRACTION_MODEL', 'gpt-4o-mini'))
-    datum_enabled = os.environ.get('ENABLE_DATUM_ELEVATION', 'false').lower() == 'true'
-    datum_environment = {name: os.environ.get(name, default) for name, default in {
-        'ELEVATION_PROVIDER': 'open_meteo', 'NGII_LIDAR_URL': 'http://localhost:5000',
-        'NGII_DEM_LOCAL_PATH': '', 'DATUM_EDGE_SUBSAMPLE': 'true',
-        'DATUM_EDGE_SUBSAMPLE_THRESHOLD_M': '10.0', 'DATUM_EDGE_SUBSAMPLE_STEP_M': '5.0',
-        'DATUM_MEDIAN_FILTER': 'true', 'DATUM_MEDIAN_FILTER_WINDOW': '3',
-    }.items()}
-
-    def new_datum_service():
-        if not datum_enabled:
-            return None
-        if datum_service_factory is not None:
-            return datum_service_factory()
-        settings = DatumSettings(
-            edge_subsample=datum_environment['DATUM_EDGE_SUBSAMPLE'].lower() == 'true',
-            edge_subsample_threshold_m=float(datum_environment['DATUM_EDGE_SUBSAMPLE_THRESHOLD_M']),
-            edge_subsample_step_m=float(datum_environment['DATUM_EDGE_SUBSAMPLE_STEP_M']),
-            median_filter=datum_environment['DATUM_MEDIAN_FILTER'].lower() == 'true',
-            median_filter_window=int(datum_environment['DATUM_MEDIAN_FILTER_WINDOW']))
-        provider = ElevationClient(datum_environment['ELEVATION_PROVIDER'],
-            opentopodata_url=datum_environment['NGII_LIDAR_URL'],
-            local_dem_path=datum_environment['NGII_DEM_LOCAL_PATH'], timeout=5)
-        return DatumService(provider, settings)
-
-    def local_repository():
-        if repository is not None:
-            return repository
-        directory = os.environ.get('EDITOR_LAND_DATA_DIR')
-        return LandRepository(directory) if directory else None
+    services = services or LandServices.from_environment(
+        address_client=address_client, repository=repository, attribute_client=attribute_client,
+        geometry_client=geometry_client, law_client=law_client, extraction_client=extraction_client,
+        datum_service_factory=datum_service_factory)
+    addresses = services.addresses
 
     def check_origin(request):
         if request.headers.get('sec-fetch-site')=='cross-site' or (request.headers.get('origin') and request.headers['origin']!=origin):
@@ -153,7 +114,7 @@ def create_land_router(*, public_origin=None, address_client=None, repository=No
     @router.get('/stats')
     async def stats(scope: Literal['all', 'imported', 'editor'] = 'all'):
         try:
-            local = local_repository()
+            local = services.local_repository()
             if local is None:
                 raise HTTPException(503, 'Land storage is not configured')
             return {**await run_in_threadpool(local.stats, scope),
@@ -179,20 +140,33 @@ def create_land_router(*, public_origin=None, address_client=None, repository=No
     async def analyze(body: LandRequest, request: Request):
         check_origin(request)
         try:
-            local = local_repository()
-        except (OSError, ValueError):
-            local = None
-        try:
-            datum_service = new_datum_service()
-        except (ValueError, OSError):
-            raise HTTPException(503, 'Datum configuration unavailable') from None
-        try:
-            result = await analyze_land(body.model_dump(), addresses,
-                LandAttributes(attributes, local), geometries, local,
-                law_client=laws, extraction_client=extraction, datum_service=datum_service)
+            result = await services.analyze(body.model_dump())
             return {**result, 'execution_owner': 'editor'}
+        except DatumConfigurationError:
+            raise HTTPException(503, 'Datum configuration unavailable') from None
         except (CatalogUnavailable, OSError):
             raise HTTPException(503, 'Regulation references unavailable') from None
+
+    @router.get('/agent-analyze/stream')
+    async def agent_analyze_stream(request: Request, pnu: str = Query(default='', max_length=100),
+                                   address: str = Query(default='', max_length=500),
+                                   zones: str = Query(default='', max_length=2000)):
+        # Quick analysis first, then the saved land team runs in-process; see modules/land/agent_analysis.py.
+        check_origin(request)
+        pnu, address = pnu.strip(), address.strip()
+        if not pnu and not address:
+            raise HTTPException(422, 'pnu or address is required')
+        if pnu:
+            try:
+                pnu = normalize_pnu(pnu)
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from None
+        team, environment = configured_team(agent_team, agent_environment)
+        events = agent_analysis_events(pnu=pnu, address=address, services=services, team=team,
+                                       environment=environment,
+                                       zones=[zone.strip() for zone in zones.split(',') if zone.strip()])
+        return StreamingResponse((sse(event) async for event in events), media_type='text/event-stream',
+                                 headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})
 
     router.include_router(create_land_map_router(prefix=''))
     return router
