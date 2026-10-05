@@ -1,0 +1,70 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "offset",
+  "action": "duplicate and translate a related volume",
+  "topology": "multiple_volumes -> offset_related_volumes",
+  "variation_parameters": [
+    "axis",
+    "distance_ratio",
+    "other_scale"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "book_array",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 offset adds 104 m3 (add) acting on 2 volume(s) (multiple). The BOOK records this word as add on multiple volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 12,
+      "transformation": "add",
+      "cardinality": "multiple"
+    }
+  ],
+  "book_layer": "base_operative",
+  "mathematical_basis": {
+    "standard": "space within a space, held clear",
+    "reference": "Ching, F.D.K. 'Architecture: Form, Space, and Order' - the four spatial relationships: space within a space, interlocking spaces, adjacent spaces, and spaces linked by a common space",
+    "definition": "The BOOK binds offset to the same operator as nest: a volume held at a distance inside another, the gap between them being the space. Not the offset surface of solid modelling, despite the shared name.",
+    "shipped_as": "the first of Ching's relationships; NOT the offset surface"
+  },
+  "canonical_effect": "nested_related",
+  "lowering_contract": {
+    "required_operators": [
+      "nested_related"
+    ],
+    "forbidden_operators": [
+      "translate"
+    ],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "nested_related",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1",
+  "executed_by_note": "BOOK p.12: the body and one copy displaced by a fraction of itself (book_array, count 2, pitch 0.25-0.7). Was nested_related - a shrunken copy inside the host with its roof showing, indistinguishable from nest (2026-09-10)."
+}

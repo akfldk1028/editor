@@ -1,0 +1,25 @@
+id: maas_geometry_agent
+name: MAAS Geometry Agent
+runtime: arr.maas.local_agent
+method_basis:
+  - source_geometry_compilation
+  - repair_delta_tracking
+input_contract:
+  - massdsl_proposal
+  - source_signature
+  - legal_envelope
+output_contract:
+  - source_geometry_status
+  - source_volumes
+  - repair_delta
+handoffs:
+  previous: massdsl_agent
+  next: grammar_critic_agent
+responsibilities:
+  - compile_massdsl_to_source_geometry
+  - attach_repair_delta
+  - keep_geometry_inside_legal_envelope
+non_responsibilities:
+  - llm_language_authoring
+  - parking_permit_approval
+  - final_design_judgment

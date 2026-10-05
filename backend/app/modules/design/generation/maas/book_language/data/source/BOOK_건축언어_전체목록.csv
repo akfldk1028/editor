@@ -1,0 +1,135 @@
+id,layer,english,korean,category,scope,scan,book_pages,meaning
+001,process,Generative Process,생성 과정,Design Process,,1-2,10-11,조작을 통해 형태를 발생시키는 과정
+002,process,Quotidian Language,일상 언어,Design Process,,1-2,10-11,일상 동사를 공간 언어로 전환하는 출발점
+003,process,Movement,움직임,Design Process,,1-2,10-11,볼륨과 면의 위치 및 방향 변화
+004,process,Action,행위,Design Process,,1-2,10-11,형태에 가해지는 능동적 조작
+005,process,Spatial Thinking,공간적 사고,Design Process,,1-2,10-11,동사를 공간 관계로 상상하는 사고
+006,process,Operative Terms,조작 용어,Design Process,,1-2,10-11,형태를 변화시키는 동사형 어휘
+007,process,Verb as a Design Tool,설계 도구로서의 동사,Design Process,,1-2,10-11,변화 과정 중심의 설계 방식
+008,process,Active Design,능동적 설계,Design Process,,1-2,10-11,조작으로 진화하는 설계
+009,process,Fluid Process,유동적 과정,Design Process,,1-2,10-11,조건에 따라 수정 가능한 과정
+010,process,Operation,조작,Design Process,,1-2,10-11,기본 볼륨에 적용하는 형태 변환
+011,process,Evolution,진화,Design Process,,1-2,10-11,한 상태에서 다음 상태로의 단계적 변화
+012,process,Volumetric Configuration,볼륨 구성,Design Process,,1-2,10-11,체적의 크기 방향 접촉 배치 상태
+013,process,Spatial Needs,공간적 요구,Design Process,,1-2,10-11,크기 연결 위계 채광 동선 요구
+014,process,Programmatic Needs,프로그램 요구,Design Process,,1-2,10-11,기능과 활동 배치 요구
+015,process,Systematic Organization,체계적 조직,Design Process,,1-2,10-11,상위 분류와 하위 동사의 정돈
+016,process,Spatial Relationship,공간 관계,Design Process,,1-2,10-11,안팎 위아래 겹침 교차 연결 거리 관계
+017,process,Critical Interpretation,비판적 해석,Design Process,,1-2,10-11,조건에 맞게 동사를 재해석
+018,process,Instigator for Design,설계 촉발 장치,Design Process,,1-2,10-11,새 설계안을 시작하는 생성 규칙
+019,process,Formal Manipulation,형태 조작,Design Process,,1-2,10-11,매스 기하를 더하고 옮기고 빼는 조작
+020,process,Abstract Spatial Thinking,추상적 공간 사고,Design Process,,1-2,10-11,관계와 변화를 도식으로 탐구
+021,process,Spatial Outcome,공간적 결과,Design Process,,1-2,10-11,조작으로 생기는 방 틈 중정 동선 외부 공간
+022,process,Elemental Starting Point,기본 출발 요소,Design Process,,1-2,10-11,복잡한 설계 이전의 단순 볼륨
+023,process,Exploration,탐색,Design Process,,1-2,10-11,크기 방향 비례를 바꾸어 가능성을 시험
+024,process,Combination,조합,Design Process,,1-2,10-11,둘 이상의 조작을 순서대로 적용
+025,process,Aggregation,집합,Design Process,,1-2,10-11,조작된 단위를 반복 배열 결합
+026,process,Volumetric Hybrid,볼륨 혼성체,Design Process,,1-2,10-11,서로 다른 조작이 결합된 결과
+027,process,Chain,연쇄,Design Process,,1-2,10-11,앞 동사를 다음 조합으로 잇는 방법
+028,process,Inter-category Combination,범주 간 조합,Design Process,,1-2,10-11,Add Displace Subtract를 가로지른 조합
+029,process,Iterative,반복 점진적,Design Process,,1-2,10-11,결과를 다시 입력으로 사용하는 방식
+030,diagram,Base Volume,기본 볼륨,Geometry,,3,14-15,모든 조작의 입력 매스
+031,diagram,Single Volume,단일 볼륨,Geometry,Single,4-37,16-83,하나의 연속된 매스
+032,diagram,Multi Volume,복수 볼륨,Geometry,Multiple,4-37,16-83,둘 이상의 매스
+033,diagram,Procedure,절차,Diagram,,6-37,20-83,입력 조작 결과의 순서
+034,diagram,Initial Volume,초기 볼륨,Diagram,,39-48,86-105,조합 전 시작 형상
+035,diagram,Orientation,방향 배향,Diagram,,6-37,20-83,조작 적용 면 축 각도
+036,diagram,Variations,변형안,Diagram,,6-58,20-125,크기 비례 방향 개수의 변형
+037,diagram,Combined Operations,결합 조작,Diagram,,39-48,86-105,두 조작이 연속 적용된 결과
+038,diagram,Aggregation Method,집합 방식,Diagram,,50-58,108-125,반복 배치 규칙
+039,diagram,Result,결과,Diagram,,50-58,108-125,조작과 집합을 거친 최종 형태
+040,diagram,Implementations,실제 적용,Diagram,,59-69,126-147,추상 동사의 실재 건축 대응
+041,operation,Expand,확장하다,Add,Single,6,20-21,한쪽 경계를 밀어 범위를 늘림
+042,operation,Extrude,돌출하다 압출하다,Add,Single,7,22-23,선택한 면을 직선 방향으로 뽑음
+043,operation,Inflate,팽창시키다,Add,Single,8,24-25,대응 면을 벌려 중심부를 부풀림
+044,operation,Branch,분기하다,Add,Multiple,9,26-27,하나의 줄기에서 여러 팔을 생성
+045,operation,Merge,병합하다,Add,Multiple,10,28-29,여러 매스를 한 덩어리로 통합
+046,operation,Nest,포개 넣다 내포하다,Add,Multiple,11,30-31,작은 볼륨을 큰 볼륨 안에 넣음
+047,operation,Offset,평행 이격하다,Add,Multiple,12,32-33,원래 경계와 일정 거리의 평행 경계 생성
+048,operation,Bend,굽히다 꺾다,Displace,Single,14,36-37,연결을 유지하며 방향을 꺾음
+049,operation,Skew,비스듬히 밀다,Displace,Single,15,38-39,면을 옆으로 밀어 사선형을 만듦
+050,operation,Split,가르다 분할 변위하다,Displace,Single,16,40-41,볼륨을 갈라 일부를 벌림
+051,operation,Twist,비틀다,Displace,Single,17,42-43,단면을 서로 다른 방향으로 회전
+052,operation,Interlock,맞물리다,Displace,Multiple,18,44-45,홈과 돌출부를 퍼즐처럼 결합
+053,operation,Intersect,관통 교차하다,Displace,Multiple,19,46-47,두 볼륨을 서로 관통시킴
+054,operation,Lift,들어 올리다,Displace,Multiple,20,48-49,한 볼륨을 다른 볼륨 위로 올림
+055,operation,Lodge,사이에 끼우다 걸치다,Displace,Multiple,21,50-51,두 볼륨 사이에 연결 매스를 끼움
+056,operation,Overlap,겹치다,Displace,Multiple,22,52-53,각 형상을 유지하며 일부를 포갬
+057,operation,Rotate,회전하다,Displace,Multiple,23,54-55,기준점이나 축 주위로 돌림
+058,operation,Shift,어긋나게 이동하다,Displace,Multiple,24,56-57,볼륨을 평행 이동해 단차 생성
+059,operation,Carve,파내다,Subtract,Single,26,60-61,외부에서 내부로 큰 보이드를 만듦
+060,operation,Compress,압축하다,Subtract,Single,27,62-63,양쪽 경계를 안으로 밀어 폭을 줄임
+061,operation,Fracture,균열 내다 쪼개다,Subtract,Single,28,64-65,불규칙 사선 틈을 절삭
+062,operation,Grade,단차화하다,Subtract,Single,29,66-67,단계적으로 깎아 계단형 윤곽 생성
+063,operation,Notch,홈 파다,Subtract,Single,30,68-69,모서리나 변을 국부적으로 제거
+064,operation,Pinch,잘록하게 조이다,Subtract,Single,31,70-71,중앙 양측을 깎아 좁힘
+065,operation,Shear,사선 절단하다,Subtract,Single,32,72-73,사선 평면으로 일부를 잘라냄
+066,operation,Taper,점차 가늘게 하다,Subtract,Single,33,74-75,길이를 따라 단면을 점진적으로 축소
+067,operation,Embed,파묻다 끼워 넣다,Subtract,Multiple,34,76-77,제2 볼륨을 제1 볼륨에 삽입
+068,operation,Extract,빼내다 추출하다,Subtract,Multiple,35,78-79,교차 볼륨을 제거해 빈 자리 생성
+069,operation,Inscribe,새겨 넣다,Subtract,Multiple,36,80-81,표면이나 가장자리에 선형 홈 생성
+070,operation,Puncture,관통시키다,Subtract,Multiple,37,82-83,작은 볼륨으로 매스를 뚫음
+071,combination,Inscribe + Inscribe,새기기 + 새기기,Combination,,39,86,복수의 선형 홈 생성
+072,combination,Intersect + Intersect,교차 + 교차,Combination,,39,87,복합 관통 결절 생성
+073,combination,Split + Split,가르기 + 가르기,Combination,,40,88,다중 분기 생성
+074,combination,Embed + Embed,삽입 + 삽입,Combination,,40,89,다중 삽입 자리 생성
+075,combination,Taper + Taper,점감 + 점감,Combination,,41,90,강한 수렴 형상 생성
+076,combination,Bend + Bend,굽힘 + 굽힘,Combination,,41,91,Z자 곡절형 생성
+077,combination,Branch + Branch,분기 + 분기,Combination,,42,92,수목형 조직 생성
+078,combination,Expand + Expand,확장 + 확장,Combination,,42,93,단계형 확장 생성
+079,combination,Shift + Shift,어긋남 + 어긋남,Combination,,43,94,지그재그 실루엣 생성
+080,combination,Notch + Notch,홈 + 홈,Combination,,43,95,반복 음각 생성
+081,combination,Inscribe + Intersect,새기기 + 교차,Combination,,44,96,절삭과 관통 결합
+082,combination,Intersect + Split,교차 + 가르기,Combination,,44,97,교차 매스의 분할
+083,combination,Split + Embed,가르기 + 삽입,Combination,,45,98,갈라진 틈의 프로그램화
+084,combination,Embed + Taper,삽입 + 점감,Combination,,45,99,삽입 관계와 방향성 결합
+085,combination,Taper + Bend,점감 + 굽힘,Combination,,46,100,수렴하는 매스의 방향 전환
+086,combination,Bend + Branch,굽힘 + 분기,Combination,,46,101,꺾인 몸체의 프로그램 분화
+087,combination,Branch + Expand,분기 + 확장,Combination,,47,102,분기 팔의 크기 차 생성
+088,combination,Expand + Shift,확장 + 어긋남,Combination,,47,103,확장부의 세트백 생성
+089,combination,Shift + Notch,어긋남 + 홈,Combination,,48,104,이동 매스의 외부 공간 생성
+090,combination,Notch + Twist,홈 + 비틀기,Combination,,48,105,절개가 회전하는 형상 생성
+091,aggregation,Reflect,반사 복제,Aggregation Method,,49-51,106-111,거울상 복사
+092,aggregation,Pack,밀집 배치,Aggregation Method,,49-53,106-115,빈틈을 최소화해 채움
+093,aggregation,Stack,적층,Aggregation Method,,49-55,106-119,수직 또는 층상으로 쌓음
+094,aggregation,Array,배열,Aggregation Method,,49-57,106-123,일정 간격과 행열로 반복
+095,aggregation,Join,이어 붙이기,Aggregation Method,,49-58,106-125,끝점과 접점을 연결
+096,aggregation-expression,Reflect | Expand,확장 단위의 반사 집합,Aggregation Expression,,50,108-109,Expand 후 Reflect
+097,aggregation-expression,Reflect + Pack | Skew,사행 단위의 반사 및 밀집 집합,Aggregation Expression,,51,110-111,Skew 후 Reflect 후 Pack
+098,aggregation-expression,Pack | Inflate,팽창 단위의 밀집 집합,Aggregation Expression,,52,112-113,Inflate 후 Pack
+099,aggregation-expression,Pack + Stack | Branch,분기 단위의 밀집 및 적층 집합,Aggregation Expression,,53,114-115,Branch 후 Pack 후 Stack
+100,aggregation-expression,Stack | Bend,굽힌 단위의 적층 집합,Aggregation Expression,,54,116-117,Bend 후 Stack
+101,aggregation-expression,Array + Stack | Rotate,회전 단위의 배열 및 적층 집합,Aggregation Expression,,55,118-119,Rotate 후 Array 후 Stack
+102,aggregation-expression,Array | Taper,점감 단위의 배열 집합,Aggregation Expression,,56,120-121,Taper 후 Array
+103,aggregation-expression,Join + Array | Pinch,잘록한 단위의 연결 및 배열 집합,Aggregation Expression,,57,122-123,Pinch 후 Join 후 Array
+104,aggregation-expression,Join | Split,분할 단위의 연결 집합,Aggregation Expression,,58,124-125,Split 후 Join
+105,implementation,Offset Program,이격된 프로그램,Poli House,,60,128-129,외벽에서 일정 거리의 프로그램 배치
+106,implementation,Perimeter Services,주변부 서비스 공간,Poli House,,60,128-129,설비 수납 보조 기능의 둘레 배치
+107,implementation,Punctured Openings,관통 개구부,Poli House,,60,128-129,두꺼운 외피를 뚫은 창과 구멍
+108,implementation,Branched Programs,분기된 프로그램,Villa 1,,61,130-131,기능이 여러 팔로 갈라짐
+109,implementation,Volume Wrapper,볼륨 감싸개,Villa 1,,61,130-131,분기 매스를 싸는 외피
+110,implementation,Embedded Entry,삽입된 진입부,Villa 1,,61,130-131,외피와 매스 사이에 파묻힌 입구
+111,implementation,Overlapping Program,중첩된 프로그램,Casa para un Carpintero,,62,132-133,기능 영역의 일부 공유
+112,implementation,Circulation Core,동선 코어,Casa para un Carpintero,,62,132-133,계단과 이동을 집중한 중심부
+113,implementation,Embedded Entry,삽입된 진입부,Casa para un Carpintero,,62,132-133,겹친 매스 틈의 입구
+114,implementation,Expanded Outer Volume,확장된 외곽 볼륨,House N,,63,134-135,건물 전체를 감싸는 큰 경계
+115,implementation,Nested Private Program,내포된 사적 프로그램,House N,,63,134-135,큰 외피 안의 사적 방
+116,implementation,Nested Living + Dining,내포된 거실 식당,House N,,63,134-135,가장 안쪽의 생활 공간
+117,implementation,Overlapping Light Wells,중첩된 채광정,House in Minamimachi 2,,64,136-137,매스 사이에 이어지는 빛의 틈
+118,implementation,Stacked Program,적층된 프로그램,House in Minamimachi 2,,64,136-137,기능의 수직 적층
+119,implementation,Expanded Volumes,확장된 볼륨들,House in Minamimachi 2,,64,136-137,외곽으로 늘어난 프로그램 매스
+120,implementation,Shifted Volumes,어긋난 볼륨들,Nursing Home,,65,138-139,방 단위의 앞뒤 이동
+121,implementation,Bent Massing,굽은 매싱,Nursing Home,,65,138-139,대지에 따라 꺾인 전체 덩어리
+122,implementation,Embedded Massing,삽입된 매싱,Nursing Home,,65,138-139,프로그램이 외곽에 파묻힌 구성
+123,implementation,Tapered Volumes,점차 가늘어진 볼륨들,Leimondo Nursery School,,66,140-141,끝으로 수렴하는 방 단위
+124,implementation,Thickened Roof,두꺼워진 지붕,Leimondo Nursery School,,66,140-141,프로그램을 품는 지붕 매스
+125,implementation,Embedded Program,삽입된 프로그램,Leimondo Nursery School,,66,140-141,외곽 안에 들어간 기능 단위
+126,implementation,Carved Massing,파낸 매싱,Gouveia Law Courts,,67,142-143,큰 덩어리의 중심 공간 제거
+127,implementation,Lifted Program,들어 올린 프로그램,Gouveia Law Courts,,67,142-143,지면에서 띄운 주요 기능
+128,implementation,Carved Plinth,파낸 기단,Gouveia Law Courts,,67,142-143,기단의 진입 중정 공용 공간
+129,implementation,Extruded Living Spaces,돌출된 거주 공간,Carabanchel Housing,,68,144-145,반복 주거 단위의 외곽 돌출
+130,implementation,Lifted Massing,들어 올린 매싱,Carabanchel Housing,,68,144-145,저층부에서 띄운 주거 매스
+131,implementation,Carved Plinth,파낸 기단,Carabanchel Housing,,68,144-145,공용 영역을 만든 저층 기단
+132,implementation,Rotated Volumes,회전된 볼륨들,Ironbank,,69,146-147,층별 프로그램 덩어리의 각도 변화
+133,implementation,Stacked Utility and Circulation Cores,적층된 설비 및 동선 코어,Ironbank,,69,146-147,수직 적층된 서비스 중심부
+134,implementation,Plinth and Street Facade,기단과 가로 입면,Ironbank,,69,146-147,도시 경계를 만드는 저층부

@@ -1,0 +1,19 @@
+{
+  "schema_version": "arr.maas.preference_weights.v1",
+  "source_pattern": "clone/VisionReward/VisionReward_Image/weight.json",
+  "domain": "architecture_massing",
+  "weights": {
+    "gesture_clarity": 0.22,
+    "hierarchy": 0.18,
+    "non_stair_silhouette": 0.18,
+    "void_publicness": 0.12,
+    "repair_integrity": 0.14,
+    "precedent_resonance": 0.16
+  },
+  "reference_signal": {
+    "matched_score_unit": 0.04,
+    "matched_count_unit": 0.015,
+    "image_backed_unit": 0.02,
+    "cap": 0.18
+  }
+}

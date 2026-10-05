@@ -1,0 +1,49 @@
+{
+  "schema_version": "arr.massagent.book_base_volume.v1",
+  "label": "3/8",
+  "fraction_of_the_whole": 0.375,
+  "topology": "connected_three_octant_l",
+  "octant_cells": [
+    {
+      "minimum": [
+        0.0,
+        0.5,
+        0.5
+      ],
+      "maximum": [
+        0.5,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "minimum": [
+        0.5,
+        0.0,
+        0.5
+      ],
+      "maximum": [
+        1.0,
+        0.5,
+        1.0
+      ]
+    },
+    {
+      "minimum": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "maximum": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "orientations": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "extract",
+  "action": "subtract the overlapping path of a guest moving from an internal position through an exterior mouth",
+  "topology": "multiple_volumes -> host_with_extraction_channel",
+  "variation_parameters": [
+    "side",
+    "ratio",
+    "distance_ratio"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "book_extract",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 extract removes 106 m3 (subtract) acting on 2 volume(s) (multiple). The BOOK records this word as subtract on multiple volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 35,
+      "transformation": "subtract",
+      "cardinality": "multiple"
+    }
+  ],
+  "book_layer": "base_operative",
+  "book_implementation_measured": {
+    "operator": "book_extract",
+    "parameter_source": "adapter",
+    "volume_change_pct": -4,
+    "solids_delivered": 1,
+    "observed": "shrinks, envelope unchanged",
+    "transformation": "subtract",
+    "cardinality": "single",
+    "agrees_with_book_record": false,
+    "basis": "box 20x12x8 under a 1/1 long_axis book_base_volume scope"
+  },
+  "mathematical_basis": {
+    "standard": "Boolean difference that detaches a part",
+    "reference": "Requicha, A.A.G. (1980) 'Representations for Rigid Solids', ACM Computing Surveys 12(4) - regularized Boolean set operations",
+    "definition": "A piece is cut from the host and kept as its own solid, so the host loses volume and the count of solids rises.",
+    "shipped_as": "3ds Max Detach; ProBoolean Subtraction keeping the operand"
+  },
+  "canonical_effect": "book_extract",
+  "lowering_contract": {
+    "required_operators": [
+      "book_extract"
+    ],
+    "forbidden_operators": [
+      "notch"
+    ],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "book_extract",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

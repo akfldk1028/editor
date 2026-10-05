@@ -1,0 +1,23 @@
+id: llm_architect_agent
+name: LLM Architect Agent
+runtime: arr.maas.local_agent
+model_owner: design.maas.llm_proposals
+input_contract:
+  - parking_precheck
+  - legal_constraints
+  - llm_massdsl_proposal
+  - source_signature
+output_contract:
+  - arr.maas.llm_architect_review.v1
+handoffs:
+  previous: master_plan_agent
+  next: massdsl_agent
+responsibilities:
+  - own_llm_authored_architectural_language
+  - check_primary_secondary_language
+  - audit_parameter_source
+  - pass_intent_to_massdsl_agent
+non_responsibilities:
+  - legal_pass_decision
+  - parking_permit_approval
+  - source_geometry_materialization

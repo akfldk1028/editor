@@ -1,0 +1,25 @@
+id: massdsl_agent
+name: MassDSL Agent
+runtime: arr.maas.local_agent
+method_basis:
+  - design_language_representation
+  - grammar_sequence_validation
+input_contract:
+  - llm_architect_review
+  - massdsl_verb_sequence
+  - rule_evidence
+output_contract:
+  - arr.maas.massdsl.proposal.v1
+  - design_parameters
+  - source_refs
+handoffs:
+  previous: llm_architect_agent
+  next: maas_geometry_agent
+responsibilities:
+  - validate_massdsl_sequence
+  - preserve_parameter_source
+  - package_language_as_contract
+non_responsibilities:
+  - live_llm_generation
+  - legal_final_pass
+  - geometry_materialization

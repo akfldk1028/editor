@@ -1,0 +1,25 @@
+{
+  "schema_version": "arr.massagent.book_base_volume.v1",
+  "label": "1/16",
+  "fraction_of_the_whole": 0.0625,
+  "topology": "quarter_section_bar",
+  "octant_cells": [
+    {
+      "minimum": [
+        0.0,
+        0.75,
+        0.75
+      ],
+      "maximum": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "orientations": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ]
+}

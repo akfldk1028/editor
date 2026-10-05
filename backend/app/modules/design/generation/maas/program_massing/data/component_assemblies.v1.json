@@ -1,0 +1,376 @@
+{
+  "schema_version": "arr.maas.program_component_assemblies.v1",
+  "coordinate_system": "normalized_legal_footprint_bounds",
+  "templates": {
+    "program_housing_court_bar": {
+      "profile_id": "housing",
+      "family": "courtyard",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.06},
+      "components": [
+        {"role": "housing_north_living_bar", "bounds": [0.00, 0.80, 1.00, 1.00], "height": [0.00, 1.00], "verb": "courtyard"},
+        {"role": "housing_west_living_bar", "bounds": [0.00, 0.18, 0.20, 0.80], "height": [0.00, 0.82], "verb": "courtyard"},
+        {"role": "housing_east_living_bar", "bounds": [0.80, 0.18, 1.00, 0.80], "height": [0.00, 0.68], "verb": "courtyard"},
+        {"role": "housing_shared_entry_core", "bounds": [0.35, 0.65, 0.65, 0.80], "height": [0.00, 0.56], "verb": "courtyard"}
+      ]
+    },
+    "program_housing_shifted_bar": {
+      "profile_id": "housing",
+      "family": "slender_bar",
+      "mutation": {"coordinate_delta": 0.04, "height_delta": 0.08},
+      "components": [
+        {"role": "housing_south_living_bar", "bounds": [0.05, 0.12, 0.72, 0.34], "height": [0.00, 0.72], "verb": "offset"},
+        {"role": "housing_north_living_bar", "bounds": [0.28, 0.64, 0.96, 0.86], "height": [0.00, 1.00], "verb": "offset"},
+        {"role": "housing_circulation_bridge", "bounds": [0.46, 0.34, 0.56, 0.64], "height": [0.28, 0.58], "verb": "offset"}
+      ]
+    },
+    "program_housing_terraced_cluster": {
+      "profile_id": "housing",
+      "family": "offset",
+      "mutation": {"coordinate_delta": 0.04, "height_delta": 0.08, "rotation_delta": 2.0},
+      "components": [
+        {"role": "housing_south_living_bar", "bounds": [0.05, 0.12, 0.62, 0.32], "height": [0.00, 0.52], "verb": "offset"},
+        {"role": "housing_north_living_bar", "bounds": [0.38, 0.50, 0.95, 0.70], "height": [0.00, 0.82], "verb": "offset"},
+        {"role": "housing_circulation_bridge", "bounds": [0.40, 0.32, 0.60, 0.50], "height": [0.26, 0.56], "verb": "terrace_link"},
+        {"role": "housing_vertical_community_core", "bounds": [0.62, 0.50, 0.76, 0.82], "height": [0.00, 1.00], "verb": "lift"}
+      ]
+    },
+    "program_housing_gateway_court": {
+      "profile_id": "housing",
+      "family": "courtyard",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.07, "rotation_delta": 1.5},
+      "components": [
+        {"role": "housing_west_living_bar", "bounds": [0.08, 0.12, 0.28, 0.84], "height": [0.00, 0.76], "verb": "courtyard"},
+        {"role": "housing_east_living_bar", "bounds": [0.72, 0.12, 0.92, 0.84], "height": [0.00, 0.92], "verb": "courtyard"},
+        {"role": "housing_north_living_gateway", "bounds": [0.28, 0.68, 0.72, 0.84], "height": [0.56, 1.00], "verb": "diagonal_connect"},
+        {"role": "housing_shared_entry_core", "bounds": [0.35, 0.52, 0.65, 0.68], "height": [0.00, 0.56], "verb": "courtyard"}
+      ]
+    },
+    "program_housing_podium_twins": {
+      "profile_id": "housing",
+      "family": "stepback_tower",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.07, "rotation_delta": 2.0},
+      "components": [
+        {"role": "housing_community_podium", "bounds": [0.08, 0.12, 0.92, 0.38], "height": [0.00, 0.28], "verb": "lift"},
+        {"role": "housing_west_living_tower", "bounds": [0.16, 0.38, 0.42, 0.82], "height": [0.28, 0.82], "verb": "lift", "rotation_deg": -4.0},
+        {"role": "housing_east_living_tower", "bounds": [0.58, 0.38, 0.84, 0.82], "height": [0.28, 1.00], "verb": "lift", "rotation_deg": 4.0},
+        {"role": "housing_circulation_bridge", "bounds": [0.42, 0.52, 0.58, 0.68], "height": [0.42, 0.62], "verb": "terrace_link"}
+      ]
+    },
+    "program_housing_diagonal_court": {
+      "profile_id": "housing",
+      "family": "diagonal_connect",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.07, "rotation_delta": 4.0},
+      "components": [
+        {"role": "housing_south_living_bar", "bounds": [0.04, 0.14, 0.62, 0.36], "height": [0.00, 0.68], "verb": "diagonal_connect", "rotation_deg": 8.0},
+        {"role": "housing_north_living_bar", "bounds": [0.38, 0.56, 0.96, 0.78], "height": [0.00, 0.92], "verb": "diagonal_connect", "rotation_deg": -8.0},
+        {"role": "housing_circulation_bridge", "bounds": [0.38, 0.30, 0.62, 0.62], "height": [0.68, 0.84], "verb": "diagonal_connect"},
+        {"role": "housing_shared_entry_core", "bounds": [0.48, 0.36, 0.68, 0.62], "height": [0.00, 0.30], "verb": "lift"}
+      ]
+    },
+    "program_housing_sky_bridge_court": {
+      "profile_id": "housing",
+      "family": "diagonal_connect",
+      "mutation": {"coordinate_delta": 0.03, "height_delta": 0.06, "rotation_delta": 2.0},
+      "components": [
+        {"role": "housing_west_living_bar", "bounds": [0.08, 0.14, 0.30, 0.84], "height": [0.00, 0.78], "verb": "split"},
+        {"role": "housing_east_living_bar", "bounds": [0.70, 0.14, 0.92, 0.84], "height": [0.00, 0.92], "verb": "split"},
+        {"role": "housing_circulation_bridge", "bounds": [0.30, 0.58, 0.70, 0.74], "height": [0.56, 0.80], "verb": "diagonal_connect"},
+        {"role": "housing_shared_entry_core", "bounds": [0.42, 0.14, 0.58, 0.58], "height": [0.00, 0.56], "verb": "lift"}
+      ]
+    },
+    "program_housing_pinwheel_court": {
+      "profile_id": "housing",
+      "family": "courtyard",
+      "mutation": {"coordinate_delta": 0.025, "height_delta": 0.06, "rotation_delta": 1.0},
+      "components": [
+        {"role": "housing_north_living_bar", "bounds": [0.30, 0.70, 0.85, 0.85], "height": [0.00, 1.00], "verb": "courtyard"},
+        {"role": "housing_east_living_bar", "bounds": [0.70, 0.30, 0.85, 0.70], "height": [0.00, 0.82], "verb": "courtyard"},
+        {"role": "housing_south_living_bar", "bounds": [0.15, 0.15, 0.70, 0.30], "height": [0.00, 0.68], "verb": "courtyard"},
+        {"role": "housing_west_living_entry_core", "bounds": [0.15, 0.30, 0.30, 0.70], "height": [0.00, 0.56], "verb": "courtyard"}
+      ]
+    },
+    "program_housing_cantilever_stack": {
+      "profile_id": "housing",
+      "family": "overlap",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.06, "rotation_delta": 3.0},
+      "components": [
+        {"role": "housing_ground_living_bar", "polygon": [[0.08, 0.14], [0.64, 0.14], [0.68, 0.32], [0.12, 0.36]], "height": [0.00, 0.48], "verb": "overlap"},
+        {"role": "housing_vertical_entry_core", "bounds": [0.48, 0.32, 0.62, 0.66], "height": [0.00, 1.00], "verb": "lift"},
+        {"role": "housing_upper_living_cantilever", "polygon": [[0.34, 0.54], [0.92, 0.48], [0.96, 0.68], [0.38, 0.76]], "height": [0.48, 0.82], "verb": "overlap"},
+        {"role": "housing_circulation_bridge", "bounds": [0.24, 0.36, 0.48, 0.48], "height": [0.24, 0.42], "verb": "terrace_link"}
+      ]
+    },
+    "program_housing_zigzag_terraces": {
+      "profile_id": "housing",
+      "family": "bend",
+      "mutation": {"coordinate_delta": 0.03, "height_delta": 0.07, "rotation_delta": 3.0},
+      "components": [
+        {"role": "housing_south_living_terrace", "polygon": [[0.05, 0.16], [0.48, 0.10], [0.54, 0.28], [0.12, 0.34]], "height": [0.00, 0.52], "verb": "bend"},
+        {"role": "housing_north_living_terrace", "polygon": [[0.46, 0.54], [0.88, 0.46], [0.95, 0.64], [0.52, 0.72]], "height": [0.00, 0.82], "verb": "bend"},
+        {"role": "housing_circulation_bridge", "polygon": [[0.42, 0.27], [0.58, 0.25], [0.62, 0.56], [0.46, 0.58]], "height": [0.30, 0.58], "verb": "diagonal_connect"},
+        {"role": "housing_shared_entry_core", "bounds": [0.54, 0.34, 0.70, 0.54], "height": [0.00, 1.00], "verb": "lift"}
+      ]
+    },
+    "program_housing_ribbon_campus": {
+      "profile_id": "housing",
+      "family": "bend",
+      "mutation": {"coordinate_delta": 0.025, "height_delta": 0.06, "rotation_delta": 1.5},
+      "components": [
+        {"role": "housing_south_living_ribbon", "path": [[0.04, 0.18], [0.28, 0.12], [0.52, 0.22], [0.78, 0.15]], "width_ratio": 0.070, "height": [0.00, 0.52], "roof_profile": [0.38, 0.52, 0.44, 0.60], "verb": "bend"},
+        {"role": "housing_middle_living_ribbon", "path": [[0.16, 0.37], [0.40, 0.29], [0.68, 0.39], [0.94, 0.31]], "width_ratio": 0.072, "height": [0.00, 0.70], "roof_profile": [0.50, 0.66, 0.56, 0.76], "verb": "bend"},
+        {"role": "housing_north_living_ribbon", "path": [[0.06, 0.55], [0.30, 0.46], [0.58, 0.57], [0.86, 0.49]], "width_ratio": 0.075, "height": [0.00, 0.88], "roof_profile": [0.62, 0.82, 0.70, 0.94], "verb": "bend"},
+        {"role": "housing_circulation_bridge_ribbon", "path": [[0.47, 0.16], [0.50, 0.36], [0.51, 0.58]], "width_ratio": 0.075, "height": [0.34, 1.00], "roof_profile": [0.72, 0.88, 1.00], "verb": "terrace_link"}
+      ]
+    },
+    "program_housing_voxel_cascade": {
+      "profile_id": "housing",
+      "family": "array_cluster",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.07, "rotation_delta": 2.0},
+      "components": [
+        {"role": "housing_south_living_voxel", "bounds": [0.06, 0.10, 0.44, 0.36], "height": [0.00, 0.36], "verb": "array"},
+        {"role": "housing_west_living_voxel", "bounds": [0.16, 0.32, 0.52, 0.68], "height": [0.00, 0.62], "verb": "array", "rotation_deg": -4.0},
+        {"role": "housing_north_living_voxel", "bounds": [0.38, 0.56, 0.82, 0.86], "height": [0.00, 0.84], "verb": "array", "rotation_deg": 4.0},
+        {"role": "housing_east_living_voxel", "bounds": [0.62, 0.26, 0.94, 0.58], "height": [0.00, 0.50], "verb": "array", "rotation_deg": 2.0},
+        {"role": "housing_circulation_bridge_voxel", "bounds": [0.34, 0.32, 0.72, 0.62], "height": [0.50, 1.00], "verb": "terrace_link"}
+      ]
+    },
+    "program_housing_bridge_canyon": {
+      "profile_id": "housing", "family": "split", "mutation": {"coordinate_delta": 0.03, "height_delta": 0.06, "rotation_delta": 2.0},
+      "components": [
+        {"role": "housing_west_living_canyon", "bounds": [0.06, 0.12, 0.34, 0.88], "height": [0.00, 0.72], "verb": "split"},
+        {"role": "housing_east_living_canyon", "bounds": [0.66, 0.12, 0.94, 0.88], "height": [0.00, 0.90], "verb": "split"},
+        {"role": "housing_circulation_bridge", "polygon": [[0.28, 0.58], [0.72, 0.48], [0.74, 0.64], [0.30, 0.74]], "height": [0.58, 1.00], "verb": "diagonal_connect"},
+        {"role": "housing_shared_entry_core", "bounds": [0.42, 0.12, 0.58, 0.48], "height": [0.00, 0.58], "verb": "lift"}
+      ]
+    },
+    "program_housing_ring_stack": {
+      "profile_id": "housing", "family": "courtyard", "mutation": {"coordinate_delta": 0.025, "height_delta": 0.06, "rotation_delta": 2.0},
+      "components": [
+        {"role": "housing_north_living_ring", "bounds": [0.16, 0.68, 0.84, 0.86], "height": [0.24, 1.00], "verb": "courtyard"},
+        {"role": "housing_south_living_ring", "bounds": [0.16, 0.14, 0.84, 0.32], "height": [0.00, 0.58], "verb": "courtyard"},
+        {"role": "housing_west_living_ring", "bounds": [0.14, 0.32, 0.32, 0.68], "height": [0.00, 0.76], "verb": "courtyard"},
+        {"role": "housing_east_shared_entry_core", "bounds": [0.68, 0.32, 0.86, 0.68], "height": [0.00, 0.88], "verb": "lift"}
+      ]
+    },
+    "program_housing_fan_plates": {
+      "profile_id": "housing", "family": "overlap", "mutation": {"coordinate_delta": 0.03, "height_delta": 0.06, "rotation_delta": 3.0},
+      "components": [
+        {"role": "housing_south_living_fan", "polygon": [[0.08, 0.16], [0.66, 0.10], [0.70, 0.28], [0.12, 0.36]], "height": [0.00, 0.46], "verb": "overlap"},
+        {"role": "housing_north_living_fan", "polygon": [[0.28, 0.38], [0.88, 0.22], [0.94, 0.40], [0.36, 0.58]], "height": [0.34, 0.72], "verb": "overlap"},
+        {"role": "housing_upper_living_cantilever", "polygon": [[0.18, 0.58], [0.72, 0.42], [0.80, 0.60], [0.26, 0.80]], "height": [0.64, 1.00], "verb": "overlap"},
+        {"role": "housing_vertical_entry_core", "bounds": [0.42, 0.26, 0.56, 0.66], "height": [0.00, 0.92], "verb": "lift"}
+      ]
+    },
+    "program_housing_arc_court": {
+      "profile_id": "housing", "family": "bend", "mutation": {"coordinate_delta": 0.025, "height_delta": 0.05, "rotation_delta": 1.0},
+      "components": [
+        {"role": "housing_south_living_ribbon", "path": [[0.08, 0.22], [0.28, 0.12], [0.54, 0.14], [0.76, 0.28]], "width_ratio": 0.072, "height": [0.00, 0.62], "roof_profile": [0.42, 0.54, 0.50, 0.68], "verb": "bend"},
+        {"role": "housing_north_living_ribbon", "path": [[0.18, 0.66], [0.40, 0.78], [0.66, 0.74], [0.88, 0.58]], "width_ratio": 0.072, "height": [0.00, 0.86], "roof_profile": [0.64, 0.82, 0.76, 0.92], "verb": "bend"},
+        {"role": "housing_west_living_ribbon", "path": [[0.12, 0.24], [0.10, 0.42], [0.18, 0.64]], "width_ratio": 0.065, "height": [0.00, 0.74], "roof_profile": [0.48, 0.62, 0.78], "verb": "bend"},
+        {"role": "housing_east_shared_entry_core", "bounds": [0.72, 0.30, 0.88, 0.58], "height": [0.00, 1.00], "verb": "lift"}
+      ]
+    },
+    "program_housing_cluster_village": {
+      "profile_id": "housing", "family": "array_cluster", "mutation": {"coordinate_delta": 0.03, "height_delta": 0.06, "rotation_delta": 2.0},
+      "components": [
+        {"role": "housing_south_living_house", "bounds": [0.08, 0.12, 0.38, 0.38], "height": [0.00, 0.42], "verb": "array"},
+        {"role": "housing_west_living_house", "bounds": [0.16, 0.38, 0.44, 0.70], "height": [0.00, 0.68], "verb": "array", "rotation_deg": -5.0},
+        {"role": "housing_north_living_house", "bounds": [0.40, 0.58, 0.72, 0.86], "height": [0.00, 0.88], "verb": "array", "rotation_deg": 4.0},
+        {"role": "housing_east_living_house", "bounds": [0.66, 0.28, 0.94, 0.58], "height": [0.00, 0.54], "verb": "array", "rotation_deg": 6.0},
+        {"role": "housing_shared_entry_core", "bounds": [0.36, 0.32, 0.68, 0.62], "height": [0.38, 1.00], "verb": "terrace_link"}
+      ]
+    },
+    "program_housing_folded_spine": {
+      "profile_id": "housing", "family": "bend", "mutation": {"coordinate_delta": 0.025, "height_delta": 0.05, "rotation_delta": 1.0},
+      "components": [
+        {"role": "housing_south_living_ribbon", "path": [[0.06, 0.22], [0.30, 0.16], [0.54, 0.30], [0.86, 0.20]], "width_ratio": 0.085, "height": [0.00, 0.66], "roof_profile": [0.36, 0.62, 0.48, 0.78], "verb": "sloped_roof_mass"},
+        {"role": "housing_north_living_ribbon", "path": [[0.12, 0.52], [0.38, 0.42], [0.62, 0.58], [0.92, 0.48]], "width_ratio": 0.085, "height": [0.20, 0.92], "roof_profile": [0.58, 0.84, 0.68, 1.00], "verb": "sloped_roof_mass"},
+        {"role": "housing_shared_entry_core", "bounds": [0.42, 0.26, 0.58, 0.52], "height": [0.00, 0.82], "verb": "lift"},
+        {"role": "housing_circulation_bridge", "bounds": [0.58, 0.42, 0.72, 0.58], "height": [0.48, 0.72], "verb": "terrace_link"}
+      ]
+    },
+    "program_housing_cross_cantilever": {
+      "profile_id": "housing", "family": "overlap", "mutation": {"coordinate_delta": 0.03, "height_delta": 0.06, "rotation_delta": 3.0},
+      "components": [
+        {"role": "housing_south_living_cantilever", "bounds": [0.08, 0.16, 0.82, 0.36], "height": [0.00, 0.44], "verb": "overlap", "rotation_deg": -5.0},
+        {"role": "housing_west_living_cantilever", "bounds": [0.20, 0.30, 0.42, 0.86], "height": [0.34, 0.72], "verb": "overlap", "rotation_deg": 6.0},
+        {"role": "housing_upper_living_cantilever", "bounds": [0.34, 0.48, 0.94, 0.68], "height": [0.62, 1.00], "verb": "overlap", "rotation_deg": -4.0},
+        {"role": "housing_vertical_entry_core", "bounds": [0.44, 0.28, 0.60, 0.66], "height": [0.00, 0.92], "verb": "lift"}
+      ]
+    },
+    "program_housing_terrace_bowl": {
+      "profile_id": "housing", "family": "courtyard", "mutation": {"coordinate_delta": 0.025, "height_delta": 0.05, "rotation_delta": 1.5},
+      "components": [
+        {"role": "housing_north_living_terrace", "bounds": [0.14, 0.68, 0.86, 0.86], "height": [0.00, 1.00], "verb": "terrace_link"},
+        {"role": "housing_south_living_terrace", "bounds": [0.14, 0.14, 0.86, 0.32], "height": [0.00, 0.44], "verb": "terrace_link"},
+        {"role": "housing_west_living_terrace", "bounds": [0.14, 0.32, 0.32, 0.68], "height": [0.00, 0.68], "verb": "terrace_link"},
+        {"role": "housing_east_shared_entry_core", "bounds": [0.68, 0.32, 0.86, 0.68], "height": [0.00, 0.82], "verb": "lift"}
+      ]
+    },
+    "program_neighborhood_active_bar": {
+      "profile_id": "neighborhood_living",
+      "family": "slender_bar",
+      "assembly_method": "normalized_role_graph_not_parcel_coordinates",
+      "mutation": {"coordinate_delta": 0.06, "height_delta": 0.10, "rotation_delta": 4.0},
+      "components": [
+        {"role": "neighborhood_primary_active_bar", "polygon": [[0.08, 0.22], [0.90, 0.16], [0.94, 0.58], [0.12, 0.64]], "height": [0.00, 0.78], "verb": "bar"},
+        {"role": "neighborhood_public_ground_platform", "polygon": [[0.02, 0.10], [0.72, 0.06], [0.76, 0.22], [0.06, 0.28]], "height": [0.00, 0.24], "verb": "cave"},
+        {"role": "neighborhood_entry_canopy", "polygon": [[0.34, 0.58], [0.88, 0.50], [0.90, 0.68], [0.38, 0.76]], "height": [0.50, 1.00], "verb": "lift"}
+      ]
+    },
+    "program_neighborhood_court_terrace": {
+      "profile_id": "neighborhood_living",
+      "family": "courtyard",
+      "assembly_method": "normalized_role_graph_not_parcel_coordinates",
+      "mutation": {"coordinate_delta": 0.055, "height_delta": 0.10, "rotation_delta": 3.0},
+      "components": [
+        {"role": "neighborhood_primary_north_terrace", "polygon": [[0.08, 0.62], [0.92, 0.56], [0.94, 0.84], [0.12, 0.90]], "height": [0.00, 1.00], "verb": "courtyard"},
+        {"role": "neighborhood_active_west_terrace", "polygon": [[0.06, 0.16], [0.30, 0.14], [0.34, 0.66], [0.10, 0.72]], "height": [0.00, 0.68], "verb": "courtyard"},
+        {"role": "neighborhood_public_east_terrace", "polygon": [[0.68, 0.28], [0.94, 0.22], [0.92, 0.60], [0.68, 0.64]], "height": [0.00, 0.48], "verb": "terrace_link"},
+        {"role": "neighborhood_entry_bridge", "polygon": [[0.26, 0.48], [0.76, 0.38], [0.80, 0.52], [0.30, 0.62]], "height": [0.42, 0.62], "verb": "terrace_link"}
+      ]
+    },
+    "program_neighborhood_stepback_corner": {
+      "profile_id": "neighborhood_living",
+      "family": "offset",
+      "assembly_method": "normalized_role_graph_not_parcel_coordinates",
+      "mutation": {"coordinate_delta": 0.055, "height_delta": 0.10, "rotation_delta": 4.0},
+      "components": [
+        {"role": "neighborhood_primary_ground_corner", "polygon": [[0.06, 0.14], [0.92, 0.10], [0.94, 0.44], [0.38, 0.50], [0.36, 0.82], [0.10, 0.86]], "height": [0.00, 0.46], "verb": "offset"},
+        {"role": "neighborhood_shifted_upper_bar", "polygon": [[0.24, 0.36], [0.84, 0.30], [0.88, 0.58], [0.30, 0.66]], "height": [0.46, 0.82], "verb": "offset"},
+        {"role": "neighborhood_public_corner_room", "polygon": [[0.12, 0.56], [0.42, 0.52], [0.46, 0.84], [0.16, 0.90]], "height": [0.46, 1.00], "verb": "lift"}
+      ]
+    },
+    "program_neighborhood_landscape_ribbons": {
+      "profile_id": "neighborhood_living",
+      "family": "bend",
+      "assembly_method": "normalized_role_graph_not_parcel_coordinates",
+      "mutation": {"coordinate_delta": 0.045, "height_delta": 0.10, "rotation_delta": 2.0},
+      "components": [
+        {"role": "neighborhood_primary_ground_ribbon", "path": [[0.04, 0.20], [0.30, 0.12], [0.58, 0.24], [0.94, 0.16]], "width_ratio": 0.125, "height": [0.00, 0.48], "roof_profile": [0.34, 0.46, 0.40, 0.56], "verb": "bend"},
+        {"role": "neighborhood_public_middle_ribbon", "path": [[0.06, 0.46], [0.32, 0.34], [0.62, 0.48], [0.92, 0.38]], "width_ratio": 0.125, "height": [0.00, 0.74], "roof_profile": [0.48, 0.66, 0.56, 0.80], "verb": "bend"},
+        {"role": "neighborhood_upper_landscape_ribbon", "path": [[0.10, 0.72], [0.36, 0.58], [0.66, 0.72], [0.90, 0.62]], "width_ratio": 0.120, "height": [0.18, 1.00], "roof_profile": [0.64, 0.84, 0.74, 0.96], "verb": "bend"},
+        {"role": "neighborhood_active_entry_link", "polygon": [[0.40, 0.12], [0.56, 0.14], [0.60, 0.70], [0.44, 0.72]], "height": [0.00, 0.38], "verb": "terrace_link"}
+      ]
+    },
+    "program_cultural_court_bridge": {
+      "profile_id": "cultural",
+      "family": "courtyard",
+      "mutation": {"coordinate_delta": 0.04, "height_delta": 0.08, "rotation_delta": 2.0},
+      "components": [
+        {"role": "cultural_main_gallery_hall", "bounds": [0.08, 0.18, 0.70, 0.86], "height": [0.00, 0.78], "verb": "courtyard"},
+        {"role": "cultural_public_court_hall", "bounds": [0.70, 0.34, 0.94, 0.86], "height": [0.12, 1.00], "verb": "bar"},
+        {"role": "cultural_entry_bridge", "polygon": [[0.24, 0.08], [0.82, 0.16], [0.78, 0.30], [0.20, 0.22]], "height": [0.28, 0.46], "verb": "diagonal_connect"}
+      ]
+    },
+    "program_cultural_carved_gallery_spine": {
+      "profile_id": "cultural",
+      "family": "void_notch",
+      "mutation": {"coordinate_delta": 0.04, "height_delta": 0.08, "rotation_delta": 2.5},
+      "components": [
+        {"role": "cultural_main_gallery_spine", "polygon": [[0.08, 0.18], [0.88, 0.12], [0.92, 0.48], [0.32, 0.56], [0.26, 0.88], [0.08, 0.82]], "height": [0.00, 0.76], "verb": "carve"},
+        {"role": "cultural_public_court_room", "bounds": [0.52, 0.50, 0.90, 0.88], "height": [0.76, 1.00], "verb": "inscribe"},
+        {"role": "cultural_entry_ramp", "polygon": [[0.10, 0.04], [0.68, 0.08], [0.70, 0.18], [0.12, 0.14]], "height": [0.00, 0.20], "verb": "lift"}
+      ]
+    },
+    "program_cultural_split_gallery_ramp": {
+      "profile_id": "cultural",
+      "family": "split",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.07, "rotation_delta": 3.0},
+      "components": [
+        {"role": "cultural_west_gallery_hall", "polygon": [[0.06, 0.16], [0.46, 0.10], [0.52, 0.82], [0.10, 0.88]], "height": [0.00, 0.74], "verb": "split"},
+        {"role": "cultural_east_public_hall", "polygon": [[0.54, 0.18], [0.92, 0.12], [0.94, 0.82], [0.58, 0.88]], "height": [0.08, 0.92], "verb": "split"},
+        {"role": "cultural_court_bridge", "polygon": [[0.30, 0.44], [0.76, 0.34], [0.80, 0.48], [0.34, 0.58]], "height": [0.54, 1.00], "verb": "diagonal_connect"},
+        {"role": "cultural_entry_ramp", "bounds": [0.38, 0.08, 0.62, 0.34], "height": [0.00, 0.46], "verb": "lift"}
+      ]
+    },
+    "program_cafe_terrace_pavilion": {
+      "profile_id": "cafe",
+      "family": "terrace_link",
+      "mutation": {"coordinate_delta": 0.05, "height_delta": 0.10},
+      "components": [
+        {"role": "cafe_public_room", "bounds": [0.08, 0.46, 0.72, 0.90], "height": [0.00, 0.72], "verb": "bar"},
+        {"role": "cafe_service_hearth", "bounds": [0.72, 0.46, 0.92, 0.90], "height": [0.00, 1.00], "verb": "terrace_link"},
+        {"role": "cafe_entry_canopy", "bounds": [0.26, 0.24, 0.82, 0.46], "height": [0.48, 0.62], "verb": "terrace_link"}
+      ]
+    },
+    "program_cafe_court_roof": {
+      "profile_id": "cafe",
+      "family": "courtyard",
+      "mutation": {"coordinate_delta": 0.05, "height_delta": 0.10},
+      "components": [
+        {"role": "cafe_court_room_north", "bounds": [0.08, 0.64, 0.92, 0.92], "height": [0.00, 0.78], "verb": "courtyard"},
+        {"role": "cafe_court_room_west", "bounds": [0.08, 0.14, 0.30, 0.64], "height": [0.00, 0.62], "verb": "courtyard"},
+        {"role": "cafe_floating_entry_roof", "bounds": [0.30, 0.20, 0.84, 0.34], "height": [0.52, 0.68], "verb": "sloped_roof_mass"}
+      ]
+    },
+    "program_gym_long_span_hall": {
+      "profile_id": "gymnasium",
+      "family": "sloped_roof",
+      "chassis": "linear_service_hall",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.06},
+      "components": [
+        {"role": "gym_main_long_span_hall", "bounds": [0.10, 0.18, 0.90, 0.82], "height": [0.00, 1.00], "verb": "sloped_roof_mass"},
+        {"role": "gym_service_spine", "bounds": [0.10, 0.82, 0.90, 0.96], "height": [0.00, 0.38], "verb": "bar"},
+        {"role": "gym_entry_canopy", "bounds": [0.36, 0.06, 0.64, 0.18], "height": [0.26, 0.38], "verb": "cave"}
+      ]
+    },
+    "program_gym_hall_entry_bar": {
+      "profile_id": "gymnasium",
+      "family": "slender_bar",
+      "chassis": "compact_monitor_bar",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.06},
+      "components": [
+        {"role": "gym_compact_main_hall", "bounds": [0.14, 0.16, 0.94, 0.84], "height": [0.00, 0.88], "verb": "bar"},
+        {"role": "gym_tall_daylight_monitor", "bounds": [0.28, 0.34, 0.80, 0.66], "height": [0.88, 1.00], "verb": "sloped_roof_mass"},
+        {"role": "gym_entry_service_bar", "bounds": [0.04, 0.24, 0.14, 0.76], "height": [0.00, 0.42], "verb": "cave"}
+      ]
+    },
+    "program_gym_folded_service_hall": {
+      "profile_id": "gymnasium",
+      "family": "sloped_roof",
+      "chassis": "offset_service_l",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.06},
+      "components": [
+        {"role": "gym_main_folded_hall", "bounds": [0.08, 0.16, 0.88, 0.82], "height": [0.00, 1.00], "verb": "sloped_roof_mass"},
+        {"role": "gym_folded_service_spine", "bounds": [0.50, 0.80, 0.96, 0.99], "height": [0.00, 0.42], "verb": "bar"},
+        {"role": "gym_folded_entry_canopy", "bounds": [0.08, 0.04, 0.52, 0.18], "height": [0.28, 0.42], "verb": "cave"}
+      ]
+    },
+    "program_gym_sawtooth_daylight_hall": {
+      "profile_id": "gymnasium",
+      "family": "sloped_roof",
+      "chassis": "daylight_spine_hall",
+      "mutation": {"coordinate_delta": 0.03, "height_delta": 0.055},
+      "components": [
+        {"role": "gym_main_sawtooth_hall", "bounds": [0.08, 0.14, 0.88, 0.82], "height": [0.00, 0.82], "verb": "sloped_roof_mass"},
+        {"role": "gym_daylight_monitor_spine", "bounds": [0.18, 0.36, 0.80, 0.52], "height": [0.82, 1.00], "verb": "sloped_roof_mass"},
+        {"role": "gym_sawtooth_service_spine", "bounds": [0.08, 0.82, 0.94, 0.96], "height": [0.00, 0.36], "verb": "bar"},
+        {"role": "gym_sawtooth_entry_canopy", "bounds": [0.50, 0.02, 0.90, 0.18], "height": [0.24, 0.38], "verb": "cave"}
+      ]
+    },
+    "program_gym_stepped_section_hall": {
+      "profile_id": "gymnasium",
+      "family": "sloped_roof",
+      "chassis": "stepped_terrace_hall",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.065},
+      "components": [
+        {"role": "gym_main_stepped_section_hall", "bounds": [0.10, 0.12, 0.92, 0.82], "height": [0.00, 1.00], "verb": "grade"},
+        {"role": "gym_stepped_service_spine", "bounds": [0.10, 0.82, 0.64, 0.96], "height": [0.00, 0.34], "verb": "bar"},
+        {"role": "gym_stepped_entry_canopy", "bounds": [0.62, 0.02, 0.94, 0.16], "height": [0.22, 0.36], "verb": "cave"}
+      ]
+    },
+    "program_gym_carved_entry_hall": {
+      "profile_id": "gymnasium",
+      "family": "void_notch",
+      "chassis": "carved_notch_hall",
+      "mutation": {"coordinate_delta": 0.035, "height_delta": 0.06},
+      "components": [
+        {"role": "gym_main_carved_entry_hall", "bounds": [0.08, 0.12, 0.92, 0.84], "height": [0.00, 1.00], "verb": "sloped_roof_mass"},
+        {"role": "gym_carved_service_spine", "bounds": [0.08, 0.84, 0.92, 0.96], "height": [0.00, 0.38], "verb": "bar"},
+        {"role": "gym_carved_entry_void", "bounds": [0.38, 0.08, 0.62, 0.30], "height": [0.00, 0.44], "verb": "cave"},
+        {"role": "gym_carved_entry_canopy", "bounds": [0.32, 0.06, 0.68, 0.18], "height": [0.26, 0.40], "verb": "cave"}
+      ]
+    }
+  }
+}

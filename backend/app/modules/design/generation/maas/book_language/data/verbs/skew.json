@@ -1,0 +1,72 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "skew",
+  "action": "obliquely displace faces while preserving continuity",
+  "topology": "single_volume -> single_skewed_volume",
+  "variation_parameters": [
+    "axis",
+    "angle",
+    "upper_ratio"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "shear",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 skew moves 0 m3 (displace) acting on 1 volume(s) (single). The BOOK records this word as displace on single volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 15,
+      "transformation": "displace",
+      "cardinality": "single"
+    }
+  ],
+  "book_layer": "base_operative",
+  "mathematical_basis": {
+    "standard": "affine shear",
+    "reference": "Affine transform: a 4x4 homogeneous matrix, invertible, straight lines preserved",
+    "definition": "A shear matrix: one coordinate gains a multiple of another, x -> x + s*z. Volume is exactly preserved - the determinant of a shear is 1 - so a skew can never add or subtract.",
+    "shipped_as": "3ds Max Skew modifier / a shear in any 4x4 pipeline"
+  },
+  "canonical_effect": "shear",
+  "lowering_contract": {
+    "required_operators": [
+      "shear"
+    ],
+    "forbidden_operators": [],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "shear",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "final_reading": {
+    "text": "massv2 gains volume with the angle - +1.75% at five degrees, +3.53% at ten, +7.28% at twenty, +11.55% at thirty - where an affine shear has determinant one and cannot change volume at all. The verb is right: it emits a shear operator and the matrix is exact. The gain is one layer down, and the cause is that `footprint` does two jobs at once. `compile._plan_between` gives a leaning band the convex hull of the rings at its two ends, which is the correct PLAN PROJECTION - a person standing anywhere in that band is under the swept area, and 건축면적 needs exactly that. Volume then comes from `SourceVolume.mass_properties`, which reads the same footprint and multiplies it by the band height, so the swept overhang is counted as solid. A shear is linear in z, so the section at the band's MID height gives the exact average and the midpoint rule is exact rather than approximate - but swapping the footprint for it would cost the projection. The fix belongs in `mass_properties`: for a volume that is not upright, take the volume from the determinant of the affine part rather than from footprint times height. Recorded rather than attempted, because that function is what every legal area in the system is measured with.",
+    "basis": "extrude seed 20x12x8, uncut",
+    "fix_location": "design/maas/source_geometry/ir.py SourceVolume.mass_properties, with design/maas/massv2/compile.py _plan_between as the reason"
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

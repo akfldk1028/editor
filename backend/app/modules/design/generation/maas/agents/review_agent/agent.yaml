@@ -1,0 +1,25 @@
+id: review_agent
+name: Review Agent
+runtime: arr.maas.local_agent
+method_basis:
+  - evidence_synthesis
+  - failure_memory
+input_contract:
+  - agent_reviews
+  - verifier_summary
+  - failure_memory
+output_contract:
+  - final_decision
+  - remaining_risks
+  - next_revision_targets
+handoffs:
+  previous: grammar_critic_agent
+  next: design_orchestrator
+responsibilities:
+  - synthesize_evidence
+  - separate_pass_from_remaining_risk
+  - update_failure_memory_targets
+non_responsibilities:
+  - legal_truth_generation
+  - parking_permit_approval
+  - geometry_generation

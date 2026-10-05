@@ -1,0 +1,59 @@
+"""URL configuration for design app."""
+from django.urls import path
+from backend.app.api.design_runtime import views
+from backend.app.api.design_runtime.delivered_mass_views import delivered_mass_export
+from backend.app.api.design_runtime.masterplan_operations_views import masterplan_operations
+from backend.app.api.design_runtime.program_floor_plan_views import program_floor_plans
+
+app_name = 'design'
+
+urlpatterns = [
+    path('program-floor-plans/', program_floor_plans, name='program_floor_plans'),
+    path('masterplan/operations/', masterplan_operations, name='masterplan_operations'),
+    path('maas/delivered-mass-export/', delivered_mass_export, name='delivered_mass_export'),
+    path('jobs/', views.create_job, name='create_job'),
+    path('jobs/<uuid:job_id>/', views.get_job, name='get_job'),
+    path('jobs/<uuid:job_id>/cancel/', views.cancel_job, name='cancel_job'),
+    path('jobs/<uuid:job_id>/run/', views.run_job, name='run_job'),
+    path('jobs/<uuid:job_id>/stream', views.job_stream, name='job_stream'),
+    path('jobs/<uuid:job_id>/results/', views.job_results, name='job_results'),
+    path('jobs/<uuid:job_id>/results/<int:design_id>/', views.design_detail, name='design_detail'),
+    path('jobs/<uuid:job_id>/results/<int:design_id>/evidence/', views.design_evidence, name='design_evidence'),
+    path('jobs/<uuid:job_id>/results/<int:design_id>/aesthetic/', views.design_aesthetic, name='design_aesthetic'),
+    path('jobs/<uuid:job_id>/validate/', views.validate_job, name='validate_job'),
+    path('interactive/patch/', views.interactive_patch, name='interactive_patch'),
+    path('interactive/preview/', views.interactive_preview, name='interactive_preview'),
+    path('interactive/operation/', views.interactive_operation, name='interactive_operation'),
+    path('maas/revision/', views.maas_conversational_revision, name='maas_conversational_revision'),
+    path('maas/revision/<uuid:revision_id>/feedback/', views.maas_revision_feedback, name='maas_revision_feedback'),
+    path('maas/export-scad/', views.maas_export_scad, name='maas_export_scad'),
+    path('maas/legal-variants/', views.maas_legal_variants, name='maas_legal_variants'),
+    path('maas/language-system/', views.maas_language_system, name='maas_language_system'),
+    path('maas/outcome-graph/', views.maas_outcome_graph_slice, name='maas_outcome_graph_slice'),
+    path('maas/creative-portfolios/', views.maas_creative_portfolios, name='maas_creative_portfolios'),
+    path('maas/creative-portfolios/<str:run_id>/candidates/<str:candidate_id>/render/', views.maas_creative_portfolio_render, name='maas_creative_portfolio_render'),
+    path('maas/portfolio-evaluations/', views.maas_portfolio_evaluations, name='maas_portfolio_evaluations'),
+    path('maas/portfolio-evaluations/<str:run_id>/candidates/<str:candidate_id>/render/', views.maas_portfolio_evaluation_render, name='maas_portfolio_evaluation_render'),
+    path('maas/book-assets/<int:page>/', views.maas_book_asset, name='maas_book_asset'),
+    path('maas/geometry-shapes/<int:index>/', views.maas_geometry_shape_preview, name='maas_geometry_shape_preview'),
+    path('maas/geometry-shapes/<int:index>/passport/', views.maas_geometry_shape_passport, name='maas_geometry_shape_passport'),
+    path('maas/single-executions/', views.maas_single_execution, name='maas_single_execution'),
+    path('maas/single-executions/<slug:execution_id>/preview/', views.maas_single_execution_preview, name='maas_single_execution_preview'),
+    path('maas/single-executions/<slug:execution_id>/thumbnail/', views.maas_single_execution_thumbnail, name='maas_single_execution_thumbnail'),
+    path('maas/single-executions/<slug:execution_id>/manifest/', views.maas_single_execution_manifest, name='maas_single_execution_manifest'),
+    path('maas/single-executions/<slug:execution_id>/passport/', views.maas_single_execution_passport, name='maas_single_execution_passport'),
+    path('maas/single-executions/<slug:execution_id>/elevation/<slug:view>/', views.maas_single_execution_elevation, name='maas_single_execution_elevation'),
+    path('maas/single-executions/<slug:execution_id>/elevation-proposals/alt-01/', views.maas_single_execution_elevation_proposal, name='maas_single_execution_elevation_proposal'),
+    path('maas/single-executions/<slug:execution_id>/elevation-proposals/multi-view-alt-01/evidence/<slug:document>/', views.maas_single_execution_multi_view_elevation_evidence, name='maas_single_execution_multi_view_elevation_evidence'),
+    path('maas/single-executions/<slug:execution_id>/elevation-proposals/multi-view-alt-01/<slug:artifact>/', views.maas_single_execution_multi_view_elevation_artifact, name='maas_single_execution_multi_view_elevation_artifact'),
+    path('maas/single-executions/<slug:execution_id>/vlm-review/', views.maas_single_execution_vlm_review, name='maas_single_execution_vlm_review'),
+    path('maas/executed-masses/', views.maas_executed_masses, name='maas_executed_masses'),
+    path('maas/executed-masses/<int:index>/', views.maas_executed_mass_preview, name='maas_executed_mass_preview'),
+    path('maas/executed-masses/<int:index>/passport/', views.maas_executed_mass_passport, name='maas_executed_mass_passport'),
+    path('maas/reference-assets/<path:asset_path>', views.maas_reference_asset, name='maas_reference_asset'),
+    path('maas/aesthetic-assets/<path:asset_path>', views.maas_aesthetic_asset, name='maas_aesthetic_asset'),
+    path('site-boundary/', views.site_boundary, name='site_boundary'),
+    path('auto-constraints/', views.auto_constraints, name='auto_constraints'),
+    path('floor-plan/', views.create_floor_plan, name='create_floor_plan'),
+    path('constraints/visualize/', views.constraints_visualize, name='constraints_visualize'),
+]

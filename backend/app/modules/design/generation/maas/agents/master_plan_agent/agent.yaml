@@ -1,0 +1,25 @@
+id: master_plan_agent
+name: Master Plan Agent
+runtime: arr.maas.local_agent
+method_basis:
+  - constraint_negotiation
+  - mass_stage_parking_precheck
+input_contract:
+  - legal_constraints
+  - parking_required_count
+  - layout_candidate
+output_contract:
+  - parking_count_status
+  - mass_stage_parking_status
+  - revision_request
+handoffs:
+  previous: law_graph_agent
+  next: llm_architect_agent
+responsibilities:
+  - compute_required_vs_provided_spaces
+  - expose_mass_stage_parking_status
+  - request_piloti_void_drive_or_mechanical_revision
+non_responsibilities:
+  - permit_final_parking_approval
+  - architectural_language_generation
+  - legal_limit_authority

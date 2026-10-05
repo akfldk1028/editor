@@ -1,0 +1,83 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "rotate",
+  "action": "rotate one partitioned child about its shared terminal hinge edge",
+  "topology": "multiple_volumes -> hinged_rotated_children",
+  "variation_parameters": [
+    "axis",
+    "angle",
+    "factor"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "book_rotate",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 rotate removes 0 m3 (displace) acting on 2 volume(s) (multiple). The BOOK records this word as displace on multiple volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 23,
+      "transformation": "displace",
+      "cardinality": "multiple"
+    }
+  ],
+  "book_layer": "base_operative",
+  "mathematical_basis": {
+    "standard": "affine rotation",
+    "reference": "Affine transform: a 4x4 homogeneous matrix, invertible, straight lines preserved",
+    "definition": "An orthogonal 4x4 with determinant 1 about a stated pivot. Volume and shape are exactly preserved; only bearing changes.",
+    "shipped_as": "every 3D package"
+  },
+  "canonical_effect": "book_rotate",
+  "lowering_contract": {
+    "required_operators": [
+      "book_rotate"
+    ],
+    "forbidden_operators": [
+      "rotate"
+    ],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "book_rotate",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "volume_law_finding": {
+    "verdict": "defect - the code disagrees with its own docstring",
+    "cause": "wrong rotation axis and pivot",
+    "where": "design/maas/geometry_language/compiler.py:2555-2559, 2578-2583, 2592",
+    "explanation": "The docstring says 'rotate one partitioned bar about the pair's shared edge (BOOK p.23)'. The shared edge runs along the longitudinal axis, so rotating about it needs rotation_axis = longitudinal_axis. The code picks the remaining axis instead - a rotation in plan about a POINT of the edge - and puts the pivot at the far end of the partition line, so a positive angle drags the moving bar diagonally across the retained one. The union then absorbs the overlap: intersection area 82.37 by shoelace, 658.9 m3, union 1395.5 on 1920 = -27.3%.",
+    "severity_note": "Part of the size is a tie-break, not the defect. At label 1/1 the weighted centre is exactly 0.5, so base_volume_contract.py:97-103 falls through to a hard-coded +1.0 outward sign, which puts the pivot at the far end. With -1 the same angle swings the bar away and the union comes out LARGER than the host. A 3/8 or 1/4 sentence resolves that sign on real evidence.",
+    "basis": "box 20x12x8 under a 1/1 long_axis book_base_volume scope",
+    "outcome": {
+      "repaired": true,
+      "now": "+6.7%",
+      "what_changed": "The hinge opens instead of closing into the bar it is hinged to. The angle magnitude is still the author's; its sign is now taken from the geometry - the swing that carries the related bar away from its partner is the one used. -27.3% became +6.7%.",
+      "residual": "The remaining +6.7% is the hinge pad, not lost or gained material: each bar is grown by 3.5% of the transverse span so they overlap when flat, and once they swing apart that double count stops cancelling. Both bars are rigid throughout - this is an accounting fact about the union, and the pad is what keeps the pair one connected body."
+    }
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

@@ -1,0 +1,204 @@
+{
+  "schema_version": "arr.maas.program_profiles.v1",
+  "profiles": [
+    {
+      "id": "housing",
+      "aliases": ["공동주택", "아파트", "주거", "housing", "apartment"],
+      "design_intent": "daylight-oriented repeated living bars with a legible shared court or stepped communal section",
+      "target_volume_range": [2, 4],
+      "target_floor_range": [3, 24],
+      "preferred_families": ["courtyard", "slender_bar", "stepback_tower", "terrace_link", "offset"],
+      "sequences": [
+        {"name": "program_housing_court_bar", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "courtyard", "params": {"ratio": 0.22, "upper_ratio": 0.86}}]},
+        {"name": "program_housing_shifted_bar", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.58}}, {"verb": "offset", "params": {"axis": "y", "distance_ratio": 0.12, "upper_ratio": 0.78, "lower_floor_fraction": 0.42}}]},
+        {"name": "program_housing_terraced_cluster", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "offset", "params": {"axis": "y", "distance_ratio": 0.18}}, {"verb": "terrace_link", "params": {"side": "south", "upper_ratio": 0.72}}]},
+        {"name": "program_housing_gateway_court", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "courtyard", "params": {"ratio": 0.30}}, {"verb": "diagonal_connect", "params": {"axis": "x", "upper_ratio": 0.86}}]},
+        {"name": "program_housing_podium_twins", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "lift", "params": {"upper_ratio": 0.78, "lower_floor_fraction": 0.28}}, {"verb": "terrace_link", "params": {"side": "south", "upper_ratio": 0.70}}]},
+        {"name": "program_housing_diagonal_court", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "diagonal_connect", "params": {"axis": "x", "angle": 20.0, "upper_ratio": 0.82}}, {"verb": "lift", "params": {"upper_ratio": 0.74, "lower_floor_fraction": 0.36}}]},
+        {"name": "program_housing_sky_bridge_court", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "split", "params": {"axis": "x", "gap_ratio": 0.32}}, {"verb": "diagonal_connect", "params": {"axis": "x", "upper_ratio": 0.82}}]},
+        {"name": "program_housing_pinwheel_court", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "courtyard", "params": {"ratio": 0.34}}, {"verb": "offset", "params": {"axis": "x", "distance_ratio": 0.08}}]},
+        {"name": "program_housing_cantilever_stack", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "overlap", "params": {"axis": "x", "slab_ratio": 0.48}}, {"verb": "lift", "params": {"upper_ratio": 0.78, "lower_floor_fraction": 0.40}}]},
+        {"name": "program_housing_zigzag_terraces", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bend", "params": {"axis": "y", "angle": 18.0, "factor": 0.52}}, {"verb": "terrace_link", "params": {"side": "south", "upper_ratio": 0.72}}]},
+        {"name": "program_housing_ribbon_campus", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bend", "params": {"axis": "x", "angle": 24.0, "factor": 0.44}}, {"verb": "terrace_link", "params": {"side": "south", "upper_ratio": 0.76}}]},
+        {"name": "program_housing_voxel_cascade", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "array", "params": {"axis": "y", "n": 3, "spacing_ratio": 0.24}}, {"verb": "offset", "params": {"axis": "x", "distance_ratio": 0.10}}]},
+        {"name": "program_housing_bridge_canyon", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "split", "params": {"axis": "x", "gap_ratio": 0.26}}, {"verb": "diagonal_connect", "params": {"axis": "y", "upper_ratio": 0.90}}]},
+        {"name": "program_housing_ring_stack", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "courtyard", "params": {"ratio": 0.38}}, {"verb": "lift", "params": {"upper_ratio": 0.82}}]},
+        {"name": "program_housing_fan_plates", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "overlap", "params": {"axis": "x", "slab_ratio": 0.42}}, {"verb": "bend", "params": {"angle": 16.0}}]},
+        {"name": "program_housing_arc_court", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bend", "params": {"axis": "x", "angle": 28.0}}, {"verb": "courtyard", "params": {"ratio": 0.32}}]},
+        {"name": "program_housing_cluster_village", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "array", "params": {"axis": "x", "n": 5, "spacing_ratio": 0.18}}, {"verb": "lift", "params": {"upper_ratio": 0.86}}]},
+        {"name": "program_housing_folded_spine", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bend", "params": {"axis": "y", "angle": 22.0}}, {"verb": "sloped_roof_mass", "params": {"upper_ratio": 0.92}}]},
+        {"name": "program_housing_cross_cantilever", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "overlap", "params": {"axis": "y", "slab_ratio": 0.46}}, {"verb": "diagonal_connect", "params": {"angle": 12.0}}]},
+        {"name": "program_housing_terrace_bowl", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "courtyard", "params": {"ratio": 0.40}}, {"verb": "terrace_link", "params": {"side": "south", "upper_ratio": 0.84}}]}
+      ]
+    },
+    {
+      "id": "cafe",
+      "aliases": ["카페", "휴게음식점", "일반음식점", "cafe", "coffee"],
+      "design_intent": "low public pavilion with a strong street edge, terrace, framed court, and one memorable roof or cantilever gesture",
+      "target_volume_range": [1, 3],
+      "target_floor_range": [1, 3],
+      "preferred_families": ["terrace_link", "courtyard", "sloped_roof", "slender_bar", "void_notch"],
+      "sequences": [
+        {"name": "program_cafe_terrace_pavilion", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.72}}, {"verb": "terrace_link", "params": {"side": "south", "upper_ratio": 0.56, "width_ratio": 0.62, "depth_ratio": 0.22, "lower_floor_fraction": 0.62}}]},
+        {"name": "program_cafe_court_roof", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "courtyard", "params": {"ratio": 0.20, "upper_ratio": 0.72}}, {"verb": "sloped_roof_mass", "params": {"upper_ratio": 0.62, "x_ratio": 0.82, "y_ratio": 0.94, "lower_floor_fraction": 0.68}}]}
+      ]
+    },
+    {
+      "id": "gymnasium",
+      "aliases": ["체육관", "운동시설", "gymnasium", "gym", "sports hall"],
+      "design_intent": "one clear long-span hall volume with a subordinate entry/service bar and daylight roof expression",
+      "geometry_language_contract": {
+        "allowed_macro_operators": ["profiled_hall", "carve_void", "notch", "lift", "cantilever", "attach_volume", "bridge", "terrace", "cut_corner"],
+        "required_macro_operators_all": ["profiled_hall"],
+        "requires_access_bound_relation": true
+      },
+      "reference_search": {
+        "preferred_collections": ["sports_architecture"],
+        "required_any_terms": ["gym", "gymnasium", "sports", "sporting", "athletic", "arena", "recreation", "training", "club", "stadium", "natatorium", "swimming", "fitness", "pilates", "sports court", "boathouse"],
+        "supporting_terms": ["long span", "hall", "clear span", "court", "roof", "daylight", "monitor", "service spine", "entry"],
+        "excluded_scale_typologies": ["highrise_tower"],
+        "preferred_primary_typologies": ["sports", "education"],
+        "minimum_program_specific_images": 3
+      },
+      "semantic_invariants": [
+        {"id": "gym_clear_span", "subject_role": "dominant_hall", "relation": "encloses", "object_role": "clear_span_program", "description": "The dominant body must remain legible as one usable long-span hall."},
+        {"id": "gym_service_hierarchy", "subject_role": "service_spine", "relation": "subordinate_to", "object_role": "dominant_hall", "description": "Entry and service volumes support rather than replace the hall."},
+        {"id": "gym_roof_section", "subject_role": "roof_section", "relation": "expresses", "object_role": "span_or_daylight_logic", "description": "Roof deformation must express span, structure or daylight instead of an arbitrary cascading pyramid."}
+      ],
+      "dimensional_requirements": {
+        "selection_basis": "legal_generation_site_oriented_clear_span",
+        "subtypes": [
+          {
+            "id": "long_span_sports_hall",
+            "minimum_clear_span_m": 12.0,
+            "minimum_host_area_m2": 180.0,
+            "minimum_height_m": 7.0,
+            "maximum_height_m": 12.0,
+            "target_height_to_clear_span_ratio": 0.65,
+            "maximum_height_to_clear_span_ratio": 0.95,
+            "maximum_floors": 2
+          },
+          {
+            "id": "compact_training_hall",
+            "minimum_clear_span_m": 6.0,
+            "minimum_host_area_m2": 60.0,
+            "minimum_height_m": 5.0,
+            "maximum_height_m": 8.0,
+            "target_height_to_clear_span_ratio": 0.80,
+            "maximum_height_to_clear_span_ratio": 1.10,
+            "maximum_floors": 2
+          }
+        ]
+      },
+      "target_volume_range": [1, 3],
+      "target_floor_range": [1, 4],
+      "preferred_families": ["sloped_roof", "slender_bar", "void_notch", "offset"],
+      "sequences": [
+        {"name": "program_gym_long_span_hall", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.88}}, {"verb": "sloped_roof_mass", "params": {"upper_ratio": 0.90, "x_ratio": 0.94, "y_ratio": 0.88, "lower_floor_fraction": 0.74}}], "section_graph": {"schema_version": "arr.maas.program_section_graph.v1", "nodes": [{"node_id": "hall", "role": "dominant_hall", "component_role": "gym_main_long_span_hall", "operator": "long_span_hall", "parent_id": null, "relation": "input", "params": {"span_axis": "x"}}, {"node_id": "roof", "role": "roof", "component_role": "gym_main_long_span_hall", "operator": "ridge_roof", "parent_id": "hall", "relation": "deform", "params": {"section_controls": [[0.0, 0.66], [0.5, 1.0], [1.0, 0.66]], "rise_ratio": 0.34}}, {"node_id": "service", "role": "service", "component_role": "gym_service_spine", "operator": "service_spine", "parent_id": "hall", "relation": "attach", "params": {"depth_scale": 1.0}}, {"node_id": "entry", "role": "entry", "component_role": "gym_entry_canopy", "operator": "entry_canopy", "parent_id": "hall", "relation": "attach", "params": {"width_scale": 1.0}}]}},
+        {"name": "program_gym_hall_entry_bar", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.90}}, {"verb": "cave", "params": {"side": "south", "width_ratio": 0.28, "depth_ratio": 0.14}}], "section_graph": {"schema_version": "arr.maas.program_section_graph.v1", "nodes": [{"node_id": "hall", "role": "dominant_hall", "component_role": "gym_compact_main_hall", "operator": "long_span_hall", "parent_id": null, "relation": "input", "params": {"span_axis": "x"}}, {"node_id": "roof", "role": "roof", "component_role": "gym_compact_main_hall", "operator": "ridge_roof", "parent_id": "hall", "relation": "deform", "params": {"section_controls": [[0.0, 0.72], [0.5, 0.94], [1.0, 0.72]], "rise_ratio": 0.22}}, {"node_id": "monitor", "role": "daylight", "component_role": "gym_tall_daylight_monitor", "operator": "daylight_monitor", "parent_id": "roof", "relation": "monitor", "params": {"monitor_height_ratio": 0.12}}, {"node_id": "entry", "role": "entry_service", "component_role": "gym_entry_service_bar", "operator": "entry_canopy", "parent_id": "hall", "relation": "attach", "params": {"width_scale": 1.0}}]}},
+        {"name": "program_gym_folded_service_hall", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.86}}, {"verb": "sloped_roof_mass", "params": {"axis": "x", "upper_ratio": 0.94, "lower_floor_fraction": 0.70}}], "section_graph": {"schema_version": "arr.maas.program_section_graph.v1", "nodes": [{"node_id": "hall", "role": "dominant_hall", "component_role": "gym_main_folded_hall", "operator": "long_span_hall", "parent_id": null, "relation": "input", "params": {"span_axis": "x"}}, {"node_id": "roof", "role": "roof", "component_role": "gym_main_folded_hall", "operator": "folded_roof", "parent_id": "hall", "relation": "deform", "params": {"section_controls": [[0.0, 0.62], [0.28, 0.96], [0.52, 0.70], [0.76, 1.0], [1.0, 0.64]], "rise_ratio": 0.36}}, {"node_id": "service", "role": "service", "component_role": "gym_folded_service_spine", "operator": "service_spine", "parent_id": "hall", "relation": "attach", "params": {"depth_scale": 1.0}}, {"node_id": "entry", "role": "entry", "component_role": "gym_folded_entry_canopy", "operator": "entry_canopy", "parent_id": "hall", "relation": "attach", "params": {"width_scale": 1.0}}]}},
+        {"name": "program_gym_sawtooth_daylight_hall", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.84}}, {"verb": "sloped_roof_mass", "params": {"axis": "x", "upper_ratio": 0.96, "lower_floor_fraction": 0.68}}], "section_graph": {"schema_version": "arr.maas.program_section_graph.v1", "nodes": [{"node_id": "hall", "role": "dominant_hall", "component_role": "gym_main_sawtooth_hall", "operator": "long_span_hall", "parent_id": null, "relation": "input", "params": {"span_axis": "x"}}, {"node_id": "roof", "role": "roof", "component_role": "gym_main_sawtooth_hall", "operator": "sawtooth_roof", "parent_id": "hall", "relation": "deform", "params": {"section_controls": [[0.0, 0.64], [0.18, 0.94], [0.21, 0.62], [0.48, 0.98], [0.51, 0.64], [0.78, 0.92], [0.81, 0.66], [1.0, 0.86]], "rise_ratio": 0.34}}, {"node_id": "monitor", "role": "daylight", "component_role": "gym_daylight_monitor_spine", "operator": "daylight_monitor", "parent_id": "roof", "relation": "monitor", "params": {"monitor_height_ratio": 0.16}}, {"node_id": "service", "role": "service", "component_role": "gym_sawtooth_service_spine", "operator": "service_spine", "parent_id": "hall", "relation": "attach", "params": {"depth_scale": 0.92}}, {"node_id": "entry", "role": "entry", "component_role": "gym_sawtooth_entry_canopy", "operator": "entry_canopy", "parent_id": "hall", "relation": "attach", "params": {"width_scale": 0.92}}]}},
+        {"name": "program_gym_stepped_section_hall", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.82}}, {"verb": "grade", "params": {"side": "north", "width_ratio": 0.34, "depth_ratio": 0.22, "lower_floor_fraction": 0.58}}], "section_graph": {"schema_version": "arr.maas.program_section_graph.v1", "nodes": [{"node_id": "hall", "role": "dominant_hall", "component_role": "gym_main_stepped_section_hall", "operator": "long_span_hall", "parent_id": null, "relation": "input", "params": {"span_axis": "x"}}, {"node_id": "roof", "role": "roof", "component_role": "gym_main_stepped_section_hall", "operator": "stepped_section", "parent_id": "hall", "relation": "deform", "params": {"section_controls": [[0.0, 0.60], [0.30, 0.60], [0.34, 0.78], [0.62, 0.78], [0.66, 0.96], [1.0, 0.96]], "rise_ratio": 0.36}}, {"node_id": "service", "role": "service", "component_role": "gym_stepped_service_spine", "operator": "service_spine", "parent_id": "hall", "relation": "attach", "params": {"depth_scale": 1.0}}, {"node_id": "entry", "role": "entry", "component_role": "gym_stepped_entry_canopy", "operator": "entry_canopy", "parent_id": "hall", "relation": "attach", "params": {"width_scale": 0.88}}]}},
+        {"name": "program_gym_carved_entry_hall", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.86}}, {"verb": "cave", "params": {"side": "south", "width_ratio": 0.30, "depth_ratio": 0.20}}], "section_graph": {"schema_version": "arr.maas.program_section_graph.v1", "nodes": [{"node_id": "hall", "role": "dominant_hall", "component_role": "gym_main_carved_entry_hall", "operator": "long_span_hall", "parent_id": null, "relation": "input", "params": {"span_axis": "x"}}, {"node_id": "roof", "role": "roof", "component_role": "gym_main_carved_entry_hall", "operator": "ridge_roof", "parent_id": "hall", "relation": "deform", "params": {"section_controls": [[0.0, 0.68], [0.42, 0.98], [0.58, 0.98], [1.0, 0.68]], "rise_ratio": 0.30}}, {"node_id": "service", "role": "service", "component_role": "gym_carved_service_spine", "operator": "service_spine", "parent_id": "hall", "relation": "attach", "params": {"depth_scale": 0.90}}, {"node_id": "entry_void", "role": "entry_void", "component_role": "gym_carved_entry_void", "operator": "carved_entry", "parent_id": "hall", "relation": "subtract", "params": {"depth_scale": 1.0, "width_scale": 1.0}}, {"node_id": "entry_canopy", "role": "entry", "component_role": "gym_carved_entry_canopy", "operator": "entry_canopy", "parent_id": "hall", "relation": "attach", "params": {"width_scale": 1.0}}]}}
+      ]
+    },
+    {
+      "id": "office",
+      "aliases": ["업무시설", "오피스", "office"],
+      "design_intent": "efficient deep plate or tower-podium with a legible lobby void and vertical hierarchy",
+      "target_volume_range": [2, 4],
+      "target_floor_range": [4, 40],
+      "preferred_families": ["taper", "offset", "courtyard", "extruded_fin"],
+      "sequences": [
+        {"name": "program_office_podium_tower", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "taper", "params": {"top_ratio": 0.56, "lower_floor_fraction": 0.34}}, {"verb": "shift", "params": {"axis": "x", "distance_ratio": 0.08, "upper_ratio": 0.76, "lower_floor_fraction": 0.36}}]}
+      ]
+    },
+    {
+      "id": "cultural",
+      "aliases": ["문화시설", "집회시설", "전시장", "미술관", "museum", "cultural"],
+      "design_intent": "public sequence of carved halls, courts, ramps, and one civic-scale dominant gesture",
+      "geometry_language_contract": {
+        "allowed_macro_operators": ["courtyard", "carve_void", "notch", "setback", "terrace", "cantilever", "bridge", "grid_mass", "cross_mass", "bent_bar", "split_wing", "attach_volume", "lift", "puncture", "cut_corner", "stepped_mass"],
+        "required_macro_operators_any": ["courtyard", "carve_void", "notch", "lift", "split_wing"],
+        "requires_access_bound_relation": true
+      },
+      "reference_search": {
+        "preferred_collections": ["cultural_architecture"],
+        "required_any_terms": ["museum", "gallery", "cultural", "exhibition", "art", "arts", "library", "theatre", "theater", "archive", "visitor center", "civic"],
+        "supporting_terms": ["gallery sequence", "controlled daylight", "atrium", "court", "ramp", "public hall", "rooflight", "service"],
+        "excluded_scale_typologies": ["highrise_tower"],
+        "preferred_primary_typologies": ["cultural", "education"],
+        "minimum_program_specific_images": 3
+      },
+      "semantic_invariants": [
+        {"id": "cultural_public_sequence", "subject_role": "public_threshold", "relation": "connects_through", "object_role": "gallery_sequence", "description": "The mass must organize a legible public sequence rather than only display an unusual silhouette."},
+        {"id": "cultural_void_light", "subject_role": "court_or_atrium", "relation": "mediates", "object_role": "controlled_daylight", "description": "Courts, cuts and roof forms must support exhibition light and orientation."},
+        {"id": "cultural_service_hierarchy", "subject_role": "back_of_house", "relation": "subordinate_to", "object_role": "public_gallery_hall", "description": "Service mass remains distinct from the civic public gesture."}
+      ],
+      "target_volume_range": [2, 4],
+      "target_floor_range": [1, 8],
+      "preferred_families": ["courtyard", "split", "diagonal_connect", "nested_stack", "void_notch"],
+      "sequences": [
+          {"name": "program_cultural_court_bridge", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "courtyard", "params": {"ratio": 0.30, "upper_ratio": 0.78}}, {"verb": "diagonal_connect", "params": {"axis": "x", "upper_ratio": 0.62, "distance_ratio": 0.08, "angle": 24.0, "lower_floor_fraction": 0.46}}]},
+          {"name": "program_cultural_carved_gallery_spine", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "carve", "params": {"side": "south", "width_ratio": 0.42, "depth_ratio": 0.24}}, {"verb": "inscribe", "params": {"ratio": 0.24, "upper_ratio": 0.82}}]},
+          {"name": "program_cultural_split_gallery_ramp", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "split", "params": {"axis": "x", "gap_ratio": 0.16, "upper_ratio": 0.82}}, {"verb": "lift", "params": {"upper_ratio": 0.74, "lower_floor_fraction": 0.42}}]}
+      ]
+    },
+    {
+      "id": "neighborhood_living",
+      "aliases": ["근린생활시설", "근린생활", "근생", "neighborhood living", "neighborhood commercial"],
+      "design_intent": "compact capacity-aware street building with an active ground edge, one clear public void or terrace, and calm upper massing",
+      "geometry_language_contract": {
+        "allowed_macro_operators": ["profiled_hall", "courtyard", "carve_void", "notch", "setback", "terrace", "cantilever", "bridge", "grid_mass", "cross_mass", "bent_bar", "split_wing", "attach_volume", "lift", "puncture", "cut_corner", "stepped_mass"],
+        "required_macro_operators_any": ["courtyard", "carve_void", "notch", "lift", "split_wing"],
+        "requires_access_bound_relation": true,
+        "public_space_operators": ["courtyard", "split_wing"],
+        "public_threshold_parameters": {
+          "courtyard_margin_ratio": [0.18, 0.24],
+          "notch_depth_ratio": [0.28, 0.40],
+          "notch_width_ratio": [0.38, 0.55],
+          "notch_height_ratio": [0.58, 0.82],
+          "lift_rise_ratio": [0.22, 0.30],
+          "lift_support_ratio": [0.10, 0.12],
+          "split_gap_ratio": [0.18, 0.24],
+          "split_ground_spine_width_ratio": [0.22, 0.30],
+          "split_ground_spine_height_ratio": [0.16, 0.22]
+        }
+      },
+      "reference_search": {
+        "preferred_collections": ["neighborhood_architecture", "cafes_restaurants", "mixed_use", "offices"],
+        "required_any_terms": ["cafe", "restaurant", "retail", "shop", "commercial", "mixed use", "community", "market", "neighborhood", "studio", "office"],
+        "supporting_terms": ["active frontage", "street edge", "public threshold", "terrace", "courtyard", "mixed program", "pedestrian"],
+        "excluded_terms": ["skyscraper", "high rise", "high-rise", "tallest tower", "office tower", "meter tall"],
+        "excluded_scale_typologies": ["highrise_tower", "large_span_hall"],
+        "preferred_primary_typologies": ["retail_hospitality", "mixed_use", "cultural"],
+        "minimum_program_specific_images": 3
+      },
+      "semantic_invariants": [
+        {"id": "neighborhood_active_edge", "subject_role": "public_ground_edge", "relation": "addresses", "object_role": "street_access", "description": "The ground mass must create an active and legible street threshold."},
+        {"id": "neighborhood_public_space", "subject_role": "void_or_terrace", "relation": "supports", "object_role": "mixed_public_program", "description": "A court, cut, bend or terrace must create usable public space rather than decorative subtraction."},
+        {"id": "neighborhood_upper_hierarchy", "subject_role": "upper_mass", "relation": "varies_without_erasing", "object_role": "ground_program", "description": "Creative upper transformations preserve the mixed-use ground relationship."}
+      ],
+      "target_volume_range": [1, 3],
+      "target_floor_range": [2, 8],
+      "preferred_families": ["slender_bar", "courtyard", "terrace_link", "void_notch", "offset", "bend"],
+      "sequences": [
+        {"name": "program_neighborhood_active_bar", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bar", "params": {"axis": "x", "factor": 0.82}}, {"verb": "cave", "params": {"side": "south", "width_ratio": 0.24, "depth_ratio": 0.12}}]},
+        {"name": "program_neighborhood_court_terrace", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "courtyard", "params": {"ratio": 0.18, "upper_ratio": 0.90}}, {"verb": "terrace_link", "params": {"side": "south", "upper_ratio": 0.82, "lower_floor_fraction": 0.46}}]},
+        {"name": "program_neighborhood_stepback_corner", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "offset", "params": {"axis": "y", "distance_ratio": 0.10, "upper_ratio": 0.82, "lower_floor_fraction": 0.42}}]},
+        {"name": "program_neighborhood_landscape_ribbons", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "bend", "params": {"lane_count": 3, "field_samples": 5, "lane_width_ratio": 0.105, "width_gradient": 0.22, "curvature": 0.08, "field_phase": 0.0, "vertical_mode": "grounded", "vertical_overlap": 0.16, "lower_floor_fraction": 0.46, "design_field_source": "program_agent_graph"}}]}
+      ]
+    },
+    {
+      "id": "retail",
+      "aliases": ["판매시설", "상업시설", "retail", "shop"],
+      "design_intent": "porous street-facing podium with clear entrances, internal court, and stacked public plates",
+      "target_volume_range": [2, 4],
+      "target_floor_range": [1, 10],
+      "preferred_families": ["courtyard", "terrace_link", "offset", "array_cluster"],
+      "sequences": [
+        {"name": "program_retail_porosity_stack", "calls": [{"verb": "base", "params": {"proportion": "site"}}, {"verb": "cave", "params": {"side": "south", "width_ratio": 0.36, "depth_ratio": 0.20}}, {"verb": "overlap", "params": {"axis": "x", "upper_ratio": 0.72, "lower_floor_fraction": 0.44}}]}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "stack",
+  "action": "",
+  "topology": "",
+  "variation_parameters": [],
+  "orientation_modes": [],
+  "executed_by": "book_stack",
+  "massv2_implements_it_too": true,
+  "divergence": "Aggregation layer, BOOK pp.50-58: the BOOK records no transformation for this word because it is not an operative - it repeats or joins one. Measured on the same bare body, massv2 adds 190 m3 (add) acting on 1 volume(s) (single). There is no BOOK claim to disagree with; this is the reading.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [],
+  "book_aggregation_evidence": [
+    {
+      "page": 53,
+      "aggregates_with": "branch"
+    },
+    {
+      "page": 54,
+      "aggregates_with": "bend"
+    },
+    {
+      "page": 55,
+      "aggregates_with": "rotate"
+    }
+  ],
+  "book_layer": "aggregation",
+  "mathematical_basis": {
+    "standard": "affine array along an axis",
+    "reference": "Affine transform: a 4x4 homogeneous matrix, invertible, straight lines preserved",
+    "definition": "One transform applied n times in sequence along an axis. The BOOK reads it at the aggregation layer, where it pairs with branch, bend and rotate rather than acting alone.",
+    "shipped_as": "3ds Max Array"
+  },
+  "canonical_effect": "step",
+  "lowering_contract": {
+    "required_operators": [],
+    "forbidden_operators": [],
+    "source": "not a base operative - the lowering contract covers the thirty operatives only; this word is in the aggregation layer and its operator is whatever book_adapter emits"
+  },
+  "adapter_emits": "stepped_mass",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "final_reading": {
+    "text": "The BOOK records no transformation for stack - it is an aggregation word on pages 53 to 55, where it pairs with branch, bend and rotate rather than acting alone - so there is no claim to measure massv2 against. The bench reads massv2's as add/single and that is simply what it is.",
+    "basis": "aggregation layer, no Add/Subtract/Displace heading on the page"
+  },
+  "review_verdict": "aggregation layer - the BOOK records no transformation, and massv2 adds 190 m3 on the bench",
+  "review_basis": "arr.massagent.book_verb_review.v1",
+  "executed_by_note": "BOOK pp.53-55: the body repeated upward, the paired rotate/shift carried one step further per level (stack(T^k B)). Was stepped_mass, a setback terrace of one body - the book's pile never came out (2026-09-10)."
+}

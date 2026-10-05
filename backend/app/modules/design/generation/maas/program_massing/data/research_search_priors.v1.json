@@ -1,0 +1,14 @@
+{
+  "schema_version": "arr.maas.research_search_priors.v1",
+  "sources": [
+    {"id": "robogrammar_2020", "url": "https://doi.org/10.1145/3414685.3417831", "local_clone": "clone/RoboGrammar", "transfer": "valid component-graph expansion with bounded depth and heuristic pruning"},
+    {"id": "map_elites_2015", "url": "https://arxiv.org/abs/1504.04909", "transfer": "retain the best legal clean mass in each program-specific behavior niche"},
+    {"id": "glso_2023", "url": "https://proceedings.mlr.press/v205/hu23c.html", "transfer": "future learned proposal spaces must remain grammar-valid before legal evaluation"}
+  ],
+  "profiles": {
+    "housing": {"max_graph_depth": 4, "max_component_nodes": 4, "archive_descriptors": ["court_openness", "bar_slenderness", "sectional_step"], "preferred_mutations": ["add_court", "shift_bar", "step_section", "simplify"]},
+    "cafe": {"max_graph_depth": 3, "max_component_nodes": 3, "archive_descriptors": ["street_porosity", "terrace_ratio", "roof_gesture"], "preferred_mutations": ["carve_entry", "add_terrace", "fold_roof", "simplify"]},
+    "gymnasium": {"max_graph_depth": 3, "max_component_nodes": 3, "archive_descriptors": ["hall_span_ratio", "entry_legibility", "roof_daylight"], "preferred_mutations": ["stretch_hall", "attach_service_bar", "carve_entry", "fold_roof"]},
+    "generic": {"max_graph_depth": 4, "max_component_nodes": 4, "archive_descriptors": ["volume_count", "void_ratio", "silhouette"], "preferred_mutations": ["shift", "carve", "step", "simplify"]}
+  }
+}

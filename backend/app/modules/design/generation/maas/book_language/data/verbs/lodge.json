@@ -1,0 +1,85 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "lodge",
+  "action": "lodge a smaller guest in the interval between two related hosts",
+  "topology": "multiple_volumes -> two_hosts_with_lodged_guest",
+  "variation_parameters": [
+    "axis",
+    "distance_ratio",
+    "guest_scale"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "book_lodge",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 lodge removes 3 m3 (displace) acting on 2 volume(s) (multiple). The BOOK records this word as displace on multiple volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 21,
+      "transformation": "displace",
+      "cardinality": "multiple"
+    }
+  ],
+  "book_layer": "base_operative",
+  "book_implementation_measured": {
+    "operator": "book_lodge",
+    "parameter_source": "adapter",
+    "volume_change_pct": 76,
+    "solids_delivered": 1,
+    "observed": "grows, nearly doubles the x span",
+    "transformation": "add",
+    "cardinality": "single",
+    "agrees_with_book_record": false,
+    "basis": "box 20x12x8 under a 1/1 long_axis book_base_volume scope"
+  },
+  "mathematical_basis": {
+    "standard": "interlocking spaces, one host dominant",
+    "reference": "Ching, F.D.K. 'Architecture: Form, Space, and Order' - the four spatial relationships: space within a space, interlocking spaces, adjacent spaces, and spaces linked by a common space",
+    "definition": "A guest set into the host so part of it remains outside - between the first and second of Ching's relationships.",
+    "shipped_as": "the second of Ching's four spatial relationships"
+  },
+  "canonical_effect": "book_lodge",
+  "lowering_contract": {
+    "required_operators": [
+      "book_lodge"
+    ],
+    "forbidden_operators": [
+      "offset_related"
+    ],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "book_lodge",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "displace_payment": {
+    "moved": "+76% -> -1.6%",
+    "why": "The bar that rests across the host is carried by it, not added to it: what hangs past both sides is paid for out of what carries it, which is what p.21 means by Displace. Same residual as interlock - the overhang on a plot-filling host is clipped, so part of the payment buys nothing.",
+    "basis": "extrude + split seed on the Uijeongbu parcel, uncut volume"
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

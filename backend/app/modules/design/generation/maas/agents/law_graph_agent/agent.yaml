@@ -1,0 +1,23 @@
+id: law_graph_agent
+name: Law Graph Agent
+runtime: arr.maas.local_agent
+method_basis:
+  - constraint_solving
+  - legal_evidence_graph
+input_contract:
+  - constraints
+  - candidate_legal_metrics
+output_contract:
+  - far_bcr_height_status
+  - legal_hard_gate_metrics
+handoffs:
+  previous: design_orchestrator
+  next: master_plan_agent
+responsibilities:
+  - verify_far_bcr_height
+  - expose_legal_limits
+  - reject_over_limit_candidates
+non_responsibilities:
+  - architectural_language_generation
+  - parking_permit_approval
+  - mass_geometry_generation

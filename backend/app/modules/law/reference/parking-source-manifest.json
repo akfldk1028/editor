@@ -1,0 +1,65 @@
+{
+  "schema": "editor.parking-source-import.v1",
+  "imported_on": "2026-10-05",
+  "transformation": "none; source JSON copied byte-for-byte",
+  "files": [
+    {
+      "name": "parking_appendix_rules.json",
+      "source": "ARR/backend/law/data/structured/parking_appendix_rules.json",
+      "source_sha256": "d9a52fb1f711cf3c10425af25a9be0b8f16238026af0e395bdbd7ffaab6f3e47",
+      "bytes": 12333,
+      "source_metadata": {
+        "appendix_id": "주차장법(시행령)::별표1",
+        "source_title": "주차장법 시행령 [별표 1] 부설주차장의 설치대상 시설물 종류 및 설치기준",
+        "source_url": "https://www.law.go.kr/LSW/lsBylInfoPLinkR.do?lsiSeq=273373&lsNm=%EC%A3%BC%EC%B0%A8%EC%9E%A5%EB%B2%95+%EC%8B%9C%ED%96%89%EB%A0%B9&bylNo=0001&bylBrNo=00&bylCls=BE&bylEfYd=20250817&bylEfYdYn=Y",
+        "pdf_path": "docs/legal-sources/parking_law_enforcement_decree_appendix1.pdf",
+        "text_path": "docs/legal-sources/parking_law_enforcement_decree_appendix1.txt",
+        "effective_date": "2025-08-17",
+        "structured_by": "official_pdf_text_extracted_manual_review"
+      }
+    },
+    {
+      "name": "seoul_parking_ordinance_rules.json",
+      "source": "ARR/backend/law/data/structured/seoul_parking_ordinance_rules.json",
+      "source_sha256": "d32a6fc18923883665e68596b6cc25bba9ac912c0b22eaa617ada69807296e48",
+      "bytes": 11664,
+      "source_metadata": {
+        "ordinance_id": "seoul_parking_ordinance",
+        "appendix_id": "서울특별시 주차장 설치 및 관리 조례::별표2",
+        "jurisdiction_name": "서울특별시",
+        "jurisdiction_level": "sido",
+        "pnu_prefix": "11",
+        "source_title": "서울특별시 주차장 설치 및 관리 조례 [별표 2] 부설주차장의 설치대상 시설물 종류 및 설치기준",
+        "source_url": "https://www.law.go.kr/LSW/ordinBylInfoPLinkR.do?bylSeq=21693939",
+        "text_path": "docs/legal-sources/seoul_parking_ordinance_appendix2.txt",
+        "effective_date": "2026-03-30",
+        "appendix_revision_date": "2025-09-29",
+        "ordinance_no": "서울특별시조례 제10047호",
+        "structured_by": "official_law_go_kr_text_extracted_manual_review"
+      }
+    },
+    {
+      "name": "uijeongbu_parking_ordinance_rules.json",
+      "source": "ARR/backend/law/data/structured/uijeongbu_parking_ordinance_rules.json",
+      "source_sha256": "ea699f42ef3a0aa531d01452068a96e2eaa6a0a4657ec21e9d847ac2899402b2",
+      "bytes": 3257,
+      "source_metadata": {
+        "ordinance_id": "uijeongbu_parking_ordinance",
+        "appendix_id": "의정부시 주차장 설치 및 관리 조례::별표3",
+        "jurisdiction_name": "의정부시",
+        "jurisdiction_level": "sigungu",
+        "pnu_prefix": "41150",
+        "source_title": "의정부시 주차장 설치 및 관리 조례 별표3 부설주차장 설치대상 시설물 종류 및 설치기준",
+        "source_url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2107023",
+        "attachment_url": "https://www.law.go.kr/LSW/flDownload.do?flSeq=160802145&bylClsCd=300402",
+        "source_sha256": "e04127b1c70c3927c55154f47b127a3a9adfe6476ebf14d970a234ca47a492ae",
+        "effective_date": "2026-01-09",
+        "appendix_revision_date": "2026-01-09",
+        "ordinance_no": "의정부시조례 제3674호",
+        "reviewed_on": "2026-09-06",
+        "structured_by": "official_hwp_and_official_preview_visual_review",
+        "coverage": "Reviewed area rows 2, 3 and 10 only; other municipal rows are not implemented by this file. Building use and mixed-use schedule must be supplied independently."
+      }
+    }
+  ]
+}

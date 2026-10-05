@@ -1,0 +1,20 @@
+{
+  "schema_version": "arr.maas.geometry_agent_memory.v1",
+  "authority": "current_numbered_modules_override_history",
+  "required_read_order": [
+    "01_GOAL.md",
+    "02_NON_NEGOTIABLES.md",
+    "03_CAUSAL_PIPELINE.md",
+    "04_BASEVOLUME_GRAPH.md",
+    "05_BOOK_LANGUAGE.md",
+    "06_LLM_HARNESS.md",
+    "07_VALIDATION_GATES.md",
+    "08_FAILURE_LEDGER.md",
+    "09_CURRENT_STATE.md",
+    "10_MGAR_2026_ALIGNMENT.md",
+    "11_CHECKPOINT_AND_HANDOFF.md"
+  ],
+  "history_directory": "history",
+  "history_is_instruction_authority": false,
+  "updated": "2026-08-10"
+}

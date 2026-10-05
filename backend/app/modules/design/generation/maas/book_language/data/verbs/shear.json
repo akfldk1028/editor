@@ -1,0 +1,67 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "shear",
+  "action": "subtract an oblique half-space normal to the selected base-volume orientation",
+  "topology": "single_volume -> single_sheared_volume",
+  "variation_parameters": [
+    "angle"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "slice",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 shear removes 140 m3 (subtract) acting on 1 volume(s) (single). The BOOK records this word as subtract on single volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 32,
+      "transformation": "subtract",
+      "cardinality": "single"
+    }
+  ],
+  "book_layer": "base_operative",
+  "mathematical_basis": {
+    "standard": "affine shear or half-space cut",
+    "reference": "Affine transform: a 4x4 homogeneous matrix, invertible, straight lines preserved",
+    "definition": "The BOOK page reads shear as subtracting an oblique half-space normal to the base-volume orientation, which is a Boolean cut, not the volume-preserving affine shear of the same name. The two senses differ in whether volume survives.",
+    "shipped_as": "3ds Max Slice (the BOOK sense) vs Skew (the affine sense)"
+  },
+  "canonical_effect": "slice",
+  "lowering_contract": {
+    "required_operators": [
+      "slice"
+    ],
+    "forbidden_operators": [
+      "shear"
+    ],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "slice",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

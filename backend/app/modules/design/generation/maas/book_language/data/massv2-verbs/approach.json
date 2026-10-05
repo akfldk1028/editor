@@ -1,0 +1,7 @@
+{
+  "schema_version": "arr.massagent.massv2_verb.v1",
+  "verb": "approach",
+  "origin": "massv2",
+  "book_has_this_word": false,
+  "note": "Written for massv2, not found in the BOOK. It is vocabulary the BOOK does not carry, so it cannot be reconciled - only kept or retired. Recorded here so the language an agent reads is the whole language, not the BOOK half of it."
+}

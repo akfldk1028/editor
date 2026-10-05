@@ -1,0 +1,32 @@
+{
+  "schema_version": "arr.maas.preference_qa.v1",
+  "source_pattern": "clone/VisionReward/VisionReward_Image/VisionReward_image_qa.txt",
+  "domain": "architecture_massing",
+  "questions": [
+    {
+      "id": "gesture_clarity",
+      "question": "Does the massing have one clear dominant geometric gesture?"
+    },
+    {
+      "id": "hierarchy",
+      "question": "Is the main/support mass hierarchy readable without random fragments?"
+    },
+    {
+      "id": "non_stair_silhouette",
+      "question": "Does the silhouette avoid relying mainly on stair-step or simple stepback form?"
+    },
+    {
+      "id": "void_publicness",
+      "question": "Does the massing use void, courtyard, undercut, or open ground logic in an architecturally meaningful way?"
+    },
+    {
+      "id": "repair_integrity",
+      "question": "Does the final mass preserve its source geometry after legal repair?"
+    },
+    {
+      "id": "precedent_resonance",
+      "question": "Does the candidate resonate with a recognizable architectural massing principle without copying a precedent?"
+    }
+  ]
+}
+

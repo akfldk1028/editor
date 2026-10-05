@@ -13,7 +13,8 @@ from backend.app.adapters.vworld import VworldClient
 from backend.app.modules.land.parcel_geometry import parcel_geometry
 from backend.app.modules.land.projection import wgs84_to_utm
 from backend.app.modules.design.artifacts import ArtifactArchiveError
-from backend.app.modules.design.workspace_archive import WorkspaceArchive
+from backend.app.modules.design.execution_archive import ExecutionArchive
+from backend.app.modules.design.generation.paths import data_root
 
 
 class BoundaryRequest(BaseModel):
@@ -55,17 +56,14 @@ def create_design_workspace_router(*, public_origin=None, address_client=None):
         return json.loads(path.read_text(encoding='utf-8'))
 
     def archive():
-        directory = os.environ.get('EDITOR_DESIGN_DATA_DIR')
-        if not directory:
-            raise HTTPException(503, 'Design storage is not configured')
-        return WorkspaceArchive(directory)
+        return ExecutionArchive(data_root())
 
     async def read_archive(operation):
         try:
             return await run_in_threadpool(operation)
         except LookupError:
             raise HTTPException(404, 'Archived design evidence not found') from None
-        except (ArtifactArchiveError, OSError, ValueError):
+        except (ArtifactArchiveError, OSError, ValueError, TypeError):
             raise HTTPException(503, 'Archived design evidence is unavailable or inconsistent') from None
 
     @router.get('/maas/executed-masses')

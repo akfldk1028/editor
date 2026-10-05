@@ -1,0 +1,246 @@
+{
+  "zones": {
+    "제1종전용주거지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택, 제1종 근린생활시설(일부)",
+        "prohibited_summary": "공동주택, 공장, 창고, 위락시설 등",
+        "reference_table": "시행령 별표2",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "제2종전용주거지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택, 공동주택, 제1종 근린생활시설",
+        "prohibited_summary": "공장, 창고, 위락시설, 숙박시설 등",
+        "reference_table": "시행령 별표3",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "제1종일반주거지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택, 제1·2종 근린생활시설, 교육·종교시설 등 (4층 이하)",
+        "prohibited_summary": "공동주택(아파트 제외), 공장, 위락시설, 숙박시설 등",
+        "reference_table": "시행령 별표4",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "제2종일반주거지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독·공동주택, 제1·2종 근린생활시설, 종교·교육시설 등",
+        "prohibited_summary": "공장, 위락시설, 일부 숙박시설 등",
+        "reference_table": "시행령 별표5",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "제3종일반주거지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독·공동주택, 제1·2종 근린생활시설, 업무시설, 종교·교육시설 등",
+        "prohibited_summary": "공장, 위락시설, 일부 숙박시설 등",
+        "reference_table": "시행령 별표6",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "준주거지역": {
+      "building_use_restriction": {
+        "allowed_summary": "주택, 근린생활시설, 판매·업무시설, 숙박시설 등 (주거 기능 보호)",
+        "prohibited_summary": "공장(일부), 위험물저장소, 동·식물관련시설 등",
+        "reference_table": "시행령 별표7",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "중심상업지역": {
+      "building_use_restriction": {
+        "allowed_summary": "업무·판매·숙박시설, 근린생활시설 등 (대부분 허용)",
+        "prohibited_summary": "공장, 위험물저장소, 동물관련시설 등",
+        "reference_table": "시행령 별표8",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 150, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "일반상업지역": {
+      "building_use_restriction": {
+        "allowed_summary": "업무·판매·숙박시설, 근린생활시설, 주택(일부) 등",
+        "prohibited_summary": "공장, 위험물저장소, 동물관련시설 등",
+        "reference_table": "시행령 별표9",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 150, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "근린상업지역": {
+      "building_use_restriction": {
+        "allowed_summary": "근린생활시설, 판매·업무시설, 주택 등 (일상 생활 편의)",
+        "prohibited_summary": "공장, 위험물저장소, 일부 위락시설 등",
+        "reference_table": "시행령 별표10",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 150, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "유통상업지역": {
+      "building_use_restriction": {
+        "allowed_summary": "유통·판매시설, 운수·창고시설, 업무시설 등",
+        "prohibited_summary": "공장(대규모), 위험물저장소, 동·식물관련시설 등",
+        "reference_table": "시행령 별표11",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 150, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "전용공업지역": {
+      "building_use_restriction": {
+        "allowed_summary": "공장, 창고시설, 위험물저장소, 자동차관련시설 등",
+        "prohibited_summary": "주택, 학교, 병원, 숙박시설, 위락시설 등",
+        "reference_table": "시행령 별표12",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 150, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "일반공업지역": {
+      "building_use_restriction": {
+        "allowed_summary": "공장, 창고, 근린생활시설, 업무시설 등",
+        "prohibited_summary": "주택(일부), 학교, 병원, 숙박시설, 위락시설 등",
+        "reference_table": "시행령 별표13",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 150, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "준공업지역": {
+      "building_use_restriction": {
+        "allowed_summary": "공장, 창고, 주택, 근린생활시설, 업무시설 등 (혼합 허용)",
+        "prohibited_summary": "위락시설, 일부 위험물저장소 등",
+        "reference_table": "시행령 별표14",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 150, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "보전녹지지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택(일부), 제1종 근린생활시설(일부), 농림어업용 시설",
+        "prohibited_summary": "공동주택, 공장, 판매·위락·숙박시설 등 대부분 제한",
+        "reference_table": "시행령 별표15",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 200, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 5000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "생산녹지지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택, 제1종 근린생활시설, 농림어업용 시설, 축사 등",
+        "prohibited_summary": "공동주택, 공장(일부), 판매·위락·숙박시설 등",
+        "reference_table": "시행령 별표16",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 200, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "자연녹지지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택, 제1·2종 근린생활시설, 교육시설, 농림어업용 시설 등",
+        "prohibited_summary": "공동주택(아파트), 대규모 공장, 위락시설 등",
+        "reference_table": "시행령 별표17",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 200, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 10000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "보전관리지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택(일부), 제1종 근린생활시설(일부), 농림어업용 시설",
+        "prohibited_summary": "공동주택, 공장, 판매·위락·숙박시설 등 대부분 제한",
+        "reference_table": "시행령 별표18",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 30000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "생산관리지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택, 제1종 근린생활시설, 농림어업용 시설, 축사 등",
+        "prohibited_summary": "공동주택, 대규모 공장, 위락시설 등",
+        "reference_table": "시행령 별표19",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 30000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "계획관리지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독·공동주택, 근린생활시설, 교육시설, 공장(일부) 등",
+        "prohibited_summary": "대규모 판매시설, 위락시설, 일부 숙박시설 등",
+        "reference_table": "시행령 별표20",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 30000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "농림지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택(일부), 제1종 근린생활시설(일부), 농림어업용 시설",
+        "prohibited_summary": "공동주택, 공장, 판매·위락·숙박시설 등 대부분 제한",
+        "reference_table": "시행령 별표21",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 30000, "article": "국토계획법 §56, 시행령 §51"}
+    },
+    "자연환경보전지역": {
+      "building_use_restriction": {
+        "allowed_summary": "단독주택(극히 일부), 제1종 근린생활시설(극히 일부), 농림어업용 시설",
+        "prohibited_summary": "거의 모든 건축물 제한 (최고 수준 보전)",
+        "reference_table": "시행령 별표22",
+        "article": "국토계획법 §76, 시행령 §71"
+      },
+      "site_subdivision_limit": {"min_area_m2": 60, "article": "건축법 §57, 시행령 §80"},
+      "daylighting_spacing": {"applies":null,"status":"needs_evidence","rule":"공동주택 용도와 건축법 제61조제2항 조건 확인 필요; 일반·중심상업지역 예외 별도 검토","article":"건축법 §61②, 시행령 §86③"},
+      "development_permit": {"max_area_m2": 5000, "article": "국토계획법 §56, 시행령 §51"}
+    }
+  },
+  "common": {
+    "site_road_requirement": {
+      "min_frontage_m": 2,
+      "rule": "건축물 대지는 2m 이상 도로에 접해야 함 (연면적 합계>2000m2: 6m)",
+      "article": "건축법 §44"
+    },
+    "split_zoning_rule": {
+      "rule": "대지가 2개 이상 용도지역에 걸치는 경우, 과반이 속하는 용도지역 기준 적용 (단, 나머지 부분은 해당 용도지역 기준 적용 가능)",
+      "article": "건축법 §54, 국토계획법 §84"
+    }
+  }
+}

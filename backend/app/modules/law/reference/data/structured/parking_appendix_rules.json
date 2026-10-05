@@ -1,0 +1,211 @@
+{
+  "parking_source": {
+    "appendix_id": "주차장법(시행령)::별표1",
+    "source_title": "주차장법 시행령 [별표 1] 부설주차장의 설치대상 시설물 종류 및 설치기준",
+    "source_url": "https://www.law.go.kr/LSW/lsBylInfoPLinkR.do?lsiSeq=273373&lsNm=%EC%A3%BC%EC%B0%A8%EC%9E%A5%EB%B2%95+%EC%8B%9C%ED%96%89%EB%A0%B9&bylNo=0001&bylBrNo=00&bylCls=BE&bylEfYd=20250817&bylEfYdYn=Y",
+    "pdf_path": "docs/legal-sources/parking_law_enforcement_decree_appendix1.pdf",
+    "text_path": "docs/legal-sources/parking_law_enforcement_decree_appendix1.txt",
+    "effective_date": "2025-08-17",
+    "structured_by": "official_pdf_text_extracted_manual_review"
+  },
+  "parking_rules": [
+    {
+      "rule_id": "parking_appendix1_row_01",
+      "row_no": "1",
+      "facility_group": "위락시설",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": 100.0,
+      "formula": "facility_area_m2 / 100",
+      "formula_detail": "시설면적 100제곱미터당 1대",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": ""
+    },
+    {
+      "rule_id": "parking_appendix1_row_02",
+      "row_no": "2",
+      "facility_group": "문화 및 집회시설(관람장 제외), 종교시설, 판매시설, 운수시설, 의료시설(정신병원ㆍ요양병원 및 격리병원 제외), 운동시설(골프장ㆍ골프연습장 및 옥외수영장 제외), 업무시설(외국공관 및 오피스텔 제외), 방송통신시설 중 방송국, 장례식장",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": 150.0,
+      "formula": "facility_area_m2 / 150",
+      "formula_detail": "시설면적 150제곱미터당 1대",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": "세부 제외 시설은 원문 별표 및 건축법 시행령 별표 1 용도분류 확인 필요"
+    },
+    {
+      "rule_id": "parking_appendix1_row_03",
+      "row_no": "3",
+      "facility_group": "제1종 근린생활시설 일부 제외, 제2종 근린생활시설, 숙박시설",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": 200.0,
+      "formula": "facility_area_m2 / 200",
+      "formula_detail": "시설면적 200제곱미터당 1대",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": "제1종 근린생활시설 제외 항목은 원문 별표 확인 필요"
+    },
+    {
+      "rule_id": "parking_appendix1_row_04",
+      "row_no": "4",
+      "facility_group": "단독주택",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": null,
+      "formula": "if 50 < facility_area_m2 <= 150 then 1 else 1 + ((facility_area_m2 - 150) / 100)",
+      "formula_detail": "시설면적 50제곱미터 초과 150제곱미터 이하 1대, 150제곱미터 초과는 1대에 150제곱미터 초과 100제곱미터당 1대를 더한 대수",
+      "min_area_m2_exclusive": 50.0,
+      "threshold_area_m2": 150.0,
+      "base_spaces": 1.0,
+      "increment_area_m2": 100.0,
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 제5호 시설물은 제외. 그 밖의 설치기준은 소수점 이하 0.5 이상이면 1대로 보고, 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": "비고 4에 따라 두 종류 이상의 시설물이 있는 경우 행 4 단독주택 50제곱미터 이하 부분은 시설면적 100제곱미터당 1대로 산정"
+    },
+    {
+      "rule_id": "parking_appendix1_row_05",
+      "row_no": "5",
+      "facility_group": "다가구주택, 공동주택(기숙사 제외), 업무시설 중 오피스텔",
+      "basis_metric": "household_or_unit_area",
+      "spaces_per": null,
+      "formula": "external_reference_article_27_1",
+      "formula_detail": "주택건설기준 등에 관한 규정 제27조제1항에 따라 산정. 다가구주택과 오피스텔의 전용면적은 공동주택 전용면적 산정방법 적용",
+      "external_reference": "주택건설기준 등에 관한 규정 제27조제1항",
+      "requires_external_rule": true,
+      "area_method": "공동주택 전용면적 산정방법",
+      "rounding_rule": "external_reference_article_27_1",
+      "rounding_rule_detail": "별표 1 비고 6의 설치기준 반올림 규칙에서 제5호 시설물은 제외됨. 주택건설기준 등에 관한 규정 제27조제1항 및 조례 기준을 별도로 적용",
+      "notes": "별표 1 행 5는 부설주차장 별표 자체만으로 최종 대수 계산을 끝내면 안 되고 외부 위임 규정을 함께 조회해야 함"
+    },
+    {
+      "rule_id": "parking_appendix1_row_06",
+      "row_no": "6",
+      "facility_group": "골프장, 골프연습장, 옥외수영장, 관람장",
+      "basis_metric": "facility_specific_unit",
+      "spaces_per": null,
+      "formula": "golf_course_holes*10 OR golf_range_bays*1 OR outdoor_pool_capacity/15 OR spectator_capacity/100",
+      "formula_detail": "골프장 1홀당 10대, 골프연습장 1타석당 1대, 옥외수영장 정원 15명당 1대, 관람장 정원 100명당 1대",
+      "specific_units_json": "{\"골프장\":{\"metric\":\"holes\",\"spaces_per_unit\":10},\"골프연습장\":{\"metric\":\"bays\",\"spaces_per_unit\":1},\"옥외수영장\":{\"metric\":\"capacity\",\"unit_per_space\":15},\"관람장\":{\"metric\":\"spectator_capacity\",\"unit_per_space\":100}}",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": "시설별 단위: 홀, 타석, 정원, 관람정원"
+    },
+    {
+      "rule_id": "parking_appendix1_row_07",
+      "row_no": "7",
+      "facility_group": "수련시설, 공장(아파트형 제외), 발전시설",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": 350.0,
+      "formula": "facility_area_m2 / 350",
+      "formula_detail": "시설면적 350제곱미터당 1대",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": ""
+    },
+    {
+      "rule_id": "parking_appendix1_row_08",
+      "row_no": "8",
+      "facility_group": "창고시설",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": 400.0,
+      "formula": "facility_area_m2 / 400",
+      "formula_detail": "시설면적 400제곱미터당 1대",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": ""
+    },
+    {
+      "rule_id": "parking_appendix1_row_09",
+      "row_no": "9",
+      "facility_group": "학생용 기숙사",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": 400.0,
+      "formula": "facility_area_m2 / 400",
+      "formula_detail": "시설면적 400제곱미터당 1대",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": ""
+    },
+    {
+      "rule_id": "parking_appendix1_row_10",
+      "row_no": "10",
+      "facility_group": "방송통신시설 중 데이터센터",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": 400.0,
+      "formula": "facility_area_m2 / 400",
+      "formula_detail": "시설면적 400제곱미터당 1대",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": ""
+    },
+    {
+      "rule_id": "parking_appendix1_row_11",
+      "row_no": "11",
+      "facility_group": "그 밖의 건축물",
+      "basis_metric": "facility_area_m2",
+      "spaces_per": 300.0,
+      "formula": "facility_area_m2 / 300",
+      "formula_detail": "시설면적 300제곱미터당 1대",
+      "rounding_rule": "appendix_note_6_half_up_total_under_one_zero",
+      "rounding_rule_detail": "별표 1 비고 6: 소수점 이하의 수가 0.5 이상이면 1대로 보고, 해당 시설물 전체 총주차대수가 1대 미만이면 0대로 봄",
+      "notes": "앞 항목에 해당하지 않는 건축물"
+    }
+  ],
+  "access_source": {
+    "appendix_id": "장애인ㆍ노인ㆍ임산부 등의 편의증진 보장에 관한 법률(시행규칙)::별표1",
+    "source_title": "장애인ㆍ노인ㆍ임산부 등의 편의증진 보장에 관한 법률 시행규칙 [별표 1] 편의시설의 구조ㆍ재질등에 관한 세부기준",
+    "source_url": "https://www.law.go.kr/LSW/lsBylInfoPLinkR.do?lsiSeq=280333&lsNm=%EC%9E%A5%EC%95%A0%EC%9D%B8%E3%86%8D%EB%85%B8%EC%9D%B8%E3%86%8D%EC%9E%84%EC%82%B0%EB%B6%80+%EB%93%B1%EC%9D%98+%ED%8E%B8%EC%9D%98%EC%A6%9D%EC%A7%84+%EB%B3%B4%EC%9E%A5%EC%97%90+%EA%B4%80%ED%95%9C+%EB%B2%95%EB%A5%A0+%EC%8B%9C%ED%96%89%EA%B7%9C%EC%B9%99&bylNo=0001&bylBrNo=00&bylCls=BE",
+    "pdf_path": "docs/legal-sources/accessibility_rule_appendix1.pdf",
+    "text_path": "docs/legal-sources/accessibility_rule_appendix1.txt",
+    "effective_date": "2025-12-21",
+    "structured_by": "official_pdf_text_extracted_manual_review"
+  },
+  "access_rules": [
+    {
+      "rule_id": "accessibility_appendix1_parking_space",
+      "category": "장애인전용주차구역",
+      "basis_metric": "stall_geometry",
+      "width_m": 3.3,
+      "length_m": 5.0,
+      "parallel_width_m": 2.0,
+      "parallel_length_m": 6.0,
+      "requirement_level": "mandatory",
+      "notes": "장애인전용주차구역 주차공간 기준. BF/프로젝트 권장 폭 3.5m는 별도 설계 기준으로 관리."
+    },
+    {
+      "rule_id": "accessibility_appendix1_access_aisle",
+      "category": "장애인전용주차구역",
+      "basis_metric": "access_route",
+      "min_route_width_m": 1.2,
+      "requires_no_height_difference": true,
+      "separated_from_vehicle_path": true,
+      "requirement_level": "mandatory",
+      "notes": "장애인전용주차구역에서 건축물 출입구 또는 장애인용 승강설비까지 높이차를 없애고 유효폭 1.2m 이상 보행안전통로를 확보"
+    },
+    {
+      "rule_id": "accessibility_appendix1_surface",
+      "category": "장애인전용주차구역",
+      "basis_metric": "surface_slope",
+      "max_slope": 0.02,
+      "max_slope_ratio": "1/50",
+      "max_slope_requirement_level": "recommended",
+      "requires_no_height_difference": true,
+      "slip_resistant": true,
+      "requirement_level": "mixed",
+      "notes": "주차구역 바닥 높이차 없음과 미끄럼 방지 평탄 마감은 의무. 기울기 1/50 이하는 '할 수 있다' 문구 및 별표 비고상 권장사항으로 분리"
+    },
+    {
+      "rule_id": "accessibility_appendix1_markings",
+      "category": "장애인전용주차구역",
+      "basis_metric": "marking_geometry",
+      "floor_mark_width_m": 1.3,
+      "floor_mark_length_m": 1.5,
+      "stall_line_mark_width_m": 0.5,
+      "stall_line_mark_length_m": 0.58,
+      "sign_width_m": 0.7,
+      "sign_height_m": 0.6,
+      "sign_install_height_m": 1.5,
+      "requirement_level": "mandatory",
+      "notes": "바닥 장애인전용표시 1.3m x 1.5m, 주차구획선 표시 0.5m x 0.58m, 안내표지 0.7m x 0.6m 및 설치높이 1.5m"
+    }
+  ]
+}

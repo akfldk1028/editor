@@ -1,0 +1,78 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "taper",
+  "action": "reduce successive plan sections toward one end or top",
+  "topology": "single_volume -> single_tapered_volume",
+  "variation_parameters": [
+    "x_ratio",
+    "y_ratio",
+    "top_shift_x_ratio",
+    "top_shift_y_ratio"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "taper",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 taper removes 672 m3 (subtract) acting on 1 volume(s) (single). The BOOK records this word as subtract on single volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 33,
+      "transformation": "subtract",
+      "cardinality": "single"
+    }
+  ],
+  "book_combination_evidence": [
+    {
+      "page": 41,
+      "combines_with": "taper"
+    },
+    {
+      "page": 46,
+      "combines_with": "bend"
+    }
+  ],
+  "book_layer": "base_operative",
+  "mathematical_basis": {
+    "standard": "Barr taper",
+    "reference": "Barr, A.H. (1984) 'Global and Local Deformations of Solid Primitives', SIGGRAPH Computer Graphics 18(3), 21-30",
+    "definition": "Scaling in the two axes normal to a chosen axis by a function of position along it: (x, y, z) -> (f(z)x, f(z)y, z). Volume falls with the integral of f squared, so a taper always subtracts.",
+    "shipped_as": "3ds Max Taper modifier / Maya nonlinear taper"
+  },
+  "canonical_effect": "taper",
+  "lowering_contract": {
+    "required_operators": [
+      "taper"
+    ],
+    "forbidden_operators": [],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "taper",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

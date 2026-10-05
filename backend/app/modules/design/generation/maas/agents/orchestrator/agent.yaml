@@ -1,0 +1,24 @@
+id: design_orchestrator
+name: Design Orchestrator
+runtime: arr.maas.local_agent
+method_basis:
+  - multi_agent_handoff
+  - revision_loop
+input_contract:
+  - user_goal
+  - site_context
+  - candidate_state
+output_contract:
+  - ordered_agent_flow
+  - final_review
+  - revision_request
+handoffs:
+  next: law_graph_agent
+responsibilities:
+  - route_agent_flow
+  - preserve_shared_candidate_state
+  - coordinate_revision_loop
+non_responsibilities:
+  - legal_truth_authority
+  - direct_geometry_generation
+  - parking_permit_approval

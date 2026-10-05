@@ -1,0 +1,354 @@
+{
+  "__comment": "Overlay zone → 규제 매핑. longest-key-first 정렬은 overlay_resolver.py가 처리.",
+
+  "대공방어협조구역": {
+    "category": "military",
+    "constraint": "height",
+    "pattern": "위탁고도[：:]\\s*([\\d]+)[-~]([\\d]+)\\s*m",
+    "extract": ["min_height_m", "max_height_m"],
+    "article": "군사기지 및 군사시설 보호법 §13",
+    "description": "대공방어 협조구역 — 건축물 높이 제한"
+  },
+  "군사시설보호구역": {
+    "category": "military",
+    "constraint": "permit",
+    "article": "군사기지 및 군사시설 보호법 §13",
+    "description": "군사시설 보호구역 — 건축 허가 필요"
+  },
+  "상대보호구역": {
+    "category": "military",
+    "constraint": "permit",
+    "article": "군사기지 및 군사시설 보호법 §13",
+    "description": "군사시설 상대보호구역 — 건축 행위 허가 필요"
+  },
+  "역사문화환경보존지역": {
+    "category": "heritage",
+    "constraint": "permit",
+    "article": "문화재보호법 §35",
+    "description": "문화재 주변 건축 허가 필요"
+  },
+  "문화재보호구역": {
+    "category": "heritage",
+    "constraint": "permit",
+    "article": "문화재보호법 §35",
+    "description": "문화재 보호구역 — 건축 행위 제한"
+  },
+  "지구단위계획구역": {
+    "category": "planning",
+    "constraint": "plan",
+    "article": "국토의 계획 및 이용에 관한 법률 §49",
+    "description": "지구단위계획에 따른 건축 규제 (별도 계획 확인 필요)"
+  },
+  "경관지구": {
+    "category": "landscape",
+    "constraint": "design",
+    "article": "경관법 §9",
+    "description": "경관 보전을 위한 건축물 형태·색채 규제"
+  },
+  "자연경관지구": {
+    "category": "landscape",
+    "constraint": "design",
+    "article": "국토의 계획 및 이용에 관한 법률 §76",
+    "description": "자연경관 보전을 위한 건축물 규제"
+  },
+  "수변경관지구": {
+    "category": "landscape",
+    "constraint": "design",
+    "article": "국토의 계획 및 이용에 관한 법률 §76",
+    "description": "수변경관 보전을 위한 건축물 규제"
+  },
+  "시가지경관지구": {
+    "category": "landscape",
+    "constraint": "design",
+    "article": "국토의 계획 및 이용에 관한 법률 §76",
+    "description": "시가지 경관 보전을 위한 건축물 규제"
+  },
+  "중점경관관리구역": {
+    "category": "landscape",
+    "constraint": "design",
+    "article": "경관법 §9",
+    "description": "중점 경관 관리구역 — 건축물 형태·높이·색채 규제"
+  },
+  "미관지구": {
+    "category": "landscape",
+    "constraint": "design",
+    "article": "국토의 계획 및 이용에 관한 법률 §76",
+    "description": "미관 유지를 위한 건축물 디자인 규제"
+  },
+  "방화지구": {
+    "category": "safety",
+    "constraint": "fireproof",
+    "article": "건축법 §51",
+    "description": "방화지구 — 내화구조 의무, 외벽 방화조치"
+  },
+  "방재지구": {
+    "category": "safety",
+    "constraint": "disaster",
+    "article": "국토의 계획 및 이용에 관한 법률 §37",
+    "description": "재해 방지를 위한 건축 기준 강화"
+  },
+  "보호지구": {
+    "category": "conservation",
+    "constraint": "permit",
+    "article": "국토의 계획 및 이용에 관한 법률 §37",
+    "description": "보호지구 — 문화재·중요시설·생태 보호를 위한 건축 제한"
+  },
+  "취락지구": {
+    "category": "settlement",
+    "constraint": "use",
+    "article": "국토의 계획 및 이용에 관한 법률 §37",
+    "description": "취락지구 — 녹지·관리지역 내 주거기능 허용"
+  },
+  "개발진흥지구": {
+    "category": "development",
+    "constraint": "plan",
+    "article": "국토의 계획 및 이용에 관한 법률 §37",
+    "description": "개발진흥지구 — 주거·산업·유통·관광 개발 촉진"
+  },
+  "특정용도제한지구": {
+    "category": "use_restriction",
+    "constraint": "use",
+    "article": "국토의 계획 및 이용에 관한 법률 §37",
+    "description": "특정용도제한지구 — 특정 건축물 용도 제한"
+  },
+  "복합용도지구": {
+    "category": "mixed_use",
+    "constraint": "plan",
+    "article": "국토의 계획 및 이용에 관한 법률 §37",
+    "description": "복합용도지구 — 토지의 복합적 이용 촉진"
+  },
+  "학교환경위생정화구역": {
+    "category": "education",
+    "constraint": "use",
+    "article": "학교보건법 §6",
+    "description": "학교 주변 유해시설 제한 (절대정화 50m, 상대정화 200m)"
+  },
+  "학교정화구역": {
+    "category": "education",
+    "constraint": "use",
+    "article": "학교보건법 §6",
+    "description": "학교 주변 유해시설 설치 금지·제한"
+  },
+  "상대정화구역": {
+    "category": "education",
+    "constraint": "use",
+    "article": "학교보건법 §6",
+    "description": "학교 200m 내 유해업소 제한"
+  },
+  "절대정화구역": {
+    "category": "education",
+    "constraint": "use",
+    "article": "학교보건법 §6",
+    "description": "학교 50m 내 유해시설 절대 금지"
+  },
+  "정비구역": {
+    "category": "redevelopment",
+    "constraint": "plan",
+    "article": "도시 및 주거환경정비법 §16",
+    "description": "정비구역 — 정비계획에 따른 건축 행위 허가 필요"
+  },
+  "최고고도지구": {
+    "category": "height",
+    "constraint": "height",
+    "pattern": "([\\d]+)\\s*m",
+    "extract": ["max_height_m"],
+    "article": "국토의 계획 및 이용에 관한 법률 §76",
+    "description": "최고 높이 제한 지구"
+  },
+  "최저고도지구": {
+    "category": "height",
+    "constraint": "height",
+    "pattern": "([\\d]+)\\s*m",
+    "extract": ["min_height_m"],
+    "article": "국토의 계획 및 이용에 관한 법률 §76",
+    "description": "최저 높이 제한 지구 — 일정 높이 이상 건축 의무"
+  },
+  "고도지구": {
+    "category": "height",
+    "constraint": "height",
+    "pattern": "최고고도[：:]\\s*([\\d]+)\\s*m",
+    "extract": ["max_height_m"],
+    "article": "국토의 계획 및 이용에 관한 법률 §76, 건축법 §60",
+    "description": "고도지구 — 건축물 높이 제한"
+  },
+  "가로구역별 최고높이 제한": {
+    "category": "height",
+    "constraint": "height",
+    "article": "건축법 §60",
+    "description": "가로구역별 건축물 최고 높이 제한 (허가권자 지정)"
+  },
+  "시가화조정구역": {
+    "category": "growth_control",
+    "constraint": "permit",
+    "article": "국토의 계획 및 이용에 관한 법률 §39",
+    "description": "시가화 조정 구역 — 개발 행위 허가 제한"
+  },
+  "개발제한구역": {
+    "category": "greenbelt",
+    "constraint": "permit",
+    "article": "개발제한구역의 지정 및 관리에 관한 특별조치법 §12",
+    "description": "그린벨트 — 건축물 신축·증축 원칙 금지"
+  },
+  "도시자연공원구역": {
+    "category": "park",
+    "constraint": "permit",
+    "article": "도시공원 및 녹지 등에 관한 법률 §27",
+    "description": "도시자연공원구역 — 건축 행위 허가 제한"
+  },
+  "수산자원보호구역": {
+    "category": "conservation",
+    "constraint": "permit",
+    "article": "수산자원관리법 §52",
+    "description": "수산자원보호구역 — 개발 행위 제한"
+  },
+  "입지규제최소구역": {
+    "category": "deregulation",
+    "constraint": "plan",
+    "article": "국토의 계획 및 이용에 관한 법률 §40의2",
+    "description": "입지규제최소구역 — 용도지역·지구 규제 완화"
+  },
+  "토지거래계약에관한허가구역": {
+    "category": "transaction",
+    "constraint": "transaction",
+    "article": "부동산 거래신고 등에 관한 법률 §10",
+    "description": "토지거래허가구역 — 일정 면적 이상 토지거래 시 허가 필요"
+  },
+  "토지거래허가구역": {
+    "category": "transaction",
+    "constraint": "transaction",
+    "article": "부동산 거래신고 등에 관한 법률 §10",
+    "description": "토지거래허가구역 — 일정 면적 이상 토지거래 시 허가 필요"
+  },
+  "과밀억제권역": {
+    "category": "capital_region",
+    "constraint": "facility",
+    "article": "수도권정비계획법 §7, §8",
+    "description": "과밀억제권역 — 대규모 건축물·공장 신증설 제한"
+  },
+  "성장관리권역": {
+    "category": "capital_region",
+    "constraint": "facility",
+    "article": "수도권정비계획법 §18",
+    "description": "성장관리권역 — 공장 총량 규제"
+  },
+  "자연보전권역": {
+    "category": "capital_region",
+    "constraint": "facility",
+    "article": "수도권정비계획법 §19",
+    "description": "자연보전권역 — 택지·공업용지 조성 제한"
+  },
+  "가축사육제한구역": {
+    "category": "livestock",
+    "constraint": "use",
+    "article": "가축분뇨의 관리 및 이용에 관한 법률 §8",
+    "description": "가축사육제한구역 — 일정 규모 이상 가축 사육 금지"
+  },
+  "농업진흥구역": {
+    "category": "agriculture",
+    "constraint": "use",
+    "article": "농지법 §32",
+    "description": "농업진흥구역 — 농업 외 행위 엄격 제한"
+  },
+  "농업보호구역": {
+    "category": "agriculture",
+    "constraint": "use",
+    "article": "농지법 §32",
+    "description": "농업보호구역 — 농업환경 보호를 위한 행위 제한"
+  },
+  "상수원보호구역": {
+    "category": "water",
+    "constraint": "permit",
+    "article": "수도법 §7",
+    "description": "상수원보호구역 — 오염행위 및 건축 행위 제한"
+  },
+  "도시지역": {
+    "category": "info",
+    "constraint": "none",
+    "article": "국토의 계획 및 이용에 관한 법률 §6",
+    "description": "국토 4대 용도지역 분류 (정보 — 세부 용도지역에서 규제 적용)"
+  },
+  "도로": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (도로) — 정보 표시"
+  },
+  "일반철도": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (철도) — 정보 표시"
+  },
+  "광장": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (광장) — 정보 표시"
+  },
+  "광로": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획도로 분류 (광로) — 정보 표시"
+  },
+  "대로": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획도로 분류 (대로) — 정보 표시"
+  },
+  "중로": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획도로 분류 (중로) — 정보 표시"
+  },
+  "소로": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획도로 분류 (소로) — 정보 표시"
+  },
+  "서울도심": {
+    "category": "info",
+    "constraint": "none",
+    "article": "",
+    "description": "서울시 도심부 관리계획 구역 — 정보 표시"
+  },
+  "일반광장": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (일반광장) — 정보 표시"
+  },
+  "교통광장": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (교통광장) — 정보 표시"
+  },
+  "하천": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (하천) — 정보 표시"
+  },
+  "공원": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (공원) — 정보 표시"
+  },
+  "유원지": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (유원지) — 정보 표시"
+  },
+  "녹지": {
+    "category": "infrastructure",
+    "constraint": "none",
+    "article": "",
+    "description": "도시계획시설 (녹지) — 정보 표시"
+  }
+}

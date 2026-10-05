@@ -1,0 +1,66 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "inflate",
+  "action": "displace the envelope outward to form a swollen crown",
+  "topology": "single_volume -> single_profiled_volume",
+  "variation_parameters": [
+    "factor",
+    "upper_ratio"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "inflate",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 inflate adds 1,398 m3 (add) acting on 1 volume(s) (single). The BOOK records this word as add on single volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 8,
+      "transformation": "add",
+      "cardinality": "single"
+    }
+  ],
+  "book_layer": "base_operative",
+  "mathematical_basis": {
+    "standard": "offset surface / Minkowski sum",
+    "reference": "Rossignac & Requicha (1986) 'Offsetting operations in solid modelling'",
+    "definition": "Every boundary point moves outward along its normal by a fixed distance, which is the Minkowski sum with a ball. Strictly additive and it rounds convex corners.",
+    "shipped_as": "3ds Max Push / Shell, Maya offset"
+  },
+  "canonical_effect": "inflate",
+  "lowering_contract": {
+    "required_operators": [
+      "inflate"
+    ],
+    "forbidden_operators": [],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "inflate",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

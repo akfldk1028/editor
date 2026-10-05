@@ -1,0 +1,109 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "split",
+  "action": "divide a terminal region and hinge-displace one child while retaining the opposite trunk",
+  "topology": "single_volume -> connected_split_descendants",
+  "variation_parameters": [
+    "axis",
+    "gap_ratio",
+    "bridge_ratio"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "book_split",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 split adds 0 m3 (displace) acting on 1 volume(s) (single). The BOOK records this word as displace on single volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 16,
+      "transformation": "displace",
+      "cardinality": "single"
+    }
+  ],
+  "book_combination_evidence": [
+    {
+      "page": 40,
+      "combines_with": "split"
+    },
+    {
+      "page": 45,
+      "combines_with": "embed"
+    }
+  ],
+  "book_layer": "base_operative",
+  "book_implementation_measured": {
+    "operator": "split_wing",
+    "parameter_source": "default",
+    "volume_change_pct": -18,
+    "solids_delivered": 2,
+    "observed": "shrinks and delivers TWO separate solids",
+    "transformation": "subtract",
+    "cardinality": "multiple",
+    "agrees_with_book_record": false,
+    "basis": "box 20x12x8 under a 1/1 long_axis book_base_volume scope",
+    "record_names_this_operator_but_the_adapter_emits": "book_split"
+  },
+  "mathematical_basis": {
+    "standard": "planar Boolean split",
+    "reference": "Requicha, A.A.G. (1980) 'Representations for Rigid Solids', ACM Computing Surveys 12(4) - regularized Boolean set operations",
+    "definition": "Intersection with each of the two closed half-spaces of a plane, giving two solids whose union is the original. Volume is conserved unless the parts are then moved apart or shrunk.",
+    "shipped_as": "3ds Max Slice / ProBoolean, Maya Cut Faces"
+  },
+  "canonical_effect": "split_wing",
+  "lowering_contract": {
+    "required_operators": [
+      "book_split"
+    ],
+    "forbidden_operators": [
+      "split_wing"
+    ],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "book_split",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "volume_law_finding": {
+    "verdict": "defect - same hinge family as rotate",
+    "cause": "rotated child swings back into the trunk",
+    "where": "design/maas/geometry_language/compiler.py:1771, 1803-1807, 1828-1830",
+    "explanation": "Trunk, fixed child and moving child tile the base exactly (605.0 + 725.2 - 67.2 + 725.0 - 67.2 = 1920). Rotating the moving child about the shoulder swings its far corner back over the trunk, raising the absorbed overlap from 67 to about 111 m3, so the union loses 2.2%.",
+    "severity_note": "The sign convention is shared with the p.40 recursion through outward_sign and branch_sign, so this is not a local edit.",
+    "basis": "box 20x12x8 under a 1/1 long_axis book_base_volume scope",
+    "outcome": {
+      "repaired": false,
+      "now": "-2.2%",
+      "what_changed": "Tried the same opening rule as rotate and measured no change: the sign was already choosing the outward swing. Reverted rather than left in load-bearing code.",
+      "residual": "The pivot sits at the child's own root, so any rotation sweeps the corner nearest it back across the trunk. That is inherent to a rigid hinge whose pivot is not at the extreme corner, and moving the pivot changes the figure the BOOK draws on p.40. Left measured."
+    }
+  },
+  "final_reading": {
+    "text": "massv2 delivers -8.0% and the BOOK files Split under Displace on p.16. This is not a defect: `_split`'s own docstring gives the reason - cutting a box into a 62/38 pair of the SAME height and standing them flush 'produces a drawing identical to the box: the division is in the data and not in the building, and every later verb aimed at one half then acts on something nobody can see'. So the lesser part is also the lower one, held at MIN_TIER_CONTRAST, and the height it gives up is the -8%. Measured with contrast 1.0 and gap 0 explicitly asked for: still -8.0%, because the contrast floor is a clamp. A declared dialect with a written architectural reason, not an accounting error.",
+    "basis": "extrude seed on the Uijeongbu parcel, uncut by the envelope"
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

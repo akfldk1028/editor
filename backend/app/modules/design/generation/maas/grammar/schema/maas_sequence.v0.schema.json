@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arr.local/schema/maas_sequence.v0.schema.json",
+  "title": "ARR MAAS Sequence Library v0",
+  "type": "object",
+  "required": ["schema_version", "sequences"],
+  "properties": {
+    "schema_version": {"const": "arr.maas.sequence_library.v0"},
+    "sequences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "label", "calls"],
+        "properties": {
+          "name": {"type": "string", "pattern": "^grammar_[a-z0-9_]+$"},
+          "label": {"type": "string"},
+          "aliases": {"type": "array", "items": {"type": "string"}},
+          "intent_tags": {"type": "array", "items": {"type": "string"}},
+          "calls": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["verb"],
+              "properties": {
+                "verb": {"type": "string"},
+                "params": {"type": "object"}
+              },
+              "additionalProperties": false
+            }
+          },
+          "notes": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,32 @@
+id: preference_distiller_agent
+name: Preference Distiller Agent
+runtime: arr.maas.local_agent
+method_basis:
+  - vlm_concept_scoring
+  - pairwise_preference_learning
+  - post_legal_reranking
+input_contract:
+  - legal_candidate
+  - rendered_png_uri
+  - visual_diversity_evidence
+  - orderliness_evidence
+  - architectural_ambition_evidence
+  - human_pairwise_labels
+output_contract:
+  - preference_distillation
+  - concept_scores
+  - distilled_preference_score
+  - rerank_reason
+handoffs:
+  previous: grammar_critic_agent
+  next: review_agent
+responsibilities:
+  - score_architectural_preference_after_hard_gates
+  - expose_vlm_or_geometry_proxy_mode
+  - prepare_pairwise_preference_training_records
+non_responsibilities:
+  - legal_truth_generation
+  - parking_permit_approval
+  - source_geometry_generation
+  - overriding_failed_legal_candidates
+

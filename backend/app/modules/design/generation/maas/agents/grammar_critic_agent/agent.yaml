@@ -1,0 +1,26 @@
+id: grammar_critic_agent
+name: Grammar Critic Agent
+runtime: arr.maas.local_agent
+method_basis:
+  - evaluation_loop
+  - architectural_orderliness
+input_contract:
+  - massdsl_proposal
+  - source_signature
+  - visual_diversity_evidence
+  - orderliness_evidence
+output_contract:
+  - arr.maas.grammar_review.v1
+  - issues
+  - revision_request
+handoffs:
+  previous: maas_geometry_agent
+  next: review_agent
+responsibilities:
+  - critique_language_geometry_alignment
+  - detect_stepback_or_fragment_regression
+  - check_orderliness_evidence
+non_responsibilities:
+  - legal_truth_authority
+  - parking_count_authority
+  - live_llm_generation

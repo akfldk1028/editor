@@ -1,0 +1,101 @@
+{
+  "schema_version": "arr.maas.term_ontology.v0",
+  "terms": [
+    {
+      "id": "stepback",
+      "ko": ["스텝백", "후퇴", "계단형", "계단식 후퇴"],
+      "en": ["stepback", "stepped mass", "setback mass"],
+      "meaning": "Upper mass recedes from a lower mass or legal envelope band.",
+      "verbs": ["step_envelope", "grade", "lift"],
+      "risk_notes": ["Must be checked against sunlight/daylight datum and floor plate viability."]
+    },
+    {
+      "id": "sunlight_step",
+      "ko": ["정북일조", "북측 일조", "일조", "일조사선", "일조 스텝"],
+      "en": ["north sunlight", "sunlight envelope", "daylight step"],
+      "meaning": "Floor plates or upper mass recede according to sunlight/daylight envelope constraints.",
+      "verbs": ["step_envelope", "grade"],
+      "risk_notes": ["Must use the correct datum basis before any legal claim."]
+    },
+    {
+      "id": "podium_tower",
+      "ko": ["포디움", "저층부", "타워", "상부타워"],
+      "en": ["podium", "tower", "podium tower"],
+      "meaning": "Lower mass anchors the site while upper footprint is reduced or shifted.",
+      "verbs": ["lift", "shift", "taper"],
+      "risk_notes": ["Core, egress, and usable depth must be checked after massing."]
+    },
+    {
+      "id": "courtyard_void",
+      "ko": ["중정", "보이드", "내부마당", "뚫림"],
+      "en": ["courtyard", "void", "atrium", "puncture"],
+      "meaning": "Subtract an internal area from the footprint to create open space.",
+      "verbs": ["courtyard", "cave", "inset"],
+      "risk_notes": ["Do not count as legal open space without explicit jurisdictional check."]
+    },
+    {
+      "id": "split_bridge",
+      "ko": ["분절", "브릿지", "연결부", "분동"],
+      "en": ["split", "bridge", "segmented mass"],
+      "meaning": "Separate a plan into parts while preserving a narrow connector.",
+      "verbs": ["split", "lift", "grade"],
+      "risk_notes": ["Bridge geometry is schematic until structure, egress, and fire separation are checked."]
+    },
+    {
+      "id": "bar_slab",
+      "ko": ["바형", "판상형", "슬래브"],
+      "en": ["bar", "slab", "linear block"],
+      "meaning": "Compress and orient footprint into a linear mass.",
+      "verbs": ["bar", "shift", "taper"],
+      "risk_notes": ["Orientation should be scored against daylight, view, and unit depth."]
+    },
+    {
+      "id": "corner_open",
+      "ko": ["코너비움", "오픈코트", "모서리절삭"],
+      "en": ["corner notch", "open court", "corner open space"],
+      "meaning": "Subtract a corner or edge zone to improve openness or legal clearance.",
+      "verbs": ["notch", "cave"],
+      "risk_notes": ["Open-space quality is not equivalent to legal compliance until checked."]
+    },
+    {
+      "id": "taper",
+      "ko": ["테이퍼", "상부축소", "사선대응"],
+      "en": ["taper", "upper reduction"],
+      "meaning": "Scale down upper mass to respond to skyline or envelope constraints.",
+      "verbs": ["taper", "lift"],
+      "risk_notes": ["Taper must preserve usable upper floor plates."]
+    },
+    {
+      "id": "interlock_overlap",
+      "ko": ["인터락", "오버랩", "어긋난 슬래브"],
+      "en": ["interlock", "overlap", "shifted slabs"],
+      "meaning": "Compose overlapping or crossing bars/slabs for plan diversity.",
+      "verbs": ["interlock", "overlap", "shift"],
+      "risk_notes": ["High visual diversity can still be a legal/program failure."]
+    },
+    {
+      "id": "diagonal_connect",
+      "ko": ["사선연결", "대각선 연결", "계단 연결", "스텝 연결"],
+      "en": ["diagonal connect", "stepped connector", "linked step mass"],
+      "meaning": "Offset upper stepback mass so a stepped envelope can be read as an intentional diagonal/linked section.",
+      "verbs": ["diagonal_connect", "lift", "shift"],
+      "risk_notes": ["This is a massing/design hint, not a structural ramp or egress claim."]
+    },
+    {
+      "id": "terrace_link",
+      "ko": ["테라스 연결", "연속 테라스", "계단식 테라스"],
+      "en": ["terrace link", "linked terrace", "continuous terrace"],
+      "meaning": "Turn sunlight or setback steps into connected terrace bands rather than isolated stacked boxes.",
+      "verbs": ["terrace_link", "grade", "taper"],
+      "risk_notes": ["Terrace usability must be checked separately from massing legality."]
+    },
+    {
+      "id": "sloped_roof_mass",
+      "ko": ["사선지붕", "경사지붕", "사선 매스", "일조사선 디자인"],
+      "en": ["sloped roof mass", "sloped mass", "diagonal envelope mass"],
+      "meaning": "Translate a diagonal legal or sunlight envelope into an architectural sloped-roof massing option.",
+      "verbs": ["sloped_roof_mass", "taper"],
+      "risk_notes": ["ARR currently represents this as stepped/upper-footprint evidence; true sloped mesh export is a later renderer task."]
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "shift",
+  "action": "translate a related volume without rotating it",
+  "topology": "multiple_volumes -> shifted_related_volumes",
+  "variation_parameters": [
+    "axis",
+    "distance_ratio"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "shift_related",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 shift moves 0 m3 (displace) acting on 2 volume(s) (multiple). The BOOK records this word as displace on multiple volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 24,
+      "transformation": "displace",
+      "cardinality": "multiple"
+    }
+  ],
+  "book_combination_evidence": [
+    {
+      "page": 43,
+      "combines_with": "shift"
+    },
+    {
+      "page": 48,
+      "combines_with": "notch"
+    }
+  ],
+  "book_layer": "base_operative",
+  "mathematical_basis": {
+    "standard": "affine translation",
+    "reference": "Affine transform: a 4x4 homogeneous matrix, invertible, straight lines preserved",
+    "definition": "A 4x4 whose linear part is the identity. Volume and shape exactly preserved; only position changes, which is the BOOK's displace.",
+    "shipped_as": "every 3D package"
+  },
+  "canonical_effect": "shift_related",
+  "lowering_contract": {
+    "required_operators": [
+      "shift_related"
+    ],
+    "forbidden_operators": [],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "shift_related",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "volume_law_finding": {
+    "verdict": "defect - a seam pad counted twice",
+    "cause": "both halves grown by the same pad",
+    "where": "design/maas/geometry_language/compiler.py:1950-1965, 1975",
+    "explanation": "Each half is grown by overlap = 2.5% of the transverse span, so the two sum to 1.05 of the host. At zero shift the intersection is exactly that 5% and the union is the host; once the halves separate the intersection shrinks to 0.05(1 - magnitude) and the surplus shows up as gained volume. Reproduced: distance_ratio projects to 0.2729, 0.05 x 0.2729 = +1.365%.",
+    "severity_note": "The pad cannot simply be deleted: compiler.py:1976-1981 raises disconnected_shift_related unless the result is one component, and an exact partition would touch on a zero-area edge after the shift.",
+    "basis": "box 20x12x8 under a 1/1 long_axis book_base_volume scope",
+    "outcome": {
+      "repaired": false,
+      "now": "+1.4%",
+      "what_changed": "Not touched.",
+      "residual": "Same accounting as rotate's residual: a 2.5% seam pad on both halves that stops cancelling when they separate. The pad is required by the connectivity gate at compiler.py:1976-1981 - an exact partition would touch on a zero-area edge after the shift - so this is the price of delivering one connected body."
+    }
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}

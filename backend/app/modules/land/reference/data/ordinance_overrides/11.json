@@ -1,0 +1,397 @@
+{
+  "__comment": "서울특별시 도시계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "11",
+  "level": "sido",
+  "sigungu_code": "11",
+  "sigungu_name": "서울특별시",
+  "ordinance": {
+    "name": "서울특별시 도시계획 조례",
+    "id": "2000719",
+    "effective": "20260713",
+    "promulgated": "20260713",
+    "no": "10139",
+    "bcr_article": "제44조",
+    "far_article": "제48조",
+    "edition_id": "2149501",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2149501",
+    "verified_on": "2026-09-13",
+    "source_snapshot_hash": "52ae89369ed6256bed277f1b1ea66003fc96bde47e755c820de878b81250d74f"
+  },
+  "fetched_at": "2026-09-10T09:33:52+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 100,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 40,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 120,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 150,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 200,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 250,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "준주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 400,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "중심상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 1000,
+      "far_article": "서울특별시 도시계획 조례 제48조 (단, 서울도심: 800퍼센트)"
+    },
+    "일반상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 800,
+      "far_article": "서울특별시 도시계획 조례 제48조 (단, 서울도심: 600퍼센트)"
+    },
+    "근린상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 600,
+      "far_article": "서울특별시 도시계획 조례 제48조 (단, 서울도심: 500퍼센트)"
+    },
+    "유통상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 600,
+      "far_article": "서울특별시 도시계획 조례 제48조 (단, 서울도심: 500퍼센트)"
+    },
+    "전용공업지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 200,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "일반공업지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 200,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "준공업지역": {
+      "bcr_default": 60,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 400,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 50,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "생산녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 50,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "서울특별시 도시계획 조례 제44조",
+      "far_default": 50,
+      "far_article": "서울특별시 도시계획 조례 제48조"
+    }
+  },
+  "common": {
+    "landscaping": {
+      "threshold_m2": 200,
+      "tiers": [
+        {
+          "min_floor_area_m2": 2000,
+          "min_pct": 15
+        },
+        {
+          "min_floor_area_m2": 1000,
+          "min_pct": 10
+        },
+        {
+          "min_floor_area_m2": 0,
+          "max_floor_area_m2": 1000,
+          "min_pct": 5
+        }
+      ],
+      "article": "서울특별시 건축 조례 제24조",
+      "ordinance": {
+        "name": "서울특별시 건축 조례",
+        "id": "2000120",
+        "effective": "20260330"
+      }
+    },
+    "parking": {
+      "ordinance": {
+        "name": "서울특별시 주차장 설치 및 관리 조례",
+        "id": "2000351",
+        "effective": "20260713"
+      },
+      "annexes_found": [
+        "0:별표:0001",
+        "1:별표:0002",
+        "2:별표:0003",
+        "3:별표:0004",
+        "4:별도:0003",
+        "5:별도:0004",
+        "6:별도:0005",
+        "7:별도:0006"
+      ],
+      "article": "제20조·별표 2",
+      "accessible": {
+        "ratio_pct": 3,
+        "min_cars": 10,
+        "article": "제25조제1항"
+      },
+      "rows": [
+        {
+          "uses": [
+            "위락시설"
+          ],
+          "m2_per_car": 67
+        },
+        {
+          "uses": [
+            "문화 및 집회시설",
+            "종교시설",
+            "판매시설",
+            "운수시설",
+            "의료시설",
+            "운동시설",
+            "업무시설"
+          ],
+          "m2_per_car": 100,
+          "note": "관람장·옥외수영장·오피스텔 제외; 공공업무시설은 200"
+        },
+        {
+          "uses": [
+            "공공업무시설"
+          ],
+          "m2_per_car": 200
+        },
+        {
+          "uses": [
+            "제1종 근린생활시설",
+            "제2종 근린생활시설",
+            "숙박시설"
+          ],
+          "m2_per_car": 134
+        },
+        {
+          "uses": [
+            "단독주택"
+          ],
+          "rule": "시설면적 50㎡ 초과 150㎡ 이하 1대; 150㎡ 초과 1+(시설면적-150)/100대"
+        },
+        {
+          "uses": [
+            "다가구주택",
+            "공동주택",
+            "오피스텔"
+          ],
+          "rule": "주택건설기준 등에 관한 규정 제27조제1항"
+        },
+        {
+          "uses": [
+            "수련시설",
+            "공장",
+            "발전시설"
+          ],
+          "m2_per_car": 233
+        },
+        {
+          "uses": [
+            "창고시설"
+          ],
+          "m2_per_car": 267
+        },
+        {
+          "uses": [
+            "방송통신시설 중 데이터센터"
+          ],
+          "m2_per_car": 400
+        },
+        {
+          "uses": [
+            "학생용 기숙사"
+          ],
+          "m2_per_car": 400
+        },
+        {
+          "uses": [
+            "학교시설"
+          ],
+          "m2_per_car": 250
+        },
+        {
+          "uses": [
+            "그 밖의 건축물"
+          ],
+          "m2_per_car": 200
+        }
+      ],
+      "restricted": {
+        "article": "제21조·별표 3",
+        "rule": "주차장설치제한지역(상업·준주거)에서는 별표 3이 최고한도. 교통약자·긴급차·화물 구획 1대 이상은 별도",
+        "rows": [
+          {
+            "uses": [
+              "위락시설"
+            ],
+            "m2_per_car_max": 134
+          },
+          {
+            "uses": [
+              "문화 및 집회시설",
+              "종교시설",
+              "판매시설",
+              "운수시설",
+              "의료시설",
+              "운동시설",
+              "업무시설"
+            ],
+            "m2_per_car_max": 122
+          },
+          {
+            "uses": [
+              "국가 및 지방자치단체의 청사"
+            ],
+            "m2_per_car_max": 200
+          },
+          {
+            "uses": [
+              "제1종 근린생활시설",
+              "제2종 근린생활시설",
+              "숙박시설"
+            ],
+            "m2_per_car_max": 268
+          },
+          {
+            "uses": [
+              "수련시설",
+              "공장",
+              "발전시설"
+            ],
+            "m2_per_car_max": 466
+          },
+          {
+            "uses": [
+              "창고시설"
+            ],
+            "m2_per_car_max": 534
+          },
+          {
+            "uses": [
+              "기타 건축물"
+            ],
+            "m2_per_car_max": 400
+          }
+        ],
+        "districts": [
+          {
+            "name": "4대문 주변지역",
+            "sigungu": [
+              "11110",
+              "11140"
+            ],
+            "boundary": "사직로ㆍ율곡로ㆍ종로ㆍ난계로ㆍ퇴계로ㆍ통일로"
+          },
+          {
+            "name": "신촌지역",
+            "sigungu": [
+              "11410",
+              "11440"
+            ],
+            "boundary": "경의선철도ㆍ이화여대길ㆍ대흥로ㆍ구 용산선철도ㆍ양화로ㆍ연희로"
+          },
+          {
+            "name": "영등포지역",
+            "sigungu": [
+              "11560"
+            ],
+            "boundary": "여의도 및 경인로ㆍ도림로ㆍ선유로ㆍ노들로"
+          },
+          {
+            "name": "강남ㆍ서초지역",
+            "sigungu": [
+              "11680",
+              "11650"
+            ],
+            "boundary": "반포대로ㆍ올림픽대로ㆍ분당수서로ㆍ남부순환로"
+          },
+          {
+            "name": "잠실지역",
+            "sigungu": [
+              "11710"
+            ],
+            "boundary": "올림픽로ㆍ석촌호수로ㆍ삼학사로ㆍ잠실로ㆍ송파대로ㆍ신천로ㆍ오금로ㆍ위례성대로ㆍ백제고분로"
+          },
+          {
+            "name": "천호지역",
+            "sigungu": [
+              "11740"
+            ],
+            "boundary": "올림픽로ㆍ상암로ㆍ양재대로ㆍ풍성로"
+          },
+          {
+            "name": "청량리지역",
+            "sigungu": [
+              "11230"
+            ],
+            "boundary": "제기로ㆍ전농로ㆍ서울시립대로ㆍ천호대로ㆍ정릉천"
+          },
+          {
+            "name": "용산ㆍ마포지역",
+            "sigungu": [
+              "11170",
+              "11440"
+            ],
+            "boundary": "강변북로ㆍ마포대로ㆍ충정로ㆍ통일로ㆍ한강대로"
+          },
+          {
+            "name": "미아지역",
+            "sigungu": [
+              "11305"
+            ],
+            "boundary": "도봉로ㆍ오현로ㆍ오패산로ㆍ정릉로ㆍ삼양로ㆍ솔샘로"
+          },
+          {
+            "name": "목동지역",
+            "sigungu": [
+              "11470"
+            ],
+            "boundary": "목동동로ㆍ목동서로ㆍ안양천로"
+          }
+        ]
+      },
+      "verified_against_text": true
+    }
+  },
+  "edition_verification": {
+    "verified_at": "2026-09-13T05:31:12.366574+00:00",
+    "assessment_date": "2026-09-13",
+    "method": "official_MST_articles_and_all_stored_caps_equal",
+    "scope": "base_zone_BCR_FAR_only",
+    "permit_compliance_verified": false
+  }
+}

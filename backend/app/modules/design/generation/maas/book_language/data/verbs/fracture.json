@@ -1,0 +1,77 @@
+{
+  "schema_version": "arr.massagent.book_verb.v1",
+  "verb": "fracture",
+  "action": "subtract a directional bent fissure from the selected base-volume face",
+  "topology": "single_volume -> single_fractured_volume",
+  "variation_parameters": [
+    "gap_ratio",
+    "angle"
+  ],
+  "orientation_modes": [
+    "long_axis",
+    "short_axis",
+    "vertical"
+  ],
+  "executed_by": "book_fracture",
+  "massv2_implements_it_too": true,
+  "divergence": "Measured on a bare extruded body, uncut by the envelope: massv2 fracture removes 333 m3 (subtract) acting on 1 volume(s) (single). The BOOK records this word as subtract on single volumes. The two agree on both counts, so the second implementation is a restatement rather than a different word - it may still differ in proportion, which this bench does not measure.",
+  "reviewed": true,
+  "book_grammar": {
+    "base_volume_labels": [
+      "1/1",
+      "3/8",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16"
+    ],
+    "orientations": [
+      "long_axis",
+      "short_axis",
+      "vertical"
+    ],
+    "bounded_variations": 11
+  },
+  "book_evidence": [
+    {
+      "page": 28,
+      "transformation": "subtract",
+      "cardinality": "single"
+    }
+  ],
+  "book_layer": "base_operative",
+  "mathematical_basis": {
+    "standard": "Voronoi fracture",
+    "reference": "Aurenhammer, F. (1991) 'Voronoi diagrams - a survey of a fundamental geometric data structure', ACM Computing Surveys 23(3)",
+    "definition": "Partition by a Voronoi diagram of seed points, each cell intersected with the solid. The pieces tile the original, so volume is conserved until a gap is opened between them.",
+    "shipped_as": "3ds Max and Houdini Voronoi fracture, RayFire",
+    "superseded_by_the_code": "I filed fracture under Voronoi fracture, which tiles and therefore conserves volume. This word subtracts a fissure and keeps one body."
+  },
+  "canonical_effect": "book_fracture",
+  "lowering_contract": {
+    "required_operators": [
+      "book_fracture"
+    ],
+    "forbidden_operators": [
+      "split_wing"
+    ],
+    "source": "design/maas/geometry_language/book_lowering_contract.py - the page-reviewed kernel lowering contract"
+  },
+  "adapter_emits": "book_fracture",
+  "executed_by_matches_what_runs": true,
+  "delivery_contract": {
+    "components": 1,
+    "why": "A unary AST chain, a decompose() != 1 refusal inside every macro, and a maximum_components=1 promotion gate. The reason is written in candidate_analysis.py: a detached piece is no more architectural than a small Lego speck, and split wings or arrays must be joined by an explicit bridge or spine.",
+    "note": "So the BOOK record's `multiple` means how many volumes the operative involves, NOT how many bodies come back."
+  },
+  "volume_law_finding": {
+    "verdict": "the expectation was wrong, not the code",
+    "cause": "deliberate subtraction",
+    "where": "design/maas/geometry_language/compiler.py:2202-2224",
+    "explanation": "BOOK p.28 is a bent fissure cut into one face, with a back layer deliberately retained (retained_back_ratio 0.32) so the host stays one volume. There is no Voronoi partition anywhere in the file. Reproduced: channel width 0.538, cut depth 13.6, two segments less their overlap = 92 m3 on 1920 m3 = -4.79%.",
+    "correction_to_the_standard_i_recorded": "I filed fracture under Voronoi fracture, which tiles and therefore conserves volume. This word subtracts a fissure and keeps one body.",
+    "basis": "box 20x12x8 under a 1/1 long_axis book_base_volume scope"
+  },
+  "review_verdict": "agrees",
+  "review_basis": "arr.massagent.book_verb_review.v1"
+}
