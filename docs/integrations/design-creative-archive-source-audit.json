@@ -1,0 +1,307 @@
+{
+  "source_root": "D:\\Data\\25_ACE\\ARR\\backend\\tmp_mass_check\\c260-book",
+  "selected_runs": [
+    "book-bookbreadth37",
+    "book-bookflow36",
+    "book-comp17",
+    "book-comp18",
+    "book-comp18-far",
+    "book-comp19",
+    "book-comp23",
+    "book-comp24",
+    "book-comp25",
+    "book-comp30",
+    "book-comp31",
+    "book-comp32",
+    "book-comp34",
+    "book-comp35",
+    "book-develop-bookbreadth37",
+    "book-develop-bookflow36",
+    "book-develop-comp03",
+    "book-develop-comp06",
+    "book-develop-comp08",
+    "book-develop-comp09",
+    "book-develop-comp10",
+    "book-develop-comp11",
+    "book-develop-comp12",
+    "book-develop-comp15",
+    "book-develop-comp16",
+    "book-develop-comp18",
+    "book-develop-comp25",
+    "book-develop-comp25-r2",
+    "book-develop-comp26",
+    "book-develop-comp32",
+    "book-develop-comp34",
+    "book-develop-comp35",
+    "book-develop-portfolio200-b01-20260928",
+    "book-develop-portfolio200-b01-20260928-r2",
+    "book-develop-portfolio200-b02-20260928",
+    "book-develop-portfolio200-b03-20260928",
+    "book-develop-portfolio200-b08-20260928",
+    "book-develop-portfolio200-b09-20260928",
+    "book-develop-portfolio200-b10-20260928",
+    "book-develop-reference39",
+    "book-develop-repertoire38",
+    "book-language41",
+    "book-portfolio200-b01-20260928",
+    "book-portfolio200-b02-20260928",
+    "book-portfolio200-b03-20260928",
+    "book-portfolio200-b04-20260928",
+    "book-portfolio200-b05-20260928",
+    "book-portfolio200-b06-20260928",
+    "book-portfolio200-b07-20260928",
+    "book-portfolio200-b08-20260928",
+    "book-portfolio200-b09-20260928",
+    "book-portfolio200-b10-20260928",
+    "book-reference39",
+    "book-repertoire38"
+  ],
+  "excluded_runs": [
+    {
+      "run": "book-agent08",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp01",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp02",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp03",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp04",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp06",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp08",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp09",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp10",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp11",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp12",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp13",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp14",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp15",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp16",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp21",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp22",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp26",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-comp28",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book-llm01",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book04",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book05",
+      "reason": "creative candidate geometry hash replay mismatch"
+    },
+    {
+      "run": "book07",
+      "reason": "creative candidate geometry hash replay mismatch"
+    }
+  ],
+  "bytes": 571785778,
+  "files": 29613,
+  "quarantine_preservation": {
+    "archive_status": "quarantined_validation_failure",
+    "active_catalog_eligible": false,
+    "runs": 23,
+    "candidates": 792,
+    "files": 16678,
+    "bytes": 305880559,
+    "pngs": 5567,
+    "image_failures": 0,
+    "manifest_sha256": "23f7f123262b5053a70f18785cf8293719207562bd7676bd41077fc3aa04368b",
+    "destination": "runtime/editor/design/archive-quarantine/creative-portfolios",
+    "validation_failures": [
+      {
+        "run": "book-agent08",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "59a6d49c8d530ab79d89e203386219b2d27cf0451480fa219b05d6db7547930e"
+      },
+      {
+        "run": "book-comp01",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "c08850bf60ae96e2286f923abcb0496a6e975ac74a54ce30b7d868e455267423"
+      },
+      {
+        "run": "book-comp02",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "4352a272e228d49a32f1323fe310671e8d1c4b8407678656137f38b54874fae6"
+      },
+      {
+        "run": "book-comp03",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "dd0a7350d017eb255516a8f8e3dea877b347a690670241eeedb9fcc6e33f5a05"
+      },
+      {
+        "run": "book-comp04",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "06990c461463ddd614c9a6d695f8b41dbf8d8d1a4c32ac1ece1d0532b2200a87"
+      },
+      {
+        "run": "book-comp06",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "d2ef12f7acd1903071866513e7e00e5039e3622a4abcbbbaac3a6f8b06a30bfd"
+      },
+      {
+        "run": "book-comp08",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "5480d9132202dad1b6e05bae83f83f3b869d2f0f995c6ac2185b180ae1a5cc81"
+      },
+      {
+        "run": "book-comp09",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "628bb51feb1ef95a0ebaeaf77c35fcb044bfd916e91e634e136be78420a57f88"
+      },
+      {
+        "run": "book-comp10",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "229691e49cc6f838ed4fa5e8b5c0ee8de7b7cec823f392765e4d2a2a7ae87d9e"
+      },
+      {
+        "run": "book-comp11",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "db44f1e2f8d50ceb25b682a6596c21b7edc89f90833680a7b3061ea104bd92ff"
+      },
+      {
+        "run": "book-comp12",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "c584b458807d705c295a6013fd51c45cb367117b7d3db2e96249de0cf301ec17"
+      },
+      {
+        "run": "book-comp13",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "113c8246ae3236ee36783bb96a9180188fef4da11ce20c28536f4660d9df1e53"
+      },
+      {
+        "run": "book-comp14",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "316e7a95a697cbbca222846cb07ae489684ea24817fa4a3cbba8a59a3eb58eb4"
+      },
+      {
+        "run": "book-comp15",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "b0a421ffd0f7eb73a5480151e3ff390b53de3cdf0f26727a3cc9c896775d837d"
+      },
+      {
+        "run": "book-comp16",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "12442daffef864af66295e2c6371b5ad9353a09eb18881d99016a5935f9c8f30"
+      },
+      {
+        "run": "book-comp21",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "8efc19a57b7d5ce2850de24a8dd1610985cd0a7bd4d3f4179ee23ce3baab5469"
+      },
+      {
+        "run": "book-comp22",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "3d5c29f11185e9881e1b5291186ec26de585cc8a656a6d3d0c8c3485b43549a8"
+      },
+      {
+        "run": "book-comp26",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "c7e18d6f14cc6348d1612a9623974ccd41fc388004d4197cd2c8da9f285b862f"
+      },
+      {
+        "run": "book-comp28",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "b80ab482d980aa0a43e5addcb1f1ec9fa051a1fe3d5ea4be5c2010532d9b948b"
+      },
+      {
+        "run": "book-llm01",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "657b5d11cf04bb7d57d01430bc7fa8d8de2fa629489c8909284686c109cc650f"
+      },
+      {
+        "run": "book04",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "3998ed345b37557c70ec74b85b0233981dfbda069807ac419ccd387334d23829"
+      },
+      {
+        "run": "book05",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "e1cc050d860c3c572052a00339488140bc648325bafd8f773dc781647080a7ee"
+      },
+      {
+        "run": "book07",
+        "error_type": "ValueError",
+        "reason": "creative candidate geometry hash replay mismatch",
+        "source_manifest_sha256": "a9b8c97bc84f199b5ea35cb3fdfaaa291f345475e2c500c9d5c88aaa1498566b"
+      }
+    ]
+  }
+}
