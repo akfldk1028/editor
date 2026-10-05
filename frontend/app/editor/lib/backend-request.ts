@@ -13,7 +13,7 @@ export async function backendRequest(request: Request, path: string) {
       headers: { 'Content-Type': 'application/json', ...(origin ? { Origin: origin } : {}),
         ...(request.headers.has('idempotency-key') ? { 'Idempotency-Key': request.headers.get('idempotency-key')! } : {}) },
       body: request.method === 'GET' ? undefined : await request.text(),
-      cache: 'no-store', signal: AbortSignal.timeout(60_000), redirect: 'error',
+      cache: 'no-store', signal: AbortSignal.any([request.signal, AbortSignal.timeout(60_000)]), redirect: 'error',
     })
     return new Response(upstream.body, { status: upstream.status, headers: {
       'Content-Type': upstream.headers.get('content-type') || 'application/json',

@@ -22077,7 +22077,9 @@
     {
       "source": "ARR/frontend/src/land/components/AgentProgressPanel.tsx",
       "sha256": "39527d3dcfe0b02fe4722b22f4e03fca401d430216687dc9ebafc49e006d612d",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/land-map/components/AgentProgressPanel.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",
@@ -23394,7 +23396,9 @@
     {
       "source": "ARR/frontend/src/law/LawChat.tsx",
       "sha256": "2d61969d0dce76104eb6bde60e97155bda421d17d18e06910eae3bf76f1be204",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/LawChat.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",
@@ -23985,7 +23989,9 @@
     {
       "source": "ARR/frontend/src/law/components/ArticleDetailPanel.tsx",
       "sha256": "205bd42de17052f5f27f75e1059862c72030f1709dff044e765417000be01861",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/components/ArticleDetailPanel.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",
@@ -24272,7 +24278,9 @@
     {
       "source": "ARR/frontend/src/law/components/HeroSearch.tsx",
       "sha256": "38b961675856dea21304ad5a0252183300138934b25ec6a14b2788094644cb1d",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/components/HeroSearch.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",
@@ -24543,7 +24551,9 @@
     {
       "source": "ARR/frontend/src/law/components/LawArticleCard.tsx",
       "sha256": "f3c5e7b50ee38a98db775d55a32f1be41cd650f95c86021bf3259b288e190e42",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/components/LawArticleCard.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",
@@ -24713,7 +24723,9 @@
     {
       "source": "ARR/frontend/src/law/components/MapPanel.tsx",
       "sha256": "621dc6802dfa54e97b222995f0148c4c863b417e9368fe5898aa4c967749b15a",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/components/MapPanel.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",
@@ -24839,7 +24851,9 @@
     {
       "source": "ARR/frontend/src/law/components/Pill.tsx",
       "sha256": "c651953f76361753698b45cc461e40ef6624b161da78bd1f4e767accb1cf2649",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/components/Pill.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react"
@@ -24861,7 +24875,9 @@
     {
       "source": "ARR/frontend/src/law/components/ResultDisplay.tsx",
       "sha256": "8dc9be287cb6be8b685209dbf807286b1a5eea6cdb404c00d8d0b7ead41f5fb3",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/components/ResultDisplay.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",
@@ -25024,7 +25040,9 @@
     {
       "source": "ARR/frontend/src/law/components/SearchProgress.tsx",
       "sha256": "56125238a5540e5da27d0da2991476d3092e4b54c4ba6f5b5a2319a42e1bd299",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/components/SearchProgress.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",
@@ -25145,7 +25163,9 @@
     {
       "source": "ARR/frontend/src/law/components/StatsPanel.tsx",
       "sha256": "fad52f816fd2af46e1548838ff8c6dcc225a714775d1496d2a5309d45f9b7819",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/components/StatsPanel.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "../lib/types"
@@ -25280,7 +25300,9 @@
     {
       "source": "ARR/frontend/src/law/contexts/LawAPIContext.tsx",
       "sha256": "a766c6c4615aff4614e29a0215182edf796482f64d95f1681025eedadd16ae5e",
-      "nativeCandidates": [],
+      "nativeCandidates": [
+        "frontend/app/editor/features/law/contexts/LawAPIContext.tsx"
+      ],
       "verification": "unverified",
       "imports": [
         "react",

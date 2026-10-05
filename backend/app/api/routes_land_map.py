@@ -1,5 +1,6 @@
 import math
 import os
+import json
 from fastapi import APIRouter, HTTPException, Request, Response
 from backend.app.adapters.vworld_map import MapUnavailable, VworldMapClient
 
@@ -7,6 +8,14 @@ from backend.app.adapters.vworld_map import MapUnavailable, VworldMapClient
 def create_land_map_router(client=None, *, prefix='/api/v1/land'):
     provider = client or VworldMapClient(os.environ.get('VWORLD_API_KEY', ''))
     router = APIRouter(prefix=prefix, tags=['land-map'])
+
+    @router.get('/map-config')
+    async def map_config():
+        browser_key = os.environ.get('VWORLD_BROWSER_API_KEY', '')
+        if not browser_key:
+            raise HTTPException(503, 'VWorld 3D 지도가 설정되지 않았습니다.')
+        return Response(content=json.dumps({'api_key': browser_key}),
+                        media_type='application/json', headers={'Cache-Control': 'no-store'})
 
     async def image(operation, max_age):
         try:

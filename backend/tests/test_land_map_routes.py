@@ -10,6 +10,21 @@ from backend.app.adapters.vworld_map import VworldMapClient
 PNG = b'\x89PNG\r\n\x1a\nimage-fixture'
 
 
+def test_map_config_exposes_only_explicit_browser_key_and_is_not_cached(monkeypatch):
+    monkeypatch.setenv('VWORLD_API_KEY', 'server-only')
+    monkeypatch.delenv('VWORLD_BROWSER_API_KEY', raising=False)
+    app = FastAPI()
+    app.include_router(create_land_map_router())
+    client = TestClient(app)
+    missing = client.get('/api/v1/land/map-config')
+    assert missing.status_code == 503
+    assert 'server-only' not in missing.text
+    monkeypatch.setenv('VWORLD_BROWSER_API_KEY', 'browser-sdk-key')
+    response = client.get('/api/v1/land/map-config')
+    assert response.json() == {'api_key': 'browser-sdk-key'}
+    assert response.headers['cache-control'] == 'no-store'
+
+
 def test_map_routes_are_mounted_once_under_the_native_land_prefix(monkeypatch):
     monkeypatch.delenv('VWORLD_API_KEY', raising=False)
     app = FastAPI()

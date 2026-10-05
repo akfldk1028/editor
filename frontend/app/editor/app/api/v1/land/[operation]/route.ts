@@ -1,6 +1,6 @@
 import { backendRequest } from '@/lib/backend-request'
 
-const methods: Record<string, string> = { zones: 'GET', stats: 'GET', analyze: 'POST', resolve: 'POST', reverse: 'POST', 'parcel-geometry': 'POST', wms: 'GET' }
+const methods: Record<string, string> = { zones: 'GET', stats: 'GET', analyze: 'POST', resolve: 'POST', reverse: 'POST', 'parcel-geometry': 'POST', wms: 'GET', 'map-config': 'GET' }
 
 async function handle(request: Request, { params }: { params: Promise<{ operation: string }> }) {
   const { operation } = await params
