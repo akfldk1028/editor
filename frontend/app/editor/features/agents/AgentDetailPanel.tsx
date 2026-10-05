@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { X, Code } from 'lucide-react';
-import { Card } from '@/features/workspace/ui/Card';
-import { Button } from '@/features/workspace/ui/Button';
-import { Badge } from '@/features/workspace/ui/Badge';
+import { Card } from '@/elements/workspace/Card';
+import { Button } from '@/elements/workspace/Button';
+import { Badge } from '@/elements/workspace/Badge';
 import { AgentHealthBadge } from './AgentHealthBadge';
 import type { AgentSummary } from './api';
 

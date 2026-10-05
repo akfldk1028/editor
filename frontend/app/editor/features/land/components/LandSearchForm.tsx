@@ -1,5 +1,5 @@
 import { memo, useState, useCallback } from 'react'
-import { Button, Input } from '@/features/workspace/ui'
+import { Button, Input } from '@/elements/workspace'
 import { Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { LandAnalyzeRequest } from '@/features/land/api'

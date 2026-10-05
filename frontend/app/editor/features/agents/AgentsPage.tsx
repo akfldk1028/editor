@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
-import { Card } from '@/features/workspace/ui/Card';
-import { Button } from '@/features/workspace/ui/Button';
+import { Card } from '@/elements/workspace/Card';
+import { Button } from '@/elements/workspace/Button';
 import { listAgents } from './api';
 import { AgentCard } from './AgentCard';
 import { AgentDetailPanel } from './AgentDetailPanel';

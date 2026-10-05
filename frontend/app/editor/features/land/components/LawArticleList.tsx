@@ -1,5 +1,5 @@
 import { memo, useState, useCallback } from 'react'
-import { Card } from '@/features/workspace/ui'
+import { Card } from '@/elements/workspace'
 import { ChevronDown, ChevronRight, Gavel } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { LawArticlesResponse } from '@/features/land/api'

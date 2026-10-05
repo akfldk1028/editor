@@ -1,0 +1,558 @@
+// ============================================================
+// AutoGen Studio Type System
+// Ported from AutoGen Studio datamodel.ts - canonical type definitions
+// for all AutoGen components, messages, and runtime models.
+// ============================================================
+
+// --------------- Component System ---------------
+
+export type ComponentTypes =
+  | 'team'
+  | 'agent'
+  | 'model'
+  | 'tool'
+  | 'termination'
+  | 'workbench'
+
+export interface Component<T extends ComponentConfig> {
+  provider: string
+  component_type: ComponentTypes
+  version?: number
+  component_version?: number
+  description?: string | null
+  config: T
+  label?: string
+}
+
+// --------------- Message Types ---------------
+
+interface RequestUsage {
+  prompt_tokens: number
+  completion_tokens: number
+}
+
+export interface ImageContent {
+  url: string
+  alt?: string
+  data?: string
+}
+
+export interface FunctionCall {
+  id: string
+  arguments: string
+  name: string
+}
+
+export interface FunctionExecutionResult {
+  call_id: string
+  content: string
+}
+
+export interface BaseMessageConfig {
+  source: string
+  models_usage?: RequestUsage
+  metadata?: Record<string, string>
+}
+
+export interface TextMessageConfig extends BaseMessageConfig {
+  content: string
+}
+
+export interface BaseAgentEvent extends BaseMessageConfig {}
+
+export interface ModelClientStreamingChunkEvent extends BaseAgentEvent {
+  content: string
+  type: 'ModelClientStreamingChunkEvent'
+}
+
+export interface MultiModalMessageConfig extends BaseMessageConfig {
+  content: (string | ImageContent)[]
+}
+
+export interface StopMessageConfig extends BaseMessageConfig {
+  content: string
+}
+
+export interface HandoffMessageConfig extends BaseMessageConfig {
+  content: string
+  target: string
+}
+
+export interface ToolCallMessageConfig extends BaseMessageConfig {
+  content: FunctionCall[]
+}
+
+export interface ToolCallResultMessageConfig extends BaseMessageConfig {
+  content: FunctionExecutionResult[]
+}
+
+export type AgentMessageConfig =
+  | TextMessageConfig
+  | MultiModalMessageConfig
+  | StopMessageConfig
+  | HandoffMessageConfig
+  | ToolCallMessageConfig
+  | ToolCallResultMessageConfig
+  | ModelClientStreamingChunkEvent
+
+// --------------- Imports ---------------
+
+export interface FromModuleImport {
+  module: string
+  imports: string[]
+}
+
+export type Import = string | FromModuleImport
+
+// --------------- Code Executors ---------------
+
+export interface CodeExecutorBaseConfig {
+  timeout?: number
+  work_dir?: string
+}
+
+export interface LocalCommandLineCodeExecutorConfig extends CodeExecutorBaseConfig {
+  functions_module?: string
+}
+
+export interface DockerCommandLineCodeExecutorConfig extends CodeExecutorBaseConfig {
+  image?: string
+  container_name?: string
+  bind_dir?: string
+  auto_remove?: boolean
+  stop_container?: boolean
+  functions_module?: string
+  extra_volumes?: Record<string, Record<string, string>>
+  extra_hosts?: Record<string, string>
+  init_command?: string
+}
+
+export interface JupyterCodeExecutorConfig extends CodeExecutorBaseConfig {
+  kernel_name?: string
+  output_dir?: string
+}
+
+export interface PythonCodeExecutionToolConfig {
+  executor: {
+    provider: string
+    config:
+      | LocalCommandLineCodeExecutorConfig
+      | DockerCommandLineCodeExecutorConfig
+      | JupyterCodeExecutorConfig
+    version?: number
+    component_version?: number
+    description?: string | null
+  }
+  description?: string
+  name?: string
+}
+
+export interface FunctionToolConfig {
+  source_code: string
+  name: string
+  description: string
+  global_imports: Import[]
+  has_cancellation_support: boolean
+}
+
+// --------------- Workbench Configs ---------------
+
+export interface StaticWorkbenchConfig {
+  tools: Component<ToolConfig>[]
+}
+
+export interface StdioServerParams {
+  type: 'StdioServerParams'
+  command: string
+  args?: string[]
+  env?: Record<string, string>
+  read_timeout_seconds?: number
+}
+
+export interface SseServerParams {
+  type: 'SseServerParams'
+  url: string
+  headers?: Record<string, unknown>
+  timeout?: number
+  sse_read_timeout?: number
+}
+
+export interface StreamableHttpServerParams {
+  type: 'StreamableHttpServerParams'
+  url: string
+  headers?: Record<string, unknown>
+  timeout?: number
+  sse_read_timeout?: number
+  terminate_on_close?: boolean
+}
+
+export type McpServerParams =
+  | StdioServerParams
+  | SseServerParams
+  | StreamableHttpServerParams
+
+export interface McpWorkbenchConfig {
+  server_params: McpServerParams
+}
+
+// --------------- Team Configs ---------------
+
+export interface SelectorGroupChatConfig {
+  participants: Component<AgentConfig>[]
+  model_client: Component<ModelConfig>
+  termination_condition?: Component<TerminationConfig>
+  max_turns?: number
+  selector_prompt: string
+  allow_repeated_speaker: boolean
+}
+
+export interface RoundRobinGroupChatConfig {
+  participants: Component<AgentConfig>[]
+  termination_condition?: Component<TerminationConfig>
+  max_turns?: number
+}
+
+export interface SwarmConfig {
+  participants: Component<AgentConfig>[]
+  termination_condition?: Component<TerminationConfig>
+  max_turns?: number
+  emit_team_events?: boolean
+}
+
+// --------------- Agent Configs ---------------
+
+export interface MultimodalWebSurferConfig {
+  name: string
+  model_client: Component<ModelConfig>
+  downloads_folder?: string
+  description?: string
+  debug_dir?: string
+  headless?: boolean
+  start_page?: string
+  animate_actions?: boolean
+  to_save_screenshots?: boolean
+  use_ocr?: boolean
+  browser_channel?: string
+  browser_data_dir?: string
+  to_resize_viewport?: boolean
+}
+
+export interface AssistantAgentConfig {
+  name: string
+  model_client: Component<ModelConfig>
+  workbench?: Component<WorkbenchConfig>[] | Component<WorkbenchConfig>
+  handoffs?: unknown[]
+  model_context?: Component<ChatCompletionContextConfig>
+  description: string
+  system_message?: string
+  reflect_on_tool_use: boolean
+  tool_call_summary_format: string
+  model_client_stream: boolean
+}
+
+export interface UserProxyAgentConfig {
+  name: string
+  description: string
+}
+
+// --------------- Model Configs ---------------
+
+export interface ModelInfo {
+  vision: boolean
+  function_calling: boolean
+  json_output: boolean
+  family: string
+}
+
+export interface CreateArgumentsConfig {
+  frequency_penalty?: number
+  logit_bias?: Record<string, number>
+  max_tokens?: number
+  n?: number
+  presence_penalty?: number
+  response_format?: unknown
+  seed?: number
+  stop?: string | string[]
+  temperature?: number
+  top_p?: number
+  user?: string
+}
+
+export interface BaseOpenAIClientConfig extends CreateArgumentsConfig {
+  model: string
+  api_key?: string
+  timeout?: number
+  max_retries?: number
+  model_capabilities?: unknown
+  model_info?: ModelInfo
+}
+
+export interface OpenAIClientConfig extends BaseOpenAIClientConfig {
+  organization?: string
+  base_url?: string
+}
+
+export interface AzureOpenAIClientConfig extends BaseOpenAIClientConfig {
+  azure_endpoint: string
+  azure_deployment?: string
+  api_version: string
+  azure_ad_token?: string
+  azure_ad_token_provider?: Component<ComponentConfig>
+}
+
+export interface BaseAnthropicClientConfig extends CreateArgumentsConfig {
+  model: string
+  api_key?: string
+  base_url?: string
+  model_capabilities?: unknown
+  model_info?: ModelInfo
+  timeout?: number
+  max_retries?: number
+  default_headers?: Record<string, string>
+  max_tokens?: number
+  temperature?: number
+  top_p?: number
+  top_k?: number
+  stop_sequences?: string | string[]
+  response_format?: unknown
+  metadata?: Record<string, string>
+}
+
+export interface AnthropicClientConfig extends BaseAnthropicClientConfig {
+  tools?: Array<Record<string, unknown>>
+  tool_choice?: 'auto' | 'any' | 'none' | Record<string, unknown>
+}
+
+// --------------- Termination Configs ---------------
+
+export interface OrTerminationConfig {
+  conditions: Component<TerminationConfig>[]
+}
+
+export interface AndTerminationConfig {
+  conditions: Component<TerminationConfig>[]
+}
+
+export interface MaxMessageTerminationConfig {
+  max_messages: number
+  include_agent_event?: boolean
+}
+
+export interface TextMentionTerminationConfig {
+  text: string
+}
+
+export interface StopMessageTerminationConfig {}
+
+export interface TokenUsageTerminationConfig {
+  max_total_token?: number
+  max_prompt_token?: number
+  max_completion_token?: number
+}
+
+export interface HandoffTerminationConfig {
+  target: string
+}
+
+export interface TimeoutTerminationConfig {
+  timeout_seconds: number
+}
+
+export interface ExternalTerminationConfig {}
+
+export interface SourceMatchTerminationConfig {
+  sources: string[]
+}
+
+export interface TextMessageTerminationConfig {
+  source?: string
+}
+
+export type TerminationConfig =
+  | OrTerminationConfig
+  | AndTerminationConfig
+  | MaxMessageTerminationConfig
+  | TextMentionTerminationConfig
+  | StopMessageTerminationConfig
+  | TokenUsageTerminationConfig
+  | HandoffTerminationConfig
+  | TimeoutTerminationConfig
+  | ExternalTerminationConfig
+  | SourceMatchTerminationConfig
+  | TextMessageTerminationConfig
+
+// --------------- Context Configs ---------------
+
+export interface UnboundedChatCompletionContextConfig {}
+
+export type ChatCompletionContextConfig = UnboundedChatCompletionContextConfig
+
+// --------------- Config Unions ---------------
+
+export type TeamConfig =
+  | SelectorGroupChatConfig
+  | RoundRobinGroupChatConfig
+  | SwarmConfig
+
+export type AgentConfig =
+  | MultimodalWebSurferConfig
+  | AssistantAgentConfig
+  | UserProxyAgentConfig
+
+export type ModelConfig =
+  | OpenAIClientConfig
+  | AzureOpenAIClientConfig
+  | AnthropicClientConfig
+
+export type ToolConfig = FunctionToolConfig | PythonCodeExecutionToolConfig
+
+export type WorkbenchConfig = StaticWorkbenchConfig | McpWorkbenchConfig
+
+export type ComponentConfig =
+  | TeamConfig
+  | AgentConfig
+  | ModelConfig
+  | ToolConfig
+  | WorkbenchConfig
+  | TerminationConfig
+  | ChatCompletionContextConfig
+
+// --------------- DB Models ---------------
+
+export interface DBModel {
+  id?: number
+  user_id?: string
+  created_at?: string
+  updated_at?: string
+  version?: number
+}
+
+export interface Message extends DBModel {
+  config: AgentMessageConfig
+  session_id: number
+  run_id: number
+}
+
+export interface Team extends DBModel {
+  component: Component<TeamConfig>
+}
+
+export interface Session extends DBModel {
+  name: string
+  team_id?: number
+}
+
+// --------------- Runtime Types ---------------
+
+export type RunStatus =
+  | 'created'
+  | 'active'
+  | 'awaiting_input'
+  | 'timeout'
+  | 'complete'
+  | 'error'
+  | 'stopped'
+
+export interface TaskResult {
+  messages: AgentMessageConfig[]
+  stop_reason?: string
+}
+
+export interface TeamResult {
+  task_result: TaskResult
+  usage: string
+  duration: number
+}
+
+export interface Run extends DBModel {
+  id: number
+  created_at: string
+  updated_at?: string
+  status: RunStatus
+  task: AgentMessageConfig[]
+  team_result: TeamResult | null
+  messages: Message[]
+  error_message?: string
+}
+
+export interface SessionRuns {
+  runs: Run[]
+}
+
+export interface WebSocketMessage {
+  type:
+    | 'message'
+    | 'result'
+    | 'completion'
+    | 'input_request'
+    | 'error'
+    | 'llm_call_event'
+    | 'message_chunk'
+  data?: AgentMessageConfig | TaskResult
+  status?: RunStatus
+  error?: string
+  timestamp?: string
+}
+
+// --------------- Settings ---------------
+
+export type EnvironmentVariableType = 'string' | 'number' | 'boolean' | 'secret'
+
+export interface EnvironmentVariable {
+  name: string
+  value: string
+  type: EnvironmentVariableType
+  description?: string
+  required: boolean
+}
+
+export interface UISettings {
+  show_llm_call_events: boolean
+  expanded_messages_by_default?: boolean
+  show_agent_flow_by_default?: boolean
+  human_input_timeout_minutes?: number
+}
+
+export interface SettingsConfig {
+  environment: EnvironmentVariable[]
+  default_model_client?: Component<ModelConfig>
+  ui: UISettings
+}
+
+export interface Settings extends DBModel {
+  config: SettingsConfig
+}
+
+// --------------- Gallery ---------------
+
+export interface GalleryMetadata {
+  author: string
+  created_at: string
+  updated_at: string
+  version: string
+  description?: string
+  tags?: string[]
+  license?: string
+  homepage?: string
+  category?: string
+  lastSynced?: string
+}
+
+export interface GalleryConfig {
+  id: string
+  name: string
+  url?: string
+  metadata: GalleryMetadata
+  components: {
+    teams: Component<TeamConfig>[]
+    agents: Component<AgentConfig>[]
+    models: Component<ModelConfig>[]
+    tools: Component<ToolConfig>[]
+    workbenches: Component<WorkbenchConfig>[]
+    terminations: Component<TerminationConfig>[]
+  }
+}
+
+export interface Gallery extends DBModel {
+  config: GalleryConfig
+}

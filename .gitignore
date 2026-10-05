@@ -30,6 +30,8 @@ supabase/.temp/
 .next/
 out/
 build
+!/frontend/app/editor/app/(workspace)/build/
+!/frontend/app/editor/app/(workspace)/build/page.tsx
 dist
 *.tsbuildinfo
 
@@ -92,3 +94,4 @@ clone/
 # Local analysis records and imported provider history.
 /runtime/editor/land/
 /runtime/editor/design/
+/runtime/editor/workspace/

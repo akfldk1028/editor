@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { Card } from '@/features/workspace/ui'
+import { Card } from '@/elements/workspace'
 import { Scale } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { RegulationsResponse } from '@/features/land/api'

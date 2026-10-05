@@ -1,6 +1,10 @@
 export async function backendRequest(request: Request, path: string) {
   const origin = request.headers.get('origin')
-  if (request.method !== 'GET' && (request.headers.get('sec-fetch-site') === 'cross-site' || (origin && origin !== new URL(request.url).origin))) {
+  const publicUrl = new URL(request.url)
+  // Next can reconstruct request.url with its internal hostname. Host retains
+  // the browser-facing authority; the backend also checks its configured origin.
+  if (request.headers.get('host')) publicUrl.host = request.headers.get('host')!
+  if (request.method !== 'GET' && (request.headers.get('sec-fetch-site') === 'cross-site' || (origin && origin !== publicUrl.origin))) {
     return Response.json({ detail: 'Cross-origin changes are not allowed' }, { status: 403 })
   }
   const backend = process.env.EDITOR_BACKEND_URL

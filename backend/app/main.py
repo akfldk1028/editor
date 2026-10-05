@@ -10,6 +10,7 @@ from backend.app.api.routes_platform import create_platform_router
 from backend.app.api.routes_land import create_land_router
 from backend.app.api.routes_law import create_law_router
 from backend.app.api.routes_design_workspace import create_design_workspace_router
+from backend.app.api.routes_workspace import create_workspace_router
 from backend.app.adapters.orchestrator import OrchestratorClient
 from backend.app.modules.platform.projects import ProjectService
 from backend.app.api.routes_planm_runs import create_planm_runs_router
@@ -49,6 +50,7 @@ def create_app(
     application.include_router(create_land_router(public_origin=platform_public_origin))
     application.include_router(create_law_router(public_origin=platform_public_origin))
     application.include_router(create_design_workspace_router(public_origin=platform_public_origin))
+    application.include_router(create_workspace_router(public_origin=platform_public_origin))
     application.state.planm_runs = service
     return application
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { WorkspaceLayout } from '@/features/workspace/WorkspaceLayout'
+import { WorkspaceLayout } from '@/components/workspace/WorkspaceLayout'
 
 export default function Layout({ children }: { children: ReactNode }) {
   return <WorkspaceLayout>{children}</WorkspaceLayout>

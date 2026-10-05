@@ -8,6 +8,8 @@ Latest implementation and runtime: [native original LawChat and live VWorld](202
 
 Latest design increment: [original design workspace and archived evidence](2026-10-05-native-design-workspace.md). `/design` and `/design/language` now mount original views; original execution workflows remain open.
 
+Latest workspace increment: [original settings, gallery and team builder with element/component boundaries](2026-10-05-native-workspace-components.md). Sixteen browser cases and eleven backend cases passed; execution limitations remain explicit.
+
 ## Placement
 
 - `app/`: native route entries/layouts and explicit API handlers.
@@ -17,7 +19,7 @@ Latest design increment: [original design workspace and archived evidence](2026-
 - `features/agent-dialogue`: original MAS panel plus project/run-bound record adapter.
 - `features/agent-flow`: original ARR node/edge/toolbar UI over the same bound run records; `/flow` and `/dialogue` retain project/run query scope.
 - `features/agents`: original catalog grid/search/details bound to owner catalog.
-- `features/workspace`: scoped shared visual components/theme; never changes the main Editor's global theme.
+- `elements/workspace`: primitive controls; `components/workspace`: composed shell/providers and scoped theme. Feature-specific components remain under their owning `features/<domain>`.
 - Backend `modules/` owns domain behavior; `adapters/` owns external services. Do not introduce an `arr` backend folder or permanent proxy to old AG/ARR apps.
 
 ## Screen and interaction accounting
@@ -38,10 +40,10 @@ Latest design increment: [original design workspace and archived evidence](2026-
 | ARR LawChat | `/law` | Original connected view ported with native law BFF/FastAPI and real VWorld3D. Fixture search/card/detail/close/reset/reload and live map return passed. Populated provider retrieval, original article hierarchy/history and advanced-analysis execution remain open. |
 | AG History and session comparison | `/history` (planned) | Original list/detail/comparison not native. Bind real project/run history and distinguish transcript comparison from design artifact verification. |
 | Native project/job/execution pages currently in PLANM | Native project/design routes (planned) | Preserve implemented bindings, idempotency, immutable candidates, executions and source revisions. Move UI into native Editor without replacing original design screens with simplified substitutes. |
-| AG team builder / JSON / validation | `/build` (planned) | Not native. Earlier recommendation was deferred; not "migrated". Determine Editor-owned persistence/execution contract while preserving original reachable interactions. |
+| AG team builder / JSON / validation | `/build` | Original UI, graph, pattern/config controls ported; real template import, JSON save/reload and unsaved-navigation dialog verified. Versioned native storage; validation is structural only. Run/Playground execution remains open. |
 | AG MCP workbench | `/mcp` (planned) | Not native. Original generic MCP client differs from Pascal scene MCP; backend must own permitted connections/tool execution. |
-| AG gallery/import/sync | `/gallery` (planned) | Not native. Preserve reachable actions; original disabled New Gallery is not an implemented feature. |
-| AG/ARR settings | `/settings` (planned) | Scoped theme switching exists; complete settings pages, font/display behavior and server-owned secret/config interfaces remain open. |
+| AG gallery/import/sync | `/gallery` | Original six categories/cards/detail/import/sync dialogs ported. Real import into native templates verified. External sync and component runtime testing remain open; original New Gallery stays disabled. |
+| AG/ARR settings | `/settings` | Original AG settings sections ported with versioned native persistence, language/theme/font controls; save/reload and scoped appearance verified. Runtime consumption of saved environment values and ARR settings parity remain open. |
 | AG deployment/status surface | Native service/status route (planned) | Original mostly generates commands and reads health/version. Account for useful operations in Editor; do not retain Studio deployment as a final dependency or claim real deployment from generated text. |
 | ARR history/authentication/settings subroutes | Native route mapping still required | Account for source routes explicitly; do not recreate localStorage guest fallback as server authorization. |
 
