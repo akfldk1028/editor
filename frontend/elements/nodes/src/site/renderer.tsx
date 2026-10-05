@@ -355,13 +355,9 @@ export const SiteRenderer = ({ node }: { node: SiteNode }) => {
   // terrain still mounts the mesh.
   const showTerrain = terrainGrid !== null
 
-  if (!(node && lineGeometry)) {
-    return null
-  }
-
   return (
     <group ref={ref} {...handlers}>
-      {/* Render children (buildings and items) */}
+      {/* A site may contain buildings before its parcel boundary is supplied. */}
       {(node.children ?? []).map((childId) => (
         <NodeRenderer key={childId} nodeId={childId as AnyNodeId} />
       ))}
@@ -394,10 +390,12 @@ export const SiteRenderer = ({ node }: { node: SiteNode }) => {
       )}
 
       {/* Simple boundary line */}
-      {/* @ts-ignore */}
-      <line frustumCulled={false} geometry={lineGeometry} renderOrder={9}>
-        <lineBasicMaterial color="#f59e0b" linewidth={2} opacity={0.6} transparent />
-      </line>
+      {lineGeometry && (
+        // @ts-expect-error React's SVG line type conflicts with the Three.js line element.
+        <line frustumCulled={false} geometry={lineGeometry} renderOrder={9}>
+          <lineBasicMaterial color="#f59e0b" linewidth={2} opacity={0.6} transparent />
+        </line>
+      )}
     </group>
   )
 }

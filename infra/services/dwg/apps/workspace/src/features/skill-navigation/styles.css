@@ -1,3 +1,4 @@
+.dwg-workspace {
 .skill-navigation { min-height: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
 .skill-navigation-scroll { min-height: 0; flex: 1 1 auto; overflow: auto; padding: 8px; }
 .skill-navigation-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; padding: 10px; border-bottom: 1px solid var(--border-soft); }
@@ -13,4 +14,6 @@
 .skill-permissions span { padding: 2px 4px; color: var(--muted); background: var(--subtle); border-radius: 4px; font-size: 8px; }
 .skill-navigation-state { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 84px; padding: 14px; color: var(--muted); font-size: 10px; text-align: center; }
 .skill-navigation-state.error { color: var(--warning); }
-.spin { animation: spin .8s linear infinite; }
+.spin { animation: dwg-spin .8s linear infinite; }
+
+}

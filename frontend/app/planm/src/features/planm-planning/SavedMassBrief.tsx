@@ -1,3 +1,4 @@
+import { productPath } from '../../app/product-path';
 import {useState} from 'react';
 import type {SavedDesignMass, SavedMassProgram, SprinklerState, TravelLimit} from './types';
 import {buildingCodeContext} from './api';
@@ -17,7 +18,7 @@ export function SavedMassBrief({projectId, mass, error, busy, onStart}: {
   const validUse = useType === 'office' || (useType === 'neighborhood_commercial' && streets === 1);
   return <section aria-labelledby="selected-mass-heading" className="saved-mass-brief">
     <h2 id="selected-mass-heading">선택한 설계로 평면 계획</h2>
-    <p><a href={`/projects/${encodeURIComponent(projectId)}`}>프로젝트와 저장된 선택으로 돌아가기</a></p>
+    <p><a href={productPath(`/projects/${encodeURIComponent(projectId)}`)}>프로젝트와 저장된 선택으로 돌아가기</a></p>
     {error && <p role="alert">{error}</p>}
     {!mass && !error && <p role="status">선택한 설계 형상을 불러오는 중…</p>}
     {mass && source && <>
@@ -60,6 +61,6 @@ export function SavedMassBrief({projectId, mass, error, busy, onStart}: {
       {busy ? '평면 계획 요청 중…' : '선택한 형상으로 평면 계획 시작'}
     </button>
     </form>
-    <p><a href="/planm">새 형상을 직접 입력</a></p>
+    <p><a href={productPath('/planm')}>새 형상을 직접 입력</a></p>
   </section>;
 }

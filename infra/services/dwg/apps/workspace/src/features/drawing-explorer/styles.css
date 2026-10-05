@@ -1,3 +1,4 @@
+.dwg-workspace {
 .panel-heading { height: 35px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-soft); color: #778490; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
 .icon-button { width: 25px; height: 25px; color: #667480; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; }
 .icon-button.active { color: var(--accent); background: var(--accent-soft); border-radius: 4px; }
@@ -36,4 +37,6 @@
 .layer-visibility-button[aria-pressed="true"] {
   color: #067e9b;
   background: #e4f4f7;
+}
+
 }

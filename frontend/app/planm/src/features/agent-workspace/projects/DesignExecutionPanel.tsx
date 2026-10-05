@@ -41,7 +41,8 @@ export function DesignExecutionPanel({projectId,jobId,revision,algorithm}:{proje
       try {
         const rows=await api.events(selected!,cursor,controller.signal);
         if(controller.signal.aborted)return;
-        if(rows.length){cursor=rows[rows.length-1].sequence;setEvents(value=>[...value,...rows]);}
+        const last = rows[rows.length - 1];
+        if(last){cursor=last.sequence;setEvents(value=>[...value,...rows]);}
         if(chosen&&!active(chosen)) {
           if(!resultLoaded){const saved=await api.result(selected!,controller.signal);if(!controller.signal.aborted){setResult(saved);resultLoaded=true;}}
           poll=rows.length===200;

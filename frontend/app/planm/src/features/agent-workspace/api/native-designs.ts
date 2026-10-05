@@ -1,3 +1,4 @@
+import { productPath } from '../../../app/product-path';
 export interface NativeDesignSummary {
   job_id: string;
   project_id: string;
@@ -33,7 +34,7 @@ export interface NativeDesignRequest {request_id: string; scene_revision: number
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 
 async function request(projectId: string, path: string, signal: AbortSignal, body?: NativeDesignRequest): Promise<unknown> {
-  const response = await fetch(`/api/v1/platform/projects/${encodeURIComponent(projectId)}/design/native-jobs${path}`, {
+  const response = await fetch(productPath(`/api/v1/platform/projects/${encodeURIComponent(projectId)}/design/native-jobs${path}`), {
     signal, method: body ? 'POST' : 'GET', headers: body ? {'Content-Type':'application/json'} : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });

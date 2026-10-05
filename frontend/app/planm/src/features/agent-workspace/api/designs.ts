@@ -1,3 +1,4 @@
+import { productPath } from '../../../app/product-path';
 export interface DesignJob {
   source_id: string;
   job_id: string;
@@ -29,7 +30,7 @@ export interface DesignResult {
 
 export interface DesignPage<T> {items: T[]; limit: number; offset: number}
 
-function base(projectId: string) {return `/api/v1/platform/projects/${encodeURIComponent(projectId)}/design`;}
+function base(projectId: string) {return productPath(`/api/v1/platform/projects/${encodeURIComponent(projectId)}/design`);}
 function jobPath(job: Pick<DesignJob, 'source_id' | 'job_id'>) {
   return `/jobs/${encodeURIComponent(job.source_id)}/${encodeURIComponent(job.job_id)}`;
 }

@@ -1,3 +1,4 @@
+.dwg-workspace {
 .dock-tabs { display: flex; align-items: end; gap: 2px; padding: 0 7px; border-bottom: 1px solid var(--border); background: #fafbfc; }
 .dock-tab { height: 27px; display: flex; align-items: center; gap: 5px; padding: 0 9px; border: 0; background: transparent; color: #6e7b87; font-size: 9px; }
 .dock-tab.active { color: #167b96; border-bottom: 2px solid #1597b6; }
@@ -27,3 +28,5 @@
 .warning-card strong { font-size: 9px; }
 .warning-card span { color: #806d56; font-size: 8px; }
 .warning-card code { margin-left: auto; font-size: 8px; }
+
+}

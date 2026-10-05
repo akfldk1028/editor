@@ -10,6 +10,7 @@ from backend.app.modules.platform.repository import ProjectRepository
 from backend.app.modules.platform.projects import ProjectService, BindingConflict
 from backend.app.api.routes_platform_runs import create_run_router
 from backend.app.api.routes_design import create_design_router
+from backend.app.api.routes_scene_assets import create_scene_assets_router
 
 
 def create_platform_router(
@@ -73,6 +74,7 @@ def create_platform_router(
             raise HTTPException(502, 'Project source contract invalid') from None
 
     router.include_router(create_run_router(projects_service, owner, allowed_origin))
+    router.include_router(create_scene_assets_router())
     router.include_router(create_design_router(projects_service, allowed_origin, design_repository,
                                               execution_catalog, native_design_service))
     return router

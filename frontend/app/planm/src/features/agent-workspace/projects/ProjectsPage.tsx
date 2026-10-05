@@ -1,3 +1,4 @@
+import { productPath } from '../../../app/product-path';
 import { useEffect, useState } from 'react';
 import { createProject, listProjects, type ProjectBinding } from '../api/projects';
 import '../agents/agents.css';
@@ -42,7 +43,7 @@ export default function ProjectsPage() {
     {error && <p role="alert">{error}</p>}
     <button disabled={loading} type="button" onClick={() => setRefresh(value => value + 1)}>목록 새로고침</button>
     {loading ? <p role="status">목록을 불러오는 중…</p> : <ul>{projects.map(project =>
-      <li key={project.project_id}><a href={'/projects/' + encodeURIComponent(project.project_id)}>
+      <li key={project.project_id}><a href={productPath('/projects/' + encodeURIComponent(project.project_id))}>
         {project.owner_project_id} / {project.branch_id}</a></li>)}</ul>}
   </div>;
 }

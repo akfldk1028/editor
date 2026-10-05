@@ -1,3 +1,4 @@
+import { productPath } from '../../../app/product-path';
 export interface ProjectBinding {
   project_id: string;
   owner_project_id: string;
@@ -19,7 +20,7 @@ function parseBinding(value: unknown): ProjectBinding {
 }
 
 async function request(path: string, options?: RequestInit): Promise<unknown> {
-  const response = await fetch('/api/v1/platform/projects' + path, options);
+  const response = await fetch(productPath('/api/v1/platform/projects' + path), options);
   if (!response.ok) throw new Error(`프로젝트 연결 실패 (${response.status})`);
   return response.json();
 }
@@ -31,7 +32,9 @@ export async function listProjects(signal?: AbortSignal): Promise<ProjectBinding
 }
 
 export async function getProject(id: string, signal?: AbortSignal): Promise<ProjectBinding> {
-  return parseBinding(await request('/' + encodeURIComponent(id), {signal}));
+  const project = parseBinding(await request('/' + encodeURIComponent(id), {signal}));
+  if (project.project_id !== id) throw new Error('요청한 프로젝트와 응답의 연결 ID가 일치하지 않습니다.');
+  return project;
 }
 
 export async function createProject(binding: Omit<ProjectBinding, 'project_id'>): Promise<ProjectBinding> {

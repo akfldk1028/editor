@@ -1,3 +1,4 @@
+.dwg-workspace {
 .project-navigation { min-height: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
 .project-navigation-scroll { min-height: 0; flex: 1 1 auto; overflow: auto; }
 .project-tree, .project-tree-root { min-width: 0; }
@@ -21,3 +22,5 @@
 .project-layer-name { flex: 1 1 auto; order: -1; padding-right: 4px; }
 .project-navigation-empty { padding: 14px 11px; color: var(--muted); font-size: 10px; }
 .project-navigation-footer { display: flex; justify-content: space-between; padding: 9px 11px; color: var(--muted); border-top: 1px solid var(--border); font-size: 8px; }
+
+}

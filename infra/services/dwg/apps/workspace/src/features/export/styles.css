@@ -1,3 +1,4 @@
+.dwg-workspace {
 .export-panel { display: grid; gap: 14px; padding: 14px; }
 .export-panel > header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .export-panel > header strong { font-size: 13px; }
@@ -13,3 +14,5 @@
 .export-actions small { grid-column: 1 / -1; overflow: hidden; color: var(--warning); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .export-error { margin: 0; padding: 8px; color: var(--warning); background: var(--accent-soft); border-radius: 7px; font-size: 10px; }
 .export-loading { margin: 0; color: var(--muted); font-size: 10px; }
+
+}

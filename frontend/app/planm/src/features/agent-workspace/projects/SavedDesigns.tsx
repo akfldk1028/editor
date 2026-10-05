@@ -1,3 +1,4 @@
+import { productPath } from '../../../app/product-path';
 import {useEffect, useRef, useState} from 'react';
 import {archivedDesignJobs, attachDesignJob, designJobDetail, designResultDetail, designResults,
   projectDesignJobs, selectedDesign, selectDesign, type DesignJob, type DesignResult} from '../api/designs';
@@ -107,7 +108,7 @@ export function SavedDesigns({project}: {project: ProjectBinding}) {
     {error && <p role="alert">{error} <button disabled={busy} onClick={() => setRefresh(value => value + 1)}>저장된 설계 다시 조회</button></p>}
     {notice && <p role="status">{notice}</p>}
     {selected && <p data-testid="saved-design-selection">저장된 선택: {selected.source_id} / {selected.job_id} / 원본 PK {selected.result_pk}
-      {' '}<a href={`/planm?designProject=${encodeURIComponent(project.project_id)}`}>선택한 설계로 평면 계획 검토</a></p>}
+      {' '}<a href={productPath(`/planm?designProject=${encodeURIComponent(project.project_id)}`)}>선택한 설계로 평면 계획 검토</a></p>}
     <h3>프로젝트에 연결된 작업</h3>
     {!jobs && !error && <p role="status">저장된 작업을 불러오는 중…</p>}
     {jobs?.length === 0 && <p>연결된 설계 작업이 없습니다.</p>}

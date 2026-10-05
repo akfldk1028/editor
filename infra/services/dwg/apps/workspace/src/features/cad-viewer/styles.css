@@ -1,3 +1,4 @@
+.dwg-workspace {
 .viewer-toolbar, .viewer-status { display: flex; align-items: center; border-bottom: 1px solid var(--border-soft); }
 .viewer-toolbar { padding: 0 7px; justify-content: space-between; }
 .tool-group { display: flex; gap: 2px; }
@@ -30,3 +31,5 @@ line.cad-entity { fill: none; }
 .status-dot { width: 6px; height: 6px; display: inline-block; border-radius: 50%; }
 .status-dot.ready { background: #29a06d; box-shadow: 0 0 0 2px #ddf3e9; }
 .coordinates { margin-left: auto; font-family: ui-monospace, monospace; }
+
+}

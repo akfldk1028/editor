@@ -1,3 +1,4 @@
+.dwg-workspace {
 .agent-tabs { display: flex; align-items: end; padding: 0 6px; border-bottom: 1px solid var(--border); background: #fafbfc; }
 .agent-tab { height: 29px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; background: transparent; color: #6b7884; font-size: 10px; }
 .agent-tab.active { color: #1e3442; background: #fff; border: 1px solid var(--border); border-bottom-color: #fff; border-radius: 5px 5px 0 0; transform: translateY(1px); }
@@ -28,7 +29,7 @@
 .tool-step strong { color: #33434f; font-size: 9px; font-weight: 650; }
 .tool-step span { display: flex; align-items: center; gap: 4px; color: #7c8994; font: 8px ui-monospace, monospace; white-space: nowrap; }
 .tool-step em { margin-left: auto; font-size: 7px; font-style: normal; font-weight: 800; }
-.spin { animation: spin .9s linear infinite; }
+.spin { animation: dwg-spin .9s linear infinite; }
 .response-message { padding: 9px 10px; border-left: 2px solid #36a274; background: #f5fbf8; }
 .live-response { padding: 10px; border: 1px solid #b9dfe8; border-left: 2px solid var(--accent); border-radius: 4px; background: #f5fbfd; }
 .live-response p { white-space: pre-wrap; }
@@ -86,17 +87,21 @@
   height: 4px;
   border-radius: 50%;
   background: currentColor;
-  animation: pending-dot 1.2s infinite ease-in-out;
+  animation: dwg-pending-dot 1.2s infinite ease-in-out;
 }
 
 .pending-dots i:nth-child(2) { animation-delay: 0.15s; }
 .pending-dots i:nth-child(3) { animation-delay: 0.3s; }
 
-@keyframes pending-dot {
-  0%, 60%, 100% { opacity: 0.25; }
-  30% { opacity: 1; }
-}
+
 
 @media (prefers-reduced-motion: reduce) {
   .pending-dots i { animation: none; opacity: 0.6; }
+}
+
+}
+
+@keyframes dwg-pending-dot {
+  0%, 60%, 100% { opacity: 0.25; }
+  30% { opacity: 1; }
 }

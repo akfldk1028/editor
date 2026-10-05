@@ -1,3 +1,4 @@
+import { productPath } from '../../app/product-path';
 import type {AlternativesResult, CoreSearchDiagnostic, PlanmRun} from "./types";
 
 const requiredAcceptedCount = 2;
@@ -53,7 +54,7 @@ export function HaltEvidence({
           </ul>
         </div>
       )}
-      {designProject && <p><a href={`/projects/${encodeURIComponent(designProject)}`}>프로젝트의 저장된 설계 다시 보기</a></p>}
+      {designProject && <p><a href={productPath(`/projects/${encodeURIComponent(designProject)}`)}>프로젝트의 저장된 설계 다시 보기</a></p>}
     </section>
   );
 }

@@ -465,7 +465,7 @@ function PlatePreview({ form }: { form: MassForm }) {
   const area =
     Math.abs(
       points.reduce((sum, [x, y], index) => {
-        const [nextX, nextY] = points[(index + 1) % points.length];
+        const [nextX, nextY] = points[(index + 1) % points.length]!;
         return sum + (x * nextY - nextX * y);
       }, 0)
     ) / 2;

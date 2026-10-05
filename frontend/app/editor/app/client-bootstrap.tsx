@@ -1,6 +1,7 @@
 'use client'
 
 import { type ReactNode, useEffect } from 'react'
+import { ProductNavigation } from '@/components/workspace/ProductNavigation'
 
 export function ClientBootstrap({
   children,
@@ -14,5 +15,5 @@ export function ClientBootstrap({
       if (enableDevDiagnostics) import('react-scan').then(({ scan }) => scan({ enabled: true }))
     }
   }, [enableDevDiagnostics])
-  return children
+  return <><ProductNavigation /><div className="editor-product-content">{children}</div></>
 }

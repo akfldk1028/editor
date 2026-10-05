@@ -115,18 +115,18 @@ export function polylinePath(
 
   const commands = [
     "M",
-    number(geometry.vertices[0].point[0]),
-    number(geometry.vertices[0].point[1])
+    number(geometry.vertices[0]!.point[0]),
+    number(geometry.vertices[0]!.point[1])
   ];
   const segmentCount = geometry.closed
     ? geometry.vertices.length
     : geometry.vertices.length - 1;
 
   for (let index = 0; index < segmentCount; index += 1) {
-    const start = geometry.vertices[index];
+    const start = geometry.vertices[index]!;
     const end = geometry.vertices[
       (index + 1) % geometry.vertices.length
-    ];
+    ]!;
     const arc = bulgeSegment(start.point, end.point, start.bulge);
     if (!arc) {
       commands.push("L", number(end.point[0]), number(end.point[1]));

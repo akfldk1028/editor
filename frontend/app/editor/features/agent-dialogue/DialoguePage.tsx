@@ -10,6 +10,7 @@ import { toTranscript } from './transcript';
 import MASDialoguePanel from './MASDialoguePanel';
 import { ProjectConnection } from './ProjectConnection';
 import { HealthExecution } from './HealthExecution';
+import { SpecialistReviewExecution } from './SpecialistReviewExecution';
 
 const RunFlow = dynamic(() => import('../agent-flow/RunFlow'), { ssr: false });
 
@@ -75,6 +76,8 @@ export default function DialoguePage({ projectId, runId, view = 'dialogue' }: { 
       <button type="button" className={selectClass} disabled={loading} onClick={() => setRefresh(v => v + 1)}>목록 새로고침</button>
     </div>
     {project && !error && <HealthExecution key={`${project.project_id}:${project.scene_revision}`} project={project} onSubmitted={id => navigate(project.project_id, id)} />}
+    {project && !error && <Link className="inline-block underline text-(--color-text-primary)" href={`/scene/${encodeURIComponent(project.scene_id)}`}>현재 프로젝트 3D 장면 열기</Link>}
+    {project && !error && <SpecialistReviewExecution key={`review:${project.project_id}:${project.owner_project_id}:${project.branch_id}:${project.scene_id}:${project.scene_revision}`} project={project} onSubmitted={id => navigate(project.project_id, id)} />}
     {error && <p role="alert" className="text-red-500">{error}</p>}
     {loading && !run && <p role="status">대화 기록을 불러오는 중입니다...</p>}
     {!loading && !error && !run && <p role="status">{projectId && runs.length === 0 ? '이 프로젝트에 저장된 실행이 없습니다.' : '프로젝트와 실행을 선택하면 저장된 요청·응답을 표시합니다.'}</p>}

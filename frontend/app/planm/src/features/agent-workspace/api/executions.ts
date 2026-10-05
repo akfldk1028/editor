@@ -1,3 +1,4 @@
+import { productPath } from '../../../app/product-path';
 export interface SavedExecution {
   catalog_id: string;
   source_namespace: string;
@@ -24,7 +25,7 @@ export interface ExecutionArtifact {
 export interface ExecutionPage<T> {items: T[]; limit?: number; offset?: number}
 export interface ExecutionDetail extends ExecutionPage<ExecutionArtifact> {execution: SavedExecution}
 
-const prefix = (projectId: string) => `/api/v1/platform/projects/${encodeURIComponent(projectId)}/design`;
+const prefix = (projectId: string) => productPath(`/api/v1/platform/projects/${encodeURIComponent(projectId)}/design`);
 
 async function request(projectId: string, path: string, signal: AbortSignal, body?: unknown): Promise<unknown> {
   const response = await fetch(prefix(projectId) + path, {signal, method: body === undefined ? 'GET' : 'POST',

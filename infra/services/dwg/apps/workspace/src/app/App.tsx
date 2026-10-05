@@ -24,6 +24,10 @@ import { useWorkspacePreferences } from "./useWorkspacePreferences";
 import "./styles.css";
 
 export function App() {
+  return <div className="dwg-workspace"><WorkspaceContent /></div>;
+}
+
+function WorkspaceContent() {
   const { index, error, refresh } = useDrawingIndex();
   const chat = useProviderChat();
   const inspection = useInspectionRun();

@@ -1,3 +1,4 @@
+import { productPath } from '../../app/product-path';
 import type {
   AlternativesResult,
   CadHandoff,
@@ -9,7 +10,7 @@ import type {
   SavedDesignMass,
 } from "./types";
 
-const API_ROOT = "/api/v1/planm/runs";
+const API_ROOT = productPath('/api/v1/planm/runs');
 
 /** Plate coordinates are chosen on a 0.1 m grid so the brief carries exact numbers. */
 const snap = (value: number) => Math.round(value * 10) / 10;
@@ -160,7 +161,7 @@ export function createRun(form: MassForm): Promise<PlanmRun> {
 }
 
 export async function selectedDesignMass(projectId: string, signal: AbortSignal): Promise<SavedDesignMass> {
-  const response = await fetch(`/api/v1/platform/projects/${encodeURIComponent(projectId)}/design/selection/mass`, {signal});
+  const response = await fetch(productPath(`/api/v1/platform/projects/${encodeURIComponent(projectId)}/design/selection/mass`), {signal});
   if (!response.ok) {
     if (response.status === 422) throw new Error('선택한 설계 형상은 현재 평면 계획 입력으로 변환할 수 없습니다. 원본 후보를 확인하고 지원되는 후보를 선택하세요. (422)');
     if (response.status === 404) throw new Error('프로젝트에 저장된 설계 선택을 찾을 수 없습니다.');

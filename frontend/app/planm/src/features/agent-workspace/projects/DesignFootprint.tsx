@@ -1,4 +1,4 @@
-type Ring = number[][];
+type Ring = [number, number, ...number[]][];
 type Polygon = Ring[];
 
 function polygons(value: unknown): Polygon[] {

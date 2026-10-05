@@ -1,3 +1,4 @@
+.dwg-workspace {
 .change-review { display: grid; gap: 10px; padding: 12px; color: var(--ink); }
 .change-review-header, .change-review-header > div, .change-review-actions, .change-review-status, .change-warnings h3 { display: flex; align-items: center; }
 .change-review-header { justify-content: space-between; gap: 8px; }
@@ -41,3 +42,5 @@
 .change-proposal-fields button:disabled { cursor: not-allowed; opacity: .48; }
 .change-proposal-error { color: #9d3a31; font-size: 9px; }
 @media (max-width: 470px) { .change-card-states { grid-template-columns: minmax(0, 1fr); } .change-evidence + .change-evidence { border-top: 1px solid var(--border-soft); border-left: 0; } }
+
+}

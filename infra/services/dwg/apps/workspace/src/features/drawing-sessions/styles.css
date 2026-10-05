@@ -1,3 +1,4 @@
+.dwg-workspace {
 .drawing-sessions {
   display: flex;
   flex-direction: column;
@@ -58,4 +59,6 @@
   margin: 0;
   font-size: 11px;
   color: var(--danger, #b3261e);
+}
+
 }

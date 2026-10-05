@@ -1,3 +1,4 @@
+import { productPath } from '../../../app/product-path';
 import {useEffect,useState} from 'react';
 import {getRun,type RunSummary} from '../api/runs';
 import '../agents/agents.css';
@@ -22,7 +23,7 @@ export default function RunPage({runId}:{runId:string}) {
     void poll();
     return () => {controller.abort();clearTimeout(timer);};
   },[projectId,runId]);
-  return <div className="agent-workspace"><h1>실행 진행</h1>{projectId && <a href={'/projects/'+encodeURIComponent(projectId)}>프로젝트로 돌아가기</a>}
+  return <div className="agent-workspace"><h1>실행 진행</h1>{projectId && <a href={productPath('/projects/'+encodeURIComponent(projectId))}>프로젝트로 돌아가기</a>}
     {error ? <p role="alert">{error}</p> : !run ? <p role="status">실행을 조회하는 중…</p> : <>
       <p>실행 ID: {run.run_id}</p><p>상태: <strong data-testid="run-status">{run.status}</strong></p>
       <p>작업: {run.goal}</p>{run.pending_input && <p>추가 입력이 필요합니다. 입력 응답 화면은 아직 연결되지 않았습니다.</p>}

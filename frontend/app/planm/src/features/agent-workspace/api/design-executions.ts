@@ -1,3 +1,4 @@
+import { productPath } from '../../../app/product-path';
 export type AttemptStatus = 'queued'|'running'|'computed'|'cancelled'|'failed'|'interrupted';
 export interface DesignAttempt {
   attempt_id:string; project_id:string; job_id:string; request_id:string; seed:string;
@@ -12,7 +13,7 @@ export interface DesignResult {
 const statuses=['queued','running','computed','cancelled','failed','interrupted'];
 
 export function executionAPI(project:string,job:string) {
-  const base=`/api/v1/platform/projects/${encodeURIComponent(project)}/design/native-jobs/${encodeURIComponent(job)}/attempts`;
+  const base=productPath(`/api/v1/platform/projects/${encodeURIComponent(project)}/design/native-jobs/${encodeURIComponent(job)}/attempts`);
   async function request(path:string,signal:AbortSignal,body?:unknown) {
     const response=await fetch(base+path,{signal,method:body?'POST':'GET',
       headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined});

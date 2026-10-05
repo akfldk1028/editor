@@ -1,11 +1,15 @@
-:root {
+.dwg-workspace {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+& {
   font-family: Inter, "Segoe UI", Arial, sans-serif;
   font-synthesis: none;
   text-rendering: geometricPrecision;
 }
 
 * { box-sizing: border-box; }
-html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+
 button, input, select { color: inherit; font: inherit; }
 button { cursor: pointer; }
 
@@ -246,7 +250,7 @@ button { cursor: pointer; }
 .artifact-resizer { grid-column: 4; }
 .sidebar-resizer::after, .artifact-resizer::after { position: absolute; inset: 0 2px; content: ""; background: transparent; }
 .sidebar-resizer:hover::after, .sidebar-resizer:focus-visible::after, .artifact-resizer:hover::after, .artifact-resizer:focus-visible::after { background: var(--accent); }
-.resizing-artifact, .resizing-artifact *, .resizing-sidebar, .resizing-sidebar * { cursor: col-resize !important; user-select: none !important; }
+:is(body.resizing-artifact, body.resizing-sidebar) &, :is(body.resizing-artifact, body.resizing-sidebar) & * { cursor: col-resize !important; user-select: none !important; }
 
 .cad-artifact {
   min-width: 0;
@@ -346,10 +350,10 @@ button { cursor: pointer; }
 .cad-artifact.maximized { grid-column: 5; }
 
 .sidebar-scrim { display: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
+
 .load-state { width: 100%; height: 100%; display: grid; place-items: center; color: #746f66; background: #fffefa; font-size: 12px; }
 .error-state { color: #a14242; }
-.loading-mark { width: 14px; height: 14px; border: 2px solid #eadfd9; border-top-color: #d97757; border-radius: 50%; animation: spin .8s linear infinite; }
+.loading-mark { width: 14px; height: 14px; border: 2px solid #eadfd9; border-top-color: #d97757; border-radius: 50%; animation: dwg-spin .8s linear infinite; }
 
 @media (min-width: 1280px) and (max-width: 1359px) {
   .artifact-version { display: none; }
@@ -439,3 +443,7 @@ button { cursor: pointer; }
 .app-shell[data-theme="dark"] .chat-error { color: #efaaa2; background: #3a2422; border-color: #65413d; }
 .app-shell[data-theme="dark"] .axis-gizmo svg,
 .app-shell[data-theme="dark"] .scale-readout { background: var(--panel-raised); }
+
+}
+
+@keyframes dwg-spin { to { transform: rotate(360deg); } }

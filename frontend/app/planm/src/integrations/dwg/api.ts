@@ -1,3 +1,4 @@
+import { productPath } from '../../app/product-path';
 interface DrawingSessionList {
   activeSessionId: string;
   sessions: Array<{
@@ -13,7 +14,7 @@ export async function registerPlanmDrawing(
   drawingPath: string,
   displayName: string
 ): Promise<DrawingSessionList> {
-  const response = await fetch("/api/drawings/register", {
+  const response = await fetch(productPath('/api/drawings/register'), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path: `${runId}/${drawingPath}`, displayName }),

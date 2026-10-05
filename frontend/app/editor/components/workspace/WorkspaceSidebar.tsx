@@ -10,6 +10,9 @@ export function WorkspaceSidebar() {
   const toggleMode = theme.toggleMode
   const navigation = [
     { href: '/', label: '3D Editor', Icon: Box },
+    { href: '/dwg', label: 'CAD · DWG', Icon: Box },
+    { href: '/planm', label: 'PLANM 평면 계획', Icon: Box },
+    { href: '/projects', label: 'Projects', Icon: Box },
     { href: '/land', label: i18n.t('nav.land'), Icon: MapPin },
     { href: '/map', label: 'VWorld 지도', Icon: MapPin },
     { href: '/law', label: '법규 검색 · 3D 지도', Icon: MapPin },

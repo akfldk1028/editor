@@ -1,4 +1,6 @@
+import { productPath } from '../../../app/product-path';
 import {parseCommunications,type Communications} from './communications';
+import { getProject } from './projects';
 
 export interface RunSummary extends Communications {
   run_id: string; request_id: string; owner_project_id: string; branch_id: string;
@@ -7,7 +9,7 @@ export interface RunSummary extends Communications {
 export interface RunContext {scene_revision: number; source_versions: Record<string,number>}
 
 async function request(path: string, options?: RequestInit) {
-  const response = await fetch('/api/v1/platform' + path, options);
+  const response = await fetch(productPath('/api/v1/platform' + path), options);
   if (!response.ok) throw new Error(response.status === 503 && options?.method === 'POST'
     ? '요청 응답을 확인하지 못했습니다. 같은 요청으로 다시 확인하거나 실행 이력을 조회하세요.'
     : `실행 연결 실패 (${response.status})`);
@@ -37,8 +39,13 @@ export async function listRuns(projectId: string, signal?: AbortSignal): Promise
   return values.map(parseRun);
 }
 export async function getRun(projectId: string, runId: string, signal?: AbortSignal): Promise<RunSummary> {
-  return parseRun(await request(`/runs/${encodeURIComponent(runId)}?project_id=${encodeURIComponent(projectId)}`,{signal}));
+  const [project, value] = await Promise.all([getProject(projectId, signal),
+    request(`/runs/${encodeURIComponent(runId)}?project_id=${encodeURIComponent(projectId)}`,{signal})]);
+  const run = parseRun(value);
+  if (run.run_id !== runId || run.owner_project_id !== project.owner_project_id || run.branch_id !== project.branch_id ||
+      !run.request_id.startsWith(`editor:${projectId}:`)) throw new Error('프로젝트와 실행 연결이 일치하지 않습니다.');
+  return run;
 }
 export function runUrl(projectId: string, runId: string) {
-  return `/runs/${encodeURIComponent(runId)}?project_id=${encodeURIComponent(projectId)}`;
+  return productPath(`/runs/${encodeURIComponent(runId)}?project_id=${encodeURIComponent(projectId)}`);
 }

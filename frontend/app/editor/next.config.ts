@@ -47,6 +47,7 @@ const nextConfig: NextConfig = {
     '@dgreenheck/ez-tree',
   ],
   webpack(config, { isServer, webpack }) {
+    config.resolve.extensionAlias = { ...config.resolve.extensionAlias, '.js': ['.ts', '.tsx', '.js'] }
     if (!isServer) {
       // Manifold's universal WASM loader imports Node's module API only in its Node branch.
       // Browser workers use fetch; Webpack still tries to resolve the unreachable node: import.
