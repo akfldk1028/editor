@@ -131,7 +131,7 @@ export function createNativeServiceDefinitions(repositoryRoot, platform = proces
   return {
     orchestrator, pascalMcp,
     editor: { ...editor, publicUrl, healthUrl: `${publicUrl}/api/health`,
-      env: { ...editor.env, PASCAL_BASE_PATH: '', NEXT_PUBLIC_BASE_PATH: '', EDITOR_BACKEND_URL: 'http://127.0.0.1:8000' } },
+      env: { ...editor.env, PORT: String(EDITOR_PORT), PASCAL_BASE_PATH: '', NEXT_PUBLIC_BASE_PATH: '', EDITOR_BACKEND_URL: 'http://127.0.0.1:8000' } },
     backend: { ...backend, command: process.env.EDITOR_PYTHON || backend.command,
       env: { ...backend.env, EDITOR_PUBLIC_URL: publicUrl, EDITOR_SCENE_URL: publicUrl, PASCAL_EDITOR_URL: publicUrl },
       healthUrl: 'http://127.0.0.1:8000/api/v1/platform/health',

@@ -1,26 +1,38 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react';
-import { getRunContext, submitHealth, type RunContext } from './runs';
+import { getRunContext, submitHealth } from './runs';
 import type { ProjectBinding } from './projects';
+import { readPendingHealth, savePendingHealth, clearPendingHealth, type PendingHealth } from './pending-health';
 
 export function HealthExecution({ project, onSubmitted }: { project: ProjectBinding; onSubmitted: (runId: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [retrying, setRetrying] = useState(false);
   const pending = useRef<AbortController | null>(null);
-  const attempt = useRef<{ key: string; context: RunContext } | null>(null);
-  useEffect(() => () => pending.current?.abort(), []);
+  const attempt = useRef<PendingHealth | null>(null);
+  useEffect(() => {
+    try {
+      attempt.current = readPendingHealth(sessionStorage, project.project_id);
+      setRetrying(attempt.current !== null);
+    } catch (e) { setError(e instanceof Error ? e.message : '이전 요청 복원 실패'); }
+    return () => pending.current?.abort();
+  }, [project.project_id]);
   async function submit() {
     if (pending.current) return;
     const controller = new AbortController(); pending.current = controller;
     setBusy(true); setError('');
     try {
+      if (!attempt.current) attempt.current = readPendingHealth(sessionStorage, project.project_id);
       if (!attempt.current) attempt.current = { key: crypto.randomUUID(), context: await getRunContext(project.project_id, controller.signal) };
+      savePendingHealth(sessionStorage, project.project_id, attempt.current);
       const run = await submitHealth(project.project_id, attempt.current.context, attempt.current.key, controller.signal);
       if (run.owner_project_id !== project.owner_project_id || run.branch_id !== project.branch_id ||
         run.request_id !== `editor:${project.project_id}:${attempt.current.key}`) throw new Error('접수된 실행의 프로젝트·요청 연결이 일치하지 않습니다.');
-      if (!controller.signal.aborted) { attempt.current = null; setRetrying(false); onSubmitted(run.run_id); }
+      if (!controller.signal.aborted) {
+        clearPendingHealth(sessionStorage, project.project_id);
+        attempt.current = null; setRetrying(false); onSubmitted(run.run_id);
+      }
     } catch (e) {
       if (!controller.signal.aborted) { setError(e instanceof Error ? e.message : '실행 요청 실패'); setRetrying(attempt.current !== null); }
     } finally { pending.current = null; if (!controller.signal.aborted) setBusy(false); }
