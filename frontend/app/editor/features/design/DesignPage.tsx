@@ -1,9 +1,11 @@
-import { featureFitsSite, pickDiverseParetoDesigns, normalizeSitePolygon, designIdentityKey, matchesDesignFeature, type SiteGeometry } from './lib/design-selection';
+import { DesignCollaborationPanel } from './components/DesignCollaborationPanel';
+import { useDesignAesthetic } from './hooks/use-design-aesthetic';
+import { useDesignFloorPlan } from './hooks/use-design-floor-plan';
+import { featureFitsSite, pickDiverseParetoDesigns, normalizeSitePolygon, matchesDesignFeature, type SiteGeometry } from './lib/design-selection';
 import { requiredValue } from './lib/required-value';
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import type { DesignData, FloorPlanResult, GeoJSONFeature, MaasAestheticResult } from './lib/types';
-import { cancelJob, generateFloorPlan } from './lib/api-client';
-import { getRoomPreset } from './lib/room-presets';
+import type { DesignData, GeoJSONFeature } from './lib/types';
+import { cancelJob } from './lib/api-client';
 import { useDesignJob } from './hooks/use-design-job';
 import { useOptimizationStream } from './hooks/use-optimization-stream';
 import ControlPanel from './components/ControlPanel';
@@ -57,28 +59,10 @@ const DesignPage: React.FC = () => {
   const [buildingType, setBuildingType] = useState('공동주택');
   const [algorithm, setAlgorithm] = useState('maas_legal_envelope');
   const [viewTab, setViewTab] = useState<'mass' | 'floor'>('mass');
-  const [floorPlanResult, setFloorPlanResult] = useState<FloorPlanResult | null>(null);
-  const [floorPlanLoading, setFloorPlanLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [floorPlanIndex, setFloorPlanIndex] = useState(0);
-  const [autoFloorPlan, setAutoFloorPlan] = useState(true);
-  const [floorAlgorithm, setFloorAlgorithm] = useState('ga');
   const [interactivePreview, setInteractivePreview] = useState<GeoJSONFeature | null>(null);
-  const [aestheticOverlay, setAestheticOverlay] = useState<{
-    url: string;
-    status: string;
-    provider: string;
-    style: string;
-    textureUrl: string | null;
-    texturePanelUrls: Record<string, string>;
-    texturedGltfUrl: string | null;
-  } | null>(null);
-  const [aestheticFacadeStyle, setAestheticFacadeStyle] = useState<string | null>(null);
+  const { aestheticOverlay, setAestheticOverlay, aestheticFacadeStyle, setAestheticFacadeStyle, handleAestheticGenerated } = useDesignAesthetic();
   const [showAllPareto, setShowAllPareto] = useState(false);
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
-  const textureProbe = (process.env.NODE_ENV === 'development') && new URLSearchParams(window.location.search).get('textureProbe') === 'reference';
-  const lastAutoDesignKey = useRef<string | null>(null);
-  const autoFloorPlanTimer = useRef<number | null>(null);
   const buildingTypeRequestRef = useRef(buildingType);
 
   const handlePnuSearch = useCallback(async (pnu: string) => {
@@ -139,8 +123,7 @@ const DesignPage: React.FC = () => {
     setFloorPlanResult(null);
     setViewTab('mass');
     setShowAllPareto(false);
-    lastAutoDesignKey.current = null;
-    if (autoFloorPlanTimer.current) window.clearTimeout(autoFloorPlanTimer.current);
+    resetPendingFloorPlan();
     // Decompose population into islands (5 islands default)
     const numIslands = 5;
     const popPerIsland = Math.max(3, Math.round(options.populationSize / numIslands));
@@ -177,34 +160,9 @@ const DesignPage: React.FC = () => {
     return stream.paretoGeojson.find(f => matchesDesignFeature(f, design)) || null;
   }, [stream.paretoGeojson]);
 
-  const runFloorPlan = useCallback(async (design: DesignData, quick: boolean) => {
-    if (!stream.paretoGeojson?.length) return;
-    const feat = findFeatureForDesign(design);
-    if (!feat) return;
-
-    setFloorPlanLoading(true);
-    setActionError(null);
-    setFloorPlanIndex(0);
-    const genOpts = quick
-      ? { num_generations: 10, population_size: 15 }
-      : { num_generations: 30, population_size: 30 };
-    try {
-      const rooms = getRoomPreset(buildingType);
-      const result = await generateFloorPlan({
-        footprint_geojson: feat.geometry,
-        rooms,
-        cell_size: 3.0,
-        algorithm: floorAlgorithm,
-        options: genOpts,
-      });
-      setFloorPlanResult(result);
-      if (!quick) setViewTab('floor');
-    } catch (e) {
-      setActionError(e instanceof Error ? e.message : '평면 생성 실패');
-    } finally {
-      setFloorPlanLoading(false);
-    }
-  }, [stream.paretoGeojson, findFeatureForDesign, buildingType, floorAlgorithm]);
+  const { floorPlanResult, setFloorPlanResult, floorPlanLoading, floorPlanIndex, setFloorPlanIndex, autoFloorPlan, setAutoFloorPlan, floorAlgorithm, setFloorAlgorithm, runFloorPlan, scheduleAutoFloorPlan, resetPendingFloorPlan } = useDesignFloorPlan({
+    paretoGeojson: stream.paretoGeojson, findFeatureForDesign, buildingType, setViewTab, setActionError,
+  });
 
   const handleDesignSelect = useCallback((d: DesignData) => {
     setSelectedDesign(d);
@@ -212,61 +170,8 @@ const DesignPage: React.FC = () => {
     setAestheticOverlay(null);
     setAestheticFacadeStyle(null);
     setViewTab('mass');
-    const designKey = designIdentityKey(d);
-    if (autoFloorPlan && stream.paretoGeojson?.length && designKey !== lastAutoDesignKey.current) {
-      lastAutoDesignKey.current = designKey;
-      if (autoFloorPlanTimer.current) window.clearTimeout(autoFloorPlanTimer.current);
-      autoFloorPlanTimer.current = window.setTimeout(() => {
-        runFloorPlan(d, true);
-      }, 250);
-    }
-  }, [autoFloorPlan, stream.paretoGeojson, runFloorPlan]);
-
-  const handleAestheticGenerated = useCallback((result: MaasAestheticResult | null, style = '') => {
-    const requestedStyle = style.trim();
-    if (!result) {
-      setAestheticOverlay(null);
-      setAestheticFacadeStyle(null);
-      return;
-    }
-    const assets = result.provider_result?.assets || [];
-    const generated = assets.find(asset => asset.role === 'generated_facade_image' && asset.url)?.url
-      || assets.find(asset => asset.url)?.url;
-    const bakeStatus = (result.provider_result?.metadata?.texture_bake as { status?: string } | undefined)?.status;
-    const projectionSkipped = bakeStatus === 'skipped'
-      || result.provider_result?.issues?.some(issue => issue.code === 'projection_panels_not_texture_ready');
-    setAestheticFacadeStyle(projectionSkipped ? null : (requestedStyle || null));
-    const texturedGltfUrl = projectionSkipped
-      ? null
-      : assets.find(asset => asset.role === 'textured_gltf' && asset.url)?.url || null;
-    const texturePanelUrls = projectionSkipped ? {} : assets
-      .filter(asset => asset.role === 'facade_panel_image' && asset.url && asset.metadata?.view)
-      .reduce<Record<string, string>>((acc, asset) => {
-        const view = String(asset.metadata?.view || '');
-        if (view) acc[view] = asset.url!;
-        return acc;
-      }, {});
-    const reference = result.reference?.url;
-    const url = generated || reference;
-    const textureUrl = projectionSkipped ? null : generated || (textureProbe ? reference : null);
-    if (!url) {
-      setAestheticOverlay(null);
-      return;
-    }
-    setAestheticOverlay({
-      url,
-      provider: result.provider_result?.provider || result.job.provider,
-      status: `${result.provider_result?.provider || result.job.provider} · ${result.status}${projectionSkipped ? ' / mesh skipped' : ''}`,
-      style: projectionSkipped ? '' : style,
-      textureUrl: textureUrl || null,
-      texturePanelUrls,
-      texturedGltfUrl,
-    });
-  }, [textureProbe]);
-
-  useEffect(() => () => {
-    if (autoFloorPlanTimer.current) window.clearTimeout(autoFloorPlanTimer.current);
-  }, []);
+    scheduleAutoFloorPlan(d);
+  }, [scheduleAutoFloorPlan]);
 
   const handleGenerateFloorPlan = useCallback(async () => {
     if (!selectedDesign) return;
@@ -677,72 +582,8 @@ const DesignPage: React.FC = () => {
       </div>
 
       {/* Right: AI collaboration */}
-      <div
-        data-testid="design-ai-collaboration-panel"
-        data-collapsed={rightPanelCollapsed ? 'true' : 'false'}
-        style={{
-        width: rightPanelCollapsed ? 52 : 520,
-        height: 'calc(100vh - 56px)',
-        flexShrink: 0,
-        borderLeft: '1px solid #1e293b',
-        background: '#0f172a',
-        overflowY: 'auto',
-        padding: rightPanelCollapsed ? 8 : 12,
-        boxSizing: 'border-box',
-        transition: 'width 180ms ease',
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: rightPanelCollapsed ? 'center' : 'space-between',
-          alignItems: 'center',
-          gap: 8,
-          padding: '4px 2px 10px',
-        }}>
-          {!rightPanelCollapsed && (
-            <div>
-              <div style={{ color: '#e2e8f0', fontSize: 14, fontWeight: 700 }}>
-                AI 설계 협업
-              </div>
-              <div style={{ color: '#64748b', fontSize: 10, marginTop: 3, letterSpacing: '0.03em' }}>
-                MAAS Agent Workspace
-              </div>
-            </div>
-          )}
-          <button
-            type="button"
-            data-testid="design-ai-collaboration-toggle"
-            onClick={() => setRightPanelCollapsed((collapsed) => !collapsed)}
-            title={rightPanelCollapsed ? 'AI 협업 패널 펼치기' : 'AI 협업 패널 접기'}
-            aria-label={rightPanelCollapsed ? 'AI 협업 패널 펼치기' : 'AI 협업 패널 접기'}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: 7,
-              border: '1px solid rgba(148,163,184,0.18)',
-              background: 'rgba(2,6,23,0.72)',
-              color: '#cbd5e1',
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 800,
-            }}
-          >
-            {rightPanelCollapsed ? '<' : '>'}
-          </button>
-        </div>
-        {rightPanelCollapsed ? (
-          <div style={{
-            writingMode: 'vertical-rl',
-            transform: 'rotate(180deg)',
-            color: '#93c5fd',
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: '0.08em',
-            margin: '12px auto 0',
-            whiteSpace: 'nowrap',
-          }}>
-            AI 협업
-          </div>
-        ) : activePanelDesign ? (
+      <DesignCollaborationPanel>
+        {activePanelDesign ? (
           <InteractiveDesignPanel
             jobId={jobState.job?.id ?? null}
             design={activePanelDesign}
@@ -761,7 +602,7 @@ const DesignPage: React.FC = () => {
         ) : (
           <DefaultAgentFlowPanel pnu={activePnu} status={agentFlowStatus} />
         )}
-      </div>
+      </DesignCollaborationPanel>
     </div>
   );
 };
