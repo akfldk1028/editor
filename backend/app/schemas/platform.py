@@ -1,5 +1,6 @@
 from typing import Annotated
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from .specialist_review import specialist_items, validate_specialist_review
 
 
 class AgentSummary(BaseModel):
@@ -36,5 +37,12 @@ class RunCreate(BaseModel):
     @classmethod
     def supported_request(cls, value):
         if value != {'goal':'health'}:
-            raise ValueError('Only the health template is currently supported')
+            validate_specialist_review(value)
         return value
+
+    @model_validator(mode='after')
+    def bound_specialist_sources(self):
+        for item in specialist_items(self.request):
+            if any(self.source_versions.get(key) != version for key, version in item['source_versions'].items()):
+                raise ValueError('Specialist sources must match submitted context')
+        return self

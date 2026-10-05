@@ -1,4 +1,5 @@
 from backend.app.schemas.platform import ProjectCreate
+from backend.app.schemas.specialist_review import specialist_items
 from .projects import BindingConflict
 
 
@@ -21,6 +22,12 @@ class RunService:
         binding = self.binding(actor, project_id)
         if body.scene_revision != binding.scene_revision:
             raise BindingConflict('scene revision changed')
+        for item in specialist_items(body.request):
+            for request in (item['args'], item['args'].get('request', {})):
+                if isinstance(request, dict) and any(key in request and request[key] != value for key, value in (
+                    ('project_id', binding.owner_project_id), ('branch_id', binding.branch_id),
+                )):
+                    raise BindingConflict('Specialist project binding does not match')
         request_id = f'editor:{project_id}:{key}'
         previous = await self.owner.list_runs(binding.owner_project_id,binding.branch_id,request_id)
         if not any(run['request_id'] == request_id for run in previous):
