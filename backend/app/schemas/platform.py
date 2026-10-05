@@ -27,6 +27,18 @@ class ProjectBinding(ProjectCreate):
     project_id: str
 
 
+class SceneRevisionRefresh(BaseModel):
+    model_config = ConfigDict(strict=True, extra='forbid')
+    expected_scene_revision: int = Field(ge=0)
+    scene_revision: int = Field(ge=0)
+
+    @model_validator(mode='after')
+    def advances_revision(self):
+        if self.scene_revision <= self.expected_scene_revision:
+            raise ValueError('scene revision must advance')
+        return self
+
+
 class RunCreate(BaseModel):
     model_config = ConfigDict(strict=True, extra='forbid')
     request: dict

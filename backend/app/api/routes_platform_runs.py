@@ -36,6 +36,10 @@ def create_run_router(projects_service, owner, allowed_origin):
     async def run(run_id: str, project_id: str):
         return await respond(service().get('local', project_id, run_id))
 
+    @router.get('/runs/{run_id}/request')
+    async def review_request(run_id: str, project_id: str):
+        return await respond(service().review_request('local', project_id, run_id))
+
     @router.post('/projects/{project_id}/runs', status_code=202)
     async def submit(project_id: str, body: RunCreate, request: Request,
         idempotency_key: str = Header(min_length=1,max_length=128,pattern=r'^[A-Za-z0-9_-]+$')):

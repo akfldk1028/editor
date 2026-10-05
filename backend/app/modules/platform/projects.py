@@ -1,8 +1,12 @@
-from backend.app.schemas.platform import ProjectCreate
+from backend.app.schemas.platform import ProjectCreate, SceneRevisionRefresh
 from backend.app.adapters.platform_scenes import SceneNotFound
 
 
 class BindingConflict(ValueError):
+    pass
+
+
+class BindingNotFound(LookupError):
     pass
 
 
@@ -27,5 +31,29 @@ class ProjectService:
             raise BindingConflict('scene project or revision does not match')
         try:
             return self.repository.create(actor, request)
+        except ValueError as exc:
+            raise BindingConflict(str(exc)) from exc
+
+    async def refresh_scene_revision(self, actor: str, project_id: str, request: SceneRevisionRefresh):
+        binding = self.repository.get(actor, project_id)
+        if binding is None:
+            raise BindingNotFound()
+        if binding.scene_revision != request.expected_scene_revision:
+            raise BindingConflict('binding revision changed')
+        projects = await self.owner.list_projects()
+        if not any(item['owner_project_id'] == binding.owner_project_id and
+                   item['branch_id'] == binding.branch_id for item in projects):
+            raise BindingConflict('owner project or branch no longer exists')
+        try:
+            scene = await self.scenes.get_scene(binding.scene_id)
+        except SceneNotFound as exc:
+            raise BindingConflict('scene does not exist') from exc
+        if ('ownerId' not in scene or scene['ownerId'] not in (None, actor)
+                or scene.get('id') != binding.scene_id or scene.get('projectId') != binding.scene_project_id
+                or scene.get('version') != request.scene_revision):
+            raise BindingConflict('scene identity, access or revision changed')
+        try:
+            return self.repository.refresh_scene_revision(actor, project_id,
+                request.expected_scene_revision, request.scene_revision)
         except ValueError as exc:
             raise BindingConflict(str(exc)) from exc

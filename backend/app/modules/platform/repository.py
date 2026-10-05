@@ -73,3 +73,13 @@ class ProjectRepository:
                 return result
         finally:
             db.close()
+
+    def refresh_scene_revision(self, actor: str, project_id: str, expected: int, revision: int):
+        with closing(self.connect()) as db, db:
+            db.execute('BEGIN IMMEDIATE')
+            result = db.execute('UPDATE projects SET scene_revision=? WHERE actor=? AND project_id=? AND scene_revision=?',
+                (revision, actor, project_id, expected))
+            if result.rowcount != 1:
+                raise ValueError('binding changed while refreshing scene revision')
+            return self.binding(db.execute('SELECT * FROM projects WHERE actor=? AND project_id=?',
+                (actor, project_id)).fetchone())

@@ -2,7 +2,7 @@ import type { ProjectBinding } from './projects'
 import type { RunContext } from './runs'
 
 const tools: Record<string, readonly string[]> = {
-  systems: ['systems_review', 'systems_ifc_review', 'systems_clearance', 'systems_requirements'],
+  systems: ['systems_review', 'systems_ifc_review', 'systems_clearance', 'systems_requirements', 'systems_analyze'],
   domain_expert: ['domain_review'],
   interior: ['interior_review'],
 }

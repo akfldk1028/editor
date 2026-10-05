@@ -1,6 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { getRunContext } from './runs'
+import type { RunSummary } from './runs'
+import { FollowupReviewDraft } from './FollowupReviewDraft'
 import type { ProjectBinding } from './projects'
 import { SpecialistReviewPreview } from './SpecialistReviewPreview'
 import {
@@ -18,9 +20,11 @@ import {
 export function SpecialistReviewExecution({
   project,
   onSubmitted,
+  followupRun,
 }: {
   project: ProjectBinding
   onSubmitted: (runId: string) => void
+  followupRun?: RunSummary | null
 }) {
   const [request, setRequest] = useState<SpecialistRequest | null>(null)
   const [error, setError] = useState('')
@@ -113,9 +117,15 @@ export function SpecialistReviewExecution({
       className="space-y-3 rounded-lg border border-(--color-border-default) p-4 text-(--color-text-primary)"
     >
       <h2 className="text-heading-small">전문 에이전트 검토</h2>
+      {followupRun?.goal === 'specialist_review' && <FollowupReviewDraft
+        key={`${project.project_id}:${project.scene_revision}:${followupRun.run_id}`}
+        project={project} run={followupRun} disabled={!ready || busy || retry}
+        onDraftChanged={() => { fileVersion.current++; setRequest(null) }}
+        onPrepared={value => { fileVersion.current++; setRequest(parseSpecialistRequest(value, project)); setError('') }}
+      />}
       <p className="text-sm text-(--color-text-secondary)">
-        담당 에이전트가 작성한 읽기 전용 요청 파일을 가져옵니다. 요청에 선언된 원본 버전이 현재
-        프로젝트와 일치할 때만 접수합니다. 검토는 설계 승인·수정·문제 종결을 실행하지 않습니다.
+        이전 실행의 대화를 이어서 검토 방향을 제안하거나 담당 에이전트의 요청 파일을 가져올 수 있습니다.
+        현재 원본 버전을 확인한 뒤 담당 에이전트에게 전달합니다. 제안과 검토 결과는 설계 승인 여부와 구분해 기록됩니다.
       </p>
       <label className="block text-sm">
         담당 에이전트 검토 요청 파일

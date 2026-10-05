@@ -31,6 +31,7 @@ import {
   withCameraPoseDistance,
 } from '../../lib/camera-pose'
 import { EDITOR_LAYER } from '../../lib/constants'
+import { useRenderedSceneFrame } from '../../hooks/use-rendered-scene-frame'
 import { editorOwnsOneFingerDrag } from '../../lib/touch-gesture-priority'
 import { publishCameraPose } from '../../store/camera-pose-store'
 import useEditor from '../../store/use-editor'
@@ -364,6 +365,7 @@ export const CustomCameraControls = () => {
   })
   const isPreviewMode = useEditor((s) => s.isPreviewMode)
   const isFirstPersonMode = useEditor((s) => s.isFirstPersonMode)
+  useRenderedSceneFrame(controls, isPreviewMode || isFirstPersonMode)
   const allowUndergroundCamera = useEditor((s) => s.allowUndergroundCamera)
   const selection = useViewer((s) => s.selection)
   const levelMode = useViewer((s) => s.levelMode)

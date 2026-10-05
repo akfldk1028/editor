@@ -4,10 +4,10 @@ from fastapi import APIRouter, HTTPException, Request
 
 from backend.app.adapters.orchestrator import OrchestratorClient, OwnerContractError, OwnerUnavailable
 from backend.app.schemas.platform import AgentSummary
-from backend.app.schemas.platform import ProjectBinding, ProjectCreate
+from backend.app.schemas.platform import ProjectBinding, ProjectCreate, SceneRevisionRefresh
 from backend.app.adapters.platform_scenes import PlatformScenes
 from backend.app.modules.platform.repository import ProjectRepository
-from backend.app.modules.platform.projects import ProjectService, BindingConflict
+from backend.app.modules.platform.projects import ProjectService, BindingConflict, BindingNotFound
 from backend.app.api.routes_platform_runs import create_run_router
 from backend.app.api.routes_design import create_design_router
 from backend.app.api.routes_scene_assets import create_scene_assets_router
@@ -68,6 +68,22 @@ def create_platform_router(
             return await projects_service().create('local', body)
         except BindingConflict:
             raise HTTPException(409, 'Project, branch or scene revision does not match') from None
+        except OwnerUnavailable:
+            raise HTTPException(503, 'Project source unavailable') from None
+        except OwnerContractError:
+            raise HTTPException(502, 'Project source contract invalid') from None
+
+    @router.post('/projects/{project_id}/scene-revision', response_model=ProjectBinding)
+    async def refresh_scene_revision(project_id: str, body: SceneRevisionRefresh, request: Request):
+        origin = request.headers.get('origin')
+        if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != allowed_origin):
+            raise HTTPException(403, 'Cross-origin project changes are not allowed')
+        try:
+            return await projects_service().refresh_scene_revision('local', project_id, body)
+        except BindingNotFound:
+            raise HTTPException(404, 'Project not found') from None
+        except BindingConflict:
+            raise HTTPException(409, 'Project, branch or scene revision changed; reload before retrying') from None
         except OwnerUnavailable:
             raise HTTPException(503, 'Project source unavailable') from None
         except OwnerContractError:

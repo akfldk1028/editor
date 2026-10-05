@@ -116,6 +116,32 @@ class OrchestratorClient:
             raise OwnerContractError()
         return run
 
+    async def review_request(self, run_id, project, branch):
+        from backend.app.schemas.specialist_review import validate_specialist_review
+        response = await self.get('/editor/v1/runs/' + quote(run_id, safe='') + '/request?' + urlencode({'project': project, 'branch': branch}), missing=True)
+        value = self.json(response)
+        try:
+            if (not isinstance(value, dict) or value.get('run_id') != run_id or value.get('owner_project_id') != project
+                    or value.get('branch_id') != branch or not isinstance(value.get('request_id'), str)
+                    or not isinstance(value.get('source_versions'), dict) or not isinstance(value.get('reviews'), list)):
+                raise ValueError('invalid follow-up binding')
+            if not all(isinstance(key, str) and type(revision) is int and revision >= 0 for key, revision in value['source_versions'].items()):
+                raise ValueError('invalid versions')
+            validate_specialist_review(value['request'])
+            if any(value['source_versions'].get(key) != revision for item in value['request']['specialist_reviews']
+                   for key, revision in item['source_versions'].items()):
+                raise ValueError('follow-up sources differ from original submission')
+            for review in value['reviews']:
+                if (not isinstance(review, dict) or not isinstance(review.get('needs'), list)
+                        or len(review['needs']) > 300 or not all(isinstance(item, str) and len(item) <= 2000 for item in review['needs'])
+                        or not all(isinstance(review.get(key), str) for key in ('tool', 'state', 'task_id'))
+                        or not (review.get('agent') is None or isinstance(review['agent'], str))
+                        or type(review.get('needs_truncated')) is not bool):
+                    raise ValueError('invalid owner needs')
+            return value
+        except (ValueError, KeyError, TypeError) as exc:
+            raise OwnerContractError() from exc
+
     async def get(self, path, *, missing=False):
         if not self.base_url:
             raise OwnerUnavailable()

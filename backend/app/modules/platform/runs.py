@@ -45,3 +45,10 @@ class RunService:
         if not run.get('request_id','').startswith(f'editor:{project_id}:'):
             raise LookupError('run not found in project')
         return run
+
+    async def review_request(self, actor, project_id, run_id):
+        binding = self.binding(actor, project_id)
+        value = await self.owner.review_request(run_id, binding.owner_project_id, binding.branch_id)
+        if not value.get('request_id', '').startswith(f'editor:{project_id}:'):
+            raise LookupError('run not found in project')
+        return value

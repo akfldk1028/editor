@@ -27,9 +27,11 @@ def client(tmp_path):
     return TestClient(app), owner, '/api/v1/platform/projects/' + binding.project_id + '/runs'
 
 
-def test_specialist_submission_preserves_exact_owner_payload_and_retry(tmp_path):
+@pytest.mark.parametrize('tool', ['systems_requirements', 'systems_analyze'])
+def test_specialist_submission_preserves_exact_owner_payload_and_retry(tmp_path, tool):
     api, owner, path = client(tmp_path)
     payload = specialist()
+    payload['request']['specialist_reviews'][0]['tool'] = tool
     first = api.post(path, json=payload, headers={'Idempotency-Key': 'review'})
     assert first.status_code == 202, first.text
     assert first.json()['goal'] == 'specialist_review'

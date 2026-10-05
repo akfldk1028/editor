@@ -5,12 +5,110 @@ const ownerRequest = { goal: 'specialist_review', specialist_reviews: [{ agent: 
 const run = { run_id: 'review1', request_id: '', owner_project_id: 'owner1', branch_id: 'main', goal: 'specialist_review', status: 'blocked', receipt_task_ids: [], pending_input: false };
 const upload = (page, value) => page.getByLabel('담당 에이전트 검토 요청 파일').setInputFiles({ name: 'owner-review.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) });
 
+test('scene binding refresh previews saved revision and explicitly advances the same binding', async ({ page }) => {
+  let current = { ...project };
+  const changes = [];
+  await page.route('**/api/v1/platform/projects', r => r.fulfill({ json: [current] }));
+  await page.route('**/api/v1/platform/projects/p1/runs', r => r.fulfill({ json: [] }));
+  await page.route('**/api/scenes/scene1', r => r.fulfill({ json: { id: 'scene1', projectId: null, version: 3 } }));
+  await page.route('**/api/v1/platform/projects/p1/scene-revision', r => {
+    changes.push(r.request().postDataJSON());
+    current = { ...current, scene_revision: 3 };
+    return r.fulfill({ json: current });
+  });
+  await page.goto(`${base}/dialogue?project_id=p1`);
+  const section = page.getByRole('region', { name: '장면 버전 연결' });
+  await section.getByRole('button', { name: '저장된 장면 버전 확인' }).click();
+  await expect(section).toContainText('저장된 버전: 3');
+  expect(changes).toEqual([]);
+  await section.getByRole('button', { name: '버전 3 연결 갱신' }).click();
+  await expect(section).toContainText('연결된 장면 버전: 3');
+  expect(changes).toEqual([{ expected_scene_revision: 1, scene_revision: 3 }]);
+});
+
+test('scene binding refresh rejects an unrelated saved scene without offering a write', async ({ page }) => {
+  await setup(page);
+  await page.route('**/api/scenes/scene1', r => r.fulfill({ json: { id: 'foreign', projectId: null, version: 3 } }));
+  const section = page.getByRole('region', { name: '장면 버전 연결' });
+  await section.getByRole('button', { name: '저장된 장면 버전 확인' }).click();
+  await expect(section.getByRole('alert')).toBeVisible();
+  await expect(section.getByRole('button', { name: /연결 갱신/ })).toHaveCount(0);
+});
+
 async function setup(page) {
   await page.route('**/api/v1/platform/projects', r => r.fulfill({ json: [project, { ...project, project_id: 'p2', owner_project_id: 'owner2', scene_id: 'scene2' }] }));
   await page.route('**/api/v1/platform/projects/*/runs', r => r.fulfill({ json: [] }));
   await page.route('**/api/v1/platform/projects/*/context', r => r.fulfill({ json: { scene_revision: 1, source_versions: { 'program.spaces': 3 } } }));
   await page.goto(`${base}/dialogue?project_id=p1`);
 }
+
+test('owner dialogue prepares a follow-up proposal without another JSON upload or loss of long sources', async ({ page }) => {
+  const previous = { ...run, run_id: 'previous', request_id: 'editor:p1:previous', communications: [], communications_available: true, communications_truncated: false };
+  const source = 'Retained owner source '.repeat(800);
+  const request = { goal: 'specialist_review', specialist_reviews: [{ agent: 'domain_expert', tool: 'domain_review', source_versions: { 'program.spaces': 3 }, args: { request: {
+    project_id: 'owner1', branch_id: 'main', declared_domain: '', requirements: [], evidence: [],
+    sources: [{ id: 'program', content: source, dirty: true, quality: 'needs_evidence' }],
+  } } }] };
+  await page.route('**/api/v1/platform/projects', route => route.fulfill({ json: [project] }));
+  await page.route('**/api/v1/platform/projects/p1/context', route => route.fulfill({ json: { scene_revision: 1, source_versions: { 'program.spaces': 3 } } }));
+  await page.route('**/api/v1/platform/runs/previous?project_id=p1', route => route.fulfill({ json: previous }));
+  await page.route('**/api/v1/platform/runs/previous/request?project_id=p1', route => route.fulfill({ json: { ...previous,
+    request, source_versions: { 'program.spaces': 3 }, reviews: [{ agent: 'domain_expert', tool: 'domain_review', state: 'blocked', task_id: 'actual-owner-task', needs: ['Clarify the intended use and proposed circulation'], needs_truncated: false }],
+  } }));
+  const submissions = [];
+  await page.route('**/api/v1/platform/projects/p1/runs', route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: [previous] });
+    submissions.push(route.request().postDataJSON());
+    return route.fulfill({ status: 503, json: { detail: 'external_outcome_unknown' } });
+  });
+  await page.goto(`${base}/dialogue?project_id=p1&run_id=previous`);
+  await page.getByRole('button', { name: '이 실행에서 대화 이어가기' }).click();
+  await expect(page.getByTestId('followup-review-draft')).toContainText('Clarify the intended use');
+  await page.getByLabel('검토할 용도·운영 방향').fill('Proposed public office');
+  await page.getByLabel('함께 검토할 제안·조건').fill('Separate visitor circulation from staff work');
+  await page.getByRole('button', { name: '후속 검토 요청 준비' }).click();
+  await expect(page.getByRole('button', { name: '담당 에이전트 검토 실행', exact: true })).toBeEnabled();
+  await page.getByLabel('함께 검토할 제안·조건').fill('Separate visitor circulation from staff work\nReview accessible entrances');
+  await expect(page.getByRole('button', { name: '담당 에이전트 검토 실행', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: '후속 검토 요청 준비' }).click();
+  await page.getByRole('button', { name: '담당 에이전트 검토 실행', exact: true }).click();
+  await expect.poll(() => submissions.length).toBe(1);
+  const submitted = submissions[0].request.specialist_reviews[0].args.request;
+  expect(submitted.sources[0].content).toBe(source);
+  expect(submitted.sources[0].dirty).toBe(true);
+  expect(submitted.requirements[0].statement).toBe('Separate visitor circulation from staff work');
+  expect(submitted.requirements[0].provenance.professionally_verified).toBe(false);
+  expect(submitted.evidence).toEqual([]);
+  await expect(page.getByRole('button', { name: '후속 검토 요청 준비' })).toBeDisabled();
+});
+
+test('resumed Systems dialogue keeps the previous owner catalog choices', async ({ page }) => {
+  await setup(page);
+  const submissions = [];
+  await page.route('**/api/v1/platform/projects/p1/runs', route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: [] });
+    submissions.push(route.request().postDataJSON());
+    return route.fulfill({ status: 503, json: { detail: 'external_outcome_unknown' } });
+  });
+  const previous = { ...run, run_id: 'catalog', request_id: 'editor:p1:catalog' };
+  await page.route('**/api/v1/platform/runs/catalog?project_id=p1', route => route.fulfill({ json: previous }));
+  await page.route('**/api/v1/platform/runs/catalog/request?project_id=p1', route => route.fulfill({ json: {
+    ...previous, source_versions: { 'program.spaces': 3 }, reviews: [], request: {
+      goal: 'specialist_review', specialist_reviews: [{ agent: 'systems', tool: 'systems_requirements', source_versions: { 'program.spaces': 3 },
+        args: { request: { schema_version: 'systems.use.catalog.request.v1', operational_type: 'government_office', functional_type: 'staff_workroom' } } }],
+    },
+  } }));
+  await page.goto(`${base}/dialogue?project_id=p1&run_id=catalog`);
+  await page.getByRole('button', { name: '이 실행에서 대화 이어가기' }).click();
+  await expect(page.getByLabel('운영 용도 코드 (선택)')).toHaveValue('government_office');
+  await expect(page.getByLabel('공간 기능 코드 (선택)')).toHaveValue('staff_workroom');
+  await page.getByRole('button', { name: '후속 검토 요청 준비' }).click();
+  await page.getByRole('button', { name: '담당 에이전트 검토 실행', exact: true }).click();
+  await expect.poll(() => submissions.length).toBe(1);
+  expect(submissions[0].request.specialist_reviews[0].args.request).toEqual({
+    schema_version: 'systems.use.catalog.request.v1', operational_type: 'government_office', functional_type: 'staff_workroom',
+  });
+});
 
 test('specialist review imports readable sources and retries identical frozen body after reload', async ({ page }) => {
   await setup(page);
