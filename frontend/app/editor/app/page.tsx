@@ -102,6 +102,9 @@ export default function Home() {
             >
               Open saved scenes
             </Link>
+            <Link className="pointer-events-auto font-medium text-foreground hover:underline" href="/land">
+              토지 분석
+            </Link>
           </div>
         </div>
       )}

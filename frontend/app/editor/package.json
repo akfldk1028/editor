@@ -37,7 +37,10 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
     "three": "^0.185.0",
-    "zod": ">=4.5.4 <4.6"
+    "zod": ">=4.5.4 <4.6",
+    "@tanstack/react-query": "5.90.20",
+    "react-i18next": "16.5.4",
+    "i18next": "25.8.4"
   },
   "devDependencies": {
     "@pascal/typescript-config": "*",
