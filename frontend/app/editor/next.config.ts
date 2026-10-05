@@ -11,7 +11,8 @@ const basePath = process.env.PASCAL_BASE_PATH || undefined
 
 const nextConfig: NextConfig = {
   ...(basePath ? { basePath } : {}),
-  env: { NEXT_PUBLIC_BASE_PATH: basePath || '' },
+  env: { NEXT_PUBLIC_BASE_PATH: basePath || '',
+    NEXT_PUBLIC_PASCAL_DEV_DIAGNOSTICS: process.env.PASCAL_DEV_DIAGNOSTICS === '1' ? '1' : '0' },
   // Served behind the PLAN shell's proxy in development, so requests arrive
   // with that origin. Without this Next's dev server refuses them as
   // cross-origin and the page hangs mid-load with every chunk blocked.
@@ -48,6 +49,17 @@ const nextConfig: NextConfig = {
     '@pascal-app/plugin-bones',
     '@dgreenheck/ez-tree',
   ],
+  webpack(config, { isServer, webpack }) {
+    if (!isServer) {
+      // Manifold's universal WASM loader imports Node's module API only in its Node branch.
+      // Browser workers use fetch; Webpack still tries to resolve the unreachable node: import.
+      config.plugins.push(new webpack.IgnorePlugin({
+        resourceRegExp: /^node:module$/,
+        contextRegExp: /[\\/]manifold-3d$/,
+      }))
+    }
+    return config
+  },
   turbopack: {
     resolveAlias: {
       react: './node_modules/react',

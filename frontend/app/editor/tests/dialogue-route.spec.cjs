@@ -58,7 +58,7 @@ test('connection check submits once and retries the identical request before ope
   await page.route('**/api/v1/platform/runs/r1?project_id=p1', r => r.fulfill({ json: run }));
   await page.goto(process.env.EDITOR_TEST_URL + '/dialogue?project_id=p1');
   await page.getByRole('button', { name: '에이전트 연결 점검 실행' }).click();
-  await expect(page.getByRole('alert')).toContainText('실행 접수 여부를 확인하지 못했습니다.');
+  await expect(page.getByRole('alert').filter({ hasText: '실행 접수 여부를 확인하지 못했습니다.' })).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: '같은 연결 점검 요청 재확인' }).click();
   await expect(page).toHaveURL(/\/dialogue\?project_id=p1&run_id=r1$/);

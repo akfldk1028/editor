@@ -28,6 +28,7 @@ test('flow preserves project/run scope and original controls without invented pa
   await expect(page).toHaveURL(/\/dialogue\?project_id=p1&run_id=r1$/);
   await expect(page.getByText('설비 연결 확인', { exact: true })).toBeVisible();
   await page.getByRole('navigation', { name: '대화 표시 방식' }).getByRole('link', { name: '협업 흐름도' }).click();
+  await expect(page).toHaveURL(/\/flow\?project_id=p1&run_id=r1$/);
   await page.reload();
   await expect(page.getByTestId('ag-light-react-flow')).toHaveAttribute('data-node-count', '2');
   expect(errors).toEqual([]);

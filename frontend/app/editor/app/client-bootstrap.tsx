@@ -10,8 +10,9 @@ export function ClientBootstrap({
   enableDevDiagnostics: boolean
 }) {
   useEffect(() => {
-    if (!enableDevDiagnostics) return
-    import('react-scan').then(({ scan }) => scan({ enabled: true }))
+    if (process.env.NEXT_PUBLIC_PASCAL_DEV_DIAGNOSTICS === '1') {
+      if (enableDevDiagnostics) import('react-scan').then(({ scan }) => scan({ enabled: true }))
+    }
   }, [enableDevDiagnostics])
   return children
 }

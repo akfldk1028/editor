@@ -1,5 +1,7 @@
 # Native Editor frontend/backend wiring
 
+Latest runtime update: [native-runtime-recovered](2026-10-05-native-runtime-recovered.md). The native frontend is now actually running on3003 against existing backend18447, and native browser cases were exercised. Earlier "startup blocked / browser pending" statements below are historical; new configured-backend startup is still not completed.
+
 The native Next app previously exposed only catalog/project/run GETs although the Editor backend already implemented project binding and health-run submission. The old product launcher also made PLANM the public shell and never supplied the native frontend's backend URL. A page could be ported while its write operations remained unreachable.
 
 ## Changed
