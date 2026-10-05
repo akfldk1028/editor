@@ -60,8 +60,8 @@ export function onRegistryChange(listener: () => void): () => void {
 // to `process.env.NODE_ENV !== 'production'` for Node test runners.
 function isDevMode(): boolean {
   try {
-    const meta = import.meta as { env?: { DEV?: boolean } }
-    if (typeof meta?.env?.DEV === 'boolean') return meta.env.DEV
+    const env = (import.meta as { env?: { DEV?: boolean } }).env
+    if (typeof env?.DEV === 'boolean') return env.DEV
   } catch {
     // import.meta unavailable in some CJS contexts — fall through.
   }
