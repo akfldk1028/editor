@@ -14,6 +14,8 @@ Latest design increment: [original design workspace and archived evidence](2026-
 
 Latest workspace increment: [original settings, gallery and team builder with element/component boundaries](2026-10-05-native-workspace-components.md). Sixteen browser cases and eleven backend cases passed; execution limitations remain explicit.
 
+Latest remaining-work increment: [deployment, historical UID access and bounded specialist submissions](2026-10-05-remaining-integration-increment.md). Native `/deploy` now preserves useful original sections against workspace APIs. Duplicate historical numeric result IDs can be addressed by exact stored UID. Product/owner read-only specialist submission contracts are tested, but the current shared gateway/frontend acceptance is still open. Actual isolated owner HTTP/A2A returns Systems blocked, Domain blocked and Interior partial; this is not current-project design acceptance.
+
 ## Placement
 
 - `app/`: native route entries/layouts and explicit API handlers.
@@ -35,7 +37,7 @@ Latest workspace increment: [original settings, gallery and team builder with el
 | ARR LandMap | `/map` | Original 2D viewport/search/panel and native tile/WMS code ported. Browser contract test passed before latest cancellation changes. Live imagery, repeated parcel selection and geometry overlays still pending. |
 | ARR MASDialoguePanel | `/dialogue` | Original timeline/cards/filter/JSON layout ported against bound owner records. Fixture browser checks passed. Live owner/A2A evidence still pending. No fallback benchmark data. |
 | AG AgentsPage | `/agents` | Original grid/search/details/JSON layout adapted to owner catalog. Type checked; new browser case blocked by disk failure. Register/unregister and live health actions still open. |
-| AG PlaygroundPage and LiveAgentFlow | `/playground` (planned) | Not ported into native Editor. Need original sessions, input, streaming, stop, agent detail, attachments and relevant helper interactions; native owner currently supports only health submission. Free-form execution needs a real contract, not a fabricated submit button. |
+| AG PlaygroundPage and LiveAgentFlow | `/playground` (planned) | Not ported into native Editor. Need original sessions, input, streaming, stop, agent detail, attachments and relevant helper interactions; bounded product/owner specialist submission code is now tested alongside health, but the live shared gateway and original Playground UI are not yet wired to it. Free-form execution still needs a real contract, not a fabricated submit button. |
 | AG FlowPage / popup | `/flow` (partial destination) | Native `/flow` currently hosts ARR's record-based graph. AG popup/channel/session operations are still not ported; this row remains open. |
 | ARR AGLightFlow / topology / direct command tabs | `/flow` | Original node/edge/toolbar UI ported with bound observed request/response records, fullscreen/Escape, labels, grid/reset and selection details. Offline Chrome component interactions passed. Native route/API execution, original configured topology and direct command tabs remain open. No fabricated A2A edges. |
 | ARR DesignPage | `/design` | Original composition retained and decomposed. Native original ten-algorithm run, journaled streaming, persisted geometry, cancellation and metric floor plan verified through the browser. Interactive geometry and all five floor algorithms have HTTP tests. MAAS performance/acceptance and every conditional original state require their own evidence. |
@@ -48,7 +50,7 @@ Latest workspace increment: [original settings, gallery and team builder with el
 | AG MCP workbench | `/mcp` (planned) | Not native. Original generic MCP client differs from Pascal scene MCP; backend must own permitted connections/tool execution. |
 | AG gallery/import/sync | `/gallery` | Original six categories/cards/detail/import/sync dialogs ported. Real import into native templates verified. External sync and component runtime testing remain open; original New Gallery stays disabled. |
 | AG/ARR settings | `/settings` | Original AG settings sections ported with versioned native persistence, language/theme/font controls; save/reload and scoped appearance verified. Runtime consumption of saved environment values and ARR settings parity remain open. |
-| AG deployment/status surface | Native service/status route (planned) | Original mostly generates commands and reads health/version. Account for useful operations in Editor; do not retain Studio deployment as a final dependency or claim real deployment from generated text. |
+| AG deployment/status surface | `/deploy` | Native useful guide/configuration/environment/API/status sections ported into feature components. Commands target Editor; health/version, copy/reset, navigation/reload and failure states verified. Environment draft does not configure the runtime. Full unified container/cloud deployment remains unavailable; existing PLANM Docker subset stays separate. |
 | ARR history/authentication/settings subroutes | Native route mapping still required | Account for source routes explicitly; do not recreate localStorage guest fallback as server authorization. |
 
 ## Completion evidence required per row

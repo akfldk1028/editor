@@ -10,7 +10,8 @@ test('original gallery categories and import persist a team in native builder', 
   expect(result.status()).toBe(201);
   const gallery = await result.json();
   try {
-    await page.goto(`${base}/gallery`);
+    await page.goto(`${base}/gallery`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Gallery', exact: true })).toBeVisible();
     await page.getByRole('button', { name: `View gallery: ${label}` }).click();
     for (const category of ['Teams', 'Agents', 'Models', 'Tools', 'Workbenches', 'Terminations']) {
       await page.getByRole('tab', { name: new RegExp(category) }).click();
