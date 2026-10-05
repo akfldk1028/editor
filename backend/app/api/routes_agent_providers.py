@@ -14,7 +14,11 @@ OPERATIONS = {
         'facility-criteria', 'building-uses', 'fire-requirements', 'use-research-routes',
         'ordinance-candidates', 'parking-design-rules', 'parcel-limits', 'audit'}),
     'land': frozenset({'parcel-geometry', 'roads', 'datum', 'basement-storey'}),
+    'design': frozenset({'research-bundle'}),
 }
+# A candidate mesh travels inside the research-bundle request; the other operations stay small.
+BODY_LIMITS = {('design', 'research-bundle'): 20 * 1024 * 1024}
+DEFAULT_BODY_LIMIT = 2 * 1024 * 1024
 logger = logging.getLogger(__name__)
 
 
@@ -50,7 +54,7 @@ def create_agent_provider_router(*, public_origin=None):
                 request.headers.get('origin') and request.headers['origin'] != origin):
             raise HTTPException(403, 'Cross-origin provider requests are not allowed')
         body = await request.body()
-        if len(body) > 2 * 1024 * 1024:
+        if len(body) > BODY_LIMITS.get((domain, operation), DEFAULT_BODY_LIMIT):
             raise HTTPException(413, 'Provider request is too large')
         try:
             value = json.loads(body)
