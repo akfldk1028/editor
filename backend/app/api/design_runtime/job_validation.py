@@ -11,7 +11,11 @@ def integer(value, name, minimum, maximum):
 
 
 def number(value, name):
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    try:
+        finite = math.isfinite(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else False
+    except OverflowError:
+        finite = False
+    if not finite:
         raise ValueError(f'{name} must be a finite number')
 
 

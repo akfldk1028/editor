@@ -17,6 +17,11 @@ def format_job_response(job) -> dict:
         "population_size": job.population_size,
         "site_area_m2": job.site_area_m2,
         "constraints": job.constraints,
+        "objectives": [
+            {"name": output["name"], "goal": output["Goal"]}
+            for output in job.job_spec.get("outputs", [])
+            if output.get("type") == "Objective"
+        ],
         "created_at": job.created_at.isoformat() if job.created_at else None,
         "completed_at": job.completed_at.isoformat() if job.completed_at else None,
         "error": job.error,

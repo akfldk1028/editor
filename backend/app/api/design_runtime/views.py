@@ -26,6 +26,7 @@ from backend.app.adapters.design_storage.persistence import save_job, save_resul
 from backend.app.adapters.design_storage import lifecycle
 from backend.app.modules.design.generation.paths import workspace_root, backend_root
 from .job_validation import validate_request, validate_spec
+from .result_identity import canonicalize_result_event
 from backend.app.modules.design.generation.services.constraint_bridge import regulations_to_constraints, build_default_job_spec, compute_setback_geometry, build_floor_plan_spec
 from backend.app.modules.design.generation.services.mass_evaluator import evaluate_designs
 from backend.app.modules.design.generation.services.mass_renderer import design_to_geojson
@@ -875,6 +876,7 @@ def _produce_job(job_id, token):
     sunlight_envelope = _precompute_sunlight_envelope(job)
 
     event_queue = queue.Queue()
+    ids_by_uid = {}
 
     maas_mode = algorithm == "maas_legal_envelope"
 
@@ -933,6 +935,8 @@ def _produce_job(job_id, token):
                 continue
 
             event_type = event.get("type", "update")
+            if algorithm == "all":
+                event = canonicalize_result_event(event, ids_by_uid)
 
             # Enrich with GeoJSON for 3D mass visualization
             # Throttle: only every 10th generation + complete (geometry pipeline is expensive)
@@ -1255,6 +1259,11 @@ def _save_final_results(job, event, site_polygon, site_area_m2,
             "outputs": {
                 "objectives": d.get("objectives", []),
                 "penalty": d.get("penalty", 0),
+                "result_identity": {
+                    "algorithm": a,
+                    "uid": d.get("uid"),
+                    "source_design_id": d.get("source_design_id", d.get("id", 0)),
+                },
             },
             "ranking": 1.0,
             "crowding_distance": 0.0,
@@ -1292,6 +1301,8 @@ def design_detail(request, job_id, design_id):
         design = DesignResult.objects.get(job_id=job_id, design_id=design_id)
     except DesignResult.DoesNotExist:
         return JsonResponse({"error": "Design not found"}, status=404)
+    except DesignResult.MultipleObjectsReturned:
+        return JsonResponse({"error": "Ambiguous legacy design ID", "code": "ambiguous_design_id"}, status=409)
 
     return JsonResponse(format_design_response(design))
 
@@ -1303,6 +1314,8 @@ def design_evidence(request, job_id, design_id):
         design = DesignResult.objects.select_related("job").get(job_id=job_id, design_id=design_id)
     except DesignResult.DoesNotExist:
         return JsonResponse({"error": "Design not found"}, status=404)
+    except DesignResult.MultipleObjectsReturned:
+        return JsonResponse({"error": "Ambiguous legacy design ID", "code": "ambiguous_design_id"}, status=409)
 
     return JsonResponse(build_maas_evidence_bundle(job=design.job, design=design))
 
@@ -1320,6 +1333,8 @@ def design_aesthetic(request, job_id, design_id):
         design = DesignResult.objects.select_related("job").get(job_id=job_id, design_id=design_id)
     except DesignResult.DoesNotExist:
         return JsonResponse({"error": "Design not found"}, status=404)
+    except DesignResult.MultipleObjectsReturned:
+        return JsonResponse({"error": "Ambiguous legacy design ID", "code": "ambiguous_design_id"}, status=409)
 
     provider = body.get("provider") if isinstance(body.get("provider"), str) else "placeholder"
     if provider not in {"placeholder", "gpt-image", "nano-banana"}:

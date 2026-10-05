@@ -79,6 +79,9 @@ class JobRunner:
                 if not cont:
                     break
 
+            if self.cancelled:
+                self.queue.put({"type": "cancelled"})
+                return
             all_data = [d.get_data() for d in self.job.all_designs]
             pareto = self.job.get_pareto_front()
             pareto_data = [d.get_data() for d in pareto]
@@ -92,6 +95,9 @@ class JobRunner:
             })
 
         except Exception as e:
+            if self.cancelled:
+                self.queue.put({"type": "cancelled"})
+                return
             logger.error(f"JobRunner error: {e}")
             self.queue.put({
                 "type": "error",
@@ -156,13 +162,13 @@ class MultiAlgoRunner:
             })
 
             # Run all algorithms in parallel threads
-            results: dict[str, list] = {a: [] for a in algorithms}
+            errors: dict[str, str] = {}
             threads = []
 
             for algo in algorithms:
                 t = threading.Thread(
                     target=self._run_single,
-                    args=(algo, results),
+                    args=(algo, errors),
                     daemon=True,
                 )
                 threads.append(t)
@@ -237,6 +243,19 @@ class MultiAlgoRunner:
             for t in threads:
                 t.join(timeout=5)
 
+            if self.cancelled:
+                self.queue.put({"type": "cancelled"})
+                return
+            if errors:
+                self.queue.put({
+                    "type": "error",
+                    "message": "Algorithm execution failed: " + "; ".join(
+                        f"{algo}: {error}" for algo, error in sorted(errors.items())
+                    ),
+                    "algorithm_errors": dict(errors),
+                })
+                return
+
             # Final combined Pareto
             combined_pareto = self._combined_pareto(first_spec)
             pareto_data = [d["data"] for d in combined_pareto]
@@ -252,6 +271,9 @@ class MultiAlgoRunner:
             })
 
         except Exception as e:
+            if self.cancelled:
+                self.queue.put({"type": "cancelled"})
+                return
             logger.error(f"MultiAlgoRunner error: {e}")
             self.queue.put({
                 "type": "error",
@@ -259,11 +281,11 @@ class MultiAlgoRunner:
                 "traceback": traceback.format_exc(),
             })
 
-    def _run_single(self, algo: str, results: dict):
+    def _run_single(self, algo: str, errors: dict):
         """Run a single algorithm's SSIEA to completion.
 
         No lock needed here — each job has its own independent state.
-        The lock is only used in _combined_pareto for cross-job reads.
+        Worker errors are shared with the parent after all threads finish.
         """
         try:
             job = self.jobs[algo]
@@ -282,6 +304,8 @@ class MultiAlgoRunner:
             logger.info(f"Algorithm {algo} complete: {len(job.all_designs)} designs, gen {job.gen}")
 
         except Exception as e:
+            with self._lock:
+                errors[algo] = f"{type(e).__name__}: {e}"
             logger.error(f"Algorithm {algo} failed: {e}")
 
     def _combined_pareto(self, ref_spec: dict) -> list[dict]:
