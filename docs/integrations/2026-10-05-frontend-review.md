@@ -2,6 +2,8 @@
 
 Scope: original AG-frontend/ARR routers versus native Editor routes; current map search, catalog, dialogue, API mount configuration and global bootstrap. This is source/contract review with targeted tests, not a fresh browser or visual-parity signoff. Native server startup remained rejected in the preceding recovery attempt; no alternate launch was attempted for this review.
 
+Follow-up: [native flow integration](2026-10-05-native-flow-integration.md) adds `/flow` and fixes the global bootstrap coupling in source, with a passing bundle regression. Root/scene routes retain registration. Findings below describe the pre-fix review baseline; actual Next runtime and original whole-screen parity remain open.
+
 ## Findings, ordered by impact
 
 1. **P1 — Most original product screens are absent from native routing.** AG-frontend `src/app/router.tsx` exposes Playground, build, MCP, gallery, history, deploy, settings and flow. ARR `src/routers/index.tsx` exposes law, design, design/language and settings subroutes. Native Editor currently adds only land, map, agents and dialogue to the original scene app. Existing PLANM routes and backend algorithms do not supply these original screens. Users cannot reach the original chat, flow, design/parking/floorplan/3D workflows from native Editor. Still open; use the full route ledger to implement actual screens, not empty route placeholders.

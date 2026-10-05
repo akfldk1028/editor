@@ -26,6 +26,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
     { href: '/map', label: 'VWorld 지도', Icon: MapPin },
     { href: '/agents', label: 'A2A Agents', Icon: Box },
     { href: '/dialogue', label: '에이전트 협업 대화', Icon: Box },
+    { href: '/flow', label: '협업 흐름도', Icon: Box },
   ]
   useEffect(() => {
     try {

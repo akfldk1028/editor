@@ -1,5 +1,6 @@
 'use client'
 
+import '@/lib/bootstrap'
 import { assetPath } from '@pascal-app/core'
 import { Editor, ItemsPanel } from '@pascal-app/editor'
 import { Hammer, Layers, Package, Settings } from 'lucide-react'

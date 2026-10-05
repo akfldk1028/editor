@@ -1,8 +1,7 @@
 'use client'
 
-// Node registry bootstrap is loaded once at the root via
-// `<ClientBootstrap>` in `app/layout.tsx` — no per-page side-effect
-// import here.
+// Register nodes before the scene Editor mounts, without loading 3D plugins on workspace routes.
+import '@/lib/bootstrap'
 import { assetPath } from '@pascal-app/core'
 import {
   applySceneGraphToEditor,

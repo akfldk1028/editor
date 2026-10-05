@@ -8,6 +8,7 @@ Main application: `frontend/app/editor`. Shared agents: `D:/Data/25_ACE/agents`,
 - `features/land`: original AG-frontend land form and cards.
 - `features/land-map`: original ARR 2D map, layers and analysis panel.
 - `features/agent-dialogue`: original MAS panel plus project/run-bound record adapter.
+- `features/agent-flow`: original ARR node/edge/toolbar UI over the same bound run records; `/flow` and `/dialogue` retain project/run query scope.
 - `features/agents`: original catalog grid/search/details bound to owner catalog.
 - `features/workspace`: scoped shared visual components/theme; never changes the main Editor's global theme.
 - Backend `modules/` owns domain behavior; `adapters/` owns external services. Do not introduce an `arr` backend folder or permanent proxy to old AG/ARR apps.
@@ -22,8 +23,8 @@ Main application: `frontend/app/editor`. Shared agents: `D:/Data/25_ACE/agents`,
 | ARR MASDialoguePanel | `/dialogue` | Original timeline/cards/filter/JSON layout ported against bound owner records. Fixture browser checks passed. Live owner/A2A evidence still pending. No fallback benchmark data. |
 | AG AgentsPage | `/agents` | Original grid/search/details/JSON layout adapted to owner catalog. Type checked; new browser case blocked by disk failure. Register/unregister and live health actions still open. |
 | AG PlaygroundPage and LiveAgentFlow | `/playground` (planned) | Not ported into native Editor. Need original sessions, input, streaming, stop, agent detail, attachments and relevant helper interactions; native owner currently supports only health submission. Free-form execution needs a real contract, not a fabricated submit button. |
-| AG FlowPage / popup | `/flow` (planned) | Not ported. Scope channels by project/run, retain flow navigation/detail and cleanup. |
-| ARR AGLightFlow / topology / direct command tabs | Native dialogue/design feature (planned) | Source inspected; not ported. Fixed configured topology must not be represented as observed A2A traffic. Preserve topology controls and meaningful agent selection. |
+| AG FlowPage / popup | `/flow` (partial destination) | Native `/flow` currently hosts ARR's record-based graph. AG popup/channel/session operations are still not ported; this row remains open. |
+| ARR AGLightFlow / topology / direct command tabs | `/flow` | Original node/edge/toolbar UI ported with bound observed request/response records, fullscreen/Escape, labels, grid/reset and selection details. Offline Chrome component interactions passed. Native route/API execution, original configured topology and direct command tabs remain open. No fabricated A2A edges. |
 | ARR DesignPage | `/design` (planned) | Original control panel, maps, generation, candidates, inspector, Pareto, legal basis, daylight section, passport and interactive panels not yet native. Earlier PLANM implementation does not close this row. |
 | ARR drawing/parking/3D and floor-plan generation | Within native design + Editor scene | Native backend work exists, but original full UI and real-project save/reopen loop still open. Preserve imported job/candidate/artifact identities. Native additive execution is not proof of all original algorithms. |
 | ARR BookLanguagePage | `/design/language` (planned) | Not ported; trace real document/language services before connecting controls. |
@@ -42,3 +43,5 @@ Main application: `frontend/app/editor`. Shared agents: `D:/Data/25_ACE/agents`,
 Original visual comparison; direct load/reload/back navigation; controls and actual backend contracts; project isolation and request cancellation; explicit empty/error/partial states; persisted result identity; and a run without the old AG/ARR roots serving requests. Mock browser tests are rendering evidence only. Systems, DomainExpert and InteriorDesign remain unfinished independent of catalog connectivity.
 
 Current test/runtime limitations are recorded in [the active correction checkpoint](2026-10-05-native-editor-ui-correction.md). Do not silently mark planned routes implemented or count the old PLANM surface as native parity.
+
+Latest increment: [native flow and bootstrap verification](2026-10-05-native-flow-integration.md). The shared client wrapper no longer imports scene plugins; root Editor and scene loader retain synchronous registration. This source/bundle separation has passed checks, but native runtime recovery is not verified.

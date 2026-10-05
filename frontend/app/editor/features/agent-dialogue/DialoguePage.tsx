@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { listProjects, type ProjectBinding } from './projects';
 import { getRun, listRuns, type RunSummary } from './runs';
 import { toTranscript } from './transcript';
 import MASDialoguePanel from './MASDialoguePanel';
 
-export default function DialoguePage({ projectId, runId }: { projectId: string; runId: string }) {
+const RunFlow = dynamic(() => import('../agent-flow/RunFlow'), { ssr: false });
+
+export default function DialoguePage({ projectId, runId, view = 'dialogue' }: { projectId: string; runId: string; view?: 'dialogue' | 'flow' }) {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectBinding[]>([]);
   const [runs, setRuns] = useState<RunSummary[]>([]);
@@ -47,11 +51,14 @@ export default function DialoguePage({ projectId, runId }: { projectId: string; 
     const query = new URLSearchParams();
     if (project) query.set('project_id', project);
     if (selectedRun) query.set('run_id', selectedRun);
-    router.replace(`/dialogue${query.size ? '?' + query : ''}`);
+    router.replace(`/${view}${query.size ? '?' + query : ''}`);
   }
   const selectClass = 'rounded-lg border border-(--color-border-default) bg-(--color-surface-card) p-2 text-(--color-text-primary)';
   return <div className="space-y-4">
-    <h1 className="text-heading-medium text-(--color-text-primary)">에이전트 협업 대화</h1>
+    <h1 className="text-heading-medium text-(--color-text-primary)">{view === 'flow' ? '에이전트 협업 흐름도' : '에이전트 협업 대화'}</h1>
+    <nav aria-label="대화 표시 방식" className="flex gap-4 text-(--color-text-secondary)">
+      {(['dialogue', 'flow'] as const).map(mode => <Link key={mode} aria-current={view === mode ? 'page' : undefined} href={`/${mode}?${new URLSearchParams({ project_id: projectId, run_id: runId })}`}>{mode === 'flow' ? '협업 흐름도' : '대화 타임라인'}</Link>)}
+    </nav>
     <div className="flex flex-wrap gap-3">
       <label className="text-(--color-text-secondary)">프로젝트 <select aria-label="프로젝트 선택" className={selectClass} value={projectId} onChange={e => navigate(e.target.value)}>
         <option value="">프로젝트 선택</option>
@@ -66,6 +73,6 @@ export default function DialoguePage({ projectId, runId }: { projectId: string; 
     {error && <p role="alert" className="text-red-500">{error}</p>}
     {loading && !run && <p role="status">대화 기록을 불러오는 중입니다...</p>}
     {!loading && !error && !run && <p role="status">{projectId && runs.length === 0 ? '이 프로젝트에 저장된 실행이 없습니다.' : '프로젝트와 실행을 선택하면 저장된 요청·응답을 표시합니다.'}</p>}
-    {run && <MASDialoguePanel key={`${projectId}:${runId}`} transcript={toTranscript(projectId, run)} loading={loading} onRefresh={() => setRefresh(v => v + 1)} />}
+    {run && (view === 'flow' ? <RunFlow key={`${projectId}:${runId}`} projectId={projectId} run={run} /> : <MASDialoguePanel key={`${projectId}:${runId}`} transcript={toTranscript(projectId, run)} loading={loading} onRefresh={() => setRefresh(v => v + 1)} />)}
   </div>;
 }
