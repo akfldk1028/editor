@@ -7,13 +7,13 @@ import 'ol/ol.css';
  * Route: /land
  */
 
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useVworldMap } from './hooks/use-vworld-map';
 import { useLandAnalysis } from './hooks/use-land-analysis';
-import { resolve } from './lib/land-api-client';
-import { isPnu, COLOR } from './lib/constants';
+import { locateParcel } from './lib/land-api-client';
+import { COLOR } from './lib/constants';
 import { MapSearchBar } from './components/MapSearchBar';
 import LandAnalysisPanel from './components/LandAnalysisPanel';
 
@@ -32,7 +32,9 @@ const KEYFRAMES = `
 export default function LandMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const selection = useRef(0);
-  useEffect(() => () => { selection.current++; }, []);
+  const locationRequest = useRef<AbortController | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  useEffect(() => () => { selection.current++; locationRequest.current?.abort(); }, []);
 
   const {
     analysis, reverseResult, loading, error, step,
@@ -41,6 +43,8 @@ export default function LandMap() {
 
   const handleMapClick = useCallback(async (lng: number, lat: number) => {
     const selected = ++selection.current;
+    locationRequest.current?.abort();
+    setLocationError(null);
     clearHighlight();
     const result = await analyzeByCoordinate(lng, lat);
     if (selection.current === selected && result?.reverse?.geometry) {
@@ -48,7 +52,7 @@ export default function LandMap() {
     }
   }, [analyzeByCoordinate]);
 
-  const { mapError, highlightParcel, clearHighlight, flyTo, drawSetbackLines, clearSetbackLines } = useVworldMap({
+  const { mapError, highlightParcel, clearHighlight, drawSetbackLines, clearSetbackLines } = useVworldMap({
     target: mapContainerRef,
     onClick: handleMapClick,
   });
@@ -64,20 +68,22 @@ export default function LandMap() {
 
   const handleSearch = useCallback(async (input: string) => {
     const selected = ++selection.current;
+    locationRequest.current?.abort();
+    const controller = new AbortController();
+    locationRequest.current = controller;
+    setLocationError(null);
     clearHighlight();
     const analysisRequest = analyzeByInput(input);
-    if (!isPnu(input)) {
-      try {
-        const resolved = await resolve(input, 'address');
-        if (selection.current === selected && resolved.success && resolved.coordinates) {
-          flyTo(resolved.coordinates.x, resolved.coordinates.y, 18);
-        }
-      } catch {
-        // flyTo failed — still proceed to analysis
+    try {
+      const parcel = await locateParcel(input, controller.signal);
+      if (!controller.signal.aborted && selection.current === selected) {
+        highlightParcel(parcel.geometry, true);
       }
+    } catch (e) {
+      if (!controller.signal.aborted && selection.current === selected) setLocationError(e instanceof Error ? e.message : '필지 위치를 확인하지 못했습니다.');
     }
     await analysisRequest;
-  }, [analyzeByInput, clearHighlight, flyTo]);
+  }, [analyzeByInput, clearHighlight, highlightParcel]);
 
   const displayAddress = reverseResult?.address
     || (analysis?.pnu && typeof analysis.pnu === 'object' ? (analysis.pnu as { address?: string }).address : null)
@@ -108,6 +114,7 @@ export default function LandMap() {
         boxShadow: COLOR.panelShadow,
         padding: 20,
       }}>
+        {locationError && <p role="alert" style={{ color: COLOR.amber, fontSize: 13, marginBottom: 12 }}>{locationError}</p>}
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}

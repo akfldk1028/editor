@@ -9,6 +9,7 @@ import type {
   PnuResolveResult,
   ReverseGeocodeResult,
 } from './types';
+import { isPnu } from './constants';
 
 /** POST /land/analyze/ — 토지 규제 분석 */
 export async function analyze(
@@ -36,11 +37,13 @@ export async function analyze(
 export async function resolve(
   input: string,
   inputType: 'address' | 'pnu' = 'address',
+  signal?: AbortSignal,
 ): Promise<PnuResolveResult> {
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/resolve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ input, input_type: inputType }),
+    signal,
   });
   if (!res.ok) throw new Error(`PNU 변환 실패: ${res.status}`);
   return res.json();
@@ -63,6 +66,33 @@ export async function reverse(x: number, y: number, signal?: AbortSignal): Promi
   });
   if (!res.ok) throw new Error(`요청 실패: ${res.status}`);
   return res.json();
+}
+
+export async function locateParcel(input: string, signal?: AbortSignal): Promise<{
+  geometry: object; coordinates?: { x: number; y: number };
+}> {
+  const value = input.trim();
+  let pnu: string | undefined = isPnu(value) ? value : undefined;
+  let coordinates: { x: number; y: number } | undefined;
+  if (!pnu) {
+    const location = await resolve(value, 'address', signal);
+    if (!location.success) throw new Error(location.error || '주소 위치를 찾지 못했습니다.');
+    coordinates = location.coordinates;
+    pnu = location.pnu || undefined;
+    if (!pnu && coordinates) {
+      const parcel = await reverse(coordinates.x, coordinates.y, signal);
+      if (!parcel.success || !parcel.geometry) throw new Error(parcel.error || '필지 경계를 찾지 못했습니다.');
+      return { geometry: parcel.geometry, coordinates };
+    }
+  }
+  if (!pnu) throw new Error('필지 번호를 찾지 못했습니다.');
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/parcel-geometry`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pnu }), signal,
+  });
+  if (!response.ok) throw new Error(`필지 경계 조회 실패: ${response.status}`);
+  const parcel = await response.json();
+  if (!parcel.success || !parcel.geometry || typeof parcel.geometry !== 'object') throw new Error(parcel.error || '필지 경계를 찾지 못했습니다.');
+  return { geometry: parcel.geometry, coordinates };
 }
 
 

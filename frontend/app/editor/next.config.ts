@@ -11,6 +11,7 @@ const basePath = process.env.PASCAL_BASE_PATH || undefined
 
 const nextConfig: NextConfig = {
   ...(basePath ? { basePath } : {}),
+  env: { NEXT_PUBLIC_BASE_PATH: basePath || '' },
   // Served behind the PLAN shell's proxy in development, so requests arrive
   // with that origin. Without this Next's dev server refuses them as
   // cross-origin and the page hangs mid-load with every chunk blocked.

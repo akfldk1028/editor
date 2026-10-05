@@ -5,6 +5,7 @@ test('original map route renders its map, search and analysis panel through nati
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/api/v1/land/tiles/**', route => route.fulfill({ status: 503, json: { detail: 'Map provider is not configured' } }));
   await page.route('**/api/v1/land/wms?**', route => route.fulfill({ status: 503, json: { detail: 'Map provider is not configured' } }));
+  await page.route('**/api/v1/land/parcel-geometry', route => route.fulfill({ json: { success: false, geometry: null, error: '필지 경계 공급자 미설정' } }));
   await page.route('**/api/v1/land/analyze', async route => {
     expect(route.request().postDataJSON()).toMatchObject({ input: '1111010100100010000', input_type: 'pnu' });
     await route.fulfill({ json: { pnu: { pnu: '1111010100100010000' }, zone_info: { zones: ['제2종일반주거지역'] },
@@ -17,6 +18,7 @@ test('original map route renders its map, search and analysis panel through nati
   await page.getByRole('textbox', { name: '주소 또는 PNU 검색' }).fill('1111010100100010000');
   await page.getByRole('button', { name: '검색', exact: true }).click();
   await expect(page.getByText('적용 조례 증거 부족', { exact: true })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: '필지 경계 공급자 미설정' })).toBeVisible();
   await expect(page.getByText('미확정', { exact: true })).toBeVisible();
   await expect(page.getByText('일부 결과 — 확인 필요')).toBeVisible();
   await expect(page.getByText('지반 레벨 (§119 datum)').locator('../..')).toHaveCSS('opacity', '1');

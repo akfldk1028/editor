@@ -32,7 +32,7 @@ interface UseVworldMapOptions {
 interface UseVworldMapReturn {
   mapError: string | null;
   mapRef: React.MutableRefObject<Map | null>;
-  highlightParcel: (geojson: object) => void;
+  highlightParcel: (geojson: object, fit?: boolean) => void;
   clearHighlight: () => void;
   flyTo: (lng: number, lat: number, zoom?: number) => void;
   drawSetbackLines: (lines: SetbackLines) => void;
@@ -214,7 +214,7 @@ export function useVworldMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target]);
 
-  const highlightParcel = useCallback((geojson: object) => {
+  const highlightParcel = useCallback((geojson: object, fit = false) => {
     const src = highlightSourceRef.current;
     src.clear();
     try {
@@ -223,6 +223,10 @@ export function useVworldMap({
         featureProjection: 'EPSG:3857',
       });
       src.addFeatures(features);
+      const extent = src.getExtent();
+      if (fit && extent && extent.every(Number.isFinite)) {
+        mapRef.current?.getView().fit(extent, { padding: [80, 40, 40, 40], maxZoom: 18, duration: MAP_CONFIG.flyDuration });
+      }
     } catch (e) {
       console.warn('Failed to parse parcel geometry:', e);
     }
