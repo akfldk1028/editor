@@ -7,13 +7,11 @@ from threading import RLock
 from typing import Any
 from uuid import uuid4
 
-import yaml
 from filelock import FileLock, Timeout as FileLockTimeout
 
 from backend.app.adapters.planm_agent import run_planm_stage
 from backend.app.adapters.dwg_client import inspect_dwg_handoff
 from backend.app.core.json_contracts import validate_planm_contract
-from backend.app.core.planm_location import planm_agent_dir
 from backend.app.modules.cad_handoff import create_dxf_handoff
 
 
@@ -57,10 +55,7 @@ def _read_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def _maximum_stage_attempts(repository_root: Path) -> int:
-    config_path = planm_agent_dir(repository_root) / "config" / "default.yaml"
-    value = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    attempts = value.get("planm", {}).get("maximum_stage_attempts") if isinstance(value, dict) else None
+def _maximum_stage_attempts(attempts: int) -> int:
     if not isinstance(attempts, int) or isinstance(attempts, bool) or not 1 <= attempts <= 5:
         raise ValueError("PLANM maximum_stage_attempts must be an integer from 1 to 5")
     return attempts
@@ -80,13 +75,13 @@ def _retry_codes(result: dict[str, Any]) -> set[str]:
 
 
 class PlanmRunService:
-    def __init__(self, *, repository_root: Path, runs_root: Path) -> None:
+    def __init__(self, *, repository_root: Path, runs_root: Path, maximum_stage_attempts: int = 3) -> None:
         self.repository_root = repository_root.resolve()
         self.runs_root = runs_root.resolve()
         self.runs_root.mkdir(parents=True, exist_ok=True)
         self._lock = RLock()
         self._execution_locks: dict[str, FileLock] = {}
-        self.maximum_stage_attempts = _maximum_stage_attempts(self.repository_root)
+        self.maximum_stage_attempts = _maximum_stage_attempts(maximum_stage_attempts)
 
     def create(self, mass: dict[str, Any]) -> dict[str, Any]:
         run_id = uuid4().hex
@@ -160,7 +155,6 @@ class PlanmRunService:
                         input_path=input_path,
                         state_path=state_path,
                         output_dir=output_dir,
-                        repository_root=self.repository_root,
                         run_root=run_dir,
                     )
                 except (OSError, RuntimeError, TimeoutError, ValueError) as error:
@@ -231,11 +225,7 @@ class PlanmRunService:
         if not state_path.is_file():
             return
         state = _read_json(state_path)
-        validate_planm_contract(
-            self.repository_root,
-            "planm-state.schema.json",
-            state,
-        )
+        validate_planm_contract("planm-state.schema.json", state)
         state_next = STATE_NEXT_STAGE.get(state["stage"])
         record = self.get(run_id)
         record_next = record.get("next_stage", "normalize")

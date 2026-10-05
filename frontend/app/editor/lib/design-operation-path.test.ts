@@ -11,7 +11,7 @@ describe('design operation boundary', () => {
       expect(isDesignOperation('GET', path)).toBe(true)
     }
     for (const path of [`jobs/${id}/run`, `jobs/${id}/cancel`, `jobs/${id}/validate`,
-      'maas/revision', `maas/revision/${id}/feedback`, 'program-floor-plans', 'masterplan/operations']) {
+      'maas/revision', `maas/revision/${id}/feedback`, 'masterplan/operations']) {
       expect(isDesignOperation('POST', path)).toBe(true)
     }
   })

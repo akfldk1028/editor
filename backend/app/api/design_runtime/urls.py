@@ -3,12 +3,10 @@ from django.urls import path
 from backend.app.api.design_runtime import views
 from backend.app.api.design_runtime.delivered_mass_views import delivered_mass_export
 from backend.app.api.design_runtime.masterplan_operations_views import masterplan_operations
-from backend.app.api.design_runtime.program_floor_plan_views import program_floor_plans
 
 app_name = 'design'
 
 urlpatterns = [
-    path('program-floor-plans/', program_floor_plans, name='program_floor_plans'),
     path('masterplan/operations/', masterplan_operations, name='masterplan_operations'),
     path('maas/delivered-mass-export/', delivered_mass_export, name='delivered_mass_export'),
     path('jobs/', views.create_job, name='create_job'),

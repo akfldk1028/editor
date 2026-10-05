@@ -17,7 +17,6 @@ from backend.app.api.routes_agent_providers import create_agent_provider_router
 from backend.app.adapters.orchestrator import OrchestratorClient
 from backend.app.modules.platform.projects import ProjectService
 from backend.app.api.routes_planm_runs import create_planm_runs_router
-from backend.app.modules.generation_loop.service import run_generation_loop
 from backend.app.modules.planm_runs import PlanmRunService
 
 
@@ -42,6 +41,7 @@ def create_app(
             runs_root
             or (Path(configured_runs_root) if configured_runs_root else root / "logs" / "runs" / "planm-api")
         ),
+        maximum_stage_attempts=int(os.environ.get("PLANM_MAX_STAGE_ATTEMPTS", "3")),
     )
     application = FastAPI(title="PLANM API", version="1.0.0")
     application.include_router(
@@ -64,4 +64,4 @@ def create_app(
 
 app = create_app()
 
-__all__ = ["app", "create_app", "run_generation_loop"]
+__all__ = ["app", "create_app"]

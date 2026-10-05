@@ -6,6 +6,9 @@ services:
     environment:
       PLANM_REPOSITORY_ROOT: /app
       PLANM_RUNS_ROOT: /data/planm-runs
+      # The Plan Agent (agents/planm) runs on the host for now: its stage requests
+      # carry host paths, so a containerised agent would not see this volume.
+      PLANM_AGENT_URL: http://host.docker.internal:8308
       # The URL handed back after publishing. Relative, so it resolves against
       # whatever origin the shell is served from.
       PASCAL_EDITOR_URL: /editor

@@ -1,6 +1,7 @@
 {
   "arr": { "source_owner": "editor", "source_status": "legacy-pending-relocation", "lifecycle": "persistent", "management": "domain-host" },
   "orchestrator": { "source_owner": "agents", "lifecycle": "persistent", "management": "agent-host" },
+  "planAgent": { "source_owner": "agents", "lifecycle": "persistent", "management": "agent-host" },
   "backend": { "source_owner": "editor", "lifecycle": "session", "management": "editor-session" },
   "dwg": { "source_owner": "editor", "lifecycle": "session", "management": "editor-session" },
   "frontend": { "source_owner": "editor", "lifecycle": "session", "management": "editor-session" },

@@ -8,10 +8,10 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 
-from backend.app.core.planm_location import planm_agent_dir
-
 
 _SCHEMA_NAME = re.compile(r"^[a-z0-9][a-z0-9.-]*\.schema\.json$")
+# Byte copies of agents/planm/contracts; the Plan Agent owns them and the parity test keeps them equal.
+CONTRACT_ROOT = Path(__file__).resolve().parents[1] / "contracts" / "planm"
 
 
 @lru_cache(maxsize=16)
@@ -22,14 +22,10 @@ def _validator(schema_path: str) -> Draft202012Validator:
     return Draft202012Validator(schema, format_checker=FormatChecker())
 
 
-def validate_planm_contract(
-    product_root: Path,
-    schema_name: str,
-    value: Any,
-) -> None:
+def validate_planm_contract(schema_name: str, value: Any) -> None:
     if not _SCHEMA_NAME.fullmatch(schema_name):
         raise ValueError("PLANM schema name is invalid")
-    contract_root = (planm_agent_dir(product_root) / "contracts").resolve()
+    contract_root = CONTRACT_ROOT.resolve()
     schema_path = (contract_root / schema_name).resolve()
     try:
         schema_path.relative_to(contract_root)

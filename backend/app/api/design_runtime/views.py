@@ -2114,142 +2114,39 @@ def validate_job(request, job_id):
     })
 
 
-from backend.app.modules.design.generation.services.floor_plan_contract import floor_plan_contract
+from backend.app.adapters.planm_agent import PlanmClient
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
-@floor_plan_contract
 def create_floor_plan(request):
     """
     POST /design/floor-plan/
 
-    Generate floor plan within a building footprint.
-
-    Body: {
-        "footprint_geojson": {GeoJSON Polygon},
-        "rooms": [{"name": "Living", "area": 200, "adjacency": ["Entry"]}],
-        "cell_size": 3.0,
-        "algorithm": "ga" | "subdivision" | "mcts" | "packing" | "graph2plan",
-        "options": {"num_generations": 50, "population_size": 30}
-    }
+    Proxy to the Plan Agent (agents/planm): the floor-plan algorithms (ga, subdivision,
+    mcts, packing, graph2plan) live there. The body is forwarded unchanged; the reply
+    carries the agent's receipt of exactly that body and design_acceptance: not_verified.
     """
     try:
         body = json.loads(request.body)
+        if not isinstance(body, dict):
+            raise ValueError("Expected a JSON object")
     except (json.JSONDecodeError, ValueError, TypeError):
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-    footprint_geojson = body.get("footprint_geojson")
-    rooms = body.get("rooms", [])
-    cell_size = body.get("cell_size", 3.0)
-    algorithm = body.get("algorithm", "ga")
-    options = body.get("options", {})
-
-    if not footprint_geojson:
+        return JsonResponse({"error": "Expected a finite JSON object"}, status=400)
+    if not body.get("footprint_geojson"):
         return JsonResponse({"error": "footprint_geojson is required"}, status=400)
-    if not rooms:
+    if not body.get("rooms"):
         return JsonResponse({"error": "rooms list is required"}, status=400)
-
     try:
-        from shapely.geometry import shape
-        footprint = shape(footprint_geojson)
-        if not footprint.is_valid or footprint.is_empty:
-            return JsonResponse({"error": "Invalid footprint geometry"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": f"Cannot parse footprint: {e}"}, status=400)
-
-    try:
-        if algorithm == "subdivision":
-            from backend.app.modules.design.generation.services.floor_subdivision import subdivide_floor_plan
-            result = subdivide_floor_plan(footprint, rooms, cell_size, options)
-        elif algorithm == "mcts":
-            from backend.app.modules.design.generation.services.floor_mcts import mcts_floor_plan
-            result = mcts_floor_plan(footprint, rooms, cell_size, options)
-        elif algorithm == "packing":
-            from backend.app.modules.design.generation.services.floor_packing import packing_floor_plan
-            result = packing_floor_plan(footprint, rooms, cell_size, options)
-        elif algorithm == "graph2plan":
-            from backend.app.modules.design.generation.services.floor_graph2plan import generate_graph2plan
-            result = generate_graph2plan(footprint, rooms, options)
-        else:
-            result = _ga_floor_plan(footprint, rooms, cell_size, options)
-    except Exception as e:
-        logger.exception("Floor plan generation failed: %s", e)
-        return JsonResponse({"error": f"Generation failed: {e}"}, status=500)
-
-    result["algorithm"] = algorithm
+        result = PlanmClient().generate(body)
+    except TimeoutError as exc:
+        return JsonResponse({"error": str(exc)}, status=504)
+    except (RuntimeError, ValueError) as exc:
+        logger.warning("Plan Agent unavailable for floor-plan: %s", exc)
+        return JsonResponse({"error": f"Plan Agent unavailable: {exc}"}, status=502)
+    if "error" in result:
+        return JsonResponse(result, status=422)
     return JsonResponse(result)
-
-
-def _ga_floor_plan(footprint, rooms, cell_size, options):
-    """GA + Series gene floor plan generation (original algorithm)."""
-    from backend.app.modules.design.generation.services.floor_packer import create_grid, evaluate_floor_plan, assignment_to_geojson
-    from backend.app.modules.design.generation.engine.objects import SSIEAJob
-
-    grid_info = create_grid(footprint, cell_size)
-    num_cells = grid_info["rows"] * grid_info["cols"]
-    num_rooms = len(rooms)
-
-    num_gen = options.get("num_generations", 50)
-    pop_size = options.get("population_size", 30)
-
-    job_spec = {
-        "inputs": [{
-            "type": "Series",
-            "Set length": num_cells,
-            "Depth": num_rooms + 1,
-            "Mutation rate": 0.3,
-        }],
-        "outputs": [
-            {"name": "adjacency_score", "type": "Objective", "Goal": "Max"},
-            {"name": "area_error", "type": "Objective", "Goal": "Min"},
-            {"name": "compactness", "type": "Objective", "Goal": "Max"},
-        ],
-        "options": {
-            "Number of generations": num_gen,
-            "num_islands": 3,
-            "pop_per_island": max(pop_size // 3, 5),
-        },
-    }
-
-    def evaluate_fn(designs):
-        results = []
-        for d in designs:
-            assignment = d.get_inputs()[0]
-            m = evaluate_floor_plan(assignment, grid_info, rooms)
-            results.append([m["adjacency_score"], m["area_error"], m["compactness"]])
-        return results
-
-    job = SSIEAJob(job_spec)
-    job.init_designs()
-    while True:
-        cont, gen, pop = job.step(evaluate_fn)
-        if not cont:
-            break
-
-    pareto = job.get_pareto_front()
-    results = []
-    for d in pareto:
-        assignment = d.get_inputs()[0]
-        metrics = evaluate_floor_plan(assignment, grid_info, rooms)
-        geojson = assignment_to_geojson(assignment, grid_info, rooms)
-        results.append({
-            "design_id": d.get_id(),
-            "metrics": metrics,
-            "floor_plan": geojson,
-        })
-
-    return {
-        "grid_info": {
-            "rows": grid_info["rows"],
-            "cols": grid_info["cols"],
-            "cell_size": grid_info["cell_size"],
-            "active_cells": grid_info["active_count"],
-        },
-        "rooms": rooms,
-        "num_results": len(results),
-        "results": results,
-    }
 
 
 @csrf_exempt

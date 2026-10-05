@@ -62,8 +62,13 @@ test('registry makes the external owner probe-only without a launch command', ()
   assert.equal(canManageService(services.orchestrator), false);
   assert.equal(services.orchestrator.management, 'agent-host');
   assert.equal(services.orchestrator.command, undefined);
+  // The Plan Agent (agents/planm) is another external owner: probed, never launched from here.
+  assert.equal(canManageService(services.planAgent), false);
+  assert.equal(services.planAgent.command, undefined);
+  assert.ok(services.planAgent.validate({ body: { agent: 'plan', tools: ['plan_stage', 'plan_generate'] } }));
+  assert.ok(!services.planAgent.validate({ body: { agent: 'plan', tools: ['plan_health'] } }));
   for (const [name, service] of Object.entries(services)) {
-    if (!['orchestrator', 'arr'].includes(name)) assert.equal(canManageService(service), true, name);
+    if (!['orchestrator', 'arr', 'planAgent'].includes(name)) assert.equal(canManageService(service), true, name);
   }
 });
 

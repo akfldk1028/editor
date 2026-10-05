@@ -45,6 +45,7 @@ include = ["backend*"]
 "backend.app.modules.design.generation" = ["*.json", "**/*.json", "**/*.yaml", "**/*.yml", "**/*.md", "**/*.csv"]
 "backend.app.modules.land.reference" = ["data/*.json", "data/ordinance_overrides/*.json"]
 "backend.app.modules.law.reference" = ["data/structured/*.json", "data/facility_sources/*.json", "data/use_research_sources.json", "*-manifest.json"]
+"backend.app.contracts" = ["planm/*.schema.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

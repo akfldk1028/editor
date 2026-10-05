@@ -30,6 +30,7 @@ async function main() {
     // Everything that does not depend on another service starts together.
     if (services.arr) await ensureService(services.arr);
     await ensureService(services.orchestrator);
+    if (services.planAgent) await ensureService(services.planAgent);
     await settleStartup([
       () => ensureService(services.pascalMcp),
       ...(services.dwg ? [() => ensureService(services.dwg)] : []),

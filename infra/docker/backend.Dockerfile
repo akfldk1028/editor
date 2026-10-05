@@ -2,6 +2,7 @@ FROM node:22-bookworm-slim AS node-runtime
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0-bookworm-slim AS application
 
+# Node is still needed for the DWG service; the PLANM stages run in the Plan Agent.
 COPY --from=node-runtime /usr/local/ /usr/local/
 
 RUN apt-get update \
@@ -20,9 +21,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=cache,target=/root/.npm \
     python3 -m venv /opt/planm \
     && /opt/planm/bin/pip install . \
-    && npm --prefix infra/runtimes/gitagent ci --prefer-offline --no-audit \
-    && npm --prefix infra/runtimes/gitagent run build \
-    && test -f infra/runtimes/gitagent/dist/exports.js \
     && npm --prefix infra/services/dwg ci --prefer-offline --no-audit \
     && npm --prefix infra/services/dwg run build:parser \
     && npm --prefix infra/services/dwg run build:cad-io-host
@@ -30,6 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 ENV PATH="/opt/planm/bin:${PATH}" \
     PLANM_REPOSITORY_ROOT=/app \
     PLANM_RUNS_ROOT=/data/planm-runs \
+    PLANM_AGENT_URL=http://host.docker.internal:8308 \
     PYTHONUNBUFFERED=1
 
 RUN mkdir -p /data/planm-runs
