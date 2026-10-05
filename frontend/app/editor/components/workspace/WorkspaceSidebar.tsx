@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { MapPin, Box, Moon, Sun } from 'lucide-react'
+import { MapPin, Box, Moon, Sun, Rocket } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from './theme/useTheme'
 export function WorkspaceSidebar() {
@@ -21,6 +21,7 @@ export function WorkspaceSidebar() {
     { href: '/build', label: 'Team Builder', Icon: Box },
     { href: '/gallery', label: 'Gallery', Icon: Box },
     { href: '/history', label: 'History', Icon: Box },
+    { href: '/deploy', label: 'Deploy', Icon: Rocket },
     { href: '/settings', label: i18n.t('nav.settings'), Icon: Box },
   ]
   return (
