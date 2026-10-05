@@ -6,6 +6,7 @@ agent, complete and error events.
 """
 import asyncio
 import json
+import sqlite3
 import time
 
 from backend.app.adapters.workspace_team import close_team, load_team
@@ -40,7 +41,7 @@ def configured_team(team, environment):
     try:
         saved = CatalogRepository(directory).find_team(LAND_TEAM_LABEL)
         saved_environment = SettingsRepository(directory).get()['config'].get('environment', [])
-    except OSError:
+    except (OSError, sqlite3.Error):
         return team or LAND_TEAM, list(environment or [])
     return team or saved or LAND_TEAM, list(environment or saved_environment)
 
@@ -57,35 +58,47 @@ async def agent_analysis_events(*, pnu, address, zones, services, team, environm
     yield {'status': 'quick_done', 'regulations': result, 'progress': 0.30}
     yield {'status': 'analyzing', 'phase': 'agent_connect', 'phase_name': '에이전트 팀 연결', 'progress': 0.32}
 
-    from autogen_agentchat.base import TaskResult
-    from autogen_agentchat.messages import BaseChatMessage
-
     started = time.monotonic()
-    turn, tokens, report, loaded = 0, 0, '', None
+    deadline = started + timeout
+    turn, tokens, report, loaded, stream = 0, 0, '', None, None
     try:
+        from autogen_agentchat.base import TaskResult
+        from autogen_agentchat.messages import BaseChatMessage
+
         loaded = load_team(team, None, environment)
-        async with asyncio.timeout(timeout):
-            async for event in loaded.run_stream(task=task_prompt(result, pnu, address)):
-                if isinstance(event, TaskResult):
-                    break
-                if not isinstance(event, BaseChatMessage) or event.source == 'user':
-                    continue
-                content = event.to_text()
-                if not isinstance(content, str) or not content.strip():
-                    continue
-                usage = getattr(event, 'models_usage', None)
-                if usage is not None:
-                    tokens += usage.prompt_tokens + usage.completion_tokens
-                turn += 1
-                report = content
-                yield {'status': 'agent', 'agent': event.source, 'content': content,
-                       'progress': round(min(0.35 + turn * 0.08, 0.92), 2), 'turn': turn}
+        stream = loaded.run_stream(task=task_prompt(result, pnu, address))
+        # The deadline bounds each step rather than wrapping the yields: asyncio.timeout
+        # around a suspended generator would cancel the consumer instead of raising here.
+        while True:
+            try:
+                event = await asyncio.wait_for(anext(stream), max(0.0, deadline - time.monotonic()))
+            except StopAsyncIteration:
+                break
+            if isinstance(event, TaskResult):
+                break
+            if not isinstance(event, BaseChatMessage) or event.source == 'user':
+                continue
+            content = event.to_text()
+            if not isinstance(content, str) or not content.strip():
+                continue
+            usage = getattr(event, 'models_usage', None)
+            if usage is not None:
+                tokens += usage.prompt_tokens + usage.completion_tokens
+            turn += 1
+            report = content
+            yield {'status': 'agent', 'agent': event.source, 'content': content,
+                   'progress': round(min(0.35 + turn * 0.08, 0.92), 2), 'turn': turn}
     except Exception:
         # Provider errors can embed credentials; the message stays generic.
         yield {'status': 'error', 'message': '에이전트 실행 중 오류가 발생했습니다. 빠른 분석 결과만 표시합니다.',
                'fallback_to_quick': True}
         return
     finally:
+        if stream is not None:
+            try:
+                await stream.aclose()
+            except Exception:
+                pass
         if loaded is not None:
             await close_team(loaded)
     yield {'status': 'complete', 'report': report,

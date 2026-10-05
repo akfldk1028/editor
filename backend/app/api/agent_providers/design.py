@@ -38,7 +38,7 @@ def research_bundle(request):
     if not isinstance(body, dict) or not isinstance(body.get("candidate"), dict):
         return _bad("candidate object is required")
     run_id, pnu = str(body.get("run_id") or ""), str(body.get("pnu") or "")
-    if not RUN_ID.match(run_id) or not pnu:
+    if not RUN_ID.fullmatch(run_id) or not pnu:
         return _bad("run_id (slug) and pnu are required")
     from backend.app.modules.design.generation.maas.creative_research_bundle import write_creative_mass_research_bundle
 
@@ -47,6 +47,8 @@ def research_bundle(request):
     try:
         bundle = write_creative_mass_research_bundle(body["candidate"], run_directory=run_directory, run_id=run_id, pnu=pnu)
     except (ValueError, TypeError, KeyError) as exc:
+        if not any(run_directory.iterdir()):
+            run_directory.rmdir()  # a refused candidate leaves nothing behind
         return _bad(f"{type(exc).__name__}: {exc}")
     except OSError as exc:
         return JsonResponse({"success": False, "error": f"{type(exc).__name__}: {exc}"}, status=502)

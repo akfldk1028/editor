@@ -53,8 +53,12 @@ def create_agent_provider_router(*, public_origin=None):
         if request.headers.get('sec-fetch-site') == 'cross-site' or (
                 request.headers.get('origin') and request.headers['origin'] != origin):
             raise HTTPException(403, 'Cross-origin provider requests are not allowed')
+        limit = BODY_LIMITS.get((domain, operation), DEFAULT_BODY_LIMIT)
+        declared = request.headers.get('content-length')
+        if declared and declared.isdigit() and int(declared) > limit:
+            raise HTTPException(413, 'Provider request is too large')
         body = await request.body()
-        if len(body) > BODY_LIMITS.get((domain, operation), DEFAULT_BODY_LIMIT):
+        if len(body) > limit:
             raise HTTPException(413, 'Provider request is too large')
         try:
             value = json.loads(body)

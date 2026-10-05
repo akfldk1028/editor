@@ -16,6 +16,9 @@ def test_research_bundle_validates_its_request_and_names_the_bundle_root(tmp_pat
     refused = api.post('/api/v1/design/agent/research-bundle',
                        json={'candidate': {}, 'run_id': 'kmass-run-1', 'pnu': '4115011300106840001'})
     assert refused.status_code == 400, refused.text
-    assert (tmp_path / 'runtime' / 'research-bundles' / 'kmass-run-1').is_dir()
+    assert (tmp_path / 'runtime' / 'research-bundles').is_dir()
+    assert not (tmp_path / 'runtime' / 'research-bundles' / 'kmass-run-1').exists()  # a refusal leaves nothing behind
+    assert api.post('/api/v1/design/agent/research-bundle',
+                    json={'candidate': {}, 'run_id': 'kmass-run-1\n', 'pnu': '1'}).status_code == 400
     assert api.post('/api/v1/design/agent/research-bundle', json={'candidate': {}, 'run_id': 'r', 'pnu': '1'},
                     headers={'Origin': 'http://other.test'}).status_code == 403

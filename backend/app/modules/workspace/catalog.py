@@ -69,13 +69,13 @@ class CatalogRepository:
         now = datetime.now(timezone.utc).isoformat()
         with self.connect() as db:
             db.execute('CREATE TABLE IF NOT EXISTS seeds (name TEXT PRIMARY KEY, record_id INTEGER NOT NULL)')
-            seeded = {row[0] for row in db.execute('SELECT name FROM seeds')}
             for name, kind, payload in entries:
-                if name in seeded:
+                # The marker row is claimed first, so two workers seeding at once insert one record.
+                if db.execute('INSERT OR IGNORE INTO seeds VALUES (?, 0)', (name,)).rowcount != 1:
                     continue
                 identifier = db.execute('INSERT INTO records(kind,version,payload,created_at,updated_at) VALUES (?,0,?,?,?)',
                                         (kind, self.encode(payload), now, now)).lastrowid
-                db.execute('INSERT INTO seeds VALUES (?,?)', (name, identifier))
+                db.execute('UPDATE seeds SET record_id=? WHERE name=?', (identifier, name))
 
     def find_team(self, label):
         for record in self.list('teams'):

@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5173,
     proxy: {
-      "/api/v1": loadEnv(mode, '.', 'EDITOR_').EDITOR_BACKEND_URL || "http://127.0.0.1:8000",
+      "/api/v1": loadEnv(mode, '.', 'EDITOR_').EDITOR_BACKEND_URL || "http://127.0.0.1:18449",
       "/api": "http://127.0.0.1:4317",
       // ws for Next's dev hot-reload socket.
       "/editor": { target: "http://127.0.0.1:3002", ws: true },

@@ -40,8 +40,9 @@ def apply_environment(component, environment):
 
 def _fill(value, values):
     if isinstance(value, dict):
+        # The provider alone identifies a model client; component_type is optional in autogen.
         fields = MODEL_CREDENTIAL_FIELDS.get(value.get("provider"))
-        if fields and value.get("component_type") == "model":
+        if fields:
             config = value.setdefault("config", {})
             if isinstance(config, dict):
                 for field, name in fields.items():
