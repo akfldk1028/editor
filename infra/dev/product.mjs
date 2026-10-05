@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   createServiceDefinitions,
+  createNativeServiceDefinitions,
   probeService,
   stopOwnedProcesses,
   waitForService,
@@ -14,7 +15,8 @@ import { canManageService, ensureService as ensureManagedService, settleStartup 
 
 const repositoryRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const logRoot = resolve(repositoryRoot, "logs/dev");
-const services = createServiceDefinitions(repositoryRoot);
+const native = process.argv.includes('--native-editor');
+const services = native ? createNativeServiceDefinitions(repositoryRoot) : createServiceDefinitions(repositoryRoot);
 const ownedProcesses = [];
 let shuttingDown = false;
 
@@ -24,25 +26,34 @@ async function main() {
   await mkdir(logRoot, { recursive: true });
   try {
     // Everything that does not depend on another service starts together.
-    await ensureService(services.arr);
+    if (services.arr) await ensureService(services.arr);
     await ensureService(services.orchestrator);
     await settleStartup([
       () => ensureService(services.pascalMcp),
-      () => ensureService(services.dwg),
+      ...(services.dwg ? [() => ensureService(services.dwg)] : []),
       () => ensureService(services.editor),
     ]);
     // The backend reads PASCAL_MCP_URL when it publishes, so bring it up after.
     await ensureService(services.backend);
-    await ensureService(services.frontend);
-    const page = await fetch(services.frontend.publicUrl, { signal: AbortSignal.timeout(5_000) });
-    if (!page.ok || !(await page.text()).includes("id=\"root\"")) {
-      throw new Error("Frontend HTML contract failed after API readiness.");
+    if (native) {
+      const response = await fetch(`${services.editor.publicUrl}/api/v1/platform/projects`, { signal: AbortSignal.timeout(10_000) });
+      if (!response.ok || !Array.isArray(await response.json())) {
+        throw new Error('Native Editor-to-backend project route failed after service readiness.');
+      }
+      console.log(`\nEditor project API connected: ${services.editor.publicUrl}`);
+      console.log('  Shared agents remain external; their execution readiness is checked separately.');
+    } else {
+      await ensureService(services.frontend);
+      const page = await fetch(services.frontend.publicUrl, { signal: AbortSignal.timeout(5_000) });
+      if (!page.ok || !(await page.text()).includes("id=\"root\"")) {
+        throw new Error("Frontend HTML contract failed after API readiness.");
+      }
+      console.log(`\nPLAN product ready: ${services.frontend.publicUrl}`);
+      console.log("  DWG workspace and PLANM planning share that shell.");
+      console.log(`Pascal editor:      ${services.editor.publicUrl}`);
+      console.log("  An approved PLANM alternative publishes into it via");
+      console.log("  POST /api/v1/planm/runs/{run_id}/pascal\n");
     }
-    console.log(`\nPLAN product ready: ${services.frontend.publicUrl}`);
-    console.log("  DWG workspace and PLANM planning share that shell.");
-    console.log(`Pascal editor:      ${services.editor.publicUrl}`);
-    console.log("  An approved PLANM alternative publishes into it via");
-    console.log("  POST /api/v1/planm/runs/{run_id}/pascal\n");
     if (ownedProcesses.length === 0) return;
     await waitForShutdown();
   } catch (error) {

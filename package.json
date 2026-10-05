@@ -26,6 +26,7 @@
     "release:cli": "gh workflow run release.yml -f package=cli -f bump=patch",
     "release:minor": "gh workflow run release.yml -f package=all -f bump=minor",
     "release:major": "gh workflow run release.yml -f package=all -f bump=major",
+    "editor:dev": "dotenv -e ./.env -e ./.env.defaults -- node infra/dev/product.mjs --native-editor",
     "plan:dev": "node infra/dev/product.mjs",
     "plan:dev:docker": "docker compose -f infra/docker/compose.yml up --build",
     "plan:dev:docker:down": "docker compose -f infra/docker/compose.yml down",

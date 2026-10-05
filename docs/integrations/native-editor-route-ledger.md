@@ -45,3 +45,5 @@ Original visual comparison; direct load/reload/back navigation; controls and act
 Current test/runtime limitations are recorded in [the active correction checkpoint](2026-10-05-native-editor-ui-correction.md). Do not silently mark planned routes implemented or count the old PLANM surface as native parity.
 
 Latest increment: [native flow and bootstrap verification](2026-10-05-native-flow-integration.md). The shared client wrapper no longer imports scene plugins; root Editor and scene loader retain synchronous registration. This source/bundle separation has passed checks, but native runtime recovery is not verified.
+
+Subsequent wiring: [native frontend/backend connection](2026-10-05-native-backend-wiring.md) adds actual project binding and health submission controls/BFF routes plus the `editor:dev` native profile. Static/unit/component checks passed; the live Next/owner loop remains open. This does not close original design or Playground parity.

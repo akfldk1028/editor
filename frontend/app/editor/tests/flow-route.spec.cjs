@@ -3,9 +3,9 @@ const { test, expect } = require('@playwright/test');
 test('flow preserves project/run scope and original controls without invented participants', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  const project = { project_id: 'p1', owner_project_id: 'owner1', branch_id: 'main', scene_id: 'scene1', scene_revision: 0 };
-  const run = { run_id: 'r1', owner_project_id: 'owner1', branch_id: 'main', status: 'partial', goal: 'health', pending_input: true,
-    communications_available: true, communications: [{ id: 'c1', task_id: 't1', tool: 'health', agent: 'systems', state: 'blocked', request_text: '설비 연결 확인', response_text: '설정 필요', transport: 'a2a' }] };
+  const project = { project_id: 'p1', owner_project_id: 'owner1', branch_id: 'main', scene_id: 'scene1', scene_revision: 0, scene_project_id: null };
+  const run = { run_id: 'r1', request_id: 'req1', receipt_task_ids: ['t1'], owner_project_id: 'owner1', branch_id: 'main', status: 'partial', goal: 'health', pending_input: true,
+    communications_available: true, communications_truncated: false, communications: [{ id: 'c1', task_id: 't1', tool: 'health', agent: 'systems', state: 'blocked', request_text: '설비 연결 확인', response_text: '설정 필요', transport: 'a2a', truncated: false }] };
   await page.route('**/api/v1/platform/projects', r => r.fulfill({ json: [project] }));
   await page.route('**/api/v1/platform/projects/p1/runs', r => r.fulfill({ json: [run] }));
   await page.route('**/api/v1/platform/runs/r1?project_id=p1', r => r.fulfill({ json: run }));

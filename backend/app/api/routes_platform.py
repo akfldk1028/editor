@@ -20,6 +20,14 @@ def create_platform_router(
     router = APIRouter(prefix='/api/v1/platform', tags=['platform'])
     allowed_origin = public_origin or os.environ.get('EDITOR_PUBLIC_URL', 'http://127.0.0.1:5173')
 
+    @router.get('/health')
+    async def health():
+        return {'service': 'editor-platform', 'public_origin': allowed_origin,
+                'scene_url': os.environ.get('EDITOR_SCENE_URL'),
+                'storage_configured': all(os.environ.get(key) for key in (
+                    'EDITOR_PLATFORM_DATA_DIR', 'EDITOR_LAND_DATA_DIR', 'EDITOR_DESIGN_DATA_DIR')),
+                'owner_configured': bool(os.environ.get('EDITOR_ORCHESTRATOR_URL'))}
+
     def projects_service():
         nonlocal project_service
         if project_service is None:

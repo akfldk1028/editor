@@ -8,6 +8,8 @@ import { listProjects, type ProjectBinding } from './projects';
 import { getRun, listRuns, type RunSummary } from './runs';
 import { toTranscript } from './transcript';
 import MASDialoguePanel from './MASDialoguePanel';
+import { ProjectConnection } from './ProjectConnection';
+import { HealthExecution } from './HealthExecution';
 
 const RunFlow = dynamic(() => import('../agent-flow/RunFlow'), { ssr: false });
 
@@ -54,11 +56,13 @@ export default function DialoguePage({ projectId, runId, view = 'dialogue' }: { 
     router.replace(`/${view}${query.size ? '?' + query : ''}`);
   }
   const selectClass = 'rounded-lg border border-(--color-border-default) bg-(--color-surface-card) p-2 text-(--color-text-primary)';
+  const project = projects.find(p => p.project_id === projectId);
   return <div className="space-y-4">
     <h1 className="text-heading-medium text-(--color-text-primary)">{view === 'flow' ? '에이전트 협업 흐름도' : '에이전트 협업 대화'}</h1>
     <nav aria-label="대화 표시 방식" className="flex gap-4 text-(--color-text-secondary)">
       {(['dialogue', 'flow'] as const).map(mode => <Link key={mode} aria-current={view === mode ? 'page' : undefined} href={`/${mode}?${new URLSearchParams({ project_id: projectId, run_id: runId })}`}>{mode === 'flow' ? '협업 흐름도' : '대화 타임라인'}</Link>)}
     </nav>
+    <ProjectConnection onConnected={p => { navigate(p.project_id); setRefresh(v => v + 1); }} />
     <div className="flex flex-wrap gap-3">
       <label className="text-(--color-text-secondary)">프로젝트 <select aria-label="프로젝트 선택" className={selectClass} value={projectId} onChange={e => navigate(e.target.value)}>
         <option value="">프로젝트 선택</option>
@@ -70,6 +74,7 @@ export default function DialoguePage({ projectId, runId, view = 'dialogue' }: { 
       </select></label>
       <button type="button" className={selectClass} disabled={loading} onClick={() => setRefresh(v => v + 1)}>목록 새로고침</button>
     </div>
+    {project && !error && <HealthExecution key={`${project.project_id}:${project.scene_revision}`} project={project} onSubmitted={id => navigate(project.project_id, id)} />}
     {error && <p role="alert" className="text-red-500">{error}</p>}
     {loading && !run && <p role="status">대화 기록을 불러오는 중입니다...</p>}
     {!loading && !error && !run && <p role="status">{projectId && runs.length === 0 ? '이 프로젝트에 저장된 실행이 없습니다.' : '프로젝트와 실행을 선택하면 저장된 요청·응답을 표시합니다.'}</p>}

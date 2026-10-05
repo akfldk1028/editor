@@ -4,10 +4,13 @@ export interface RunSummary extends Communications {
   run_id: string; request_id: string; owner_project_id: string; branch_id: string;
   goal: string; status: string; receipt_task_ids: string[]; pending_input: boolean;
 }
+export interface RunContext { scene_revision: number; source_versions: Record<string, number> }
 
 async function request(path: string, options?: RequestInit) {
   const response = await fetch((process.env.NEXT_PUBLIC_BASE_PATH || '') + '/api/v1/platform' + path, options);
-  if (!response.ok) throw new Error(`실행 연결 실패 (${response.status})`);
+  if (!response.ok) throw new Error(options?.method === 'POST' && response.status >= 500
+    ? '실행 접수 여부를 확인하지 못했습니다. 같은 요청으로 다시 확인하거나 실행 목록을 조회하세요.'
+    : `실행 연결 실패 (${response.status})`);
   return response.json();
 }
 function parseRun(value: unknown): RunSummary {
@@ -25,4 +28,21 @@ export async function listRuns(projectId: string, signal?: AbortSignal): Promise
 }
 export async function getRun(projectId: string, runId: string, signal?: AbortSignal): Promise<RunSummary> {
   return parseRun(await request(`/runs/${encodeURIComponent(runId)}?project_id=${encodeURIComponent(projectId)}`,{signal}));
+}
+
+export async function getRunContext(projectId: string, signal?: AbortSignal): Promise<RunContext> {
+  const value = await request(`/projects/${encodeURIComponent(projectId)}/context`, { signal });
+  if (!value || !Number.isInteger(value.scene_revision) || value.scene_revision < 0 || !value.source_versions ||
+    typeof value.source_versions !== 'object' || Array.isArray(value.source_versions) ||
+    !Object.values(value.source_versions).every(v => Number.isInteger(v) && Number(v) >= 0)) {
+    throw new Error('원본 버전 응답이 올바르지 않습니다.');
+  }
+  return value;
+}
+
+export async function submitHealth(projectId: string, context: RunContext, key: string, signal?: AbortSignal): Promise<RunSummary> {
+  return parseRun(await request(`/projects/${encodeURIComponent(projectId)}/runs`, { method: 'POST', signal,
+    headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
+    body: JSON.stringify({ ...context, request: { goal: 'health' } }),
+  }));
 }

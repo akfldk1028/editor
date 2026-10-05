@@ -29,3 +29,7 @@ export async function listProjects(signal?: AbortSignal): Promise<ProjectBinding
   if (!Array.isArray(data)) throw new Error('프로젝트 목록 형식이 올바르지 않습니다.');
   return data.map(parseBinding);
 }
+
+export async function connectProject(input: Omit<ProjectBinding, 'project_id'>, signal?: AbortSignal): Promise<ProjectBinding> {
+  return parseBinding(await request('', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input), signal }));
+}
