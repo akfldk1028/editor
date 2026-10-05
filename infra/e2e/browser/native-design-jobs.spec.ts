@@ -43,7 +43,7 @@ async function fill(page:Page){
 
 test('native specification requires a parcel and explicit options, saves original input and reopens without execution',async({page})=>{
   const writes=await setup(page);await page.goto('/projects/native-project');
-  await expect(panel(page).getByText('명세 저장 · 실행 미연결',{exact:true}).first()).toBeVisible();
+  await expect(panel(page).getByText('명세 저장 · additive 계산 지원',{exact:true}).first()).toBeVisible();
   await expect(panel(page).getByLabel('대지 경계 GeoJSON (WGS84 Polygon)')).toHaveValue('');
   await fill(page);
   await panel(page).getByLabel('PNU (선택)').fill('1168011200101280003');
@@ -129,7 +129,7 @@ test('actual native specification stores a synthetic parcel and reopens without 
   expect(job.prepared.job_spec.options).toMatchObject({...options,building_type:'업무시설',algorithm:'grid'});
   await page.reload();
   await panel(page).getByRole('button',{name:`명세 보기 · ${job.job_id}`,exact:true}).click();
-  await expect(panel(page).locator('.native-design-detail')).toContainText('명세 저장 · 실행 미연결');
+  await expect(panel(page).locator('.native-design-detail')).toContainText('명세 저장');
   await expect(panel(page).getByRole('img')).toBeVisible();
   const reopened=await request.get(`/api/v1/platform/projects/${projectId}/design/native-jobs/${job.job_id}`);
   expect(reopened.ok()).toBeTruthy();expect(await reopened.json()).toEqual(job);

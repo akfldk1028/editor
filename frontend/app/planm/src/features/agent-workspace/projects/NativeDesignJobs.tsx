@@ -3,6 +3,7 @@ import {createNativeDesignJob, nativeDesignJob, nativeDesignJobs, type NativeDes
   type NativeDesignRequest, type NativeDesignSummary} from '../api/native-designs';
 import type {ProjectBinding} from '../api/projects';
 import {DesignFootprint} from './DesignFootprint';
+import {DesignExecutionPanel} from './DesignExecutionPanel';
 import './saved-designs.css';
 import './native-design-jobs.css';
 
@@ -94,7 +95,7 @@ export function NativeDesignJobs({project}: {project: ProjectBinding}) {
       const value = await createNativeDesignJob(project.project_id,body,controller.signal);
       if (!controller.signal.aborted) {
         setActive(value.job_id); setDetail(value); setDetailError(null); setOffset(0); setRefresh(value => value + 1);
-        setNotice('설계 명세를 저장했습니다. 생성 실행은 아직 연결되지 않았습니다.');
+        setNotice('설계 명세를 저장했습니다. 상세에서 지원되는 계산을 별도로 시작할 수 있습니다.');
       }
     } catch (reason) {if (!controller.signal.aborted) setFormError(message(reason));}
     finally {pending.current = false; if (!controller.signal.aborted) setBusy(false);}
@@ -112,7 +113,7 @@ export function NativeDesignJobs({project}: {project: ProjectBinding}) {
 
   return <section className="native-design-jobs" aria-labelledby="native-design-heading">
     <h2 id="native-design-heading">신규 설계 명세</h2>
-    <p className="native-design-state">명세 저장 · 실행 미연결</p>
+    <p className="native-design-state">명세 저장 · additive 계산 지원</p>
     <p>확인한 대지 경계와 설계 조건을 이 프로젝트에 저장합니다. 생성 작업은 시작되지 않으며 설계 결과나 적합성 판정이 만들어지지 않습니다.</p>
     <form onSubmit={save}>
       <fieldset disabled={busy}>
@@ -146,7 +147,7 @@ export function NativeDesignJobs({project}: {project: ProjectBinding}) {
     {items?.length === 0 && <p>{offset === 0 ? '저장된 신규 설계 명세가 없습니다.' : '이 페이지에 저장된 명세가 없습니다.'}</p>}
     <ul>{items?.map(item => <li key={item.job_id}>
       <p>{item.building_type} · {item.algorithm} · 대지 {item.site_area_m2.toLocaleString(undefined,{maximumFractionDigits:2})} m²</p>
-      <small>명세 저장 · 실행 미연결 · {item.created_at}</small>
+      <small>명세 저장 · {item.created_at}</small>
       <button aria-pressed={active === item.job_id} onClick={() => setActive(item.job_id)}>명세 보기 · {item.job_id}</button>
     </li>)}</ul>
     <div className="native-design-pagination">
@@ -159,7 +160,7 @@ export function NativeDesignJobs({project}: {project: ProjectBinding}) {
       {detailError && <p role="alert">{detailError}</p>}
       {!detail && !detailError && <p role="status">명세 상세를 불러오는 중…</p>}
       {detail && <>
-        <p>{detail.job_id} · 명세 저장 · 실행 미연결</p>
+        <p>{detail.job_id} · 명세 저장</p>
         <p>{detail.building_type} · {detail.algorithm} · 대지 면적 {detail.site_area_m2.toLocaleString(undefined,{maximumFractionDigits:2})} m²</p>
         <p>준비 명세: 최대 세대 {detail.max_generations} · 개체 수 {detail.population_size}</p>
         <small title={detail.input_sha256}>입력 보존값: {detail.input_sha256.slice(0,12)}… · 장면 버전 {detail.scene_revision}</small>
@@ -167,6 +168,7 @@ export function NativeDesignJobs({project}: {project: ProjectBinding}) {
         <DesignFootprint geometry={detail.input.site_polygon} context={{crs:'EPSG:4326',coordinates:'경도, 위도',geometry_role:'사용자가 입력한 대지 경계'}} />
         <details open><summary>원본 입력 · 제약 조건과 설계 옵션</summary><pre>{JSON.stringify(detail.input,null,2)}</pre></details>
         <details><summary>준비된 전체 명세</summary><pre>{JSON.stringify(detail.prepared,null,2)}</pre></details>
+        <DesignExecutionPanel key={detail.job_id} projectId={project.project_id} jobId={detail.job_id} revision={project.scene_revision} algorithm={detail.algorithm}/>
       </>}
     </article>}
   </section>;

@@ -1,0 +1,6 @@
+.design-execution { margin-top:24px; padding:20px; border:1px solid #bdcfc5; border-radius:8px; background:#f7faf8; }
+.design-execution .execution-consent { display:flex; align-items:center; gap:10px; }
+.design-execution input[type=checkbox] { width:auto; }
+.execution-result dl { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+.execution-result dt { font-size:12px; color:#526158; }
+.execution-result dd { margin:4px 0; font-weight:600; }
