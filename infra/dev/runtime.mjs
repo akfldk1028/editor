@@ -40,7 +40,7 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
     },
     planAgent: {
       name: 'plan-agent',
-      healthUrl: `${(process.env.PLANM_AGENT_URL || 'http://127.0.0.1:8308').replace(/\/$/, '')}/health`,
+      healthUrl: `${(process.env.PLANM_AGENT_URL || 'http://127.0.0.1:8309').replace(/\/$/, '')}/health`,
       timeoutMs: 5_000,
       validate: ({ body }) => body?.agent === 'plan' && Array.isArray(body?.tools) && body.tools.includes('plan_stage'),
       describe: ({ body }) => `Plan Agent ${body?.version ?? ''} answering plan_stage and plan_generate`,
@@ -52,7 +52,7 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       cwd: resolve(repositoryRoot),
       env: {
         EDITOR_ORCHESTRATOR_URL: 'http://127.0.0.1:8791',
-        PLANM_AGENT_URL: process.env.PLANM_AGENT_URL || 'http://127.0.0.1:8308',
+        PLANM_AGENT_URL: process.env.PLANM_AGENT_URL || 'http://127.0.0.1:8309',
         EDITOR_LAND_DATA_DIR: process.env.EDITOR_LAND_DATA_DIR || resolve(repositoryRoot, 'runtime/editor/land'),
         EDITOR_DESIGN_DATA_DIR: process.env.EDITOR_DESIGN_DATA_DIR || resolve(repositoryRoot, 'runtime/editor/design'),
         EDITOR_PUBLIC_URL: `http://127.0.0.1:${FRONTEND_PORT}`,

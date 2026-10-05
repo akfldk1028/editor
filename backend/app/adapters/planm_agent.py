@@ -16,7 +16,7 @@ import httpx
 from backend.app.core.json_contracts import validate_planm_contract
 
 PLANM_AGENT_URL_ENV = "PLANM_AGENT_URL"
-DEFAULT_URL = "http://127.0.0.1:8308"
+DEFAULT_URL = "http://127.0.0.1:8309"
 
 
 class PlanmClient:

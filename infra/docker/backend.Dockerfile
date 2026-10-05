@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 ENV PATH="/opt/planm/bin:${PATH}" \
     PLANM_REPOSITORY_ROOT=/app \
     PLANM_RUNS_ROOT=/data/planm-runs \
-    PLANM_AGENT_URL=http://host.docker.internal:8308 \
+    PLANM_AGENT_URL=http://host.docker.internal:8309 \
     PYTHONUNBUFFERED=1
 
 RUN mkdir -p /data/planm-runs

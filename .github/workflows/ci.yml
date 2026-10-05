@@ -77,7 +77,7 @@ jobs:
           python -m pip install -e .
           python -m pip install pytest
 
-      # PLANM stages run in the Plan Agent (agents/planm, port 8308); the backend
+      # PLANM stages run in the Plan Agent (agents/planm, port 8309); the backend
       # only talks to it over HTTP. Tests that need the live agent skip when
       # PLANM_AGENT_URL does not answer.
       - name: Backend tests

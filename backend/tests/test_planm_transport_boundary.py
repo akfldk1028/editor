@@ -6,7 +6,7 @@ from pathlib import Path
 
 BACKEND = Path(__file__).parents[1] / "app"
 OWNER = BACKEND / "adapters" / "planm_agent.py"
-FORBIDDEN = ("PLANM_AGENT_URL", "8308", "/planm/stage", "/planm/generate", "agent-card.json", "SendMessage")
+FORBIDDEN = ("PLANM_AGENT_URL", "8309", "/planm/stage", "/planm/generate", "agent-card.json", "SendMessage")
 
 
 def test_only_the_plan_agent_adapter_knows_the_agent():
