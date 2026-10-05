@@ -38,3 +38,8 @@ class SettingsUpdate(StrictModel):
     config: SettingsConfig
 
 
+class SessionCreate(StrictModel):
+    name: str = Field(min_length=1, max_length=200, pattern=r'\S')
+    team_id: int = Field(gt=0)
+
+

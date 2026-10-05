@@ -20,6 +20,7 @@ export function WorkspaceSidebar() {
     { href: '/flow', label: '협업 흐름도', Icon: Box },
     { href: '/build', label: 'Team Builder', Icon: Box },
     { href: '/gallery', label: 'Gallery', Icon: Box },
+    { href: '/history', label: 'History', Icon: Box },
     { href: '/settings', label: i18n.t('nav.settings'), Icon: Box },
   ]
   return (
