@@ -32,13 +32,6 @@ export function EnvironmentVariablesCard() {
     }
   }, [settings])
 
-  // Re-sync after successful save
-  useEffect(() => {
-    if (updateSettings.isSuccess && settings?.config?.environment) {
-      setEnvVars(settings.config.environment)
-    }
-  }, [updateSettings.isSuccess, settings])
-
   const isDirty = useMemo(() => {
     if (!settings?.config?.environment) return envVars.length > 0
     return JSON.stringify(envVars) !== JSON.stringify(settings.config.environment)

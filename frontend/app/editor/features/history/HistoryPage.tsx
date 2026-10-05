@@ -103,6 +103,7 @@ export function HistoryPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {compareSession0 ? (
             <SessionDetailPanel
+              key={compareSession0.id}
               sessionId={compareSession0.id ?? 0}
               sessionName={compareSession0.name || `Session #${compareSession0.id}`}
               onClose={handleCloseCompare0}
@@ -116,6 +117,7 @@ export function HistoryPage() {
           )}
           {compareSession1 ? (
             <SessionDetailPanel
+              key={compareSession1.id}
               sessionId={compareSession1.id ?? 0}
               sessionName={compareSession1.name || `Session #${compareSession1.id}`}
               onClose={handleCloseCompare1}
@@ -133,6 +135,7 @@ export function HistoryPage() {
       {/* Single session detail */}
       {!compareMode && selectedSession && (
         <SessionDetailPanel
+          key={selectedSession.id}
           sessionId={selectedSession.id ?? 0}
           sessionName={selectedSession.name || `Session #${selectedSession.id}`}
           onClose={handleCloseDetail}

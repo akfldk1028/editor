@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, ValidationError
 from backend.app.modules.workspace.catalog import CatalogRepository, CatalogConflict, validate_component
+from backend.app.modules.workspace.validation import validate_template_shape
 
 
 class TeamPayload(BaseModel):
@@ -41,18 +42,28 @@ def create_catalog_router(directory):
             raise HTTPException(422, 'Invalid template fields') from None
         if collection == 'teams':
             component = result['component']
-            if component.get('component_type') != 'team' or not isinstance(component.get('config'), dict) or not isinstance(component.get('provider'), str):
-                raise HTTPException(422, 'A team component with provider and config is required')
+            try:
+                validate_template_shape(component, ('team',))
+            except ValueError as error:
+                raise HTTPException(422, str(error)) from None
         else:
             config = result['config']
             if not isinstance(config.get('name'), str) or not config['name'].strip() or not isinstance(config.get('components'), dict):
                 raise HTTPException(422, 'Gallery name and components are required')
+            metadata = config.get('metadata', {})
+            if not isinstance(metadata, dict) or any(metadata.get(key) is not None and not isinstance(metadata[key], str) for key in ('description', 'author', 'version')):
+                raise HTTPException(422, 'Gallery metadata must contain text fields')
+            if 'tags' in metadata and (not isinstance(metadata['tags'], list) or any(not isinstance(tag, str) for tag in metadata['tags'])):
+                raise HTTPException(422, 'Gallery tags must be a list of text values')
             for kind, items in config['components'].items():
                 if kind not in ('teams', 'agents', 'models', 'tools', 'terminations', 'workbenches') or not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
                     raise HTTPException(422, 'Invalid gallery component collection')
                 expected_type = {'teams': 'team', 'agents': 'agent', 'models': 'model', 'tools': 'tool', 'terminations': 'termination', 'workbenches': 'workbench'}[kind]
-                if any(item.get('component_type') != expected_type or not isinstance(item.get('provider'), str) or not item['provider'].strip() or not isinstance(item.get('config'), dict) for item in items):
-                    raise HTTPException(422, 'Gallery entries must have a matching component type, provider and config')
+                try:
+                    for item in items:
+                        validate_template_shape(item, (expected_type,))
+                except ValueError as error:
+                    raise HTTPException(422, str(error)) from None
         return result
 
     @router.post('/validate')

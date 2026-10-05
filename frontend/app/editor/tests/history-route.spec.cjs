@@ -22,6 +22,10 @@ test('original history keeps detail comparison and archive confirmation with nat
     await page.getByRole('button', { name: new RegExp(`${label} A`) }).click();
     const detail = page.getByRole('complementary', { name: 'Session detail' });
     await expect(detail.getByText('No runs in this session yet.')).toBeVisible();
+    await detail.getByLabel('Delete session').click();
+    await expect(detail.getByLabel('Delete session')).toHaveText('Confirm?');
+    await page.getByRole('button', { name: new RegExp(`${label} B`) }).click();
+    await expect(detail.getByLabel('Delete session')).not.toHaveText('Confirm?');
     await page.getByLabel('Compare sessions', { exact: true }).click();
     for (const suffix of ['A', 'B']) await page.getByRole('button', { name: new RegExp(`${label} ${suffix}`) }).click();
     await expect(page.getByRole('complementary', { name: 'Session detail' })).toHaveCount(2);
@@ -47,7 +51,7 @@ test('original history keeps detail comparison and archive confirmation with nat
 test('history renders recorded run messages and distinguishes retrieval failure', async ({ page }) => {
   await page.route('**/api/v1/workspace/sessions', route => route.fulfill({ json: [{ id: 901, name: 'Recorded fixture', team_id: 1 }] }));
   await page.route('**/api/v1/workspace/sessions/901/runs', route => route.fulfill({ json: { runs: [{
-    id: 902, status: 'error', error_message: 'Recorded tool failure', team_result: null,
+    id: 902, status: 'error', error_message: 'Recorded tool failure', team_result: { duration: 12.5, task_result: { messages: [] } },
     messages: [
       { config: { source: 'user', content: 'Recorded request' } },
       { config: { source: 'planner', target: 'reviewer', content: 'Check recorded result' } },
@@ -57,6 +61,7 @@ test('history renders recorded run messages and distinguishes retrieval failure'
   }] } }));
   await page.goto(`${base}/history`);
   await page.getByRole('button', { name: /Recorded fixture/ }).click();
+  await expect(page.getByRole('button', { name: /Run #902/ })).toContainText('12.5s');
   await page.getByRole('button', { name: /Run #902/ }).click();
   for (const text of ['Recorded request', 'Recorded tool failure', 'Recorded tool output', 'Handing off to']) {
     await expect(page.getByText(text, { exact: false })).toBeVisible();

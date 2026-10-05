@@ -46,7 +46,7 @@ export function RunCard({
           {run.team_result?.duration != null && (
             <span className="text-xs text-(--color-text-tertiary) flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {(run.team_result.duration / 1000).toFixed(1)}s
+              {run.team_result.duration.toFixed(1)}s
             </span>
           )}
           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

@@ -28,8 +28,18 @@ test('original gallery categories and import persist a team in native builder', 
     await expect(page.getByText('test_assistant', { exact: false }).first()).toBeVisible();
     await page.getByLabel('Enter edit mode').click();
     await page.getByLabel('Edit JSON', { exact: true }).click();
+    await page.getByLabel('Edit JSON configuration').fill(JSON.stringify({ ...component, config: { participants: 'broken' } }));
+    await page.getByLabel('Apply JSON changes').click();
+    await expect(page.getByText('participants must be a list')).toBeVisible();
     await page.getByLabel('Edit JSON configuration').fill(JSON.stringify({ ...component, description: 'Verified native edit' }));
     await page.getByLabel('Apply JSON changes').click();
+    await page.getByLabel('Undo', { exact: true }).click();
+    await expect(page.getByLabel('Undo', { exact: true })).toBeDisabled();
+    await page.getByLabel('Redo', { exact: true }).click();
+    await expect(page.getByLabel('Redo', { exact: true })).toBeDisabled();
+    await page.getByLabel('Close graph panel', { exact: true }).click();
+    await expect(page.getByRole('alertdialog', { name: 'Unsaved changes' })).toBeVisible();
+    await page.getByRole('button', { name: 'Stay', exact: true }).click();
     await page.locator('nav a[href="/gallery"]').click();
     await expect(page.getByRole('alertdialog', { name: 'Unsaved changes' })).toBeVisible();
     await page.getByRole('button', { name: 'Stay', exact: true }).click();
@@ -49,4 +59,32 @@ test('original gallery categories and import persist a team in native builder', 
     for (const team of teams.filter(team => team.component?.label === label)) await request.delete(`${base}/api/v1/workspace/teams/${team.id}`);
     await request.delete(`${base}/api/v1/workspace/galleries/${gallery.id}`);
   }
+});
+
+
+test('editing a termination limit preserves the original AND operator', async ({ page, request }) => {
+  const label = `AND review ${Date.now()}`;
+  const component = { provider: 'autogen_agentchat.teams.RoundRobinGroupChat', component_type: 'team', label, config: {
+    participants: [{ provider: 'autogen_agentchat.agents.UserProxyAgent', component_type: 'agent', config: { name: 'user_proxy' } }],
+    termination_condition: { provider: 'autogen_agentchat.conditions.AndTermination', component_type: 'termination', config: { conditions: [
+      { provider: 'autogen_agentchat.conditions.MaxMessageTermination', component_type: 'termination', config: { max_messages: 10 } },
+      { provider: 'autogen_agentchat.conditions.TimeoutTermination', component_type: 'termination', config: { timeout_seconds: 120 } },
+    ] } },
+  } };
+  const response = await request.post(`${base}/api/v1/workspace/teams`, { data: { component } });
+  expect(response.status()).toBe(201);
+  const team = await response.json();
+  try {
+    await page.goto(`${base}/build`);
+    await page.getByRole('heading', { name: label, exact: true }).click();
+    await page.getByLabel('Enter edit mode').click();
+    await page.getByRole('button', { name: /Termination Conditions/ }).click();
+    await page.getByLabel('Max messages', { exact: true }).fill('15');
+    const saved = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().endsWith(`/teams/${team.id}`));
+    await page.getByLabel('Save team changes').click();
+    expect((await saved).status()).toBe(200);
+    const updated = await (await request.get(`${base}/api/v1/workspace/teams/${team.id}`)).json();
+    expect(updated.component.config.termination_condition.provider).toBe('autogen_agentchat.conditions.AndTermination');
+    expect(updated.component.config.termination_condition.config.conditions[0].config.max_messages).toBe(15);
+  } finally { await request.delete(`${base}/api/v1/workspace/teams/${team.id}`); }
 });

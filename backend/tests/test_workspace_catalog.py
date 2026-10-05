@@ -45,3 +45,13 @@ def test_gallery_rejects_malformed_components_before_they_can_break_cards(tmp_pa
     response = api.post('/api/v1/workspace/galleries', json={'config': {'name': 'Bad', 'components': {'agents': [{}]}}})
     assert response.status_code == 422
     assert api.get('/api/v1/workspace/galleries').json() == []
+
+
+def test_team_storage_rejects_shapes_that_crash_the_builder(tmp_path, monkeypatch):
+    monkeypatch.setenv('EDITOR_WORKSPACE_DATA_DIR', str(tmp_path))
+    api = TestClient(create_app())
+    base = {'provider': 'test.Team', 'component_type': 'team', 'config': {}}
+    for patch in ({'config': {'participants': 'broken'}}, {'config': {'participants': [None]}}, {'label': {}}, {'provider': ' '}):
+        response = api.post('/api/v1/workspace/teams', json={'component': {**base, **patch}})
+        assert response.status_code == 422, patch
+    assert api.get('/api/v1/workspace/teams').json() == []

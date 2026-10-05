@@ -90,7 +90,13 @@ function buildCondition(type: TerminationType): Component<TerminationConfig> {
   }
 }
 
-function wrapInOr(conditions: Component<TerminationConfig>[]): Component<TerminationConfig> {
+function combineConditions(
+  conditions: Component<TerminationConfig>[],
+  previous?: Component<TerminationConfig>,
+): Component<TerminationConfig> {
+  if (previous && /(?:And|Or)Termination$/.test(previous.provider)) {
+    return { ...previous, config: { ...previous.config, conditions } as TerminationConfig }
+  }
   if (conditions.length === 1 && conditions[0]) return conditions[0]
   return {
     provider: 'autogen_agentchat.conditions.OrTermination',
@@ -111,16 +117,16 @@ export const TerminationEditor = memo(function TerminationEditor({
   const handleRemoveCondition = useCallback(
     (index: number) => {
       const updated = conditions.filter((_, i) => i !== index)
-      onChange(updated.length > 0 ? wrapInOr(updated) : undefined)
+      onChange(updated.length > 0 ? combineConditions(updated, value) : undefined)
     },
-    [conditions, onChange],
+    [conditions, onChange, value],
   )
 
   const handleAddCondition = useCallback(() => {
     const newCondition = buildCondition(addType)
     const updated = [...conditions, newCondition]
-    onChange(wrapInOr(updated))
-  }, [addType, conditions, onChange])
+    onChange(combineConditions(updated, value))
+  }, [addType, conditions, onChange, value])
 
   const handleUpdateConditionConfig = useCallback(
     (index: number, key: string, val: string | number) => {
@@ -128,9 +134,9 @@ export const TerminationEditor = memo(function TerminationEditor({
         if (i !== index) return c
         return { ...c, config: { ...c.config, [key]: val } as TerminationConfig }
       })
-      onChange(wrapInOr(updated))
+      onChange(combineConditions(updated, value))
     },
-    [conditions, onChange],
+    [conditions, onChange, value],
   )
 
   return (

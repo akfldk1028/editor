@@ -30,3 +30,23 @@ test('original settings save and reload through Editor and scope appearance to w
     expect(restored.ok()).toBe(true);
   }
 });
+
+
+test('saving UI preferences preserves a subsequent unsaved environment edit', async ({ page }) => {
+  let settings = { id: 1, version: 0, config: { ui: { show_llm_call_events: false, expanded_messages_by_default: false, show_agent_flow_by_default: false, human_input_timeout_minutes: 3 }, environment: [] } };
+  await page.route('**/api/v1/workspace/settings', async route => {
+    if (route.request().method() === 'PUT') settings = { ...route.request().postDataJSON(), version: settings.version + 1 };
+    await route.fulfill({ json: settings });
+  });
+  await page.goto(`${base}/settings`);
+  await page.getByLabel('New variable name').fill('REVIEW_DRAFT');
+  await page.getByLabel('New variable value').fill('saved-value');
+  await page.getByLabel('Add environment variable', { exact: true }).click();
+  await page.getByLabel('Save environment variables', { exact: true }).click();
+  await expect(page.getByLabel('Save environment variables', { exact: true })).toBeDisabled();
+  await page.getByRole('textbox', { name: 'Value for REVIEW_DRAFT', exact: true }).fill('unsaved-value');
+  await page.getByLabel('Human input timeout in minutes').fill('9');
+  await page.getByLabel('Save UI settings', { exact: true }).click();
+  await expect(page.getByLabel('Save UI settings', { exact: true })).toBeDisabled();
+  await expect(page.getByRole('textbox', { name: 'Value for REVIEW_DRAFT', exact: true })).toHaveValue('unsaved-value');
+});

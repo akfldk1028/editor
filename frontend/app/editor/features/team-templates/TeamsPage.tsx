@@ -21,6 +21,7 @@ import type {
   TerminationConfig,
 } from '@/lib/contracts/workspace'
 import { truncateError } from '@/lib/display-error'
+import { assertTeamShape } from '@/features/team-builder/model/component-shape'
 import {
   closestCenter,
   DndContext,
@@ -70,6 +71,14 @@ export function TeamsPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const editor = useTeamEditor()
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+  const requestAction = useCallback(
+    (action: () => void) => {
+      if (editor.isDirty) setPendingAction(() => action)
+      else action()
+    },
+    [editor.isDirty],
+  )
 
   // DnD sensors with distance constraint to distinguish click from drag
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
@@ -183,23 +192,28 @@ export function TeamsPage() {
     setSelectedNodeLabel(null)
   }, [])
 
-  const handleClosePanel = useCallback(() => {
-    if (editor.isEditing) editor.cancelEditing()
-    setSelectedTeamId(null)
-    setSelectedNodeLabel(null)
-    setShowJson(false)
-    setShowPatterns(false)
-  }, [editor])
+  const handleClosePanel = useCallback(
+    () =>
+      requestAction(() => {
+        if (editor.isEditing) editor.cancelEditing()
+        setSelectedTeamId(null)
+        setSelectedNodeLabel(null)
+        setShowJson(false)
+        setShowPatterns(false)
+      }),
+    [editor, requestAction],
+  )
 
   const handleSelectTeam = useCallback(
-    (teamId: number) => {
-      if (editor.isEditing) editor.cancelEditing()
-      setSelectedTeamId((prev) => (prev === teamId ? null : teamId))
-      setSelectedNodeLabel(null)
-      setShowJson(false)
-      setShowPatterns(false)
-    },
-    [editor],
+    (teamId: number) =>
+      requestAction(() => {
+        if (editor.isEditing) editor.cancelEditing()
+        setSelectedTeamId((prev) => (prev === teamId ? null : teamId))
+        setSelectedNodeLabel(null)
+        setShowJson(false)
+        setShowPatterns(false)
+      }),
+    [editor, requestAction],
   )
 
   const handleOpenCreate = useCallback(() => setCreateOpen(true), [])
@@ -209,22 +223,26 @@ export function TeamsPage() {
     setDeleteTarget(team)
   }, [])
 
-  const handleCloseDelete = useCallback(() => {
-    const deletedId = deleteTarget?.id
-    setDeleteTarget(null)
-    if (deletedId === selectedTeamId) {
-      setSelectedTeamId(null)
-      setSelectedNodeLabel(null)
-    }
-  }, [deleteTarget, selectedTeamId])
+  const handleCloseDelete = useCallback(() => setDeleteTarget(null), [])
+  const handleDeleted = useCallback(
+    (deletedId: number) => {
+      setDeleteTarget(null)
+      if (deletedId === selectedTeamId) {
+        editor.cancelEditing()
+        setSelectedTeamId(null)
+        setSelectedNodeLabel(null)
+      }
+    },
+    [editor, selectedTeamId],
+  )
 
   const handleToggleEdit = useCallback(() => {
     if (editor.isEditing) {
-      editor.cancelEditing()
+      requestAction(editor.cancelEditing)
     } else if (selectedTeam) {
       editor.startEditing(selectedTeam)
     }
-  }, [editor, selectedTeam])
+  }, [editor, selectedTeam, requestAction])
 
   const handleSave = useCallback(async () => {
     try {
@@ -297,16 +315,7 @@ export function TeamsPage() {
 
   const handleJsonChange = useCallback(
     (data: unknown) => {
-      // Basic schema guard: must have provider (string) and config (object)
-      if (
-        typeof data !== 'object' ||
-        data === null ||
-        typeof (data as Record<string, unknown>).provider !== 'string' ||
-        typeof (data as Record<string, unknown>).config !== 'object'
-      ) {
-        setSaveError('Invalid team component: must have "provider" (string) and "config" (object)')
-        return
-      }
+      assertTeamShape(data)
       setSaveError(null)
       editor.updateDraftComponent(data as Component<TeamConfig>)
     },
@@ -622,16 +631,24 @@ export function TeamsPage() {
 
       {/* Dialogs */}
       <TeamCreateDialog open={createOpen} onClose={handleCloseCreate} />
-      <TeamDeleteDialog team={deleteTarget} onClose={handleCloseDelete} />
+      <TeamDeleteDialog team={deleteTarget} onClose={handleCloseDelete} onDeleted={handleDeleted} />
       <AgentAddDialog open={addAgentOpen} onClose={handleCloseAddAgent} onAdd={handleAddAgent} />
 
       {/* Unsaved changes navigation blocker */}
-      {blocker.state === 'blocked' && (
+      {(blocker.state === 'blocked' || pendingAction) && (
         <UnsavedChangesDialog
-          onStay={() => blocker.reset?.()}
+          onStay={() => {
+            setPendingAction(null)
+            blocker.reset()
+          }}
           onLeave={() => {
-            editor.cancelEditing()
-            blocker.proceed?.()
+            if (pendingAction) {
+              pendingAction()
+              setPendingAction(null)
+            } else {
+              editor.cancelEditing()
+              blocker.proceed()
+            }
           }}
         />
       )}

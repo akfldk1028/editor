@@ -13,9 +13,10 @@ import { getTeamName, useDeleteTeam } from '../hooks/useTeams'
 interface TeamDeleteDialogProps {
   team: TeamResponse | null
   onClose: () => void
+  onDeleted: (id: number) => void
 }
 
-export function TeamDeleteDialog({ team, onClose }: TeamDeleteDialogProps) {
+export function TeamDeleteDialog({ team, onClose, onDeleted }: TeamDeleteDialogProps) {
   const [confirmation, setConfirmation] = useState('')
   const [error, setError] = useState<string | null>(null)
   const deleteMutation = useDeleteTeam()
@@ -34,11 +35,11 @@ export function TeamDeleteDialog({ team, onClose }: TeamDeleteDialogProps) {
     if (!team || !isConfirmed) return
     try {
       await deleteMutation.mutateAsync(team.id)
-      onClose()
+      onDeleted(team.id)
     } catch (e) {
       setError(truncateError(e instanceof Error ? e.message : 'Failed to delete team'))
     }
-  }, [team, isConfirmed, deleteMutation, onClose])
+  }, [team, isConfirmed, deleteMutation, onDeleted])
 
   if (!team) return null
 
