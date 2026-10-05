@@ -1,0 +1,26 @@
+export async function backendRequest(request: Request, path: string) {
+  const origin = request.headers.get('origin')
+  if (request.method !== 'GET' && (request.headers.get('sec-fetch-site') === 'cross-site' || (origin && origin !== new URL(request.url).origin))) {
+    return Response.json({ detail: 'Cross-origin changes are not allowed' }, { status: 403 })
+  }
+  const backend = process.env.EDITOR_BACKEND_URL
+  if (!backend) return Response.json({ detail: 'Editor backend is not configured' }, { status: 503 })
+  const destination = new URL(path, backend)
+  destination.search = new URL(request.url).search
+  try {
+    const upstream = await fetch(destination, {
+      method: request.method,
+      headers: { 'Content-Type': 'application/json', ...(origin ? { Origin: origin } : {}),
+        ...(request.headers.has('idempotency-key') ? { 'Idempotency-Key': request.headers.get('idempotency-key')! } : {}) },
+      body: request.method === 'GET' ? undefined : await request.text(),
+      cache: 'no-store', signal: AbortSignal.timeout(60_000), redirect: 'error',
+    })
+    return new Response(upstream.body, { status: upstream.status, headers: {
+      'Content-Type': upstream.headers.get('content-type') || 'application/json',
+      'Cache-Control': upstream.headers.get('cache-control') || 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    } })
+  } catch {
+    return Response.json({ detail: 'Editor backend is unavailable' }, { status: 502 })
+  }
+}

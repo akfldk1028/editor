@@ -40,7 +40,9 @@
     "zod": ">=4.5.4 <4.6",
     "@tanstack/react-query": "5.90.20",
     "react-i18next": "16.5.4",
-    "i18next": "25.8.4"
+    "i18next": "25.8.4",
+    "ol": "10.8.0",
+    "framer-motion": "12.34.3"
   },
   "devDependencies": {
     "@pascal/typescript-config": "*",

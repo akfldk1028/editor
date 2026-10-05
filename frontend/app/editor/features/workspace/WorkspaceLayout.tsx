@@ -20,6 +20,13 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
   })
   const [theme, setTheme] = useState({ mode: 'light', colorTheme: 'default' })
   const pathname = usePathname()
+  const navigation = [
+    { href: '/', label: '3D Editor', Icon: Box },
+    { href: '/land', label: i18n.t('nav.land'), Icon: MapPin },
+    { href: '/map', label: 'VWorld 지도', Icon: MapPin },
+    { href: '/agents', label: 'A2A Agents', Icon: Box },
+    { href: '/dialogue', label: '에이전트 협업 대화', Icon: Box },
+  ]
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('platform-theme-config') || 'null')
@@ -39,8 +46,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
           <p className="text-body-small text-(--color-text-tertiary) mt-1">{i18n.t('app.subtitle')}</p>
         </div>
         <nav className="flex-1 p-3 space-y-1">
-          <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-(--color-text-secondary) hover:bg-(--color-background-secondary)"><Box className="w-5 h-5" />3D Editor</Link>
-          <Link href="/land" aria-current={pathname === '/land' ? 'page' : undefined} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-(--color-accent-primary-light) text-(--color-accent-primary)"><MapPin className="w-5 h-5" />{i18n.t('nav.land')}</Link>
+          {navigation.map(({ href, label, Icon }) => <Link key={href} href={href} aria-current={pathname === href ? 'page' : undefined} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${pathname === href ? 'bg-(--color-accent-primary-light) text-(--color-accent-primary)' : 'text-(--color-text-secondary) hover:bg-(--color-background-secondary)'}`}><Icon className="w-5 h-5" />{label}</Link>)}
         </nav>
         <div className="p-3 border-t border-(--color-border-default)"><button type="button" onClick={toggleMode} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-(--color-text-secondary) hover:bg-(--color-background-secondary)">{theme.mode === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}{i18n.t(theme.mode === 'dark' ? 'nav.lightMode' : 'nav.darkMode')}</button></div>
       </aside>
