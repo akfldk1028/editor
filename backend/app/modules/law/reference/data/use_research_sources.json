@@ -1,0 +1,2294 @@
+{
+  "schema_version": "use-research-routes/1",
+  "verified_as_of": "2026-09-13",
+  "purpose": "candidate_regulatory_research_routes_not_legal_checks",
+  "baseline_source_ids": [
+    "building_decree_annex_1",
+    "fire",
+    "egress",
+    "accessibility",
+    "parking"
+  ],
+  "sources": {
+    "building_decree_annex_1": {
+      "source_id": "building_decree_annex_1",
+      "title": "건축법 시행령",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=288339&efYd=20260728",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-07-28",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": true,
+      "verification_status": "current_snapshot_verified",
+      "locator": "용도별 건축물의 종류(제3조의5 관련)",
+      "required_inputs": [],
+      "legal_rule_active": false
+    },
+    "childcare_annex_1": {
+      "source_id": "childcare_annex_1",
+      "title": "영유아보육법 시행규칙",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=286013&efYd=20260512",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-05-12",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": true,
+      "verification_status": "current_snapshot_verified",
+      "locator": "어린이집의 설치기준(제9조 관련)",
+      "required_inputs": [],
+      "legal_rule_active": false
+    },
+    "disability_annex_5": {
+      "source_id": "disability_annex_5",
+      "title": "장애인복지법 시행규칙",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=282417&efYd=20260701",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-07-01",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": true,
+      "verification_status": "current_snapshot_verified",
+      "locator": "장애인복지시설의 종류별 사업 및 설치·운영기준(제41조 및 제42조 관련)",
+      "required_inputs": [],
+      "legal_rule_active": false
+    },
+    "elderly_annex_4": {
+      "source_id": "elderly_annex_4",
+      "title": "노인복지법 시행규칙",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=282119&efYd=20251229",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2025-12-29",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": true,
+      "verification_status": "current_snapshot_verified",
+      "locator": "노인의료복지시설의 시설기준 및 직원배치기준(제22조제1항 관련)",
+      "required_inputs": [],
+      "legal_rule_active": false
+    },
+    "medical_annex_4": {
+      "source_id": "medical_annex_4",
+      "title": "의료법 시행규칙",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=286963&efYd=20260612",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-06-12",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": true,
+      "verification_status": "current_snapshot_verified",
+      "locator": "의료기관의 시설규격(제34조 관련)",
+      "required_inputs": [],
+      "legal_rule_active": false
+    },
+    "schools_annex_1": {
+      "source_id": "schools_annex_1",
+      "title": "고등학교 이하 각급 학교 설립ㆍ운영 규정",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=284671&efYd=20260324",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-03-24",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": true,
+      "verification_status": "current_snapshot_verified",
+      "locator": "교사의 기준면적(제3조제3항관련)",
+      "required_inputs": [],
+      "legal_rule_active": false
+    },
+    "youth_annex_3": {
+      "source_id": "youth_annex_3",
+      "title": "청소년활동 진흥법 시행규칙",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=285075&efYd=20260324",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-03-24",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": true,
+      "verification_status": "current_snapshot_verified",
+      "locator": "수련시설의 시설기준(제8조 관련)",
+      "required_inputs": [],
+      "legal_rule_active": false
+    },
+    "fire": {
+      "source_id": "fire",
+      "title": "소방시설 설치 및 관리에 관한 법률 시행령",
+      "url": "https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0011&lsiSeq=284781&urlMode=lsScJoRltInfoR",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-03-24",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제11조; 별표2,4,5,7",
+      "required_inputs": [
+        "fire_occupancy",
+        "floor_area_by_use",
+        "floor_number",
+        "windowless_floor",
+        "occupant_count",
+        "existing_building_dates",
+        "equipment"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "egress": {
+      "source_id": "egress",
+      "title": "건축물의 피난ㆍ방화구조 등의 기준에 관한 규칙",
+      "url": "https://law.go.kr/expcInfoP.do?expcSeq=339033",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제15조 관련 해석례; 현행 원문 확보 필요",
+      "required_inputs": [
+        "egress_geometry",
+        "floor_use",
+        "building_area",
+        "fire_compartments"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "accessibility": {
+      "source_id": "accessibility",
+      "title": "장애인ㆍ노인ㆍ임산부 등의 편의증진 보장에 관한 법률 시행령",
+      "url": "https://www.law.go.kr/LSW/expcInfoP.do?expcSeq=342711&mode=2",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "별표1 관련 해석례; 현행 시행령 및 시행규칙 확보 필요",
+      "required_inputs": [
+        "site_buildings",
+        "accessible_routes",
+        "business_use",
+        "application_date"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "parking": {
+      "source_id": "parking",
+      "title": "주차장법 시행령",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=265013",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제6조 및 별표1; 지방조례 확인",
+      "required_inputs": [
+        "municipality",
+        "parking_ordinance_edition",
+        "facility_area_definition",
+        "parking_spaces",
+        "mixed_uses"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "housing": {
+      "source_id": "housing",
+      "title": "주택건설기준 등에 관한 규정",
+      "url": "https://www.law.go.kr/LSW/lsSideInfoP.do?docCls=jo&joBrNo=00&joNo=0052&lsiSeq=285833&urlMode=lsScJoRltInfoR",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제52조 등; 주택사업 적용범위 확인",
+      "required_inputs": [
+        "housing_project_scope",
+        "unit_count"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "food": {
+      "source_id": "food",
+      "title": "식품위생법 시행규칙",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=248003",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2023-01-30",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제36조 및 별표14",
+      "required_inputs": [
+        "food_business_type",
+        "food_process",
+        "shared_facilities"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "hygiene": {
+      "source_id": "hygiene",
+      "title": "공중위생관리법 시행규칙",
+      "url": "https://law.go.kr/nwRvsLsInfoR.do?lsiSeq=130784&print=print",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "별표1 개정문; 현행 원문 확보 필요",
+      "required_inputs": [
+        "hygiene_business_type",
+        "lodging_type",
+        "cooking_facilities"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "retail": {
+      "source_id": "retail",
+      "title": "유통산업발전법",
+      "url": "https://law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsId=001469&lsJoLnkSeq=1000468750&print=print",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제8조",
+      "required_inputs": [
+        "store_business_type",
+        "sales_area",
+        "registration_documents"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "education_environment": {
+      "source_id": "education_environment",
+      "title": "교육환경 보호에 관한 법률",
+      "url": "https://law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1024739819",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제6조",
+      "required_inputs": [
+        "school_type",
+        "education_protection_zone",
+        "project_action",
+        "assessment_approval"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "sports": {
+      "source_id": "sports",
+      "title": "체육시설의 설치ㆍ이용에 관한 법률 시행규칙",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsId=008468&urlMode=lsInfoP",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-01-01",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제8조 및 별표4",
+      "required_inputs": [
+        "sport_business_type",
+        "required_equipment",
+        "shared_facilities"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "factory": {
+      "source_id": "factory",
+      "title": "산업집적활성화 및 공장설립에 관한 법률",
+      "url": "https://www.law.go.kr/lsLinkProc.do?ancYd=20160818&chrClsCd=010202&joNo=001300000&lsClsCd=RL&lsId=006335&mode=10",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-07-01",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제13조",
+      "required_inputs": [
+        "factory_building_area_m2",
+        "project_action",
+        "deemed_approval_basis",
+        "minor_change_status"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "logistics": {
+      "source_id": "logistics",
+      "title": "물류시설의 개발 및 운영에 관한 법률 시행규칙",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=129570",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "법 제21조의2 관련; 현행 원문 확보 필요",
+      "required_inputs": [
+        "warehouse_business_type",
+        "storage_area",
+        "cargo_type"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "hazardous": {
+      "source_id": "hazardous",
+      "title": "위험물안전관리법 시행령",
+      "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=263537&viewCls=lsRvsDocInfoR",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2024-07-04",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제3조 및 별표1",
+      "required_inputs": [
+        "substance_inventory",
+        "designated_quantity_edition",
+        "storage_process",
+        "local_ordinance"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "vehicle": {
+      "source_id": "vehicle",
+      "title": "자동차관리법 시행규칙",
+      "url": "https://law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=118134",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제111조의2; 별표21의5 (연혁에 따라 번호 변경)",
+      "required_inputs": [
+        "automotive_business_type",
+        "registration_scope",
+        "equipment"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "waste": {
+      "source_id": "waste",
+      "title": "폐기물관리법 시행규칙",
+      "url": "https://www.law.go.kr/flDownload.do?bylClsCd=110201&flSeq=155278539&gubun=",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "별표9; 별표 개정일2025-03-17",
+      "required_inputs": [
+        "waste_type",
+        "treatment_process",
+        "throughput",
+        "containment"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "defense": {
+      "source_id": "defense",
+      "title": "국방ㆍ군사시설 사업에 관한 법률 시행령",
+      "url": "https://law.go.kr/LSW/lsInfoP.do?ancYnChk=0&chrClsCd=010202&efYd=20240717&lsiSeq=263867&urlMode=lsInfoP",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2024-07-17",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제4조 및 법 제6조",
+      "required_inputs": [
+        "defense_project_scope",
+        "implementation_approval",
+        "deemed_permissions"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "datacenter": {
+      "source_id": "datacenter",
+      "title": "정보통신망 이용촉진 및 정보보호 등에 관한 법률 시행령",
+      "url": "https://law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsJoLnkSeq=1000924977",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-07-07",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제37조",
+      "required_inputs": [
+        "operator_article46_branch",
+        "public_institution_exclusion",
+        "computer_room_floor_area_m2",
+        "previous_year_information_service_revenue_krw",
+        "previous_year_final_three_months_daily_domestic_users"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "datacenter_protection": {
+      "source_id": "datacenter_protection",
+      "title": "집적정보 통신시설 보호지침",
+      "url": "https://www.law.go.kr/admRulInfoP.do?admRulSeq=2100000241566",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2024-06-01",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "보호조치 및 주요시설 정의",
+      "required_inputs": [
+        "critical_rooms",
+        "power_systems",
+        "disaster_protection",
+        "operator_scope"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "nuclear": {
+      "source_id": "nuclear",
+      "title": "원자력안전법",
+      "url": "https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1031040841",
+      "source_kind": "official_legal_primary",
+      "effective_date": "2026-05-19",
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "제10조 및 제11조",
+      "required_inputs": [
+        "reactor_type",
+        "project_action",
+        "commission_permit",
+        "site_approval",
+        "design_document_submission",
+        "safety_assessment_documents"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "cemetery": {
+      "source_id": "cemetery",
+      "title": "장사 등에 관한 법률 시행규칙",
+      "url": "https://www.law.go.kr/flDownload.do?bylClsCd=110201&flSeq=156617685&gubun=",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "별표1",
+      "required_inputs": [
+        "human_or_animal_facility",
+        "burial_facility_type",
+        "site_conditions"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    },
+    "funeral": {
+      "source_id": "funeral",
+      "title": "장사 등에 관한 법률 시행규칙",
+      "url": "https://www.law.go.kr/flDownload.do?bylClsCd=110201&flSeq=156617697&gubun=",
+      "source_kind": "official_legal_primary",
+      "effective_date": null,
+      "verified_as_of": "2026-09-13",
+      "current_edition_verified": false,
+      "verification_status": "route_verified_current_edition_requires_refresh",
+      "locator": "별표1의3",
+      "required_inputs": [
+        "human_or_animal_facility",
+        "funeral_business_scope",
+        "mortuary_equipment"
+      ],
+      "legal_rule_active": false,
+      "verification_note": "Official source or official interpretation verified as a research route; observed edition is not independently certified as the latest edition. Refresh and pin complete operative text and exceptions before activation."
+    }
+  },
+  "families": {
+    "1": {
+      "family_id": "1",
+      "source_ids": [
+        "housing"
+      ],
+      "unresolved_domains": []
+    },
+    "2": {
+      "family_id": "2",
+      "source_ids": [
+        "housing"
+      ],
+      "unresolved_domains": []
+    },
+    "3": {
+      "family_id": "3",
+      "source_ids": [
+        "food",
+        "hygiene"
+      ],
+      "unresolved_domains": []
+    },
+    "4": {
+      "family_id": "4",
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": []
+    },
+    "5": {
+      "family_id": "5",
+      "source_ids": [],
+      "unresolved_domains": [
+        "performance_venue_licensing"
+      ]
+    },
+    "6": {
+      "family_id": "6",
+      "source_ids": [],
+      "unresolved_domains": [
+        "religious_subtype_and_assembly_review"
+      ]
+    },
+    "7": {
+      "family_id": "7",
+      "source_ids": [
+        "retail",
+        "food"
+      ],
+      "unresolved_domains": []
+    },
+    "8": {
+      "family_id": "8",
+      "source_ids": [],
+      "unresolved_domains": [
+        "transport_mode_specific_terminal_approval"
+      ]
+    },
+    "9": {
+      "family_id": "9",
+      "source_ids": [
+        "medical_annex_4"
+      ],
+      "unresolved_domains": []
+    },
+    "10": {
+      "family_id": "10",
+      "source_ids": [
+        "schools_annex_1",
+        "education_environment"
+      ],
+      "unresolved_domains": [
+        "university_and_laboratory_specific_rules"
+      ]
+    },
+    "11": {
+      "family_id": "11",
+      "source_ids": [
+        "childcare_annex_1",
+        "elderly_annex_4",
+        "disability_annex_5"
+      ],
+      "unresolved_domains": []
+    },
+    "12": {
+      "family_id": "12",
+      "source_ids": [
+        "youth_annex_3"
+      ],
+      "unresolved_domains": []
+    },
+    "13": {
+      "family_id": "13",
+      "source_ids": [
+        "sports"
+      ],
+      "unresolved_domains": []
+    },
+    "14": {
+      "family_id": "14",
+      "source_ids": [],
+      "unresolved_domains": [
+        "office_subtype_specific_rules"
+      ]
+    },
+    "15": {
+      "family_id": "15",
+      "source_ids": [
+        "hygiene",
+        "food"
+      ],
+      "unresolved_domains": [
+        "tourism_registration"
+      ]
+    },
+    "16": {
+      "family_id": "16",
+      "source_ids": [
+        "food",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "entertainment_business_licensing"
+      ]
+    },
+    "17": {
+      "family_id": "17",
+      "source_ids": [
+        "factory",
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "chemical_environmental_and_process_permits"
+      ]
+    },
+    "18": {
+      "family_id": "18",
+      "source_ids": [
+        "logistics",
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "cold_storage_and_goods_specific_rules"
+      ]
+    },
+    "19": {
+      "family_id": "19",
+      "source_ids": [
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "gas_chemicals_explosives_specific_rules"
+      ]
+    },
+    "20": {
+      "family_id": "20",
+      "source_ids": [
+        "vehicle",
+        "hazardous"
+      ],
+      "unresolved_domains": []
+    },
+    "21": {
+      "family_id": "21",
+      "source_ids": [],
+      "unresolved_domains": [
+        "livestock_manure_animal_and_plant_specific_rules"
+      ]
+    },
+    "22": {
+      "family_id": "22",
+      "source_ids": [
+        "waste"
+      ],
+      "unresolved_domains": []
+    },
+    "23": {
+      "family_id": "23",
+      "source_ids": [],
+      "unresolved_domains": [
+        "correctional_technical_standards"
+      ]
+    },
+    "23의2": {
+      "family_id": "23의2",
+      "source_ids": [
+        "defense"
+      ],
+      "unresolved_domains": [
+        "defense_technical_standards"
+      ]
+    },
+    "24": {
+      "family_id": "24",
+      "source_ids": [
+        "datacenter",
+        "datacenter_protection"
+      ],
+      "unresolved_domains": [
+        "broadcasting_and_communications_subtype_rules"
+      ]
+    },
+    "25": {
+      "family_id": "25",
+      "source_ids": [
+        "nuclear"
+      ],
+      "unresolved_domains": [
+        "electrical_generation_and_environmental_rules"
+      ]
+    },
+    "26": {
+      "family_id": "26",
+      "source_ids": [
+        "cemetery"
+      ],
+      "unresolved_domains": [
+        "animal_funeral_law_if_applicable"
+      ]
+    },
+    "27": {
+      "family_id": "27",
+      "source_ids": [],
+      "unresolved_domains": [
+        "tourism_and_site_specific_rules"
+      ]
+    },
+    "28": {
+      "family_id": "28",
+      "source_ids": [
+        "funeral"
+      ],
+      "unresolved_domains": [
+        "animal_funeral_law_if_applicable"
+      ]
+    },
+    "29": {
+      "family_id": "29",
+      "source_ids": [],
+      "unresolved_domains": [
+        "tourism_campsite_registration_and_safety"
+      ]
+    }
+  },
+  "operational_types": {
+    "detached_house": {
+      "operational_type": "detached_house",
+      "name": "단독주택",
+      "candidate_family_ids": [
+        "1"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "단독",
+        "house"
+      ]
+    },
+    "apartment": {
+      "operational_type": "apartment",
+      "name": "공동주택",
+      "candidate_family_ids": [
+        "2"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "아파트",
+        "연립주택",
+        "다세대주택",
+        "공동 주택"
+      ]
+    },
+    "dormitory": {
+      "operational_type": "dormitory",
+      "name": "기숙사",
+      "candidate_family_ids": [
+        "2",
+        "23의2"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "생활관"
+      ]
+    },
+    "neighborhood_retail": {
+      "operational_type": "neighborhood_retail",
+      "name": "근린 소매점",
+      "candidate_family_ids": [
+        "3",
+        "7"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "소매점",
+        "편의점"
+      ]
+    },
+    "neighborhood_services": {
+      "operational_type": "neighborhood_services",
+      "name": "근린 서비스시설",
+      "candidate_family_ids": [
+        "3",
+        "4"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "제1종 근린생활시설",
+        "제2종 근린생활시설",
+        "근린생활시설"
+      ]
+    },
+    "restaurant": {
+      "operational_type": "restaurant",
+      "name": "음식점",
+      "candidate_family_ids": [
+        "3",
+        "4",
+        "7",
+        "15"
+      ],
+      "source_ids": [
+        "food"
+      ],
+      "unresolved_domains": [],
+      "aliases": [
+        "식당",
+        "카페",
+        "일반음식점",
+        "휴게음식점",
+        "cafeteria"
+      ]
+    },
+    "cultural_assembly": {
+      "operational_type": "cultural_assembly",
+      "name": "문화·집회시설",
+      "candidate_family_ids": [
+        "5"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "집회장",
+        "공연장",
+        "문화 및 집회시설"
+      ]
+    },
+    "museum": {
+      "operational_type": "museum",
+      "name": "박물관·전시관",
+      "candidate_family_ids": [
+        "5"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "미술관",
+        "박물관",
+        "전시관"
+      ]
+    },
+    "religious": {
+      "operational_type": "religious",
+      "name": "종교시설",
+      "candidate_family_ids": [
+        "6",
+        "4"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "교회",
+        "성당",
+        "사찰",
+        "종교 시설"
+      ]
+    },
+    "retail": {
+      "operational_type": "retail",
+      "name": "판매시설",
+      "candidate_family_ids": [
+        "7"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "대형마트",
+        "백화점",
+        "쇼핑몰",
+        "시장"
+      ]
+    },
+    "transport_terminal": {
+      "operational_type": "transport_terminal",
+      "name": "운수시설",
+      "candidate_family_ids": [
+        "8"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "터미널",
+        "철도역",
+        "버스터미널",
+        "공항터미널"
+      ]
+    },
+    "hospital": {
+      "operational_type": "hospital",
+      "name": "병원",
+      "candidate_family_ids": [
+        "9"
+      ],
+      "source_ids": [
+        "medical_annex_4"
+      ],
+      "unresolved_domains": [],
+      "aliases": [
+        "종합병원",
+        "의료시설"
+      ]
+    },
+    "clinic": {
+      "operational_type": "clinic",
+      "name": "의원",
+      "candidate_family_ids": [
+        "3",
+        "9"
+      ],
+      "source_ids": [
+        "medical_annex_4"
+      ],
+      "unresolved_domains": [],
+      "aliases": [
+        "치과의원",
+        "한의원",
+        "보건소"
+      ]
+    },
+    "school": {
+      "operational_type": "school",
+      "name": "학교",
+      "candidate_family_ids": [
+        "10"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "초등학교",
+        "중학교",
+        "고등학교",
+        "교육연구시설"
+      ]
+    },
+    "university": {
+      "operational_type": "university",
+      "name": "대학 교육시설",
+      "candidate_family_ids": [
+        "10"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "university_establishment_rules"
+      ],
+      "aliases": [
+        "대학교",
+        "대학"
+      ]
+    },
+    "public_library": {
+      "operational_type": "public_library",
+      "name": "도서관",
+      "candidate_family_ids": [
+        "10"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "공공도서관",
+        "작은도서관"
+      ]
+    },
+    "research_laboratory": {
+      "operational_type": "research_laboratory",
+      "name": "연구·검사시설",
+      "candidate_family_ids": [
+        "10"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "laboratory_safety_biosafety_chemical_and_radiation_rules"
+      ],
+      "aliases": [
+        "연구소",
+        "시험소",
+        "실험실"
+      ]
+    },
+    "childcare": {
+      "operational_type": "childcare",
+      "name": "어린이집·유치원",
+      "candidate_family_ids": [
+        "11",
+        "10"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "어린이집",
+        "유치원",
+        "보육시설"
+      ]
+    },
+    "senior_care": {
+      "operational_type": "senior_care",
+      "name": "노인·돌봄시설",
+      "candidate_family_ids": [
+        "11"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "요양원",
+        "노유자시설",
+        "주간보호센터",
+        "장애인복지시설"
+      ]
+    },
+    "youth_training": {
+      "operational_type": "youth_training",
+      "name": "수련시설",
+      "candidate_family_ids": [
+        "12"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "청소년수련관",
+        "수련원",
+        "유스호스텔"
+      ]
+    },
+    "sports": {
+      "operational_type": "sports",
+      "name": "운동시설",
+      "candidate_family_ids": [
+        "13"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "체육관",
+        "피트니스",
+        "체육시설",
+        "경기장"
+      ]
+    },
+    "swimming_pool": {
+      "operational_type": "swimming_pool",
+      "name": "수영장",
+      "candidate_family_ids": [
+        "13"
+      ],
+      "source_ids": [
+        "sports"
+      ],
+      "unresolved_domains": [],
+      "aliases": []
+    },
+    "office": {
+      "operational_type": "office",
+      "name": "업무시설",
+      "candidate_family_ids": [
+        "14"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "사무실",
+        "오피스"
+      ]
+    },
+    "hotel": {
+      "operational_type": "hotel",
+      "name": "숙박시설",
+      "candidate_family_ids": [
+        "15"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "호텔",
+        "모텔",
+        "관광호텔",
+        "생활숙박시설"
+      ]
+    },
+    "entertainment": {
+      "operational_type": "entertainment",
+      "name": "위락시설",
+      "candidate_family_ids": [
+        "16"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "유흥시설",
+        "유흥주점"
+      ]
+    },
+    "factory": {
+      "operational_type": "factory",
+      "name": "공장",
+      "candidate_family_ids": [
+        "17"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "제조시설"
+      ]
+    },
+    "warehouse": {
+      "operational_type": "warehouse",
+      "name": "창고시설",
+      "candidate_family_ids": [
+        "18"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "물류센터",
+        "창고"
+      ]
+    },
+    "hazardous_storage": {
+      "operational_type": "hazardous_storage",
+      "name": "위험물 저장·처리시설",
+      "candidate_family_ids": [
+        "19"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "위험물 저장 및 처리 시설"
+      ]
+    },
+    "vehicle_service": {
+      "operational_type": "vehicle_service",
+      "name": "자동차 관련 시설",
+      "candidate_family_ids": [
+        "20"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "정비소",
+        "자동차정비공장",
+        "검사장"
+      ]
+    },
+    "animal_facility": {
+      "operational_type": "animal_facility",
+      "name": "동물 관련 시설",
+      "candidate_family_ids": [
+        "21"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "species_and_animal_business_licensing"
+      ],
+      "aliases": [
+        "축사",
+        "동물보호시설",
+        "동물병원"
+      ]
+    },
+    "plant_facility": {
+      "operational_type": "plant_facility",
+      "name": "식물 관련 시설",
+      "candidate_family_ids": [
+        "21"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "agriculture_and_plant_facility_rules"
+      ],
+      "aliases": [
+        "온실",
+        "식물재배사"
+      ]
+    },
+    "waste_resource": {
+      "operational_type": "waste_resource",
+      "name": "자원순환 관련 시설",
+      "candidate_family_ids": [
+        "22"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "재활용센터",
+        "폐기물처리시설",
+        "자원회수시설"
+      ]
+    },
+    "correctional": {
+      "operational_type": "correctional",
+      "name": "교정시설",
+      "candidate_family_ids": [
+        "23"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "교도소",
+        "구치소"
+      ]
+    },
+    "defense_support": {
+      "operational_type": "defense_support",
+      "name": "국방·군사 지원시설",
+      "candidate_family_ids": [
+        "23의2"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "국방ㆍ군사시설",
+        "국방·군사시설",
+        "군생활관"
+      ]
+    },
+    "broadcasting": {
+      "operational_type": "broadcasting",
+      "name": "방송통신시설",
+      "candidate_family_ids": [
+        "24"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "broadcasting_station_licensing"
+      ],
+      "aliases": [
+        "방송국",
+        "통신국사"
+      ]
+    },
+    "power_plant": {
+      "operational_type": "power_plant",
+      "name": "발전시설",
+      "candidate_family_ids": [
+        "25"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "발전소",
+        "열병합발전소"
+      ]
+    },
+    "cemetery": {
+      "operational_type": "cemetery",
+      "name": "묘지 관련 시설",
+      "candidate_family_ids": [
+        "26"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "봉안당",
+        "묘지시설"
+      ]
+    },
+    "tourism_rest_area": {
+      "operational_type": "tourism_rest_area",
+      "name": "관광 휴게시설",
+      "candidate_family_ids": [
+        "27"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "관광휴게시설",
+        "휴게소",
+        "관광안내소"
+      ]
+    },
+    "funeral": {
+      "operational_type": "funeral",
+      "name": "장례시설",
+      "candidate_family_ids": [
+        "28"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "장례식장"
+      ]
+    },
+    "campsite": {
+      "operational_type": "campsite",
+      "name": "야영장 시설",
+      "candidate_family_ids": [
+        "29"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [],
+      "aliases": [
+        "캠핑장",
+        "야영장"
+      ]
+    },
+    "fire_station": {
+      "operational_type": "fire_station",
+      "name": "소방서·구조시설",
+      "candidate_family_ids": [
+        "3",
+        "14"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "emergency_services_facility_standards"
+      ],
+      "aliases": [
+        "소방서",
+        "119안전센터"
+      ]
+    },
+    "datacenter": {
+      "operational_type": "datacenter",
+      "name": "데이터센터",
+      "candidate_family_ids": [
+        "24"
+      ],
+      "source_ids": [
+        "datacenter",
+        "datacenter_protection"
+      ],
+      "unresolved_domains": [],
+      "aliases": [
+        "data center",
+        "data_center",
+        "IDC",
+        "AI 데이터센터"
+      ]
+    },
+    "nuclear_power": {
+      "operational_type": "nuclear_power",
+      "name": "원자력발전소",
+      "candidate_family_ids": [
+        "25"
+      ],
+      "source_ids": [
+        "nuclear"
+      ],
+      "unresolved_domains": [],
+      "aliases": [
+        "원전",
+        "원자력",
+        "nuclear",
+        "nuclear power plant",
+        "SMR"
+      ]
+    },
+    "dental_clinic": {
+      "operational_type": "dental_clinic",
+      "name": "치과의원",
+      "candidate_family_ids": [
+        "3",
+        "9"
+      ],
+      "source_ids": [
+        "medical_annex_4"
+      ],
+      "unresolved_domains": [],
+      "aliases": [
+        "치과",
+        "치과병원"
+      ]
+    },
+    "food_factory": {
+      "operational_type": "food_factory",
+      "name": "식품 제조시설",
+      "candidate_family_ids": [
+        "17"
+      ],
+      "source_ids": [
+        "food",
+        "factory"
+      ],
+      "unresolved_domains": [],
+      "aliases": [
+        "식품공장",
+        "식품가공공장"
+      ]
+    },
+    "pharmaceutical_factory": {
+      "operational_type": "pharmaceutical_factory",
+      "name": "의약품 제조시설",
+      "candidate_family_ids": [
+        "17"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "pharmaceutical_GMP_licensing_and_cleanroom_rules"
+      ],
+      "aliases": [
+        "제약공장",
+        "바이오의약품공장"
+      ]
+    },
+    "cold_storage": {
+      "operational_type": "cold_storage",
+      "name": "냉장·냉동창고",
+      "candidate_family_ids": [
+        "18"
+      ],
+      "source_ids": [
+        "logistics",
+        "food"
+      ],
+      "unresolved_domains": [],
+      "aliases": [
+        "냉동창고",
+        "냉장창고",
+        "저온물류센터"
+      ]
+    },
+    "semiconductor_fab": {
+      "operational_type": "semiconductor_fab",
+      "name": "반도체 제조시설",
+      "candidate_family_ids": [
+        "17"
+      ],
+      "source_ids": [
+        "factory",
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "semiconductor_process_chemical_gas_environmental_and_cleanroom_rules"
+      ],
+      "aliases": [
+        "fab",
+        "semiconductor factory",
+        "반도체공장"
+      ]
+    },
+    "officetel": {
+      "operational_type": "officetel",
+      "name": "오피스텔",
+      "candidate_family_ids": [
+        "14"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "office_subtype_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "주거용 오피스텔"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "academy": {
+      "operational_type": "academy",
+      "name": "학원",
+      "candidate_family_ids": [
+        "4",
+        "10"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports",
+        "schools_annex_1",
+        "education_environment"
+      ],
+      "unresolved_domains": [
+        "university_and_laboratory_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "cram school",
+        "hagwon",
+        "교습소",
+        "보습학원",
+        "어학원",
+        "입시학원"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "multi_living": {
+      "operational_type": "multi_living",
+      "name": "다중생활시설(고시원)",
+      "candidate_family_ids": [
+        "4",
+        "15"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "tourism_registration",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "goshiwon",
+        "고시원",
+        "고시텔",
+        "다중생활시설",
+        "원룸텔"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "gas_station": {
+      "operational_type": "gas_station",
+      "name": "주유소(주유취급소)",
+      "candidate_family_ids": [
+        "19"
+      ],
+      "source_ids": [
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "gas_chemicals_explosives_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "gas station",
+        "petrol station",
+        "복합주유소",
+        "셀프주유소",
+        "주유소",
+        "주유취급소"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "cinema": {
+      "operational_type": "cinema",
+      "name": "영화상영관",
+      "candidate_family_ids": [
+        "5",
+        "4"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "performance_venue_licensing",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "movie theater",
+        "multiplex",
+        "멀티플렉스",
+        "시네마",
+        "영화관"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "performance_hall": {
+      "operational_type": "performance_hall",
+      "name": "공연장",
+      "candidate_family_ids": [
+        "5",
+        "4"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "performance_venue_licensing",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "concert hall",
+        "performance hall",
+        "theater",
+        "극장",
+        "소극장",
+        "콘서트홀"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "convention_center": {
+      "operational_type": "convention_center",
+      "name": "전시·컨벤션(국제회의시설)",
+      "candidate_family_ids": [
+        "5"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "performance_venue_licensing",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "convention center",
+        "exhibition hall",
+        "mice",
+        "국제회의시설",
+        "예식장",
+        "전시장",
+        "집회장",
+        "컨벤션",
+        "컨벤션센터"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "stadium": {
+      "operational_type": "stadium",
+      "name": "경기장·관람장",
+      "candidate_family_ids": [
+        "5",
+        "13"
+      ],
+      "source_ids": [
+        "sports"
+      ],
+      "unresolved_domains": [
+        "performance_venue_licensing",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "arena",
+        "sports complex",
+        "경기장",
+        "관람장",
+        "스타디움",
+        "아레나",
+        "종합운동장"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "zoo_aquarium": {
+      "operational_type": "zoo_aquarium",
+      "name": "동물원·수족관",
+      "candidate_family_ids": [
+        "5"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "performance_venue_licensing",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "aquarium",
+        "zoo",
+        "동물원",
+        "생태관",
+        "수족관",
+        "아쿠아리움"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "shopping_mall": {
+      "operational_type": "shopping_mall",
+      "name": "대규모점포·쇼핑몰",
+      "candidate_family_ids": [
+        "7"
+      ],
+      "source_ids": [
+        "retail",
+        "food"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "department store",
+        "hypermarket",
+        "shopping mall",
+        "대규모점포",
+        "대형마트",
+        "백화점",
+        "복합쇼핑몰",
+        "쇼핑몰",
+        "쇼핑센터"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "airport_terminal": {
+      "operational_type": "airport_terminal",
+      "name": "공항 여객터미널",
+      "candidate_family_ids": [
+        "8"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "transport_mode_specific_terminal_approval",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "airport terminal",
+        "passenger terminal",
+        "공항 터미널",
+        "여객청사"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "long_term_care_hospital": {
+      "operational_type": "long_term_care_hospital",
+      "name": "요양병원",
+      "candidate_family_ids": [
+        "9"
+      ],
+      "source_ids": [
+        "medical_annex_4"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "geriatric hospital",
+        "long-term care hospital",
+        "노인전문병원",
+        "장기요양병원"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "psychiatric_hospital": {
+      "operational_type": "psychiatric_hospital",
+      "name": "정신병원(정신의료기관)",
+      "candidate_family_ids": [
+        "9"
+      ],
+      "source_ids": [
+        "medical_annex_4"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "mental hospital",
+        "psychiatric hospital",
+        "정신건강의학과 병원",
+        "정신병원",
+        "정신의료기관"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "vocational_training": {
+      "operational_type": "vocational_training",
+      "name": "직업훈련소(지정직업훈련시설)",
+      "candidate_family_ids": [
+        "10",
+        "4"
+      ],
+      "source_ids": [
+        "schools_annex_1",
+        "education_environment",
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "university_and_laboratory_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "vocational training center",
+        "지정직업훈련시설",
+        "직업능력개발훈련시설",
+        "직업학교",
+        "직업훈련소"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "disability_welfare": {
+      "operational_type": "disability_welfare",
+      "name": "장애인복지시설",
+      "candidate_family_ids": [
+        "11"
+      ],
+      "source_ids": [
+        "childcare_annex_1",
+        "elderly_annex_4",
+        "disability_annex_5"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "disability welfare facility",
+        "sheltered workshop",
+        "장애인 거주시설",
+        "장애인 근로사업장",
+        "장애인 보호작업장",
+        "장애인복지관"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "golf_practice": {
+      "operational_type": "golf_practice",
+      "name": "골프연습장",
+      "candidate_family_ids": [
+        "4",
+        "13"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "driving range",
+        "indoor golf",
+        "스크린골프장",
+        "실내골프연습장",
+        "인도어 연습장"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "bowling": {
+      "operational_type": "bowling",
+      "name": "볼링장",
+      "candidate_family_ids": [
+        "4",
+        "13"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "bowling alley",
+        "bowling center",
+        "볼링센터"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "government_office": {
+      "operational_type": "government_office",
+      "name": "공공청사",
+      "candidate_family_ids": [
+        "14"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "office_subtype_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "city hall",
+        "government office building",
+        "구청",
+        "군청",
+        "시청",
+        "의회 청사",
+        "정부청사"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "knowledge_industry_center": {
+      "operational_type": "knowledge_industry_center",
+      "name": "지식산업센터",
+      "candidate_family_ids": [
+        "17"
+      ],
+      "source_ids": [
+        "factory",
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "chemical_environmental_and_process_permits",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "flatted factory",
+        "knowledge industry center",
+        "아파트형공장"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "logistics_terminal": {
+      "operational_type": "logistics_terminal",
+      "name": "물류터미널·풀필먼트센터",
+      "candidate_family_ids": [
+        "18"
+      ],
+      "source_ids": [
+        "logistics",
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "cold_storage_and_goods_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "distribution center",
+        "fulfillment center",
+        "logistics terminal",
+        "물류터미널",
+        "배송센터",
+        "복합물류터미널",
+        "풀필먼트센터",
+        "허브터미널"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "parking_structure": {
+      "operational_type": "parking_structure",
+      "name": "주차전용건축물·주차장",
+      "candidate_family_ids": [
+        "20"
+      ],
+      "source_ids": [
+        "vehicle",
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "parking garage",
+        "parking structure",
+        "노외주차장",
+        "부설주차장",
+        "자주식 주차장",
+        "주차장",
+        "주차전용건축물",
+        "주차타워"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "driving_school": {
+      "operational_type": "driving_school",
+      "name": "자동차운전학원",
+      "candidate_family_ids": [
+        "20"
+      ],
+      "source_ids": [
+        "vehicle",
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "driver training school",
+        "driving school",
+        "운전전문학원",
+        "운전학원",
+        "자동차운전전문학원"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "lpg_station": {
+      "operational_type": "lpg_station",
+      "name": "LPG 자동차 충전소",
+      "candidate_family_ids": [
+        "19"
+      ],
+      "source_ids": [
+        "hazardous"
+      ],
+      "unresolved_domains": [
+        "gas_chemicals_explosives_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "lpg station",
+        "lpg충전소",
+        "가스충전소",
+        "복합충전소",
+        "자동차용기충전시설"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "slaughterhouse": {
+      "operational_type": "slaughterhouse",
+      "name": "도축장(포유류)",
+      "candidate_family_ids": [
+        "21"
+      ],
+      "source_ids": [],
+      "unresolved_domains": [
+        "livestock_manure_animal_and_plant_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "abattoir",
+        "도살장",
+        "도축장",
+        "축산물작업장"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "casino": {
+      "operational_type": "casino",
+      "name": "카지노영업소",
+      "candidate_family_ids": [
+        "16"
+      ],
+      "source_ids": [
+        "food",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "entertainment_business_licensing",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "외국인전용 카지노",
+        "카지노",
+        "카지노업"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "veterinary_clinic": {
+      "operational_type": "veterinary_clinic",
+      "name": "동물병원",
+      "candidate_family_ids": [
+        "3",
+        "4"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "24시 동물병원",
+        "animal hospital",
+        "veterinary clinic",
+        "동물의료센터"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "bathhouse": {
+      "operational_type": "bathhouse",
+      "name": "목욕장(찜질방 포함)",
+      "candidate_family_ids": [
+        "3"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "public bath",
+        "sauna",
+        "대중목욕탕",
+        "목욕탕",
+        "사우나",
+        "스파",
+        "온천장",
+        "찜질방"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "karaoke": {
+      "operational_type": "karaoke",
+      "name": "노래연습장",
+      "candidate_family_ids": [
+        "4"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "noraebang",
+        "노래방",
+        "노래연습장업",
+        "코인노래방"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "internet_cafe": {
+      "operational_type": "internet_cafe",
+      "name": "PC방(인터넷컴퓨터게임시설제공업)",
+      "candidate_family_ids": [
+        "4",
+        "7"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene",
+        "sports",
+        "retail"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "e-sports cafe",
+        "internet cafe",
+        "pc방",
+        "인터넷카페",
+        "인터넷컴퓨터게임시설제공업소",
+        "피시방"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "crematorium": {
+      "operational_type": "crematorium",
+      "name": "화장시설",
+      "candidate_family_ids": [
+        "26"
+      ],
+      "source_ids": [
+        "cemetery"
+      ],
+      "unresolved_domains": [
+        "animal_funeral_law_if_applicable",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "crematory",
+        "승화원",
+        "화장장",
+        "화장터"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "community_center": {
+      "operational_type": "community_center",
+      "name": "주민공동시설·주민센터",
+      "candidate_family_ids": [
+        "3",
+        "14"
+      ],
+      "source_ids": [
+        "food",
+        "hygiene"
+      ],
+      "unresolved_domains": [
+        "office_subtype_specific_rules",
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "community center",
+        "동사무소",
+        "마을회관",
+        "주민공동시설",
+        "주민센터",
+        "커뮤니티센터",
+        "행정복지센터"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    },
+    "multi_family_house": {
+      "operational_type": "multi_family_house",
+      "name": "다가구주택",
+      "candidate_family_ids": [
+        "1"
+      ],
+      "source_ids": [
+        "housing"
+      ],
+      "unresolved_domains": [
+        "operational_subtype_specific_rules"
+      ],
+      "aliases": [
+        "multi-family house",
+        "다가구",
+        "다가구 주택",
+        "원룸 건물"
+      ],
+      "derived_from": "programagent recipe legal_use_refs + family records, 2026-09-24"
+    }
+  },
+  "papers": [
+    {
+      "paper_id": "fuchs_2024",
+      "year": 2024,
+      "title": "Using Large Language Models for the Interpretation of Building Regulations",
+      "url": "https://arxiv.org/abs/2407.21060",
+      "research_relevance": "LegalRuleML translation; research does not certify legal validity",
+      "source_kind": "primary_research",
+      "verified_as_of": "2026-09-13",
+      "legal_numeric_authority": false,
+      "verification_scope": "Primary publisher or author abstract and bibliographic record; no claim of full experimental reproduction."
+    },
+    {
+      "paper_id": "buildthemis_2025",
+      "year": 2025,
+      "title": "Fine-tuning a large language model for automated code compliance of building regulations",
+      "url": "https://www.sciencedirect.com/science/article/pii/S1474034625005695",
+      "research_relevance": "Rule interpretation with retrieval; reviewed formalization proposal",
+      "source_kind": "primary_research",
+      "verified_as_of": "2026-09-13",
+      "legal_numeric_authority": false,
+      "verification_scope": "Primary publisher or author abstract and bibliographic record; no claim of full experimental reproduction."
+    },
+    {
+      "paper_id": "funcmapper_2026",
+      "year": 2026,
+      "title": "Translating regulatory clauses into executable codes for building design checking via large language model driven function matching and composing",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0952197625028544",
+      "research_relevance": "Publisher abstract describes66 atomic functions; supports reviewed function registry",
+      "source_kind": "primary_research",
+      "verified_as_of": "2026-09-13",
+      "legal_numeric_authority": false,
+      "verification_scope": "Primary publisher or author abstract and bibliographic record; no claim of full experimental reproduction."
+    },
+    {
+      "paper_id": "human_loop_2026",
+      "year": 2026,
+      "title": "Human-in-the-Loop Semantic Rule Base Generation and Dynamic Updating for Automated BIM Compliance Checking: A Knowledge Graph Approach",
+      "url": "https://www.mdpi.com/2075-5309/16/4/719",
+      "research_relevance": "Semantic extraction structural validation expert review; publisher abstract accessed",
+      "source_kind": "primary_research",
+      "verified_as_of": "2026-09-13",
+      "legal_numeric_authority": false,
+      "verification_scope": "Primary publisher or author abstract and bibliographic record; no claim of full experimental reproduction."
+    },
+    {
+      "paper_id": "iversen_2026",
+      "year": 2026,
+      "title": "Leveraging large language models for BIM-based automated compliance checking",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0926580525007472",
+      "research_relevance": "LLM-centric end-to-end research; not proof of deterministic or universal compliance",
+      "source_kind": "primary_research",
+      "verified_as_of": "2026-09-13",
+      "legal_numeric_authority": false,
+      "verification_scope": "Primary publisher or author abstract and bibliographic record; no claim of full experimental reproduction."
+    }
+  ],
+  "rule_suggestions": [
+    {
+      "suggestion_id": "datacenter_protection_scope",
+      "source_id": "datacenter",
+      "status": "not_executable_review_required",
+      "thresholds": [
+        {
+          "quantity": "computer_room_floor_area_m2",
+          "operator": ">=",
+          "value": 500
+        },
+        {
+          "quantity": "previous_year_information_service_revenue_krw",
+          "operator": ">=",
+          "value": 10000000000
+        },
+        {
+          "quantity": "previous_year_final_three_months_daily_domestic_users",
+          "operator": ">=",
+          "value": 1000000
+        }
+      ],
+      "logic_note": "Exclude specified public institutions. Article46(1)(1) operator needs area threshold; Article46(1)(2) operator needs ALL three thresholds. Unknown branch or exclusion prevents determination. Threshold is scope, not minimum design area."
+    },
+    {
+      "suggestion_id": "factory_approval_scope",
+      "source_id": "factory",
+      "status": "not_executable_review_required",
+      "thresholds": [
+        {
+          "quantity": "factory_building_area_m2",
+          "operator": ">=",
+          "value": 500
+        }
+      ],
+      "logic_note": "New construction, expansion, industry change; evaluate deemed approvals and minor changes before result."
+    },
+    {
+      "suggestion_id": "nuclear_permit_documents",
+      "source_id": "nuclear",
+      "status": "not_executable_review_required",
+      "thresholds": [],
+      "logic_note": "Reactor type and construction action determine permit route. Article10(6) building permit deeming requires site approval AND submission of design documents; documents do not prove engineering safety."
+    }
+  ]
+}

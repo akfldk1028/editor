@@ -1,0 +1,2582 @@
+{
+  "schema": "editor.mass-workspace-import.v1",
+  "files": [
+    {
+      "source": "tmp_mass_check/_massv2/tools/ab_surgery.py",
+      "destination": "backend/app/modules/massing/workspace_tools/ab_surgery.py",
+      "source_sha256": "75874000652afe95e1c2b38053c91fb00a8d31b9ba1b3cb06e24ab65e5acaecb",
+      "imported_sha256": "51d8116b5216fb0b5f2e3aa6507bf05312b232b27ffd935c8d540a5b7de2a775",
+      "changes": [
+        {
+          "line": 17,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, scheme_of, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, scheme_of, BUILDING_TYPE"
+        },
+        {
+          "line": 19,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 16,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/align_probe.py",
+      "destination": "backend/app/modules/massing/workspace_tools/align_probe.py",
+      "source_sha256": "084b2d496d8625b5cef7a39866e4f3c06b376900a4af0aec72beeedfd61fef22",
+      "imported_sha256": "15692d2fda7133514497b662d220511fde78a89ff360565a9f909171fdb97fd3",
+      "changes": [
+        {
+          "line": 19,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus"
+        },
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from regulating_audit import distinct_parts, regulating_ratio",
+          "after": "from backend.app.modules.massing.workspace_tools.regulating_audit import distinct_parts, regulating_ratio"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/audit_pipeline.py",
+      "destination": "backend/app/modules/massing/workspace_tools/audit_pipeline.py",
+      "source_sha256": "e8e16847bb87fceaa0388b317b7c19fb450b5e6bd3782002a005568a21b20d77",
+      "imported_sha256": "61184c226baee90c558b6ccc5f122be8a5ba40129326419768c3ba9837bd9cc4",
+      "changes": [
+        {
+          "line": 15,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, scheme_of, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, scheme_of, BUILDING_TYPE"
+        },
+        {
+          "line": 17,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 18,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 19,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import mistyped_words, parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import mistyped_words, parti_from_record"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal_fit import fit_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal_fit import fit_to_site"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import gross_floor_area_m2, measure_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import gross_floor_area_m2, measure_form"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.plausibility import assess, slenderness_limit",
+          "after": "from backend.app.modules.design.generation.maas.massv2.plausibility import assess, slenderness_limit"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import (  # noqa: E402\n    OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site"
+        },
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.variations import spread_across_coverage",
+          "after": "from backend.app.modules.design.generation.maas.massv2.variations import spread_across_coverage"
+        },
+        {
+          "line": 108,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import ablation as ablate_module",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import ablation as ablate_module"
+        },
+        {
+          "line": 146,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.variations import spread_across_coverage",
+          "after": "from backend.app.modules.design.generation.maas.massv2.variations import spread_across_coverage"
+        },
+        {
+          "line": 229,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.form import MatrixForm, place",
+          "after": "from backend.app.modules.design.generation.maas.massv2.form import MatrixForm, place"
+        },
+        {
+          "line": 247,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/band_probe.py",
+      "destination": "backend/app/modules/massing/workspace_tools/band_probe.py",
+      "source_sha256": "67410e83e1bc5dcabebcc6b46bfd565d2d4c4fc65bd2ceadfa67813e3d50951b",
+      "imported_sha256": "0ff3b3277d2945990d650bb1ca2312ebbdbbe43dd7ed28a04dd16e23904e97e7",
+      "changes": [
+        {
+          "line": 29,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 31,
+          "reason": "namespace import",
+          "before": "from design.maas.design_space import CoverageBand",
+          "after": "from backend.app.modules.design.generation.maas.design_space import CoverageBand"
+        },
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 33,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 34,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 35,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import declared_stature, parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import declared_stature, parti_from_record"
+        },
+        {
+          "line": 36,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 37,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import measure_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import measure_form"
+        },
+        {
+          "line": 38,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import (  # noqa: E402\n    OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site"
+        },
+        {
+          "line": 41,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.variations import spread_across_coverage",
+          "after": "from backend.app.modules.design.generation.maas.massv2.variations import spread_across_coverage"
+        },
+        {
+          "line": 86,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        },
+        {
+          "line": 125,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/bench.py",
+      "destination": "backend/app/modules/massing/workspace_tools/bench.py",
+      "source_sha256": "d6dc98a165c0f326c09e982a73d0885a7d50175ee63c419b0bc307bd9a577cb1",
+      "imported_sha256": "2a9ea67f1d80b6d75b9d0db14f19814b00cfcc6d902b0a8f5e95665307686620",
+      "changes": [
+        {
+          "line": 37,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 38,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 39,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 40,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 41,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 42,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 43,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/board_curate.py",
+      "destination": "backend/app/modules/massing/workspace_tools/board_curate.py",
+      "source_sha256": "21c4d14fe95c2385133490dba857300317cf6155407b13739b45bfaba639c4ef",
+      "imported_sha256": "449e6c2e0f8f19885cee313b579eb1c2aa1986f06353b5189aa1fe14c3fa1500",
+      "changes": [
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from evaluation_contract import active_rubrics, compatible",
+          "after": "from backend.app.modules.massing.workspace_tools.evaluation_contract import active_rubrics, compatible"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from family_key import family_key, one_per_family",
+          "after": "from backend.app.modules.massing.workspace_tools.family_key import family_key, one_per_family"
+        },
+        {
+          "line": 88,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import PASS_CUT, certificate_digest",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import PASS_CUT, certificate_digest"
+        },
+        {
+          "line": 169,
+          "reason": "namespace import",
+          "before": "from book_import import registry as book_registry",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import registry as book_registry"
+        },
+        {
+          "line": 474,
+          "reason": "namespace import",
+          "before": "from presentation_aliases import current_source_loader, group_presentations",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation_aliases import current_source_loader, group_presentations"
+        },
+        {
+          "line": 19,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/board_rejudge.py",
+      "destination": "backend/app/modules/massing/workspace_tools/board_rejudge.py",
+      "source_sha256": "4863e6882bead3ed4f9ae75ce312b895ba57c208f0ff541b1f6843017424eb1a",
+      "imported_sha256": "0be0c4e0d7a0f79ea1adad22bccceb6159543003ff7805673042f1782b594c36",
+      "changes": [
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus"
+        },
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, BUILDING_TYPE"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 91,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import rebuild_seat, seat_certificate, shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import rebuild_seat, seat_certificate, shape_id"
+        },
+        {
+          "line": 114,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import BLIND_PREAMBLE, rubric_for",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import BLIND_PREAMBLE, rubric_for"
+        },
+        {
+          "line": 47,
+          "reason": "namespace import",
+          "before": "from board_curate import rounds",
+          "after": "from backend.app.modules.massing.workspace_tools.board_curate import rounds"
+        },
+        {
+          "line": 20,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/board_render.py",
+      "destination": "backend/app/modules/massing/workspace_tools/board_render.py",
+      "source_sha256": "ae206f3b310a46fa7ba63ab361acd22fcdb998e4add4b65601ef01fdc1d65ed5",
+      "imported_sha256": "84c40372e703e9172628f9b17c9c69a4b60a9947ef1ee6eeeb7b17cedcb71ad9",
+      "changes": [
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from book_import import entry_for_judged_row",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import entry_for_judged_row"
+        },
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, BUILDING_TYPE"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import rebuild_seat, shape_id, seat_certificate",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import rebuild_seat, shape_id, seat_certificate"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 41,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        },
+        {
+          "line": 19,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/book_import.py",
+      "destination": "backend/app/modules/massing/workspace_tools/book_import.py",
+      "source_sha256": "36b4a85dd4a258326fc7a34e3f73dde60fb3ff4ac6f59d3bdcefa3f1855e0891",
+      "imported_sha256": "e5b162508beabf3a64ef73da68f651e1fa3c6e9dda33cc6d0eb2c9295240da4c",
+      "changes": [
+        {
+          "line": 213,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.source_bridge import (\n        mesh_section_solid, solid_section_polygon, _mesh_plan_projection_area,\n        section_export_area_resolution, _compile_geometry_program_cached,\n        section_coplanar_skin_area,\n    )",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.source_bridge import mesh_section_solid, solid_section_polygon, _mesh_plan_projection_area, section_export_area_resolution, _compile_geometry_program_cached, section_coplanar_skin_area"
+        },
+        {
+          "line": 285,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.ast import GeometryProgram",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.ast import GeometryProgram"
+        },
+        {
+          "line": 357,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import shape_id"
+        },
+        {
+          "line": 402,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.ast import GeometryProgram",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.ast import GeometryProgram"
+        },
+        {
+          "line": 403,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.source_bridge import (  # noqa: E402\n        compile_geometry_program_to_source_mass,\n    )",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.source_bridge import compile_geometry_program_to_source_mass"
+        },
+        {
+          "line": 423,
+          "reason": "namespace import",
+          "before": "from design.maas.book_development import exact_dimensions",
+          "after": "from backend.app.modules.design.generation.maas.book_development import exact_dimensions"
+        },
+        {
+          "line": 425,
+          "reason": "namespace import",
+          "before": "from design.maas.dimensional_intent import program_intent, POLICY",
+          "after": "from backend.app.modules.design.generation.maas.dimensional_intent import program_intent, POLICY"
+        },
+        {
+          "line": 540,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import storey_limit_evidence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import storey_limit_evidence"
+        },
+        {
+          "line": 601,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import area_limit_evidence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import area_limit_evidence"
+        },
+        {
+          "line": 642,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.plausibility import assess as plausibility_of",
+          "after": "from backend.app.modules.design.generation.maas.massv2.plausibility import assess as plausibility_of"
+        },
+        {
+          "line": 643,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.structure import assess_standing",
+          "after": "from backend.app.modules.design.generation.maas.massv2.structure import assess_standing"
+        },
+        {
+          "line": 645,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.plausibility import slenderness_limit",
+          "after": "from backend.app.modules.design.generation.maas.massv2.plausibility import slenderness_limit"
+        },
+        {
+          "line": 648,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import storey_limit_evidence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import storey_limit_evidence"
+        },
+        {
+          "line": 781,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus"
+        },
+        {
+          "line": 782,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 783,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import certified_caption, ride_anchors, shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import certified_caption, ride_anchors, shape_id"
+        },
+        {
+          "line": 784,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 785,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 851,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import BLIND_PREAMBLE, rubric_for",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import BLIND_PREAMBLE, rubric_for"
+        },
+        {
+          "line": 656,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import area_limit_evidence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import area_limit_evidence"
+        },
+        {
+          "line": 823,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import jury_caption, seat_certificate",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import jury_caption, seat_certificate"
+        },
+        {
+          "line": 829,
+          "reason": "namespace import",
+          "before": "from presentation import append_jury_drawings",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation import append_jury_drawings"
+        },
+        {
+          "line": 484,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 23,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/choice_views.py",
+      "destination": "backend/app/modules/massing/workspace_tools/choice_views.py",
+      "source_sha256": "c155d8f2e1f128965aa6ac8dec156403579ed0b8f5999bcdb2ecb12fc67aff57",
+      "imported_sha256": "0398a8d6b33f797871aabfae6d6602d3316152a71a3d198bc823cb6850df91c7",
+      "changes": [
+        {
+          "line": 51,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 52,
+          "reason": "namespace import",
+          "before": "from book_import import entry_for_judged_row",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import entry_for_judged_row"
+        },
+        {
+          "line": 53,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import rebuild_seat, shape_id, seat_certificate",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import rebuild_seat, shape_id, seat_certificate"
+        },
+        {
+          "line": 54,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 55,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 56,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 57,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render_mesh import physical_triangles",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render_mesh import physical_triangles"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/contrast_audit.py",
+      "destination": "backend/app/modules/massing/workspace_tools/contrast_audit.py",
+      "source_sha256": "3266cc29055e9f107b9f3dec3303664782344fee18e4917e33e408568f133e95",
+      "imported_sha256": "905da00bfaf2338bdffaf4fde5d249db606d79ff2b7098a9b47f5f69055fa04a",
+      "changes": [
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, scheme_of, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, scheme_of, BUILDING_TYPE"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/develop.py",
+      "destination": "backend/app/modules/massing/workspace_tools/develop.py",
+      "source_sha256": "d86eba1e2e55b8aa683687085b1b48b7b4f39a3a7792099c15a96ba660141364",
+      "imported_sha256": "de138669a3a8311789ddd5a2eb7de41f3d37e25133accf9cac6a9c1d05308d2c",
+      "changes": [
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus, schedule_of",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus, schedule_of"
+        },
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, BUILDING_TYPE"
+        },
+        {
+          "line": 30,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 31,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 33,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.delivery_gate import assess_delivery",
+          "after": "from backend.app.modules.design.generation.maas.massv2.delivery_gate import assess_delivery"
+        },
+        {
+          "line": 34,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import declared_stature",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import declared_stature"
+        },
+        {
+          "line": 110,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import PLOT_MODES, parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import PLOT_MODES, parti_from_record"
+        },
+        {
+          "line": 181,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import shape_id"
+        },
+        {
+          "line": 245,
+          "reason": "namespace import",
+          "before": "from presentation import append_jury_drawings",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation import append_jury_drawings"
+        },
+        {
+          "line": 26,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/evaluation_contract.py",
+      "destination": "backend/app/modules/massing/workspace_tools/evaluation_contract.py",
+      "source_sha256": "2c82aef92b764879f60bf1734a308b25ca45a5c3322226ee3b025351036e7768",
+      "imported_sha256": "cde4dc603597b03277c5be04d724ac2fbd7f9cbd2afdae3929818db6ebe27504",
+      "changes": []
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/family_key.py",
+      "destination": "backend/app/modules/massing/workspace_tools/family_key.py",
+      "source_sha256": "8ebc422405a4577648c11dc81401154942c16771f29bb4b88b09c16d8875cdc8",
+      "imported_sha256": "7ee3c0295a423020de5946d576ab7999843998d4293ad98229060120d2792e53",
+      "changes": [
+        {
+          "line": 12,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.family import (  # noqa: E402,F401\n    FAMILY_OF_VERB,\n    OPENERS,\n    QUIET,\n    family_key,\n    family_tag,\n    one_per_family,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.family import FAMILY_OF_VERB, OPENERS, QUIET, family_key, family_tag, one_per_family"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/finalists.py",
+      "destination": "backend/app/modules/massing/workspace_tools/finalists.py",
+      "source_sha256": "21bd3898a83bd13663b78da73cf398779ea231181551bce021323caa0d47f8b0",
+      "imported_sha256": "27e91f9b40662f695e787ccf6ea78407a367ea1b535981339d57f46acaa48036",
+      "changes": [
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 29,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 30,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import delivered as delivered_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import delivered as delivered_form"
+        },
+        {
+          "line": 31,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.delivery_gate import stamp_authored_composition",
+          "after": "from backend.app.modules.design.generation.maas.massv2.delivery_gate import stamp_authored_composition"
+        },
+        {
+          "line": 33,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import (  # noqa: E402\n    declared_height_m, declared_stature, parti_from_record,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import declared_height_m, declared_stature, parti_from_record"
+        },
+        {
+          "line": 36,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 37,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 38,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import (  # noqa: E402\n    site_open_side_direction,\n    spread_across_siting,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction, spread_across_siting"
+        },
+        {
+          "line": 42,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.variations import spread_across_coverage",
+          "after": "from backend.app.modules.design.generation.maas.massv2.variations import spread_across_coverage"
+        },
+        {
+          "line": 50,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import default_building_type",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import default_building_type"
+        },
+        {
+          "line": 98,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        },
+        {
+          "line": 145,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.ablation import gap_evidence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.ablation import gap_evidence"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/floor_areas.py",
+      "destination": "backend/app/modules/massing/workspace_tools/floor_areas.py",
+      "source_sha256": "c4f6a141bc4ef7646e84c879eeae6deae04980909e820a74e6129b029f802fcd",
+      "imported_sha256": "8baac3748ef022c72a016d02ef48db2f6543862716f0e1e8c51bfb5893f43331",
+      "changes": [
+        {
+          "line": 10,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, scheme_of, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, scheme_of, BUILDING_TYPE"
+        },
+        {
+          "line": 11,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 12,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import storeys_in",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import storeys_in"
+        },
+        {
+          "line": 13,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/floor_programme.py",
+      "destination": "backend/app/modules/massing/workspace_tools/floor_programme.py",
+      "source_sha256": "cabba7454eeefe181a10f693b15964cfe34a61552bb8a9538c386b8fbef26488",
+      "imported_sha256": "2784d9362b8d1e7c30eb2b6d85058bee54ec9dbe9e0a481fa78eec2e6a369aa6",
+      "changes": [
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, scheme_of, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, scheme_of, BUILDING_TYPE"
+        },
+        {
+          "line": 33,
+          "reason": "namespace import",
+          "before": "from floor_areas import storey_areas",
+          "after": "from backend.app.modules.massing.workspace_tools.floor_areas import storey_areas"
+        },
+        {
+          "line": 35,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        },
+        {
+          "line": 36,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 37,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/funnel_delta.py",
+      "destination": "backend/app/modules/massing/workspace_tools/funnel_delta.py",
+      "source_sha256": "c9729b7550237c60eb3c5e1ef8ba99f559b2e834e4d80299f5a262b59599996d",
+      "imported_sha256": "e57ec054d26a07bd68051aa028fe9156d2b73afc3d632e2078d32dab3de5dd65",
+      "changes": []
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/gap_trace.py",
+      "destination": "backend/app/modules/massing/workspace_tools/gap_trace.py",
+      "source_sha256": "7408d868fb51bb041793cbf53e4e1dd0a0f138e3504161fb2bdd28002bf0f566",
+      "imported_sha256": "e76d3357fa49631967d8f455e9ced9d4ca9349f33d7ceb82eb14b6225e4c817d",
+      "changes": [
+        {
+          "line": 19,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus, schedule_of",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus, schedule_of"
+        },
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.ablation import JOINT_CLEARANCE_M",
+          "after": "from backend.app.modules.design.generation.maas.massv2.ablation import JOINT_CLEARANCE_M"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import declared_stature, parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import declared_stature, parti_from_record"
+        },
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 29,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal_fit import fit_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal_fit import fit_to_site"
+        },
+        {
+          "line": 30,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import (  # noqa: E402\n    OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site"
+        },
+        {
+          "line": 33,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.variations import spread_across_coverage",
+          "after": "from backend.app.modules.design.generation.maas.massv2.variations import spread_across_coverage"
+        },
+        {
+          "line": 131,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/judge_fit.py",
+      "destination": "backend/app/modules/massing/workspace_tools/judge_fit.py",
+      "source_sha256": "c35daa637970c5d382c0a092423e6d0304b82e57b71435a264ab678302170886",
+      "imported_sha256": "db7c94a33aaebef3a13e59e31363aa11f9a192c679ea79c0b9ef037b81e7e4b7",
+      "changes": []
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/judge_tiles.py",
+      "destination": "backend/app/modules/massing/workspace_tools/judge_tiles.py",
+      "source_sha256": "50cb630b30a4662a5b6bc75c5fcfdfdb290da9433e7df7f356a50e4853293d90",
+      "imported_sha256": "03bf764e22a9e30e465faaa6291b17c720ade39f81b42fbb929493a84f3e33dd",
+      "changes": [
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus, schedule_of",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus, schedule_of"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, BUILDING_TYPE"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/make_brief.py",
+      "destination": "backend/app/modules/massing/workspace_tools/make_brief.py",
+      "source_sha256": "2550db2eb9ef62bfc73ae7797bb47a65578251c30290dbf44e48d96959ae8610",
+      "imported_sha256": "ee9a7dd2e5fedc4f7f72bf123e86c8885a148230ebe27f93e03cd5e093024b06",
+      "changes": [
+        {
+          "line": 147,
+          "reason": "namespace import",
+          "before": "import validate_authored as va",
+          "after": "import backend.app.modules.massing.workspace_tools.validate_authored as va"
+        },
+        {
+          "line": 203,
+          "reason": "namespace import",
+          "before": "from trap_ledger import ledger",
+          "after": "from backend.app.modules.massing.workspace_tools.trap_ledger import ledger"
+        },
+        {
+          "line": 204,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import policy_for",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import policy_for"
+        },
+        {
+          "line": 205,
+          "reason": "namespace import",
+          "before": "from finalists import PNU",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU"
+        },
+        {
+          "line": 19,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/mass_tracker.py",
+      "destination": "backend/app/modules/massing/workspace_tools/mass_tracker.py",
+      "source_sha256": "651647876a2a94a71d9fdb762d87e32b44bec7ec529b7e42cc581442020222b8",
+      "imported_sha256": "ac27bd9b269cbe0aff06a95cbf60c6a0c467bb89e37a59df574bcc7afaf55600",
+      "changes": [
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/picksheet.py",
+      "destination": "backend/app/modules/massing/workspace_tools/picksheet.py",
+      "source_sha256": "9fcedb85fd690146281d987938b673942e12053a18fe97aad5068d09c7502b69",
+      "imported_sha256": "6691530ca0a76178a8f191209e871269e2eb346b3a6acb78bab19a523d0e94fa",
+      "changes": [
+        {
+          "line": 19,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, scheme_of, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, scheme_of, BUILDING_TYPE"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 46,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/pitch_audit.py",
+      "destination": "backend/app/modules/massing/workspace_tools/pitch_audit.py",
+      "source_sha256": "6537ac3daa2d51f40d8be2caf32161bcf6f34a3d3c89e4f5b2f60fcb7aecf991",
+      "imported_sha256": "733504c33a6a425076b3556bc633ff47c36d495e615c94e834e50955c29a5928",
+      "changes": [
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/pool_sheets.py",
+      "destination": "backend/app/modules/massing/workspace_tools/pool_sheets.py",
+      "source_sha256": "25ddd923537db6d1bfcd04436579f9889fbcbec14a2675c2d043429d1b9a586d",
+      "imported_sha256": "cced13f5e9f8d2578eea01539ff3208d5eb388bb24d36abda0e6ca3de8571f45",
+      "changes": [
+        {
+          "line": 18,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus, schedule_of",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus, schedule_of"
+        },
+        {
+          "line": 19,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, BUILDING_TYPE"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 168,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import shape_id"
+        },
+        {
+          "line": 172,
+          "reason": "namespace import",
+          "before": "from solid_presentation import SolidPresentationRegistry",
+          "after": "from backend.app.modules.massing.workspace_tools.solid_presentation import SolidPresentationRegistry"
+        },
+        {
+          "line": 118,
+          "reason": "namespace import",
+          "before": "from family_key import family_key",
+          "after": "from backend.app.modules.massing.workspace_tools.family_key import family_key"
+        },
+        {
+          "line": 17,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/presentation.py",
+      "destination": "backend/app/modules/massing/workspace_tools/presentation.py",
+      "source_sha256": "6b1ec103b4bcebe98333a475782e9dae412ee9393871a9949527d93f7b70075d",
+      "imported_sha256": "00a2c22d58baffddb12fa04a288bf4a82e2cc0ca7b65c74f48f9a8f637e3cab3",
+      "changes": [
+        {
+          "line": 37,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import shape_id"
+        },
+        {
+          "line": 85,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import seat_certificate, shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import seat_certificate, shape_id"
+        },
+        {
+          "line": 86,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_sequence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_sequence"
+        },
+        {
+          "line": 135,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render_mesh import is_mesh_authoritative, mesh_section_at",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render_mesh import is_mesh_authoritative, mesh_section_at"
+        },
+        {
+          "line": 163,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render_mesh import is_mesh_authoritative, mesh_plan_at",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render_mesh import is_mesh_authoritative, mesh_plan_at"
+        },
+        {
+          "line": 177,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import shape_id"
+        },
+        {
+          "line": 178,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render_mesh import is_mesh_authoritative",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render_mesh import is_mesh_authoritative"
+        },
+        {
+          "line": 43,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record, declared_height_m",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record, declared_height_m"
+        },
+        {
+          "line": 44,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute_steps",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute_steps"
+        },
+        {
+          "line": 45,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/presentation_aliases.py",
+      "destination": "backend/app/modules/massing/workspace_tools/presentation_aliases.py",
+      "source_sha256": "1d9ebd9e634b0c158969dcb99b16016f4c82da1270d35bf25f8ef7d3516ea358",
+      "imported_sha256": "23f84d19578a446d8f2aa352af386086450240f06f262ef9a8f0f0faac7af26b",
+      "changes": [
+        {
+          "line": 4,
+          "reason": "namespace import",
+          "before": "from solid_presentation import SolidPresentationRegistry",
+          "after": "from backend.app.modules.massing.workspace_tools.solid_presentation import SolidPresentationRegistry"
+        },
+        {
+          "line": 5,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import certificate_digest, shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import certificate_digest, shape_id"
+        },
+        {
+          "line": 63,
+          "reason": "namespace import",
+          "before": "from book_import import entry_for_judged_row",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import entry_for_judged_row"
+        },
+        {
+          "line": 64,
+          "reason": "namespace import",
+          "before": "from board_render import _korea_schedule",
+          "after": "from backend.app.modules.massing.workspace_tools.board_render import _korea_schedule"
+        },
+        {
+          "line": 65,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import rebuild_seat, seat_context, seat_certificate",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import rebuild_seat, seat_context, seat_certificate"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/probe_pair.py",
+      "destination": "backend/app/modules/massing/workspace_tools/probe_pair.py",
+      "source_sha256": "84cedca6fee2d9ae6627dbc84bf6cc588ba95c686c551d70c0f9d49a0c2135fa",
+      "imported_sha256": "9364f7beeee8e7877f20fe16a8a74d1c813f15f7079ba1afe0cfb4b2765196a8",
+      "changes": [
+        {
+          "line": 15,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus, schedule_of",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus, schedule_of"
+        },
+        {
+          "line": 16,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, BUILDING_TYPE"
+        },
+        {
+          "line": 17,
+          "reason": "namespace import",
+          "before": "from pool_sheets import COLUMNS, PER_SHEET, TILE",
+          "after": "from backend.app.modules.massing.workspace_tools.pool_sheets import COLUMNS, PER_SHEET, TILE"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 14,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/regulating_audit.py",
+      "destination": "backend/app/modules/massing/workspace_tools/regulating_audit.py",
+      "source_sha256": "7737e986e2b83c0772f96d932e8254b74c92ced7e595c1acea68f47095701163",
+      "imported_sha256": "26f52e594f393243eefc59c99fe6d0f924af297d260c9d3c8a55d994e2481b13",
+      "changes": [
+        {
+          "line": 31,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus, schedule_of",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus, schedule_of"
+        },
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, BUILDING_TYPE"
+        },
+        {
+          "line": 34,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import structure",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import structure"
+        },
+        {
+          "line": 35,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 36,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/sample_pool.py",
+      "destination": "backend/app/modules/massing/workspace_tools/sample_pool.py",
+      "source_sha256": "fec4c8447ae810f2c830263ac19e6ce12c99b3dc4f4559ac61e20d178f4ff49c",
+      "imported_sha256": "d68b37c7b005c0211e674e94379ccfa096eba67af341adb6eacbb736a44cbbee",
+      "changes": [
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.ablation import ablate",
+          "after": "from backend.app.modules.design.generation.maas.massv2.ablation import ablate"
+        },
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute"
+        },
+        {
+          "line": 29,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 30,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 31,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import measure_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import measure_form"
+        },
+        {
+          "line": 33,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.plausibility import assess",
+          "after": "from backend.app.modules.design.generation.maas.massv2.plausibility import assess"
+        },
+        {
+          "line": 34,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 35,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/solid_presentation.py",
+      "destination": "backend/app/modules/massing/workspace_tools/solid_presentation.py",
+      "source_sha256": "ecc8b1d09fa2da696cf881466e325653d1736e2b2ee95dc59910406fb415a9ea",
+      "imported_sha256": "13fdfa254ae97d764ca9f3b520b7bab5aa1840444541eeb59ef52e09b551ad44",
+      "changes": [
+        {
+          "line": 18,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.export_mesh import EXPORT_DECIMAL_PLACES",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.export_mesh import EXPORT_DECIMAL_PLACES"
+        },
+        {
+          "line": 19,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.source_bridge import mesh_section_solid",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.source_bridge import mesh_section_solid"
+        },
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render_mesh import is_mesh_authoritative, physical_triangles",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render_mesh import is_mesh_authoritative, physical_triangles"
+        },
+        {
+          "line": 21,
+          "reason": "namespace import",
+          "before": "from design.maas.source_geometry.ir import SourceMass",
+          "after": "from backend.app.modules.design.generation.maas.source_geometry.ir import SourceMass"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/study_sheet.py",
+      "destination": "backend/app/modules/massing/workspace_tools/study_sheet.py",
+      "source_sha256": "bbd16d1a7065ebde49f0e3fece3fd8970d2bdb4035e2524c0998263e225ae3ae",
+      "imported_sha256": "ecc166ecb959df28152909cd9a9f4ff02c6256492333aa1006d72d3fbe089b58",
+      "changes": [
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from evaluation_contract import active_rubrics, compatible, stage_contract",
+          "after": "from backend.app.modules.massing.workspace_tools.evaluation_contract import active_rubrics, compatible, stage_contract"
+        },
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import composition as composition_module",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import composition as composition_module"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.delivery_gate import assess_delivery",
+          "after": "from backend.app.modules.design.generation.maas.massv2.delivery_gate import assess_delivery"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from vlm_shortlist import rebuild_seat, seat_context, seat_certificate, shape_id",
+          "after": "from backend.app.modules.massing.workspace_tools.vlm_shortlist import rebuild_seat, seat_context, seat_certificate, shape_id"
+        },
+        {
+          "line": 232,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.site_planning import parking_status_text",
+          "after": "from backend.app.modules.design.generation.maas.massv2.site_planning import parking_status_text"
+        },
+        {
+          "line": 253,
+          "reason": "namespace import",
+          "before": "from presentation import write_sequence, drawing_evidence, artifact_stem",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation import write_sequence, drawing_evidence, artifact_stem"
+        },
+        {
+          "line": 254,
+          "reason": "namespace import",
+          "before": "from book_import import _refused, entry_for_judged_row",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import _refused, entry_for_judged_row"
+        },
+        {
+          "line": 255,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.site_planning import assess_site_parking, write_site_parking_plan",
+          "after": "from backend.app.modules.design.generation.maas.massv2.site_planning import assess_site_parking, write_site_parking_plan"
+        },
+        {
+          "line": 262,
+          "reason": "namespace import",
+          "before": "from solid_presentation import SolidPresentationRegistry",
+          "after": "from backend.app.modules.massing.workspace_tools.solid_presentation import SolidPresentationRegistry"
+        },
+        {
+          "line": 18,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/sweep.py",
+      "destination": "backend/app/modules/massing/workspace_tools/sweep.py",
+      "source_sha256": "8bb6a6f5ed06cdf198dd8dcf8d439b392826959d457b5dcbd44de6c4af0f32a1",
+      "imported_sha256": "258f20ecb8cddb635a8a30e31c9d4d5fd0b2707180f9968858e4fe25054ec02f",
+      "changes": [
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 29,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import measure_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import measure_form"
+        },
+        {
+          "line": 30,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import (  # noqa: E402\n    OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/sweep_generate.py",
+      "destination": "backend/app/modules/massing/workspace_tools/sweep_generate.py",
+      "source_sha256": "16f57049334c86a34f1b4a76ff187b120d959c4767e00ca7721dbbaf97046e52",
+      "imported_sha256": "a6684e07c1b13b6f635426abc39a75d6fae63918e1fab052eaa25d671eeb9e0f",
+      "changes": [
+        {
+          "line": 314,
+          "reason": "namespace import",
+          "before": "import validate_authored as va",
+          "after": "import backend.app.modules.massing.workspace_tools.validate_authored as va"
+        },
+        {
+          "line": 323,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.family import family_key",
+          "after": "from backend.app.modules.design.generation.maas.massv2.family import family_key"
+        },
+        {
+          "line": 24,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/trap_ledger.py",
+      "destination": "backend/app/modules/massing/workspace_tools/trap_ledger.py",
+      "source_sha256": "d1371f594ae55165698a8bb6ba421289b04a8652b29e155c6cf7873f4ea37f78",
+      "imported_sha256": "fb792cfdfe8ebe527dd8d45d622ef767f94e3df6fd46ab40f8c9926d11efc748",
+      "changes": [
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.floor_viability import DEFAULT_MINIMUM_CLEAR_DEPTH_M",
+          "after": "from backend.app.modules.design.generation.maas.floor_viability import DEFAULT_MINIMUM_CLEAR_DEPTH_M"
+        },
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.ablation import GAP_IS_A_SPACE_M",
+          "after": "from backend.app.modules.design.generation.maas.massv2.ablation import GAP_IS_A_SPACE_M"
+        },
+        {
+          "line": 29,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import MIN_OFFSET_RATIO",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import MIN_OFFSET_RATIO"
+        },
+        {
+          "line": 30,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.structure import (  # noqa: E402\n    CANTILEVER_BACKSPAN_RATIO,\n    POTENTIAL_WELL_FLOOR_M,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.structure import CANTILEVER_BACKSPAN_RATIO, POTENTIAL_WELL_FLOOR_M"
+        },
+        {
+          "line": 34,
+          "reason": "namespace import",
+          "before": "from design.maas.source_geometry.ir import MAX_CREASED_PROFILE_POINTS",
+          "after": "from backend.app.modules.design.generation.maas.source_geometry.ir import MAX_CREASED_PROFILE_POINTS"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/tray_audit.py",
+      "destination": "backend/app/modules/massing/workspace_tools/tray_audit.py",
+      "source_sha256": "dd95b4dd1ab2820a0cb7d899207734fea3f03c78461f07f95ba24f990d3ef5e8",
+      "imported_sha256": "1dbd8976e68826f1cd5737f1391476bbc587e5bcf14ccd85c9add48c8fb72156",
+      "changes": [
+        {
+          "line": 16,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, scheme_of, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, scheme_of, BUILDING_TYPE"
+        },
+        {
+          "line": 18,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 19,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/trim_alternatives.py",
+      "destination": "backend/app/modules/massing/workspace_tools/trim_alternatives.py",
+      "source_sha256": "4150276fffc628c8f90e7e6f76148697e26e35224a328ba7cf2db9d69e077bde",
+      "imported_sha256": "c22b2a74ac0f932b74fac9795a96c99674954867596e465e7f471c7a336f309c",
+      "changes": [
+        {
+          "line": 34,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus, schedule_of",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus, schedule_of"
+        },
+        {
+          "line": 35,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 36,
+          "reason": "namespace import",
+          "before": "from gap_trace import ground_gap",
+          "after": "from backend.app.modules.massing.workspace_tools.gap_trace import ground_gap"
+        },
+        {
+          "line": 38,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import compile_matrix_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import compile_matrix_form"
+        },
+        {
+          "line": 39,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 40,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 41,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import declared_stature, parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import declared_stature, parti_from_record"
+        },
+        {
+          "line": 42,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 43,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.compile import _plan",
+          "after": "from backend.app.modules.design.generation.maas.massv2.compile import _plan"
+        },
+        {
+          "line": 44,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal_fit import (  # noqa: E402\n    fit_to_site, projected_ground_area,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal_fit import fit_to_site, projected_ground_area"
+        },
+        {
+          "line": 47,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.affine_matrix import (  # noqa: E402\n    compose_matrix4, translation_matrix4, validate_matrix4,\n)",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.affine_matrix import compose_matrix4, translation_matrix4, validate_matrix4"
+        },
+        {
+          "line": 50,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import (  # noqa: E402\n    OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site"
+        },
+        {
+          "line": 53,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.variations import spread_across_coverage",
+          "after": "from backend.app.modules.design.generation.maas.massv2.variations import spread_across_coverage"
+        },
+        {
+          "line": 114,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        },
+        {
+          "line": 134,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal_fit import _scaled_in_plan",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal_fit import _scaled_in_plan"
+        },
+        {
+          "line": 32,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/validate_authored.py",
+      "destination": "backend/app/modules/massing/workspace_tools/validate_authored.py",
+      "source_sha256": "531fd985dd69d8d8d80e20ce59e985576f5aacbdbbfdd5e6d61defb26660b8eb",
+      "imported_sha256": "35a964351a09aff1a16477d6ff68abea10e5c7af36a0a557016f8828c16447d3",
+      "changes": [
+        {
+          "line": 14,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import (\n    BASE_ORIENTATIONS,\n    BASE_VOLUME_LABELS,\n    STACK_CONTRAST_RANGE,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import BASE_ORIENTATIONS, BASE_VOLUME_LABELS, STACK_CONTRAST_RANGE"
+        },
+        {
+          "line": 60,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import _VERBS",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import _VERBS"
+        },
+        {
+          "line": 246,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record, PLOT_MODES",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record, PLOT_MODES"
+        },
+        {
+          "line": 338,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import mistyped_words",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import mistyped_words"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/verb_audit.py",
+      "destination": "backend/app/modules/massing/workspace_tools/verb_audit.py",
+      "source_sha256": "cea1886be716ecee83c1f6b32acdcb260f2fee6e690583ef2f4eabf22efacad9",
+      "imported_sha256": "849c29308881af7392303e89890e61c16a9273bd933c450c3484144913215420",
+      "changes": [
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute"
+        },
+        {
+          "line": 29,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 30,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 31,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, BUILDING_TYPE"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/verb_fit.py",
+      "destination": "backend/app/modules/massing/workspace_tools/verb_fit.py",
+      "source_sha256": "a9f9e3b189c271d4e82f1c22d59f3e33450f7bc7c482541154f777e5a6ad5e9c",
+      "imported_sha256": "60cb16d06017b8c847aed7c9d6ac9b641c1865e5bc49cfaf0ab74d5e9ef60df2",
+      "changes": []
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/verdict_ledger.py",
+      "destination": "backend/app/modules/massing/workspace_tools/verdict_ledger.py",
+      "source_sha256": "b4ed7639714a957ec9717837771cfaa272121a00f7e6844d3787744609345552",
+      "imported_sha256": "41c4f5dc61e2f4c67e08d71fce5a993807e97afeeaabec92e3e643b1b071cefd",
+      "changes": []
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/vlm_rank.py",
+      "destination": "backend/app/modules/massing/workspace_tools/vlm_rank.py",
+      "source_sha256": "dfd1369585d7d9ab8dbc5bc6234654912d4a4ff64ff8bd4f64770f22f743cda2",
+      "imported_sha256": "3b1cc5128880afad207786c718daa69990ebef9fb434c1e51fecd0bb2059bbd6",
+      "changes": []
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/vlm_shortlist.py",
+      "destination": "backend/app/modules/massing/workspace_tools/vlm_shortlist.py",
+      "source_sha256": "38f47affdca07b192f8777d2a9bbf455b1a0cdf67cd54adc4d51c772aaf63624",
+      "imported_sha256": "7ed5c16abcd6531414884722805a6c5289906963d79e0e30bcf35fca17b5e88c",
+      "changes": [
+        {
+          "line": 30,
+          "reason": "namespace import",
+          "before": "from evaluation_contract import compatible, stage_contract, jury_provenance",
+          "after": "from backend.app.modules.massing.workspace_tools.evaluation_contract import compatible, stage_contract, jury_provenance"
+        },
+        {
+          "line": 101,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import gross_floor_area_m2",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import gross_floor_area_m2"
+        },
+        {
+          "line": 150,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import gross_floor_area_m2",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import gross_floor_area_m2"
+        },
+        {
+          "line": 180,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import storey_limit_evidence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import storey_limit_evidence"
+        },
+        {
+          "line": 185,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import area_limit_evidence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import area_limit_evidence"
+        },
+        {
+          "line": 197,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.structure import assess_standing",
+          "after": "from backend.app.modules.design.generation.maas.massv2.structure import assess_standing"
+        },
+        {
+          "line": 198,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render_mesh import is_mesh_authoritative",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render_mesh import is_mesh_authoritative"
+        },
+        {
+          "line": 239,
+          "reason": "namespace import",
+          "before": "from finalists import rebuild as _rebuild",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import rebuild as _rebuild"
+        },
+        {
+          "line": 299,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus as _corpus",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus as _corpus"
+        },
+        {
+          "line": 300,
+          "reason": "namespace import",
+          "before": "from finalists import PNU as _PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU as _PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 301,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 302,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 335,
+          "reason": "namespace import",
+          "before": "from band_probe import corpus as _corpus",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import corpus as _corpus"
+        },
+        {
+          "line": 336,
+          "reason": "namespace import",
+          "before": "from finalists import PNU as _PNU, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU as _PNU, BUILDING_TYPE"
+        },
+        {
+          "line": 337,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 338,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 339,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 428,
+          "reason": "namespace import",
+          "before": "from presentation import bound_sequence",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation import bound_sequence"
+        },
+        {
+          "line": 449,
+          "reason": "namespace import",
+          "before": "from judge_tiles import main as make_tiles",
+          "after": "from backend.app.modules.massing.workspace_tools.judge_tiles import main as make_tiles"
+        },
+        {
+          "line": 473,
+          "reason": "namespace import",
+          "before": "from band_probe import schedule_of",
+          "after": "from backend.app.modules.massing.workspace_tools.band_probe import schedule_of"
+        },
+        {
+          "line": 474,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 475,
+          "reason": "namespace import",
+          "before": "from presentation import write_sequence",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation import write_sequence"
+        },
+        {
+          "line": 122,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import storey_limit_evidence",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import storey_limit_evidence"
+        },
+        {
+          "line": 155,
+          "reason": "namespace import",
+          "before": "from book_import import registry",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import registry"
+        },
+        {
+          "line": 160,
+          "reason": "namespace import",
+          "before": "from book_import import delivered_floor_evidence",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import delivered_floor_evidence"
+        },
+        {
+          "line": 221,
+          "reason": "namespace import",
+          "before": "from book_import import book_rebuild, resolve_entry",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import book_rebuild, resolve_entry"
+        },
+        {
+          "line": 401,
+          "reason": "namespace import",
+          "before": "from presentation import append_jury_drawings",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation import append_jury_drawings"
+        },
+        {
+          "line": 491,
+          "reason": "namespace import",
+          "before": "from presentation import append_jury_drawings",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation import append_jury_drawings"
+        },
+        {
+          "line": 385,
+          "reason": "namespace import",
+          "before": "from book_import import entry_for_judged_row",
+          "after": "from backend.app.modules.massing.workspace_tools.book_import import entry_for_judged_row"
+        },
+        {
+          "line": 29,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        },
+        {
+          "line": 298,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        },
+        {
+          "line": 334,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('tmp_mass_check/_massv2/tools')"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/why_absent.py",
+      "destination": "backend/app/modules/massing/workspace_tools/why_absent.py",
+      "source_sha256": "bfc76da84d0dc23885f604736e6fbb26dab238c797b315e3f8eb40d7d1b2139f",
+      "imported_sha256": "f9e600446fdf6fdc3ce7fb07f38d75b16e62bf38f650f79683c097327f80dbc5",
+      "changes": []
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/word_shares.py",
+      "destination": "backend/app/modules/massing/workspace_tools/word_shares.py",
+      "source_sha256": "8681d1839afbb653de78756c624fea1f0b1c2264e2720c5ec3a5bd49aa6ccb14",
+      "imported_sha256": "a26bab0bf6b3e32a402a74dd1aba860bed23305270fe680c2327f6e83501e2c9",
+      "changes": [
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import postcondition",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import postcondition"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 28,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        }
+      ]
+    },
+    {
+      "source": "tmp_mass_check/_massv2/tools/z.py",
+      "destination": "backend/app/modules/massing/workspace_tools/z.py",
+      "source_sha256": "0c4bd27090598a04ed1113d3ce0e2f9934b7070dd425f8e005271474ba616025",
+      "imported_sha256": "40bf2c6014fcd7917d96c48aa5ef73b522da48c0e8c3285c19781c435f202aa8",
+      "changes": [
+        {
+          "line": 3,
+          "reason": "namespace import",
+          "before": "from finalists import PNU, rebuild, scheme_of, BUILDING_TYPE",
+          "after": "from backend.app.modules.massing.workspace_tools.finalists import PNU, rebuild, scheme_of, BUILDING_TYPE"
+        },
+        {
+          "line": 4,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        },
+        {
+          "line": 5,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 6,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import site_open_side_direction",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction"
+        },
+        {
+          "line": 7,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import gross_floor_area_m2",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import gross_floor_area_m2"
+        }
+      ]
+    },
+    {
+      "source": "design/management/commands/generate_massv2.py",
+      "destination": "backend/app/modules/massing/commands/generate_massv2.py",
+      "source_sha256": "a03c8c24ea79e51c9ee2f8503e534992c13b49134ab98ab937c0cb112fcf0894",
+      "imported_sha256": "aabf3146f2c0b42fafad7d3a7a4ef5da397e085e78592b4b316bd5f96ba03818",
+      "changes": [
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.design_space import delivered_ground_take_band, delivered_stature_band",
+          "after": "from backend.app.modules.design.generation.maas.design_space import delivered_ground_take_band, delivered_stature_band"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.design_space.axes import STATURE_BANDS",
+          "after": "from backend.app.modules.design.generation.maas.design_space.axes import STATURE_BANDS"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import compile_matrix_form, measure_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import compile_matrix_form, measure_form"
+        },
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import composition as composition_module",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import composition as composition_module"
+        },
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.measure import gross_floor_area_m2",
+          "after": "from backend.app.modules.design.generation.maas.massv2.measure import gross_floor_area_m2"
+        },
+        {
+          "line": 33,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import ablation as ablate_module",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import ablation as ablate_module"
+        },
+        {
+          "line": 34,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import postcondition",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import postcondition"
+        },
+        {
+          "line": 35,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import program as programme",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import program as programme"
+        },
+        {
+          "line": 36,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.author import _to_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.author import _to_form"
+        },
+        {
+          "line": 37,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import execute as execute_parti",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import execute as execute_parti"
+        },
+        {
+          "line": 38,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2 import grammar as grammar_module",
+          "after": "from backend.app.modules.design.generation.maas.massv2 import grammar as grammar_module"
+        },
+        {
+          "line": 39,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.grammar import parti_from_record",
+          "after": "from backend.app.modules.design.generation.maas.massv2.grammar import parti_from_record"
+        },
+        {
+          "line": 40,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import LegalSiteUnavailable, load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import LegalSiteUnavailable, load_legal_site"
+        },
+        {
+          "line": 41,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.execute import delivered as delivered_form",
+          "after": "from backend.app.modules.design.generation.maas.massv2.execute import delivered as delivered_form"
+        },
+        {
+          "line": 42,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.fill import fill_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.fill import fill_to_site"
+        },
+        {
+          "line": 43,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.delivery_gate import assess_delivery, stamp_authored_composition",
+          "after": "from backend.app.modules.design.generation.maas.massv2.delivery_gate import assess_delivery, stamp_authored_composition"
+        },
+        {
+          "line": 44,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal_fit import fit_to_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal_fit import fit_to_site"
+        },
+        {
+          "line": 45,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.sampler import read_facts, sample_sentences",
+          "after": "from backend.app.modules.design.generation.maas.massv2.sampler import read_facts, sample_sentences"
+        },
+        {
+          "line": 46,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.render import render_masses",
+          "after": "from backend.app.modules.design.generation.maas.massv2.render import render_masses"
+        },
+        {
+          "line": 47,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.select import Candidate, choose, summary as selection_summary",
+          "after": "from backend.app.modules.design.generation.maas.massv2.select import Candidate, choose, summary as selection_summary"
+        },
+        {
+          "line": 48,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.seeds import seed_forms",
+          "after": "from backend.app.modules.design.generation.maas.massv2.seeds import seed_forms"
+        },
+        {
+          "line": 49,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.siting import (\n    OPEN_SIDE_SITINGS,\n    SITINGS,\n    site_open_side_direction,\n    place_on_site,\n    spread_across_siting,\n)",
+          "after": "from backend.app.modules.design.generation.maas.massv2.siting import OPEN_SIDE_SITINGS, SITINGS, site_open_side_direction, place_on_site, spread_across_siting"
+        },
+        {
+          "line": 56,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.variations import spread_across_coverage",
+          "after": "from backend.app.modules.design.generation.maas.massv2.variations import spread_across_coverage"
+        },
+        {
+          "line": 157,
+          "reason": "namespace import",
+          "before": "from presentation import write_sequence",
+          "after": "from backend.app.modules.massing.workspace_tools.presentation import write_sequence"
+        },
+        {
+          "line": 211,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.postcondition import Verdict",
+          "after": "from backend.app.modules.design.generation.maas.massv2.postcondition import Verdict"
+        },
+        {
+          "line": 1202,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.family import family_tag",
+          "after": "from backend.app.modules.design.generation.maas.massv2.family import family_tag"
+        }
+      ]
+    },
+    {
+      "source": "design/management/commands/generate_maas_creative_100.py",
+      "destination": "backend/app/modules/massing/commands/generate_maas_creative_100.py",
+      "source_sha256": "3cd3cc21fb8ed2f3a392dc3d69a16fc0548e27e618b0a83d76a1a89c617d004d",
+      "imported_sha256": "36314c18c7106dd2d82fd1dd2f61cd9e8464b97ee6df84cd82a06e2e20fae175",
+      "changes": [
+        {
+          "line": 16,
+          "reason": "namespace import",
+          "before": "from design.maas.creative_floor_portfolio import (\n    build_creative_floor_portfolio,\n    build_creative_floor_portfolio_report,\n)",
+          "after": "from backend.app.modules.design.generation.maas.creative_floor_portfolio import build_creative_floor_portfolio, build_creative_floor_portfolio_report"
+        },
+        {
+          "line": 20,
+          "reason": "namespace import",
+          "before": "from design.maas.creative_author_supply import (\n    collect_creative_author_supply,\n)",
+          "after": "from backend.app.modules.design.generation.maas.creative_author_supply import collect_creative_author_supply"
+        },
+        {
+          "line": 23,
+          "reason": "namespace import",
+          "before": "from design.maas.creative_morphology import morphology_distance",
+          "after": "from backend.app.modules.design.generation.maas.creative_morphology import morphology_distance"
+        },
+        {
+          "line": 24,
+          "reason": "namespace import",
+          "before": "from design.maas.creative_program_author import (\n    authored_programs_from_cache_pool,\n    authored_programs_from_payload,\n    cached_authored_programs,\n)",
+          "after": "from backend.app.modules.design.generation.maas.creative_program_author import authored_programs_from_cache_pool, authored_programs_from_payload, cached_authored_programs"
+        },
+        {
+          "line": 29,
+          "reason": "namespace import",
+          "before": "from design.maas.creative_research_bundle import (\n    write_creative_mass_research_bundle,\n)",
+          "after": "from backend.app.modules.design.generation.maas.creative_research_bundle import write_creative_mass_research_bundle"
+        },
+        {
+          "line": 32,
+          "reason": "namespace import",
+          "before": "from design.maas.design_memory.reference_events import (\n    build_reference_review_events,\n    mutable_event,\n)",
+          "after": "from backend.app.modules.design.generation.maas.design_memory.reference_events import build_reference_review_events, mutable_event"
+        },
+        {
+          "line": 36,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language import (\n    CompilationResult,\n    GeometryAuthorError,\n    GeometryProgram,\n    author_geometry_programs_with_openai,\n    render_compilation_preview,\n)",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language import CompilationResult, GeometryAuthorError, GeometryProgram, author_geometry_programs_with_openai, render_compilation_preview"
+        },
+        {
+          "line": 43,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.vlm_adapter import (\n    retrieve_geometry_reference_matches,\n)",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.vlm_adapter import retrieve_geometry_reference_matches"
+        },
+        {
+          "line": 46,
+          "reason": "namespace import",
+          "before": "from design.maas.preference.vlm_scorer import (\n    score_candidate_with_openai_vlm,\n)",
+          "after": "from backend.app.modules.design.generation.maas.preference.vlm_scorer import score_candidate_with_openai_vlm"
+        },
+        {
+          "line": 237,
+          "reason": "namespace import",
+          "before": "from design.maas.book_development import build_exact_development_portfolio",
+          "after": "from backend.app.modules.design.generation.maas.book_development import build_exact_development_portfolio"
+        }
+      ]
+    },
+    {
+      "source": "design/management/commands/audit_maas_agent_collaboration.py",
+      "destination": "backend/app/modules/massing/commands/audit_maas_agent_collaboration.py",
+      "source_sha256": "c84036861af1a03ec44ed4719e08107ab7c897fdc7cc13789c0c4de891a4f4ec",
+      "imported_sha256": "0bf20f1e42d21c399f651a4ba43be468b2e929ce92e0c71f57f5adf506d64168",
+      "changes": [
+        {
+          "line": 27,
+          "reason": "namespace import",
+          "before": "from design.maas.agents.law_graph_agent.evidence import (\n    bind_law_agent_evidence,\n    collect_law_source_snapshot,\n)",
+          "after": "from backend.app.modules.design.generation.maas.agents.law_graph_agent.evidence import bind_law_agent_evidence, collect_law_source_snapshot"
+        },
+        {
+          "line": 31,
+          "reason": "namespace import",
+          "before": "from design.maas.agents.orchestrator.execution_collaboration import (\n    build_default_execution_executors,\n    run_execution_collaboration,\n)",
+          "after": "from backend.app.modules.design.generation.maas.agents.orchestrator.execution_collaboration import build_default_execution_executors, run_execution_collaboration"
+        },
+        {
+          "line": 35,
+          "reason": "namespace import",
+          "before": "from design.maas.agents.shared.types import AgentEvidence, ExecutionIdentity",
+          "after": "from backend.app.modules.design.generation.maas.agents.shared.types import AgentEvidence, ExecutionIdentity"
+        },
+        {
+          "line": 36,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language import GeometryProgram",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language import GeometryProgram"
+        },
+        {
+          "line": 37,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.compiler import compile_geometry_program",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.compiler import compile_geometry_program"
+        },
+        {
+          "line": 38,
+          "reason": "namespace import",
+          "before": "from design.maas.geometry_language.gate import compilation_gate",
+          "after": "from backend.app.modules.design.generation.maas.geometry_language.gate import compilation_gate"
+        },
+        {
+          "line": 121,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        }
+      ]
+    }
+  ]
+}

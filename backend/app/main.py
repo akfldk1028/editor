@@ -13,6 +13,7 @@ from backend.app.api.routes_design_workspace import create_design_workspace_rout
 from backend.app.api.routes_design_runtime import create_design_runtime_router
 from backend.app.api.routes_design_collaboration import create_design_collaboration_router
 from backend.app.api.routes_workspace import create_workspace_router
+from backend.app.api.routes_agent_providers import create_agent_provider_router
 from backend.app.adapters.orchestrator import OrchestratorClient
 from backend.app.modules.platform.projects import ProjectService
 from backend.app.api.routes_planm_runs import create_planm_runs_router
@@ -51,6 +52,7 @@ def create_app(
         public_origin=platform_public_origin))
     application.include_router(create_land_router(public_origin=platform_public_origin))
     application.include_router(create_law_router(public_origin=platform_public_origin))
+    application.include_router(create_agent_provider_router(public_origin=platform_public_origin))
     application.include_router(create_design_workspace_router(public_origin=platform_public_origin))
     application.include_router(create_design_collaboration_router(platform_client,
         project_service=platform_projects, public_origin=platform_public_origin))

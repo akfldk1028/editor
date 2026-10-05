@@ -117,7 +117,15 @@ def rewrite(source: str, relative: Path, source_root: Path):
             value = node.value
             if value in {"design.optimizationjob", "design.designresult", "design.maasrevisionevent"}:
                 continue
-            if re.fullmatch(r"(?:design|land|law|graph_db)(?:\.[A-Za-z_][A-Za-z_0-9]*)+", value):
+            # Dotted strings also include public hosts such as law.go.kr.
+            # Only rewrite a module (or a member of one) present in the source.
+            parts = value.split(".")
+            is_source_module = any(
+                source_root.joinpath(*parts[:length]).with_suffix(".py").is_file()
+                or source_root.joinpath(*parts[:length], "__init__.py").is_file()
+                for length in range(2, len(parts) + 1)
+            )
+            if is_source_module and re.fullmatch(r"(?:design|land|law|graph_db)(?:\.[A-Za-z_][A-Za-z_0-9]*)+", value):
                 new = mapped(value)
                 if new != value:
                     replace(node, repr(new), "dynamic module name")

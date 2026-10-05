@@ -1,0 +1,315 @@
+[
+  {
+    "source": "law/test_building_use_catalog.py",
+    "destination": "backend/tests/provider_parity/test_building_use_catalog.py",
+    "source_sha256": "7d6fb2937dc2d43c98f48991c4c6898e04ca0f23d172be66e30ce71e3d332356",
+    "changes": [
+      {
+        "line": 8,
+        "reason": "namespace import",
+        "before": "from law.building_use_catalog import get_building_use_catalog, parse_building_use_source",
+        "after": "from backend.app.modules.law.reference.building_use_catalog import get_building_use_catalog, parse_building_use_source"
+      },
+      {
+        "line": 11,
+        "reason": "owned runtime path",
+        "before": "Path(__file__).parent",
+        "after": "_design_paths.package_root('law')"
+      }
+    ],
+    "imported_sha256": "4ea546252a30e067906a1917dc97ecff8716207dc2d303b7719634abaa89ece5"
+  },
+  {
+    "source": "law/test_design_review.py",
+    "destination": "backend/tests/provider_parity/test_design_review.py",
+    "source_sha256": "20d5d5c927c122e760dff7285075f440cd71a69ad3c958386e9d6b1f8bdcd5e5",
+    "changes": [
+      {
+        "line": 5,
+        "reason": "namespace import",
+        "before": "from law.design_review import compile_rules, review_design_state",
+        "after": "from backend.app.modules.law.reference.design_review import compile_rules, review_design_state"
+      },
+      {
+        "line": 24,
+        "reason": "namespace import",
+        "before": "from law.design_review import _hash",
+        "after": "from backend.app.modules.law.reference.design_review import _hash"
+      }
+    ],
+    "imported_sha256": "6876d1cb2a215d8d7da57afbb4b61202e396a7d99a4ba0f31d02331f70f153d2"
+  },
+  {
+    "source": "law/test_facility_area_engine.py",
+    "destination": "backend/tests/provider_parity/test_facility_area_engine.py",
+    "source_sha256": "97629f403d31aa0323aa947a586deede39fcfb7706cd7ecc81e092a1530065ae",
+    "changes": [
+      {
+        "line": 6,
+        "reason": "namespace import",
+        "before": "from law.facility_area_engine import evaluate_facility_areas",
+        "after": "from backend.app.modules.law.reference.facility_area_engine import evaluate_facility_areas"
+      }
+    ],
+    "imported_sha256": "72dfa9fa6fb607473aae9525631f74d6e97dd153325355d7932b52f96c310b16"
+  },
+  {
+    "source": "law/test_facility_area_rules.py",
+    "destination": "backend/tests/provider_parity/test_facility_area_rules.py",
+    "source_sha256": "6a68f951aac81e8dce0addb4a5f0ff2dc5b9f236f49a74d96079dabe311f9a8b",
+    "changes": [
+      {
+        "line": 3,
+        "reason": "namespace import",
+        "before": "from law.facility_area_rules import FACILITY_AREA_RULES, bind_snapshot_evidence, source_snapshot",
+        "after": "from backend.app.modules.law.reference.facility_area_rules import FACILITY_AREA_RULES, bind_snapshot_evidence, source_snapshot"
+      },
+      {
+        "line": 4,
+        "reason": "namespace import",
+        "before": "from law.facility_area_engine import evaluate_facility_areas",
+        "after": "from backend.app.modules.law.reference.facility_area_engine import evaluate_facility_areas"
+      }
+    ],
+    "imported_sha256": "ffbf9cbfcd24587529c4c2f5e3705b9a9d02b5027bd645b1aaee4d2a3aec58d7"
+  },
+  {
+    "source": "law/test_fire_requirements.py",
+    "destination": "backend/tests/provider_parity/test_fire_requirements.py",
+    "source_sha256": "c372c8c5558c6c1ba935e4745f9cd0ae5debb3c890a11972de2bd993d3d8593b",
+    "changes": [
+      {
+        "line": 9,
+        "reason": "namespace import",
+        "before": "from law import fire_requirements as fire",
+        "after": "from backend.app.modules.law.reference import fire_requirements as fire"
+      }
+    ],
+    "imported_sha256": "33455e3391211a09320200d64814665c0f21036434c91b2dbffce5196849affe"
+  },
+  {
+    "source": "law/test_ordinance_discovery.py",
+    "destination": "backend/tests/provider_parity/test_ordinance_discovery.py",
+    "source_sha256": "ee8d243e2f00f62e170fe103ba438ed5ab2eca921ce9b31609a3821b6cb9bdc2",
+    "changes": [
+      {
+        "line": 2,
+        "reason": "namespace import",
+        "before": "from law.ordinance_discovery import discover_ordinances, public_record",
+        "after": "from backend.app.modules.law.reference.ordinance_discovery import discover_ordinances, public_record"
+      }
+    ],
+    "imported_sha256": "8288daec685e6a6709bfe575464d913dd85ed7d859f6a23a87de51745bab08e6"
+  },
+  {
+    "source": "law/test_program_parking.py",
+    "destination": "backend/tests/provider_parity/test_program_parking.py",
+    "source_sha256": "7a72a49c08393f2ca964ba9119b6391515d5ab63bbf83ecc40273952b8093712",
+    "changes": [
+      {
+        "line": 5,
+        "reason": "namespace import",
+        "before": "from law.program_review import review_program, fingerprint",
+        "after": "from backend.app.modules.law.reference.program_review import review_program, fingerprint"
+      },
+      {
+        "line": 28,
+        "reason": "dynamic module name",
+        "before": "'law.program_parking._resolve'",
+        "after": "'backend.app.modules.law.reference.program_parking._resolve'"
+      },
+      {
+        "line": 50,
+        "reason": "dynamic module name",
+        "before": "'law.program_parking._resolve'",
+        "after": "'backend.app.modules.law.reference.program_parking._resolve'"
+      },
+      {
+        "line": 58,
+        "reason": "dynamic module name",
+        "before": "'law.program_parking._resolve'",
+        "after": "'backend.app.modules.law.reference.program_parking._resolve'"
+      },
+      {
+        "line": 70,
+        "reason": "dynamic module name",
+        "before": "'law.program_parking._resolve'",
+        "after": "'backend.app.modules.law.reference.program_parking._resolve'"
+      },
+      {
+        "line": 79,
+        "reason": "dynamic module name",
+        "before": "'law.program_parking._resolve'",
+        "after": "'backend.app.modules.law.reference.program_parking._resolve'"
+      },
+      {
+        "line": 82,
+        "reason": "dynamic module name",
+        "before": "'law.program_parking._resolve'",
+        "after": "'backend.app.modules.law.reference.program_parking._resolve'"
+      },
+      {
+        "line": 35,
+        "reason": "dynamic module name",
+        "before": "'law.program_parking._resolve'",
+        "after": "'backend.app.modules.law.reference.program_parking._resolve'"
+      }
+    ],
+    "imported_sha256": "77e334b5905de81cbd2da8c046224abefc412eaf8050d48240bd861b6c4363a0"
+  },
+  {
+    "source": "law/test_program_parking_scenario.py",
+    "destination": "backend/tests/provider_parity/test_program_parking_scenario.py",
+    "source_sha256": "bd0ba5d54bae59434af4a7905fe95e233eb2af70af95a88e95e5a1d34e8b8b41",
+    "changes": [
+      {
+        "line": 4,
+        "reason": "namespace import",
+        "before": "from law.program_parking import review_parking",
+        "after": "from backend.app.modules.law.reference.program_parking import review_parking"
+      }
+    ],
+    "imported_sha256": "7c90542c166b04cca59b335d07e9f2ccf440a618dfa96d0a5de14eaba0d69983"
+  },
+  {
+    "source": "design/test_maas_creative_floor_portfolio.py",
+    "destination": "backend/tests/provider_parity/test_maas_creative_floor_portfolio.py",
+    "source_sha256": "77fc4e83fb50754286ba2d1ac3925fec531c27fb3356f049619ecd9b57ad4f4b",
+    "changes": [
+      {
+        "line": 11,
+        "reason": "namespace import",
+        "before": "from design.maas.creative_family_contract import CreativeRecipeContext",
+        "after": "from backend.app.modules.design.generation.maas.creative_family_contract import CreativeRecipeContext"
+      },
+      {
+        "line": 12,
+        "reason": "namespace import",
+        "before": "from design.maas.creative_family_registry import (\n    balanced_family_schedule,\n    registered_creative_recipes,\n)",
+        "after": "from backend.app.modules.design.generation.maas.creative_family_registry import balanced_family_schedule, registered_creative_recipes"
+      },
+      {
+        "line": 16,
+        "reason": "namespace import",
+        "before": "from design.maas.creative_book_supply import creative_book_schedule",
+        "after": "from backend.app.modules.design.generation.maas.creative_book_supply import creative_book_schedule"
+      },
+      {
+        "line": 17,
+        "reason": "namespace import",
+        "before": "from design.maas.creative_program_author import (\n    CreativeAuthoredProgram,\n    cached_authored_programs,\n    normalize_authored_programs,\n)",
+        "after": "from backend.app.modules.design.generation.maas.creative_program_author import CreativeAuthoredProgram, cached_authored_programs, normalize_authored_programs"
+      },
+      {
+        "line": 22,
+        "reason": "namespace import",
+        "before": "from design.maas.geometry_language.ast import GeometryNode, GeometryProgram",
+        "after": "from backend.app.modules.design.generation.maas.geometry_language.ast import GeometryNode, GeometryProgram"
+      },
+      {
+        "line": 23,
+        "reason": "namespace import",
+        "before": "from design.maas.geometry_language.compiler import compile_geometry_program",
+        "after": "from backend.app.modules.design.generation.maas.geometry_language.compiler import compile_geometry_program"
+      },
+      {
+        "line": 24,
+        "reason": "namespace import",
+        "before": "from design.maas.geometry_language.programs import GeometryProgramBuilder",
+        "after": "from backend.app.modules.design.generation.maas.geometry_language.programs import GeometryProgramBuilder"
+      },
+      {
+        "line": 27,
+        "reason": "dynamic module name",
+        "before": "\"design.maas.creative_floor_portfolio\"",
+        "after": "'backend.app.modules.design.generation.maas.creative_floor_portfolio'"
+      },
+      {
+        "line": 445,
+        "reason": "owned runtime path",
+        "before": "Path(__file__).resolve().parents[3]",
+        "after": "_design_paths.workspace_root()"
+      },
+      {
+        "reason": "Use byte-preserved Editor-owned cache fixture, original 60-program selection and assertions unchanged"
+      }
+    ],
+    "imported_sha256": "b3456f84b1701d2b045c7e558ec3acfe7b19e8b9921982dbb17e475f6cf347cd"
+  },
+  {
+    "source": "design/test_maas_creative_program_author.py",
+    "destination": "backend/tests/provider_parity/test_maas_creative_program_author.py",
+    "source_sha256": "37ad40f58c4e844f450db55b0fdc77ad1a123069ac51ef7b09effd632449564b",
+    "changes": [
+      {
+        "line": 10,
+        "reason": "namespace import",
+        "before": "from design.maas import creative_program_author",
+        "after": "from backend.app.modules.design.generation.maas import creative_program_author"
+      },
+      {
+        "line": 11,
+        "reason": "namespace import",
+        "before": "from design.maas.creative_floor_portfolio import (\n    build_creative_floor_portfolio,\n)",
+        "after": "from backend.app.modules.design.generation.maas.creative_floor_portfolio import build_creative_floor_portfolio"
+      },
+      {
+        "line": 14,
+        "reason": "namespace import",
+        "before": "from design.maas.creative_program_author import (\n    CreativeAuthoredProgram,\n    authored_programs_from_payload,\n    normalize_authored_programs,\n)",
+        "after": "from backend.app.modules.design.generation.maas.creative_program_author import CreativeAuthoredProgram, authored_programs_from_payload, normalize_authored_programs"
+      },
+      {
+        "line": 19,
+        "reason": "namespace import",
+        "before": "from design.maas.geometry_language.programs import GeometryProgramBuilder",
+        "after": "from backend.app.modules.design.generation.maas.geometry_language.programs import GeometryProgramBuilder"
+      },
+      {
+        "line": 20,
+        "reason": "namespace import",
+        "before": "from design.maas.geometry_language.ast import GeometryNode, GeometryProgram",
+        "after": "from backend.app.modules.design.generation.maas.geometry_language.ast import GeometryNode, GeometryProgram"
+      },
+      {
+        "line": 246,
+        "reason": "dynamic module name",
+        "before": "\"design.maas.creative_floor_portfolio.\"\n            \"balanced_family_schedule\"",
+        "after": "'backend.app.modules.design.generation.maas.creative_floor_portfolio.balanced_family_schedule'"
+      },
+      {
+        "line": 252,
+        "reason": "dynamic module name",
+        "before": "\"design.maas.creative_floor_portfolio.\"\n            \"registered_creative_recipes\"",
+        "after": "'backend.app.modules.design.generation.maas.creative_floor_portfolio.registered_creative_recipes'"
+      },
+      {
+        "reason": "Pure geometry tests use unittest.TestCase alias instead of Django SimpleTestCase; no ORM methods or assertions changed"
+      }
+    ],
+    "imported_sha256": "dcefda94c0930dbf5bc57809bf9bd60389e7c26431ce83589d80171939c6c12e"
+  },
+  {
+    "source": "design/test_maas_delivered_mass_keeps_its_components.py",
+    "destination": "backend/tests/provider_parity/test_maas_delivered_mass_keeps_its_components.py",
+    "source_sha256": "08cab55079eb4b03ca393d47d22301f5179cedfb3810830f23a31f0cac3e6653",
+    "changes": [
+      {
+        "line": 25,
+        "reason": "namespace import",
+        "before": "from design.maas.geometry_language.source_bridge import (\n    _articulated_component_parts,\n    _articulation_cores,\n    _component_regions_for_plan,\n    normalized_component_layout,\n)",
+        "after": "from backend.app.modules.design.generation.maas.geometry_language.source_bridge import _articulated_component_parts, _articulation_cores, _component_regions_for_plan, normalized_component_layout"
+      },
+      {
+        "line": 31,
+        "reason": "namespace import",
+        "before": "from design.maas.source_geometry.ir import SourceMass, SourceVolume",
+        "after": "from backend.app.modules.design.generation.maas.source_geometry.ir import SourceMass, SourceVolume"
+      },
+      {
+        "reason": "Pure geometry tests use unittest.TestCase alias instead of Django SimpleTestCase; no ORM methods or assertions changed"
+      }
+    ],
+    "imported_sha256": "7672688969f93d6df0413b22a59b788e4fdf5472c9999a1560f52ab8ae02c72b"
+  }
+]

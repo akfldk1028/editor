@@ -29,7 +29,7 @@ def source_eligibility(document, code, assessment_date=None):
     host = urlparse(url).hostname or ''
     # Existing imports carry the official publisher in their generation record
     # and an ordinance edition ID; a free-form name alone is not provenance.
-    if not (host == 'backend.app.modules.law.reference.go.kr' or host.endswith('.law.go.kr') or 'backend.app.modules.law.reference.go.kr' in comment):
+    if not (host == 'law.go.kr' or host.endswith('.law.go.kr') or 'law.go.kr' in comment):
         return False, 'missing_official_provenance'
     try:
         effective = datetime.strptime(str(source.get('effective', '')).replace('-', ''), '%Y%m%d').date()

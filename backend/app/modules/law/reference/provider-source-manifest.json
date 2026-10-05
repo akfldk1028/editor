@@ -1,0 +1,361 @@
+{
+  "schema": "editor.agent-domain-provider-import.v1",
+  "files": [
+    {
+      "source": "law/design_review.py",
+      "destination": "backend/app/modules/law/reference/design_review.py",
+      "source_sha256": "9eda735d1cd6c38dae53819204b9f34d5e733f532c3ac0895b481ff1a8d90071",
+      "imported_sha256": "9eda735d1cd6c38dae53819204b9f34d5e733f532c3ac0895b481ff1a8d90071",
+      "changes": []
+    },
+    {
+      "source": "law/program_review.py",
+      "destination": "backend/app/modules/law/reference/program_review.py",
+      "source_sha256": "2c21f411e62b74da0db001e51e2a1237e428c6d3efd6244773bbd7ae602d38af",
+      "imported_sha256": "1dda2c70717ccc97d8865ffa8e622051ffdecd06b99707fc0bc95e8e26b49e03",
+      "changes": [
+        {
+          "line": 4,
+          "reason": "namespace import",
+          "before": "from .design_review import review_design_state",
+          "after": "from backend.app.modules.law.reference.design_review import review_design_state"
+        },
+        {
+          "line": 5,
+          "reason": "namespace import",
+          "before": "from .facility_area_engine import evaluate_facility_areas",
+          "after": "from backend.app.modules.law.reference.facility_area_engine import evaluate_facility_areas"
+        },
+        {
+          "line": 6,
+          "reason": "namespace import",
+          "before": "from .facility_area_rules import FACILITY_AREA_RULES, bind_snapshot_evidence",
+          "after": "from backend.app.modules.law.reference.facility_area_rules import FACILITY_AREA_RULES, bind_snapshot_evidence"
+        },
+        {
+          "line": 17,
+          "reason": "namespace import",
+          "before": "from .use_research_routes import get_use_research_routes",
+          "after": "from backend.app.modules.law.reference.use_research_routes import get_use_research_routes"
+        },
+        {
+          "line": 74,
+          "reason": "namespace import",
+          "before": "from .fire_requirements import evaluate_fire_requirements",
+          "after": "from backend.app.modules.law.reference.fire_requirements import evaluate_fire_requirements"
+        },
+        {
+          "line": 112,
+          "reason": "namespace import",
+          "before": "from .program_parking import review_parking",
+          "after": "from backend.app.modules.law.reference.program_parking import review_parking"
+        },
+        {
+          "line": 97,
+          "reason": "namespace import",
+          "before": "from land.services.zoning_use_evidence import evaluate_use_evidence",
+          "after": "from backend.app.modules.land.reference.services.zoning_use_evidence import evaluate_use_evidence"
+        }
+      ]
+    },
+    {
+      "source": "law/facility_area_engine.py",
+      "destination": "backend/app/modules/law/reference/facility_area_engine.py",
+      "source_sha256": "04d422b94c059322fd332fe058f265fd6e3826d11fd5741094a8bbbb0bc986c7",
+      "imported_sha256": "04d422b94c059322fd332fe058f265fd6e3826d11fd5741094a8bbbb0bc986c7",
+      "changes": []
+    },
+    {
+      "source": "law/facility_area_rules.py",
+      "destination": "backend/app/modules/law/reference/facility_area_rules.py",
+      "source_sha256": "d9f3dbad70b74f98b2696316f8f3c6e061c3f0e77356237054109d6e3a8040f1",
+      "imported_sha256": "c56a360999a7fe3fcec985dbebd83d26fe4387666b1c087ae5875a6a562bbf23",
+      "changes": [
+        {
+          "line": 12,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('law')"
+        }
+      ]
+    },
+    {
+      "source": "law/building_use_catalog.py",
+      "destination": "backend/app/modules/law/reference/building_use_catalog.py",
+      "source_sha256": "565acab33dc2bf22d37975ef9bb9615ba994cb5969b7afa39842a34a79ca63ab",
+      "imported_sha256": "1f0870cbb905af0fdab717edc332aa13026e09e7a3006fba373c354917194522",
+      "changes": [
+        {
+          "line": 12,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).parent",
+          "after": "_design_paths.package_root('law')"
+        }
+      ]
+    },
+    {
+      "source": "law/fire_requirements.py",
+      "destination": "backend/app/modules/law/reference/fire_requirements.py",
+      "source_sha256": "f455b00d848611a555c5d2a56abdc95b06b734fd58404159eb3a57cd60215459",
+      "imported_sha256": "ff0d676ffde8d51d9a2c07a3942684c85c5e51feaddb9355d37b0e63c68dea1d",
+      "changes": [
+        {
+          "line": 15,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).parent",
+          "after": "_design_paths.package_root('law')"
+        }
+      ]
+    },
+    {
+      "source": "law/use_research_routes.py",
+      "destination": "backend/app/modules/law/reference/use_research_routes.py",
+      "source_sha256": "91b72db0fe423ec3aaaef12ae1bc1dbbab604f9ced221bfeb6a07be76313f174",
+      "imported_sha256": "e149b0325849446496e85652620c681dc2ded5f08d732827a2f00f0b19c8f884",
+      "changes": [
+        {
+          "line": 26,
+          "reason": "namespace import",
+          "before": "from .fire_requirements import _source",
+          "after": "from backend.app.modules.law.reference.fire_requirements import _source"
+        },
+        {
+          "line": 10,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).parent",
+          "after": "_design_paths.package_root('law')"
+        }
+      ]
+    },
+    {
+      "source": "law/ordinance_discovery.py",
+      "destination": "backend/app/modules/law/reference/ordinance_discovery.py",
+      "source_sha256": "6b7d07ab4ff3ea16f24b54b3e7e58973375990d8933e908beef7c814f1f5f86d",
+      "imported_sha256": "6b7d07ab4ff3ea16f24b54b3e7e58973375990d8933e908beef7c814f1f5f86d",
+      "changes": []
+    },
+    {
+      "source": "law/program_parking.py",
+      "destination": "backend/app/modules/law/reference/program_parking.py",
+      "source_sha256": "cde38df3f092d102f903199bbdb7070cbd286ecbf09875a61c4844a07527cce5",
+      "imported_sha256": "6c9dfc0c68e239999edbe95ef80a80d1329e99fd69df4e4b08280090b7d069af",
+      "changes": [
+        {
+          "line": 13,
+          "reason": "namespace import",
+          "before": "from design.maas.parking_requirements import resolve_candidate_parking_requirement",
+          "after": "from backend.app.modules.design.generation.maas.parking_requirements import resolve_candidate_parking_requirement"
+        },
+        {
+          "line": 25,
+          "reason": "namespace import",
+          "before": "from .program_parking_scenario import evaluate",
+          "after": "from backend.app.modules.law.reference.program_parking_scenario import evaluate"
+        }
+      ]
+    },
+    {
+      "source": "law/program_parking_scenario.py",
+      "destination": "backend/app/modules/law/reference/program_parking_scenario.py",
+      "source_sha256": "499f5935bcdf191514a62b27c1964573a5d4f56c869af6fce57d677af466ac7c",
+      "imported_sha256": "499f5935bcdf191514a62b27c1964573a5d4f56c869af6fce57d677af466ac7c",
+      "changes": []
+    },
+    {
+      "source": "land/services/zoning_use_evidence.py",
+      "destination": "backend/app/modules/land/reference/services/zoning_use_evidence.py",
+      "source_sha256": "5c01fb44d4ed165fc8543ac45b1137477572f5e480e97047557e509378a2f2e1",
+      "imported_sha256": "5c01fb44d4ed165fc8543ac45b1137477572f5e480e97047557e509378a2f2e1",
+      "changes": []
+    },
+    {
+      "source": "law/views_agent.py",
+      "destination": "backend/app/api/agent_providers/law.py",
+      "source_sha256": "3f153fbf01a8133c935527f04b5ae0ae02a892edfc7ba4d46922e79993a7c7a7",
+      "imported_sha256": "da1a053b59a5c4cc6b8ccebc2955fbfb7f1d6e58b8b84d785baab493e5af1bd9",
+      "changes": [
+        {
+          "line": 70,
+          "reason": "namespace import",
+          "before": "from law.design_review import review_design_state as owner",
+          "after": "from backend.app.modules.law.reference.design_review import review_design_state as owner"
+        },
+        {
+          "line": 77,
+          "reason": "namespace import",
+          "before": "from law.program_review import review_program as owner",
+          "after": "from backend.app.modules.law.reference.program_review import review_program as owner"
+        },
+        {
+          "line": 84,
+          "reason": "namespace import",
+          "before": "from law.program_review import review_facilities as owner",
+          "after": "from backend.app.modules.law.reference.program_review import review_facilities as owner"
+        },
+        {
+          "line": 91,
+          "reason": "namespace import",
+          "before": "from law.building_use_catalog import get_building_use_catalog as owner",
+          "after": "from backend.app.modules.law.reference.building_use_catalog import get_building_use_catalog as owner"
+        },
+        {
+          "line": 98,
+          "reason": "namespace import",
+          "before": "from law.fire_requirements import evaluate_fire_requirements as owner",
+          "after": "from backend.app.modules.law.reference.fire_requirements import evaluate_fire_requirements as owner"
+        },
+        {
+          "line": 105,
+          "reason": "namespace import",
+          "before": "from law.use_research_routes import get_use_research_routes as owner",
+          "after": "from backend.app.modules.law.reference.use_research_routes import get_use_research_routes as owner"
+        },
+        {
+          "line": 113,
+          "reason": "namespace import",
+          "before": "from law.ordinance_discovery import discover_ordinances as owner",
+          "after": "from backend.app.modules.law.reference.ordinance_discovery import discover_ordinances as owner"
+        },
+        {
+          "line": 131,
+          "reason": "namespace import",
+          "before": "from design.maas.masterplan.rules import parking_design_rules as owner",
+          "after": "from backend.app.modules.design.generation.maas.masterplan.rules import parking_design_rules as owner"
+        },
+        {
+          "line": 189,
+          "reason": "namespace import",
+          "before": "from law.facility_area_rules import FACILITY_AREA_RULES",
+          "after": "from backend.app.modules.law.reference.facility_area_rules import FACILITY_AREA_RULES"
+        },
+        {
+          "line": 152,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.legal import load_legal_site",
+          "after": "from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site"
+        },
+        {
+          "line": 153,
+          "reason": "namespace import",
+          "before": "from design.maas.massv2.parcel_policy import policy_for",
+          "after": "from backend.app.modules.design.generation.maas.massv2.parcel_policy import policy_for"
+        }
+      ]
+    },
+    {
+      "source": "land/views_agent.py",
+      "destination": "backend/app/api/agent_providers/land.py",
+      "source_sha256": "53b1342bc8427d0b5b5df021293205cc00e461f8303224fdebf96520cc0e2599",
+      "imported_sha256": "e715ac8a90d84d0dd38800cc7ba9a9cf9cbd540c0bc61df5a2e6c47857c8d9c5",
+      "changes": [
+        {
+          "line": 22,
+          "reason": "namespace import",
+          "before": "from land.services import pnu_resolver, road_frontage",
+          "after": "from backend.app.modules.land.reference.services import pnu_resolver, road_frontage"
+        },
+        {
+          "line": 92,
+          "reason": "namespace import",
+          "before": "from land import config as land_config",
+          "after": "from backend.app.modules.land.reference import config as land_config"
+        },
+        {
+          "line": 93,
+          "reason": "namespace import",
+          "before": "from land.services.datum import DatumContext, compute_datum_elevation",
+          "after": "from backend.app.modules.land.reference.services.datum import DatumContext, compute_datum_elevation"
+        },
+        {
+          "line": 129,
+          "reason": "namespace import",
+          "before": "from land.services.datum.calculator import basement_storey_test",
+          "after": "from backend.app.modules.land.reference.services.datum.calculator import basement_storey_test"
+        }
+      ]
+    },
+    {
+      "source": "law/scripts/fetch_ordinance_caps.py",
+      "destination": "backend/app/modules/law/reference/scripts/fetch_ordinance_caps.py",
+      "source_sha256": "36238c81ce2e02fa567e5a31042bcdbf003a16915ca95930037d54f1db2e26fa",
+      "imported_sha256": "d13ea2960f37245c0ddd036eb5f89cdcc387e9c1813db31c65de308b3aa3c534",
+      "changes": [
+        {
+          "line": 379,
+          "reason": "namespace import",
+          "before": "from land import config",
+          "after": "from backend.app.modules.land.reference import config"
+        },
+        {
+          "line": 29,
+          "reason": "owned runtime path",
+          "before": "Path(__file__).resolve().parent",
+          "after": "_design_paths.package_root('law/scripts')"
+        }
+      ]
+    },
+    {
+      "source": "law/data/facility_sources/building_decree_annex_1.json",
+      "destination": "backend/app/modules/law/reference/data/facility_sources/building_decree_annex_1.json",
+      "source_sha256": "1d9920de57ff6e865879fac89655a3b6a17d9ffe4ebfb9c6415003bc7f04bb44",
+      "imported_sha256": "1d9920de57ff6e865879fac89655a3b6a17d9ffe4ebfb9c6415003bc7f04bb44",
+      "changes": []
+    },
+    {
+      "source": "law/data/facility_sources/childcare_annex_1.json",
+      "destination": "backend/app/modules/law/reference/data/facility_sources/childcare_annex_1.json",
+      "source_sha256": "6a06f084854a76902d2ee8e9fe1ab29cd2f3676ca2847b43ed1b6091bfaf533d",
+      "imported_sha256": "6a06f084854a76902d2ee8e9fe1ab29cd2f3676ca2847b43ed1b6091bfaf533d",
+      "changes": []
+    },
+    {
+      "source": "law/data/facility_sources/disability_annex_5.json",
+      "destination": "backend/app/modules/law/reference/data/facility_sources/disability_annex_5.json",
+      "source_sha256": "4447894f703b12ee1c333a94745b63c48207190dd1f05e73115ae27efac138b6",
+      "imported_sha256": "4447894f703b12ee1c333a94745b63c48207190dd1f05e73115ae27efac138b6",
+      "changes": []
+    },
+    {
+      "source": "law/data/facility_sources/elderly_annex_4.json",
+      "destination": "backend/app/modules/law/reference/data/facility_sources/elderly_annex_4.json",
+      "source_sha256": "34dc76cfb3918907d04a79db3c716ec03ae33c7e534f7561617266c60c67a0ec",
+      "imported_sha256": "34dc76cfb3918907d04a79db3c716ec03ae33c7e534f7561617266c60c67a0ec",
+      "changes": []
+    },
+    {
+      "source": "law/data/facility_sources/fire_annex_4.json",
+      "destination": "backend/app/modules/law/reference/data/facility_sources/fire_annex_4.json",
+      "source_sha256": "ee31f6a960934ba2d5c741a210517eb42ce5e008ed6f7f1b15cf62855c47a8ff",
+      "imported_sha256": "ee31f6a960934ba2d5c741a210517eb42ce5e008ed6f7f1b15cf62855c47a8ff",
+      "changes": []
+    },
+    {
+      "source": "law/data/facility_sources/medical_annex_4.json",
+      "destination": "backend/app/modules/law/reference/data/facility_sources/medical_annex_4.json",
+      "source_sha256": "632fef8b06b61e33742ccea6bc98dbfe05f63ab90ff9911ab255090b4ad1a160",
+      "imported_sha256": "632fef8b06b61e33742ccea6bc98dbfe05f63ab90ff9911ab255090b4ad1a160",
+      "changes": []
+    },
+    {
+      "source": "law/data/facility_sources/schools_annex_1.json",
+      "destination": "backend/app/modules/law/reference/data/facility_sources/schools_annex_1.json",
+      "source_sha256": "c41e9ef0b729561b4a90430b4a36ba54b4d915813532d0e12527ba1ad4402cf0",
+      "imported_sha256": "c41e9ef0b729561b4a90430b4a36ba54b4d915813532d0e12527ba1ad4402cf0",
+      "changes": []
+    },
+    {
+      "source": "law/data/facility_sources/youth_annex_3.json",
+      "destination": "backend/app/modules/law/reference/data/facility_sources/youth_annex_3.json",
+      "source_sha256": "a8a4bbef4b8aa941cc3c71a195b35c6d46930364ead27697494682e1599fb7c6",
+      "imported_sha256": "a8a4bbef4b8aa941cc3c71a195b35c6d46930364ead27697494682e1599fb7c6",
+      "changes": []
+    },
+    {
+      "source": "law/data/use_research_sources.json",
+      "destination": "backend/app/modules/law/reference/data/use_research_sources.json",
+      "source_sha256": "a3ba6b41750cb0b64a849f88e3cbc0c25e5ac46aed4513f52094df8f912f5af2",
+      "imported_sha256": "a3ba6b41750cb0b64a849f88e3cbc0c25e5ac46aed4513f52094df8f912f5af2",
+      "changes": []
+    }
+  ]
+}

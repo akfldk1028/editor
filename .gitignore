@@ -96,4 +96,8 @@ clone/
 /runtime/editor/design/
 /runtime/editor/workspace/
 /runtime/editor/dwg/
+/runtime/editor/provider-cutover-a2a.json
+/runtime/editor/legacy-*.json
+/runtime/editor/native-*.json
+/runtime/editor/retained-plan-body.json
 /frontend/app/editor/test-results-product/

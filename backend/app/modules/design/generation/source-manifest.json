@@ -13925,26 +13925,6 @@
       "changes": []
     },
     {
-      "source": "land/services/ordinance_evidence.py",
-      "destination": "backend/app/modules/land/reference/services/ordinance_evidence.py",
-      "source_sha256": "aa9e0f739c57ee4146fe8192a459357106045c75e3c36b9ea7968f9b9c423adc",
-      "imported_sha256": "ceb578975c8598c8b7f63e67206f9e7a1ede28fa836448deef84c4415f072f5d",
-      "changes": [
-        {
-          "line": 32,
-          "reason": "dynamic module name",
-          "before": "'law.go.kr'",
-          "after": "'backend.app.modules.law.reference.go.kr'"
-        },
-        {
-          "line": 32,
-          "reason": "dynamic module name",
-          "before": "'law.go.kr'",
-          "after": "'backend.app.modules.law.reference.go.kr'"
-        }
-      ]
-    },
-    {
       "source": "land/services/overlay_resolver.py",
       "destination": "backend/app/modules/land/reference/services/overlay_resolver.py",
       "source_sha256": "4b2a52a1a33ac37bec2bbbb046b1b95f109a5a3cd32d8e100bf8250c99fa978f",
@@ -14356,6 +14336,13 @@
           "reason": "explicit optional model installation directory and missing-library response"
         }
       ]
+    },
+    {
+      "source": "land/services/ordinance_evidence.py",
+      "destination": "backend/app/modules/land/reference/services/ordinance_evidence.py",
+      "source_sha256": "aa9e0f739c57ee4146fe8192a459357106045c75e3c36b9ea7968f9b9c423adc",
+      "imported_sha256": "b84743d60557bbae931fc722ae5d2f1a9d0630a2f8c3713c4e1162784c10c5ec",
+      "changes": []
     },
     {
       "source": "../../agents/MassAgent/book-language/verbs/array.json",

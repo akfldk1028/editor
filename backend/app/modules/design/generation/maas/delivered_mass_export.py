@@ -47,7 +47,7 @@ def selected_source(request, roots):
         raise ValueError('completion workspace must be explicitly configured')
     workspace = matches[0]
     source_roots = [Path(root).resolve() for root in json.loads(os.environ.get(
-        'ARR_MASS_SOURCE_ROOTS', json.dumps([str(BACKEND / 'tmp_mass_check'), *[str(root) for root in roots]])))]
+        'EDITOR_MASS_SOURCE_ROOTS', json.dumps([os.environ.get('EDITOR_MASS_OUTPUT_ROOT', str(BACKEND / 'tmp_mass_check')), *[str(root) for root in roots]])))]
     if (completion.name != 'complete.json' or completion.parent.parent != workspace / 'runs'
             or not completion.parent.name.startswith('cycle-')):
         raise ValueError('completion must name a cycle receipt')
@@ -276,10 +276,14 @@ def export_delivered_mass(request, *, roots=None, output_root=None):
             raise ValueError('source_run_id must be an owner run identifier')
         if not isinstance(request.get('source_versions'), dict):
             raise ValueError('source_versions must be supplied')
+        from backend.app.modules.massing.archive import preserved_export
+        archived = preserved_export(request, request_hash)
+        if archived is not None:
+            return archived
         roots = roots if roots is not None else json.loads(os.environ.get(
-            'ARR_MASS_WORKSPACE_ROOTS', json.dumps([str(DEFAULT_WORKSPACE)])))
+            'EDITOR_MASS_WORKSPACE_ROOTS', json.dumps([os.environ.get('MASSV2_WS', str(DEFAULT_WORKSPACE))])))
         name, entry, config, evidence = selected_source(request, roots)
-        output_root = Path(output_root or os.environ.get('ARR_DELIVERED_MASS_EXPORT_ROOT',
+        output_root = Path(output_root or os.environ.get('EDITOR_DELIVERED_MASS_EXPORT_ROOT',
                            str(BACKEND / 'runtime/delivered-mass-exports'))).resolve()
         target = output_root / request_hash
         if target.exists():
