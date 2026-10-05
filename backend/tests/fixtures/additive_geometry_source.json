@@ -1,0 +1,2978 @@
+{
+  "sources": {
+    "mass_evaluator.py": "691869fc9c21e0deea32b743c26f3207b30dc6ef25a329845e70f67709a04b5d",
+    "mass_renderer.py": "b35064fe5f78707657f545171d5e3043e5abd4e6cf4abd1ce83c2a9161356f3d",
+    "repair_operator.py": "c653ed205e6924cac17d621d0c741fe633c98024db4d43d86fcfc90fda5a987f"
+  },
+  "cases": [
+    {
+      "prepared": {
+        "site_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96514843131492,
+                37.47939618276865
+              ],
+              [
+                126.96512888170943,
+                37.48011682265102
+              ],
+              [
+                126.96422461504075,
+                37.480101239198795
+              ],
+              [
+                126.96424417331916,
+                37.4793805997198
+              ],
+              [
+                126.96514843131492,
+                37.47939618276865
+              ]
+            ]
+          ]
+        },
+        "pnu": "",
+        "address": "",
+        "constraints": [],
+        "job_spec": {
+          "inputs": [
+            {
+              "name": "b0_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b1_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b2_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b3_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b4_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "num_floors",
+              "type": "Continuous",
+              "Min": 1,
+              "Max": 26,
+              "Set length": 1
+            },
+            {
+              "name": "rotation",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "upper_scale",
+              "type": "Continuous",
+              "Min": 0.5,
+              "Max": 1.0,
+              "Set length": 1
+            },
+            {
+              "name": "step_fraction",
+              "type": "Continuous",
+              "Min": 0.3,
+              "Max": 0.8,
+              "Set length": 1
+            }
+          ],
+          "outputs": [
+            {
+              "name": "floor_area",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "landscaping_pct",
+              "type": "Objective",
+              "Goal": "Maximize"
+            }
+          ],
+          "options": {
+            "Number of generations": 120,
+            "num_islands": 7,
+            "pop_per_island": 30,
+            "migration_interval": 8,
+            "migrants_count": 3,
+            "tournament_size": 8,
+            "initial_mutation_rate": 0.35,
+            "final_mutation_rate": 0.1,
+            "algorithm": "additive",
+            "building_type": "업무시설"
+          }
+        },
+        "site_area_m2": 6400.0,
+        "max_generations": 120,
+        "population_size": 210,
+        "algorithm": "additive",
+        "building_type": "업무시설"
+      },
+      "inputs": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          4
+        ],
+        [
+          0
+        ],
+        [
+          0.8
+        ],
+        [
+          0.5
+        ]
+      ],
+      "envelope": null,
+      "outputs": [
+        1312.0,
+        93.75
+      ],
+      "geometry": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.9645710481763,
+                37.47983684395374
+              ],
+              [
+                126.96479711403036,
+                37.47984073977898
+              ],
+              [
+                126.96480200224481,
+                37.4796605798462
+              ],
+              [
+                126.9645759369328,
+                37.47965668404616
+              ],
+              [
+                126.9645710481763,
+                37.47983684395374
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "height": 15.2,
+          "num_floors": 4,
+          "floor_height": 3.8,
+          "building_type": "업무시설",
+          "mass_shape": "additive",
+          "footprint_area": 400.0,
+          "bcr": 6.25,
+          "step_floor": 2,
+          "upper_scale": 0.8,
+          "lower_height": 7.6,
+          "upper_geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  126.96477499627183,
+                  37.47982233422315
+                ],
+                [
+                  126.96477890688675,
+                  37.47967820627893
+                ],
+                [
+                  126.96459805459376,
+                  37.47967508963689
+                ],
+                [
+                  126.96459414363193,
+                  37.47981921756498
+                ],
+                [
+                  126.96477499627183,
+                  37.47982233422315
+                ]
+              ]
+            ]
+          },
+          "floor_area": 1312.0,
+          "far": 20.5
+        }
+      }
+    },
+    {
+      "prepared": {
+        "site_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96514843131492,
+                37.47939618276865
+              ],
+              [
+                126.96512888170943,
+                37.48011682265102
+              ],
+              [
+                126.96422461504075,
+                37.480101239198795
+              ],
+              [
+                126.96424417331916,
+                37.4793805997198
+              ],
+              [
+                126.96514843131492,
+                37.47939618276865
+              ]
+            ]
+          ]
+        },
+        "pnu": "",
+        "address": "",
+        "constraints": [],
+        "job_spec": {
+          "inputs": [
+            {
+              "name": "b0_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b1_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b2_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b3_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b4_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "num_floors",
+              "type": "Continuous",
+              "Min": 1,
+              "Max": 26,
+              "Set length": 1
+            },
+            {
+              "name": "rotation",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "upper_scale",
+              "type": "Continuous",
+              "Min": 0.5,
+              "Max": 1.0,
+              "Set length": 1
+            },
+            {
+              "name": "step_fraction",
+              "type": "Continuous",
+              "Min": 0.3,
+              "Max": 0.8,
+              "Set length": 1
+            }
+          ],
+          "outputs": [
+            {
+              "name": "floor_area",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "landscaping_pct",
+              "type": "Objective",
+              "Goal": "Maximize"
+            }
+          ],
+          "options": {
+            "Number of generations": 120,
+            "num_islands": 7,
+            "pop_per_island": 30,
+            "migration_interval": 8,
+            "migrants_count": 3,
+            "tournament_size": 8,
+            "initial_mutation_rate": 0.35,
+            "final_mutation_rate": 0.1,
+            "algorithm": "additive",
+            "building_type": "업무시설"
+          }
+        },
+        "site_area_m2": 6400.0,
+        "max_generations": 120,
+        "population_size": 210,
+        "algorithm": "additive",
+        "building_type": "업무시설"
+      },
+      "inputs": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          8
+        ],
+        [
+          23
+        ],
+        [
+          1
+        ],
+        [
+          0.5
+        ]
+      ],
+      "envelope": null,
+      "outputs": [
+        3200.0,
+        93.75
+      ],
+      "geometry": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96453701770079,
+                37.47979387969472
+              ],
+              [
+                126.96474320225634,
+                37.47986785998347
+              ],
+              [
+                126.96483603281872,
+                37.47970354403242
+              ],
+              [
+                126.9646298486084,
+                37.479629563914465
+              ],
+              [
+                126.96453701770079,
+                37.47979387969472
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "height": 30.4,
+          "num_floors": 8,
+          "floor_height": 3.8,
+          "building_type": "업무시설",
+          "mass_shape": "additive",
+          "footprint_area": 400.0,
+          "bcr": 6.25,
+          "floor_area": 3200.0,
+          "far": 50.0
+        }
+      }
+    },
+    {
+      "prepared": {
+        "site_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96514843131492,
+                37.47939618276865
+              ],
+              [
+                126.96512888170943,
+                37.48011682265102
+              ],
+              [
+                126.96422461504075,
+                37.480101239198795
+              ],
+              [
+                126.96424417331916,
+                37.4793805997198
+              ],
+              [
+                126.96514843131492,
+                37.47939618276865
+              ]
+            ]
+          ]
+        },
+        "pnu": "",
+        "address": "",
+        "constraints": [],
+        "job_spec": {
+          "inputs": [
+            {
+              "name": "b0_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b1_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b2_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b3_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b4_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "num_floors",
+              "type": "Continuous",
+              "Min": 1,
+              "Max": 26,
+              "Set length": 1
+            },
+            {
+              "name": "rotation",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "upper_scale",
+              "type": "Continuous",
+              "Min": 0.5,
+              "Max": 1.0,
+              "Set length": 1
+            },
+            {
+              "name": "step_fraction",
+              "type": "Continuous",
+              "Min": 0.3,
+              "Max": 0.8,
+              "Set length": 1
+            }
+          ],
+          "outputs": [
+            {
+              "name": "floor_area",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "landscaping_pct",
+              "type": "Objective",
+              "Goal": "Maximize"
+            }
+          ],
+          "options": {
+            "Number of generations": 120,
+            "num_islands": 7,
+            "pop_per_island": 30,
+            "migration_interval": 8,
+            "migrants_count": 3,
+            "tournament_size": 8,
+            "initial_mutation_rate": 0.35,
+            "final_mutation_rate": 0.1,
+            "algorithm": "additive",
+            "building_type": "업무시설"
+          }
+        },
+        "site_area_m2": 6400.0,
+        "max_generations": 120,
+        "population_size": 210,
+        "algorithm": "additive",
+        "building_type": "업무시설"
+      },
+      "inputs": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          20
+        ],
+        [
+          20
+        ],
+        [
+          0
+        ],
+        [
+          2
+        ],
+        [
+          80
+        ],
+        [
+          0.97
+        ],
+        [
+          0.5
+        ]
+      ],
+      "envelope": null,
+      "outputs": [
+        776.36,
+        93.75
+      ],
+      "geometry": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96455756464033,
+                37.479673386108175
+              ],
+              [
+                126.96459200603631,
+                37.479851485519696
+              ],
+              [
+                126.96481548631394,
+                37.479824037679776
+              ],
+              [
+                126.96478104439369,
+                37.479645938317425
+              ],
+              [
+                126.96455756464033,
+                37.479673386108175
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "height": 7.6,
+          "num_floors": 2,
+          "floor_height": 3.8,
+          "building_type": "업무시설",
+          "mass_shape": "additive",
+          "footprint_area": 400.0,
+          "bcr": 6.25,
+          "step_floor": 1,
+          "upper_scale": 0.97,
+          "lower_height": 3.8,
+          "upper_geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  126.96459484161943,
+                  37.479848402314175
+                ],
+                [
+                  126.96481161748109,
+                  37.47982177791015
+                ],
+                [
+                  126.96477820882606,
+                  37.479649021527976
+                ],
+                [
+                  126.96456143345767,
+                  37.47967564588571
+                ],
+                [
+                  126.96459484161943,
+                  37.479848402314175
+                ]
+              ]
+            ]
+          },
+          "floor_area": 776.36,
+          "far": 12.13
+        }
+      }
+    },
+    {
+      "prepared": {
+        "site_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96514843131492,
+                37.47939618276865
+              ],
+              [
+                126.96512888170943,
+                37.48011682265102
+              ],
+              [
+                126.96422461504075,
+                37.480101239198795
+              ],
+              [
+                126.96424417331916,
+                37.4793805997198
+              ],
+              [
+                126.96514843131492,
+                37.47939618276865
+              ]
+            ]
+          ]
+        },
+        "pnu": "",
+        "address": "",
+        "constraints": [
+          {
+            "name": "bcr",
+            "type": "Constraint",
+            "Requirement": "Less than",
+            "val": 20
+          }
+        ],
+        "job_spec": {
+          "inputs": [
+            {
+              "name": "b0_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b1_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b2_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b3_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b4_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "num_floors",
+              "type": "Continuous",
+              "Min": 1,
+              "Max": 26,
+              "Set length": 1
+            },
+            {
+              "name": "rotation",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "upper_scale",
+              "type": "Continuous",
+              "Min": 0.5,
+              "Max": 1.0,
+              "Set length": 1
+            },
+            {
+              "name": "step_fraction",
+              "type": "Continuous",
+              "Min": 0.3,
+              "Max": 0.8,
+              "Set length": 1
+            }
+          ],
+          "outputs": [
+            {
+              "name": "floor_area",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "landscaping_pct",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "bcr",
+              "type": "Constraint",
+              "Requirement": "Less than",
+              "val": 20
+            }
+          ],
+          "options": {
+            "Number of generations": 120,
+            "num_islands": 7,
+            "pop_per_island": 30,
+            "migration_interval": 8,
+            "migrants_count": 3,
+            "tournament_size": 8,
+            "initial_mutation_rate": 0.35,
+            "final_mutation_rate": 0.1,
+            "algorithm": "additive",
+            "building_type": "업무시설"
+          }
+        },
+        "site_area_m2": 6400.0,
+        "max_generations": 120,
+        "population_size": 210,
+        "algorithm": "additive",
+        "building_type": "업무시설"
+      },
+      "inputs": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          8
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          0.5
+        ]
+      ],
+      "envelope": null,
+      "outputs": [
+        10036.22,
+        80.4,
+        19.6
+      ],
+      "geometry": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96488237431308,
+                37.47991169001657
+              ],
+              [
+                126.96489103080384,
+                37.479592632913004
+              ],
+              [
+                126.96449067722911,
+                37.479585733601446
+              ],
+              [
+                126.96448201903827,
+                37.479904790625945
+              ],
+              [
+                126.96488237431308,
+                37.47991169001657
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "height": 30.4,
+          "num_floors": 8,
+          "floor_height": 3.8,
+          "building_type": "업무시설",
+          "mass_shape": "additive",
+          "footprint_area": 1254.53,
+          "bcr": 19.6,
+          "floor_area": 10036.22,
+          "far": 156.82
+        }
+      }
+    },
+    {
+      "prepared": {
+        "site_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96514843131492,
+                37.47939618276865
+              ],
+              [
+                126.96512888170943,
+                37.48011682265102
+              ],
+              [
+                126.96422461504075,
+                37.480101239198795
+              ],
+              [
+                126.96424417331916,
+                37.4793805997198
+              ],
+              [
+                126.96514843131492,
+                37.47939618276865
+              ]
+            ]
+          ]
+        },
+        "pnu": "",
+        "address": "",
+        "constraints": [
+          {
+            "name": "far",
+            "type": "Constraint",
+            "Requirement": "Less than",
+            "val": 120
+          }
+        ],
+        "job_spec": {
+          "inputs": [
+            {
+              "name": "b0_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b1_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b2_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b3_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b4_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "num_floors",
+              "type": "Continuous",
+              "Min": 1,
+              "Max": 26,
+              "Set length": 1
+            },
+            {
+              "name": "rotation",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "upper_scale",
+              "type": "Continuous",
+              "Min": 0.5,
+              "Max": 1.0,
+              "Set length": 1
+            },
+            {
+              "name": "step_fraction",
+              "type": "Continuous",
+              "Min": 0.3,
+              "Max": 0.8,
+              "Set length": 1
+            }
+          ],
+          "outputs": [
+            {
+              "name": "floor_area",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "landscaping_pct",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "far",
+              "type": "Constraint",
+              "Requirement": "Less than",
+              "val": 120
+            }
+          ],
+          "options": {
+            "Number of generations": 120,
+            "num_islands": 7,
+            "pop_per_island": 30,
+            "migration_interval": 8,
+            "migrants_count": 3,
+            "tournament_size": 8,
+            "initial_mutation_rate": 0.35,
+            "final_mutation_rate": 0.1,
+            "algorithm": "additive",
+            "building_type": "업무시설"
+          }
+        },
+        "site_area_m2": 6400.0,
+        "max_generations": 120,
+        "population_size": 210,
+        "algorithm": "additive",
+        "building_type": "업무시설"
+      },
+      "inputs": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          8
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          0.5
+        ]
+      ],
+      "envelope": null,
+      "outputs": [
+        4900.0,
+        23.44,
+        76.56
+      ],
+      "geometry": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96428235406607,
+                37.48005717340097
+              ],
+              [
+                126.96507358692686,
+                37.48007080889961
+              ],
+              [
+                126.96509069330595,
+                37.47944024902459
+              ],
+              [
+                126.96429946708537,
+                37.479426613834775
+              ],
+              [
+                126.96428235406607,
+                37.48005717340097
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "height": 3.8,
+          "num_floors": 1,
+          "floor_height": 3.8,
+          "building_type": "업무시설",
+          "mass_shape": "additive",
+          "footprint_area": 4900.0,
+          "bcr": 76.56,
+          "floor_area": 4900.0,
+          "far": 76.56
+        }
+      }
+    },
+    {
+      "prepared": {
+        "site_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96514843131492,
+                37.47939618276865
+              ],
+              [
+                126.96512888170943,
+                37.48011682265102
+              ],
+              [
+                126.96422461504075,
+                37.480101239198795
+              ],
+              [
+                126.96424417331916,
+                37.4793805997198
+              ],
+              [
+                126.96514843131492,
+                37.47939618276865
+              ]
+            ]
+          ]
+        },
+        "pnu": "",
+        "address": "",
+        "constraints": [
+          {
+            "name": "height",
+            "type": "Constraint",
+            "Requirement": "Less than",
+            "val": 15
+          }
+        ],
+        "job_spec": {
+          "inputs": [
+            {
+              "name": "b0_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b1_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b2_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b3_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b4_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "num_floors",
+              "type": "Continuous",
+              "Min": 1,
+              "Max": 3,
+              "Set length": 1
+            },
+            {
+              "name": "rotation",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "upper_scale",
+              "type": "Continuous",
+              "Min": 0.5,
+              "Max": 1.0,
+              "Set length": 1
+            },
+            {
+              "name": "step_fraction",
+              "type": "Continuous",
+              "Min": 0.3,
+              "Max": 0.8,
+              "Set length": 1
+            }
+          ],
+          "outputs": [
+            {
+              "name": "floor_area",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "landscaping_pct",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "height",
+              "type": "Constraint",
+              "Requirement": "Less than",
+              "val": 15
+            }
+          ],
+          "options": {
+            "Number of generations": 120,
+            "num_islands": 7,
+            "pop_per_island": 30,
+            "migration_interval": 8,
+            "migrants_count": 3,
+            "tournament_size": 8,
+            "initial_mutation_rate": 0.35,
+            "final_mutation_rate": 0.1,
+            "algorithm": "additive",
+            "building_type": "업무시설"
+          }
+        },
+        "site_area_m2": 6400.0,
+        "max_generations": 120,
+        "population_size": 210,
+        "algorithm": "additive",
+        "building_type": "업무시설"
+      },
+      "inputs": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          8
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          0.5
+        ]
+      ],
+      "envelope": null,
+      "outputs": [
+        14700.0,
+        23.44,
+        11.4
+      ],
+      "geometry": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96428235406607,
+                37.48005717340097
+              ],
+              [
+                126.96507358692686,
+                37.48007080889961
+              ],
+              [
+                126.96509069330595,
+                37.47944024902459
+              ],
+              [
+                126.96429946708537,
+                37.479426613834775
+              ],
+              [
+                126.96428235406607,
+                37.48005717340097
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "height": 11.4,
+          "num_floors": 3,
+          "floor_height": 3.8,
+          "building_type": "업무시설",
+          "mass_shape": "additive",
+          "footprint_area": 4900.0,
+          "bcr": 76.56,
+          "floor_area": 14700.0,
+          "far": 229.69
+        }
+      }
+    },
+    {
+      "prepared": {
+        "site_polygon": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96514843131492,
+                37.47939618276865
+              ],
+              [
+                126.96512888170943,
+                37.48011682265102
+              ],
+              [
+                126.96422461504075,
+                37.480101239198795
+              ],
+              [
+                126.96424417331916,
+                37.4793805997198
+              ],
+              [
+                126.96514843131492,
+                37.47939618276865
+              ]
+            ]
+          ]
+        },
+        "pnu": "",
+        "address": "",
+        "constraints": [],
+        "job_spec": {
+          "inputs": [
+            {
+              "name": "b0_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b0_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b0_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b1_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b1_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b1_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b2_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b2_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b2_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b3_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b3_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b3_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "b4_x",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_y",
+              "type": "Continuous",
+              "Min": -36.0,
+              "Max": 36.0,
+              "Set length": 1
+            },
+            {
+              "name": "b4_w",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_d",
+              "type": "Continuous",
+              "Min": 7.2,
+              "Max": 43.199999999999996,
+              "Set length": 1
+            },
+            {
+              "name": "b4_rot",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "num_floors",
+              "type": "Continuous",
+              "Min": 1,
+              "Max": 26,
+              "Set length": 1
+            },
+            {
+              "name": "rotation",
+              "type": "Continuous",
+              "Min": 0,
+              "Max": 180,
+              "Set length": 1
+            },
+            {
+              "name": "upper_scale",
+              "type": "Continuous",
+              "Min": 0.5,
+              "Max": 1.0,
+              "Set length": 1
+            },
+            {
+              "name": "step_fraction",
+              "type": "Continuous",
+              "Min": 0.3,
+              "Max": 0.8,
+              "Set length": 1
+            }
+          ],
+          "outputs": [
+            {
+              "name": "floor_area",
+              "type": "Objective",
+              "Goal": "Maximize"
+            },
+            {
+              "name": "landscaping_pct",
+              "type": "Objective",
+              "Goal": "Maximize"
+            }
+          ],
+          "options": {
+            "Number of generations": 120,
+            "num_islands": 7,
+            "pop_per_island": 30,
+            "migration_interval": 8,
+            "migrants_count": 3,
+            "tournament_size": 8,
+            "initial_mutation_rate": 0.35,
+            "final_mutation_rate": 0.1,
+            "algorithm": "additive",
+            "building_type": "업무시설"
+          }
+        },
+        "site_area_m2": 6400.0,
+        "max_generations": 120,
+        "population_size": 210,
+        "algorithm": "additive",
+        "building_type": "업무시설"
+      },
+      "inputs": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          70
+        ],
+        [
+          70
+        ],
+        [
+          0
+        ],
+        [
+          8
+        ],
+        [
+          0
+        ],
+        [
+          1
+        ],
+        [
+          0.5
+        ]
+      ],
+      "envelope": {
+        "slanted_polygons": [
+          {
+            "corners": [
+              [
+                126.96491747887255,
+                37.479572447609186,
+                12
+              ],
+              [
+                126.96490770298568,
+                37.47993276749996,
+                12
+              ],
+              [
+                126.96445557073547,
+                37.479924975824275,
+                12
+              ],
+              [
+                126.96446534879055,
+                37.47956465603434,
+                12
+              ],
+              [
+                126.96491747887255,
+                37.479572447609186,
+                12
+              ]
+            ]
+          }
+        ]
+      },
+      "outputs": [
+        4800.0,
+        75.0
+      ],
+      "geometry": {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                126.96446534879055,
+                37.47956465603435
+              ],
+              [
+                126.96445557073547,
+                37.479924975824275
+              ],
+              [
+                126.96490770298568,
+                37.47993276749996
+              ],
+              [
+                126.96491747887255,
+                37.479572447609186
+              ],
+              [
+                126.96446534879055,
+                37.47956465603435
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "height": 11.4,
+          "num_floors": 3,
+          "floor_height": 3.8,
+          "building_type": "업무시설",
+          "mass_shape": "additive",
+          "footprint_area": 1600.0,
+          "bcr": 25.0,
+          "floor_area": 4800.0,
+          "far": 75.0
+        }
+      }
+    }
+  ]
+}

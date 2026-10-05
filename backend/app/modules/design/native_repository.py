@@ -19,12 +19,12 @@ class NativeJobUnavailable(RuntimeError):
     pass
 
 
-def canonical_json(value, *, max_bytes=1024 * 1024, max_depth=32):
+def canonical_json(value, *, max_bytes=1024 * 1024, max_depth=32, max_nodes=100000):
     nodes = 0
     def validate(item, depth=0):
         nonlocal nodes
         nodes += 1
-        if depth > max_depth or nodes > 100000:
+        if depth > max_depth or nodes > max_nodes:
             raise ValueError('Job input exceeds structural limits')
         if isinstance(item, str) and len(item) > max_bytes:
             raise ValueError('Job input exceeds size limit')
