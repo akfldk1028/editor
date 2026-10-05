@@ -1,7 +1,7 @@
 {
-  "app.title": "AG Frontend",
+  "app.title": "Editor Workspace",
   "app.subtitle": "Agent Orchestration",
-  "app.engine": "AutoGen Studio :8081",
+  "app.engine": "In-process autogen-agentchat",
   "nav.teamBuilder": "Team Builder",
   "nav.playground": "Playground",
   "nav.mcp": "MCP",

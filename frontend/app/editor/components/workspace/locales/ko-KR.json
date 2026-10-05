@@ -1,7 +1,7 @@
 {
-  "app.title": "AG 프론트엔드",
+  "app.title": "에디터 워크스페이스",
   "app.subtitle": "에이전트 오케스트레이션",
-  "app.engine": "AutoGen Studio :8081",
+  "app.engine": "내장 autogen-agentchat",
   "nav.teamBuilder": "팀 빌더",
   "nav.playground": "플레이그라운드",
   "nav.mcp": "MCP",

@@ -72,13 +72,17 @@ export function PlaygroundPage() {
 
   const selectedTeam = teams?.find((t) => t.id === selectedTeamId)
   const { data: capabilities } = useQuery({ queryKey: ['execution-capabilities'],
-    queryFn: () => workspaceRequest<{ supported_providers: string[] }>('runs/capabilities') })
+    queryFn: () => workspaceRequest<{ supported_providers: string[]; template_tools?: string[];
+      template_workbenches?: string[]; template_mcp_providers?: string[] }>('runs/capabilities') })
   const unsupportedProviders = useMemo(() => {
     if (!capabilities || !selectedTeam) return []
+    // Tools and workbenches the backend policy loads count as supported too.
+    const known = new Set([...capabilities.supported_providers, ...(capabilities.template_tools ?? []),
+      ...(capabilities.template_workbenches ?? []), ...(capabilities.template_mcp_providers ?? [])])
     const found = new Set<string>()
     const visit = (value: unknown) => {
       if (!value || typeof value !== 'object') return
-      if ('provider' in value && typeof value.provider === 'string' && !capabilities.supported_providers.includes(value.provider)) found.add(value.provider)
+      if ('provider' in value && typeof value.provider === 'string' && !known.has(value.provider)) found.add(value.provider)
       for (const child of Object.values(value)) visit(child)
     }
     visit(selectedTeam.component)

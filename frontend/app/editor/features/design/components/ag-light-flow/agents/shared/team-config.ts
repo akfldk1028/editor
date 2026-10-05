@@ -36,7 +36,7 @@ export const getTeamParticipant = (name: string): JsonModuleParticipant => {
   if (!participant) {
     if (name === 'master_plan_agent' || name === 'masterplan_agent') {
       return {
-        provider: 'autogenstudio.a2a.A2AAgent',
+        provider: 'autogen_agentchat.agents.AssistantAgent',
         component_type: 'agent',
         label: 'Master Plan Agent (대지배치)',
         description: '건축 배치, 코어, 주차 구획 기하 합성 및 GIS 3D 맥락 분석 에이전트',
