@@ -13,7 +13,7 @@ export function persistedJobResult(payload: any) {
   const paretoFront: DesignData[] = persisted.map((design: any, index: number) => {
     const properties = design.mass_geojson.properties || {}
     return { id: design.design_id ?? properties.design_id ?? index + 1,
-      uid: properties.design_uid, generation: design.generation ?? 0, parents: [null, null],
+      uid: design.outputs?.result_identity?.uid || properties.design_uid, generation: design.generation ?? 0, parents: [null, null],
       feasible: design.is_feasible ?? true, inputs: Array.isArray(design.inputs) ? design.inputs : [],
       objectives: Array.isArray(design.outputs?.objectives) ? design.outputs.objectives :
         [properties.floor_area ?? properties.floorArea ?? 0, properties.open_pct ?? properties.openPct ?? 0],

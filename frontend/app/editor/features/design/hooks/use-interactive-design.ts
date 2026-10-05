@@ -314,6 +314,7 @@ export function useInteractiveDesign({
       const result = await createMaasAesthetic({
         job_id: jobId,
         design_id: aestheticDesignId,
+        design_uid: design.uid || massGeojson?.properties?.design_uid,
         provider: aestheticProvider,
         style: aestheticStyle,
         attach_to_evidence: true,

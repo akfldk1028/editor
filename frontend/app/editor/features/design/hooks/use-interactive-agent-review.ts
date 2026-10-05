@@ -76,7 +76,8 @@ export function useInteractiveAgentReview({ jobId, design, massGeojson, setbackG
     setAgLoading(true);
     setAgError('');
     try {
-      const evidence = await getDesignEvidence(jobId, evidenceDesignId);
+      const evidence = await getDesignEvidence(jobId, evidenceDesignId,
+        design.uid || massGeojson?.properties?.design_uid);
       if (!ownsReview()) return;
       const reviews = makeAgentReviews(evidence, massGeojson, setbackGeometries);
       const trace = buildAgentTrace(reviews, evidence, massGeojson, setbackGeometries);

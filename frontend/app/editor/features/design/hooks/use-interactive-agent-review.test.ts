@@ -61,6 +61,7 @@ test('new review supersedes older review within the same selected design',async(
 test('current evidence id zero still produces reviews and current failure still exposes fallback',async()=>{
   await page.evaluate(()=>window.agentReviewHarness.run('good'));
   expect(await page.evaluate(()=>window.agentReviewHarness.evidenceUrls()[0])).toContain('/results/0/evidence/');
+  expect(await page.evaluate(()=>new URL(window.agentReviewHarness.evidenceUrls()[0]!, 'http://test').searchParams.get('design_uid'))).toBe('uid-A');
   await page.evaluate(()=>window.agentReviewHarness.settle(0,{final_status:'pass'},'good'));
   expect((await page.evaluate(()=>window.agentReviewHarness.sends()))[0]).toMatchObject({metadata:{job_id:'job-A',design_id:0,design_uid:'uid-A'}});
   expect((await page.evaluate(()=>window.agentReviewHarness.state())).reviews.length).toBeGreaterThan(0);

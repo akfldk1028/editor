@@ -97,8 +97,32 @@ export async function getJobResults(jobId: string) {
   return res.json();
 }
 
-export async function getDesignEvidence(jobId: string, designId: number): Promise<DesignEvidence> {
-  const res = await fetch(`${BASE}/jobs/${jobId}/results/${designId}/evidence/`);
+function designResultUrl(jobId: string, designId: number, suffix: string, designUid?: string) {
+  const query = designUid === undefined ? '' : `?${new URLSearchParams({ design_uid: designUid })}`;
+  return `${BASE}/jobs/${jobId}/results/${designId}/${suffix}${query}`;
+}
+
+export interface DesignResultDetail {
+  design_id: number;
+  design_uid?: string;
+  generation: number;
+  inputs: number[][];
+  outputs: Record<string, unknown>;
+  ranking: number | null;
+  crowding_distance: number | null;
+  is_feasible: boolean;
+  is_pareto_optimal: boolean;
+  mass_geojson: GeoJSONFeature | null;
+}
+
+export async function getDesignDetail(jobId: string, designId: number, designUid?: string): Promise<DesignResultDetail> {
+  const res = await fetch(designResultUrl(jobId, designId, '', designUid));
+  if (!res.ok) throw new Error((await res.json()).error || 'Design not found');
+  return res.json();
+}
+
+export async function getDesignEvidence(jobId: string, designId: number, designUid?: string): Promise<DesignEvidence> {
+  const res = await fetch(designResultUrl(jobId, designId, 'evidence/', designUid));
   if (!res.ok) throw new Error((await res.json()).error || 'Evidence not found');
   return res.json();
 }
@@ -438,6 +462,7 @@ export async function createMaasLegalVariants(params: {
 export async function createMaasAesthetic(params: {
   job_id: string;
   design_id: number;
+  design_uid?: string;
   provider?: 'placeholder' | 'gpt-image' | 'nano-banana';
   style?: string;
   attach_to_evidence?: boolean;
@@ -447,6 +472,7 @@ export async function createMaasAesthetic(params: {
     signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      design_uid: params.design_uid,
       provider: params.provider || 'placeholder',
       style: params.style,
       attach_to_evidence: params.attach_to_evidence ?? true,

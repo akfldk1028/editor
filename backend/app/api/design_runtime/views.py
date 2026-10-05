@@ -26,7 +26,8 @@ from backend.app.adapters.design_storage.persistence import save_job, save_resul
 from backend.app.adapters.design_storage import lifecycle
 from backend.app.modules.design.generation.paths import workspace_root, backend_root
 from .job_validation import validate_request, validate_spec
-from .result_identity import canonicalize_result_event
+from .result_identity import (canonicalize_result_event,
+                              requested_design_uid, resolve_design_result, ResultIdentityError)
 from backend.app.modules.design.generation.services.constraint_bridge import regulations_to_constraints, build_default_job_spec, compute_setback_geometry, build_floor_plan_spec
 from backend.app.modules.design.generation.services.mass_evaluator import evaluate_designs
 from backend.app.modules.design.generation.services.mass_renderer import design_to_geojson
@@ -1294,30 +1295,45 @@ def job_results(request, job_id):
     })
 
 
+def _requested_design_result(request, job_id, design_id, body=None):
+    try:
+        uid = requested_design_uid(request.GET.getlist("design_uid"), body)
+        design = resolve_design_result(job_id, design_id, uid)
+        return design, uid, None
+    except ResultIdentityError as exc:
+        return None, None, JsonResponse({"error": str(exc), "code": exc.code}, status=exc.status)
+
+
+def _requested_design_evidence(design, uid):
+    bundle = build_maas_evidence_bundle(job=design.job, design=design)
+    if uid is not None:
+        from urllib.parse import quote
+        bundle["candidate"]["design_uid"] = uid
+        bundle["bundle_id"] += ":uid:" + quote(uid, safe="")
+    return bundle
+
+
 @require_http_methods(["GET"])
 def design_detail(request, job_id, design_id):
     """GET /design/jobs/<id>/results/<design_id>/ — Get single design."""
-    try:
-        design = DesignResult.objects.get(job_id=job_id, design_id=design_id)
-    except DesignResult.DoesNotExist:
-        return JsonResponse({"error": "Design not found"}, status=404)
-    except DesignResult.MultipleObjectsReturned:
-        return JsonResponse({"error": "Ambiguous legacy design ID", "code": "ambiguous_design_id"}, status=409)
+    design, uid, error = _requested_design_result(request, job_id, design_id)
+    if error is not None:
+        return error
 
-    return JsonResponse(format_design_response(design))
+    payload = format_design_response(design)
+    if uid is not None:
+        payload["design_uid"] = uid
+    return JsonResponse(payload)
 
 
 @require_http_methods(["GET"])
 def design_evidence(request, job_id, design_id):
     """GET /design/jobs/<id>/results/<design_id>/evidence/ — canonical MAAS evidence bundle."""
-    try:
-        design = DesignResult.objects.select_related("job").get(job_id=job_id, design_id=design_id)
-    except DesignResult.DoesNotExist:
-        return JsonResponse({"error": "Design not found"}, status=404)
-    except DesignResult.MultipleObjectsReturned:
-        return JsonResponse({"error": "Ambiguous legacy design ID", "code": "ambiguous_design_id"}, status=409)
+    design, uid, error = _requested_design_result(request, job_id, design_id)
+    if error is not None:
+        return error
 
-    return JsonResponse(build_maas_evidence_bundle(job=design.job, design=design))
+    return JsonResponse(_requested_design_evidence(design, uid))
 
 
 @csrf_exempt
@@ -1326,22 +1342,21 @@ def design_aesthetic(request, job_id, design_id):
     """POST /design/jobs/<id>/results/<design_id>/aesthetic/ — render locked mass then call image provider."""
     try:
         body = json.loads(request.body or b"{}")
+        if not isinstance(body, dict):
+            raise ValueError("body must be an object")
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({"error": "Invalid JSON body"}, status=400)
 
-    try:
-        design = DesignResult.objects.select_related("job").get(job_id=job_id, design_id=design_id)
-    except DesignResult.DoesNotExist:
-        return JsonResponse({"error": "Design not found"}, status=404)
-    except DesignResult.MultipleObjectsReturned:
-        return JsonResponse({"error": "Ambiguous legacy design ID", "code": "ambiguous_design_id"}, status=409)
+    design, uid, error = _requested_design_result(request, job_id, design_id, body)
+    if error is not None:
+        return error
 
     provider = body.get("provider") if isinstance(body.get("provider"), str) else "placeholder"
     if provider not in {"placeholder", "gpt-image", "nano-banana"}:
         return JsonResponse({"error": "provider must be one of: placeholder, gpt-image, nano-banana"}, status=400)
 
     style = body.get("style") if isinstance(body.get("style"), str) else None
-    evidence = build_maas_evidence_bundle(job=design.job, design=design)
+    evidence = _requested_design_evidence(design, uid)
     media_root = backend_root() / "media" / "maas" / "aesthetic"
     renderer = MultiViewReferencePackRenderer(media_root / "references")
     adapter = None

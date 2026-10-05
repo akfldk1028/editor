@@ -46,6 +46,7 @@ test('aesthetic accepts canonical numeric design ID zero', async ({ page }) => {
   await invoke(page, 'generateAesthetic');
   await expect.poll(() => page.evaluate(() => window.requests.length)).toBe(1);
   expect(await page.evaluate(() => window.requests[0].url)).toContain('/jobs/job-old/results/0/aesthetic/');
+  expect(await page.evaluate(() => JSON.parse(window.requests[0].init.body).design_uid)).toBe('old-uid');
   await settle(page, 0, { status: 'complete', image_url: 'test-image' });
   await expect.poll(async () => (await state(page)).texture).toEqual({ status: 'complete', image_url: 'test-image' });
 });
