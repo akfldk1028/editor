@@ -9,7 +9,10 @@ import { MassStatusBadge } from './MassStatusBadge'
 
 const EMPTY_FILTERS: FilterState = { program: '', overallStatus: '', gate: '', gateStatus: '' }
 
-export function MassPortfolioView({ manifest, compact = false }: { manifest: MassPortfolioManifest; compact?: boolean }) {
+export function MassPortfolioView({ manifest, compact = false, selectedRunId, onSelectRun, loading = false }: {
+  manifest: MassPortfolioManifest; compact?: boolean; selectedRunId?: string;
+  onSelectRun?: (runId: string) => void; loading?: boolean;
+}) {
   const portfolio = useMemo(() => adaptMassPortfolio(manifest), [manifest])
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
   const [selectedKey, setSelectedKey] = useState(portfolio.cards[0]?.selectionKey ?? '')
@@ -21,6 +24,21 @@ export function MassPortfolioView({ manifest, compact = false }: { manifest: Mas
   return (
     <section className="mass-portfolio" aria-label="MASS evaluation portfolio">
       <header><div><span>MASS PORTFOLIO · DETERMINISTIC LEGAL EVALUATION</span><strong>{manifest.run_id}</strong></div><b>{manifest.candidate_count} TOTAL · {filtered.length} VISIBLE · {lawPassCount} LAW PASS · {finalPassCount} FINAL PASS · {manifest.status_counts.failed ?? 0} FAILED</b></header>
+      {onSelectRun && (
+        <div className="mass-portfolio-filters" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
+        <label>
+          <span>Evaluation archive run</span>
+          <select aria-label="Evaluation archive run" value={selectedRunId ?? manifest.run_id}
+            onChange={(event) => onSelectRun(event.target.value)} aria-busy={loading}
+            style={{ maxWidth: '100%', minHeight: 28 }}>
+            {[...(manifest.runs ?? [{ run_id: manifest.run_id, candidate_count: manifest.candidate_count }])].reverse().map((run) => (
+              <option key={run.run_id} value={run.run_id}>{run.run_id} ({run.candidate_count} candidates)</option>
+            ))}
+          </select>
+        </label>
+        </div>
+      )}
+      {manifest.candidate_count === 0 && <div className="maas-language-flow__state" style={{ minHeight: 0, padding: 12 }} role="status">This archived evaluation run contains no candidates.</div>}
       <MassPortfolioFilters cards={portfolio.cards} value={filters} onChange={setFilters} />
       <div className="mass-portfolio__workspace">
         <div className="maas-language-flow__viewport" tabIndex={0} aria-label="MASS evaluation language graph">

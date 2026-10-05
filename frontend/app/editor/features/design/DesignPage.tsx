@@ -70,7 +70,7 @@ const DesignPage: React.FC = () => {
     setSelectedDesign(null);
     setInteractivePreview(null);
     setFloorPlanResult(null);
-    stream.disconnect();
+    stream.reset();
     setActivePnu(pnu);
     const boundary = await jobState.loadSiteBoundary(pnu);
     if (!boundary) return;
@@ -148,7 +148,7 @@ const DesignPage: React.FC = () => {
     if (jobState.job) {
       try {
         await cancelJob(jobState.job.id);
-        stream.disconnect();
+        await stream.refresh(jobState.job.id);
       } catch (error) {
         setActionError(error instanceof Error ? error.message : '설계 실행 취소 실패');
       }

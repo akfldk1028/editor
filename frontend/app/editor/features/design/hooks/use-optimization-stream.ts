@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { SSEEvent, DesignData, GeoJSONFeature } from '../lib/types';
 import { BASE, getJobResults, runJob } from '../lib/api-client';
+import { persistedJobResult } from '../lib/persisted-job-result';
 
 interface ObjectiveInfo {
   name: string;
@@ -56,54 +57,9 @@ export function useOptimizationStream() {
   }, []);
 
   const applyPersistedResults = useCallback((payload: any): boolean => {
-    if (payload?.job?.status !== 'complete') return false;
-    const designs = Array.isArray(payload?.designs) ? payload.designs : [];
-    const persisted = designs.filter((d: any) => d?.is_pareto_optimal && d?.mass_geojson);
-    if (!persisted.length) {
-      return false;
-    }
-
-    const paretoGeojson = persisted.map((d: any) => {
-      const feature = d.mass_geojson as GeoJSONFeature;
-      const props = { ...(feature?.properties || {}) };
-      delete (props as any).maas_model;
-      delete (props as any).floor_plates;
-      return { ...feature, properties: props };
-    });
-    const paretoFront: DesignData[] = persisted.map((d: any, index: number) => {
-      const props = d.mass_geojson?.properties || {};
-      const objectives = Array.isArray(d.outputs?.objectives)
-        ? d.outputs.objectives
-        : [
-          props.floor_area ?? props.floorArea ?? 0,
-          props.open_pct ?? props.openPct ?? 0,
-        ];
-      return {
-        id: d.design_id ?? props.design_id ?? index + 1,
-        uid: props.design_uid,
-        generation: d.generation ?? 0,
-        parents: [null, null],
-        feasible: d.is_feasible ?? true,
-        inputs: Array.isArray(d.inputs) ? d.inputs : [],
-        objectives,
-        penalty: d.outputs?.penalty ?? 0,
-        rank: d.ranking ?? 1,
-        elite: 0,
-        algorithm: props.algorithm,
-      };
-    });
-
-    setState(prev => ({
-      ...prev,
-      status: 'complete',
-      paretoFront,
-      best: paretoFront[0] ?? prev.best,
-      bestGeojson: paretoGeojson[0] ?? prev.bestGeojson,
-      paretoGeojson,
-      totalDesigns: payload?.total_designs ?? paretoFront.length,
-      progress: 100,
-      generation: Math.max(prev.generation, prev.maxGenerations || prev.generation),
-    }));
+    const result = persistedJobResult(payload);
+    if (!result) return false;
+    setState(prev => ({ ...prev, ...result }));
     return true;
   }, []);
 
@@ -180,7 +136,10 @@ export function useOptimizationStream() {
     const es = new EventSource(`${BASE}/jobs/${jobId}/stream`);
     eventSourceRef.current = es;
 
+    const isCurrent = () => currentJobRef.current === jobId && eventSourceRef.current === es;
+
     es.addEventListener('started', (e) => {
+      if (!isCurrent()) return;
       const data: SSEEvent = JSON.parse(e.data);
       setState(prev => ({
         ...prev,
@@ -191,6 +150,7 @@ export function useOptimizationStream() {
     });
 
     es.addEventListener('generation', (e) => {
+      if (!isCurrent()) return;
       const data: SSEEvent = JSON.parse(e.data);
       const gen = data.generation || 0;
       // Accumulate scatter points across all generations
@@ -217,6 +177,7 @@ export function useOptimizationStream() {
     });
 
     es.addEventListener('complete', (e) => {
+      if (!isCurrent()) return;
       const data: SSEEvent = JSON.parse(e.data);
       clearFallbackTimer();
       setState(prev => ({
@@ -226,6 +187,7 @@ export function useOptimizationStream() {
         bestGeojson: data.best_geojson ?? prev.bestGeojson,
         paretoGeojson: data.pareto_geojson ?? prev.paretoGeojson,
         totalDesigns: data.total_designs || 0,
+        generation: data.generations ?? prev.maxGenerations,
         progress: 100,
       }));
       es.close();
@@ -233,6 +195,15 @@ export function useOptimizationStream() {
     });
 
     es.addEventListener('error', (e) => {
+      if (!isCurrent()) return;
+      // Transport errors have no data; EventSource reconnects using Last-Event-ID.
+      // A named engine error carries data and is a terminal execution failure.
+      if (!(e instanceof MessageEvent) || typeof e.data !== 'string') {
+        if (es.readyState === EventSource.CONNECTING) {
+          setState(prev => ({ ...prev, status: 'connecting' }));
+        }
+        return;
+      }
       try {
         const data: SSEEvent = JSON.parse((e as MessageEvent).data);
         setState(prev => ({
@@ -253,6 +224,7 @@ export function useOptimizationStream() {
     });
 
     es.addEventListener('cancelled', () => {
+      if (!isCurrent()) return;
       setState(prev => ({ ...prev, status: 'cancelled' }));
       es.close();
       eventSourceRef.current = null;
@@ -260,6 +232,7 @@ export function useOptimizationStream() {
     });
 
     es.onerror = () => {
+      if (!isCurrent()) return;
       // EventSource will auto-reconnect on transient errors
       // Only update state if the connection is truly closed
       if (es.readyState === EventSource.CLOSED) {
@@ -304,5 +277,5 @@ export function useOptimizationStream() {
     });
   }, [disconnect]);
 
-  return { ...state, connect, disconnect, reset };
+  return { ...state, connect, disconnect, reset, refresh: fetchPersistedResults };
 }

@@ -42,7 +42,7 @@ function largestPolygonCoordinates(polygons: number[][][][] | null | undefined):
   }, null);
 }
 
-function drawFloorPlan(
+export function drawFloorPlan(
   canvas: HTMLCanvasElement,
   design: FloorPlanDesign,
   gridInfo: { rows: number; cols: number; cell_size: number },
@@ -60,7 +60,7 @@ function drawFloorPlan(
   ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, w, h);
 
-  const features = design.floor_plan.features;
+  const features = (design.floor_plan_local ?? design.floor_plan).features;
   if (!features.length) return;
 
   // Compute bounds from grid info

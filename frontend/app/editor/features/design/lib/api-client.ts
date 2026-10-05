@@ -299,6 +299,7 @@ export async function getAutoConstraints(params: {
 
 export async function generateFloorPlan(params: {
   footprint_geojson: object;
+  coordinate_frame?: 'wgs84' | 'local_meters';
   rooms: FloorPlanRoom[];
   cell_size?: number;
   algorithm?: string;

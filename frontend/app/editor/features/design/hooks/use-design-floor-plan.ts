@@ -36,6 +36,7 @@ export function useDesignFloorPlan({ paretoGeojson, findFeatureForDesign, buildi
       const rooms = getRoomPreset(buildingType);
       const result = await generateFloorPlan({
         footprint_geojson: feat.geometry,
+        coordinate_frame: 'wgs84',
         rooms,
         cell_size: 3.0,
         algorithm: floorAlgorithm,

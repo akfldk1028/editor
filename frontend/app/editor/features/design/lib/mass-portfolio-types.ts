@@ -29,7 +29,16 @@ export interface MassPortfolioCandidate {
   stages: MassStageEvaluations
 }
 
+export interface MassPortfolioRun {
+  run_id: string
+  candidate_count: number
+  pnu: string
+  program_slugs: string[]
+  archive_modified_at: string
+}
+
 export interface MassPortfolioManifest {
+  runs?: MassPortfolioRun[]
   schema_version: string
   run_id: string
   pnu: string

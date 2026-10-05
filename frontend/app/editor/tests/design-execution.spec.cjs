@@ -1,0 +1,46 @@
+const { test, expect } = require('@playwright/test');
+const base = process.env.EDITOR_TEST_URL || 'http://127.0.0.1:3003';
+
+test('live design UI executes original algorithms, renders a metric floor plan and cancels a new job', async ({ page, request }) => {
+  test.skip(process.env.EDITOR_VERIFY_LIVE_DESIGN !== '1');
+  test.setTimeout(180000);
+  await page.goto(`${base}/design?pnu=1168010100106770000`);
+  const optimize = page.getByRole('button', { name: 'OPTIMIZE', exact: true });
+  await expect(optimize).toBeEnabled({ timeout: 60000 });
+  await page.locator('select').filter({ has: page.locator('option[value="all"]') }).first().selectOption('all');
+  await page.locator('input[type="number"]').nth(0).fill('1');
+  await page.locator('input[type="number"]').nth(1).fill('10');
+  const create = page.waitForResponse(r => /\/design\/jobs$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST');
+  await optimize.click();
+  const created = await create;
+  expect(created.status()).toBe(202);
+  const job = await created.json();
+  const resultsUrl = `${base}/api/v1/design/jobs/${job.id}/results`;
+  await expect.poll(async () => (await (await request.get(resultsUrl)).json()).job.status, { timeout: 60000 }).toBe('complete');
+  const results = await (await request.get(resultsUrl)).json();
+  expect(results.total_designs).toBeGreaterThan(0);
+  expect(results.designs.every(d => d.mass_geojson?.geometry)).toBe(true);
+  await expect(page.getByRole('button', { name: '⊞ 평면 생성', exact: true })).toBeEnabled({ timeout: 30000 });
+  await expect.poll(() => page.evaluate(() => Boolean(window.__arrDesignActiveMassFeature?.geometry))).toBe(true);
+  await page.locator('select').filter({ has: page.locator('option[value="packing"]') }).selectOption('packing');
+  const floorResponse = page.waitForResponse(r => /\/design\/floor-plan$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST');
+  await page.getByRole('button', { name: '⊞ 평면 생성', exact: true }).click();
+  const floor = await floorResponse;
+  expect(floor.status()).toBe(200);
+  expect(floor.request().postDataJSON().coordinate_frame).toBe('wgs84');
+  const plan = await floor.json();
+  expect(plan.num_results).toBeGreaterThan(0);
+  expect(plan.results[0].floor_plan_local.features.length).toBeGreaterThan(0);
+  await page.screenshot({ path: 'test-results/design-live-execution-floor.png', fullPage: true });
+
+  await page.locator('input[type="number"]').nth(0).fill('50');
+  await page.locator('input[type="number"]').nth(1).fill('50');
+  const secondCreate = page.waitForResponse(r => /\/design\/jobs$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST');
+  await optimize.click();
+  const secondJob = await (await secondCreate).json();
+  await page.getByRole('button', { name: 'CANCEL', exact: true }).click();
+  await expect.poll(async () => (await (await request.get(`${base}/api/v1/design/jobs/${secondJob.id}`)).json()).status).toBe('cancelled');
+  await expect(optimize).toBeEnabled();
+  const resultsAfterCancel = await (await request.get(`${base}/api/v1/design/jobs/${secondJob.id}/results`)).json();
+  expect(resultsAfterCancel.total_designs).toBe(0);
+});

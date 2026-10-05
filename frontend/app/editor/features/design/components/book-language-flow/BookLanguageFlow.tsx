@@ -4,14 +4,13 @@ import { Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 
 import {
   getCreativeMassPortfolio,
-  getMassPortfolioEvaluations,
   getMaasLanguageSystem,
 } from '../../lib/api-client';
 import type {
   CreativePortfolioManifest,
   MaasLanguageSystemManifest,
 } from '../../lib/language-system-types';
-import type { MassPortfolioManifest } from '../../lib/mass-portfolio-types';
+import { useMassPortfolio } from './useMassPortfolio';
 import { EvidencePanelBoundary } from './EvidencePanelBoundary';
 import { CreativeMassEvidence, ExecutedMassEvidence } from './ExecutedMassEvidence';
 import { executionRunCopy } from './execution-mode';
@@ -51,7 +50,7 @@ export function BookLanguageFlow({ compact = false, standalone = false }: BookLa
   const { archive, outcomeGraph, selectedMassIndex, setSelectedMassIndex, archiveError, lastSyncAt, executionState, executionError, selectedMass, passportBinding, selectedPassport, selectedPassportError, recentMassCards, vlmReview, selectRun, executeMass } = useExecutionArchive();
   const [languageManifest, setLanguageManifest] = useState<MaasLanguageSystemManifest | null>(null);
   const [creativeManifest, setCreativeManifest] = useState<CreativePortfolioManifest | null>(null);
-  const [massPortfolioManifest, setMassPortfolioManifest] = useState<MassPortfolioManifest | null>(null);
+  const { manifest: massPortfolioManifest, runId: evaluationRunId, selectRun: selectEvaluationRun, loading: evaluationLoading, error: evaluationError } = useMassPortfolio();
   const [creativeError, setCreativeError] = useState('');
   const [creativeFilters, setCreativeFilters] = useState<CreativeMassFilterState>(EMPTY_CREATIVE_FILTERS);
   const [creativePage, setCreativePage] = useState(1);
@@ -69,11 +68,7 @@ export function BookLanguageFlow({ compact = false, standalone = false }: BookLa
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    getMassPortfolioEvaluations(undefined, controller.signal)
-      .then(setMassPortfolioManifest)
-      .catch(() => setMassPortfolioManifest(null));
-    return () => controller.abort();
+    if (new URLSearchParams(window.location.search).has('evaluation_run')) setGraphView('creative');
   }, []);
 
   useEffect(() => {
@@ -323,8 +318,15 @@ export function BookLanguageFlow({ compact = false, standalone = false }: BookLa
       {graphView === 'creative' && !massPortfolioManifest && !creativeError && !creativePortfolio && (
         <div className="maas-language-flow__state" role="status">Loading the creative MASS choice pool.</div>
       )}
+      {graphView === 'creative' && evaluationLoading && (
+        <div className="maas-language-flow__state" style={{ minHeight: 0, padding: 12 }} role="status">Loading evaluation archive.</div>
+      )}
+      {graphView === 'creative' && evaluationError && (
+        <div className="maas-language-flow__state" style={{ minHeight: 0, padding: 12 }} role="alert">{evaluationError}</div>
+      )}
       {graphView === 'creative' && massPortfolioManifest && (
-        <MassPortfolioView manifest={massPortfolioManifest} compact={compact} />
+        <MassPortfolioView key={massPortfolioManifest.run_id} manifest={massPortfolioManifest} compact={compact}
+          selectedRunId={evaluationRunId || massPortfolioManifest.run_id} onSelectRun={selectEvaluationRun} loading={evaluationLoading} />
       )}
       {graphView === 'creative' && !massPortfolioManifest && creativePortfolio && (
         <section className="creative-mass-portfolio" aria-label="Creative MASS choice pool">

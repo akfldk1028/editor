@@ -452,6 +452,8 @@ export interface FloorPlanMetrics {
 }
 
 export interface FloorPlanDesign {
+  /** Origin-relative meter coordinates for the canvas; older metric responses omit this. */
+  floor_plan_local?: FloorPlanDesign['floor_plan'];
   design_id: number;
   metrics: FloorPlanMetrics;
   floor_plan: {
@@ -473,6 +475,13 @@ export interface FloorPlanDesign {
 }
 
 export interface FloorPlanResult {
+  coordinate_frame?: {
+    input: 'wgs84' | 'local_meters';
+    output: 'wgs84' | 'local_meters';
+    local_unit: 'meter';
+    projected_crs: string | null;
+    origin: [number, number];
+  };
   algorithm?: string;
   grid_info: {
     rows: number;
