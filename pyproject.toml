@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Mass-conditioned program-aware floor plan research scaffold"
 requires-python = ">=3.11"
 dependencies = [
+    "autogen-agentchat==0.7.5",
+    "autogen-ext[openai,anthropic,ollama]==0.7.5",
+    "mcp==1.27.0",
     "django>=5.2,<7",
     "fastapi>=0.115,<1",
     "filelock>=3.16,<4",
@@ -41,7 +44,7 @@ include = ["backend*"]
 "backend.app.modules.regulations" = ["data/*.json", "data/ordinance_overrides/*.json"]
 "backend.app.modules.design.generation" = ["*.json", "**/*.json", "**/*.yaml", "**/*.yml", "**/*.md", "**/*.csv"]
 "backend.app.modules.land.reference" = ["data/*.json", "data/ordinance_overrides/*.json"]
-"backend.app.modules.law.reference" = ["data/structured/*.json", "parking-source-manifest.json"]
+"backend.app.modules.law.reference" = ["data/structured/*.json", "data/facility_sources/*.json", "data/use_research_sources.json", "*-manifest.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

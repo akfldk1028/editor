@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { canManageService } from './lifecycle.mjs';
 
 const registry = JSON.parse(readFileSync(new URL('../config/services.json', import.meta.url), 'utf8'));
@@ -128,11 +128,12 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
 export function createNativeServiceDefinitions(repositoryRoot, platform = process.platform) {
   const { editor, backend, orchestrator, pascalMcp } = createServiceDefinitions(repositoryRoot, platform);
   const publicUrl = `http://127.0.0.1:${EDITOR_PORT}`;
+  const localPython = resolve(repositoryRoot, '.venv', platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
   return {
     orchestrator, pascalMcp,
     editor: { ...editor, publicUrl, healthUrl: `${publicUrl}/api/health`,
       env: { ...editor.env, PORT: String(EDITOR_PORT), PASCAL_BASE_PATH: '', NEXT_PUBLIC_BASE_PATH: '', EDITOR_BACKEND_URL: 'http://127.0.0.1:8000' } },
-    backend: { ...backend, command: process.env.EDITOR_PYTHON || backend.command,
+    backend: { ...backend, command: process.env.EDITOR_PYTHON || (existsSync(localPython) ? localPython : backend.command),
       env: { ...backend.env, EDITOR_PUBLIC_URL: publicUrl, EDITOR_SCENE_URL: publicUrl, PASCAL_EDITOR_URL: publicUrl },
       healthUrl: 'http://127.0.0.1:8000/api/v1/platform/health',
       validate: ({ body }) => body?.service === 'editor-platform' && body?.public_origin === publicUrl &&

@@ -19,6 +19,8 @@ export const productRoutes: readonly ProductRoute[] = [
   { href: '/design', label: '매스 · 평면 설계' },
   { href: '/design/language', label: '설계 언어', sidebarLabel: '설계 언어 · 실행 근거' },
   { href: '/agents', label: 'Agents', sidebarLabel: 'A2A Agents' },
+  { href: '/playground', label: 'Playground' },
+  { href: '/mcp', label: 'MCP Workbench' },
   { href: '/dialogue', label: '협업 대화', sidebarLabel: '에이전트 협업 대화' },
   { href: '/flow', label: '협업 흐름도' },
   { href: '/build', label: 'Team Builder' },

@@ -4,6 +4,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+class SessionArchiveConflict(ValueError):
+    pass
+
+
 class SessionRepository:
     def __init__(self, directory):
         self.path = Path(directory) / 'sessions.sqlite3'
@@ -46,6 +50,10 @@ class SessionRepository:
 
     def archive(self, identifier):
         with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='execution_runs'").fetchone():
+                if db.execute("SELECT 1 FROM execution_runs WHERE session_id=? AND status IN ('created','active','awaiting_input')", (identifier,)).fetchone():
+                    raise SessionArchiveConflict('Stop the active run before archiving this session')
             if db.execute('UPDATE sessions SET archived=1 WHERE id=? AND archived=0', (identifier,)).rowcount != 1:
                 raise LookupError('Session not found')
         return {'archived': True, 'id': identifier}

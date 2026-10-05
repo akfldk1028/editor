@@ -1,7 +1,33 @@
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
 import * as runtime from './runtime.mjs';
+
+test('native backend uses its platform venv, while an explicit interpreter wins', t => {
+  const temporary = resolve(tmpdir());
+  const root = mkdtempSync(resolve(temporary, 'editor-native-python-'));
+  const previous = process.env.EDITOR_PYTHON;
+  t.after(() => {
+    if (previous === undefined) delete process.env.EDITOR_PYTHON;
+    else process.env.EDITOR_PYTHON = previous;
+    assert.ok(root.startsWith(temporary + '/') || root.startsWith(temporary + '\\'));
+    rmSync(root, { recursive: true });
+  });
+  delete process.env.EDITOR_PYTHON;
+  assert.equal(runtime.createNativeServiceDefinitions(root, 'win32').backend.command, 'python');
+  assert.equal(runtime.createNativeServiceDefinitions(root, 'linux').backend.command, 'python');
+  for (const [platform, directory, binary] of [['win32', 'Scripts', 'python.exe'], ['linux', 'bin', 'python']]) {
+    mkdirSync(resolve(root, '.venv', directory), { recursive: true });
+    const interpreter = resolve(root, '.venv', directory, binary);
+    writeFileSync(interpreter, 'test executable identity');
+    assert.equal(runtime.createNativeServiceDefinitions(root, platform).backend.command, interpreter);
+  }
+  process.env.EDITOR_PYTHON = 'explicit-python';
+  assert.equal(runtime.createNativeServiceDefinitions(root, 'win32').backend.command, 'explicit-python');
+  assert.equal(runtime.createNativeServiceDefinitions(root, 'linux').backend.command, 'explicit-python');
+});
 
 test('native profile makes Editor the public app and aligns all backend bindings', () => {
   assert.equal(typeof runtime.createNativeServiceDefinitions, 'function');

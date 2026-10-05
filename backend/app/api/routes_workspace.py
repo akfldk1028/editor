@@ -8,6 +8,8 @@ from backend.app.schemas.workspace import SettingsUpdate
 from backend.app.modules.workspace.settings import SettingsConflict, SettingsRepository
 from backend.app.api.routes_workspace_catalog import create_catalog_router
 from backend.app.api.routes_workspace_sessions import create_sessions_router
+from backend.app.api.routes_workspace_execution import create_execution_router
+from backend.app.api.routes_workspace_mcp import create_mcp_router
 
 
 def create_workspace_router(*, public_origin=None):
@@ -57,5 +59,7 @@ def create_workspace_router(*, public_origin=None):
         return {'version': '1.0.0', 'service': 'editor-workspace'}
 
     router.include_router(create_sessions_router(directory))
+    router.include_router(create_execution_router(directory))
+    router.include_router(create_mcp_router())
     router.include_router(create_catalog_router(directory))
     return router

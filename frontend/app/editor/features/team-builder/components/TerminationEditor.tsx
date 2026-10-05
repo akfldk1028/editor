@@ -94,12 +94,12 @@ function combineConditions(
   conditions: Component<TerminationConfig>[],
   previous?: Component<TerminationConfig>,
 ): Component<TerminationConfig> {
-  if (previous && /(?:And|Or)Termination$/.test(previous.provider)) {
+  if (previous && /(?:And|Or)Termination(?:Condition)?$/.test(previous.provider)) {
     return { ...previous, config: { ...previous.config, conditions } as TerminationConfig }
   }
   if (conditions.length === 1 && conditions[0]) return conditions[0]
   return {
-    provider: 'autogen_agentchat.conditions.OrTermination',
+    provider: 'autogen_agentchat.base.OrTerminationCondition',
     component_type: 'termination',
     config: { conditions } as TerminationConfig,
   }

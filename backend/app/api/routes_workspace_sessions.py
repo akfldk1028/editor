@@ -3,7 +3,7 @@ import sqlite3
 from fastapi import APIRouter, HTTPException
 from backend.app.schemas.workspace import SessionCreate
 from backend.app.modules.workspace.catalog import CatalogRepository
-from backend.app.modules.workspace.sessions import SessionRepository
+from backend.app.modules.workspace.sessions import SessionRepository, SessionArchiveConflict
 
 
 def create_sessions_router(directory):
@@ -14,6 +14,8 @@ def create_sessions_router(directory):
             return callback(SessionRepository(directory()))
         except LookupError:
             raise HTTPException(404, 'Session or team template not found') from None
+        except SessionArchiveConflict as error:
+            raise HTTPException(409, str(error)) from None
         except (sqlite3.Error, OSError):
             raise HTTPException(503, 'Session storage is unavailable') from None
 
