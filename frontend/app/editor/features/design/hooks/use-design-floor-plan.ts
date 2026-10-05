@@ -20,12 +20,31 @@ export function useDesignFloorPlan({ paretoGeojson, findFeatureForDesign, buildi
   const [floorAlgorithm, setFloorAlgorithm] = useState('ga');
   const lastAutoDesignKey = useRef<string | null>(null);
   const autoFloorPlanTimer = useRef<number | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
+
+  const cancelPending = useCallback(() => {
+    if (autoFloorPlanTimer.current !== null) window.clearTimeout(autoFloorPlanTimer.current);
+    autoFloorPlanTimer.current = null;
+    requestRef.current?.abort();
+    requestRef.current = null;
+  }, []);
+
+  const resetPendingFloorPlan = useCallback(() => {
+    cancelPending();
+    lastAutoDesignKey.current = null;
+    setFloorPlanLoading(false);
+  }, [cancelPending]);
 
   const runFloorPlan = useCallback(async (design: DesignData, quick: boolean) => {
+    resetPendingFloorPlan();
     if (!paretoGeojson?.length) return;
     const feat = findFeatureForDesign(design);
     if (!feat) return;
 
+    const controller = new AbortController();
+    requestRef.current = controller;
+    lastAutoDesignKey.current = designIdentityKey(design);
+    const isCurrent = () => requestRef.current === controller && !controller.signal.aborted;
     setFloorPlanLoading(true);
     setActionError(null);
     setFloorPlanIndex(0);
@@ -41,35 +60,41 @@ export function useDesignFloorPlan({ paretoGeojson, findFeatureForDesign, buildi
         cell_size: 3.0,
         algorithm: floorAlgorithm,
         options: genOpts,
-      });
+      }, controller.signal);
+      if (!isCurrent()) return;
       setFloorPlanResult(result);
       if (!quick) setViewTab('floor');
     } catch (e) {
+      if (!isCurrent()) return;
+      lastAutoDesignKey.current = null;
       setActionError(e instanceof Error ? e.message : '평면 생성 실패');
     } finally {
-      setFloorPlanLoading(false);
+      if (isCurrent()) {
+        requestRef.current = null;
+        setFloorPlanLoading(false);
+      }
     }
-  }, [paretoGeojson, findFeatureForDesign, buildingType, floorAlgorithm]);
+  }, [paretoGeojson, findFeatureForDesign, buildingType, floorAlgorithm, resetPendingFloorPlan, setActionError, setViewTab]);
 
   const scheduleAutoFloorPlan = useCallback((d: DesignData) => {
     const designKey = designIdentityKey(d);
-    if (autoFloorPlan && paretoGeojson?.length && designKey !== lastAutoDesignKey.current) {
+    if (designKey === lastAutoDesignKey.current) return;
+    resetPendingFloorPlan();
+    setFloorPlanResult(null);
+    if (autoFloorPlan && paretoGeojson?.length) {
       lastAutoDesignKey.current = designKey;
-      if (autoFloorPlanTimer.current) window.clearTimeout(autoFloorPlanTimer.current);
       autoFloorPlanTimer.current = window.setTimeout(() => {
-        runFloorPlan(d, true);
+        autoFloorPlanTimer.current = null;
+        void runFloorPlan(d, true);
       }, 250);
     }
-  }, [autoFloorPlan, paretoGeojson, runFloorPlan]);
+  }, [autoFloorPlan, paretoGeojson, runFloorPlan, resetPendingFloorPlan]);
 
-  const resetPendingFloorPlan = () => {
-    lastAutoDesignKey.current = null;
-    if (autoFloorPlanTimer.current) window.clearTimeout(autoFloorPlanTimer.current);
-  };
+  useEffect(() => {
+    if (!autoFloorPlan && autoFloorPlanTimer.current !== null) resetPendingFloorPlan();
+  }, [autoFloorPlan, resetPendingFloorPlan]);
 
-  useEffect(() => () => {
-    if (autoFloorPlanTimer.current) window.clearTimeout(autoFloorPlanTimer.current);
-  }, []);
+  useEffect(() => cancelPending, [cancelPending]);
 
   return { floorPlanResult, setFloorPlanResult, floorPlanLoading, floorPlanIndex, setFloorPlanIndex, autoFloorPlan, setAutoFloorPlan, floorAlgorithm, setFloorAlgorithm, runFloorPlan, scheduleAutoFloorPlan, resetPendingFloorPlan };
 }

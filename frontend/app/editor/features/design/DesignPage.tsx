@@ -66,6 +66,7 @@ const DesignPage: React.FC = () => {
   const buildingTypeRequestRef = useRef(buildingType);
 
   const handlePnuSearch = useCallback(async (pnu: string) => {
+    resetPendingFloorPlan();
     setActionError(null);
     setSelectedDesign(null);
     setInteractivePreview(null);
@@ -83,7 +84,7 @@ const DesignPage: React.FC = () => {
     await jobState.loadConstraints({
       pnu: resolvedPnu,
       site_polygon,
-      building_type: buildingType,
+      building_type: buildingTypeRequestRef.current,
       include_law_articles: false,
     });
   }, [jobState, buildingType, stream]);

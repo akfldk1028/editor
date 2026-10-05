@@ -17,3 +17,11 @@ test('polling finishes for failed, cancelled and empty completed jobs instead of
   expect(persistedJobResult({ job: { status: 'complete' }, designs: [] })?.status).toBe('complete')
   expect(persistedJobResult({ job: { status: 'running' } })).toBeNull()
 })
+
+test('polling recovery restores objective labels and generation budget without SSE started', () => {
+  const objectives = [{ name: 'daylight_score', goal: 'Minimize' }]
+  const result = persistedJobResult({ job: { status: 'complete', max_generations: 3, objectives }, designs: [] })
+  expect(result).toMatchObject({ objectives, maxGenerations: 3 })
+  const legacy = persistedJobResult({ job: { status: 'complete' }, designs: [] })
+  expect(legacy).toMatchObject({ objectives: [], maxGenerations: 0 })
+})

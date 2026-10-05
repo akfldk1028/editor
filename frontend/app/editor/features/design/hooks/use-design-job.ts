@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { DesignJob, Constraint, SetbackGeometriesMap, LawSearchResult } from '../lib/types';
 import { createJob, getAutoConstraints, getSiteBoundary } from '../lib/api-client';
 
@@ -34,8 +34,8 @@ function parkingRoadContextFromSetbacks(setbackGeometries: SetbackGeometriesMap)
   };
 }
 
-export function useDesignJob() {
-  const [state, setState] = useState<DesignJobState>({
+function emptyState(): DesignJobState {
+  return {
     job: null,
     constraints: [],
     sitePolygon: null,
@@ -45,13 +45,56 @@ export function useDesignJob() {
     lawArticles: null,
     loading: false,
     error: null,
-  });
+  };
+}
+
+type RequestKind = 'boundary' | 'constraints' | 'job';
+
+export function useDesignJob() {
+  const [state, setState] = useState<DesignJobState>(emptyState);
+  const stateRef = useRef(state);
+  const mountedRef = useRef(true);
+  const pnuRef = useRef<string | null>(null);
+  const requestsRef = useRef<Record<RequestKind, AbortController | null>>({ boundary: null, constraints: null, job: null });
+
+  const updateState = useCallback((update: (previous: DesignJobState) => DesignJobState) => {
+    if (!mountedRef.current) return;
+    // Event callbacks can run again before React renders the cleared parcel.
+    stateRef.current = update(stateRef.current);
+    setState(stateRef.current);
+  }, []);
+
+  const abortRequests = useCallback((kinds: RequestKind[]) => {
+    for (const kind of kinds) {
+      requestsRef.current[kind]?.abort();
+      requestsRef.current[kind] = null;
+    }
+  }, []);
+
+  const ownsRequest = useCallback((kind: RequestKind, controller: AbortController) =>
+    mountedRef.current && requestsRef.current[kind] === controller && !controller.signal.aborted, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRequests(['boundary', 'constraints', 'job']);
+    };
+  }, [abortRequests]);
 
   const loadSiteBoundary = useCallback(async (pnu: string) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    if (!mountedRef.current) return null;
+    abortRequests(['boundary', 'constraints', 'job']);
+    pnuRef.current = pnu;
+    const controller = new AbortController();
+    requestsRef.current.boundary = controller;
+    updateState(() => ({ ...emptyState(), loading: true }));
     try {
-      const result = await getSiteBoundary(pnu);
-      setState(prev => ({
+      const result = await getSiteBoundary(pnu, controller.signal);
+      if (!ownsRequest('boundary', controller)) return null;
+      requestsRef.current.boundary = null;
+      pnuRef.current = result.pnu || pnu;
+      updateState(prev => ({
         ...prev,
         sitePolygon: result.geometry,
         siteArea: result.area_m2,
@@ -59,21 +102,31 @@ export function useDesignJob() {
       }));
       return result;
     } catch (e) {
-      setState(prev => ({
+      if (!ownsRequest('boundary', controller)) return null;
+      requestsRef.current.boundary = null;
+      updateState(prev => ({
         ...prev,
         loading: false,
         error: e instanceof Error ? e.message : 'Failed to load boundary',
       }));
       return null;
     }
-  }, []);
+  }, [abortRequests, ownsRequest, updateState]);
 
   const loadConstraints = useCallback(async (params: {
     pnu?: string; zones?: string[]; site_polygon?: object; building_type?: string; include_law_articles?: boolean;
   }) => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    if (!mountedRef.current || !stateRef.current.sitePolygon || requestsRef.current.boundary
+        || (params.pnu && params.pnu !== pnuRef.current)) return null;
+    abortRequests(['constraints', 'job']);
+    const controller = new AbortController();
+    requestsRef.current.constraints = controller;
+    updateState(prev => ({ ...prev, job: null, constraints: [], zones: [],
+      setbackGeometries: {}, lawArticles: null, loading: true, error: null }));
     try {
-      const result = await getAutoConstraints(params);
+      const result = await getAutoConstraints(params, controller.signal);
+      if (!ownsRequest('constraints', controller)) return null;
+      requestsRef.current.constraints = null;
       const setbacks = result.setback_geometries || {};
       const datum = setbacks.datum_result;
       const sunlight = setbacks.sunlight_envelope;
@@ -114,7 +167,7 @@ export function useDesignJob() {
           has_centerline: Boolean(r.roadCenterline),
         })) ?? [],
       });
-      setState(prev => ({
+      updateState(prev => ({
         ...prev,
         constraints: result.constraints,
         zones: result.zones || [],
@@ -124,22 +177,33 @@ export function useDesignJob() {
       }));
       return result;
     } catch (e) {
-      setState(prev => ({
+      if (!ownsRequest('constraints', controller)) return null;
+      requestsRef.current.constraints = null;
+      updateState(prev => ({
         ...prev,
         loading: false,
         error: e instanceof Error ? e.message : 'Failed to load constraints',
       }));
       return null;
     }
-  }, []);
+  }, [abortRequests, ownsRequest, updateState]);
 
   const startJob = useCallback(async (params?: { job_spec?: object; pnu?: string; address?: string }) => {
-    if (!state.sitePolygon) {
-      setState(prev => ({ ...prev, error: 'No site polygon selected' }));
+    if (!mountedRef.current) return null;
+    const snapshot = stateRef.current;
+    if (!snapshot.sitePolygon || (params?.pnu && params.pnu !== pnuRef.current)) {
+      updateState(prev => ({ ...prev, error: 'No matching site polygon selected' }));
+      return null;
+    }
+    if (requestsRef.current.boundary || requestsRef.current.constraints) {
+      updateState(prev => ({ ...prev, error: 'Site context is still loading' }));
       return null;
     }
 
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    abortRequests(['job']);
+    const controller = new AbortController();
+    requestsRef.current.job = controller;
+    updateState(prev => ({ ...prev, job: null, loading: true, error: null }));
     try {
       const jobSpec = params?.job_spec && typeof params.job_spec === 'object'
         ? { ...(params.job_spec as Record<string, unknown>) }
@@ -148,7 +212,7 @@ export function useDesignJob() {
         ? { ...(jobSpec.options as Record<string, unknown>) }
         : {};
       if (!options.parking_road_context) {
-        const parkingRoadContext = parkingRoadContextFromSetbacks(state.setbackGeometries);
+        const parkingRoadContext = parkingRoadContextFromSetbacks(snapshot.setbackGeometries);
         if (parkingRoadContext) {
           options.parking_road_context = parkingRoadContext;
         }
@@ -157,38 +221,34 @@ export function useDesignJob() {
         jobSpec.options = options;
       }
       const job = await createJob({
-        site_polygon: state.sitePolygon,
-        constraints: state.constraints,
+        site_polygon: snapshot.sitePolygon,
+        constraints: snapshot.constraints,
         pnu: params?.pnu,
         address: params?.address,
         ...params,
         job_spec: Object.keys(jobSpec).length > 0 ? jobSpec : params?.job_spec,
-      });
-      setState(prev => ({ ...prev, job, loading: false }));
+      }, controller.signal);
+      if (!ownsRequest('job', controller)) return null;
+      requestsRef.current.job = null;
+      updateState(prev => ({ ...prev, job, loading: false }));
       return job;
     } catch (e) {
-      setState(prev => ({
+      if (!ownsRequest('job', controller)) return null;
+      requestsRef.current.job = null;
+      updateState(prev => ({
         ...prev,
         loading: false,
         error: e instanceof Error ? e.message : 'Failed to create job',
       }));
       return null;
     }
-  }, [state.sitePolygon, state.constraints, state.setbackGeometries]);
+  }, [abortRequests, ownsRequest, updateState]);
 
   const reset = useCallback(() => {
-    setState({
-      job: null,
-      constraints: [],
-      sitePolygon: null,
-      siteArea: null,
-      zones: [],
-      setbackGeometries: {},
-      lawArticles: null,
-      loading: false,
-      error: null,
-    });
-  }, []);
+    abortRequests(['boundary', 'constraints', 'job']);
+    pnuRef.current = null;
+    updateState(emptyState);
+  }, [abortRequests, updateState]);
 
   return { ...state, loadSiteBoundary, loadConstraints, startJob, reset };
 }

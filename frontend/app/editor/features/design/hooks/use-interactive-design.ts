@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   Constraint,
   DesignData,
@@ -45,6 +45,7 @@ export function useInteractiveDesign({
   constraints,
   sitePolygon,
   siteArea,
+  pnu,
   buildingType,
   algorithm,
   sunlightEnvelope,
@@ -68,19 +69,51 @@ export function useInteractiveDesign({
   const [aesthetic, setAesthetic] = useState<MaasAestheticResult | null>(null);
   const [error, setError] = useState('');
 
+  const contextKey = JSON.stringify([jobId, design.id, design.uid, design.algorithm, pnu, buildingType, algorithm]);
+  const contextRef = useRef(contextKey);
+  contextRef.current = contextKey;
+  const callbacksRef = useRef({ onPreviewCandidate, onAestheticGenerated });
+  callbacksRef.current = { onPreviewCandidate, onAestheticGenerated };
+  const requestRef = useRef<AbortController | null>(null);
+  const cancelPending = useCallback(() => {
+    requestRef.current?.abort();
+    requestRef.current = null;
+  }, []);
+  const clearLoading = useCallback(() => {
+    setLoading(false);
+    setPreviewLoading(false);
+    setOperationLoading(false);
+    setAestheticLoading(false);
+  }, []);
+  const startRequest = () => {
+    cancelPending();
+    clearLoading();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    const isCurrent = () => requestRef.current === controller && !controller.signal.aborted && contextRef.current === contextKey;
+    return { signal: controller.signal, isCurrent, finish: () => {
+      if (!isCurrent()) return;
+      requestRef.current = null;
+      clearLoading();
+    } };
+  };
+
   useEffect(() => {
+    clearLoading();
     setResult(null);
     setPreview(null);
     setActivePreviewId(null);
     setAesthetic(null);
-    onAestheticGenerated?.(null);
+    callbacksRef.current.onAestheticGenerated?.(null);
     setError('');
-    onPreviewCandidate(null);
-  }, [design.id, onAestheticGenerated, onPreviewCandidate]);
+    callbacksRef.current.onPreviewCandidate(null);
+    return cancelPending;
+  }, [contextKey, cancelPending, clearLoading]);
 
   const submit = async () => {
     const trimmed = message.trim();
     if (!trimmed) return;
+    const request = startRequest();
     setLoading(true);
     setError('');
     try {
@@ -89,15 +122,17 @@ export function useInteractiveDesign({
         selected_design: design,
         mass_geojson: massGeojson,
         constraints,
-      });
+      }, request.signal);
+      if (!request.isCurrent()) return;
       setResult(patch);
       setPreview(null);
       setActivePreviewId(null);
       onPreviewCandidate(null);
     } catch (e) {
+      if (!request.isCurrent()) return;
       setError(e instanceof Error ? e.message : '수정 후보 생성 실패');
     } finally {
-      setLoading(false);
+      request.finish();
     }
   };
 
@@ -106,6 +141,7 @@ export function useInteractiveDesign({
       setError('부지 정보가 있어야 수정안 미리보기를 계산할 수 있습니다.');
       return;
     }
+    const request = startRequest();
     setPreviewLoading(true);
     setError('');
     try {
@@ -117,16 +153,18 @@ export function useInteractiveDesign({
         constraints,
         building_type: buildingType,
         algorithm: design.algorithm || (algorithm === 'all' ? undefined : algorithm),
-      });
+      }, request.signal);
+      if (!request.isCurrent()) return;
       setPreview(computed);
       const first = computed.candidates.find(c => c.mass_geojson)?.mass_geojson || null;
       const firstId = computed.candidates.find(c => c.mass_geojson)?.id || null;
       setActivePreviewId(firstId);
       onPreviewCandidate(first);
     } catch (e) {
+      if (!request.isCurrent()) return;
       setError(e instanceof Error ? e.message : '미리보기 계산 실패');
     } finally {
-      setPreviewLoading(false);
+      request.finish();
     }
   };
 
@@ -135,6 +173,7 @@ export function useInteractiveDesign({
       setError('선택된 매스와 부지 정보가 있어야 MAAS 후보를 계산할 수 있습니다.');
       return;
     }
+    const request = startRequest();
     setPreviewLoading(true);
     setError('');
     try {
@@ -146,7 +185,8 @@ export function useInteractiveDesign({
         max_variants: 6,
         sunlight_envelope: sunlightEnvelope,
         setback_geometries: setbackGeometries,
-      });
+      }, request.signal);
+      if (!request.isCurrent()) return;
       const candidates = computed.feature_collection.features.map((feature, index) => {
         const props = feature.properties;
         const variantId = typeof props.variant_id === 'string' ? props.variant_id : `maas_${index + 1}`;
@@ -185,13 +225,16 @@ export function useInteractiveDesign({
       setActivePreviewId(firstId);
       onPreviewCandidate(first);
     } catch (e) {
+      if (!request.isCurrent()) return;
       setError(e instanceof Error ? e.message : 'MAAS 후보 계산 실패');
     } finally {
-      setPreviewLoading(false);
+      request.finish();
     }
   };
 
   const selectPreview = (candidate: InteractivePreviewCandidate) => {
+    cancelPending();
+    clearLoading();
     setActivePreviewId(candidate.id);
     onPreviewCandidate(candidate.mass_geojson);
   };
@@ -201,6 +244,7 @@ export function useInteractiveDesign({
       setError('조작할 매스와 부지 정보가 필요합니다.');
       return;
     }
+    const request = startRequest();
     setOperationLoading(true);
     setError('');
     try {
@@ -212,7 +256,8 @@ export function useInteractiveDesign({
         building_type: buildingType,
         sunlight_envelope: sunlightEnvelope,
         setback_geometries: setbackGeometries,
-      });
+      }, request.signal);
+      if (!request.isCurrent()) return;
       const props = result.feature.properties;
 	      const agentNotes = (result.agent_reviews || []).map(review => `${review.agent}: ${review.status} · ${review.summary}`);
 	      const candidate = {
@@ -243,9 +288,10 @@ export function useInteractiveDesign({
       setActivePreviewId(candidate.id);
       onPreviewCandidate(result.feature);
     } catch (e) {
+      if (!request.isCurrent()) return;
       setError(e instanceof Error ? e.message : '매스 조작 실패');
     } finally {
-      setOperationLoading(false);
+      request.finish();
     }
   };
 
@@ -254,12 +300,13 @@ export function useInteractiveDesign({
       setError('저장된 최적화 job이 있어야 외관 이미지를 생성할 수 있습니다.');
       return;
     }
-    if (!massGeojson?.properties?.design_id) {
+    if (massGeojson?.properties?.design_id == null) {
       setError('현재 선택 후보의 MAAS 매스 geometry를 찾을 수 없습니다. 다른 후보를 선택한 뒤 다시 시도하세요.');
       return;
     }
     const massDesignId = massGeojson?.properties?.design_id;
     const aestheticDesignId = typeof massDesignId === 'number' ? massDesignId : design.id;
+    const request = startRequest();
     setAestheticLoading(true);
     setError('');
     onAestheticGenerated?.(null, aestheticStyle);
@@ -270,13 +317,15 @@ export function useInteractiveDesign({
         provider: aestheticProvider,
         style: aestheticStyle,
         attach_to_evidence: true,
-      });
+      }, request.signal);
+      if (!request.isCurrent()) return;
       setAesthetic(result);
       onAestheticGenerated?.(result, aestheticStyle);
     } catch (e) {
+      if (!request.isCurrent()) return;
       setError(e instanceof Error ? e.message : '외관 이미지 생성 실패');
     } finally {
-      setAestheticLoading(false);
+      request.finish();
     }
   };
 

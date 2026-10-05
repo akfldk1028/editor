@@ -22,5 +22,7 @@ export function persistedJobResult(payload: any) {
   return { status: 'complete' as const, error: null, paretoFront, paretoGeojson,
     best: paretoFront[0] ?? null, bestGeojson: paretoGeojson[0] ?? null,
     totalDesigns: payload.total_designs ?? paretoFront.length, progress: 100,
-    generation: payload.job.generation_count ?? 0 }
+    generation: payload.job.generation_count ?? 0,
+    maxGenerations: payload.job.max_generations ?? 0,
+    objectives: Array.isArray(payload.job.objectives) ? payload.job.objectives : [] }
 }

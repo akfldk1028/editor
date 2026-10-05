@@ -102,6 +102,8 @@ export function useOptimizationStream() {
       best: null,
       bestGeojson: null,
       generation: 0,
+      maxGenerations: 0,
+      objectives: [],
       progress: 0,
       feasibleCount: 0,
       totalDesigns: 0,
@@ -122,6 +124,7 @@ export function useOptimizationStream() {
       }));
       runJob(jobId)
         .catch((error) => {
+          if (currentJobRef.current !== jobId) return;
           setState(prev => {
             if (prev.status === 'running' || prev.status === 'connecting') {
               return { ...prev, status: 'error', error: error instanceof Error ? error.message : 'Optimization stream failed' };

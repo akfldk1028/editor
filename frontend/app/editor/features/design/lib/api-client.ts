@@ -64,8 +64,9 @@ export async function createJob(params: {
   address?: string;
   constraints?: object[];
   job_spec?: object;
-}): Promise<DesignJob> {
+}, signal?: AbortSignal): Promise<DesignJob> {
   const res = await fetch(`${BASE}/jobs/`, {
+    signal,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -262,8 +263,9 @@ export async function sendAgLightBusMessage(params: {
   if (!res.ok) throw new Error('AG-light bus send failed');
 }
 
-export async function getSiteBoundary(pnu: string): Promise<SiteBoundaryResult> {
+export async function getSiteBoundary(pnu: string, signal?: AbortSignal): Promise<SiteBoundaryResult> {
   const res = await fetch(`${BASE}/site-boundary/`, {
+    signal,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ pnu }),
@@ -282,8 +284,9 @@ export async function getAutoConstraints(params: {
   site_polygon?: object;
   building_type?: string;
   include_law_articles?: boolean;
-}): Promise<AutoConstraintsResult> {
+}, signal?: AbortSignal): Promise<AutoConstraintsResult> {
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/analyze`, {
+    signal,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -304,9 +307,10 @@ export async function generateFloorPlan(params: {
   cell_size?: number;
   algorithm?: string;
   options?: { num_generations?: number; population_size?: number };
-}): Promise<FloorPlanResult> {
+}, signal?: AbortSignal): Promise<FloorPlanResult> {
   const res = await fetch(`${BASE}/floor-plan/`, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
@@ -359,9 +363,10 @@ export async function createInteractivePatch(params: {
   selected_design?: DesignData | null;
   mass_geojson?: GeoJSONFeature | null;
   constraints?: object[];
-}): Promise<InteractivePatchResult> {
+}, signal?: AbortSignal): Promise<InteractivePatchResult> {
   const res = await fetch(`${BASE}/interactive/patch/`, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
@@ -377,9 +382,10 @@ export async function createInteractivePreview(params: {
   constraints?: object[];
   building_type?: string;
   algorithm?: string;
-}): Promise<InteractivePreviewResult> {
+}, signal?: AbortSignal): Promise<InteractivePreviewResult> {
   const res = await fetch(`${BASE}/interactive/preview/`, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
@@ -395,9 +401,10 @@ export async function applyInteractiveOperation(params: {
   building_type?: string;
   sunlight_envelope?: object | null;
   setback_geometries?: object | null;
-}): Promise<InteractiveOperationResult> {
+}, signal?: AbortSignal): Promise<InteractiveOperationResult> {
   const res = await fetch(`${BASE}/interactive/operation/`, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
@@ -417,9 +424,10 @@ export async function createMaasLegalVariants(params: {
   preferred_operator?: string | null;
   pnu?: string | null;
   parking_options?: object | null;
-}): Promise<MaasLegalVariantsResult> {
+}, signal?: AbortSignal): Promise<MaasLegalVariantsResult> {
   const res = await fetch(`${BASE}/maas/legal-variants/`, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
@@ -433,9 +441,10 @@ export async function createMaasAesthetic(params: {
   provider?: 'placeholder' | 'gpt-image' | 'nano-banana';
   style?: string;
   attach_to_evidence?: boolean;
-}): Promise<MaasAestheticResult> {
+}, signal?: AbortSignal): Promise<MaasAestheticResult> {
   const res = await fetch(`${BASE}/jobs/${params.job_id}/results/${params.design_id}/aesthetic/`, {
     method: 'POST',
+    signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       provider: params.provider || 'placeholder',
