@@ -108,7 +108,10 @@ def create_design_runtime_router(*, public_origin=None):
             return StreamingResponse(_stream_response(response), status_code=response.status_code, headers=headers)
         content = bytes(response.content)
         response.close()
-        if headers.get('Content-Type', '').split(';', 1)[0] == 'application/json':
+        # Planning operations are an identity-hashed envelope (result_hash over
+        # result); rewriting URLs inside it would break the caller's check.
+        identity_envelope = path.rstrip('/') == 'masterplan/operations'
+        if headers.get('Content-Type', '').split(';', 1)[0] == 'application/json' and not identity_envelope:
             content = json.dumps(normalize_design_urls(json.loads(content)), ensure_ascii=False).encode('utf-8')
             headers.pop('Content-Length', None)
         return Response(content, status_code=response.status_code, headers=headers)

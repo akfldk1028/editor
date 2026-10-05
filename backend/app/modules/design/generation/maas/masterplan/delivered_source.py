@@ -22,7 +22,8 @@ def resolve_delivered_source(handle, *, output_root=None):
     export_id = handle.get('export_id')
     if not isinstance(export_id, str) or not re.fullmatch('[0-9a-f]{64}', export_id):
         raise ValueError('invalid delivered export id')
-    root = Path(output_root or os.environ.get('ARR_DELIVERED_MASS_EXPORT_ROOT',
+    # The same name the writer (delivered_mass_export.py) and MasterPlanagent read.
+    root = Path(output_root or os.environ.get('EDITOR_DELIVERED_MASS_EXPORT_ROOT',
         str(BACKEND / 'runtime/delivered-mass-exports'))).resolve(strict=True)
     target = _contained(root / export_id, root)
     receipt_path = _contained(target / 'receipt.json', root)

@@ -1,0 +1,291 @@
+{
+  "pnu": "4115011300106840001",
+  "site": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          0.0,
+          32.85654268087819
+        ],
+        [
+          11.59371943201404,
+          39.50109809124842
+        ],
+        [
+          29.64010443945881,
+          50.43758501717821
+        ],
+        [
+          46.434598230640404,
+          61.34179168846458
+        ],
+        [
+          76.16706880752463,
+          44.32430054806173
+        ],
+        [
+          78.23247281974182,
+          36.59896623622626
+        ],
+        [
+          57.298764832085,
+          0.0
+        ],
+        [
+          33.13071452913573,
+          13.857184919528663
+        ],
+        [
+          0.0,
+          32.85654268087819
+        ]
+      ]
+    ]
+  },
+  "frontage": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        78.23247281974182,
+        36.59896623622626
+      ],
+      [
+        57.298764832085,
+        0.0
+      ]
+    ]
+  },
+  "rules": {
+    "status": "rules_available",
+    "source_snapshot": {
+      "jurisdiction": "KR",
+      "instrument": "주차장법 시행규칙",
+      "edition_effective_from": "2026-07-27",
+      "as_of": "2026-09-17",
+      "official_url": "https://www.law.go.kr/법령/주차장법시행규칙",
+      "provisions": [
+        "제3조제1항제2호",
+        "제5조제6호",
+        "제6조제1항제2호ㆍ제3호ㆍ제4호ㆍ제5호ㆍ제7호ㆍ제13호ㆍ제14호",
+        "제11조제1항ㆍ제4항ㆍ제5항",
+        "별표 1"
+      ]
+    },
+    "owner_snapshot": {
+      "schema_version": "arr.maas.parking_design_rules.v1",
+      "status": "rules_available",
+      "permit_compliance_verified": false,
+      "applicability": {
+        "status": "applicable_for_preliminary_design",
+        "requested": {
+          "required_spaces": 50,
+          "facility_type": "attached",
+          "parking_method": "self_parking",
+          "structure": "underground_or_building",
+          "parking_angle": "perpendicular",
+          "ramp_shape": "straight",
+          "entrance_count": 1
+        },
+        "unsupported_fields": [],
+        "scope": "general attached underground/building self-parking; perpendicular stalls; straight ramp"
+      },
+      "source_snapshot": {
+        "jurisdiction": "KR",
+        "instrument": "주차장법 시행규칙",
+        "edition_effective_from": "2026-07-27",
+        "as_of": "2026-09-17",
+        "official_url": "https://www.law.go.kr/법령/주차장법시행규칙",
+        "provisions": [
+          "제3조제1항제2호",
+          "제5조제6호",
+          "제6조제1항제2호ㆍ제3호ㆍ제4호ㆍ제5호ㆍ제7호ㆍ제13호ㆍ제14호",
+          "제11조제1항ㆍ제4항ㆍ제5항",
+          "별표 1"
+        ]
+      },
+      "statutory": {
+        "stalls": {
+          "general": {
+            "min_width_m": 2.5,
+            "min_length_m": 5.0,
+            "source": "제3조제1항제2호"
+          },
+          "accessible": {
+            "min_width_m": 3.3,
+            "min_length_m": 5.0,
+            "source": "제3조제1항제2호"
+          },
+          "expanded": {
+            "min_width_m": 2.6,
+            "min_length_m": 5.2,
+            "min_share": 0.3,
+            "applies_from_spaces": 50,
+            "share_basis": "주차단위구획 총수 (평행주차형식 제외)",
+            "source": "제3조제1항제2호; 제11조제4항 -> 제6조제1항제14호"
+          },
+          "ev": {
+            "min_share": 0.05,
+            "applies_from_spaces": 50,
+            "source": "제11조제4항 -> 제6조제1항제14호 (조례로 상향 가능)"
+          },
+          "surface": {
+            "max_grade_ratio": 0.07,
+            "source": "제6조제1항제13호 및 제11조제1항"
+          }
+        },
+        "entrance": {
+          "min_width_m": 5.5,
+          "large_lot": true,
+          "large_lot_alternative": "separate_entry_and_exit",
+          "road_choice": "둘 이상의 도로에 접하면 자동차교통에 미치는 지장이 적은 도로에 출입구",
+          "road_choice_source": "제5조제6호 및 제11조제1항",
+          "sight": {
+            "setback_m": 2.0,
+            "eye_height_m": 1.4,
+            "angle_deg": 60.0,
+            "source": "제6조제1항제2호 및 제11조제1항"
+          },
+          "source": "제6조제1항제4호 및 제11조제1항"
+        },
+        "aisle": {
+          "parking_angle": "perpendicular",
+          "min_width_m": 6.0,
+          "source": "제6조제1항제3호나목 및 제11조제1항"
+        },
+        "ramp": {
+          "straight": {
+            "one_lane_min_width_m": 3.3,
+            "two_lane_min_width_m": 6.0,
+            "max_longitudinal_slope_ratio": 0.17,
+            "source": "제6조제1항제5호다목ㆍ라목 및 제11조제1항"
+          },
+          "curved": {
+            "one_lane_min_width_m": 3.6,
+            "two_lane_min_width_m": 6.5,
+            "max_longitudinal_slope_ratio": 0.14,
+            "min_inner_radius_m": 5.0,
+            "road_interface_max_slope_ratio": 0.07,
+            "kerb": "양쪽 벽면에서 30 cm 지점에 높이 10~15 cm 연석 (차로 너비에 포함)",
+            "source": "제6조제1항제5호나목ㆍ다목ㆍ라목ㆍ바목 및 제11조제1항"
+          },
+          "min_clear_height_m": 2.3,
+          "min_clear_height_source": "제6조제1항제5호가목 및 제11조제1항",
+          "parking_area_min_clear_height_m": 2.1,
+          "parking_area_min_clear_height_source": "제6조제1항제7호 및 제11조제1항",
+          "road_interface": {
+            "applies_to": "uphill_ramp_within_3m_of_road",
+            "length_m": 3.0,
+            "max_slope_ratio": 0.085,
+            "source": "제6조제1항제5호바목 및 제11조제1항"
+          },
+          "traffic_separation": {
+            "required": true,
+            "applies_from_spaces": 50,
+            "requirement": "two_lane_width_at_least_6m_or_separate_entry_and_exit_ramps",
+            "source": "제6조제1항제5호사목1) 및 제11조제1항"
+          },
+          "grade_transitions": {
+            "convex": {
+              "required": true,
+              "length_m": 1.7,
+              "max_slope_ratio": 0.085,
+              "source": "제6조제1항제5호사목 및 별표 1"
+            },
+            "concave": {
+              "required": false,
+              "length_m": null,
+              "max_slope_ratio": null,
+              "source": "제6조제1항제5호사목 및 별표 1"
+            }
+          },
+          "level_landing_length_m": null
+        }
+      },
+      "design_assumptions": {
+        "ramp_level_landing": {
+          "status": "design_assumption",
+          "length_m": 6.0,
+          "statutory_basis": null,
+          "reason": "The cited provisions do not prescribe a general level-landing length; verify vehicle geometry and authority requirements."
+        }
+      },
+      "unresolved": [
+        "accessible_space_count_requires_facility_and_local_ordinance_evidence",
+        "ramp_level_landing_length_requires_project_review",
+        "vehicle_swept_path_requires_project_review",
+        "parcel_specific_ordinance_and_permit_review"
+      ],
+      "via": "lawagent_a2a",
+      "law_task_id": "f0c1b453-f57a-49f9-8e6e-b63e392765d0"
+    },
+    "stall_width_m": 2.5,
+    "stall_length_m": 5.0,
+    "accessible_width_m": 3.3,
+    "accessible_length_m": 5.0,
+    "aisle_width_m": 6.0,
+    "ramp_width_m": 6.0,
+    "ramp_max_slope": 0.17,
+    "transition_length_m": 3.0,
+    "transition_slope": 0.085,
+    "min_headroom_m": 2.3,
+    "entrance_width_m": 5.5,
+    "entrance_large_lot": true,
+    "expanded_width_m": 2.6,
+    "expanded_length_m": 5.2,
+    "expanded_min_share": 0.3,
+    "ev_min_share": 0.05,
+    "stall_max_grade": 0.07,
+    "curve_min_inner_radius_m": 5.0,
+    "curved_ramp_width_m": 6.5,
+    "curved_ramp_max_slope": 0.14,
+    "design_basis": "two-way straight ramp; symmetric grade transitions; level landings use aisle manoeuvring width"
+  },
+  "options": {
+    "max_basement_levels": 2,
+    "basement_floor_height_m": 3.3,
+    "slab_depth_m": 0.4,
+    "target_footprint_m2": 1074.9,
+    "vehicle": {
+      "minimum_turning_radius_m": 6.0,
+      "source": "「도로의 구조·시설 기준에 관한 규칙」 제5조제2항 [별표 1] 승용자동차 최소회전반지름 6.0 m (declared design input: Lawagent's statute search is down, so this is cited, not fetched)"
+    },
+    "parking_strategy": "auto",
+    "max_surface_stalls": 30,
+    "surface_share": 0.6
+  },
+  "core": null,
+  "columns": [],
+  "footprint": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          58.98627239225906,
+          14.97831935183082
+        ],
+        [
+          29.83306840308842,
+          31.664265086383303
+        ],
+        [
+          45.730743267904614,
+          59.440224906734926
+        ],
+        [
+          74.45020444935518,
+          43.00253349630604
+        ],
+        [
+          74.63354355545654,
+          42.31678103398479
+        ],
+        [
+          58.98627239225906,
+          14.97831935183082
+        ]
+      ]
+    ]
+  },
+  "provenance_note": "Frozen NGII-covered benchmark 2026-09-19, Gosan. Source snapshot retained; regression fixture, not current legal advice."
+}
