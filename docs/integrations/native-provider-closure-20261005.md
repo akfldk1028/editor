@@ -1,4 +1,4 @@
-# Native provider closure ? 2026-10-05
+# Native provider closure - 2026-10-05
 
 ## Activated ownership
 
@@ -20,7 +20,7 @@ Retained R39 export request 4bb237ac61cffc1c68b83ecb168e1930c7f2e5b5701f757fb024
 
 Exact HTTP retained export: succeeded, 41 verified Editor-owned artifacts, shape ee3ba45e667096c71f9e, certificate c091b67043b049ea55aa. Exact retained Plan input: five floors, 30 verified Editor-owned artifacts, needs_evidence and permit_ready=false. Native archived audit of one candidate: exit0, normal gates needs_evidence. Accepted ablation is explicitly a measurement with gates removed.
 
-Old ARR listeners18000/PID26568 and18320/PID25676 were stopped only after read-only audit. Sixteen running DB rows date March13?June19; both servers started October2. No heartbeat/token schema or startup recovery exists, already-running rows cannot launch through run_job, work runs in daemon threads, and child processes were only conhost. All sixteen rows and four pending rows remain untouched. Original directories, DB and artifacts remain historical archives. Shared Docker, Neo4j, law-search and Orchestrator-owned optional Worker8787 remain running.
+Old ARR listeners18000/PID26568 and18320/PID25676 were stopped only after read-only audit. Sixteen running DB rows date March13-June19; both servers started October2. No heartbeat/token schema or startup recovery exists, already-running rows cannot launch through run_job, work runs in daemon threads, and child processes were only conhost. All sixteen rows and four pending rows remain untouched. Original directories, DB and artifacts remain historical archives. Shared Docker, Neo4j, law-search and Orchestrator-owned optional Worker8787 remain running.
 
 ## Verification evidence
 
