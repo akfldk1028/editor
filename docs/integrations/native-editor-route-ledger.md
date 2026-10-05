@@ -2,6 +2,8 @@
 
 Main application: `frontend/app/editor`. Shared agents: `D:/Data/25_ACE/agents`, connected through the Editor backend. AG, AG-frontend and ARR are migration sources, not final runtime dependencies. The latest user request requires accounting for every original reachable screen; a route, mock test or copied component alone does not close a row. Preserve the lightweight UI and original interactions while replacing backend authority.
 
+Latest route audit: [route boundaries and fresh regression evidence](2026-10-05-route-boundary-review.md). Seventeen native pages have distinct paths; thin workspace route composition is verified. Design execution contracts, large component decomposition, independent workspace package resolution and scene storage integration remain open. Fresh browser run: 18 passed / 2 failed; the two failures passed an unchanged targeted rerun. This is not a clean full-suite result.
+
 Latest scope correction: [original views and every nested element](2026-10-05-original-view-parity.md). The source inventory covers 274 TSX/CSS files and 5415 JSX occurrences across ARR and AG-frontend, all unverified. Full view composition, styles, assets, overlays and conditional states are required, not only API functionality. [Actual native runtime recovery](2026-10-05-native-runtime-recovered.md) supersedes the older runtime-blocked statements below; VWorld browser display and missing original routes remain open.
 
 Latest implementation and runtime: [native original LawChat and live VWorld](2026-10-05-native-law-vworld.md). Native backend18449 is configured and running; real 2D cadastral imagery and 3D buildings rendered. Final native browser suite11 passed; law retrieval returned zero live results, and whole-product/view parity remains open.
