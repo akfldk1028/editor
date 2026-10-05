@@ -19,6 +19,7 @@ from backend.app.modules.land.analysis_request import normalize_program_request
 from backend.app.modules.land.parcel_geometry import parcel_geometry
 from backend.app.modules.land.attributes import LandAttributes
 from backend.app.modules.land.repository import LandRepository
+from backend.app.api.routes_land_map import create_land_map_router
 
 
 class LandRequest(BaseModel):
@@ -193,4 +194,5 @@ def create_land_router(*, public_origin=None, address_client=None, repository=No
         except (CatalogUnavailable, OSError):
             raise HTTPException(503, 'Regulation references unavailable') from None
 
+    router.include_router(create_land_map_router(prefix=''))
     return router
