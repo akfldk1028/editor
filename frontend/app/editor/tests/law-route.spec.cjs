@@ -46,9 +46,9 @@ test('live VWorld 3D survives native route navigation', async ({ page }) => {
   await page.screenshot({ path: 'test-results/law-live-vworld.png', timeout: 20000 });
   await page.getByRole('button', { name: '건물 ON' }).click();
   await expect(page.getByRole('button', { name: '건물 OFF' })).toBeVisible();
-  await page.locator('nav a[href="/map"]').click();
+  await page.locator('.editor-product-content nav a[href="/map"]').click();
   await page.waitForURL('**/map');
-  await page.locator('nav a[href="/law"]').click();
+  await page.locator('.editor-product-content nav a[href="/law"]').click();
   await page.waitForURL('**/law');
   await expect(page.locator('#vworld-3d-map-law canvas').first()).toBeVisible({ timeout: 15000 });
   expect(await page.evaluate(() => window.__lawNavigationProbe && window.ws3d.viewer.container.isConnected)).toBe(true);

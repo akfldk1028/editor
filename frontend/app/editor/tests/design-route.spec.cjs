@@ -33,7 +33,7 @@ test('design uses the live shared VWorld viewer and survives route return', asyn
   await page.screenshot({ path: 'test-results/design-live-vworld.png', fullPage: true });
   await page.getByRole('link', { name: '설계 언어 · 실행 근거', exact: true }).click();
   await expect(page).toHaveURL(`${base}/design/language`, { timeout: 30000 });
-  await page.getByRole('link', { name: '매스 · 평면 설계', exact: true }).click();
+  await page.getByRole('navigation', { name: '설계 화면 이동' }).getByRole('link', { name: '매스 · 평면 설계', exact: true }).click();
   await expect(page).toHaveURL(`${base}/design`, { timeout: 30000 });
   await expect(page.locator('.cesium-widget canvas')).toBeVisible({ timeout: 30000 });
   expect(await page.evaluate(() => window.__designRouteReturnMarker)).toBe(true);

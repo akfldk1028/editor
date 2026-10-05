@@ -41,9 +41,14 @@ test('original gallery categories and import persist a team in native builder', 
     await page.getByLabel('Close graph panel', { exact: true }).click();
     await expect(page.getByRole('alertdialog', { name: 'Unsaved changes' })).toBeVisible();
     await page.getByRole('button', { name: 'Stay', exact: true }).click();
-    await page.locator('nav a[href="/gallery"]').click();
-    await expect(page.getByRole('alertdialog', { name: 'Unsaved changes' })).toBeVisible();
-    await page.getByRole('button', { name: 'Stay', exact: true }).click();
+    for (const navigation of [
+      page.getByRole('navigation', { name: '제품 작업 공간' }),
+      page.getByRole('complementary', { name: 'Main navigation' }),
+    ]) {
+      await navigation.getByRole('link', { name: 'Gallery', exact: true }).click();
+      await expect(page.getByRole('alertdialog', { name: 'Unsaved changes' })).toBeVisible();
+      await page.getByRole('button', { name: 'Stay', exact: true }).click();
+    }
     await expect(page).toHaveURL(`${base}/build`);
     const saved = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().includes('/api/v1/workspace/teams/'));
     await page.getByLabel('Save team changes').click();

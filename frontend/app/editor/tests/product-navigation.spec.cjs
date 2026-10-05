@@ -1,4 +1,12 @@
 const { test, expect } = require('@playwright/test');
+test('workspace sidebar exposes every product header destination', async ({ page }) => {
+  await page.goto(process.env.EDITOR_TEST_URL + '/dialogue');
+  const header = page.getByRole('navigation', { name: '제품 작업 공간' });
+  const sidebar = page.getByRole('complementary', { name: 'Main navigation' });
+  const destinations = locator => locator.locator('a').evaluateAll(links => links.map(link => link.getAttribute('href')));
+  expect(await destinations(sidebar)).toEqual(await destinations(header));
+});
+
 test('original project view is available with the native binding and scene link', async ({ page }) => {
   await page.goto(process.env.EDITOR_TEST_URL + '/projects');
   await expect(page.getByRole('heading', { name: '프로젝트', exact: true })).toBeVisible();

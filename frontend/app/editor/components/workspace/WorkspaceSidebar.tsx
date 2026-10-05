@@ -3,30 +3,12 @@ import { usePathname } from 'next/navigation'
 import { MapPin, Box, Moon, Sun, Rocket } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from './theme/useTheme'
+import { isProductRouteActive, productRoutes } from './product-routes'
 export function WorkspaceSidebar() {
   const { i18n } = useTranslation()
   const pathname = usePathname()
   const theme = useTheme()
   const toggleMode = theme.toggleMode
-  const navigation = [
-    { href: '/', label: '3D Editor', Icon: Box },
-    { href: '/dwg', label: 'CAD · DWG', Icon: Box },
-    { href: '/planm', label: 'PLANM 평면 계획', Icon: Box },
-    { href: '/projects', label: 'Projects', Icon: Box },
-    { href: '/land', label: i18n.t('nav.land'), Icon: MapPin },
-    { href: '/map', label: 'VWorld 지도', Icon: MapPin },
-    { href: '/law', label: '법규 검색 · 3D 지도', Icon: MapPin },
-    { href: '/design', label: '매스 · 평면 설계', Icon: Box },
-    { href: '/design/language', label: '설계 언어 · 실행 근거', Icon: Box },
-    { href: '/agents', label: 'A2A Agents', Icon: Box },
-    { href: '/dialogue', label: '에이전트 협업 대화', Icon: Box },
-    { href: '/flow', label: '협업 흐름도', Icon: Box },
-    { href: '/build', label: 'Team Builder', Icon: Box },
-    { href: '/gallery', label: 'Gallery', Icon: Box },
-    { href: '/history', label: 'History', Icon: Box },
-    { href: '/deploy', label: 'Deploy', Icon: Rocket },
-    { href: '/settings', label: i18n.t('nav.settings'), Icon: Box },
-  ]
   return (
     <aside
       aria-label="Main navigation"
@@ -41,17 +23,21 @@ export function WorkspaceSidebar() {
         </p>
       </div>
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {navigation.map(({ href, label, Icon }) => (
+        {productRoutes.map(({ href, label, sidebarLabel, translationKey, icon }) => {
+          const Icon = icon === 'map' ? MapPin : icon === 'rocket' ? Rocket : Box
+          const active = isProductRouteActive(href, pathname)
+          return (
           <Link
             key={href}
             href={href}
-            aria-current={pathname === href ? 'page' : undefined}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${pathname === href ? 'bg-(--color-accent-primary-light) text-(--color-accent-primary)' : 'text-(--color-text-secondary) hover:bg-(--color-background-secondary)'}`}
+            aria-current={active ? 'page' : undefined}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${active ? 'bg-(--color-accent-primary-light) text-(--color-accent-primary)' : 'text-(--color-text-secondary) hover:bg-(--color-background-secondary)'}`}
           >
             <Icon className="w-5 h-5" />
-            {label}
+            {translationKey ? i18n.t(translationKey) : sidebarLabel || label}
           </Link>
-        ))}
+          )
+        })}
       </nav>
       <div className="p-3 border-t border-(--color-border-default)">
         <button

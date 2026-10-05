@@ -33,11 +33,11 @@ test('Editor navigation preserves the main UI and isolates workspace theme', asy
   await expect(page.locator('[class*="pascal-loader-"]')).toHaveCount(0, { timeout: 60_000 });
   const original = await page.locator('html').getAttribute('class');
   await page.evaluate(() => { window.__routeNavigationMarker = 'same-document'; });
-  await page.getByRole('link', { name: '토지 분석', exact: true }).click();
+  await page.locator('.editor-product-content').getByRole('link', { name: '토지 분석', exact: true }).click();
   await expect(page.getByRole('heading', { name: '토지 규제 분석' })).toBeVisible();
   await page.getByRole('button', { name: /다크 모드|라이트 모드/ }).click();
   expect(await page.locator('html').getAttribute('class')).toBe(original);
-  await page.getByRole('link', { name: '3D Editor' }).click();
+  await page.getByRole('complementary', { name: 'Main navigation' }).getByRole('link', { name: '3D Editor' }).click();
   await expect(page.getByRole('link', { name: 'Open saved scenes' })).toBeVisible();
   expect(await page.evaluate(() => window.__routeNavigationMarker)).toBe('same-document');
   await expect(page.locator('.agent-workspace')).toHaveCount(0);

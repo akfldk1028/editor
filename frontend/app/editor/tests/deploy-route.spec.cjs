@@ -23,9 +23,10 @@ test('native deployment preserves useful controls and generates Editor commands 
 test('deployment sidebar navigation, live health, clipboard and reload work', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto(`${base}/settings`);
-  await page.getByRole('link', { name: 'Deploy', exact: true }).click();
+  const navigation = page.getByRole('complementary', { name: 'Main navigation' });
+  await navigation.getByRole('link', { name: 'Deploy', exact: true }).click();
   await expect(page).toHaveURL(`${base}/deploy`);
-  await expect(page.getByRole('link', { name: 'Deploy', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(navigation.getByRole('link', { name: 'Deploy', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByTestId('deployment-status')).toContainText('Connected');
   await page.getByRole('button', { name: 'Copy backend command', exact: true }).click();
   const command = await page.evaluate(() => navigator.clipboard.readText());
