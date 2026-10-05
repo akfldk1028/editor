@@ -13,6 +13,9 @@ function npmCommand(platform) {
 export const EDITOR_PORT = 3002;
 export const PASCAL_MCP_PORT = 3917;
 export const FRONTEND_PORT = 5173;
+/** The backend port is declared once, in config/services.json: the agents
+ *  (Law, Site, Orchestrator, ops/compose.yml) carry it as their default. */
+export const BACKEND_PORT = registry.backend.port;
 /** The editor is one surface of the shell, reachable at this path. */
 export const EDITOR_BASE_PATH = "/editor";
 
@@ -22,15 +25,6 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
   const ownerState = resolve(ownerRoot, 'runtime/orchestrator/design.sqlite');
   const ownerConfigId = createHash('sha256').update(platform === 'win32' ? ownerState.toLowerCase() : ownerState).digest('hex');
   const definitions = {
-    arr: {
-      name: 'arr-domain',
-      healthUrl: `${(process.env.EDITOR_ARR_URL || 'http://127.0.0.1:18320').replace(/\/$/, '')}/law/health/`,
-      timeoutMs: 5_000,
-      validate: ({ body }) => body?.status === 'ok' && body?.django === true,
-      describe: ({ body }) => body?.ready === true
-        ? 'Django reachable; law dependency ready; other domain operations not verified'
-        : 'Django reachable; law dependency unavailable; other domain operations not verified',
-    },
     orchestrator: {
       name: 'orchestrator-editor-api',
       healthUrl: 'http://127.0.0.1:8791/editor/v1/health',
@@ -48,7 +42,7 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
     backend: {
       name: "backend",
       command: "python",
-      args: ["-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", "8000"],
+      args: ["-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", String(BACKEND_PORT)],
       cwd: resolve(repositoryRoot),
       env: {
         EDITOR_ORCHESTRATOR_URL: 'http://127.0.0.1:8791',
@@ -61,7 +55,7 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
         PASCAL_MCP_URL: `http://127.0.0.1:${PASCAL_MCP_PORT}/mcp`,
         PASCAL_EDITOR_URL: `http://127.0.0.1:${FRONTEND_PORT}${EDITOR_BASE_PATH}`,
       },
-      healthUrl: "http://127.0.0.1:8000/openapi.json",
+      healthUrl: `http://127.0.0.1:${BACKEND_PORT}/openapi.json`,
       timeoutMs: 30_000,
       validate: ({ body }) => body?.info?.title === "PLANM API",
     },
@@ -140,10 +134,10 @@ export function createNativeServiceDefinitions(repositoryRoot, platform = proces
   return {
     orchestrator, pascalMcp,
     editor: { ...editor, publicUrl, healthUrl: `${publicUrl}/api/health`,
-      env: { ...editor.env, PORT: String(EDITOR_PORT), PASCAL_BASE_PATH: '', NEXT_PUBLIC_BASE_PATH: '', EDITOR_BACKEND_URL: 'http://127.0.0.1:8000' } },
+      env: { ...editor.env, PORT: String(EDITOR_PORT), PASCAL_BASE_PATH: '', NEXT_PUBLIC_BASE_PATH: '', EDITOR_BACKEND_URL: `http://127.0.0.1:${BACKEND_PORT}` } },
     backend: { ...backend, command: process.env.EDITOR_PYTHON || (existsSync(localPython) ? localPython : backend.command),
       env: { ...backend.env, EDITOR_PUBLIC_URL: publicUrl, EDITOR_SCENE_URL: publicUrl, PASCAL_EDITOR_URL: publicUrl },
-      healthUrl: 'http://127.0.0.1:8000/api/v1/platform/health',
+      healthUrl: `http://127.0.0.1:${BACKEND_PORT}/api/v1/platform/health`,
       validate: ({ body }) => body?.service === 'editor-platform' && body?.public_origin === publicUrl &&
         body?.scene_url === publicUrl && body?.storage_configured === true && body?.owner_configured === true,
       describe: () => 'Editor bindings configured; provider and project execution readiness require separate checks',

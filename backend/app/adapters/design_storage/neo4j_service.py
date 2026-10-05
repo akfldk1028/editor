@@ -9,16 +9,19 @@ from typing import Optional, Dict, Any, List
 from neo4j import GraphDatabase, Driver, Session
 from django.conf import settings
 
+from backend.app.core.graph_config import neo4j_credentials, neo4j_database, neo4j_uri
+
 logger = logging.getLogger(__name__)
 
 class Neo4jService:
     """Neo4j database connection and operations manager"""
 
     def __init__(self, uri: str = None, user: str = None, password: str = None, database: str = None):
-        self.uri = uri or os.getenv("NEO4J_URI", "bolt://172.27.80.1:7687")
-        self.user = user or os.getenv("NEO4J_USER", "neo4j")
-        self.password = password or os.getenv("NEO4J_PASSWORD", "11111111")
-        self.database = database or os.getenv("NEO4J_DATABASE", "neo4j")  # Use neo4j as default database
+        default_user, default_password = neo4j_credentials()
+        self.uri = uri or neo4j_uri()
+        self.user = user or default_user
+        self.password = password or default_password
+        self.database = database or neo4j_database()
 
         self._driver: Optional[Driver] = None
         self._session: Optional[Session] = None

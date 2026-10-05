@@ -3,7 +3,7 @@ import test from 'node:test';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { ensureService, settleStartup, canManageService } from './lifecycle.mjs';
-import { createServiceDefinitions, stopOwnedProcesses } from './runtime.mjs';
+import { BACKEND_PORT, createServiceDefinitions, stopOwnedProcesses } from './runtime.mjs';
 
 const session = { name: 'test', source_owner: 'editor', lifecycle: 'session', management: 'editor-session' };
 const shared = { name: 'agent', source_owner: 'agents', lifecycle: 'persistent', management: 'agent-host' };
@@ -68,19 +68,16 @@ test('registry makes the external owner probe-only without a launch command', ()
   assert.ok(services.planAgent.validate({ body: { agent: 'plan', tools: ['plan_stage', 'plan_generate'] } }));
   assert.ok(!services.planAgent.validate({ body: { agent: 'plan', tools: ['plan_health'] } }));
   for (const [name, service] of Object.entries(services)) {
-    if (!['orchestrator', 'arr', 'planAgent'].includes(name)) assert.equal(canManageService(service), true, name);
+    if (!['orchestrator', 'planAgent'].includes(name)) assert.equal(canManageService(service), true, name);
   }
 });
 
-test('ARR host is probe-only and reports law dependency readiness separately', () => {
-  const { arr } = createServiceDefinitions(process.cwd());
-  assert.ok(arr, 'ARR must have an explicit lifecycle registration');
-  assert.equal(canManageService(arr), false);
-  assert.equal(arr.command, undefined);
-  assert.equal(arr.healthUrl, `${process.env.EDITOR_ARR_URL || 'http://127.0.0.1:18320'}/law/health/`);
-  assert.ok(arr.validate({ body: { status: 'ok', django: true, ready: false } }));
-  assert.ok(!arr.validate({ body: { status: 'ok' } }));
-  assert.match(arr.describe({ body: { status: 'ok', django: true, ready: false } }), /unavailable/);
+test('the backend port comes from the service registry and is what the agents default to', () => {
+  const services = createServiceDefinitions(process.cwd());
+  assert.equal(services.arr, undefined, 'ARR is absorbed; no domain host remains to probe');
+  assert.equal(BACKEND_PORT, 18449);
+  assert.deepEqual(services.backend.args.slice(-2), ['--port', '18449']);
+  assert.equal(services.backend.healthUrl, 'http://127.0.0.1:18449/openapi.json');
 });
 
 for (const failure of [false, true]) {

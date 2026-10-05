@@ -24,7 +24,7 @@ from backend.app.modules.design.generation.formatters import format_job_response
 from backend.app.adapters.design_storage.models import OptimizationJob, DesignResult, MaasRevisionEvent
 from backend.app.adapters.design_storage.persistence import save_job, save_results
 from backend.app.adapters.design_storage import lifecycle
-from backend.app.modules.design.generation.paths import workspace_root, backend_root
+from backend.app.modules.design.generation.paths import aesthetic_media_root, book_scan_root, workspace_root
 from .job_validation import validate_request, validate_spec
 from .result_identity import (canonicalize_result_event,
                               requested_design_uid, resolve_design_result, ResultIdentityError)
@@ -32,14 +32,13 @@ from backend.app.modules.design.generation.services.constraint_bridge import reg
 from backend.app.modules.design.generation.services.mass_evaluator import evaluate_designs
 from backend.app.modules.design.generation.services.mass_renderer import design_to_geojson
 from backend.app.modules.design.generation.services.regulation_validator import validate_design, validate_best_designs, auto_correct_constraints
-from backend.app.modules.design.generation.services.site_geometry import fetch_parcel_boundary, geojson_to_polygon, validate_site
+from backend.app.modules.design.generation.services.site_geometry import geojson_to_polygon, validate_site
 from backend.app.modules.design.generation.services.interactive_patch import build_interactive_patch_plan
 from backend.app.modules.design.generation.services.interactive_apply import build_interactive_preview
 from backend.app.modules.design.generation.services.mass_operations import apply_mass_operation
 from backend.app.modules.design.generation.maas import build_maas_evidence_bundle, export_mass_geojson_to_scad, generate_legal_mass_variants
 from backend.app.modules.design.generation.maas.interactive import apply_conversational_graph_revision, build_revision_learning_profile
 from backend.app.modules.design.generation.maas.mass_brain import record_proposal_feedback
-from backend.app.modules.design.generation.maas.language_system import build_language_system_manifest
 from backend.app.modules.design.generation.maas.outcome_graph_slice import build_outcome_graph_slice
 from backend.app.modules.design.generation.maas.book_language.registry import build_book_language_registry
 from backend.app.modules.design.generation.maas.aesthetic import build_aesthetic_pipeline_result
@@ -47,8 +46,8 @@ from backend.app.modules.design.generation.maas.aesthetic.adapters import NanoBa
 from backend.app.modules.design.generation.maas.aesthetic.renderers import MultiViewReferencePackRenderer
 from backend.app.modules.design.generation.maas.preference.reference_corpus import default_reference_root
 from backend.app.modules.design.generation.maas.geometry_language import architectural_shape_programs, build_mass_execution_passport, compile_geometry_program, materialize_isometric_thumbnail, passport_path_for_preview, render_compilation_preview, write_mass_execution_passport
-from backend.app.modules.design.generation.maas.geometry_language.executed_archive import compile_executed_mass, executed_mass_manifest, materialize_executed_mass_passport, materialize_executed_mass_preview
-from backend.app.modules.design.generation.maas.single_execution import execute_single_mass, is_single_execution_run, single_execution_archive_manifest, single_execution_passport, single_execution_preview, single_execution_run_id, single_execution_runs, review_single_mass_with_vlm
+from backend.app.modules.design.generation.maas.geometry_language.executed_archive import compile_executed_mass, executed_mass_manifest, materialize_executed_mass_passport
+from backend.app.modules.design.generation.maas.single_execution import execute_single_mass, is_single_execution_run, single_execution_run_id, review_single_mass_with_vlm
 from backend.app.modules.design.generation.maas.single_execution.replay import downstream_evidence_from_passport
 from backend.app.modules.design.generation.maas.single_execution.pipeline import resolve_single_execution_replay
 from backend.app.modules.design.generation.maas.creative_portfolio_catalog import creative_portfolio_manifest, creative_portfolio_render
@@ -168,13 +167,6 @@ def maas_creative_portfolio_render(
 
 
 @require_http_methods(["GET"])
-def maas_language_system(request):
-    """Expose the typed BOOK-to-VLM lattice without running generation."""
-
-    return JsonResponse(build_language_system_manifest())
-
-
-@require_http_methods(["GET"])
 def maas_outcome_graph_slice(request):
     """Return a bounded real lineage slice, never the full multi-hundred-MB graph."""
 
@@ -235,8 +227,10 @@ def maas_book_asset(request, page):
     )
     if not page_record or not page_record.get("source_path"):
         raise Http404("BOOK scan unavailable")
-    scan_path = Path(str(page_record["source_path"])).resolve()
-    book_root = (workspace_root() / "docs" / "260506" / "BOOK").resolve()
+    # The OCR registry records the scan's original absolute path; only its file
+    # name is trusted, resolved against the editor's own scan directory.
+    book_root = book_scan_root().resolve()
+    scan_path = (book_root / Path(str(page_record["source_path"])).name).resolve()
     if not scan_path.is_relative_to(book_root) or not scan_path.is_file():
         raise Http404("BOOK scan unavailable")
     response = FileResponse(scan_path.open("rb"), content_type="image/jpeg")
@@ -535,79 +529,6 @@ def _single_execution_artifact(execution_id: str, filename: str) -> Path:
     if not output.is_relative_to(root):
         raise Http404("invalid single MASS execution path")
     return output
-
-
-@require_http_methods(["GET"])
-def maas_executed_masses(request):
-    """List one immutable run plus the chronological MAAS run timeline."""
-
-    try:
-        run_id = str(request.GET.get("run_id") or "").strip()
-        if is_single_execution_run(run_id):
-            portfolio = executed_mass_manifest()
-            payload = single_execution_archive_manifest(
-                _single_execution_root(),
-                run_id,
-                other_runs=portfolio.get("runs") or (),
-            )
-        else:
-            payload = executed_mass_manifest(run_id or None)
-            extra_runs = single_execution_runs(_single_execution_root())
-            if extra_runs:
-                merged = {
-                    str(item.get("run_id") or ""): item
-                    for item in (*payload.get("runs", ()), *extra_runs)
-                    if isinstance(item, dict) and item.get("run_id")
-                }
-                payload["runs"] = sorted(
-                    merged.values(),
-                    key=lambda item: (str(item.get("created_at") or ""), str(item.get("run_id") or "")),
-                )
-                payload["run_count"] = len(payload["runs"])
-                payload["archive_revision"] = f"{payload.get('archive_revision', '')}:{extra_runs[-1]['created_at']}"
-        return JsonResponse(payload)
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        logger.warning("MAAS executed archive unavailable: %s", exc)
-        return JsonResponse({"error": "executed MASS archive is unavailable"}, status=503)
-
-
-@require_http_methods(["GET"])
-def maas_executed_mass_preview(request, index):
-    """Serve the exact candidate card rendered during the recorded MAAS run."""
-
-    try:
-        run_id = str(request.GET.get("run_id") or "").strip()
-        if is_single_execution_run(run_id):
-            if int(index) != 1:
-                raise IndexError(index)
-            output = single_execution_preview(_single_execution_root(), run_id)
-        else:
-            output = materialize_executed_mass_preview(int(index), run_id or None)
-    except (OSError, ValueError, IndexError, json.JSONDecodeError) as exc:
-        logger.warning("MAAS executed preview unavailable: %s", exc)
-        raise Http404("executed MASS render not found") from exc
-    response = FileResponse(output.open("rb"), content_type="image/png")
-    response["Cache-Control"] = "public, max-age=86400, immutable"
-    response["X-Content-Type-Options"] = "nosniff"
-    return response
-
-
-@require_http_methods(["GET"])
-def maas_executed_mass_passport(request, index):
-    """Replay one archived GeometryProgram and expose its real execution passport."""
-
-    try:
-        run_id = str(request.GET.get("run_id") or "").strip()
-        if is_single_execution_run(run_id):
-            if int(index) != 1:
-                raise IndexError(index)
-            payload = single_execution_passport(_single_execution_root(), run_id)
-        else:
-            payload = materialize_executed_mass_passport(int(index), run_id or None)
-        return JsonResponse(payload)
-    except (OSError, ValueError, IndexError, json.JSONDecodeError) as exc:
-        logger.warning("MAAS executed passport unavailable: %s", exc)
-        return JsonResponse({"error": "executed MASS passport is unavailable"}, status=422)
 
 
 def _passport_vlm_result(passport: dict):
@@ -1357,7 +1278,7 @@ def design_aesthetic(request, job_id, design_id):
 
     style = body.get("style") if isinstance(body.get("style"), str) else None
     evidence = _requested_design_evidence(design, uid)
-    media_root = backend_root() / "media" / "maas" / "aesthetic"
+    media_root = aesthetic_media_root()
     renderer = MultiViewReferencePackRenderer(media_root / "references")
     adapter = None
     if provider == "gpt-image":
@@ -1382,7 +1303,7 @@ def design_aesthetic(request, job_id, design_id):
 @require_http_methods(["GET"])
 def maas_aesthetic_asset(request, asset_path):
     """Serve local MAAS aesthetic reference/generated assets in development."""
-    media_root = (backend_root() / "media" / "maas" / "aesthetic").resolve()
+    media_root = aesthetic_media_root().resolve()
     target = (media_root / asset_path).resolve()
     if media_root not in target.parents and target != media_root:
         raise Http404("Asset not found")
@@ -1405,7 +1326,7 @@ def _image_content_type(path: Path) -> str:
 
 
 def _with_aesthetic_asset_urls(result: dict) -> dict:
-    media_root = (backend_root() / "media" / "maas" / "aesthetic").resolve()
+    media_root = aesthetic_media_root().resolve()
 
     def public_url(uri):
         if not isinstance(uri, str):
@@ -1781,53 +1702,6 @@ def maas_legal_variants(request):
         except ValueError as exc:
             return JsonResponse({"error": str(exc), "cache_key": cache_key}, status=409)
     return JsonResponse(result)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def site_boundary(request):
-    """POST /design/site-boundary/ — Get parcel polygon from PNU."""
-    try:
-        body = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({"error": "Invalid JSON body"}, status=400)
-
-    pnu = (body.get("pnu") or "").strip()
-    if not pnu:
-        return JsonResponse({"error": "pnu is required"}, status=400)
-
-    # 19자리 숫자 아니면 주소로 간주 → Vworld geocode로 PNU 자동 추출
-    # (사용자 편의: ControlPanel placeholder "PNU 코드 (19자리) 또는 주소")
-    if not (pnu.isdigit() and len(pnu) == 19):
-        try:
-            from backend.app.modules.land.reference.services.pnu_resolver import resolve_address
-            resolved = resolve_address(pnu)
-            if resolved and resolved.get("pnu"):
-                pnu = resolved["pnu"]
-            else:
-                return JsonResponse(
-                    {"error": f"주소 '{pnu}' → PNU 변환 실패"}, status=404
-                )
-        except Exception as e:
-            return JsonResponse(
-                {"error": f"주소 변환 오류: {e}"}, status=500
-            )
-
-    geometry = fetch_parcel_boundary(pnu)
-    if not geometry:
-        return JsonResponse({"error": f"No boundary found for PNU {pnu}"}, status=404)
-
-    # Validate the polygon
-    polygon = geojson_to_polygon(geometry)
-    validation = validate_site(polygon)
-
-    return JsonResponse({
-        "pnu": pnu,
-        "geometry": geometry,
-        "area_m2": validation["area_m2"],
-        "valid": validation["valid"],
-        "errors": validation["errors"],
-    })
 
 
 @csrf_exempt

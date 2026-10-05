@@ -2,7 +2,7 @@ import { backendRequest } from '@/lib/backend-request'
 import { isDesignOperation } from '@/lib/design-operation-path'
 
 async function handle(request: Request, context: { params: Promise<{ path: string[] }> }) {
-  const path = (await context.params).path.join('/').replace(/\/$/, '')
+  const path = (await context.params).path.join('/')
   if (!isDesignOperation(request.method, path)) {
     return Response.json({ error: 'Unknown design operation' }, { status: 404 })
   }

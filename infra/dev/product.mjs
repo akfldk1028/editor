@@ -28,7 +28,6 @@ async function main() {
   try {
     if (native) checkWorkspaceLinks(repositoryRoot);
     // Everything that does not depend on another service starts together.
-    if (services.arr) await ensureService(services.arr);
     await ensureService(services.orchestrator);
     if (services.planAgent) await ensureService(services.planAgent);
     await settleStartup([

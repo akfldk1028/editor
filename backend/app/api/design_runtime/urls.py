@@ -26,7 +26,6 @@ urlpatterns = [
     path('maas/revision/<uuid:revision_id>/feedback/', views.maas_revision_feedback, name='maas_revision_feedback'),
     path('maas/export-scad/', views.maas_export_scad, name='maas_export_scad'),
     path('maas/legal-variants/', views.maas_legal_variants, name='maas_legal_variants'),
-    path('maas/language-system/', views.maas_language_system, name='maas_language_system'),
     path('maas/outcome-graph/', views.maas_outcome_graph_slice, name='maas_outcome_graph_slice'),
     path('maas/creative-portfolios/', views.maas_creative_portfolios, name='maas_creative_portfolios'),
     path('maas/creative-portfolios/<str:run_id>/candidates/<str:candidate_id>/render/', views.maas_creative_portfolio_render, name='maas_creative_portfolio_render'),
@@ -45,12 +44,10 @@ urlpatterns = [
     path('maas/single-executions/<slug:execution_id>/elevation-proposals/multi-view-alt-01/evidence/<slug:document>/', views.maas_single_execution_multi_view_elevation_evidence, name='maas_single_execution_multi_view_elevation_evidence'),
     path('maas/single-executions/<slug:execution_id>/elevation-proposals/multi-view-alt-01/<slug:artifact>/', views.maas_single_execution_multi_view_elevation_artifact, name='maas_single_execution_multi_view_elevation_artifact'),
     path('maas/single-executions/<slug:execution_id>/vlm-review/', views.maas_single_execution_vlm_review, name='maas_single_execution_vlm_review'),
-    path('maas/executed-masses/', views.maas_executed_masses, name='maas_executed_masses'),
-    path('maas/executed-masses/<int:index>/', views.maas_executed_mass_preview, name='maas_executed_mass_preview'),
-    path('maas/executed-masses/<int:index>/passport/', views.maas_executed_mass_passport, name='maas_executed_mass_passport'),
+    # site-boundary, maas/language-system and maas/executed-masses* are served by
+    # api/routes_design_workspace.py (FastAPI), the single owner of those paths.
     path('maas/reference-assets/<path:asset_path>', views.maas_reference_asset, name='maas_reference_asset'),
     path('maas/aesthetic-assets/<path:asset_path>', views.maas_aesthetic_asset, name='maas_aesthetic_asset'),
-    path('site-boundary/', views.site_boundary, name='site_boundary'),
     path('auto-constraints/', views.auto_constraints, name='auto_constraints'),
     path('floor-plan/', views.create_floor_plan, name='create_floor_plan'),
     path('constraints/visualize/', views.constraints_visualize, name='constraints_visualize'),

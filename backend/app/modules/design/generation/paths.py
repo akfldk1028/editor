@@ -26,6 +26,16 @@ def arr_root() -> Path:
     return data_root()
 
 
+def book_scan_root() -> Path:
+    """The 69 BOOK scans (docs/260506/BOOK); the OCR registry names them by file."""
+    return workspace_root() / "docs" / "260506" / "BOOK"
+
+
+def aesthetic_media_root() -> Path:
+    """Reference and generated aesthetic images, under the data root's runtime media."""
+    return backend_root() / "media" / "maas" / "aesthetic"
+
+
 def package_root(source_package: str) -> Path:
     roots = {
         "design": Path(__file__).resolve().parent,

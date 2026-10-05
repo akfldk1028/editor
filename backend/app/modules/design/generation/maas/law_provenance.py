@@ -88,7 +88,9 @@ def build_law_provenance_projection() -> dict[str, Any]:
             "provenance_entities": [],
             "provenance_relations": [],
         }
-    if not os.environ.get("NEO4J_URI"):
+    from backend.app.core.graph_config import neo4j_configured
+
+    if not neo4j_configured():
         return {
             "graph_status": {"available": False, "error": "NEO4J_URI not configured"},
             "articles": [],

@@ -37,7 +37,7 @@ test('native profile makes Editor the public app and aligns all backend bindings
   assert.equal(services.arr, undefined);
   assert.equal(services.dwg, undefined);
   assert.equal(services.editor.publicUrl, 'http://127.0.0.1:3002');
-  assert.equal(services.editor.env.EDITOR_BACKEND_URL, 'http://127.0.0.1:8000');
+  assert.equal(services.editor.env.EDITOR_BACKEND_URL, `http://127.0.0.1:${runtime.BACKEND_PORT}`);
   assert.equal(services.editor.env.PASCAL_BASE_PATH, '');
   assert.equal(services.editor.env.PORT, '3002');
   assert.equal(services.backend.env.EDITOR_PUBLIC_URL, services.editor.publicUrl);
@@ -46,7 +46,7 @@ test('native profile makes Editor the public app and aligns all backend bindings
   assert.ok(services.backend.env.EDITOR_PLATFORM_DATA_DIR);
   assert.ok(services.backend.env.EDITOR_DESIGN_DATA_DIR);
   assert.equal(services.orchestrator.command, undefined);
-  assert.equal(services.backend.healthUrl, 'http://127.0.0.1:8000/api/v1/platform/health');
+  assert.equal(services.backend.healthUrl, `http://127.0.0.1:${runtime.BACKEND_PORT}/api/v1/platform/health`);
   assert.ok(services.backend.validate({ body: { service: 'editor-platform', public_origin: services.editor.publicUrl,
     scene_url: services.editor.publicUrl, storage_configured: true, owner_configured: true } }));
   assert.ok(!services.backend.validate({ body: { service: 'editor-platform', public_origin: 'http://127.0.0.1:5173',

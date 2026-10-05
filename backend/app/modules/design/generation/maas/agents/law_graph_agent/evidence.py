@@ -413,9 +413,11 @@ def _fast_graph_projection() -> Mapping[str, Any]:
 
     if "test" in sys.argv:
         return build_law_provenance_projection()
-    uri = str(os.environ.get("NEO4J_URI") or "").strip()
-    if not uri:
+    from backend.app.core.graph_config import neo4j_configured, neo4j_uri
+
+    if not neo4j_configured():
         return build_law_provenance_projection()
+    uri = neo4j_uri()
     parsed = urlparse(uri)
     host = parsed.hostname
     port = parsed.port or 7687

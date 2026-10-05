@@ -26,7 +26,7 @@ _UNREFERENCED_SOURCE_PAGES = frozenset({1, 2, 4, 5, 13, 25, 38, 49, 59})
 
 
 def default_book_scan_directory() -> Path:
-    return _design_paths.workspace_root() / "docs" / "260506" / "BOOK"
+    return _design_paths.book_scan_root()
 
 
 def audit_book_corpus(

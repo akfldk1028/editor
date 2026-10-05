@@ -6,9 +6,10 @@ from dataclasses import dataclass, field
 import os
 from typing import Mapping
 
+from backend.app.core.graph_config import neo4j_uri
+
 
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
-_LAW_DEFAULT_URI = "bolt://172.27.80.1:7687"
 _LAW_DEFAULT_DATABASE = "neo4j"
 
 
@@ -68,7 +69,7 @@ class DesignMemorySettings:
                 **design,
             )
 
-        law_uri = _value(values, "NEO4J_URI") or _LAW_DEFAULT_URI
+        law_uri = neo4j_uri(values)
         law_database = (
             _value(values, "NEO4J_DATABASE")
             or _LAW_DEFAULT_DATABASE

@@ -1,0 +1,910 @@
+{
+ "routes": [
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/auto-constraints"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/auto-constraints"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/design/collaboration/bus/log"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/design/collaboration/bus/send"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/design/collaboration/health"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/design/collaboration/transcript"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/constraints/visualize"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/constraints/visualize"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/floor-plan"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/floor-plan"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/interactive/operation"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/interactive/operation"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/interactive/patch"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/interactive/patch"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/interactive/preview"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/interactive/preview"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/cancel"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/cancel"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/results"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/results"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/results/{design_id}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/results/{design_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/results/{design_id}/aesthetic"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/results/{design_id}/aesthetic"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/results/{design_id}/evidence"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/results/{design_id}/evidence"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/run"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/run"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/stream"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/stream"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/validate"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/jobs/{job_id}/validate"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/aesthetic-assets/{asset_path}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/aesthetic-assets/{asset_path}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/book-assets/{page}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/book-assets/{page}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/creative-portfolios"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/creative-portfolios"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/creative-portfolios/{run_id}/candidates/{candidate_id}/render"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/creative-portfolios/{run_id}/candidates/{candidate_id}/render"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/delivered-mass-export"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/delivered-mass-export"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/design/maas/executed-masses"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/design/maas/executed-masses/{index}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/design/maas/executed-masses/{index}/passport"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/export-scad"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/export-scad"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/geometry-shapes/{index}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/geometry-shapes/{index}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/geometry-shapes/{index}/passport"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/geometry-shapes/{index}/passport"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/design/maas/language-system"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/legal-variants"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/legal-variants"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/outcome-graph"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/outcome-graph"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/portfolio-evaluations"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/portfolio-evaluations"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/portfolio-evaluations/{run_id}/candidates/{candidate_id}/render"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/portfolio-evaluations/{run_id}/candidates/{candidate_id}/render"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/reference-assets/{asset_path}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/reference-assets/{asset_path}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/revision"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/revision"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/revision/{revision_id}/feedback"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/revision/{revision_id}/feedback"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/elevation-proposals/alt-01"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/elevation-proposals/alt-01"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/elevation-proposals/multi-view-alt-01/evidence/{document}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/elevation-proposals/multi-view-alt-01/evidence/{document}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/elevation-proposals/multi-view-alt-01/{artifact}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/elevation-proposals/multi-view-alt-01/{artifact}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/elevation/{view}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/elevation/{view}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/manifest"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/manifest"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/passport"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/passport"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/preview"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/preview"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/thumbnail"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/thumbnail"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/vlm-review"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/single-executions/{execution_id}/vlm-review"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/masterplan/operations"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/masterplan/operations"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/design/site-boundary"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/land/agent-analyze/stream"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/land/analyze"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/land/map-config"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/land/parcel-geometry"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/land/resolve"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/land/reverse"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/land/stats"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/land/tiles/{z}/{y}/{x}.png"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/land/wms"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/land/zones"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/land/zoning-limits"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/law/article"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/law/domain/{domain}/search"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/law/domains"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/law/health"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/law/search"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/law/search/stream"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}/alternatives"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}/alternatives/{alternative_id}/preview"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}/approval"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}/artifacts/{artifact_path}"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}/dwg/handoff"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}/dwg/inspection"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}/execute"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/planm/runs/{run_id}/pascal"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/agents"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/health"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/context"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/archive/executions"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/archive/jobs"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/executions"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/executions"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/executions/{catalog_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/executions/{catalog_id}/artifacts/{artifact_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/executions/{catalog_id}/artifacts/{artifact_id}/download"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/jobs"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/jobs"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/jobs/{source_id}/{job_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/jobs/{source_id}/{job_id}/results"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/jobs/{source_id}/{job_id}/results/{result_pk}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs/{job_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs/{job_id}/attempts"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs/{job_id}/attempts"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs/{job_id}/attempts/{attempt_id}"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs/{job_id}/attempts/{attempt_id}/cancel"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs/{job_id}/attempts/{attempt_id}/events"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/native-jobs/{job_id}/attempts/{attempt_id}/result"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/selection"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/selection"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/design/selection/mass"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/runs"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/runs"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/scene-revision"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/runs/{run_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/runs/{run_id}/request"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/scene-assets/{filename}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/health"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/mcp/connections"
+  },
+  {
+   "method": "DELETE",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/mcp/connections/{identifier}"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/mcp/connections/{identifier}/operations"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/runs"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/runs/capabilities"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/runs/{identifier}/events"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/runs/{identifier}/input"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/runs/{identifier}/start"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/runs/{identifier}/stop"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/sessions"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/sessions"
+  },
+  {
+   "method": "DELETE",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/sessions/{identifier}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/sessions/{identifier}/runs"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/settings"
+  },
+  {
+   "method": "PUT",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/settings"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/validate"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/validate/test"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/version"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/{collection}"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/{collection}"
+  },
+  {
+   "method": "DELETE",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/{collection}/{identifier}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/{collection}/{identifier}"
+  },
+  {
+   "method": "PUT",
+   "owner": "fastapi",
+   "path": "/api/v1/workspace/{collection}/{identifier}"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/{domain}/agent/{operation}"
+  }
+ ],
+ "schema": "editor-route-inventory/v1"
+}

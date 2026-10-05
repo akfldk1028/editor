@@ -1,13 +1,19 @@
+import logging
 import math
 import os
 import json
 from fastapi import APIRouter, HTTPException, Request, Response
 from backend.app.adapters.vworld_map import MapUnavailable, VworldMapClient
 
+logger = logging.getLogger(__name__)
+
 
 def create_land_map_router(client=None, *, prefix='/api/v1/land'):
     provider = client or VworldMapClient(os.environ.get('VWORLD_API_KEY', ''))
     router = APIRouter(prefix=prefix, tags=['land-map'])
+    if os.environ.get('VWORLD_BROWSER_API_KEY') and os.environ.get('VWORLD_BROWSER_API_KEY') == os.environ.get('VWORLD_API_KEY'):
+        # map-config hands this key to every browser; it must not be the server key.
+        logger.warning('VWORLD_BROWSER_API_KEY equals VWORLD_API_KEY; issue a separate key restricted to the editor origin')
 
     @router.get('/map-config')
     async def map_config():

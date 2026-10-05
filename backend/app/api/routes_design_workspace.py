@@ -1,7 +1,9 @@
-"""Original design workspace contracts backed by Editor-owned land services."""
-import json
+"""Original design workspace contracts backed by Editor-owned land services.
+
+This router owns site-boundary, maas/language-system and maas/executed-masses*;
+the Django runtime behind routes_design_runtime.py no longer serves them.
+"""
 import os
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse
@@ -51,9 +53,15 @@ def create_design_workspace_router(*, public_origin=None, address_client=None):
                 'valid': area > 0, 'errors': [], 'execution_owner': 'editor'}
 
     @router.get('/maas/language-system')
-    def language_system():
-        path = Path(__file__).resolve().parents[1] / 'modules/design/data/language-system.json'
-        return json.loads(path.read_text(encoding='utf-8'))
+    async def language_system():
+        # Built from the BOOK registry on every call; nothing here ran a generation.
+        # Imported here, geometry_language first: program_massing.book_projection and
+        # source_geometry.compiler import each other, and only this order settles it.
+        import backend.app.modules.design.generation.maas.geometry_language  # noqa: F401
+        from backend.app.modules.design.generation.maas.language_system import build_language_system_manifest
+
+        value = await run_in_threadpool(build_language_system_manifest)
+        return {**value, 'editor_provenance': {'kind': 'live_language_catalog', 'execution_verified': False}}
 
     def archive():
         return ExecutionArchive(data_root())
@@ -70,13 +78,17 @@ def create_design_workspace_router(*, public_origin=None, address_client=None):
     async def masses(run_id: str | None = Query(None, max_length=200)):
         return await read_archive(lambda: archive().manifest(run_id))
 
+    def latest_run(run_id):
+        # Without run_id the newest run is meant, as the original contract read it.
+        return run_id or archive().manifest()['selected_run_id']
+
     @router.get('/maas/executed-masses/{index}/passport')
-    async def passport(index: int, run_id: str = Query(..., min_length=1, max_length=200)):
-        return await read_archive(lambda: archive().passport(run_id, index))
+    async def passport(index: int, run_id: str | None = Query(None, max_length=200)):
+        return await read_archive(lambda: archive().passport(latest_run(run_id), index))
 
     @router.get('/maas/executed-masses/{index}')
-    async def preview(index: int, run_id: str = Query(..., min_length=1, max_length=200)):
-        path = await read_archive(lambda: archive().preview(run_id, index))
+    async def preview(index: int, run_id: str | None = Query(None, max_length=200)):
+        path = await read_archive(lambda: archive().preview(latest_run(run_id), index))
         return FileResponse(path, media_type='image/png', headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store'})
 
     return router

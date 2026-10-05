@@ -65,7 +65,7 @@ export async function createJob(params: {
   constraints?: object[];
   job_spec?: object;
 }, signal?: AbortSignal): Promise<DesignJob> {
-  const res = await fetch(`${BASE}/jobs/`, {
+  const res = await fetch(`${BASE}/jobs`, {
     signal,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -76,23 +76,23 @@ export async function createJob(params: {
 }
 
 export async function getJob(jobId: string): Promise<DesignJob> {
-  const res = await fetch(`${BASE}/jobs/${jobId}/`);
+  const res = await fetch(`${BASE}/jobs/${jobId}`);
   if (!res.ok) throw new Error('Job not found');
   return res.json();
 }
 
 export async function cancelJob(jobId: string): Promise<void> {
-  const res = await fetch(`${BASE}/jobs/${jobId}/cancel/`, { method: 'POST' });
+  const res = await fetch(`${BASE}/jobs/${jobId}/cancel`, { method: 'POST' });
   if (!res.ok) throw new Error('설계 실행을 취소하지 못했습니다.');
 }
 
 export async function runJob(jobId: string): Promise<void> {
-  const res = await fetch(`${BASE}/jobs/${jobId}/run/`, { method: 'POST' });
+  const res = await fetch(`${BASE}/jobs/${jobId}/run`, { method: 'POST' });
   if (!res.ok) throw new Error('Job run failed');
 }
 
 export async function getJobResults(jobId: string) {
-  const res = await fetch(`${BASE}/jobs/${jobId}/results/`);
+  const res = await fetch(`${BASE}/jobs/${jobId}/results`);
   if (!res.ok) throw new Error('Results not found');
   return res.json();
 }
@@ -136,7 +136,7 @@ export async function getAgLightHealth(): Promise<AgLightHealth> {
 export async function getMaasLanguageSystem(
   signal?: AbortSignal,
 ): Promise<MaasLanguageSystemManifest> {
-  const res = await fetch(`${BASE}/maas/language-system/`, { signal });
+  const res = await fetch(`${BASE}/maas/language-system`, { signal });
   if (!res.ok) throw new Error('MAAS language system manifest fetch failed');
   return res.json();
 }
@@ -150,20 +150,20 @@ export async function getMaasOutcomeGraphSlice(
   const query = new URLSearchParams({ pnu, depth: '3', max_nodes: '180' });
   if (geometryHash) query.set('geometry_hash', geometryHash);
   if (runId) query.set('run_id', runId);
-  const res = await fetch(`${BASE}/maas/outcome-graph/?${query}`, { signal });
+  const res = await fetch(`${BASE}/maas/outcome-graph?${query}`, { signal });
   if (!res.ok) throw new Error('MAAS outcome graph slice fetch failed');
   return res.json();
 }
 
 export function getGeometryShapePreviewUrl(index: number): string {
-  return `${BASE}/maas/geometry-shapes/${index}/`;
+  return `${BASE}/maas/geometry-shapes/${index}`;
 }
 
 export async function getGeometryShapePassport(
   index: number,
   signal?: AbortSignal,
 ): Promise<import('./language-system-types').MassExecutionPassport> {
-  const res = await fetch(`${BASE}/maas/geometry-shapes/${index}/passport/`, { signal });
+  const res = await fetch(`${BASE}/maas/geometry-shapes/${index}/passport`, { signal });
   if (!res.ok) throw new Error('MASS execution passport fetch failed');
   return res.json();
 }
@@ -173,7 +173,7 @@ export async function getExecutedMassManifest(
   runId?: string,
 ): Promise<ExecutedMassManifest> {
   const query = runId ? `?${new URLSearchParams({ run_id: runId })}` : '';
-  const res = await fetch(`${BASE}/maas/executed-masses/${query}`, { signal });
+  const res = await fetch(`${BASE}/maas/executed-masses${query}`, { signal });
   if (!res.ok) throw new Error('실제 실행 MASS 아카이브를 불러오지 못했습니다.');
   return res.json();
 }
@@ -185,7 +185,7 @@ export async function getCreativeMassPortfolio(
   const query = runId
     ? `?${new URLSearchParams({ run_id: runId })}`
     : '';
-  const res = await fetch(`${BASE}/maas/creative-portfolios/${query}`, {
+  const res = await fetch(`${BASE}/maas/creative-portfolios${query}`, {
     signal,
   });
   if (!res.ok) {
@@ -199,13 +199,9 @@ export async function getMassPortfolioEvaluations(
   signal?: AbortSignal,
 ): Promise<MassPortfolioManifest> {
   const query = runId ? `?${new URLSearchParams({ run_id: runId })}` : '';
-  const res = await fetch(`${BASE}/maas/portfolio-evaluations/${query}`, { signal });
+  const res = await fetch(`${BASE}/maas/portfolio-evaluations${query}`, { signal });
   if (!res.ok) throw new Error('MASS portfolio evaluations fetch failed');
   return res.json();
-}
-
-export function getExecutedMassPreviewUrl(index: number): string {
-  return `${BASE}/maas/executed-masses/${index}/`;
 }
 
 export async function getExecutedMassPassport(
@@ -214,7 +210,7 @@ export async function getExecutedMassPassport(
   runId?: string,
 ): Promise<import('./language-system-types').MassExecutionPassport> {
   const query = runId ? `?${new URLSearchParams({ run_id: runId })}` : '';
-  const res = await fetch(`${BASE}/maas/executed-masses/${index}/passport/${query}`, { signal });
+  const res = await fetch(`${BASE}/maas/executed-masses/${index}/passport${query}`, { signal });
   if (!res.ok) throw new Error('실제 실행 MASS 여권을 불러오지 못했습니다.');
   return res.json();
 }
@@ -223,7 +219,7 @@ export async function executeArchivedMass(
   sourceRunId: string,
   sourceMassIndex: number,
 ): Promise<SingleMassExecutionResponse> {
-  const res = await fetch(`${BASE}/maas/single-executions/`, {
+  const res = await fetch(`${BASE}/maas/single-executions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -254,7 +250,7 @@ export async function reviewSingleMassWithVlm(
   executionId: string,
   referenceLimit = 3,
 ): Promise<import('./language-system-types').SingleMassVlmReviewResponse> {
-  const res = await fetch(`${BASE}/maas/single-executions/${encodeURIComponent(executionId)}/vlm-review/`, {
+  const res = await fetch(`${BASE}/maas/single-executions/${encodeURIComponent(executionId)}/vlm-review`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reference_limit: Math.max(0, Math.min(3, referenceLimit)) }),
@@ -288,7 +284,7 @@ export async function sendAgLightBusMessage(params: {
 }
 
 export async function getSiteBoundary(pnu: string, signal?: AbortSignal): Promise<SiteBoundaryResult> {
-  const res = await fetch(`${BASE}/site-boundary/`, {
+  const res = await fetch(`${BASE}/site-boundary`, {
     signal,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -332,7 +328,7 @@ export async function generateFloorPlan(params: {
   algorithm?: string;
   options?: { num_generations?: number; population_size?: number };
 }, signal?: AbortSignal): Promise<FloorPlanResult> {
-  const res = await fetch(`${BASE}/floor-plan/`, {
+  const res = await fetch(`${BASE}/floor-plan`, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json' },
@@ -373,7 +369,7 @@ export interface ConstraintsResult {
 }
 
 export async function visualizeConstraints(params: ConstraintsParams): Promise<ConstraintsResult> {
-  const res = await fetch(`${BASE}/constraints/visualize/`, {
+  const res = await fetch(`${BASE}/constraints/visualize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -388,7 +384,7 @@ export async function createInteractivePatch(params: {
   mass_geojson?: GeoJSONFeature | null;
   constraints?: object[];
 }, signal?: AbortSignal): Promise<InteractivePatchResult> {
-  const res = await fetch(`${BASE}/interactive/patch/`, {
+  const res = await fetch(`${BASE}/interactive/patch`, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json' },
@@ -407,7 +403,7 @@ export async function createInteractivePreview(params: {
   building_type?: string;
   algorithm?: string;
 }, signal?: AbortSignal): Promise<InteractivePreviewResult> {
-  const res = await fetch(`${BASE}/interactive/preview/`, {
+  const res = await fetch(`${BASE}/interactive/preview`, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json' },
@@ -426,7 +422,7 @@ export async function applyInteractiveOperation(params: {
   sunlight_envelope?: object | null;
   setback_geometries?: object | null;
 }, signal?: AbortSignal): Promise<InteractiveOperationResult> {
-  const res = await fetch(`${BASE}/interactive/operation/`, {
+  const res = await fetch(`${BASE}/interactive/operation`, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json' },
@@ -449,7 +445,7 @@ export async function createMaasLegalVariants(params: {
   pnu?: string | null;
   parking_options?: object | null;
 }, signal?: AbortSignal): Promise<MaasLegalVariantsResult> {
-  const res = await fetch(`${BASE}/maas/legal-variants/`, {
+  const res = await fetch(`${BASE}/maas/legal-variants`, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json' },
@@ -467,7 +463,7 @@ export async function createMaasAesthetic(params: {
   style?: string;
   attach_to_evidence?: boolean;
 }, signal?: AbortSignal): Promise<MaasAestheticResult> {
-  const res = await fetch(`${BASE}/jobs/${params.job_id}/results/${params.design_id}/aesthetic/`, {
+  const res = await fetch(`${BASE}/jobs/${params.job_id}/results/${params.design_id}/aesthetic`, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json' },

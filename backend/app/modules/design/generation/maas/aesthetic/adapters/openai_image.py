@@ -11,6 +11,8 @@ from typing import Any
 
 from PIL import Image
 
+from backend.app.modules.design.generation.paths import aesthetic_media_root
+
 from backend.app.modules.design.generation.maas.agents.elevation_agent.panel_roles import apply_roof_semantic_guard, is_mass_color, locked_sheet_panel_roles
 from backend.app.modules.design.generation.maas.aesthetic.contracts import ProviderResult, RenderedReference
 
@@ -19,7 +21,7 @@ class OpenAIImageAdapter:
     name = "gpt-image"
 
     def __init__(self, *, output_dir: str | Path | None = None) -> None:
-        self.output_dir = Path(output_dir or Path("media") / "maas" / "aesthetic" / "generated")
+        self.output_dir = Path(output_dir or aesthetic_media_root() / "generated")
 
     def generate(self, job: dict[str, Any], reference: RenderedReference) -> ProviderResult:
         api_key = os.getenv("OPENAI_API_KEY")

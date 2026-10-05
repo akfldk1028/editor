@@ -12,10 +12,11 @@ from typing import Any
 
 from neo4j import GraphDatabase
 
+from backend.app.core.graph_config import neo4j_credentials, neo4j_uri
+
 from backend.app.modules.law.reference.scripts.check_parking_counts import _load_rules, _select_rule, calculate_accessible_spaces, calculate_required_spaces
 
 
-DEFAULT_NEO4J_URI = "bolt://172.27.80.1:7687"
 
 
 def resolve_candidate_parking_requirement(
@@ -252,11 +253,12 @@ def load_parking_requirement_rules(*, options: dict[str, Any] | None = None) -> 
             }
         reason = "MAAS_DISABLE_PARKING_NEO4J=1" if disabled else "Neo4j parking enrichment was not requested"
         return {"status": "graph_disabled", "reason": f"{reason} and no local seed rules found"}
-    uri = _string_or_none(opts.get("neo4j_uri")) or os.getenv("NEO4J_URI") or DEFAULT_NEO4J_URI
-    user = _string_or_none(opts.get("neo4j_user")) or os.getenv("NEO4J_USER") or "neo4j"
+    default_user, default_password = neo4j_credentials()
+    uri = _string_or_none(opts.get("neo4j_uri")) or neo4j_uri()
+    user = _string_or_none(opts.get("neo4j_user")) or default_user
     password = _string_or_none(opts.get("neo4j_password"))
     if password is None:
-        password = os.getenv("NEO4J_PASSWORD", "")
+        password = default_password
 
     driver = None
     try:
