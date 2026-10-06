@@ -19,8 +19,8 @@ from dataclasses import replace
 
 from shapely.geometry import MultiPolygon, Polygon, shape
 
-from .sunlight_envelope import compute_sunlight_envelope
-from .setbacks_edges import (
+from ..sunlight_envelope import compute_sunlight_envelope
+from .edges import (
     _to_utm,
     _to_wgs,
     _wgs_to_utm,
@@ -36,13 +36,13 @@ from .setbacks_edges import (
     _offset_edges_inward,
     _offset_edges_with_distances_inward,
 )
-from .setbacks_daylight import (
+from .daylight import (
     _compute_daylight_diagonal_envelope,
     _daylight_reference_surface_shells,
     _densify_ring,
     _daylight_reference_edges,
 )
-from .setbacks_corner import (
+from .corner import (
     _compute_corner_cutoff,
     _corner_cutoff_by_angle,
     _find_shared_vertex,

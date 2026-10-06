@@ -21,7 +21,7 @@ from backend.app.modules.land.reference.services.ordinance_evidence import asses
 
 from backend.app.modules.land.reference import config
 from backend.app.modules.land.reference.services import zoning_mapper, overlay_resolver
-from backend.app.modules.land.reference.services.regulation_calculator_rules import (
+from backend.app.modules.land.reference.services.regulation_calculator.rules import (
     _empty_result,
     _resolve_bcr_far,
     _resolve_height,
@@ -35,7 +35,7 @@ from backend.app.modules.land.reference.services.regulation_calculator_rules imp
     _resolve_landscaping,
     _resolve_building_designation,
 )
-from backend.app.modules.land.reference.services.regulation_calculator_parking import (
+from backend.app.modules.land.reference.services.regulation_calculator.parking import (
     _PARKING_AMBIGUOUS_UMBRELLA,
     _PARKING_CARVE_OUT,
     _parking_row,

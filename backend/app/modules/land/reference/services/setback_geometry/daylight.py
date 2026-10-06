@@ -7,10 +7,10 @@ import math
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, shape
 from shapely.ops import unary_union
 
-from backend.app.modules.land.reference.services.setback_geometry_edges import _inward_normal, _utm_to_wgs, _wgs_to_utm
+from backend.app.modules.land.reference.services.setback_geometry.edges import _inward_normal, _utm_to_wgs, _wgs_to_utm
 
 # Same logger name as before the split, so log routing does not change.
-logger = logging.getLogger(__name__.rpartition(".")[0] + ".setback_geometry")
+logger = logging.getLogger("backend.app.modules.land.reference.services.setback_geometry")
 
 
 # ---------------------------------------------------------------------------

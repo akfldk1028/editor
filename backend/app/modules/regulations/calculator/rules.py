@@ -7,12 +7,12 @@ adjacent setback, landscaping and building designation.
 import logging
 from typing import Callable
 
-from . import zoning_limits
+from .. import zoning_limits
 
 Extractor = Callable[[list[str], str], dict | None]
 
 # Same logger name as before the split, so log routing does not change.
-logger = logging.getLogger(__name__.rpartition(".")[0] + ".calculator")
+logger = logging.getLogger("backend.app.modules.regulations.calculator")
 
 
 def _empty_result() -> dict:

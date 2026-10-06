@@ -36,7 +36,7 @@ def test_fixed_date_original_source_parity(case):
 
 
 def test_data_files_are_the_preserved_source_bytes():
-    directory = Path(calculator.__file__).with_name('data')
+    directory = Path(calculator.__file__).parent.with_name('data')
     for name, expected in json.loads(FIXTURE.read_text(encoding='utf-8'))['data_sha256'].items():
         assert hashlib.sha256((directory / name).read_bytes()).hexdigest() == expected
 
@@ -83,8 +83,9 @@ def test_response_mutation_does_not_poison_next_calculation():
 
 def test_calculator_does_not_import_legacy_django_or_network_adapters():
     import ast
-    directory = Path(calculator.__file__).parent
-    for name in ('calculator', 'extended', 'legal_use', 'ordinance_evidence', 'zoning_use_evidence', 'overlays'):
+    directory = Path(calculator.__file__).parent.parent
+    for name in ('calculator/__init__', 'calculator/rules', 'calculator/parking',
+                 'extended', 'legal_use', 'ordinance_evidence', 'zoning_use_evidence', 'overlays'):
         tree = ast.parse((directory / (name + '.py')).read_text(encoding='utf-8-sig'))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):

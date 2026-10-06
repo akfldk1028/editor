@@ -5,10 +5,10 @@ import math
 
 from shapely.geometry import LineString, Polygon, mapping
 
-from .setbacks_edges import _utm_to_wgs
+from .edges import _utm_to_wgs
 
 # Same logger name as before the split, so log routing does not change.
-logger = logging.getLogger(__name__.rpartition(".")[0] + ".setbacks")
+logger = logging.getLogger("backend.app.modules.regulations.setbacks")
 
 
 # ---------------------------------------------------------------------------

@@ -18,12 +18,12 @@ from pathlib import Path
 from decimal import Decimal
 from datetime import datetime
 
-from .legal_use import classify_building_use
-from .ordinance_evidence import assessment_day, source_eligibility
+from ..legal_use import classify_building_use
+from ..ordinance_evidence import assessment_day, source_eligibility
 
-from . import zoning_limits, overlays
-from .zoning_catalog import CatalogUnavailable
-from .calculator_rules import (
+from .. import zoning_limits, overlays
+from ..zoning_catalog import CatalogUnavailable
+from .rules import (
     Extractor,
     _empty_result,
     _resolve_bcr_far,
@@ -38,7 +38,7 @@ from .calculator_rules import (
     _resolve_landscaping,
     _resolve_building_designation,
 )
-from .calculator_parking import (
+from .parking import (
     _PARKING_AMBIGUOUS_UMBRELLA,
     _PARKING_CARVE_OUT,
     _parking_row,
@@ -50,7 +50,7 @@ from .calculator_parking import (
     _accessible_use_status,
 )
 
-ORDINANCE_DIR = Path(__file__).with_name("data") / "ordinance_overrides"
+ORDINANCE_DIR = Path(__file__).parent.with_name("data") / "ordinance_overrides"
 
 logger = logging.getLogger(__name__)
 

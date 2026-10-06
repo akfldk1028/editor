@@ -1,13 +1,13 @@
 """Pure parking arithmetic of `calculator._resolve_parking` (split out of calculator.py).
 
 The reference loaders (`_parking_national`, `_accessible_applicability`) and their
-caches stay in calculator.py, where tests monkeypatch them.
+caches stay in calculator/__init__.py, where tests monkeypatch them.
 """
 
 import math
 from decimal import Decimal, ROUND_HALF_UP
 
-from .legal_use import classify_building_use
+from ..legal_use import classify_building_use
 
 
 # 별표 1 umbrellas whose statutory carve-out is a structural cross-reference, not a

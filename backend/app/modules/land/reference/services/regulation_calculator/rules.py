@@ -11,7 +11,7 @@ from backend.app.modules.land.reference import config
 from backend.app.modules.land.reference.services import zoning_mapper
 
 # Same logger name as before the split, so log routing does not change.
-logger = logging.getLogger(__name__.rpartition(".")[0] + ".regulation_calculator")
+logger = logging.getLogger("backend.app.modules.land.reference.services.regulation_calculator")
 
 
 def _empty_result() -> dict:

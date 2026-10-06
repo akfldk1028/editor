@@ -10,7 +10,7 @@ from shapely.ops import transform
 from pyproj import Transformer
 
 # Same logger name as before the split, so log routing does not change.
-logger = logging.getLogger(__name__.rpartition(".")[0] + ".setbacks")
+logger = logging.getLogger("backend.app.modules.regulations.setbacks")
 
 
 # Korea UTM zone 52N

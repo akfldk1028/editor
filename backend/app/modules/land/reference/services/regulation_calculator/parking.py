@@ -2,7 +2,7 @@
 regulation_calculator.py).
 
 The reference loaders (`_parking_national`, `_accessible_applicability`) and their
-caches stay in regulation_calculator.py.
+caches stay in regulation_calculator/__init__.py.
 """
 
 import math

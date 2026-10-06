@@ -20,7 +20,7 @@ from dataclasses import replace
 from shapely.geometry import LineString, MultiPolygon, Polygon, shape
 
 from backend.app.modules.land.reference.services.envelopes.sunlight import compute_sunlight_envelope
-from backend.app.modules.land.reference.services.setback_geometry_edges import (
+from backend.app.modules.land.reference.services.setback_geometry.edges import (
     _to_utm,
     _to_wgs,
     _wgs_to_utm,
@@ -37,14 +37,14 @@ from backend.app.modules.land.reference.services.setback_geometry_edges import (
     _offset_edges_inward,
     _offset_edges_with_distances_inward,
 )
-from backend.app.modules.land.reference.services.setback_geometry_daylight import (
+from backend.app.modules.land.reference.services.setback_geometry.daylight import (
     _compute_daylight_diagonal_envelope,
     _daylight_reference_surface_shells,
     _densify_ring,
     _daylight_reference_edges,
     compute_daylight_distance,
 )
-from backend.app.modules.land.reference.services.setback_geometry_corner import (
+from backend.app.modules.land.reference.services.setback_geometry.corner import (
     _compute_corner_cutoff,
     _corner_cutoff_by_angle,
     _find_shared_vertex,

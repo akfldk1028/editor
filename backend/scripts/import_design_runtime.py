@@ -56,7 +56,10 @@ def destination(relative: Path) -> Path:
     name = mapped(module_name(relative))
     if relative.name == "__init__.py":
         return EDITOR.joinpath(*name.split("."), "__init__.py")
-    return EDITOR.joinpath(*name.split(".")).with_suffix(relative.suffix)
+    package = EDITOR.joinpath(*name.split("."))
+    if package.is_dir():  # module since split into a package; write would be shadowed
+        return package / "__init__.py"
+    return package.with_suffix(relative.suffix)
 
 
 def rewrite(source: str, relative: Path, source_root: Path):
