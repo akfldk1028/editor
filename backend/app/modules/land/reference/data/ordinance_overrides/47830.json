@@ -1,0 +1,170 @@
+{
+  "__comment": "고령군 군계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "47830",
+  "level": "sigungu",
+  "sigungu_code": "47830",
+  "sigungu_name": "고령군 군계획 조례",
+  "ordinance": {
+    "name": "고령군 군계획 조례",
+    "id": "2028500",
+    "effective": "20260414",
+    "edition_id": "2122635",
+    "issuer": "경상북도 고령군",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2122635",
+    "promulgated": "20260414",
+    "no": "2593",
+    "bcr_article": "제57조",
+    "far_article": "제62조"
+  },
+  "fetched_at": "2026-10-06T10:23:46+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 100,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 150,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 200,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 250,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 300,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "준주거지역": {
+      "bcr_default": 70,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 500,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "중심상업지역": {
+      "bcr_default": 90,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 1500,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "일반상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 1300,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "근린상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 900,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "유통상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 1100,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "전용공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 300,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "일반공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 350,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "준공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 400,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "생산녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 100,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 100,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "보전관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "생산관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "계획관리지역": {
+      "bcr_default": 40,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 100,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "농림지역": {
+      "bcr_default": 20,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "고령군 군계획 조례 제62조"
+    },
+    "자연환경보전지역": {
+      "bcr_default": 20,
+      "bcr_article": "고령군 군계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "고령군 군계획 조례 제62조"
+    }
+  },
+  "common": {
+    "parking": {
+      "ordinance": {
+        "name": "고령군 군계획 조례",
+        "id": "2028500",
+        "effective": "20260414"
+      },
+      "annexes_found": [
+        "23:attach:0024"
+      ],
+      "raw_annex_text": {
+        "23:attach:0024": " 【별표 23】 〈신설 2011.9.21., 개정 2024.9.19.〉 건축물의 집단화 유도지역 설치기준(제17조의3 관련) 용도지역 건축물의 용도 거리 기존 개발행위 전체 면적 기반시설 등 기타 1. 계획관리지역 가. 「건축법 시행령」 별표 1 제17호의 공장 나. 「건축법 시행령」 별표 1 제18호의 창고 다. 「건축법 시행령」 별표 1 제4호의 제2종 근린생활시설 40m 이내 35,000㎡ 이상 가. 건축물 집입도로 너비 : 4m이상 나. 기타 개발행위허가 기준 및 개발행위허가 운영지침에 의함. 2. 농림지역, 생산관리지역, 보전관리지역 가. 「건축법 시행령」 별표 1 제18호가목의 창고(농업․임업․축산업․수산업용만 해당한다) 나. 「건축법 시행령」 별표 1 제21호의 동물 및 식물 관련 시설 50m 이내 35,000㎡ 이상 가. 건축물 집입도로 너비 : 4m이상 나. 기타 개발행위허가 기준 및 개발행위허가 운영지침에 의함. 비고 1. 계획관리지역에서 건축물의 용도는 계획관리지역에서 건축할 수 있는 공장, 창고 및 제2종 근린생활시설에 한한다. 2. 거리 산정 시 도로의 너비는 제외한다. "
+      },
+      "needs_review": "별표 text fetched but no curated reading for this ordinance id"
+    }
+  },
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:38:36+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
+  }
+}

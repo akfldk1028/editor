@@ -74,9 +74,13 @@ def fetch_articles(oc: str, ordinance_id: str) -> tuple[dict, list[dict]]:
 
 
 def _num(text: str) -> int:
+    """'1,000', '3천', '1천500', '1만' -> int (ordinances write areas both ways)."""
     text = text.replace(",", "").replace(" ", "")
-    text = text.replace("천", "000") if re.fullmatch(r"\d천", text) else text
-    return int(text)
+    total = 0
+    for digits, unit in re.findall(r"(\d*)(만|천)", text):
+        total += int(digits or 1) * (10000 if unit == "만" else 1000)
+    rest = re.sub(r"\d*(?:만|천)", "", text)
+    return total + (int(rest) if rest else 0)
 
 
 def parse_caps(content: str) -> dict[str, dict]:
@@ -367,6 +371,8 @@ def main() -> None:
         "sigungu_code": a.code,
         "sigungu_name": a.name.replace(" 도시계획 조례", ""),
         "ordinance": {"name": a.name, "id": ordinance_id, "effective": info.get("시행일자") or hit.get("시행일자"),
+                      "edition_id": hit.get("자치법규일련번호"), "issuer": hit.get("지자체기관명"),
+                      "url": f"https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq={hit.get('자치법규일련번호')}",
                       "promulgated": info.get("공포일자"), "no": info.get("공포번호"),
                       "bcr_article": bcr[0], "far_article": far[0]},
         "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -375,7 +381,7 @@ def main() -> None:
     }
     print(f"{a.name} (ID {ordinance_id}, 시행 {doc['ordinance']['effective']}): {bcr[0]} 건폐율 {len(bcr[1])} zones, {far[0]} 용적률 {len(far[1])} zones")
     for zone, row in overrides.items():
-        print(f"  {zone:12s} 건폐율 {row.get('bcr_default'):>4}%  용적률 {row.get('far_default'):>5}%")
+        print(f"  {zone:12s} 건폐율 {str(row.get('bcr_default')):>4}%  용적률 {str(row.get('far_default')):>5}%")
     if a.dry_run:
         return
     from backend.app.modules.land.reference import config

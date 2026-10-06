@@ -1,0 +1,165 @@
+{
+  "__comment": "김해시 도시계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "48250",
+  "level": "sigungu",
+  "sigungu_code": "48250",
+  "sigungu_name": "김해시",
+  "ordinance": {
+    "name": "김해시 도시계획 조례",
+    "id": "2152224",
+    "effective": "20260401",
+    "edition_id": "2118405",
+    "issuer": "경상남도 김해시",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2118405",
+    "promulgated": "20260401",
+    "no": "2265",
+    "bcr_article": "제57조",
+    "far_article": "제62조"
+  },
+  "fetched_at": "2026-10-06T10:24:17+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 100,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 120,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 180,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 220,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 270,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "준주거지역": {
+      "bcr_default": 70,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 400,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "중심상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 1000,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "일반상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 900,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "근린상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 700,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "유통상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 800,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "전용공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 300,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "일반공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 350,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "준공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 350,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 70,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "생산녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 100,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 100,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "보전관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "생산관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "계획관리지역": {
+      "bcr_default": 40,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 100,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "농림지역": {
+      "bcr_default": 20,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "김해시 도시계획 조례 제62조"
+    },
+    "자연환경보전지역": {
+      "bcr_default": 20,
+      "bcr_article": "김해시 도시계획 조례 제57조",
+      "far_default": 80,
+      "far_article": "김해시 도시계획 조례 제62조"
+    }
+  },
+  "common": {
+    "parking": {
+      "ordinance": {
+        "name": "김해시 주차장 설치 및 관리 조례",
+        "id": "2147635",
+        "effective": "20220422"
+      },
+      "annexes_found": [],
+      "needs_review": "별표 not exposed by the API (attached file only) - use a reviewed structured seed or the national table"
+    }
+  },
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:38:41+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
+  }
+}

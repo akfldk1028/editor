@@ -1,0 +1,181 @@
+{
+  "__comment": "광주광역시 도시계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "12210",
+  "level": "sigungu",
+  "sigungu_code": "12210",
+  "sigungu_name": "광주광역시",
+  "ordinance": {
+    "name": "광주광역시 도시계획 조례",
+    "id": "2034124",
+    "effective": "20251111",
+    "edition_id": "2084475",
+    "issuer": "(구)광주광역시",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2084475",
+    "promulgated": "20251111",
+    "no": "6636",
+    "bcr_article": "제67조",
+    "far_article": "제72조",
+    "transitional": "former 광주광역시 ordinance applied in its former area after the merger"
+  },
+  "fetched_at": "2026-10-06T10:17:55+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 40,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 80,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 40,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 120,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 150,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 220,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 250,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "준주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 400,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "중심상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 1300,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "일반상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 1000,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "근린상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 700,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "유통상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 800,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "전용공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 300,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "일반공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 350,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "준공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 400,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 60,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "생산녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 60,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 60,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "보전관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 80,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "생산관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 80,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "계획관리지역": {
+      "bcr_default": 40,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 90,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "농림지역": {
+      "bcr_default": 20,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 60,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    },
+    "자연환경보전지역": {
+      "bcr_default": 20,
+      "bcr_article": "광주광역시 도시계획 조례 제67조",
+      "far_default": 60,
+      "far_article": "광주광역시 도시계획 조례 제72조"
+    }
+  },
+  "common": {
+    "landscaping": {
+      "threshold_m2": 200,
+      "tiers": [
+        {
+          "min_floor_area_m2": 2000,
+          "min_pct": 15
+        },
+        {
+          "min_floor_area_m2": 1000,
+          "min_pct": 13
+        },
+        {
+          "min_floor_area_m2": 0,
+          "max_floor_area_m2": 1000,
+          "min_pct": 7
+        }
+      ],
+      "article": "광주광역시 건축 조례 제27조",
+      "ordinance": {
+        "name": "광주광역시 건축 조례",
+        "id": "2032811",
+        "effective": "20251111"
+      }
+    }
+  },
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:37:49+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
+  }
+}

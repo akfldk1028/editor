@@ -1,0 +1,186 @@
+{
+  "__comment": "전주시 도시계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "52110",
+  "level": "sigungu",
+  "sigungu_code": "52110",
+  "sigungu_name": "전주시",
+  "ordinance": {
+    "name": "전주시 도시계획 조례",
+    "id": "2115773",
+    "effective": "20260413",
+    "edition_id": "2122435",
+    "issuer": "전북특별자치도 전주시",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2122435",
+    "promulgated": "20260413",
+    "no": "4369",
+    "bcr_article": "제45조",
+    "far_article": "제47조"
+  },
+  "fetched_at": "2026-10-06T10:26:15+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 40,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 100,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 40,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 100,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 200,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 250,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 300,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "준주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 500,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "중심상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 1100,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "일반상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 900,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "근린상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 700,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "유통상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 700,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "전용공업지역": {
+      "bcr_default": 60,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 300,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "일반공업지역": {
+      "bcr_default": 60,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 350,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "준공업지역": {
+      "bcr_default": 60,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 400,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 50,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "생산녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 100,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 100,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "보전관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 50,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "생산관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 80,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "계획관리지역": {
+      "bcr_default": 40,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 100,
+      "far_article": "전주시 도시계획 조례 제47조"
+    },
+    "농림지역": {
+      "bcr_default": 20,
+      "bcr_article": "전주시 도시계획 조례 제45조",
+      "far_default": 80,
+      "far_article": "전주시 도시계획 조례 제47조"
+    }
+  },
+  "common": {
+    "landscaping": {
+      "threshold_m2": 200,
+      "tiers": [
+        {
+          "min_floor_area_m2": 5000,
+          "min_pct": 18
+        },
+        {
+          "min_floor_area_m2": 4000,
+          "min_pct": 17
+        },
+        {
+          "min_floor_area_m2": 3000,
+          "min_pct": 16
+        },
+        {
+          "min_floor_area_m2": 2000,
+          "min_pct": 15
+        },
+        {
+          "min_floor_area_m2": 1000,
+          "min_pct": 10
+        },
+        {
+          "min_floor_area_m2": 0,
+          "max_floor_area_m2": 1000,
+          "min_pct": 5
+        }
+      ],
+      "article": "전주시 건축 조례 제32조",
+      "ordinance": {
+        "name": "전주시 건축 조례",
+        "id": "2115641",
+        "effective": "20251226"
+      }
+    }
+  },
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:38:58+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "__comment": "고성군 군계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "51820",
+  "level": "sigungu",
+  "sigungu_code": "51820",
+  "sigungu_name": "고성군 군계획 조례",
+  "ordinance": {
+    "name": "고성군 군계획 조례",
+    "id": "2232296",
+    "effective": "20260629",
+    "edition_id": "2136061",
+    "issuer": "강원특별자치도 고성군",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2136061",
+    "promulgated": "20260629",
+    "no": "2853",
+    "bcr_article": "제51조",
+    "far_article": "제56조"
+  },
+  "fetched_at": "2026-10-06T10:26:07+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 100,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 150,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 200,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 250,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 300,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "준주거지역": {
+      "bcr_default": 70,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 500,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "중심상업지역": {
+      "bcr_default": 90,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 1500,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "일반상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 1300,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "근린상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 900,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "유통상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 1100,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "전용공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 300,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "일반공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 350,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "준공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 400,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 80,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "생산녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 100,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 100,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "보전관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 80,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "생산관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 80,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "계획관리지역": {
+      "bcr_default": 40,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 100,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "농림지역": {
+      "bcr_default": 20,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 80,
+      "far_article": "고성군 군계획 조례 제56조"
+    },
+    "자연환경보전지역": {
+      "bcr_default": 20,
+      "bcr_article": "고성군 군계획 조례 제51조",
+      "far_default": 80,
+      "far_article": "고성군 군계획 조례 제56조"
+    }
+  },
+  "common": {
+    "parking": {
+      "ordinance": {
+        "name": "고성군 군계획 조례",
+        "id": "2232296",
+        "effective": "20260629"
+      },
+      "annexes_found": [],
+      "needs_review": "별표 not exposed by the API (attached file only) - use a reviewed structured seed or the national table"
+    }
+  },
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:38:57+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
+  }
+}

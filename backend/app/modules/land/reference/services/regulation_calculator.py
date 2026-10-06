@@ -367,7 +367,7 @@ def _ordinance_common(sigungu_code: str, assessment_date=None) -> dict:
     common: dict = {}
     if not sigungu_code:
         return common
-    for code in dict.fromkeys([sigungu_code[:2], sigungu_code]):
+    for code in dict.fromkeys(ordinance_codes(sigungu_code)):
         doc = _load_ordinance(code, assessment_date)
         if doc and isinstance(doc.get("common"), dict):
             for name, rule in doc['common'].items():
@@ -384,6 +384,14 @@ def _ordinance_common(sigungu_code: str, assessment_date=None) -> dict:
 # ──────────────────────────────────────────────────────
 
 _ordinance_cache: dict[str, dict | None] = {}
+
+
+
+def ordinance_codes(sigungu_code: str) -> list[str]:
+    """Jurisdictions whose 도시계획 조례 may bind, outermost first: 시도, then the 시 of an
+    일반구 (수원시 권선구 41113 -> 수원시 41110), then the 시군구 itself."""
+    code = sigungu_code or ""
+    return [c for c in (code[:2], code[:4] + "0" if len(code) == 5 else "", code) if c]
 
 
 def _load_ordinance(sigungu_code: str, assessment_date=None) -> dict | None:
@@ -417,7 +425,7 @@ def _apply_ordinance_overrides(zones_data: list[dict], sigungu_code: str, assess
     도시계획 조례 binds every 구, e.g. 11.json for Seoul), then the 5-digit 시군구
     file. 1-level merge; returns a new list (no mutation)."""
     layers = []
-    for code in dict.fromkeys([sigungu_code[:2], sigungu_code]):
+    for code in dict.fromkeys(ordinance_codes(sigungu_code)):
         ordinance = _load_ordinance(code, assessment_date)
         if ordinance and ordinance.get("overrides"):
             layers.append(ordinance["overrides"])
@@ -450,7 +458,7 @@ def _municipal_coverage(zones_data, sigungu_code, assessment_date=None):
     covered = {}
     rejected = []
     edition_missing = []
-    for code in dict.fromkeys([sigungu_code[:2], sigungu_code]):
+    for code in dict.fromkeys(ordinance_codes(sigungu_code)):
         if not code:
             continue
         doc = _load_ordinance(code, assessment_date)

@@ -1,0 +1,119 @@
+{
+  "__comment": "과천시 도시계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "41290",
+  "level": "sigungu",
+  "sigungu_code": "41290",
+  "sigungu_name": "과천시",
+  "ordinance": {
+    "name": "과천시 도시계획 조례",
+    "id": "2031927",
+    "effective": "20251010",
+    "edition_id": "2078539",
+    "issuer": "경기도 과천시",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2078539",
+    "promulgated": "20251010",
+    "no": "2116",
+    "bcr_article": "제54조",
+    "far_article": "제58조"
+  },
+  "fetched_at": "2026-10-06T10:20:00+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 100,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 150,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 200,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 250,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 300,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "준주거지역": {
+      "bcr_default": 70,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 500,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "중심상업지역": {
+      "bcr_default": 90,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 1500,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "일반상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 1300,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "근린상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 900,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "유통상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 1100,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "전용공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 300,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "일반공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 350,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "준공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 400,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 50,
+      "far_article": "과천시 도시계획 조례 제58조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "과천시 도시계획 조례 제54조",
+      "far_default": 60,
+      "far_article": "과천시 도시계획 조례 제58조"
+    }
+  },
+  "common": {},
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:38:06+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
+  }
+}

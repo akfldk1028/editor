@@ -8,16 +8,15 @@
     "name": "의정부시 도시계획 조례",
     "id": "2149163",
     "effective": "20250925",
+    "edition_id": "2072835",
+    "issuer": "경기도 의정부시",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835",
     "promulgated": "20250925",
     "no": "3604",
     "bcr_article": "제42조",
-    "far_article": "제46조",
-    "edition_id": "2072835",
-    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835",
-    "verified_on": "2026-09-13",
-    "source_snapshot_hash": "b407c1a1da087c009ebe40fe31cdb939adf3385b2e698881858ca66ec1ff2b01"
+    "far_article": "제46조"
   },
-  "fetched_at": "2026-09-10T09:42:45+00:00",
+  "fetched_at": "2026-10-06T10:19:23+00:00",
   "overrides": {
     "제1종전용주거지역": {
       "bcr_default": 40,
@@ -140,107 +139,12 @@
         "id": "2152584",
         "effective": "20260819"
       }
-    },
-    "parking": {
-      "ordinance": {
-        "name": "의정부시 주차장 설치 및 관리 조례",
-        "id": "2141334",
-        "effective": "20260109"
-      },
-      "annexes_found": [
-        "2:attach:0003"
-      ],
-      "article": "부설주차장 설치기준 별표",
-      "accessible": {
-        "ratio_pct": 3,
-        "min_cars": 10,
-        "article": "별표 3 비고 2"
-      },
-      "rows": [
-        {
-          "uses": [
-            "위락시설"
-          ],
-          "m2_per_car": 70
-        },
-        {
-          "uses": [
-            "문화 및 집회시설",
-            "종교시설",
-            "판매시설",
-            "운수시설",
-            "의료시설",
-            "운동시설",
-            "업무시설",
-            "방송통신시설 중 방송국",
-            "장례식장"
-          ],
-          "m2_per_car": 100
-        },
-        {
-          "uses": [
-            "제1종 근린생활시설",
-            "제2종 근린생활시설",
-            "숙박시설"
-          ],
-          "m2_per_car": 134,
-          "note": "생활숙박시설은 호실당 1대"
-        },
-        {
-          "uses": [
-            "단독주택"
-          ],
-          "rule": "시설면적 50㎡ 초과 134㎡ 이하 1대; 134㎡ 초과 1+(시설면적-134)/85대",
-          "tier": {
-            "first_max_m2": 134,
-            "step_m2": 85,
-            "under_50_divisor_m2": 85
-          }
-        },
-        {
-          "uses": [
-            "다가구주택"
-          ],
-          "rule": "주택건설기준 등에 관한 규정 제27조제1항"
-        },
-        {
-          "uses": [
-            "공동주택",
-            "오피스텔"
-          ],
-          "rule": "전용면적 합계 기준 85㎡ 이하 70㎡당 1대, 85㎡ 초과 65㎡당 1대; 세대(호실)당 1대에 미달하면 세대당 1대"
-        },
-        {
-          "uses": [
-            "수련시설",
-            "공장",
-            "발전시설"
-          ],
-          "m2_per_car": 350
-        },
-        {
-          "uses": [
-            "창고시설"
-          ],
-          "m2_per_car": 350
-        },
-        {
-          "uses": [
-            "기타 건축물"
-          ],
-          "m2_per_car": 250
-        }
-      ],
-      "restricted": null,
-      "verified_against_text": true,
-      "source_kind": "attachment"
     }
   },
-  "edition_verification": {
-    "verified_at": "2026-09-13T05:31:15.558398+00:00",
-    "assessment_date": "2026-09-13",
-    "method": "official_MST_articles_and_all_stored_caps_equal",
-    "scope": "base_zone_BCR_FAR_only",
-    "permit_compliance_verified": false
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:38:02+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
   }
 }

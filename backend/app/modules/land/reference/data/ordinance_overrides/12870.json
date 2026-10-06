@@ -1,0 +1,189 @@
+{
+  "__comment": "신안군 도시계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "12870",
+  "level": "sigungu",
+  "sigungu_code": "12870",
+  "sigungu_name": "신안군",
+  "ordinance": {
+    "name": "신안군 도시계획 조례",
+    "id": "2085113",
+    "effective": "20260814",
+    "edition_id": "2164649",
+    "issuer": "전남광주통합특별시 신안군",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2164649",
+    "promulgated": "20260814",
+    "no": "2884",
+    "bcr_article": "제50조",
+    "far_article": "제55조"
+  },
+  "fetched_at": "2026-10-06T10:19:10+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 100,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 150,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 200,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 250,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 300,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "준주거지역": {
+      "bcr_default": 70,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 500,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "중심상업지역": {
+      "bcr_default": 90,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 1500,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "일반상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 1300,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "근린상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 900,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "유통상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 1100,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "전용공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 300,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "일반공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 350,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "준공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 400,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 80,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "생산녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 100,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 100,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "보전관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 80,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "생산관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 80,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "계획관리지역": {
+      "bcr_default": 40,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 100,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "농림지역": {
+      "bcr_default": 20,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 80,
+      "far_article": "신안군 도시계획 조례 제55조"
+    },
+    "자연환경보전지역": {
+      "bcr_default": 20,
+      "bcr_article": "신안군 도시계획 조례 제50조",
+      "far_default": 80,
+      "far_article": "신안군 도시계획 조례 제55조"
+    }
+  },
+  "common": {
+    "landscaping": {
+      "threshold_m2": 200,
+      "tiers": [
+        {
+          "min_floor_area_m2": 2000,
+          "min_pct": 15
+        },
+        {
+          "min_floor_area_m2": 1000,
+          "min_pct": 10
+        },
+        {
+          "min_floor_area_m2": 0,
+          "max_floor_area_m2": 1000,
+          "min_pct": 5
+        }
+      ],
+      "article": "신안군 건축 조례 제20조",
+      "ordinance": {
+        "name": "신안군 건축 조례",
+        "id": "2084996",
+        "effective": "20251230"
+      }
+    },
+    "parking": {
+      "ordinance": {
+        "name": "신안군 주차장 설치 및 관리 조례",
+        "id": "2156232",
+        "effective": "20250301"
+      },
+      "annexes_found": [],
+      "needs_review": "별표 not exposed by the API (attached file only) - use a reviewed structured seed or the national table"
+    }
+  },
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:37:58+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
+  }
+}

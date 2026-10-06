@@ -1,0 +1,155 @@
+{
+  "__comment": "대전광역시 도시계획 조례 용도지역별 건폐율·용적률 (law.go.kr 자치법규 API에서 생성; 손으로 고치지 말고 fetch_ordinance_caps.py를 다시 돌릴 것)",
+  "code": "30",
+  "level": "sido",
+  "sigungu_code": "30",
+  "sigungu_name": "대전광역시",
+  "ordinance": {
+    "name": "대전광역시 도시계획 조례",
+    "id": "2051359",
+    "effective": "20260213",
+    "edition_id": "2110261",
+    "issuer": "대전광역시",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2110261",
+    "promulgated": "20260213",
+    "no": "6595",
+    "bcr_article": "제45조",
+    "far_article": "제50조"
+  },
+  "fetched_at": "2026-10-06T10:17:29+00:00",
+  "overrides": {
+    "제1종전용주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 100,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "제2종전용주거지역": {
+      "bcr_default": 40,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 120,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "제1종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 150,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "제2종일반주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 200,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "제3종일반주거지역": {
+      "bcr_default": 50,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 250,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "준주거지역": {
+      "bcr_default": 60,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 400,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "중심상업지역": {
+      "bcr_default": 80,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 1300,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "일반상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 1100,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "근린상업지역": {
+      "bcr_default": 60,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 700,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "유통상업지역": {
+      "bcr_default": 70,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 900,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "전용공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 300,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "일반공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 350,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "준공업지역": {
+      "bcr_default": 70,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 400,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "보전녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 60,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "생산녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 70,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "자연녹지지역": {
+      "bcr_default": 20,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 80,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "보전관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 60,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "생산관리지역": {
+      "bcr_default": 20,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 70,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "계획관리지역": {
+      "bcr_default": 40,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 80,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "농림지역": {
+      "bcr_default": 20,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 70,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    },
+    "자연환경보전지역": {
+      "bcr_default": 20,
+      "bcr_article": "대전광역시 도시계획 조례 제45조",
+      "far_default": 60,
+      "far_article": "대전광역시 도시계획 조례 제50조"
+    }
+  },
+  "common": {},
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:38:00+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
+  }
+}

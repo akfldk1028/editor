@@ -8,16 +8,15 @@
     "name": "서울특별시 도시계획 조례",
     "id": "2000719",
     "effective": "20260713",
+    "edition_id": "2149501",
+    "issuer": "서울특별시",
+    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2149501",
     "promulgated": "20260713",
     "no": "10139",
     "bcr_article": "제44조",
-    "far_article": "제48조",
-    "edition_id": "2149501",
-    "url": "https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2149501",
-    "verified_on": "2026-09-13",
-    "source_snapshot_hash": "52ae89369ed6256bed277f1b1ea66003fc96bde47e755c820de878b81250d74f"
+    "far_article": "제48조"
   },
-  "fetched_at": "2026-09-10T09:33:52+00:00",
+  "fetched_at": "2026-10-06T10:17:12+00:00",
   "overrides": {
     "제1종전용주거지역": {
       "bcr_default": 50,
@@ -145,7 +144,7 @@
       "ordinance": {
         "name": "서울특별시 주차장 설치 및 관리 조례",
         "id": "2000351",
-        "effective": "20260713"
+        "effective": "20261001"
       },
       "annexes_found": [
         "0:별표:0001",
@@ -158,11 +157,6 @@
         "7:별도:0006"
       ],
       "article": "제20조·별표 2",
-      "accessible": {
-        "ratio_pct": 3,
-        "min_cars": 10,
-        "article": "제25조제1항"
-      },
       "rows": [
         {
           "uses": [
@@ -384,14 +378,19 @@
           }
         ]
       },
-      "verified_against_text": true
+      "verified_against_text": true,
+      "source_kind": "api",
+      "accessible": {
+        "ratio_pct": 3,
+        "min_cars": 10,
+        "article": "제25조제1항"
+      }
     }
   },
-  "edition_verification": {
-    "verified_at": "2026-09-13T05:31:12.366574+00:00",
-    "assessment_date": "2026-09-13",
-    "method": "official_MST_articles_and_all_stored_caps_equal",
-    "scope": "base_zone_BCR_FAR_only",
-    "permit_compliance_verified": false
+  "checked": {
+    "against": "국토계획법 시행령 제84조 건폐율 최대한도, 제85조 용적률 범위",
+    "at": "2026-10-06T10:37:47+00:00",
+    "dropped_out_of_range": [],
+    "parser_disagreements": []
   }
 }
