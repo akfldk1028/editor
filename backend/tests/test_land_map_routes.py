@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.api.routes_land_map import create_land_map_router
 from backend.app.api.routes_land import create_land_router
-from backend.app.adapters.vworld_map import VworldMapClient
+from backend.app.adapters.vworld.map import VworldMapClient
 
 PNG = b'\x89PNG\r\n\x1a\nimage-fixture'
 

@@ -6,8 +6,8 @@ import os
 from dataclasses import dataclass
 
 from backend.app.adapters.vworld import VworldClient
-from backend.app.adapters.vworld_land import VworldLandClient
-from backend.app.adapters.vworld_geometry import VworldGeometryClient
+from backend.app.adapters.vworld.land import VworldLandClient
+from backend.app.adapters.vworld.geometry import VworldGeometryClient
 from backend.app.adapters.law_search import LawSearchClient
 from backend.app.adapters.regulation_extraction import RegulationExtractionClient
 from backend.app.adapters.elevation import ElevationClient

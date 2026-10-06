@@ -4,7 +4,7 @@ import sqlite3
 
 from shapely.errors import GEOSException
 from starlette.concurrency import run_in_threadpool
-from backend.app.adapters.vworld_geometry import GeometryProviderUnavailable
+from backend.app.adapters.vworld.geometry import GeometryProviderUnavailable
 from .projection import geojson_to_polygon
 from .zone_geometry import zone_areas
 from .frontage import neighbor_roads, neighbor_parcels

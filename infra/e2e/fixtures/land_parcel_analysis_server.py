@@ -5,8 +5,8 @@ import uvicorn
 from fastapi import FastAPI
 
 from backend.app.adapters.vworld import VworldClient
-from backend.app.adapters.vworld_land import VworldLandClient
-from backend.app.adapters.vworld_geometry import VworldGeometryClient
+from backend.app.adapters.vworld.land import VworldLandClient
+from backend.app.adapters.vworld.geometry import VworldGeometryClient
 from backend.app.api.routes_land import create_land_router
 from backend.app.modules.land.repository import LandRepository
 

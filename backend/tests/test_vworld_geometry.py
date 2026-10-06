@@ -4,7 +4,7 @@ import json
 import httpx
 import pytest
 
-from backend.app.adapters.vworld_geometry import VworldGeometryClient, GeometryProviderUnavailable
+from backend.app.adapters.vworld.geometry import VworldGeometryClient, GeometryProviderUnavailable
 
 
 PARCEL = {'type': 'Polygon', 'coordinates': [[[127, 37], [127.001, 37], [127.001, 37.001], [127, 37.001], [127, 37]]]}
