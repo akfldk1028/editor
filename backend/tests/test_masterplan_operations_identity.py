@@ -39,7 +39,7 @@ def test_catch_all_does_not_rewrite_urls_inside_the_identity_hashed_envelope(mon
 def test_delivered_export_root_has_one_name(tmp_path, monkeypatch):
     # Writer (delivered_mass_export) and reader (delivered_source) read EDITOR_DELIVERED_MASS_EXPORT_ROOT.
     import inspect
-    from backend.app.modules.design.generation.maas import delivered_mass_export
+    from backend.app.modules.design.generation.maas.delivered import mass_export as delivered_mass_export
     from backend.app.modules.design.generation.maas.masterplan import delivered_source
 
     assert 'EDITOR_DELIVERED_MASS_EXPORT_ROOT' in inspect.getsource(delivered_mass_export)

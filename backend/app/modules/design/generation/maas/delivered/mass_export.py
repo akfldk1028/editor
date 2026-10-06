@@ -144,7 +144,7 @@ def selected_source(request, roots, *, origins=None, source_roots=None, completi
 
 def reconstruct(name, entry, config):
     # The tracked BOOK owner retains the exact legal-fit and identity rules.
-    owner = importlib.import_module('backend.app.modules.design.generation.maas.delivered_book_rebuild')
+    owner = importlib.import_module('backend.app.modules.design.generation.maas.delivered.book_rebuild')
     from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site
     from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_direction
     from backend.app.modules.design.generation.maas.massv2.render_mesh import physical_triangles
@@ -211,7 +211,7 @@ def build_package(candidate, staging, request):
 def source_program(entry):
     if isinstance(entry.get('program'), dict):
         return entry['program']
-    owner = importlib.import_module('backend.app.modules.design.generation.maas.delivered_book_records')
+    owner = importlib.import_module('backend.app.modules.design.generation.maas.delivered.book_records')
     records = owner.records_of(Path(entry['book_dir']))
     matching = [r for r in records if r.get('trace_sequence_name') == entry['trace']]
     if len(matching) != 1:

@@ -17,8 +17,8 @@ from fastapi.testclient import TestClient
 import pytest
 
 from backend.app.api.routes_design_runtime import create_design_runtime_router
-from backend.app.modules.design.generation.maas import delivered_mass_bundle as bundle
-from backend.app.modules.design.generation.maas import delivered_mass_export as export
+from backend.app.modules.design.generation.maas.delivered import mass_bundle as bundle
+from backend.app.modules.design.generation.maas.delivered import mass_export as export
 
 BASE = '/api/v1/design/maas/delivered-mass-export'
 NAME = 'book:selected'

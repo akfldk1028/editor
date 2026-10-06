@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import re
 
-from backend.app.modules.design.generation.maas.delivered_mass_export import BACKEND, digest, file_hash, read
+from backend.app.modules.design.generation.maas.delivered.mass_export import BACKEND, digest, file_hash, read
 
 
 def _contained(path, root):

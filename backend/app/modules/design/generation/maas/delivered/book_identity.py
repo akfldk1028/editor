@@ -69,7 +69,7 @@ def seat_certificate(name, source, book, site, *, book_entry=None):
         gross = float(entry.get('floor_area_m2') or 0)
         if gross <= 0:
             raise ValueError(f'{name}: missing BOOK floor-area certificate')
-        from backend.app.modules.design.generation.maas.delivered_book_floors import delivered_floor_evidence
+        from backend.app.modules.design.generation.maas.delivered.book_floors import delivered_floor_evidence
         retained = entry.get('delivered_floor_evidence')
         if not retained:
             raise ValueError(f'{name}: missing BOOK floor-area measurement evidence')

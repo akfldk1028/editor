@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from backend.app.modules.design.generation.maas.parking_layout import DEFAULT_ACCESSIBLE_LENGTH_M, DEFAULT_ACCESSIBLE_WIDTH_M, DEFAULT_AISLE_WIDTH_M, DEFAULT_STALL_LENGTH_M, DEFAULT_STALL_WIDTH_M
+from backend.app.modules.design.generation.maas.parking.layout import DEFAULT_ACCESSIBLE_LENGTH_M, DEFAULT_ACCESSIBLE_WIDTH_M, DEFAULT_AISLE_WIDTH_M, DEFAULT_STALL_LENGTH_M, DEFAULT_STALL_WIDTH_M
 
 
 SCHEMA_VERSION = "arr.maas.parking_design_rules.v1"

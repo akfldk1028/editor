@@ -46,7 +46,7 @@
           "line": 21,
           "reason": "namespace import",
           "before": "from .maas.delivered_mass_export import export_delivered_mass",
-          "after": "from backend.app.modules.design.generation.maas.delivered_mass_export import export_delivered_mass"
+          "after": "from backend.app.modules.design.generation.maas.delivered.mass_export import export_delivered_mass"
         }
       ]
     },
@@ -2621,13 +2621,13 @@
           "line": 36,
           "reason": "namespace import",
           "before": "from design.maas.parking_requirements import (\n    load_parking_requirement_rules,\n    resolve_candidate_parking_requirement,\n)",
-          "after": "from backend.app.modules.design.generation.maas.parking_requirements import load_parking_requirement_rules, resolve_candidate_parking_requirement"
+          "after": "from backend.app.modules.design.generation.maas.parking.requirements import load_parking_requirement_rules, resolve_candidate_parking_requirement"
         },
         {
           "line": 40,
           "reason": "namespace import",
           "before": "from design.maas.parking_strategy import infer_parking_strategy",
-          "after": "from backend.app.modules.design.generation.maas.parking_strategy import infer_parking_strategy"
+          "after": "from backend.app.modules.design.generation.maas.parking.strategy import infer_parking_strategy"
         },
         {
           "line": 41,
@@ -4371,7 +4371,7 @@
     },
     {
       "source": "design/maas/delivered_book_floors.py",
-      "destination": "backend/app/modules/design/generation/maas/delivered_book_floors.py",
+      "destination": "backend/app/modules/design/generation/maas/delivered/book_floors.py",
       "source_sha256": "8640393100b4ab33441db12b11346abad0dcdfa0c966a1e5403287a1eac89887",
       "imported_sha256": "883c9a4cd89acdd4a620f29fd38b49db9293eda5e6f73834cae351dcdf4156a0",
       "changes": [
@@ -4391,13 +4391,13 @@
           "line": 161,
           "reason": "namespace import",
           "before": "from .delivered_book_identity import shape_id",
-          "after": "from backend.app.modules.design.generation.maas.delivered_book_identity import shape_id"
+          "after": "from backend.app.modules.design.generation.maas.delivered.book_identity import shape_id"
         }
       ]
     },
     {
       "source": "design/maas/delivered_book_identity.py",
-      "destination": "backend/app/modules/design/generation/maas/delivered_book_identity.py",
+      "destination": "backend/app/modules/design/generation/maas/delivered/book_identity.py",
       "source_sha256": "54ab77ce972d7b75d42a0d7ca6cd18ca0ce129cf83f9e7f058a3f0467f28bba1",
       "imported_sha256": "39c332c6398e4a22a678f99e1d31818f4b6d4093543165c54cb359e6dd76605f",
       "changes": [
@@ -4429,7 +4429,7 @@
           "line": 72,
           "reason": "namespace import",
           "before": "from .delivered_book_floors import delivered_floor_evidence",
-          "after": "from backend.app.modules.design.generation.maas.delivered_book_floors import delivered_floor_evidence"
+          "after": "from backend.app.modules.design.generation.maas.delivered.book_floors import delivered_floor_evidence"
         },
         {
           "line": 87,
@@ -4441,7 +4441,7 @@
     },
     {
       "source": "design/maas/delivered_book_rebuild.py",
-      "destination": "backend/app/modules/design/generation/maas/delivered_book_rebuild.py",
+      "destination": "backend/app/modules/design/generation/maas/delivered/book_rebuild.py",
       "source_sha256": "e83d8f8d5f27a5d0c642f6bbeac3be28da32835a203e89180225c4a26e77f8f9",
       "imported_sha256": "61cde0d613f746d9980096a9cf4d3c38631f1547d640d700363f46a75599582e",
       "changes": [
@@ -4449,19 +4449,19 @@
           "line": 6,
           "reason": "namespace import",
           "before": "from .delivered_book_records import records_of",
-          "after": "from backend.app.modules.design.generation.maas.delivered_book_records import records_of"
+          "after": "from backend.app.modules.design.generation.maas.delivered.book_records import records_of"
         },
         {
           "line": 7,
           "reason": "namespace import",
           "before": "from .delivered_book_floors import delivered_floor_evidence",
-          "after": "from backend.app.modules.design.generation.maas.delivered_book_floors import delivered_floor_evidence"
+          "after": "from backend.app.modules.design.generation.maas.delivered.book_floors import delivered_floor_evidence"
         },
         {
           "line": 8,
           "reason": "namespace import",
           "before": "from .delivered_book_identity import shape_id, seat_certificate",
-          "after": "from backend.app.modules.design.generation.maas.delivered_book_identity import shape_id, seat_certificate"
+          "after": "from backend.app.modules.design.generation.maas.delivered.book_identity import shape_id, seat_certificate"
         },
         {
           "line": 95,
@@ -4509,14 +4509,14 @@
     },
     {
       "source": "design/maas/delivered_book_records.py",
-      "destination": "backend/app/modules/design/generation/maas/delivered_book_records.py",
+      "destination": "backend/app/modules/design/generation/maas/delivered/book_records.py",
       "source_sha256": "ab67d2a00832c8571c8dde1e519aa2844864f1c8c8c323657f18c75c88e9337f",
       "imported_sha256": "2ba3d241cb72fa6f93acd5230d496dd379750130af22e0cd58251e288aa1a240",
       "changes": []
     },
     {
       "source": "design/maas/delivered_mass_export.py",
-      "destination": "backend/app/modules/design/generation/maas/delivered_mass_export.py",
+      "destination": "backend/app/modules/design/generation/maas/delivered/mass_export.py",
       "source_sha256": "cf0ba7ac91686c659b270eb7e95487be49217d9e86c883d6188e0d0cd7217e35",
       "imported_sha256": "9f933d0c69a62eeca1c3bcad9621b9cb3726e68f57e4e2fddb333c7aaeeeb905",
       "changes": [
@@ -4560,13 +4560,13 @@
           "line": 117,
           "reason": "dynamic module name",
           "before": "'design.maas.delivered_book_rebuild'",
-          "after": "'backend.app.modules.design.generation.maas.delivered_book_rebuild'"
+          "after": "'backend.app.modules.design.generation.maas.delivered.book_rebuild'"
         },
         {
           "line": 184,
           "reason": "dynamic module name",
           "before": "'design.maas.delivered_book_records'",
-          "after": "'backend.app.modules.design.generation.maas.delivered_book_records'"
+          "after": "'backend.app.modules.design.generation.maas.delivered.book_records'"
         },
         {
           "line": 13,
@@ -4739,7 +4739,7 @@
           "line": 15,
           "reason": "namespace import",
           "before": "from .parking_layout import evaluate_small_attached_parking_relief",
-          "after": "from backend.app.modules.design.generation.maas.parking_layout import evaluate_small_attached_parking_relief"
+          "after": "from backend.app.modules.design.generation.maas.parking.layout import evaluate_small_attached_parking_relief"
         }
       ]
     },
@@ -7620,7 +7620,7 @@
           "line": 18,
           "reason": "namespace import",
           "before": "from design.maas.parking_strategy import attach_parking_strategy",
-          "after": "from backend.app.modules.design.generation.maas.parking_strategy import attach_parking_strategy"
+          "after": "from backend.app.modules.design.generation.maas.parking.strategy import attach_parking_strategy"
         },
         {
           "line": 19,
@@ -7885,7 +7885,7 @@
           "line": 35,
           "reason": "namespace import",
           "before": "from design.maas.parking_stage import parking_repair_budget",
-          "after": "from backend.app.modules.design.generation.maas.parking_stage import parking_repair_budget"
+          "after": "from backend.app.modules.design.generation.maas.parking.stage import parking_repair_budget"
         },
         {
           "line": 36,
@@ -7999,13 +7999,13 @@
           "line": 66,
           "reason": "namespace import",
           "before": "from design.maas.parking_requirements import (\n    apply_parking_requirement_to_props,\n    load_parking_requirement_rules,\n    resolve_candidate_parking_requirement,\n)",
-          "after": "from backend.app.modules.design.generation.maas.parking_requirements import apply_parking_requirement_to_props, load_parking_requirement_rules, resolve_candidate_parking_requirement"
+          "after": "from backend.app.modules.design.generation.maas.parking.requirements import apply_parking_requirement_to_props, load_parking_requirement_rules, resolve_candidate_parking_requirement"
         },
         {
           "line": 71,
           "reason": "namespace import",
           "before": "from design.maas.parking_strategy import attach_parking_strategy",
-          "after": "from backend.app.modules.design.generation.maas.parking_strategy import attach_parking_strategy"
+          "after": "from backend.app.modules.design.generation.maas.parking.strategy import attach_parking_strategy"
         },
         {
           "line": 72,
@@ -8089,13 +8089,13 @@
           "line": 6845,
           "reason": "namespace import",
           "before": "from design.maas.parking_layout import generate_parking_layout_candidate",
-          "after": "from backend.app.modules.design.generation.maas.parking_layout import generate_parking_layout_candidate"
+          "after": "from backend.app.modules.design.generation.maas.parking.layout import generate_parking_layout_candidate"
         },
         {
           "line": 6846,
           "reason": "namespace import",
           "before": "from design.maas.parking_strategy import _parking_drive_envelope, _parking_envelope",
-          "after": "from backend.app.modules.design.generation.maas.parking_strategy import _parking_drive_envelope, _parking_envelope"
+          "after": "from backend.app.modules.design.generation.maas.parking.strategy import _parking_drive_envelope, _parking_envelope"
         },
         {
           "line": 1504,
@@ -9365,13 +9365,13 @@
           "line": 15,
           "reason": "namespace import",
           "before": "from design.maas.parking_layout import generate_parking_layout_candidate",
-          "after": "from backend.app.modules.design.generation.maas.parking_layout import generate_parking_layout_candidate"
+          "after": "from backend.app.modules.design.generation.maas.parking.layout import generate_parking_layout_candidate"
         },
         {
           "line": 16,
           "reason": "namespace import",
           "before": "from design.maas.parking_requirements import resolve_candidate_parking_requirement",
-          "after": "from backend.app.modules.design.generation.maas.parking_requirements import resolve_candidate_parking_requirement"
+          "after": "from backend.app.modules.design.generation.maas.parking.requirements import resolve_candidate_parking_requirement"
         },
         {
           "line": 17,
@@ -9724,7 +9724,7 @@
           "line": 8,
           "reason": "namespace import",
           "before": "from ..delivered_mass_export import BACKEND, digest, file_hash, read",
-          "after": "from backend.app.modules.design.generation.maas.delivered_mass_export import BACKEND, digest, file_hash, read"
+          "after": "from backend.app.modules.design.generation.maas.delivered.mass_export import BACKEND, digest, file_hash, read"
         },
         {
           "line": 76,
@@ -10156,7 +10156,7 @@
           "line": 13,
           "reason": "namespace import",
           "before": "from design.maas.parking_layout import (\n    DEFAULT_ACCESSIBLE_LENGTH_M,\n    DEFAULT_ACCESSIBLE_WIDTH_M,\n    DEFAULT_AISLE_WIDTH_M,\n    DEFAULT_STALL_LENGTH_M,\n    DEFAULT_STALL_WIDTH_M,\n)",
-          "after": "from backend.app.modules.design.generation.maas.parking_layout import DEFAULT_ACCESSIBLE_LENGTH_M, DEFAULT_ACCESSIBLE_WIDTH_M, DEFAULT_AISLE_WIDTH_M, DEFAULT_STALL_LENGTH_M, DEFAULT_STALL_WIDTH_M"
+          "after": "from backend.app.modules.design.generation.maas.parking.layout import DEFAULT_ACCESSIBLE_LENGTH_M, DEFAULT_ACCESSIBLE_WIDTH_M, DEFAULT_AISLE_WIDTH_M, DEFAULT_STALL_LENGTH_M, DEFAULT_STALL_WIDTH_M"
         }
       ]
     },
@@ -10388,14 +10388,14 @@
     },
     {
       "source": "design/maas/parking_layout.py",
-      "destination": "backend/app/modules/design/generation/maas/parking_layout.py",
+      "destination": "backend/app/modules/design/generation/maas/parking/layout.py",
       "source_sha256": "99f51bac82ba1cf19ab8ff4256dfa8baf48de189e1a8ad8132c8a0cda55a200a",
       "imported_sha256": "73f79e863efbb3123809c77bdd29c97a832482b19050b789c77aec001786b50f",
       "changes": []
     },
     {
       "source": "design/maas/parking_requirements.py",
-      "destination": "backend/app/modules/design/generation/maas/parking_requirements.py",
+      "destination": "backend/app/modules/design/generation/maas/parking/requirements.py",
       "source_sha256": "26c6e2f7c0a7591ebdf8cbd3fbea516f8942c44eb6f4072c59bb40c04343d2d7",
       "imported_sha256": "84d09b30ab06d9c099c633d46a9921f3d86c019c820165039dc20fcd86c6625a",
       "changes": [
@@ -10415,14 +10415,14 @@
     },
     {
       "source": "design/maas/parking_stage.py",
-      "destination": "backend/app/modules/design/generation/maas/parking_stage.py",
+      "destination": "backend/app/modules/design/generation/maas/parking/stage.py",
       "source_sha256": "52ac8157e2bcddd767df99f6d491ccb239c7da743f81826b2266235213047e34",
       "imported_sha256": "52ac8157e2bcddd767df99f6d491ccb239c7da743f81826b2266235213047e34",
       "changes": []
     },
     {
       "source": "design/maas/parking_strategy.py",
-      "destination": "backend/app/modules/design/generation/maas/parking_strategy.py",
+      "destination": "backend/app/modules/design/generation/maas/parking/strategy.py",
       "source_sha256": "a92232281809923e1ed35e199ae43762fae7b925d49e336754e3d87f6039ed00",
       "imported_sha256": "fbc5b5db79635fe29c087103baf72894ec7095e1f50c234d229eba3718ef5ad1",
       "changes": [
@@ -10436,7 +10436,7 @@
           "line": 17,
           "reason": "namespace import",
           "before": "from design.maas.parking_layout import (\n    evaluate_small_attached_parking_relief,\n    estimate_parking_capacity,\n    generate_parking_layout_candidate,\n)",
-          "after": "from backend.app.modules.design.generation.maas.parking_layout import evaluate_small_attached_parking_relief, estimate_parking_capacity, generate_parking_layout_candidate"
+          "after": "from backend.app.modules.design.generation.maas.parking.layout import evaluate_small_attached_parking_relief, estimate_parking_capacity, generate_parking_layout_candidate"
         }
       ]
     },

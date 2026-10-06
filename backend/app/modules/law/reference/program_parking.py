@@ -10,7 +10,7 @@ import re
 
 
 def _resolve(**kwargs):
-    from backend.app.modules.design.generation.maas.parking_requirements import resolve_candidate_parking_requirement
+    from backend.app.modules.design.generation.maas.parking.requirements import resolve_candidate_parking_requirement
     return resolve_candidate_parking_requirement(**kwargs)
 
 

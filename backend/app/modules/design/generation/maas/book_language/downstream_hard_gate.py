@@ -28,8 +28,8 @@ from backend.app.modules.design.generation.maas.legal_envelope import build_lega
 from backend.app.modules.design.generation.maas.geometry_language.execution_passport import enrich_mass_execution_passport
 from backend.app.modules.design.generation.maas.geometry_language.floorwise_visual_projection import certify_authored_visual_mesh
 from backend.app.modules.design.generation.maas.geometry_language.source_bridge import source_surface_payload_hash, source_volume_payload_hash
-from backend.app.modules.design.generation.maas.parking_requirements import load_parking_requirement_rules, resolve_candidate_parking_requirement
-from backend.app.modules.design.generation.maas.parking_strategy import infer_parking_strategy
+from backend.app.modules.design.generation.maas.parking.requirements import load_parking_requirement_rules, resolve_candidate_parking_requirement
+from backend.app.modules.design.generation.maas.parking.strategy import infer_parking_strategy
 from backend.app.modules.design.generation.maas.program_massing.semantic_carriers import audit_source_semantic_projection, semantic_capacity_measurement_hash, semantic_site_context_hash
 from backend.app.modules.design.generation.maas.source_geometry.ir import SourceMass, SourceVolume
 from backend.app.modules.design.generation.maas.source_geometry.polygon_quality import repair_source_polygon

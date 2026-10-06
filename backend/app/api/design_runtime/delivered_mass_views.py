@@ -24,7 +24,7 @@ def delivered_mass_export(request):
             raise ValueError('request must be an object')
     except (ValueError, TypeError):
         return JsonResponse({'status': 'failed', 'code': 'invalid_request'}, status=400)
-    from backend.app.modules.design.generation.maas.delivered_mass_export import export_delivered_mass
+    from backend.app.modules.design.generation.maas.delivered.mass_export import export_delivered_mass
     return JsonResponse(export_delivered_mass(payload))
 
 
@@ -32,7 +32,7 @@ def delivered_mass_export(request):
 @require_POST
 def delivered_mass_bundle(request):
     """The same export, for a Mass cycle sent as a zip from another server."""
-    from backend.app.modules.design.generation.maas.delivered_mass_bundle import BundleRefused, export_bundle
+    from backend.app.modules.design.generation.maas.delivered.mass_bundle import BundleRefused, export_bundle
     try:
         return JsonResponse(export_bundle(request.body))
     except BundleRefused as exc:
@@ -40,7 +40,7 @@ def delivered_mass_bundle(request):
 
 
 def _export_target(request_hash):
-    from backend.app.modules.design.generation.maas.delivered_mass_export import export_root
+    from backend.app.modules.design.generation.maas.delivered.mass_export import export_root
     if not _REQUEST_HASH.fullmatch(request_hash):
         raise Http404('delivered export not found')
     target = (export_root() / request_hash).resolve()

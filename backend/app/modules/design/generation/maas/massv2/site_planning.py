@@ -12,8 +12,8 @@ from pathlib import Path
 from shapely.geometry import Polygon, mapping, shape
 from shapely.ops import unary_union
 
-from backend.app.modules.design.generation.maas.parking_layout import generate_parking_layout_candidate
-from backend.app.modules.design.generation.maas.parking_requirements import resolve_candidate_parking_requirement
+from backend.app.modules.design.generation.maas.parking.layout import generate_parking_layout_candidate
+from backend.app.modules.design.generation.maas.parking.requirements import resolve_candidate_parking_requirement
 from backend.app.modules.design.generation.maas.massv2.parcel_policy import source_plan_projection, registered_vehicle_approach
 
 

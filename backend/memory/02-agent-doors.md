@@ -34,7 +34,7 @@ validate_plan, footprint_inside, ramp_overhead (Systems via MasterPlan), bind_de
   never a path), round, origins{workspace, sources}}, `workspace/...`, `sources/<i>/...`. Staged
   under `<EDITOR_DELIVERED_MASS_EXPORT_ROOT>/.incoming/<uuid>`, Mass-host paths remapped
   (`remap_origin`), unchanged export runs; `request_hash = digest(canonical request)`.
-  Module `modules/design/generation/maas/delivered_mass_bundle.py`.
+  Module `modules/design/generation/maas/delivered/mass_bundle.py`.
 - Results carry **hrefs relative to `/api/v1`**: `artifacts[].href`,
   `elevation_handoff.request.package_href|selected_glb_href`, `plan_handoff.artifact.href`.
 - `GET .../<hash>/files/<member>` and `GET .../<hash>/package.zip?candidate=<id>` (token, confined).

@@ -3,9 +3,9 @@
 No registry discovery, jury scheduling, or runtime CLI import belongs here.
 """
 from pathlib import Path
-from backend.app.modules.design.generation.maas.delivered_book_records import records_of
-from backend.app.modules.design.generation.maas.delivered_book_floors import delivered_floor_evidence
-from backend.app.modules.design.generation.maas.delivered_book_identity import shape_id, seat_certificate
+from backend.app.modules.design.generation.maas.delivered.book_records import records_of
+from backend.app.modules.design.generation.maas.delivered.book_floors import delivered_floor_evidence
+from backend.app.modules.design.generation.maas.delivered.book_identity import shape_id, seat_certificate
 
 BOOK_FAR_SHARE = 0.8
 BOOK_GROUND_SHARE = 0.75

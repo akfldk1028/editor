@@ -27,7 +27,7 @@ from backend.app.modules.design.generation.maas.design_quality import attach_des
 from backend.app.modules.design.generation.maas.capacity_policy import resolve_massing_capacity_policy as _massing_capacity_policy
 from backend.app.modules.design.generation.maas.candidate_pipeline import build_bounded_review_pool
 from backend.app.modules.design.generation.maas.generation_trace import GenerationTrace
-from backend.app.modules.design.generation.maas.parking_stage import parking_repair_budget
+from backend.app.modules.design.generation.maas.parking.stage import parking_repair_budget
 from backend.app.modules.design.generation.maas.agents import build_agent_review_a2ui_messages, build_agent_reviews
 from backend.app.modules.design.generation.maas.agents.grammar_critic_agent import build_grammar_review
 from backend.app.modules.design.generation.maas.agents.llm_architect_agent import LLMArchitectAgent
@@ -46,8 +46,8 @@ from backend.app.modules.design.generation.maas.llm_proposals import LLM_BATCH_S
 from backend.app.modules.design.generation.maas.morphology_operators import largest_polygon
 from backend.app.modules.design.generation.maas.mass_brain import record_shadow_outcomes, request_shadow_variants
 from backend.app.modules.design.generation.maas.paper_alignment import attach_paper_alignment_and_preference_evidence
-from backend.app.modules.design.generation.maas.parking_requirements import apply_parking_requirement_to_props, load_parking_requirement_rules, resolve_candidate_parking_requirement
-from backend.app.modules.design.generation.maas.parking_strategy import attach_parking_strategy
+from backend.app.modules.design.generation.maas.parking.requirements import apply_parking_requirement_to_props, load_parking_requirement_rules, resolve_candidate_parking_requirement
+from backend.app.modules.design.generation.maas.parking.strategy import attach_parking_strategy
 from backend.app.modules.design.generation.maas.performance_objectives import early_massing_performance_proxy
 from backend.app.modules.design.generation.maas.preference import PreferenceLoopCallbacks, apply_preference_loop, preference_loop_config as build_preference_loop_config, preference_score, preference_vlm_scored
 from backend.app.modules.design.generation.maas.program_massing import attach_program_massing_evidence
@@ -6786,8 +6786,8 @@ def _find_parking_repair_footprint(
     floors: int,
     building_type: str,
 ) -> tuple[Any, dict[str, Any], dict[str, Any]] | None:
-    from backend.app.modules.design.generation.maas.parking_layout import generate_parking_layout_candidate
-    from backend.app.modules.design.generation.maas.parking_strategy import _parking_drive_envelope, _parking_envelope
+    from backend.app.modules.design.generation.maas.parking.layout import generate_parking_layout_candidate
+    from backend.app.modules.design.generation.maas.parking.strategy import _parking_drive_envelope, _parking_envelope
 
     best: tuple[tuple[Any, ...], Any, dict[str, Any], dict[str, Any]] | None = None
     source_area = float(footprint_utm.area or 0.0)

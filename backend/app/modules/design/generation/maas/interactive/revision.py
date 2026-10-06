@@ -11,7 +11,7 @@ from backend.app.modules.design.generation.maas.grammar.component_graph import g
 from backend.app.modules.design.generation.maas.grammar.verb_sequence import VerbCall
 from backend.app.modules.design.generation.maas.grammar.parameter_schema import PARAMETER_BOUNDS, bounded_parameter
 from backend.app.modules.design.generation.maas.legal_mesh_optimizer import _apply_source_volumes_as_mass_geometry, _architectural_order_gate, _attach_visual_diversity_evidence
-from backend.app.modules.design.generation.maas.parking_strategy import attach_parking_strategy
+from backend.app.modules.design.generation.maas.parking.strategy import attach_parking_strategy
 from backend.app.modules.design.generation.maas.selection import final_mass_stage_parking_pass
 from backend.app.modules.design.generation.maas.source_geometry import compile_component_graph_to_source_mass
 from backend.app.modules.design.generation.services.site_geometry import geojson_to_polygon, wgs84_to_utm

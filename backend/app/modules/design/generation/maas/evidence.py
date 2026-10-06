@@ -12,7 +12,7 @@ from typing import Any
 from django.utils import timezone
 
 from backend.app.modules.design.generation.maas.law_provenance import build_law_provenance_projection
-from backend.app.modules.design.generation.maas.parking_layout import evaluate_small_attached_parking_relief
+from backend.app.modules.design.generation.maas.parking.layout import evaluate_small_attached_parking_relief
 
 
 SCHEMA_VERSION = "arr.maas.evidence.v0"

@@ -13,7 +13,7 @@ import shutil
 import uuid
 import zipfile
 
-from backend.app.modules.design.generation.maas.delivered_mass_export import export_delivered_mass, export_root
+from backend.app.modules.design.generation.maas.delivered.mass_export import export_delivered_mass, export_root
 
 MAX_MEMBERS = 20000
 MAX_MEMBER_BYTES = 1024 * 1024 * 1024

@@ -6,7 +6,7 @@ import time
 import pytest
 from shapely.geometry import box, LineString, shape
 
-from backend.app.modules.design.generation.maas import parking_layout as parking
+from backend.app.modules.design.generation.maas.parking import layout as parking
 
 
 def reference_selector():

@@ -14,7 +14,7 @@ from shapely.geometry import LineString, MultiPolygon, Polygon, mapping, shape
 
 from backend.app.modules.design.generation.services.site_geometry import utm_to_wgs84, wgs84_to_utm
 
-from backend.app.modules.design.generation.maas.parking_layout import evaluate_small_attached_parking_relief, estimate_parking_capacity, generate_parking_layout_candidate
+from backend.app.modules.design.generation.maas.parking.layout import evaluate_small_attached_parking_relief, estimate_parking_capacity, generate_parking_layout_candidate
 
 
 PARKING_STRATEGIES = {

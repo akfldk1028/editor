@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import shutil
 
-from backend.app.modules.design.generation.maas import parking_requirements as parking
+from backend.app.modules.design.generation.maas.parking import requirements as parking
 
 ROOT = Path(__file__).resolve().parents[1] / 'app/modules/law/reference'
 DATA = ROOT / 'data/structured'

@@ -23,6 +23,11 @@ SPECIAL = {
     **{f"design.{name}": f"{STORE}.{name}" for name in ("models", "apps", "persistence", "migrations")},
     **{f"design.{name}": f"{API}.{name}" for name in ("views", "urls", "delivered_mass_views", "masterplan_operations_views", "program_floor_plan_views")},
     "graph_db.services.neo4j_service": f"{STORE}.neo4j_service",
+    # Prefix-named maas siblings regrouped into packages in the Editor.
+    **{f"design.maas.delivered_{name}": f"{GEN}.maas.delivered.{name}" for name in (
+        "book_floors", "book_identity", "book_rebuild", "book_records", "mass_bundle", "mass_export")},
+    **{f"design.maas.parking_{name}": f"{GEN}.maas.parking.{name}" for name in (
+        "layout", "requirements", "stage", "strategy")},
 }
 LAND_MODULES = {
     "land", "land.config", "land.services", "land.data.regulation_prompts",

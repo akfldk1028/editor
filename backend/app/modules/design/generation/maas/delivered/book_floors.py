@@ -154,7 +154,7 @@ def delivered_floor_evidence(source, storeys, *, floor_count, storey_m):
                 not isfinite(transported_areas[index-1])
                 or abs(actual - transported_areas[index-1]) > authored_resolutions[index-1]):
             issues.append(f'floor_{index}_authored_export_area_mismatch:{transported_areas[index-1]:.9f}->{actual:.9f}')
-    from backend.app.modules.design.generation.maas.delivered_book_identity import shape_id
+    from backend.app.modules.design.generation.maas.delivered.book_identity import shape_id
     return {
         'schema': 'arr.maas.book_delivered_floor_measurement.v1',
         'basis': 'delivered SourceSurface mesh at transformed authored floor centers',
