@@ -4,6 +4,9 @@ services:
       context: ../..
       dockerfile: infra/docker/backend.Dockerfile
     environment:
+      # A deployment authenticates models with the keys saved in workspace settings;
+      # the local Claude Code OAuth path (core/model_auth.py) is for development only.
+      EDITOR_MODEL_AUTH: api_key
       PLANM_REPOSITORY_ROOT: /app
       PLANM_RUNS_ROOT: /data/planm-runs
       # The Plan Agent (agents/planm) runs on the host for now: its stage requests

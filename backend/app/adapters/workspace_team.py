@@ -3,6 +3,7 @@ import io
 import asyncio
 
 from backend.app.adapters.workspace_credentials import apply_environment
+from backend.app.core.model_auth import model_auth_mode
 from backend.app.adapters.workspace_tool_policy import check_tool_component
 
 
@@ -43,6 +44,8 @@ SUPPORTED_PROVIDERS = frozenset(
         "autogen_ext.models.ollama.OllamaChatCompletionClient",
         # Scripted replies, no network: demos and execution tests without a key.
         "autogen_ext.models.replay.ReplayChatCompletionClient",
+        # Local development: hosted models run on the developer's Claude Code login (core.model_auth).
+        "backend.app.adapters.cli_model_client.ClaudeCodeChatCompletionClient",
         "autogen_core.model_context.UnboundedChatCompletionContext",
         "autogen_core.model_context.BufferedChatCompletionContext",
         "autogen_core.model_context.HeadAndTailChatCompletionContext",
@@ -82,7 +85,7 @@ def load_team(component, input_callback, environment=()):
     from autogen_agentchat.base import Team
     from autogen_agentchat.agents import UserProxyAgent
 
-    component = apply_environment(component, environment)
+    component = apply_environment(component, environment, model_auth_mode())
     validate_components(component)
     team = Team.load_component(component)
 

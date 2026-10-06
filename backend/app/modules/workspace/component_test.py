@@ -8,6 +8,7 @@ import asyncio
 
 from backend.app.adapters.workspace_credentials import apply_environment
 from backend.app.adapters.workspace_team import close_team, validate_components
+from backend.app.core.model_auth import model_auth_mode
 from backend.app.modules.workspace.catalog import validate_component
 
 
@@ -26,7 +27,7 @@ async def test_component(component, environment, timeout):
         validate_components(component)
     except ValueError as error:
         return result(False, str(error))
-    component = apply_environment(component, environment)
+    component = apply_environment(component, environment, model_auth_mode())
     loader = LOADERS[component['component_type']]
     try:
         async with asyncio.timeout(timeout):
