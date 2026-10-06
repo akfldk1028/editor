@@ -19,15 +19,21 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { MAP_CONFIG_3D } from '../lib/constants';
-
-// ---------------------------------------------------------------------------
-// Dynamically-loaded globals accessor
-// ---------------------------------------------------------------------------
+import { canCreateWebGLContext, getCesium, getVw, getWs3d, loadVworldScript, sdkStyles } from './vworld-3d-loader';
+import {
+  addCadastralWmsLayer,
+  applyDiagramImageryStyle,
+  bindEventHandlers,
+  extractGeoJsonRing,
+  PARCEL_HIGHLIGHT_ID,
+  PARCEL_HOVER_ID,
+  SETBACK_COLORS,
+  SETBACK_DS_NAME,
+  recoverHmrViewer,
+  zoomToAltitude,
+} from './vworld-3d-scene';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const getVw = (): any => (window as any).vw;
-const getWs3d = (): any => (window as any).ws3d;
-const getCesium = (): any => (window as any).Cesium;
 
 // ---------------------------------------------------------------------------
 // Interface
@@ -61,177 +67,11 @@ interface UseVworld3DReturn {
 }
 
 // ---------------------------------------------------------------------------
-// Script loader (idempotent — 한 번만 로드)
-//
-// 핵심 문제: webglMapInit.js.do 부트스트랩이 document.write()로 3개
-// 하위 스크립트(Cesium 등)를 주입하는데, 동적 <script>에서
-// document.write()는 브라우저가 무시함.
-//
-// 해결: document.write를 오버라이드 → <script> 태그로 부트스트랩 로드
-//       → 인터셉트한 URL들을 순차 <script> 태그로 로드 → poll vw.Map
-//
-// <script> 태그 로딩은 CORS 면제 (fetch와 다름).
+// SDK 싱글턴 viewer 재사용용 모듈 상태 (HMR / Next 네비게이션)
 // ---------------------------------------------------------------------------
 
-let scriptPromise: Promise<void> | null = null;
 let retainedMap: any = null;
 let retainedContainer: HTMLDivElement | null = null;
-const sdkStyles = new Set<HTMLLinkElement>();
-
-function canCreateWebGLContext(): boolean {
-  try {
-    const canvas = document.createElement('canvas');
-    return Boolean(
-      canvas.getContext('webgl2')
-      || canvas.getContext('webgl')
-      || canvas.getContext('experimental-webgl'),
-    );
-  } catch {
-    return false;
-  }
-}
-
-function appendScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = src;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('VWorld 지도 스크립트를 불러오지 못했습니다.'));
-    document.head.appendChild(s);
-  });
-}
-
-function waitForVwMap(timeoutMs: number): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const deadline = Date.now() + timeoutMs;
-    const check = () => {
-      if (getVw()?.Map) { resolve(); return; }
-      if (Date.now() > deadline) { reject(new Error('vw.Map 가용 타임아웃')); return; }
-      setTimeout(check, 100);
-    };
-    check();
-  });
-}
-
-async function loadVworldScript(apiKey: string): Promise<void> {
-  if (getVw()?.Map) return;
-  if (scriptPromise) return scriptPromise;
-
-  scriptPromise = (async () => {
-    const subScripts: string[] = [];
-    const subStyles: string[] = [];
-    const origWrite = document.write.bind(document);
-    document.write = ((html: string) => {
-      const scriptMatch = html.match(/src=['"]([^'"]+)['"]/);
-      if (scriptMatch?.[1]) {
-        subScripts.push(scriptMatch[1].replace(/^http:\/\//, 'https://'));
-      }
-      const styleMatch = html.match(/href=['"]([^'"]+\.css[^'"]*)['"]/);
-      if (styleMatch?.[1]) {
-        subStyles.push(styleMatch[1].replace(/^http:\/\//, 'https://'));
-      }
-    }) as typeof document.write;
-
-    try {
-      // 1) jQuery 로드 — VWViewerStartup이 $ 의존
-      if (!(window as any).jQuery) {
-        await appendScript('https://code.jquery.com/jquery-3.7.1.min.js');
-      }
-
-      // 2) 부트스트랩 <script> 로드 (CORS 면제)
-      await appendScript(
-        `https://map.vworld.kr/js/webglMapInit.js.do?version=3.0&apiKey=${apiKey}`,
-      );
-
-      // 3) 전역변수 http→https 강제 (Cesium 워커 등이 이 변수 참조)
-      const w = window as any;
-      for (const k of ['vworldUrl', 'vworld2DCache', 'vworldBaseMapUrl', 'vworldStyledMapUrl']) {
-        if (w[k]) w[k] = w[k].replace('http://', 'https://');
-      }
-
-      // 4) 수집한 CSS/하위 스크립트 로드 (Cesium → VW → OL, 순서 중요)
-      for (const href of subStyles) {
-        if (document.querySelector(`link[href="${href}"]`)) continue;
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = href;
-        sdkStyles.add(link);
-        document.head.appendChild(link);
-      }
-      for (const src of subScripts) {
-        await appendScript(src);
-      }
-
-      // 5) vw.Map 가용 대기
-      await waitForVwMap(15_000);
-    } catch (e) {
-      scriptPromise = null;
-      throw e;
-    } finally {
-      document.write = origWrite;
-    }
-  })();
-
-  return scriptPromise;
-}
-
-function applyDiagramImageryStyle(layer: any) {
-  if (!layer) return;
-  try {
-    layer.saturation = 0.0;
-    layer.brightness = 1.18;
-    layer.contrast = 0.72;
-    layer.gamma = 1.08;
-    layer.alpha = 0.42;
-  } catch {
-    // Cesium imagery layer styling is best-effort; VWorld still works without it.
-  }
-}
-
-function ringArea(ring: number[][] | null | undefined): number {
-  if (!ring || ring.length < 3) return 0;
-  let total = 0;
-  for (let i = 0; i < ring.length; i++) {
-    const a = ring[i];
-    const b = ring[(i + 1) % ring.length];
-    if (!a || !b || a[0] == null || a[1] == null || b[0] == null || b[1] == null) return 0;
-    total += a[0] * b[1] - b[0] * a[1];
-  }
-  return Math.abs(total) / 2;
-}
-
-function largestPolygonCoordinates(polygons: number[][][][] | null | undefined): number[][][] | null {
-  if (!Array.isArray(polygons) || polygons.length === 0) return null;
-  return polygons.reduce<number[][][] | null>((best, polygon) => {
-    if (!Array.isArray(polygon) || !polygon[0]) return best;
-    if (!best) return polygon;
-    return ringArea(polygon[0]) > ringArea(best[0]) ? polygon : best;
-  }, null);
-}
-
-function extractGeoJsonRing(geojson: any): number[][] | undefined {
-  const geo = geojson?.type === 'Feature' ? geojson.geometry : geojson;
-  if (geo?.type === 'Polygon') return geo.coordinates?.[0];
-  if (geo?.type === 'MultiPolygon') return largestPolygonCoordinates(geo.coordinates)?.[0] || undefined;
-  return undefined;
-}
-
-// ---------------------------------------------------------------------------
-// Zoom → altitude 변환 (3D 틸트 카메라용)
-// ---------------------------------------------------------------------------
-
-function zoomToAltitude(zoom: number): number {
-  // zoom 15→6000m, 16→3000m, 17→1500m, 18→750m, 19→375m
-  const clamped = Math.min(19, Math.max(10, zoom));
-  return Math.max(150, 6000 / Math.pow(2, clamped - 15));
-}
-
-// ---------------------------------------------------------------------------
-// Parcel highlight ID (map.removeObjectById 용)
-// ---------------------------------------------------------------------------
-
-const PARCEL_HIGHLIGHT_ID = 'selected-parcel';
-const PARCEL_HOVER_ID = 'hovered-parcel';
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -260,42 +100,6 @@ export function useVworld3D({
     initRef.current = true;
 
     let destroyed = false;
-
-    // 이벤트 핸들러 바인딩 — viewer + Cesium 확보 후 호출
-    function bindEventHandlers(viewer: any, Cesium: any) {
-      // LEFT_CLICK → onClick
-      viewer.screenSpaceEventHandler.setInputAction(
-        function (movement: any) {
-          const ray = viewer.camera.getPickRay(movement.position);
-          if (!ray) return;
-          const cartesian = viewer.scene.globe.pick(ray, viewer.scene);
-          if (!cartesian) return;
-          const carto = Cesium.Cartographic.fromCartesian(cartesian);
-          onClickRef.current?.(
-            Cesium.Math.toDegrees(carto.longitude),
-            Cesium.Math.toDegrees(carto.latitude),
-          );
-        },
-        Cesium.ScreenSpaceEventType.LEFT_CLICK,
-      );
-
-      // MOUSE_MOVE → onHover (좌표 추출만, 디바운스는 소비자 책임)
-      viewer.screenSpaceEventHandler.setInputAction(
-        function (movement: any) {
-          if (!onHoverRef.current) return;
-          const ray = viewer.camera.getPickRay(movement.endPosition);
-          if (!ray) return;
-          const cartesian = viewer.scene.globe.pick(ray, viewer.scene);
-          if (!cartesian) return;
-          const carto = Cesium.Cartographic.fromCartesian(cartesian);
-          onHoverRef.current(
-            Cesium.Math.toDegrees(carto.longitude),
-            Cesium.Math.toDegrees(carto.latitude),
-          );
-        },
-        Cesium.ScreenSpaceEventType.MOUSE_MOVE,
-      );
-    }
 
     async function init() {
       try {
@@ -349,45 +153,9 @@ export function useVworld3D({
           // Recover mapInstanceRef from ws3d if available (HMR path)
           const ws3d = getWs3d();
           mapInstanceRef.current = retainedMap || ws3d?.map;
-          bindEventHandlers(existingViewer, Cesium);
+          bindEventHandlers(existingViewer, Cesium, onClickRef, onHoverRef);
 
-          // 2026-05-11 — HMR 시 imagery layer가 사라지는 케이스 fix.
-          try {
-            if (existingViewer.imageryLayers.length === 0) {
-              const layer = existingViewer.imageryLayers.addImageryProvider(
-                new Cesium.UrlTemplateImageryProvider({
-                  url: `https://api.vworld.kr/req/wmts/1.0.0/${apiKeyRef.current}/Base/{z}/{y}/{x}.png`,
-                  maximumLevel: 19,
-                  credit: new Cesium.Credit('Vworld'),
-                }),
-              );
-              applyDiagramImageryStyle(layer);
-            }
-          } catch (e) {
-            console.warn('HMR imagery 재추가 실패:', e);
-          }
-
-          // 2026-05-11 v2 — HMR 후 카메라가 우주(1700km)에 머물러 검정 화면.
-          // 카메라 height > 100km면 한국 default 위치로 강제 reset.
-          try {
-            const camH = existingViewer.camera.positionCartographic?.height;
-            if (!isFinite(camH) || camH > 100000) {
-              existingViewer.camera.setView({
-                destination: Cesium.Cartesian3.fromDegrees(
-                  MAP_CONFIG_3D.center[0],
-                  MAP_CONFIG_3D.center[1],
-                  MAP_CONFIG_3D.defaultAltitude,
-                ),
-                orientation: {
-                  heading: 0,
-                  pitch: Cesium.Math.toRadians(MAP_CONFIG_3D.defaultPitch),
-                  roll: 0,
-                },
-              });
-            }
-          } catch (e) {
-            console.warn('HMR 카메라 reset 실패:', e);
-          }
+          recoverHmrViewer(existingViewer, Cesium, apiKeyRef.current);
 
           setReady(true);
           setLoading(false);
@@ -425,7 +193,7 @@ export function useVworld3D({
 
         if (viewer && Cesium) {
           viewerRef.current = viewer;
-          bindEventHandlers(viewer, Cesium);
+          bindEventHandlers(viewer, Cesium, onClickRef, onHoverRef);
         }
 
         // ── 7. ws3dInitCallBack — start() 후 설정 (공식 패턴) ─────
@@ -438,7 +206,7 @@ export function useVworld3D({
             const C = getCesium();
             if (v && C) {
               viewerRef.current = v;
-              bindEventHandlers(v, C);
+              bindEventHandlers(v, C, onClickRef, onHoverRef);
             }
           }
 
@@ -461,22 +229,7 @@ export function useVworld3D({
             console.warn('다이어그램 basemap 교체 실패:', e);
           }
 
-          // 지적도 WMS (공식 패턴: vw.source.TileWMS)
-          try {
-            const wmsLayer = new vw.Layers();
-            const wmsSource = new vw.source.TileWMS();
-            wmsSource.setParams('tilesize=256');
-            wmsSource.setLayers('lp_pa_cbnd_bubun,lp_pa_cbnd_bonbun');
-            wmsSource.setStyles('lp_pa_cbnd_bubun_line,lp_pa_cbnd_bonbun_line');
-            wmsSource.setFormat('image/png');
-            wmsSource.setUrl(
-              `https://api.vworld.kr/req/wms?Key=${apiKeyRef.current}&`,
-            );
-            const wmsTile = new vw.layer.Tile(wmsSource);
-            wmsLayer.add(wmsTile);
-          } catch (e) {
-            console.warn('WMS 지적도 레이어 추가 실패:', e);
-          }
+          addCadastralWmsLayer(vw, apiKeyRef.current);
 
           setReady(true);
           setLoading(false);
@@ -691,17 +444,6 @@ export function useVworld3D({
   // ---------------------------------------------------------------------------
   // 규제선 렌더링 (Cesium GeoJsonDataSource, ground clamped)
   // ---------------------------------------------------------------------------
-
-  const SETBACK_DS_NAME = 'setback-lines';
-
-  const SETBACK_COLORS: Record<string, { stroke: string; fill: string; width: number }> = {
-    buildable_area:           { stroke: '#22c55e', fill: 'rgba(34,197,94,0.12)', width: 4 },
-    north_setback:            { stroke: '#ef4444', fill: 'rgba(239,68,68,0.08)', width: 3 },
-    adjacent_setback:         { stroke: '#f97316', fill: 'rgba(249,115,22,0.08)', width: 3 },
-    road_setback:             { stroke: '#3b82f6', fill: 'rgba(59,130,246,0.08)', width: 3 },
-    building_designation_line:{ stroke: '#a855f7', fill: 'rgba(168,85,247,0.08)', width: 3 },
-    corner_cutoff:            { stroke: '#eab308', fill: 'rgba(234,179,8,0.08)', width: 2 },
-  };
 
   const drawSetbackLines = useCallback((lines: Record<string, unknown>) => {
     const viewer = viewerRef.current;

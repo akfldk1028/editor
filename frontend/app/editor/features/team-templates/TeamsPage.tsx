@@ -1,5 +1,5 @@
 'use client'
-import { Badge, Button, Card } from '@/elements/workspace'
+import { Button, Card } from '@/elements/workspace'
 import type { PatternType } from '@/features/team-builder'
 import {
   AgentAddDialog,
@@ -22,37 +22,18 @@ import type {
 } from '@/lib/contracts/workspace'
 import { truncateError } from '@/lib/display-error'
 import { assertTeamShape } from '@/features/team-builder/model/component-shape'
-import {
-  closestCenter,
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
-import { rectSortingStrategy, SortableContext } from '@dnd-kit/sortable'
-import {
-  Code,
-  Download,
-  Eye,
-  Pencil,
-  Plus,
-  Redo2,
-  Save,
-  Target,
-  Undo2,
-  UserPlus,
-  X,
-} from 'lucide-react'
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { Plus } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { TeamCreateDialog, TeamDeleteDialog } from './components'
-import { SortableChip } from './components/SortableChip'
+import { TeamAgentChips } from './TeamAgentChips'
+import { TeamPanelHeader } from './TeamPanelHeader'
 import { TeamCard } from './components/TeamCard'
 import { UnsavedChangesDialog } from './components/UnsavedChangesDialog'
-import { ValidationBadge } from './components/ValidationBadge'
 import { getTeamName, getTeamPattern, useTeams } from './hooks/useTeams'
 import { useUnsavedChanges } from './hooks/useUnsavedChanges'
-import { downloadJSON, getParticipants, getTermination, PATTERN_COLORS } from './model/presentation'
+import { downloadJSON, getParticipants, getTermination } from './model/presentation'
+import { useUndoRedoShortcuts } from './useUndoRedoShortcuts'
 
 // Lazy-load AgentFlow (pulls in @xyflow/react + d3 + dagre ~270KB)
 const AgentFlow = lazy(() =>
@@ -83,29 +64,7 @@ export function TeamsPage() {
   // DnD sensors with distance constraint to distinguish click from drag
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
-  // Keyboard shortcuts for undo/redo
-  const undoRef = useRef(editor.undo)
-  const redoRef = useRef(editor.redo)
-  undoRef.current = editor.undo
-  redoRef.current = editor.redo
-
-  useEffect(() => {
-    if (!editor.isEditing) return
-    const handler = (e: KeyboardEvent) => {
-      // Don't intercept undo/redo inside text inputs (let native behavior work)
-      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault()
-        undoRef.current()
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault()
-        redoRef.current()
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [editor.isEditing])
+  useUndoRedoShortcuts(editor)
 
   // Block navigation when there are unsaved edits
   const blocker = useUnsavedChanges(editor.isEditing && editor.isDirty)
@@ -340,128 +299,23 @@ export function TeamsPage() {
       {/* Agent Flow Graph Panel */}
       {selectedTeam && (
         <Card className="relative">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <h2 className="text-heading-small">{selectedName}</h2>
-              <Badge variant={PATTERN_COLORS[selectedPattern] ?? 'default'}>
-                {patternInfo.label}
-              </Badge>
-              <span className="text-body-small text-(--color-text-tertiary)">
-                {patternInfo.description}
-              </span>
-              <ValidationBadge
-                component={editor.isEditing ? editor.draft?.component : selectedTeam.component}
-              />
-              {editor.isEditing && <Badge variant="warning">Editing</Badge>}
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Edit mode toolbar */}
-              {editor.isEditing && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={editor.undo}
-                    disabled={!editor.canUndo}
-                    aria-label="Undo"
-                    title="Undo (Ctrl+Z)"
-                  >
-                    <Undo2 className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={editor.redo}
-                    disabled={!editor.canRedo}
-                    aria-label="Redo"
-                    title="Redo (Ctrl+Y)"
-                  >
-                    <Redo2 className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleOpenAddAgent}
-                    aria-label="Add agent to team"
-                  >
-                    <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                    Add Agent
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={handleSave}
-                    disabled={!editor.isDirty || editor.isSaving}
-                    aria-label="Save team changes"
-                  >
-                    <Save className="w-3.5 h-3.5 mr-1.5" />
-                    {editor.isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleDiscard}
-                    aria-label="Discard changes"
-                  >
-                    <X className="w-3.5 h-3.5 mr-1.5" />
-                    Discard
-                  </Button>
-                </>
-              )}
-              <Button
-                size="sm"
-                variant={editor.isEditing ? 'primary' : 'ghost'}
-                onClick={handleToggleEdit}
-                aria-label={editor.isEditing ? 'Exit edit mode' : 'Enter edit mode'}
-              >
-                <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleExport}
-                aria-label="Download team as JSON"
-              >
-                <Download className="w-3.5 h-3.5 mr-1.5" />
-                Export
-              </Button>
-              <Button
-                size="sm"
-                variant={showPatterns ? 'primary' : 'ghost'}
-                onClick={handleTogglePatterns}
-                aria-label="Toggle pattern selector"
-              >
-                <Target className="w-3.5 h-3.5 mr-1.5" />
-                Patterns
-              </Button>
-              <Button
-                size="sm"
-                variant={showJson ? 'primary' : 'ghost'}
-                onClick={handleToggleJson}
-                aria-label={showJson ? 'Show graph view' : 'Show JSON view'}
-              >
-                {showJson ? (
-                  <>
-                    <Eye className="w-3.5 h-3.5 mr-1.5" />
-                    Graph
-                  </>
-                ) : (
-                  <>
-                    <Code className="w-3.5 h-3.5 mr-1.5" />
-                    JSON
-                  </>
-                )}
-              </Button>
-              <button
-                onClick={handleClosePanel}
-                className="p-1 rounded hover:bg-(--color-background-secondary) text-(--color-text-tertiary) focus:outline-none focus:ring-2 focus:ring-(--color-accent-primary)"
-                aria-label="Close graph panel"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          <TeamPanelHeader
+            editor={editor}
+            selectedTeam={selectedTeam}
+            selectedName={selectedName}
+            selectedPattern={selectedPattern}
+            patternInfo={patternInfo}
+            showPatterns={showPatterns}
+            showJson={showJson}
+            handleOpenAddAgent={handleOpenAddAgent}
+            handleSave={handleSave}
+            handleDiscard={handleDiscard}
+            handleToggleEdit={handleToggleEdit}
+            handleExport={handleExport}
+            handleTogglePatterns={handleTogglePatterns}
+            handleToggleJson={handleToggleJson}
+            handleClosePanel={handleClosePanel}
+          />
 
           {/* Pattern Selector (toggle) - interactive in edit mode */}
           {showPatterns && (
@@ -529,63 +383,15 @@ export function TeamsPage() {
           )}
 
           {/* Agent chips - sortable via DnD in edit mode */}
-          {editor.isEditing ? (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={chipIds} strategy={rectSortingStrategy}>
-                <div
-                  className="mt-3 flex flex-wrap gap-2"
-                  role="group"
-                  aria-label="Reorder agents by dragging"
-                >
-                  {selectedParticipants.map((p, i) => {
-                    const chipName = p.label ?? p.config?.name ?? `agent-${i}`
-                    return (
-                      <SortableChip
-                        key={chipName}
-                        id={chipName}
-                        name={p.config?.name ?? `agent-${i}`}
-                        isSelected={chipName === selectedNodeLabel}
-                        onClick={() => handleNodeClick(chipName)}
-                      />
-                    )
-                  })}
-                </div>
-              </SortableContext>
-            </DndContext>
-          ) : (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {selectedParticipants.map((p, i) => {
-                const chipName = p.label ?? p.config?.name ?? `agent-${i}`
-                const isSelected = chipName === selectedNodeLabel
-                return (
-                  <span
-                    key={chipName}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={isSelected}
-                    className={`text-xs px-2 py-1 rounded-full cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-(--color-accent-primary) ${
-                      isSelected
-                        ? 'bg-(--color-accent-primary) text-white'
-                        : 'bg-(--color-background-secondary) text-(--color-text-secondary)'
-                    }`}
-                    onClick={() => handleNodeClick(chipName)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        handleNodeClick(chipName)
-                      }
-                    }}
-                  >
-                    {p.config?.name ?? `agent-${i}`}
-                  </span>
-                )
-              })}
-            </div>
-          )}
+          <TeamAgentChips
+            isEditing={editor.isEditing}
+            sensors={sensors}
+            handleDragEnd={handleDragEnd}
+            chipIds={chipIds}
+            selectedParticipants={selectedParticipants}
+            selectedNodeLabel={selectedNodeLabel}
+            handleNodeClick={handleNodeClick}
+          />
         </Card>
       )}
 

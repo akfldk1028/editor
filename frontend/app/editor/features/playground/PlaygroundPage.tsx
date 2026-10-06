@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { workspaceRequest } from '@/lib/workspace-request'
-import { Button, Input, Badge } from '@/elements/workspace'
 import { useTeams, getTeamName } from '@/features/team-templates/hooks/useTeams'
 import { useTeamStore } from '@/features/team-templates/model/team-store'
 import { useExecutionStore } from './executionStore'
@@ -11,28 +10,20 @@ import { ExecutionClient } from '@/features/playground/api/execution-client'
 import type { FileAttachment } from '@/features/playground/api/execution-client'
 import { api } from '@/features/playground/api'
 import {
-  Send, Square, Bot, User, AlertCircle, MessageSquare, History,
+  User,
   ExternalLink,
 } from 'lucide-react'
-import { FileUpload } from './FileUpload'
 import { LiveAgentFlow } from './LiveAgentFlow'
 import { broadcastFlowState, onFlowPresence, getFlowChannelId } from './flowChannel'
-import { useToolApproval, ToolApprovalCard, parseToolApproval, useToolApprovalStore } from '@/features/tool-approval'
-import { useAutoScroll, stripThinkTags, ThinkingIndicator } from '@/features/streaming'
-import { ScheduleIndicator, SchedulePanel, useScheduleStore, useScheduleRunner } from '@/features/schedule'
-import { useContextUsage, ContextUsageRing } from '@/features/context-usage'
-import { ExportButton } from '@/features/export'
-import { PresetPanel } from '@/features/assistants'
+import { useToolApproval, parseToolApproval, useToolApprovalStore } from '@/features/tool-approval'
+import { useAutoScroll } from '@/features/streaming'
+import { SchedulePanel, useScheduleStore, useScheduleRunner } from '@/features/schedule'
+import { useContextUsage } from '@/features/context-usage'
 
-import { AgentTurnCard, RunSummaryCard } from './components/MessageCards'
-
-// Format session name for dropdown display
-function formatSessionLabel(session: { id?: number; name: string; created_at?: string }): string {
-  const date = session.created_at ? new Date(session.created_at).toLocaleDateString() : ''
-  const time = session.created_at ? new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
-  const name = session.name || `Session ${session.id ?? '?'}`
-  return date ? `${name} (${date} ${time})` : name
-}
+import { PlaygroundTopBar } from './PlaygroundTopBar'
+import { PlaygroundChatArea } from './PlaygroundChatArea'
+import { PlaygroundInputBar } from './PlaygroundInputBar'
+import { handleClipboardPaste } from './paste-attachments'
 
 export function PlaygroundPage() {
   const { t } = useTranslation()
@@ -396,162 +387,38 @@ export function PlaygroundPage() {
   const handleFilesChange = setFiles
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    // Handle image paste from clipboard
-    const items = Array.from(e.clipboardData.items)
-    const imageItems = items.filter((item) => item.type.startsWith('image/'))
-
-    if (imageItems.length > 0) {
-      e.preventDefault()
-      const imageFiles: File[] = []
-      for (const item of imageItems) {
-        const file = item.getAsFile()
-        if (file) imageFiles.push(file)
-      }
-      if (imageFiles.length > 0) {
-        // Read images and add to files
-        Promise.all(
-          imageFiles.map(async (file) => {
-            const reader = new FileReader()
-            return new Promise<FileAttachment>((resolve, reject) => {
-              reader.onload = () => {
-                resolve({
-                  name: file.name || `pasted-image-${Date.now()}.png`,
-                  type: file.type,
-                  content: (reader.result as string).split(',')[1] ?? '',
-                })
-              }
-              reader.onerror = () => reject(reader.error)
-              reader.readAsDataURL(file)
-            })
-          }),
-        ).then((newAttachments) => {
-          setFiles((prev) => [...prev, ...newAttachments])
-        }).catch(() => { /* Silently ignore paste read failures */ })
-      }
-      return
-    }
-
-    // Handle large text paste -> auto-convert to file attachment
-    const pastedText = e.clipboardData.getData('text/plain')
-    if (pastedText.length > 1500) {
-      e.preventDefault()
-      const content = btoa(unescape(encodeURIComponent(pastedText)))
-      setFiles((prev) => [
-        ...prev,
-        {
-          name: `pasted-text-${Date.now()}.txt`,
-          type: 'text/plain',
-          content,
-        },
-      ])
-    }
+    handleClipboardPaste(e, setFiles)
   }, [])
 
-  const isInputMode = inputRequest !== null
 
   return (
     <div className="flex flex-col h-full -m-6">
       {unsupportedProviders.length > 0 && <p role="alert" className="p-3">This team contains components not enabled for execution: {unsupportedProviders.join(', ')}. Edit the team to use supported components.</p>}
       {/* Top bar: Team selector + Session selector + Status */}
-      <div className="flex items-center gap-3 p-4 border-b border-(--color-border-default) bg-(--color-surface-card) flex-wrap">
-        {/* Team selector */}
-        <span className="text-label text-(--color-text-secondary)">{t('playground.team')}</span>
-        <select
-          aria-label="Select a team"
-          className="h-9 px-3 rounded-md border border-(--color-border-default) bg-(--color-surface-card) text-sm text-(--color-text-primary)"
-          value={selectedTeamId ?? ''}
-          disabled={starting || isRunning}
-          onChange={(e) => {
-            const team = e.target.value ? Number(e.target.value) : null
-            rememberSelection(team, null)
-            selectTeam(team)
-          }}
-        >
-          <option value="">{t('playground.selectTeam')}</option>
-          {teams?.map((t) => (
-            <option key={t.id} value={t.id}>
-              {getTeamName(t)}
-            </option>
-          ))}
-        </select>
-
-        {/* Separator */}
-        <div className="w-px h-6 bg-(--color-border-default)" aria-hidden="true" />
-
-        {/* Session selector */}
-        <span className="text-label text-(--color-text-secondary)">
-          <History className="w-4 h-4 inline-block mr-1 align-text-bottom" aria-hidden="true" />
-          {t('playground.session')}
-        </span>
-        <select
-          aria-label="Select a session"
-          className="h-9 px-3 rounded-md border border-(--color-border-default) bg-(--color-surface-card) text-sm text-(--color-text-primary) max-w-[280px]"
-          value={currentSessionId ?? 'new'}
-          onChange={(e) => handleSessionChange(e.target.value)}
-          disabled={!selectedTeamId || isRunning || starting}
-        >
-          <option value="new">
-            {t('playground.newSession')}
-          </option>
-          {teamSessions.map((s) => (
-            <option key={s.id} value={s.id}>
-              {formatSessionLabel(s)}
-            </option>
-          ))}
-        </select>
-
-        {/* Loading indicator for sessions */}
-        {(sessionsLoading || messagesLoading) && (
-          <div className="w-4 h-4 border-2 border-(--color-accent-primary) border-t-transparent rounded-full animate-spin" aria-label="Loading sessions" />
-        )}
-
-        {/* Status badge */}
-        {status !== 'idle' && (
-          <Badge variant={status === 'running' ? 'success' : status === 'error' ? 'error' : 'default'}>
-            {status}
-          </Badge>
-        )}
-
-        {/* Pop Out Flow button */}
-        {selectedTeam && !flowPoppedOut && (
-          <button
-            type="button"
-            onClick={handlePopOutFlow}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs border border-(--color-border-default) hover:bg-(--color-background-secondary) text-(--color-text-secondary) hover:text-(--color-text-primary) transition-colors"
-            aria-label="Open flow in new window"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            {t('playground.popOutFlow')}
-          </button>
-        )}
-
-        {/* Export button */}
-        <ExportButton
-          turns={turns}
-          teamName={selectedTeam ? getTeamName(selectedTeam) : ''}
-          disabled={isRunning}
-        />
-
-        {/* Schedule indicator */}
-        <ScheduleIndicator onClick={toggleSchedule} />
-
-        {/* Context usage ring */}
-        {totalTokens > 0 && (
-          <ContextUsageRing
-            percentage={percentage}
-            level={level}
-            displayTotal={displayTotal}
-            displayLimit={displayLimit}
-          />
-        )}
-
-        {/* Session indicator */}
-        {currentSessionId !== null && (
-          <span className="text-body-small text-(--color-text-tertiary) ml-auto">
-            Session #{currentSessionId}
-          </span>
-        )}
-      </div>
+      <PlaygroundTopBar
+        teams={teams}
+        selectedTeamId={selectedTeamId}
+        selectedTeam={selectedTeam}
+        starting={starting}
+        isRunning={isRunning}
+        status={status}
+        turns={turns}
+        currentSessionId={currentSessionId}
+        teamSessions={teamSessions}
+        sessionsLoading={sessionsLoading}
+        messagesLoading={messagesLoading}
+        flowPoppedOut={flowPoppedOut}
+        rememberSelection={rememberSelection}
+        selectTeam={selectTeam}
+        handleSessionChange={handleSessionChange}
+        handlePopOutFlow={handlePopOutFlow}
+        toggleSchedule={toggleSchedule}
+        totalTokens={totalTokens}
+        percentage={percentage}
+        level={level}
+        displayTotal={displayTotal}
+        displayLimit={displayLimit}
+      />
 
       {/* Live Agent Flow visualization (hidden when popped out to separate window) */}
       {selectedTeam && !flowPoppedOut && (
@@ -581,161 +448,49 @@ export function PlaygroundPage() {
       )}
 
       {/* Chat area */}
-      <div ref={scrollRef} className="flex-1 overflow-auto p-6 space-y-4 bg-(--color-background-primary)">
-        {turns.length === 0 && !isRunning && status !== 'error' && !messagesLoading && (
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-center flex-1">
-              <div className="text-center">
-                <Bot className="w-16 h-16 mx-auto text-(--color-text-tertiary) mb-4" />
-                <h2 className="text-heading-medium text-(--color-text-secondary)">
-                  {currentSessionId ? t('playground.emptySession') : t('playground.readyTitle')}
-                </h2>
-                <p className="text-body-medium text-(--color-text-tertiary) mt-2">
-                  {currentSessionId
-                    ? t('playground.emptySessionDesc')
-                    : t('playground.readyDesc')}
-                </p>
-              </div>
-            </div>
-            {!currentSessionId && (
-              <PresetPanel
-                selectedPresetId={selectedPresetId}
-                onSelectPreset={setSelectedPresetId}
-                onPromptClick={handlePromptClick}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Loading state for session history */}
-        {messagesLoading && turns.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-(--color-accent-primary) border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-body-medium text-(--color-text-tertiary)">{t('playground.loadingHistory')}</p>
-            </div>
-          </div>
-        )}
-
-        {turns.map((turn, i) => (
-          <AgentTurnCard
-            key={`${turn.source}-${turn.timestamp}-${i}`}
-            source={turn.source}
-            content={turn.content}
-            images={turn.images}
-            timestamp={turn.timestamp}
-            messageType={turn.messageType}
-            tokensIn={turn.tokensIn}
-            tokensOut={turn.tokensOut}
-          />
-        ))}
-
-        {/* Streaming chunk display (think tags stripped) */}
-        {streamingSource && streamingChunks && (
-          <AgentTurnCard
-            source={streamingSource}
-            content={stripThinkTags(streamingChunks)}
-            timestamp=""
-            messageType="agent"
-            isStreaming
-          />
-        )}
-
-        {/* Thinking indicator with elapsed timer */}
-        {isThinking && thinkingStartRef.current && (
-          <ThinkingIndicator startedAt={thinkingStartRef.current} />
-        )}
-
-        {/* Tool approval card */}
-        {pendingApproval && (
-          <ToolApprovalCard
-            approval={pendingApproval}
-            queueLength={approvalQueueLength}
-            onApprove={handleApprove}
-            onApproveAlways={handleApproveAlways}
-            onReject={handleReject}
-          />
-        )}
-
-        {/* Input request indicator */}
-        {isInputMode && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-(--color-accent-primary-light)">
-            <MessageSquare className="w-4 h-4 text-(--color-accent-primary) shrink-0" />
-            <span className="text-body-small text-(--color-text-secondary)">
-              {t('playground.requestingInput', { source: inputRequest.source, prompt: inputRequest.prompt })}
-            </span>
-          </div>
-        )}
-
-        {/* Error display */}
-        {status === 'error' && error && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-(--color-semantic-error)/10">
-            <AlertCircle className="w-4 h-4 text-(--color-semantic-error) shrink-0 mt-0.5" />
-            <span className="text-body-small text-(--color-semantic-error)">{error}</span>
-          </div>
-        )}
-
-        {/* Run Summary (shown after completion) */}
-        {runSummary && !isRunning && (
-          <RunSummaryCard summary={runSummary} />
-        )}
-      </div>
+      <PlaygroundChatArea
+        scrollRef={scrollRef}
+        turns={turns}
+        isRunning={isRunning}
+        status={status}
+        error={error}
+        streamingChunks={streamingChunks}
+        streamingSource={streamingSource}
+        inputRequest={inputRequest}
+        currentSessionId={currentSessionId}
+        runSummary={runSummary}
+        messagesLoading={messagesLoading}
+        selectedPresetId={selectedPresetId}
+        setSelectedPresetId={setSelectedPresetId}
+        handlePromptClick={handlePromptClick}
+        isThinking={isThinking}
+        thinkingStartRef={thinkingStartRef}
+        pendingApproval={pendingApproval}
+        approvalQueueLength={approvalQueueLength}
+        handleApprove={handleApprove}
+        handleApproveAlways={handleApproveAlways}
+        handleReject={handleReject}
+      />
 
       {/* Input bar */}
-      <div className="p-4 border-t border-(--color-border-default) bg-(--color-surface-card)">
-        {/* File attachments list */}
-        {files.length > 0 && (
-          <div className="mb-2">
-            <FileUpload
-              files={files}
-              onFilesChange={handleFilesChange}
-              disabled={isRunning && !isInputMode}
-            />
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          {/* Attach button (only show when no files displayed above) */}
-          {files.length === 0 && (
-            <FileUpload
-              files={files}
-              onFilesChange={handleFilesChange}
-              disabled={isRunning && !isInputMode}
-            />
-          )}
-          <Input
-            value={task}
-            onChange={(e) => setTask(e.target.value)}
-            onPaste={handlePaste}
-            placeholder={
-              isInputMode
-                ? t('playground.inputPlaceholder', { source: inputRequest.source })
-                : currentSessionId
-                  ? t('playground.continueSession')
-                  : t('playground.enterTask')
-            }
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                if (isInputMode) handleSendInput()
-                else handleRun()
-              }
-            }}
-            disabled={starting || (isRunning && !isInputMode)}
-            aria-label="Task or input"
-          />
-          {(isRunning || uncertain) && <Button variant="danger" onClick={handleStop} aria-label="Stop execution"><Square className="w-4 h-4" /></Button>}
-          {isRunning && !isInputMode ? (
-            null
-          ) : isInputMode ? (
-            <Button onClick={handleSendInput} disabled={!task.trim()} aria-label="Send input">
-              <Send className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button onClick={() => void handleRun()} disabled={!task.trim() || !selectedTeamId || unsupportedProviders.length > 0 || starting || uncertain || messagesLoading} aria-label="Send task">
-              <Send className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </div>
+      <PlaygroundInputBar
+        files={files}
+        handleFilesChange={handleFilesChange}
+        task={task}
+        setTask={setTask}
+        handlePaste={handlePaste}
+        isRunning={isRunning}
+        inputRequest={inputRequest}
+        currentSessionId={currentSessionId}
+        selectedTeamId={selectedTeamId}
+        unsupportedProviders={unsupportedProviders}
+        starting={starting}
+        uncertain={uncertain}
+        messagesLoading={messagesLoading}
+        handleRun={handleRun}
+        handleSendInput={handleSendInput}
+        handleStop={handleStop}
+      />
 
       {/* Schedule Panel (drawer) */}
       {scheduleOpen && (
