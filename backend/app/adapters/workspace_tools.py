@@ -61,7 +61,8 @@ class LandAnalyzeTool(BaseTool[LandAnalyzeArgs, str], Component[_EmptyConfig]):
 
     async def run(self, args, cancellation_token):
         try:
-            result = await tool_services().analyze_land(args.pnu, args.address, list(args.zones))
+            services = tool_services()
+            result = await services.analyze_land(args.pnu, args.address, list(args.zones))
         except Exception as error:
             # The text goes to the model and on to the client; exception text may embed credentials.
             return json.dumps({"error": f"analyze_land failed ({type(error).__name__})"})
@@ -95,7 +96,8 @@ class LawSearchTool(BaseTool[LawSearchArgs, str], Component[_EmptyConfig]):
 
     async def run(self, args, cancellation_token):
         try:
-            result = await tool_services().search_laws(args.query, args.limit)
+            services = tool_services()
+            result = await services.search_laws(args.query, args.limit)
         except Exception as error:
             return json.dumps({"error": f"search_laws failed ({type(error).__name__})"})
         articles = result.get("articles") if isinstance(result, dict) else None

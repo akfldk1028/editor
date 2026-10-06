@@ -55,7 +55,7 @@ def create_agent_provider_router(*, public_origin=None):
             raise HTTPException(403, 'Cross-origin provider requests are not allowed')
         limit = BODY_LIMITS.get((domain, operation), DEFAULT_BODY_LIMIT)
         declared = request.headers.get('content-length')
-        if declared and declared.isdigit() and int(declared) > limit:
+        if declared and declared.isdecimal() and int(declared) > limit:
             raise HTTPException(413, 'Provider request is too large')
         body = await request.body()
         if len(body) > limit:

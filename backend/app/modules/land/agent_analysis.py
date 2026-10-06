@@ -60,15 +60,20 @@ async def agent_analysis_events(*, pnu, address, zones, services, team, environm
 
     started = time.monotonic()
     deadline = started + timeout
-    turn, tokens, report, loaded, stream = 0, 0, '', None, None
+    turn, tokens, report, loaded, stream, timer = 0, 0, '', None, None, None
     try:
         from autogen_agentchat.base import TaskResult
         from autogen_agentchat.messages import BaseChatMessage
+        from autogen_core import CancellationToken
 
         loaded = load_team(team, None, environment)
-        stream = loaded.run_stream(task=task_prompt(result, pnu, address))
-        # The deadline bounds each step rather than wrapping the yields: asyncio.timeout
-        # around a suspended generator would cancel the consumer instead of raising here.
+        # The token reaches the model calls, so the deadline aborts an in-flight request
+        # instead of waiting for the team to finish on its own; wait_for below only turns
+        # the abort into the error event (asyncio.timeout around the yields would cancel
+        # the SSE consumer rather than this generator).
+        token = CancellationToken()
+        timer = asyncio.get_running_loop().call_later(timeout, token.cancel)
+        stream = loaded.run_stream(task=task_prompt(result, pnu, address), cancellation_token=token)
         while True:
             try:
                 event = await asyncio.wait_for(anext(stream), max(0.0, deadline - time.monotonic()))
@@ -94,6 +99,8 @@ async def agent_analysis_events(*, pnu, address, zones, services, team, environm
                'fallback_to_quick': True}
         return
     finally:
+        if timer is not None:
+            timer.cancel()
         if stream is not None:
             try:
                 await stream.aclose()

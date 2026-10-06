@@ -47,8 +47,11 @@ def research_bundle(request):
     try:
         bundle = write_creative_mass_research_bundle(body["candidate"], run_directory=run_directory, run_id=run_id, pnu=pnu)
     except (ValueError, TypeError, KeyError) as exc:
-        if not any(run_directory.iterdir()):
-            run_directory.rmdir()  # a refused candidate leaves nothing behind
+        try:
+            if not any(run_directory.iterdir()):
+                run_directory.rmdir()  # a refused candidate leaves nothing behind
+        except OSError:
+            pass  # a concurrent run on the same id owns the directory now
         return _bad(f"{type(exc).__name__}: {exc}")
     except OSError as exc:
         return JsonResponse({"success": False, "error": f"{type(exc).__name__}: {exc}"}, status=502)
