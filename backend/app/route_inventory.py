@@ -4,14 +4,14 @@ OpenAPI alone cannot describe it: design operations sit behind one catch-all
 that resolves Django URL patterns. The frontend's api-surface test reads the
 committed file, and test_route_inventory.py keeps the file equal to the code.
 
-    python -m backend.app.core.route_inventory --write
+    python -m backend.app.route_inventory --write
 """
 import json
 import re
 import sys
 from pathlib import Path
 
-INVENTORY_PATH = Path(__file__).resolve().parents[2] / 'route-inventory.json'
+INVENTORY_PATH = Path(__file__).resolve().parents[1] / 'route-inventory.json'
 SCHEMA = 'editor-route-inventory/v1'
 METHODS = ('GET', 'POST', 'PUT', 'DELETE')
 DESIGN_CATCH_ALL = '/api/v1/design/{path}'

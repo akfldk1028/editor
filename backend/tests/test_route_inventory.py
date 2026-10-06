@@ -1,10 +1,10 @@
-from backend.app.core.route_inventory import INVENTORY_PATH, compute_inventory, render
+from backend.app.route_inventory import INVENTORY_PATH, compute_inventory, render
 
 
 def test_committed_route_inventory_matches_the_served_routes():
     expected = render(compute_inventory())
     assert INVENTORY_PATH.read_text(encoding='utf-8') == expected, (
-        'backend/route-inventory.json is stale; run `python -m backend.app.core.route_inventory --write`')
+        'backend/route-inventory.json is stale; run `python -m backend.app.route_inventory --write`')
 
 
 def test_inventory_lists_both_owners_without_the_catch_all():

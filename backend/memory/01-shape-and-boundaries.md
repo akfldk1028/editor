@@ -23,7 +23,7 @@ folders remain only as read-only reference; `infra/dev/inventory-original-ui.mjs
 - `app/core/geometry/` — shared 2D geometry helpers (was `backend/engine/`).
 - `app/core/` — single owners of cross-cutting names: `agent_network.py` (A2A_TOKEN),
   `model_auth.py` (EDITOR_MODEL_AUTH), `graph_config.py` (Neo4j), `mcp_params.py`,
-  `route_inventory.py`.
+  (route inventory tool lives at `app/route_inventory.py`, beside `main.py`).
 - Files under ~500 lines; one env name has one owner module.
 - Splitting a module: make it a package (`foo/__init__.py` keeps every public/underscore name,
   parts in `foo/<concern>.py`), as `app/cli/`, `regulations/calculator/`. No `foo_<part>.py` siblings.

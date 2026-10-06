@@ -47,4 +47,4 @@ validate_plan, footprint_inside, ramp_overhead (Systems via MasterPlan), bind_de
 
 ## Guards
 `backend/route-inventory.json` + `tests/test_route_inventory.py` (regenerate with
-`python -m backend.app.core.route_inventory --write`), frontend `lib/api-surface.test.ts`.
+`python -m backend.app.route_inventory --write`), frontend `lib/api-surface.test.ts`.
