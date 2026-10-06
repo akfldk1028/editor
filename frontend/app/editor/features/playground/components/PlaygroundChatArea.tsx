@@ -4,8 +4,8 @@ import { PresetPanel } from '@/features/assistants'
 import { stripThinkTags, ThinkingIndicator } from '@/features/streaming'
 import type { useToolApproval } from '@/features/tool-approval'
 import { ToolApprovalCard } from '@/features/tool-approval'
-import { AgentTurnCard, RunSummaryCard } from './components/MessageCards'
-import type { useExecutionStore } from './executionStore'
+import type { useExecutionStore } from '../executionStore'
+import { AgentTurnCard, RunSummaryCard } from './MessageCards'
 
 type ExecutionState = ReturnType<typeof useExecutionStore.getState>
 type ToolApproval = ReturnType<typeof useToolApproval>

@@ -2,8 +2,8 @@ import { Code, Download, Eye, Pencil, Redo2, Save, Target, Undo2, UserPlus, X } 
 import { Badge, Button } from '@/elements/workspace'
 import type { PATTERN_LABELS, useTeamEditor } from '@/features/team-builder'
 import type { TeamResponse } from '@/features/team-templates/api'
-import { ValidationBadge } from './components/ValidationBadge'
-import { PATTERN_COLORS } from './model/presentation'
+import { PATTERN_COLORS } from '../model/presentation'
+import { ValidationBadge } from './ValidationBadge'
 
 type TeamEditor = ReturnType<typeof useTeamEditor>
 

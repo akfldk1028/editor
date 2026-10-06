@@ -7,8 +7,8 @@ import { ScheduleIndicator } from '@/features/schedule'
 import type { TeamResponse } from '@/features/team-templates/api'
 import { getTeamName } from '@/features/team-templates/hooks/useTeams'
 import type { useTeamStore } from '@/features/team-templates/model/team-store'
-import type { useExecutionStore } from './executionStore'
-import type { filterSessionsByTeam } from './useExecution'
+import type { useExecutionStore } from '../executionStore'
+import type { filterSessionsByTeam } from '../useExecution'
 
 type ExecutionState = ReturnType<typeof useExecutionStore.getState>
 

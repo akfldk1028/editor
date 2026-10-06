@@ -1,7 +1,7 @@
 import { ArrowUp, Loader2, Search } from 'lucide-react'
 import React from 'react'
 
-import { glassInputHandlers } from './lib/glass-input'
+import { glassInputHandlers } from '../lib/glass-input'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BottomInput — 메시지 모드 하단 입력바

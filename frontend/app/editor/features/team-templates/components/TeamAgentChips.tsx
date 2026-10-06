@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, type DragEndEvent, type useSensors } from '@dnd-kit/core'
 import { rectSortingStrategy, SortableContext } from '@dnd-kit/sortable'
 import type { AgentConfig, Component } from '@/lib/contracts/workspace'
-import { SortableChip } from './components/SortableChip'
+import { SortableChip } from './SortableChip'
 
 interface TeamAgentChipsProps {
   isEditing: boolean

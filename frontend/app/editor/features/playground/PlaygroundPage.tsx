@@ -1,29 +1,28 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { workspaceRequest } from '@/lib/workspace-request'
-import { useTeams, getTeamName } from '@/features/team-templates/hooks/useTeams'
-import { useTeamStore } from '@/features/team-templates/model/team-store'
-import { useExecutionStore } from './executionStore'
-import { useSessions, useSessionMessages, filterSessionsByTeam } from './useExecution'
-import { ExecutionClient } from '@/features/playground/api/execution-client'
-import type { FileAttachment } from '@/features/playground/api/execution-client'
-import { api } from '@/features/playground/api'
 import {
-  User,
   ExternalLink,
+  User,
 } from 'lucide-react'
-import { LiveAgentFlow } from './LiveAgentFlow'
-import { broadcastFlowState, onFlowPresence, getFlowChannelId } from './flowChannel'
-import { useToolApproval, parseToolApproval, useToolApprovalStore } from '@/features/tool-approval'
-import { useAutoScroll } from '@/features/streaming'
-import { SchedulePanel, useScheduleStore, useScheduleRunner } from '@/features/schedule'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useContextUsage } from '@/features/context-usage'
-
-import { PlaygroundTopBar } from './PlaygroundTopBar'
-import { PlaygroundChatArea } from './PlaygroundChatArea'
-import { PlaygroundInputBar } from './PlaygroundInputBar'
+import { api } from '@/features/playground/api'
+import type { FileAttachment } from '@/features/playground/api/execution-client'
+import { ExecutionClient } from '@/features/playground/api/execution-client'
+import { SchedulePanel, useScheduleRunner, useScheduleStore } from '@/features/schedule'
+import { useAutoScroll } from '@/features/streaming'
+import { getTeamName, useTeams } from '@/features/team-templates/hooks/useTeams'
+import { useTeamStore } from '@/features/team-templates/model/team-store'
+import { parseToolApproval, useToolApproval, useToolApprovalStore } from '@/features/tool-approval'
+import { workspaceRequest } from '@/lib/workspace-request'
+import { PlaygroundChatArea } from './components/PlaygroundChatArea'
+import { PlaygroundInputBar } from './components/PlaygroundInputBar'
+import { PlaygroundTopBar } from './components/PlaygroundTopBar'
+import { useExecutionStore } from './executionStore'
+import { broadcastFlowState, getFlowChannelId, onFlowPresence } from './flowChannel'
+import { LiveAgentFlow } from './LiveAgentFlow'
 import { handleClipboardPaste } from './paste-attachments'
+import { filterSessionsByTeam, useSessionMessages, useSessions } from './useExecution'
 
 export function PlaygroundPage() {
   const { t } = useTranslation()

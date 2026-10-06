@@ -16,29 +16,26 @@
  * 스타일: inline hex (Tailwind CSS 변수 충돌 회피)
  */
 
+import { AnimatePresence, motion } from 'framer-motion';
 import type React from 'react';
-import { useRef, useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-
+import { useEffect, useRef, useState } from 'react';
+import AgentProgressPanel from '../land-map/components/AgentProgressPanel';
+import { MapSearchBar } from '../land-map/components/MapSearchBar';
+/* ── Components ── */
+import { ArticleDetailPanel } from './components/ArticleDetailPanel';
+import { BottomInput } from './components/BottomInput';
+import { ChatHeader } from './components/ChatHeader';
+import { HeroSearch } from './components/HeroSearch';
+import { MapPanel } from './components/MapPanel';
+import { MessageList } from './components/MessageList';
 /* ── Context & hooks ── */
 import { LawAPIProvider, useLawAPI } from './contexts/LawAPIContext';
 import { useLawChat } from './hooks/use-law-chat';
 import { useLawSearchStream } from './hooks/use-law-search-stream';
+import type { AnalysisMode } from './hooks/use-map-law-search';
 import { useMapLawSearch } from './hooks/use-map-law-search';
-
-/* ── Components ── */
-import { ArticleDetailPanel } from './components/ArticleDetailPanel';
-import { HeroSearch } from './components/HeroSearch';
-import { MapPanel } from './components/MapPanel';
-import { MapSearchBar } from '../land-map/components/MapSearchBar';
-import AgentProgressPanel from '../land-map/components/AgentProgressPanel';
-import { ChatHeader } from './ChatHeader';
-import { MessageList } from './MessageList';
-import { BottomInput } from './BottomInput';
-
 /* ── Types ── */
 import type { LawArticle } from './lib/types';
-import type { AnalysisMode } from './hooks/use-map-law-search';
 
 /* ── Constants ── */
 const ANALYSIS_MODES = [['quick', '빠른 분석'], ['agent', 'AI 심화 분석']] as const;

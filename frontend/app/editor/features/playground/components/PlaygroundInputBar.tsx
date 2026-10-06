@@ -2,8 +2,8 @@ import { Send, Square } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button, Input } from '@/elements/workspace'
 import type { FileAttachment } from '@/features/playground/api/execution-client'
-import type { useExecutionStore } from './executionStore'
-import { FileUpload } from './FileUpload'
+import type { useExecutionStore } from '../executionStore'
+import { FileUpload } from '../FileUpload'
 
 type ExecutionState = ReturnType<typeof useExecutionStore.getState>
 

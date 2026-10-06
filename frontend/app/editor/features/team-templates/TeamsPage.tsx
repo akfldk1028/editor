@@ -1,4 +1,7 @@
 'use client'
+import { type DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { Plus } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { Button, Card } from '@/elements/workspace'
 import type { PatternType } from '@/features/team-builder'
 import {
@@ -11,6 +14,7 @@ import {
   TerminationEditor,
   useTeamEditor,
 } from '@/features/team-builder'
+import { assertTeamShape } from '@/features/team-builder/model/component-shape'
 import type { TeamResponse } from '@/features/team-templates/api'
 import { validationAPI } from '@/features/team-templates/api'
 import type {
@@ -21,19 +25,15 @@ import type {
   TerminationConfig,
 } from '@/lib/contracts/workspace'
 import { truncateError } from '@/lib/display-error'
-import { assertTeamShape } from '@/features/team-builder/model/component-shape'
-import { PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { Plus } from 'lucide-react'
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { TeamCreateDialog, TeamDeleteDialog } from './components'
-import { TeamAgentChips } from './TeamAgentChips'
-import { TeamPanelHeader } from './TeamPanelHeader'
+import { TeamAgentChips } from './components/TeamAgentChips'
 import { TeamCard } from './components/TeamCard'
+import { TeamPanelHeader } from './components/TeamPanelHeader'
 import { UnsavedChangesDialog } from './components/UnsavedChangesDialog'
 import { getTeamName, getTeamPattern, useTeams } from './hooks/useTeams'
+import { useUndoRedoShortcuts } from './hooks/useUndoRedoShortcuts'
 import { useUnsavedChanges } from './hooks/useUnsavedChanges'
 import { downloadJSON, getParticipants, getTermination } from './model/presentation'
-import { useUndoRedoShortcuts } from './useUndoRedoShortcuts'
 
 // Lazy-load AgentFlow (pulls in @xyflow/react + d3 + dagre ~270KB)
 const AgentFlow = lazy(() =>

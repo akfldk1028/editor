@@ -1,14 +1,14 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
-import LandAnalysisPanel from '../land-map/components/LandAnalysisPanel'
-import { ResultDisplay } from './components/ResultDisplay'
+import LandAnalysisPanel from '../../land-map/components/LandAnalysisPanel'
+import type { SearchProgress } from '../hooks/use-law-search-stream'
+import type { ChatMessage, LawArticle } from '../lib/types'
+import { ResultDisplay } from './ResultDisplay'
 import {
   SearchCompleteHeader,
   SearchErrorIndicator,
   SearchProgressIndicator,
-} from './components/SearchProgress'
-import type { SearchProgress } from './hooks/use-law-search-stream'
-import type { ChatMessage, LawArticle } from './lib/types'
+} from './SearchProgress'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MessageList — 채팅 메시지 목록 + SSE 진행률

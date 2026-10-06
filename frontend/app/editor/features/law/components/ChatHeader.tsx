@@ -1,7 +1,7 @@
 import { Radio, RotateCcw, StopCircle, Wifi, WifiOff } from 'lucide-react'
 import React from 'react'
 
-import { Pill } from './components/Pill'
+import { Pill } from './Pill'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ChatHeader — 메시지 모드 상단 헤더

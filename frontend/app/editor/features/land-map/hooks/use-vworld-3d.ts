@@ -17,9 +17,9 @@
  *   이동: map.moveTo(CameraPosition) / viewer.camera.flyTo(...)
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAP_CONFIG_3D } from '../lib/constants';
-import { canCreateWebGLContext, getCesium, getVw, getWs3d, loadVworldScript, sdkStyles } from './vworld-3d-loader';
+import { canCreateWebGLContext, getCesium, getVw, getWs3d, loadVworldScript, sdkStyles } from '../lib/vworld-3d-loader';
 import {
   addCadastralWmsLayer,
   applyDiagramImageryStyle,
@@ -27,11 +27,11 @@ import {
   extractGeoJsonRing,
   PARCEL_HIGHLIGHT_ID,
   PARCEL_HOVER_ID,
+  recoverHmrViewer,
   SETBACK_COLORS,
   SETBACK_DS_NAME,
-  recoverHmrViewer,
   zoomToAltitude,
-} from './vworld-3d-scene';
+} from '../lib/vworld-3d-scene';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

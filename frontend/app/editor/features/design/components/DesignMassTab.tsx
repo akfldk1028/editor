@@ -1,7 +1,7 @@
-import DesignInspector from './components/DesignInspector';
-import DesignList from './components/DesignList';
-import { MassExecutionPassportCard } from './components/MassExecutionPassportCard';
-import type { DesignData, GeoJSONFeature } from './lib/types';
+import type { DesignData, GeoJSONFeature } from '../lib/types';
+import DesignInspector from './DesignInspector';
+import DesignList from './DesignList';
+import { MassExecutionPassportCard } from './MassExecutionPassportCard';
 
 interface DesignMassTabProps {
   designs: DesignData[];

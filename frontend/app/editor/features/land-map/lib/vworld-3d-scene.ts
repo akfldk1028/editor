@@ -3,7 +3,7 @@
  * (use-vworld-3d.ts 에서 분리)
  */
 
-import { MAP_CONFIG_3D } from '../lib/constants'
+import { MAP_CONFIG_3D } from './constants'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
