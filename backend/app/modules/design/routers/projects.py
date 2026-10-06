@@ -5,9 +5,9 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
-from backend.app.api.design_access import DesignAccess
-from backend.app.api.routes_execution_artifacts import create_execution_router
-from backend.app.api.routes_native_design import create_native_design_router
+from backend.app.modules.design.dependencies import DesignAccess
+from backend.app.modules.design.routers.execution_artifacts import create_execution_router
+from backend.app.modules.design.routers.native_jobs import create_native_design_router
 
 
 class DesignAttachment(BaseModel):

@@ -45,7 +45,7 @@ def test_submission_binds_project_and_preserves_retry_identity(tmp_path):
 def test_run_api_requires_key_and_rejects_cross_origin(tmp_path):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from backend.app.api.routes_platform import create_platform_router
+    from backend.app.modules.platform.routers.platform import create_platform_router
     owner, projects, binding, runs = setup(tmp_path)
     app = FastAPI()
     app.include_router(create_platform_router(owner,project_service=projects))

@@ -2,8 +2,8 @@
 import httpx
 import uvicorn
 from fastapi import FastAPI
-from backend.app.adapters.vworld import VworldClient
-from backend.app.api.routes_land import create_land_router
+from backend.app.modules.land.vworld import VworldClient
+from backend.app.modules.land.routers.analysis import create_land_router
 
 
 def provider(request):

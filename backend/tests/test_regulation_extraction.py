@@ -23,7 +23,7 @@ class Search:
 
 
 def client(search, **kwargs):
-    return importlib.import_module('backend.app.adapters.regulation_extraction').RegulationExtractionClient(search, **kwargs)
+    return importlib.import_module('backend.app.modules.regulations.extraction').RegulationExtractionClient(search, **kwargs)
 
 
 @pytest.mark.anyio

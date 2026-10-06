@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from shapely.geometry import shape
 from starlette.concurrency import run_in_threadpool
 
-from backend.app.adapters.vworld import VworldClient
+from backend.app.modules.land.vworld import VworldClient
 from backend.app.modules.land.parcel_geometry import parcel_geometry
 from backend.app.modules.land.projection import wgs84_to_utm
 from backend.app.modules.design.artifacts import ArtifactArchiveError

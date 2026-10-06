@@ -5,11 +5,11 @@ The route builds this from the environment; tools and tests inject their own.
 import os
 from dataclasses import dataclass
 
-from backend.app.adapters.vworld import VworldClient
-from backend.app.adapters.vworld.land import VworldLandClient
-from backend.app.adapters.vworld.geometry import VworldGeometryClient
+from backend.app.modules.land.vworld import VworldClient
+from backend.app.modules.land.vworld.land import VworldLandClient
+from backend.app.modules.land.vworld.geometry import VworldGeometryClient
 from backend.app.adapters.law_search import LawSearchClient
-from backend.app.adapters.regulation_extraction import RegulationExtractionClient
+from backend.app.modules.regulations.extraction import RegulationExtractionClient
 from backend.app.adapters.elevation import ElevationClient
 from backend.app.modules.land.datum import DatumService, DatumSettings
 from backend.app.modules.land.analysis import analyze_land

@@ -28,7 +28,7 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 from backend.app.api.routes_design_runtime import create_design_runtime_router
-from backend.app.api.routes_design_workspace import create_design_workspace_router
+from backend.app.modules.design.routers.workspace import create_design_workspace_router
 from backend.app.modules.design.generation.maas.geometry_language import architectural_shape_programs
 app = FastAPI()
 app.include_router(create_design_workspace_router())

@@ -1,7 +1,7 @@
 import json
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from backend.app.api.routes_law import create_law_router
+from backend.app.modules.law.router import create_law_router
 
 
 class Provider:

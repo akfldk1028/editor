@@ -2,7 +2,7 @@ def test_land_route_validates_input_and_origin_before_local_provider_call(monkey
     monkeypatch.setenv('ENABLE_DATUM_ELEVATION', 'true')
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from backend.app.api.routes_land import create_land_router
+    from backend.app.modules.land.routers.analysis import create_land_router
     provider_calls=[]
     class Attributes:
         async def fetch(self, pnu):

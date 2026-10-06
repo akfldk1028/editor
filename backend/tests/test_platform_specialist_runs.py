@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.app.api.routes_platform import create_platform_router
+from backend.app.modules.platform.routers.platform import create_platform_router
 from backend.tests.test_platform_runs import setup
 
 

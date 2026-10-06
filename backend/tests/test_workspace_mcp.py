@@ -1,7 +1,7 @@
 import sys
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from backend.app.api.routes_workspace import create_workspace_router
+from backend.app.modules.workspace.routers.workspace import create_workspace_router
 
 
 def test_real_stdio_mcp_tools_resources_disconnect_and_origin(tmp_path, monkeypatch):

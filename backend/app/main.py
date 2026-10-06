@@ -5,18 +5,18 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
-from backend.app.api.routes_pascal import create_pascal_router
-from backend.app.api.routes_platform import create_platform_router
-from backend.app.api.routes_land import create_land_router
-from backend.app.api.routes_law import create_law_router
-from backend.app.api.routes_design_workspace import create_design_workspace_router
+from backend.app.modules.planm_runs.routers.pascal import create_pascal_router
+from backend.app.modules.platform.routers.platform import create_platform_router
+from backend.app.modules.land.routers.analysis import create_land_router
+from backend.app.modules.law.router import create_law_router
+from backend.app.modules.design.routers.workspace import create_design_workspace_router
 from backend.app.api.routes_design_runtime import create_design_runtime_router
-from backend.app.api.routes_design_collaboration import create_design_collaboration_router
-from backend.app.api.routes_workspace import create_workspace_router
+from backend.app.modules.design.routers.collaboration import create_design_collaboration_router
+from backend.app.modules.workspace.routers.workspace import create_workspace_router
 from backend.app.api.routes_agent_providers import create_agent_provider_router
 from backend.app.adapters.orchestrator import OrchestratorClient
 from backend.app.modules.platform.projects import ProjectService
-from backend.app.api.routes_planm_runs import create_planm_runs_router
+from backend.app.modules.planm_runs.routers.runs import create_planm_runs_router
 from backend.app.modules.planm_runs import PlanmRunService
 
 

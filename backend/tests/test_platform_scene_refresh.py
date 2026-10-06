@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.app.api.routes_platform import create_platform_router
+from backend.app.modules.platform.routers.platform import create_platform_router
 from backend.app.modules.platform.projects import ProjectService
 from backend.app.modules.platform.repository import ProjectRepository
 from backend.app.schemas.platform import ProjectCreate

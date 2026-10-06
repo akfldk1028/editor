@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.app.adapters.vworld.geometry import GeometryProviderUnavailable
+from backend.app.modules.land.vworld.geometry import GeometryProviderUnavailable
 from backend.app.modules.land.analysis import analyze_land
 
 

@@ -3,9 +3,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.app.api.routes_land_map import create_land_map_router
-from backend.app.api.routes_land import create_land_router
-from backend.app.adapters.vworld.map import VworldMapClient
+from backend.app.modules.land.routers.map import create_land_map_router
+from backend.app.modules.land.routers.analysis import create_land_router
+from backend.app.modules.land.vworld.map import VworldMapClient
 
 PNG = b'\x89PNG\r\n\x1a\nimage-fixture'
 

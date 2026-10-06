@@ -3,7 +3,7 @@ import math
 import os
 import json
 from fastapi import APIRouter, HTTPException, Request, Response
-from backend.app.adapters.vworld.map import MapUnavailable, VworldMapClient
+from backend.app.modules.land.vworld.map import MapUnavailable, VworldMapClient
 
 logger = logging.getLogger(__name__)
 

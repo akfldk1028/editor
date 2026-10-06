@@ -13,7 +13,7 @@ from backend.app.adapters.pascal_mcp import (
     PascalMcpSettings,
     PascalMcpUnavailable,
 )
-from backend.app.api.routes_pascal import create_pascal_router
+from backend.app.modules.planm_runs.routers.pascal import create_pascal_router
 
 SQUARE = [[0.0, 0.0], [6.0, 0.0], [6.0, 4.0], [0.0, 4.0]]
 RUN_ID = "a" * 32

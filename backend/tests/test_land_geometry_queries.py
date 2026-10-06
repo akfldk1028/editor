@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-from backend.app.adapters.vworld.geometry import GeometryProviderUnavailable
+from backend.app.modules.land.vworld.geometry import GeometryProviderUnavailable
 from backend.app.modules.land.geometry_queries import GeometryQueries
 from backend.app.modules.land.repository import LandRepository
 

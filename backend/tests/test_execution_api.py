@@ -29,7 +29,7 @@ class Sources:
 
 @pytest.fixture
 def execution_api(tmp_path):
-    from backend.app.api.routes_platform import create_platform_router
+    from backend.app.modules.platform.routers.platform import create_platform_router
     from backend.app.modules.design.execution_catalog import ExecutionCatalog
     from backend.app.modules.design.artifacts import ArtifactArchive,import_artifacts
     sources=Sources();projects=ProjectRepository(tmp_path/'projects')

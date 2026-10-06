@@ -11,15 +11,18 @@ folders remain only as read-only reference; `infra/dev/inventory-original-ui.mjs
 `*source-manifest.json` files cite them.
 
 ## Layers (where code goes)
-- `app/api/routes_*.py` — thin FastAPI routers (parse, check origin/token, call a module).
+- `app/modules/<domain>/routers/*.py` (law: `modules/law/router.py`) — thin FastAPI routers
+  (parse, check origin/token, call a module); each domain owns its routers. `app/api/` keeps
+  only the agent doors (`routes_agent_providers.py`, `routes_design_runtime.py`).
 - `app/api/design_runtime/` — a **Django** URLConf + views reached through the FastAPI
   catch-all `routes_design_runtime.py` (`/api/v1/design/{path}`). Legacy ARR design views live
-  here; FastAPI owns `routes_design_workspace.py` paths (no duplicates).
+  here; FastAPI owns `modules/design/routers/workspace.py` paths (no duplicates).
 - `app/api/agent_providers/{law,land,design}.py` — agent-only ops behind
   `routes_agent_providers.py` (`POST /api/v1/{domain}/agent/{op}`).
 - `app/modules/<domain>/` — logic (land, law, design, massing, workspace, planm_runs, ...).
-- `app/adapters/` — external systems (autogen, Vworld, Neo4j storage, planm agent client,
-  Orchestrator client, CLI model client).
+- `app/adapters/` — external systems (autogen, Neo4j storage, planm agent client,
+  Orchestrator client, CLI model client). A client that serves one domain lives in it
+  (Vworld: `modules/land/vworld/`; LLM extraction: `modules/regulations/extraction.py`).
 - `app/core/` — single owners of cross-cutting names: `agent_network.py` (A2A_TOKEN),
   `model_auth.py` (EDITOR_MODEL_AUTH), `graph_config.py` (Neo4j), `mcp_params.py`,
   (route inventory tool lives at `app/route_inventory.py`, beside `main.py`).

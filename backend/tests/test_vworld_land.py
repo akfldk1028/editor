@@ -4,7 +4,7 @@ import json
 import httpx
 import pytest
 
-from backend.app.adapters.vworld.land import VworldLandClient
+from backend.app.modules.land.vworld.land import VworldLandClient
 
 
 PNU = '1168011200101280003'

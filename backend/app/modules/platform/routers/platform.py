@@ -8,9 +8,9 @@ from backend.app.schemas.platform import ProjectBinding, ProjectCreate, SceneRev
 from backend.app.adapters.platform_scenes import PlatformScenes
 from backend.app.modules.platform.repository import ProjectRepository
 from backend.app.modules.platform.projects import ProjectService, BindingConflict, BindingNotFound
-from backend.app.api.routes_platform_runs import create_run_router
-from backend.app.api.routes_design import create_design_router
-from backend.app.api.routes_scene_assets import create_scene_assets_router
+from backend.app.modules.platform.routers.runs import create_run_router
+from backend.app.modules.design.routers.projects import create_design_router
+from backend.app.modules.platform.routers.scene_assets import create_scene_assets_router
 
 
 def create_platform_router(

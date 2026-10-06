@@ -30,9 +30,9 @@ D:/Data/25_ACE/editor/
     elements/                        기존 공용 UI
   backend/
     app/
-      api/routes_platform.py         /api/v1/platform HTTP 경계
       schemas/platform.py            요청·응답 DTO; owner 내부 객체 비노출
       modules/platform/
+        routers/platform.py          /api/v1/platform HTTP 경계
         projects.py                  project/branch/scene 연결 검증
         repository.py                제품 메타데이터 SQLite
         runs.py                      제출·조회·입력 전달; 실행 큐 아님

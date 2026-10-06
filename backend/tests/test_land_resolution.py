@@ -3,7 +3,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from backend.app.api.routes_land import create_land_router
+from backend.app.modules.land.routers.analysis import create_land_router
 
 
 def test_pnu_resolution_works_without_legacy_url(monkeypatch):
@@ -20,7 +20,7 @@ def test_pnu_resolution_works_without_legacy_url(monkeypatch):
 
 
 def test_address_fallback_preserves_coordinate_only_result():
-    from backend.app.adapters.vworld import VworldClient
+    from backend.app.modules.land.vworld import VworldClient
     sent=[]
     def handle(request):
         sent.append(request.url.params['type'])
@@ -32,7 +32,7 @@ def test_address_fallback_preserves_coordinate_only_result():
 
 
 def test_address_route_uses_provider_directly_and_preserves_pnu():
-    from backend.app.adapters.vworld import VworldClient
+    from backend.app.modules.land.vworld import VworldClient
     def handle(request):
         assert request.url.host=='api.vworld.kr'
         assert request.url.params['type']=='PARCEL'
@@ -46,7 +46,7 @@ def test_address_route_uses_provider_directly_and_preserves_pnu():
 
 @pytest.mark.parametrize('kind',['missing-key','http-error','malformed','invalid-point'])
 def test_provider_failures_never_expose_key_or_become_success(kind):
-    from backend.app.adapters.vworld import VworldClient
+    from backend.app.modules.land.vworld import VworldClient
     def handle(request):
         if kind=='missing-key':raise AssertionError('No request without credentials')
         if kind=='http-error':return httpx.Response(503)

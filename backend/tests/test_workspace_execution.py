@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
 
-from backend.app.api.routes_workspace import create_workspace_router
+from backend.app.modules.workspace.routers.workspace import create_workspace_router
 
 
 def test_actual_user_proxy_execution_input_history_and_duplicate_start(

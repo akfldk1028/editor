@@ -6,10 +6,10 @@ from backend.app.schemas.workspace import SettingsUpdate
 
 from backend.app.modules.workspace.settings import SettingsConflict, SettingsRepository
 from backend.app.modules.workspace.storage import resolve_directory
-from backend.app.api.routes_workspace_catalog import create_catalog_router
-from backend.app.api.routes_workspace_sessions import create_sessions_router
-from backend.app.api.routes_workspace_execution import create_execution_router
-from backend.app.api.routes_workspace_mcp import create_mcp_router
+from backend.app.modules.workspace.routers.catalog import create_catalog_router
+from backend.app.modules.workspace.routers.sessions import create_sessions_router
+from backend.app.modules.workspace.routers.execution import create_execution_router
+from backend.app.modules.workspace.routers.mcp import create_mcp_router
 
 
 def create_workspace_router(*, public_origin=None):

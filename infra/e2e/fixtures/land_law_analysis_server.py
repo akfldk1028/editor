@@ -6,8 +6,8 @@ import uvicorn
 from fastapi import FastAPI
 
 from backend.app.adapters.law_search import LawSearchClient
-from backend.app.adapters.regulation_extraction import RegulationExtractionClient
-from backend.app.api.routes_land import create_land_router
+from backend.app.modules.regulations.extraction import RegulationExtractionClient
+from backend.app.modules.land.routers.analysis import create_land_router
 from backend.app.modules.land.repository import LandRepository
 
 

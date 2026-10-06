@@ -1,7 +1,7 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from backend.app.api.routes_land import create_land_router
+from backend.app.modules.land.routers.analysis import create_land_router
 from backend.app.modules.regulations.zoning_catalog import get_zones
 
 

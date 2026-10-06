@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI
 import uvicorn
 
-from backend.app.api.routes_platform import create_platform_router
+from backend.app.modules.platform.routers.platform import create_platform_router
 from backend.app.modules.design.execution_catalog import ExecutionCatalog
 from backend.app.modules.design.native_service import NativeDesignService
 from backend.app.modules.design.repository import DesignRepository

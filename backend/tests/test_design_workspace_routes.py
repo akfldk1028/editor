@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.app.api.routes_design_workspace import create_design_workspace_router
+from backend.app.modules.design.routers.workspace import create_design_workspace_router
 
 
 class Addresses:

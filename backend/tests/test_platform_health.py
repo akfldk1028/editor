@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from backend.app.api.routes_platform import create_platform_router
+from backend.app.modules.platform.routers.platform import create_platform_router
 
 
 def test_health_reports_configuration_without_claiming_owner_or_storage_is_reachable(monkeypatch):

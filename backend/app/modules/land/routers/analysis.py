@@ -12,7 +12,7 @@ from backend.app.modules.land.agent_analysis import agent_analysis_events, confi
 from backend.app.modules.land.analysis_request import normalize_program_request
 from backend.app.modules.land.parcel_geometry import parcel_geometry
 from backend.app.modules.land.services import DatumConfigurationError, LandServices
-from backend.app.api.routes_land_map import create_land_map_router
+from backend.app.modules.land.routers.map import create_land_map_router
 
 
 class LandRequest(BaseModel):

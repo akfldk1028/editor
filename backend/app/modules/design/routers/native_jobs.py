@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Path, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
-from backend.app.api.design_access import DesignAccess
+from backend.app.modules.design.dependencies import DesignAccess
 
 
 class NativeJobCreate(BaseModel):

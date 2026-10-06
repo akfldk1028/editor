@@ -73,7 +73,7 @@ def test_browser_identity_is_not_a_binding_field():
 def test_project_api_persistence_origin_and_unknown_id(tmp_path):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from backend.app.api.routes_platform import create_platform_router
+    from backend.app.modules.platform.routers.platform import create_platform_router
     service = ProjectService(ProjectRepository(tmp_path), Sources(), Sources())
     app = FastAPI()
     app.include_router(create_platform_router(project_service=service))
@@ -102,7 +102,7 @@ def test_actual_scene_adapter_ownership_and_missing_scene(tmp_path, scene_status
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
     from backend.app.adapters.platform_scenes import PlatformScenes
-    from backend.app.api.routes_platform import create_platform_router
+    from backend.app.modules.platform.routers.platform import create_platform_router
     scenes = PlatformScenes('http://scene', transport=httpx.MockTransport(
         lambda request: httpx.Response(scene_status,json=scene_data)))
     service = ProjectService(ProjectRepository(tmp_path), Sources(), scenes)

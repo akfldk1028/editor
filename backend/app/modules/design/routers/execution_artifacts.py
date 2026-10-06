@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
-from backend.app.api.design_access import DesignAccess
+from backend.app.modules.design.dependencies import DesignAccess
 
 
 Identifier = Annotated[str, Path(pattern=r'^[a-f0-9]{64}$')]

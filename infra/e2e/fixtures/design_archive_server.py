@@ -6,8 +6,8 @@ from pathlib import Path
 from fastapi import FastAPI
 import uvicorn
 
-from backend.app.api.routes_platform import create_platform_router
-from backend.app.api.routes_planm_runs import create_planm_runs_router
+from backend.app.modules.platform.routers.platform import create_platform_router
+from backend.app.modules.planm_runs.routers.runs import create_planm_runs_router
 from backend.app.modules.design.repository import DesignRepository
 from backend.app.modules.platform.repository import ProjectRepository
 from backend.app.modules.platform.projects import ProjectService
