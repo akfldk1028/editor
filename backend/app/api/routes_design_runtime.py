@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 from backend.app.modules.design.public_urls import normalize_design_urls
+from backend.app.core.agent_network import token_accepted
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,9 @@ def create_design_runtime_router(*, public_origin=None):
 
     @router.api_route('/{path:path}', methods=['GET', 'POST'])
     async def design_operation(path: str, request: Request):
+        # The planning operations are an agent-only door: agents on other servers carry A2A_TOKEN.
+        if path.rstrip('/') == 'masterplan/operations' and not token_accepted(request.headers.get('authorization')):
+            raise HTTPException(401, 'Agent network token required')
         if request.method != 'GET' and (request.headers.get('sec-fetch-site') == 'cross-site' or (
             request.headers.get('origin') and request.headers['origin'] != origin
         )):

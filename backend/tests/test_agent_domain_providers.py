@@ -45,3 +45,18 @@ def test_provider_rejects_unknown_operations_cross_origin_and_nonfinite():
                            headers={'Origin': 'https://other.test'}).status_code == 403
         assert client.post('/api/v1/land/agent/basement-storey',
                            content='{"datum_m": NaN}').status_code == 400
+
+
+def test_agent_doors_require_the_network_token_when_one_is_set(monkeypatch):
+    """Agents on other servers carry A2A_TOKEN; without it the agent-only doors refuse."""
+    monkeypatch.setenv('A2A_TOKEN', 'mesh-secret')
+    ops = {'operation': 'ramp_overhead', 'arguments': {}}
+    with TestClient(create_app()) as client:
+        assert client.post('/api/v1/law/agent/facility-criteria', json={}).status_code == 401
+        assert client.post('/api/v1/law/agent/facility-criteria', json={},
+                           headers={'Authorization': 'Bearer wrong'}).status_code == 401
+        assert client.post('/api/v1/law/agent/facility-criteria', json={},
+                           headers={'Authorization': 'Bearer mesh-secret'}).status_code == 200
+        assert client.post('/api/v1/design/masterplan/operations/', json=ops).status_code == 401
+        assert client.post('/api/v1/design/masterplan/operations/', json=ops,
+                           headers={'Authorization': 'Bearer mesh-secret'}).status_code != 401

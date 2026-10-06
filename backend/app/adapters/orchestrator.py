@@ -2,6 +2,7 @@ import httpx
 from urllib.parse import urlencode, quote
 from pydantic import TypeAdapter, ValidationError
 
+from backend.app.core.agent_network import network_headers
 from backend.app.schemas.platform import AgentSummary
 from backend.app.schemas.communications import RunCommunications
 
@@ -53,7 +54,8 @@ class OrchestratorClient:
         if not self.base_url:
             raise OwnerUnavailable()
         try:
-            async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False) as client:
+            async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False,
+                                         headers=network_headers()) as client:
                 response = await client.post(self.base_url.rstrip('/') + '/editor/v1/runs',
                     json=body, headers={'X-Editor-Client':'local'})
                 if response.status_code == 409:
@@ -146,7 +148,8 @@ class OrchestratorClient:
         if not self.base_url:
             raise OwnerUnavailable()
         try:
-            async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False) as client:
+            async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False,
+                                         headers=network_headers()) as client:
                 response = await client.get(self.base_url.rstrip('/') + path)
                 if missing and response.status_code == 404:
                     raise LookupError('run not found')

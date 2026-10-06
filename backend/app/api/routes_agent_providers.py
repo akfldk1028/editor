@@ -8,6 +8,8 @@ from io import BytesIO
 from fastapi import APIRouter, HTTPException, Request, Response
 from starlette.concurrency import run_in_threadpool
 
+from backend.app.core.agent_network import token_accepted
+
 
 OPERATIONS = {
     'law': frozenset({'review-design-state', 'review-program', 'review-facilities',
@@ -50,6 +52,8 @@ def create_agent_provider_router(*, public_origin=None):
     async def provider_operation(domain: str, operation: str, request: Request):
         if operation not in OPERATIONS.get(domain, ()):
             raise HTTPException(404, 'Unknown domain provider operation')
+        if not token_accepted(request.headers.get('authorization')):
+            raise HTTPException(401, 'Agent network token required')
         if request.headers.get('sec-fetch-site') == 'cross-site' or (
                 request.headers.get('origin') and request.headers['origin'] != origin):
             raise HTTPException(403, 'Cross-origin provider requests are not allowed')
