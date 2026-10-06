@@ -79,6 +79,10 @@ class LegalSite:
     # the Uijeongbu parcel sits 25.5 km north of the only DEM on this machine,
     # so every grid so far was measured on the fallback while the flag read on.
     datum: dict[str, Any] | None = None
+    # The regulation the caps came from (regulation_calculator.calculate_all): which
+    # articles, which ordinance edition, on which assessment date. Kept so a receipt
+    # can cite them instead of only the numbers.
+    regulation: dict[str, Any] | None = None
 
     def __post_init__(self):
         object.__setattr__(self, 'building_type', default_building_type(self.pnu, self.building_type))
@@ -316,4 +320,5 @@ def load_legal_site(pnu: str, *, building_type: str | None = None) -> LegalSite:
         shared_edges=shared,
         building_type=building_type,
         datum=setback_lines.get("datum_result"),
+        regulation=regulation,
     )

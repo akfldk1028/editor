@@ -157,6 +157,24 @@ def parking_count(request):
     return _passthrough(request, ("zone_names",), call)
 
 
+def ordinance_receipt(regulation):
+    """Which articles and which ordinance edition the caps came from, on which assessment date."""
+    if not regulation:
+        return {"status": "needs_evidence", "missing_evidence": ["regulation_receipt"]}
+    coverage = regulation.get("municipal_coverage") or {}
+    return {
+        "status": coverage.get("status"),
+        "assessment_date": regulation.get("assessment_date"),
+        "bcr_pct": regulation.get("bcr_pct"), "bcr_article": regulation.get("bcr_article"),
+        "far_pct": regulation.get("far_pct"), "far_article": regulation.get("far_article"),
+        "height_limit_m": regulation.get("height_limit_m"), "height_article": regulation.get("height_article"),
+        "national_bcr_ceiling_pct": regulation.get("national_bcr_ceiling_pct"),
+        "national_far_ceiling_pct": regulation.get("national_far_ceiling_pct"),
+        "municipal_coverage": {key: coverage.get(key) for key in
+                               ("status", "caps_complete", "sources", "excluded_sources", "missing_evidence", "limitations")},
+    }
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def parcel_limits(request):
@@ -190,15 +208,13 @@ def parcel_limits(request):
             or repr(policy))
     except Exception as exc:
         out["policy_error"] = str(exc)
-    for key in ("zones", "zone_names", "regulating_lines", "source", "evidence"):
-        value = getattr(site, key, None)
-        if callable(value):
-            try:
-                value = value()   # LegalSite.evidence is a method
-            except Exception as exc:
-                value = {"error": str(exc)}
-        if value is not None:
-            out[key] = value if isinstance(value, (str, int, float, list, dict)) else str(value)
+    try:
+        out["evidence"] = site.evidence()
+    except Exception as exc:
+        out["evidence"] = {"error": str(exc)}
+    out["ordinance"] = ordinance_receipt(site.regulation)
+    if site.regulation:
+        out["zones"] = site.regulation.get("matched_zones")
     return JsonResponse(out, json_dumps_params={"default": str, "ensure_ascii": False})
 
 
