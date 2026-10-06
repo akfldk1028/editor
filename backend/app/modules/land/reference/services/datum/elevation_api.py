@@ -260,11 +260,20 @@ _ngii_dem_src = None  # rasterio.DatasetReader, lazy
 _to_5186_transformer = None  # pyproj.Transformer, lazy
 
 
+_ngii_dem_stamp = None  # (path, mtime) the open dataset was read from
+
+
 def _get_ngii_dem_src():
-    global _ngii_dem_src
-    if _ngii_dem_src is not None:
-        return _ngii_dem_src
+    # SiteContext adds tiles for parcels outside the installed mosaic and rewrites the VRT this
+    # path may name; reopen when the file changes so a new tile is seen without a restart.
+    global _ngii_dem_src, _ngii_dem_stamp
     path = _resolve_local_dem_path(config.NGII_DEM_LOCAL_PATH)
+    stamp = (path, os.path.getmtime(path)) if path and os.path.exists(path) else None
+    if _ngii_dem_src is not None and stamp == _ngii_dem_stamp:
+        return _ngii_dem_src
+    if _ngii_dem_src is not None:
+        _ngii_dem_src.close()
+        _ngii_dem_src = None
     if not path:
         raise ElevationFetchError(
             "NGII_DEM_LOCAL_PATH not set. .env에 설정 + tools/ngii_contour_to_dem.py "
@@ -277,6 +286,7 @@ def _get_ngii_dem_src():
     except ImportError as e:
         raise ElevationFetchError(f"rasterio not installed: {e}") from e
     _ngii_dem_src = rasterio.open(path)
+    _ngii_dem_stamp = stamp
     logger.info("Opened NGII local DEM: %s (CRS=%s, %dx%d)", path, _ngii_dem_src.crs,
                 _ngii_dem_src.width, _ngii_dem_src.height)
     return _ngii_dem_src
