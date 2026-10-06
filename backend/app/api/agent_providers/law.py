@@ -13,6 +13,8 @@ Kept out of views.py on purpose: this is the agent seam, not the frontend API. F
     POST /law/agent/use-research-routes/   {family_id?, operational_type?} -> law.use_research_routes.get_use_research_routes
     POST /law/agent/ordinance-candidates/  {query, assessment_date, oc?}   -> law.ordinance_discovery.discover_ordinances
     POST /law/agent/parking-design-rules/  {required_spaces, ...options}   -> design.maas.masterplan.rules.parking_design_rules
+    POST /law/agent/parking-count/         {zone_names, sigungu_code?, building_type?, floor_area_m2?, program_uses?,
+                                            assessment_date?}              -> land.reference.services.regulation_calculator.calculate_all
     POST /law/agent/parcel-limits/         {pnu, building_type?}           -> massv2 legal.load_legal_site + parcel_policy.policy_for
 """
 import json
@@ -134,6 +136,25 @@ def parking_design_rules(request):
         options = {k: b[k] for k in _PARKING_OPTIONS if k in b}
         return owner(int(b["required_spaces"]), **options)
     return _passthrough(request, ("required_spaces",), call)
+
+
+_PARKING_COUNT_INPUTS = ("sigungu_code", "building_type", "floor_area_m2", "program_uses", "assessment_date")
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def parking_count(request):
+    """The binding 부설주차장 count for one programme, verbatim from the single numeric owner.
+    Lawagent's golden set (scripts/verify_parking_counts.py) compares its recorded answers against this."""
+    from backend.app.modules.land.reference.services import regulation_calculator as owner
+
+    def call(b):
+        zones = b["zone_names"]
+        if not isinstance(zones, list) or not all(isinstance(z, str) for z in zones):
+            raise ValueError("zone_names must be a list of strings")
+        inputs = {k: b[k] for k in _PARKING_COUNT_INPUTS if b.get(k) is not None}
+        return owner.calculate_all(zones, use_llm_extraction=False, **inputs)
+    return _passthrough(request, ("zone_names",), call)
 
 
 @csrf_exempt

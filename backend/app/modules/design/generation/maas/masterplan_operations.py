@@ -16,7 +16,17 @@ OPERATIONS = {
     'bind_program': ({'context', 'pnu', 'design'}, set()),
     'check_consumption': ({'binding', 'features'}, set()),
     'frontage_shapes_from_registration': ({'registration'}, set()),
+    'ramp_overhead': ({'ramp', 'occupied', 'soffit_z_m', 'required_height_m'}, set()),
 }
+
+
+def _engine_provenance(module):
+    """Which engine answered: the module path and the bytes of it and its geometry dependency."""
+    from pathlib import Path
+    source = Path(module.__file__)
+    return {'callable': module.__name__ + '.overhead_clearance',
+            'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
+            'geometry_dependency_sha256': hashlib.sha256(source.with_name('geometry.py').read_bytes()).hexdigest()}
 
 
 def digest(value):
@@ -58,6 +68,16 @@ def dispatch(operation, arguments):
         from backend.app.modules.design.generation.maas.masterplan.program_source import check_consumption
         return check_consumption(arguments['binding'], arguments['features'])
     from shapely.geometry import mapping, shape
+    if operation == 'ramp_overhead':
+        from shapely.geometry import LineString
+        from backend.app.modules.design.generation.maas.masterplan import ramp_overhead
+        ramp = arguments['ramp']
+        if not isinstance(ramp, dict) or not isinstance(ramp.get('centerline'), list):
+            raise ValueError('ramp requires width_m and an XYZ centerline coordinate list')
+        result = ramp_overhead.overhead_clearance(
+            {'width_m': ramp.get('width_m'), 'centerline': LineString(ramp['centerline'])},
+            shape(arguments['occupied']), arguments['soffit_z_m'], arguments['required_height_m'])
+        return {**result, 'engine': _engine_provenance(ramp_overhead)}
     if operation == 'footprint_inside':
         from backend.app.modules.design.generation.maas.masterplan.geometry import footprint_inside
         result = footprint_inside(shape(arguments['parcel']), arguments['target'],

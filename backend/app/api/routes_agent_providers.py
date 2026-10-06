@@ -12,7 +12,7 @@ from starlette.concurrency import run_in_threadpool
 OPERATIONS = {
     'law': frozenset({'review-design-state', 'review-program', 'review-facilities',
         'facility-criteria', 'building-uses', 'fire-requirements', 'use-research-routes',
-        'ordinance-candidates', 'parking-design-rules', 'parcel-limits', 'audit'}),
+        'ordinance-candidates', 'parking-design-rules', 'parking-count', 'parcel-limits', 'audit'}),
     'land': frozenset({'parcel-geometry', 'roads', 'datum', 'basement-storey'}),
     'design': frozenset({'research-bundle'}),
 }
