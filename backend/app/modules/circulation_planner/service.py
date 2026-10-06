@@ -20,8 +20,8 @@ from backend.app.modules.circulation_planner.contracts import (
     Point,
 )
 from backend.app.modules.core_planner.contracts import CoreCandidate
-from backend.app.core.geometry import snap_coordinate, snap_ring
-from backend.app.core.geometry.distance import segment_to_segment_distance
+from backend.engine.geometry import snap_coordinate, snap_ring
+from backend.engine.geometry.distance import segment_to_segment_distance
 
 
 _DOOR_WIDTH = 0.9

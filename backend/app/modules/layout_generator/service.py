@@ -10,8 +10,8 @@ from backend.app.modules.basic_design.stair import (
     required_stair_enclosure,
     resolve_floor_height,
 )
-from backend.app.core.geometry import shared_boundary_segments
-from backend.app.core.geometry.polygon import polygon_area
+from backend.engine.geometry import shared_boundary_segments
+from backend.engine.geometry.polygon import polygon_area
 
 Point = tuple[float, float]
 
