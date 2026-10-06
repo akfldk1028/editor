@@ -1,0 +1,26 @@
+# Shape (2026-10-06)
+
+Next app: `frontend/app/editor` (package name `editor`). Upstream Pascal parts:
+`frontend/components/{viewer,editor}`, `resources/lib/core` (layer rules: root `AGENTS.md`).
+
+## Pages (`app/**/page.tsx`)
+- Workspace — absorbed from AutoGen Studio (AG-frontend), under `app/(workspace)/`:
+  agents, build, deploy, dialogue, flow, gallery, history, land, mcp, settings. Plus
+  `/playground`, `/playground/flow`.
+- Domain screens — absorbed from ARR's frontend: `/law` (incl. "AI 심화 분석" deep analysis,
+  SSE), `/map`, `/design`, `/design/language`, `/dwg`, `/planm`.
+- Platform: `/projects`, `/projects/[id]`, `/runs/[id]` (Orchestrator runs via the backend),
+  `/scene/[id]`, `/scenes`.
+- `/privacy`, `/terms`.
+
+## Features (`features/*`)
+AG-origin: agents, agent-dialogue, agent-flow, assistants, context-usage, deployment, gallery,
+history, mcp, model-registry, playground, schedule, sessions, settings, streaming,
+team-builder, team-templates, tool-approval, workspace. Domain: design, export, land,
+land-map, law. AG's dashboard/auth/font-scale/shortcuts have no folder of their own (merged
+into other screens; their AG unit tests were not ported).
+
+## Libraries (`lib/*`)
+`backend-request.ts` (the one server-side fetch to the backend), `workspace-request.ts`,
+`design-operation-path.ts` (which design paths the proxy forwards), `platform-design-operation.ts`,
+`scene-*` (scene store/security), `api-surface.test.ts` (guard, see 02).

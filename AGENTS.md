@@ -50,3 +50,12 @@ Invoke the `review-architecture` skill (`.agents/skills/review-architecture/SKIL
 - After two consecutive tool failures, stop and change approach.
 - Don't introduce backwards-compatibility shims, dead code, or speculative abstractions.
 - Don't write new comments unless they explain a non-obvious *why*.
+
+## Domain platform memory
+
+The domain platform (absorbed ARR + AutoGen Studio) has its own session memory:
+- Backend (FastAPI, port 18449): `backend/memory/MEMORY.md`
+- Frontend (Next app `frontend/app/editor`): `frontend/memory/MEMORY.md`
+
+Read the one for the side you work on before changing it. Agent-facing backend doors are a
+contract with the agents in `D:\Data\25_ACE\agents` (owned by the Orchestrator session).
