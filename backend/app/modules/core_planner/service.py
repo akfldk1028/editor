@@ -8,7 +8,7 @@ from shapely import box, covers
 from shapely.geometry import Point, Polygon
 
 from backend.app.modules.core_planner.contracts import CoreCandidate
-from backend.engine.geometry import GEOMETRY_DECIMALS, snap_coordinate
+from backend.app.core.geometry import GEOMETRY_DECIMALS, snap_coordinate
 
 
 _GRID_RESOLUTION = 10.0**-GEOMETRY_DECIMALS

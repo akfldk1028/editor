@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from backend.engine.geometry.polygon import validate_polygon
+from backend.app.core.geometry.polygon import validate_polygon
 
 from backend.app.schemas.area import (
     AREA_BUCKETS,

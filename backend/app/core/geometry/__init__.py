@@ -1,10 +1,10 @@
-from backend.engine.geometry.access import (
+from backend.app.core.geometry.access import (
     bounding_box_aspect_ratio,
     orthogonal_min_width,
     shared_boundary_segments,
 )
-from backend.engine.geometry.distance import segment_to_segment_distance
-from backend.engine.geometry.polygon import (
+from backend.app.core.geometry.distance import segment_to_segment_distance
+from backend.app.core.geometry.polygon import (
     GEOMETRY_DECIMALS,
     snap_coordinate,
     snap_ring,

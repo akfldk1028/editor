@@ -4,7 +4,7 @@ import pytest
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
-from backend.engine.geometry.orthogonal import (
+from backend.app.core.geometry.orthogonal import (
     common_floor_region,
     orthogonal_rectangle_cells,
     shared_core_candidates,

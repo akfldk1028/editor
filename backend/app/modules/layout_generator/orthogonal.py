@@ -22,8 +22,8 @@ from backend.app.schemas.layout import (
     RoomPolygon,
 )
 from backend.app.schemas.program import ProgramGraph, ProgramNode
-from backend.engine.geometry import shared_boundary_segments
-from backend.engine.geometry.orthogonal import orthogonal_rectangle_cells
+from backend.app.core.geometry import shared_boundary_segments
+from backend.app.core.geometry.orthogonal import orthogonal_rectangle_cells
 
 Point = tuple[float, float]
 _TOLERANCE = 1e-8
