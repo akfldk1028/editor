@@ -67,3 +67,33 @@ def test_missing_key_and_provider_errors_are_explicit_and_redacted():
     response = TestClient(app).get('/api/v1/land/tiles/1/0/0.png')
     assert response.status_code == 502
     assert 'private-key' not in response.text
+
+
+def test_context_buildings_route_asks_scene_agent_and_passes_its_reply(monkeypatch):
+    from backend.app.adapters import scene_agent
+    seen = []
+
+    def upstream(request):
+        seen.append(request)
+        return httpx.Response(200, json={'status': 'ok', 'features': {'type': 'FeatureCollection', 'features': []},
+                                         'counts': {'measured': 0, 'estimated': 0, 'unknown': 0}})
+
+    real = scene_agent.context_buildings
+    monkeypatch.setattr(scene_agent, 'context_buildings',
+                        lambda lat, lon, r: real(lat, lon, r, base_url='http://scene', transport=httpx.MockTransport(upstream)))
+    app = FastAPI()
+    app.include_router(create_land_map_router())
+    client = TestClient(app)
+    ok = client.get('/api/v1/land/context-buildings?lat=37.7&lon=127.1&radius_m=200')
+    assert ok.status_code == 200 and ok.json()['status'] == 'ok'
+    assert str(seen[0].url) == 'http://scene/scene/context-buildings'
+    assert client.get('/api/v1/land/context-buildings?lat=10&lon=127').status_code == 422
+
+
+def test_context_buildings_route_says_when_scene_agent_is_down(monkeypatch):
+    from backend.app.adapters import scene_agent
+    monkeypatch.setenv('SCENE_AGENT_URL', 'http://127.0.0.1:9')
+    app = FastAPI()
+    app.include_router(create_land_map_router())
+    response = TestClient(app).get('/api/v1/land/context-buildings?lat=37.7&lon=127.1')
+    assert response.status_code == 502 and 'SceneAgent unreachable' in response.json()['detail']

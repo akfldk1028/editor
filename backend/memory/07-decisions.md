@@ -84,3 +84,11 @@ be told to the Orchestrator session.
   `/site/ground-heights` instead of opening its DEM file - strict, no fallback. Law grades it
   `calculated` (`ngii_1to5000_sitecontext_dem`). Live: 고산 59.89 m, 1168010100108230026 26.07 m.
   `ngii_local_dem` stays for a same-host install. Changed by the Orchestrator session.
+- 2026-10-07 World view W0+W1 (`/world`): our own CesiumJS 1.122 from jsDelivr (no VWorld SDK, no ion
+  token) with clean white context masses. `GET /api/v1/land/context-buildings?lat&lon&radius_m` ->
+  `adapters/scene_agent.py` -> SceneAgent `POST /scene/context-buildings` (SiteContext footprints +
+  SceneAgent height rule; each mass says measured / estimated / unknown, unknown drawn pale). Base map
+  toggle: plain white or VWorld 2D via the existing tiles route. Env `SCENE_AGENT_URL` (default
+  127.0.0.1:8310). Existing `/map` `/law` `/design` untouched; their move onto this view is W2-W4 in
+  agents/SceneAgent/docs/editor-world-plan.md. If VWorld SDK already loaded `window.Cesium` in the tab,
+  it is reused. Changed by the Orchestrator session.

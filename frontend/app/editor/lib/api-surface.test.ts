@@ -33,6 +33,8 @@ const CLIENTS: Record<string, Client> = {
   'features/land-map/lib/constants.ts': {},
   'features/land-map/hooks/use-vworld-3d.ts': {},
   'features/land-map/hooks/use-agent-analyze.ts': {},
+  'features/world/lib/context-masses.ts': {},
+  'features/world/WorldView.tsx': {},
   'features/law/lib/law-api-client.ts': { tokens: { '${apiRoot}': '/api/v1' } },
   'features/law/hooks/use-law-search-stream.ts': {},
   'features/agents/api.ts': {},
