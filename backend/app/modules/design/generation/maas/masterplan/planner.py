@@ -804,8 +804,14 @@ def _plan_site_fixed(request):
             for f in compact["features"]:
                 if f["properties"].get("layer")!="basement_boundary":
                     continue
-                proposal=compact_slab_candidate(original["features"],level=f["properties"]["level"],
-                    envelope=envelope,wall_clearance_m=options.get("basement_wall_clearance_m"))
+                try:
+                    proposal=compact_slab_candidate(original["features"],level=f["properties"]["level"],
+                        envelope=envelope,wall_clearance_m=options.get("basement_wall_clearance_m"))
+                except ValueError:
+                    # A compact slab is an optional saving on a candidate that already exists. One
+                    # candidate with a degenerate basement feature must not abort the whole plan: the
+                    # original stays in the pool and the validator reports its geometry.
+                    continue
                 if proposal["status"]!="concept_candidate" or (proposal["saved_area_m2"] or 0)<=EPS:
                     continue
                 f["geometry"]=mapping(proposal["polygon"])
