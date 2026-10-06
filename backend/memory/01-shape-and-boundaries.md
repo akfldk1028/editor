@@ -11,6 +11,9 @@ folders remain only as read-only reference; `infra/dev/inventory-original-ui.mjs
 `*source-manifest.json` files cite them.
 
 ## Layers (where code goes)
+Enforced by import-linter (`[tool.importlinter]` in pyproject, `lint-imports`, test_import_layers.py):
+`route_inventory` > `main | cli` > `api` > `modules` > `adapters` > `core | schemas | contracts`. A new
+violation fails the test; never add to `ignore_imports` without a reason line.
 - `app/modules/<domain>/routers/*.py` (law: `modules/law/router.py`) — thin FastAPI routers
   (parse, check origin/token, call a module); each domain owns its routers. `app/api/` keeps
   only the agent doors (`routes_agent_providers.py`, `routes_design_runtime.py`).

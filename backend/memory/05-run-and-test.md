@@ -25,6 +25,7 @@ For other servers: `--host` / env as in `agents/docs/AGENT_MODULE_CONVENTIONS.md
   - planm client: `test_planm_adapter.py test_planm_transport_boundary.py test_planm_run_*.py`
 - Live planm test runs only with `PLANM_AGENT_URL` set and planm up:
   `PLANM_AGENT_URL=http://127.0.0.1:8309 ... test_planm_run_api.py::test_live_plan_agent...`
+- Layer guard: `.venv/Scripts/lint-imports` (dev extra `import-linter`), also in `test_import_layers.py`.
 - Route guard: after adding a route, `python -m backend.app.route_inventory --write`.
 
 ## Commit

@@ -3,6 +3,13 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-07 Structure from researched practice (FastAPI 'Bigger Applications', zhanymkanov/fastapi-best-practices
+  after Netflix Dispatch, Kraken + import-linter): `db167db3` every domain owns its routers/clients —
+  `modules/{land,design,workspace,platform,planm_runs}/routers/`, `modules/law/router.py`, `modules/land/vworld/`,
+  `modules/design/dependencies.py`, `modules/regulations/extraction.py`; `api/` keeps only the agent doors
+  (routes_agent_providers, agent_providers/, routes_design_runtime, design_runtime/). 102 routes identical.
+  `fb8fb3f6` layer contract in pyproject `[tool.importlinter]`: route_inventory > main|cli > api > modules >
+  adapters > core|schemas|contracts; 2 ignored imports with reasons; `test_import_layers.py`; `lint-imports`.
 - 2026-10-07 `194f0744` + `4887d59c` REVERTED the engine move (2dfb5b40) and the cli split (65045d70).
   Reason: `agents/planm/scripts/import_from_editor.py` re-imports the floor-plan engine from this repo BY PATH
   (`backend/engine/**`, `backend/app/cli.py`, the 17 engine packages generation_loop, layout_generator,
