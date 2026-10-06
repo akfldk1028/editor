@@ -3,6 +3,13 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-06 RULE (user): existing agent logic must not change yet — land/reference calculators,
+  masterplan engine, maas/delivered, maas/parking. Moves/splits only with identical result hashes.
+  HOLD: unifying `regulations` with `land/reference` (UI `/land` still reads the old ordinance
+  data in `regulations/data`; agents read the 163-jurisdiction set in `land/reference/data`).
+  Reference case: `D:/Data/25_ACE/data/projects/01_example/Alt1|Alt2` (고산 공공1 real alternatives).
+- 2026-10-06 `cda1a007` adapters/vworld/, `57ef5810` adapters/workspace/ (+ one-time catalog migration
+  of stored tool providers, live on next backend restart), `05c42ec4` maas/delivered/ + maas/parking/.
 - 2026-10-06 `2fc0c8c4` regulations/land split modules are packages like `cli/`:
   `regulations/{calculator,setbacks}/`, `services/{regulation_calculator,setback_geometry}/`
   (533 hashes identical, 421 pass after rebasing onto `d4ee05b9`; ORDINANCE_DIR re-pointed;
