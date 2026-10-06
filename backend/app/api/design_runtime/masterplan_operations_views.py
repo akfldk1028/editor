@@ -1,13 +1,15 @@
 """HTTP adapter; geometry and legal calculations remain in their engine owners."""
 import json
 import logging
-from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from backend.app.modules.design.generation.maas.masterplan_operations import SCHEMA, OPERATIONS, invoke
 
 logger = logging.getLogger('arr.masterplan.operations')
+# Layout validation carries metric input and owner geometry; one bounded read here,
+# independent of Django's form-body limit.
+MAX_REQUEST_BYTES = 32 * 1024 * 1024
 TRACE_FIELDS = ('run_id', 'request_id', 'project', 'branch', 'round', 'task_id', 'parent_task_id', 'caller', 'hop')
 
 
@@ -34,9 +36,7 @@ def masterplan_operations(request):
         # Layout validation carries both metric input and owner geometry. Read this
         # endpoint's bounded stream instead of Django's 2.5 MiB form-body limit.
         # Do not change the global limit for unrelated APIs or disable limits.
-        limit = getattr(settings, 'ARR_MASTERPLAN_MAX_REQUEST_BYTES', 32 * 1024 * 1024)
-        if type(limit) is not int or limit < 1:
-            raise RuntimeError('ARR_MASTERPLAN_MAX_REQUEST_BYTES must be a positive integer')
+        limit = MAX_REQUEST_BYTES
         body = request.read(limit + 1)
         if len(body) > limit:
             return JsonResponse({'status': 'failed', 'code': 'request_too_large',

@@ -1,4 +1,4 @@
-from backend.app.modules.workspace.mcp_connections import validate_params
+from backend.app.core.mcp_params import validate_params
 
 
 # Tool and workbench components a saved template may load. Everything else that

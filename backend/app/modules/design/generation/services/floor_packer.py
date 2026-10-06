@@ -35,9 +35,9 @@ def grid_dimensions(footprint, cell_size_m):
     """Reject unbounded grid allocation; this is a runtime, not design limit."""
     if isinstance(cell_size_m, bool) or not isinstance(cell_size_m, (float, int)) or not math.isfinite(cell_size_m) or cell_size_m <= 0:
         raise ValueError('cell_size must be a positive finite number')
-    limit = int(os.environ.get('ARR_FLOOR_PLAN_MAX_CELLS', '50000'))
+    limit = int(os.environ.get('EDITOR_FLOOR_PLAN_MAX_CELLS', '50000'))
     if limit <= 0:
-        raise ValueError('ARR_FLOOR_PLAN_MAX_CELLS must be positive')
+        raise ValueError('EDITOR_FLOOR_PLAN_MAX_CELLS must be positive')
     minx, miny, maxx, maxy = footprint.bounds
     width, height = (maxx - minx) / cell_size_m, (maxy - miny) / cell_size_m
     if not math.isfinite(width) or not math.isfinite(height) or width > limit or height > limit:

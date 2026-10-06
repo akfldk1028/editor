@@ -46,6 +46,14 @@ const CLIENTS: Record<string, Client> = {
   'features/gallery/api.ts': { helpers: [{ fn: 'workspaceRequest', prefix: '/api/v1/workspace/' }] },
   'features/sessions/api.ts': { helpers: [{ fn: 'workspaceRequest', prefix: '/api/v1/workspace/' }] },
   'features/team-templates/api.ts': { helpers: [{ fn: 'workspaceRequest', prefix: '/api/v1/workspace/' }] },
+  'features/settings/api/settings.ts': { helpers: [{ fn: 'workspaceRequest', prefix: '/api/v1/workspace/' }] },
+  'features/settings/hooks/useHealth.ts': { helpers: [{ fn: 'workspaceRequest', prefix: '/api/v1/workspace/' }] },
+  'features/deployment/components/DeploymentStatus.tsx': { helpers: [{ fn: 'workspaceRequest', prefix: '/api/v1/workspace/' }],
+    defines: ['/api/v1/workspace'] },
+  'features/playground/api/index.ts': { helpers: [{ fn: 'workspaceRequest', prefix: '/api/v1/workspace/' }] },
+  'features/playground/PlaygroundPage.tsx': { helpers: [{ fn: 'workspaceRequest', prefix: '/api/v1/workspace/' }] },
+  // The deployment page documents endpoints as literal strings; they must stay real.
+  'features/deployment/DeploymentPage.tsx': {},
 };
 
 const BASE_PATH = /\(process\.env\.NEXT_PUBLIC_BASE_PATH \|\| ''\) \+ |\$\{process\.env\.NEXT_PUBLIC_BASE_PATH \|\| ''\}/g;
@@ -67,8 +75,9 @@ function rawPaths(file: string, client: Client): string[] {
 /** Each `${…}` placeholder tried with every sample value: one combination must be served. */
 function candidates(raw: string): string[] {
   // `${query}` carries the query string ('' or '?…'), `{z}/{y}/{x}` is a tile template.
+  // `{job_id}`-style documentation placeholders are tried like `${…}` template slots.
   const path = raw.split('?')[0]!.replace(/\$\{query\}/g, '').replace(/\{[xyz]\}/g, '1').replace(/\/$/, '');
-  const slots = path.match(/\$\{[^}]*\}/g) ?? [];
+  const slots = path.match(/\$?\{[^}]*\}/g) ?? [];
   let out = [path];
   for (const slot of slots) out = out.flatMap((p) => SAMPLES.map((s) => p.replace(slot, s)));
   return out;
