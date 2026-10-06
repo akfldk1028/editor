@@ -36,6 +36,7 @@ dependencies = [
 [project.optional-dependencies]
 terrain = ["rasterio>=1.4,<2"]
 design-reference-models = ["torch>=2.5", "torchvision>=0.20", "opencv-python>=4.10,<5"]
+dev = ["import-linter>=2.15,<3"]
 
 [tool.setuptools.packages.find]
 include = ["backend*"]
@@ -50,3 +51,27 @@ include = ["backend*"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["backend/tests"]
+
+# Layer contract (import-linter; checked by backend/tests/test_import_layers.py).
+# Higher layers may import lower ones, never the reverse. Existing exceptions are
+# listed with their reason and are technical debt to burn down, not a pattern.
+[tool.importlinter]
+root_package = "backend"
+
+[[tool.importlinter.contracts]]
+name = "Editor app layers (top imports down only)"
+type = "layers"
+layers = [
+    "backend.app.route_inventory",
+    "backend.app.main | backend.app.cli",
+    "backend.app.api",
+    "backend.app.modules",
+    "backend.app.adapters",
+    "backend.app.core | backend.app.schemas | backend.app.contracts",
+]
+ignore_imports = [
+    # Agent code imports this bootstrap by path (agents/** is read-only), so it cannot move yet.
+    "backend.app.adapters.design_storage.bootstrap -> backend.app.modules.design.generation.paths",
+    # Tool provider strings for this module are stored in the workspace catalog DB.
+    "backend.app.adapters.workspace.tools -> backend.app.modules.land.services",
+]
