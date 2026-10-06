@@ -32,7 +32,7 @@ def create_workspace_router(*, public_origin=None):
         return SettingsRepository(directory())
 
     def environment():
-        # Saved variables reach model clients at load time; see adapters/workspace_credentials.py.
+        # Saved variables reach model clients at load time; see adapters/workspace/credentials.py.
         return settings().get()['config'].get('environment', [])
 
     @router.get('/settings')

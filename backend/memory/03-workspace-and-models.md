@@ -1,8 +1,8 @@
 # AutoGen workspace and model access (2026-10-06)
 
 ## What was absorbed from AutoGen Studio (AG)
-- Saved settings keys → model clients at load time (`adapters/workspace_credentials.py`,
-  deep copy, never `os.environ`); tool policy `adapters/workspace_tool_policy.py`
+- Saved settings keys → model clients at load time (`adapters/workspace/credentials.py`,
+  deep copy, never `os.environ`); tool policy `adapters/workspace/tool_policy.py`
   (FunctionTool/code/stdio refused; Static(Stream)Workbench, editor tools, HTTP MCP allowed).
 - `POST /api/v1/workspace/validate/test` (gallery "Test") → `modules/workspace/component_test.py`.
 - Seeds (`modules/workspace/seeds.py`, marker table — a deleted seed is not revived).

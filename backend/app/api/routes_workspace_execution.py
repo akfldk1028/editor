@@ -5,8 +5,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 from backend.app.modules.workspace.execution import WorkspaceExecution
 from backend.app.modules.workspace.execution_repository import ExecutionConflict
-from backend.app.adapters.workspace_team import SUPPORTED_PROVIDERS
-from backend.app.adapters.workspace_tool_policy import (
+from backend.app.adapters.workspace.team import SUPPORTED_PROVIDERS
+from backend.app.adapters.workspace.tool_policy import (
     CONTAINER_PROVIDERS,
     EDITOR_TOOL_PROVIDERS,
     MCP_PROVIDERS,

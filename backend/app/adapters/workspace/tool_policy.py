@@ -13,8 +13,8 @@ CONTAINER_PROVIDERS = frozenset(
 
 EDITOR_TOOL_PROVIDERS = frozenset(
     {
-        "backend.app.adapters.workspace_tools.LandAnalyzeTool",
-        "backend.app.adapters.workspace_tools.LawSearchTool",
+        "backend.app.adapters.workspace.tools.LandAnalyzeTool",
+        "backend.app.adapters.workspace.tools.LawSearchTool",
     }
 )
 

@@ -4,7 +4,7 @@ import time
 import os
 from pathlib import Path
 
-from backend.app.adapters.workspace_team import (
+from backend.app.adapters.workspace.team import (
     close_team,
     load_team,
     make_task,

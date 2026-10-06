@@ -43,7 +43,7 @@ def test_environment_roundtrip_does_not_mutate_process_environment(tmp_path, mon
 def test_apply_environment_fills_only_missing_model_fields_and_leaves_input_untouched():
     import copy
     import os
-    from backend.app.adapters.workspace_credentials import apply_environment
+    from backend.app.adapters.workspace.credentials import apply_environment
 
     openai = 'autogen_ext.models.openai.OpenAIChatCompletionClient'
     team = {'provider': 'autogen_agentchat.teams.RoundRobinGroupChat', 'component_type': 'team', 'config': {'participants': [

@@ -5,7 +5,7 @@ import json
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from backend.app.adapters import workspace_tools
+from backend.app.adapters.workspace import tools as workspace_tools
 from backend.app.api.routes_land import create_land_router
 from backend.app.modules.land.agent_analysis import agent_analysis_events
 from backend.app.modules.workspace.seeds import LAND_TEAM

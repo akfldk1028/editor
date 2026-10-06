@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from backend.app.adapters import cli_model_client
 from backend.app.adapters.cli_model_client import PROVIDER, ClaudeCodeChatCompletionClient
-from backend.app.adapters.workspace_credentials import apply_environment
+from backend.app.adapters.workspace.credentials import apply_environment
 from backend.app.core.model_auth import model_auth_mode
 
 OPENAI = {'provider': 'autogen_ext.models.openai.OpenAIChatCompletionClient', 'component_type': 'model',
@@ -126,7 +126,7 @@ def test_child_process_never_sees_an_anthropic_key(monkeypatch):
 
 def test_component_round_trip_and_registered_provider():
     from autogen_core.models import ChatCompletionClient
-    from backend.app.adapters.workspace_team import SUPPORTED_PROVIDERS
+    from backend.app.adapters.workspace.team import SUPPORTED_PROVIDERS
     dumped = ClaudeCodeChatCompletionClient(model='claude-sonnet-4-5', timeout_s=60).dump_component()
     assert dumped.provider == PROVIDER and PROVIDER in SUPPORTED_PROVIDERS
     loaded = ChatCompletionClient.load_component(dumped)

@@ -2,9 +2,9 @@ import base64
 import io
 import asyncio
 
-from backend.app.adapters.workspace_credentials import apply_environment
+from backend.app.adapters.workspace.credentials import apply_environment
 from backend.app.core.model_auth import model_auth_mode
-from backend.app.adapters.workspace_tool_policy import check_tool_component
+from backend.app.adapters.workspace.tool_policy import check_tool_component
 
 
 TEXT_ATTACHMENT_TYPES = frozenset(

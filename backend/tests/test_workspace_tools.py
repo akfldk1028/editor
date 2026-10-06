@@ -4,8 +4,8 @@ import json
 import pytest
 from autogen_core import CancellationToken
 
-from backend.app.adapters import workspace_tools
-from backend.app.adapters.workspace_tool_policy import EDITOR_TOOL_PROVIDERS
+from backend.app.adapters.workspace import tools as workspace_tools
+from backend.app.adapters.workspace.tool_policy import EDITOR_TOOL_PROVIDERS
 
 
 class FakeServices:
@@ -36,7 +36,7 @@ def load(provider):
 
 
 def test_land_tool_loads_from_its_provider_string_and_trims_the_result(services):
-    tool = load('backend.app.adapters.workspace_tools.LandAnalyzeTool')
+    tool = load('backend.app.adapters.workspace.tools.LandAnalyzeTool')
     assert tool.dump_component().provider in EDITOR_TOOL_PROVIDERS
     text = asyncio.run(tool.run_json({'pnu': '1111010100100010000'}, CancellationToken()))
     result = json.loads(text)
@@ -46,7 +46,7 @@ def test_land_tool_loads_from_its_provider_string_and_trims_the_result(services)
 
 
 def test_law_tool_caps_article_text(services):
-    tool = load('backend.app.adapters.workspace_tools.LawSearchTool')
+    tool = load('backend.app.adapters.workspace.tools.LawSearchTool')
     text = asyncio.run(tool.run_json({'query': '건폐율', 'limit': 2}, CancellationToken()))
     result = json.loads(text)
     assert len(result['articles']) == 2

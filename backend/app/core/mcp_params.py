@@ -1,7 +1,7 @@
 """What an MCP server-parameter document may say, checked before anything connects.
 
 Shared by the interactive MCP explorer (modules/workspace/mcp_connections.py) and the
-template tool policy (adapters/workspace_tool_policy.py); pure validation, no I/O.
+template tool policy (adapters/workspace/tool_policy.py); pure validation, no I/O.
 """
 import json
 from urllib.parse import urlsplit

@@ -47,7 +47,7 @@ class LandAnalyzeArgs(BaseModel):
 
 class LandAnalyzeTool(BaseTool[LandAnalyzeArgs, str], Component[_EmptyConfig]):
     component_config_schema = _EmptyConfig
-    component_provider_override = "backend.app.adapters.workspace_tools.LandAnalyzeTool"
+    component_provider_override = "backend.app.adapters.workspace.tools.LandAnalyzeTool"
 
     DROPPED = ("setback_lines", "law_articles")
 
@@ -84,7 +84,7 @@ class LawSearchArgs(BaseModel):
 
 class LawSearchTool(BaseTool[LawSearchArgs, str], Component[_EmptyConfig]):
     component_config_schema = _EmptyConfig
-    component_provider_override = "backend.app.adapters.workspace_tools.LawSearchTool"
+    component_provider_override = "backend.app.adapters.workspace.tools.LawSearchTool"
 
     def __init__(self):
         super().__init__(

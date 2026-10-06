@@ -62,7 +62,7 @@ def test_team_storage_rejects_shapes_that_crash_the_builder(tmp_path, monkeypatc
 
 
 def test_default_seed_validates_against_execution_policy():
-    from backend.app.adapters.workspace_team import validate_components
+    from backend.app.adapters.workspace.team import validate_components
     from backend.app.modules.workspace.validation import validate_template_shape
 
     for team in DEFAULT_TEAMS:

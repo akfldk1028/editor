@@ -219,7 +219,7 @@ def test_terminal_execution_cannot_be_reopened_by_late_events(tmp_path):
     ],
 )
 def test_unsafe_template_component_is_rejected_before_loading(component):
-    from backend.app.adapters.workspace_team import validate_components
+    from backend.app.adapters.workspace.team import validate_components
 
     with pytest.raises(ValueError):
         validate_components(component)
@@ -255,13 +255,13 @@ def exported_assistant(name="assistant", model_client=None):
 
 
 def test_exported_assistant_agent_with_static_stream_workbench_validates():
-    from backend.app.adapters.workspace_team import validate_components
+    from backend.app.adapters.workspace.team import validate_components
 
     validate_components(exported_assistant())
 
 
 def test_http_mcp_workbench_passes_policy_without_connecting():
-    from backend.app.adapters.workspace_team import validate_components
+    from backend.app.adapters.workspace.team import validate_components
 
     validate_components(
         {
@@ -315,7 +315,7 @@ def test_capabilities_reports_http_only_mcp_and_editor_tools(tmp_path, monkeypat
         body = client.get("/api/v1/workspace/runs/capabilities").json()
     assert body["template_mcp_execution"] == "http_only"
     assert "autogen_core.tools.StaticStreamWorkbench" in body["template_workbenches"]
-    assert "backend.app.adapters.workspace_tools.LandAnalyzeTool" in body["template_tools"]
+    assert "backend.app.adapters.workspace.tools.LandAnalyzeTool" in body["template_tools"]
     assert (
         "autogen_ext.models.replay.ReplayChatCompletionClient"
         in body["supported_providers"]

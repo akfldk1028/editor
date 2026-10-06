@@ -16,9 +16,9 @@ TERMINATE_OR_TEN = {'provider': 'autogen_agentchat.base.OrTerminationCondition',
                         {'provider': 'autogen_agentchat.conditions.MaxMessageTermination', 'component_type': 'termination',
                          'config': {'max_messages': 10}}]}}
 
-LAND_ANALYZE_TOOL = {'provider': 'backend.app.adapters.workspace_tools.LandAnalyzeTool', 'component_type': 'tool',
+LAND_ANALYZE_TOOL = {'provider': 'backend.app.adapters.workspace.tools.LandAnalyzeTool', 'component_type': 'tool',
                      'label': 'analyze_land', 'config': {}}
-LAW_SEARCH_TOOL = {'provider': 'backend.app.adapters.workspace_tools.LawSearchTool', 'component_type': 'tool',
+LAW_SEARCH_TOOL = {'provider': 'backend.app.adapters.workspace.tools.LawSearchTool', 'component_type': 'tool',
                    'label': 'search_laws', 'config': {}}
 
 

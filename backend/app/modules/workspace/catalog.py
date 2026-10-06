@@ -8,12 +8,28 @@ class CatalogConflict(Exception):
     pass
 
 
+# One-time data migration: editor tools moved from adapters/workspace_tools.py to
+# adapters/workspace/tools.py, and templates saved earlier store the old provider path.
+OLD_TOOL_PROVIDER_PREFIX = 'backend.app.adapters.workspace_tools.'
+NEW_TOOL_PROVIDER_PREFIX = 'backend.app.adapters.workspace.tools.'
+_migrated_paths = set()
+
+
+def migrate_tool_providers(db):
+    """Rewrite stored payloads that still name the old tool module. Idempotent; returns rows changed."""
+    return db.execute('UPDATE records SET payload=replace(payload, ?, ?) WHERE instr(payload, ?) > 0',
+                      (OLD_TOOL_PROVIDER_PREFIX, NEW_TOOL_PROVIDER_PREFIX, OLD_TOOL_PROVIDER_PREFIX)).rowcount
+
+
 class CatalogRepository:
     def __init__(self, directory):
         self.path = Path(directory) / 'catalog.sqlite3'
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             db.execute('CREATE TABLE IF NOT EXISTS records (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, version INTEGER NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)')
+            if str(self.path) not in _migrated_paths:
+                migrate_tool_providers(db)
+                _migrated_paths.add(str(self.path))
 
     def connect(self):
         return sqlite3.connect(self.path, timeout=10)

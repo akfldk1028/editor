@@ -2,7 +2,7 @@ import base64
 
 import pytest
 
-from backend.app.adapters.workspace_team import make_task
+from backend.app.adapters.workspace.team import make_task
 
 
 @pytest.mark.parametrize('mime', [

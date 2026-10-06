@@ -6,8 +6,8 @@ first use).
 """
 import asyncio
 
-from backend.app.adapters.workspace_credentials import apply_environment
-from backend.app.adapters.workspace_team import close_team, validate_components
+from backend.app.adapters.workspace.credentials import apply_environment
+from backend.app.adapters.workspace.team import close_team, validate_components
 from backend.app.core.model_auth import model_auth_mode
 from backend.app.modules.workspace.catalog import validate_component
 

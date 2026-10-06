@@ -9,7 +9,7 @@ import json
 import sqlite3
 import time
 
-from backend.app.adapters.workspace_team import close_team, load_team
+from backend.app.adapters.workspace.team import close_team, load_team
 
 
 QUICK_PHASES = (('reverse', '필지 조회', 0.05), ('land_use', '토지이용 조회', 0.10),
