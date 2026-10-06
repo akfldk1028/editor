@@ -2,6 +2,8 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-06 `d9992018` Split pieces live in the feature's own `components/`, `hooks/`, `lib/` —
+  never as siblings of the page (user: "폴더구조 제대로 지키고").
 - 2026-10-06 Modularization round 1 (pure splits, originals keep every export): `293cac0a` design
   (mass-entities 513, sunlight, facade-materials, DesignPage, BookLanguageFlow, execution-graph-model);
   `bbd24c52` workspace (PlaygroundPage 505, use-vworld-3d, layout-generator, TeamsPage, LawChat).
