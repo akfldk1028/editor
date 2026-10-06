@@ -12,8 +12,7 @@ import type {
 } from '../../lib/language-system-types';
 import { useMassPortfolio } from './useMassPortfolio';
 import { EvidencePanelBoundary } from './EvidencePanelBoundary';
-import { CreativeMassEvidence, ExecutedMassEvidence } from './ExecutedMassEvidence';
-import { executionRunCopy } from './execution-mode';
+import { ExecutedMassEvidence } from './ExecutedMassEvidence';
 import { useExecutionArchive } from './useExecutionArchive';
 import { LanguageNetworkCanvas } from './LanguageNetworkCanvas';
 import { executedMassNodeId, massLabel } from './execution-graph-model';
@@ -23,10 +22,11 @@ import {
   creativePortfolioPage,
 } from './creative-portfolio-adapter';
 import {
-  CreativeMassFilters,
   filterCreativeMassCards,
   type CreativeMassFilterState,
 } from './CreativeMassFilters';
+import { CreativeMassPortfolioSection } from './CreativeMassPortfolioSection';
+import { ExecutionRunTimeline, MassOnlyArchive } from './ExecutionArchiveViews';
 import { MassPortfolioView } from './MassPortfolioView';
 import './book-language-flow.css';
 
@@ -283,25 +283,7 @@ export function BookLanguageFlow({ compact = false, standalone = false }: BookLa
         <div className="maas-language-flow__state" role="alert">{passportBinding.error}</div>
       )}
       {archive && graphView !== 'creative' && (
-        <nav className="execution-run-timeline" aria-label="MASS 실행 시간순 아카이브">
-          <header><span>EXECUTION RUN TIMELINE</span><strong>{archive.editor_provenance ? 'SAVED RUNS · CLICK TO VIEW' : 'NEWEST → OLDEST · CLICK TO REPLAY'}</strong></header>
-          <div>
-            {[...archive.runs].reverse().map((run, runIndex) => (
-              <button
-                type="button"
-                key={run.run_id}
-                data-selected={run.run_id === archive.selected_run_id}
-                data-replayable={run.replayable}
-                onClick={() => selectRun(run.run_id)}
-                title={run.run_id}
-              >
-                <span>{String(runIndex + 1).padStart(2, '0')}</span>
-                <b>{run.run_id.replace('book-program-portfolios-', '')}</b>
-                <em>{run.selected_mass_count} MASS · {run.replayable ? executionRunCopy(run.execution_mode) : 'NO FINAL'}</em>
-              </button>
-            ))}
-          </div>
-        </nav>
+        <ExecutionRunTimeline archive={archive} selectRun={selectRun} />
       )}
       {archive && archive.masses.length === 0 && (
         <div className="maas-language-flow__state" role="status">
@@ -329,115 +311,32 @@ export function BookLanguageFlow({ compact = false, standalone = false }: BookLa
           selectedRunId={evaluationRunId || massPortfolioManifest.run_id} onSelectRun={selectEvaluationRun} loading={evaluationLoading} />
       )}
       {graphView === 'creative' && !massPortfolioManifest && creativePortfolio && (
-        <section className="creative-mass-portfolio" aria-label="Creative MASS choice pool">
-          <header>
-            <div>
-              <span>PRE-LEGAL CREATIVE MASS CHOICE POOL</span>
-              <strong>{creativeManifest?.run_id}</strong>
-            </div>
-            <b>{creativePortfolio.cards.length} TOTAL · {filteredCreativeCards.length} MATCHING · LEGAL NOT EVALUATED</b>
-          </header>
-          <CreativeMassFilters
-            cards={creativePortfolio.cards}
-            value={creativeFilters}
-            onChange={(next) => {
-              setCreativeFilters(next);
-              setCreativePage(1);
-            }}
-          />
-          <div className="creative-mass-portfolio__workspace">
-            <div
-              className="maas-language-flow__viewport"
-              ref={viewportRef}
-              tabIndex={0}
-              aria-label="Creative MASS portfolio graph"
-            >
-              <LanguageNetworkCanvas
-                nodes={creativePortfolio.nodes}
-                edges={creativePortfolio.edges}
-                stageOrder={creativePortfolio.stageOrder}
-                selectedNodeId={selectedNodeId ?? selectedCreativeNodeId}
-                onSelectNode={handleSelectNode}
-                includeDescendants
-                axisLabels={['PRE-LEGAL PORTFOLIO', 'BASEVOLUME MORPHOLOGY FAMILIES', '100 CHOICE-POOL MASSES']}
-              />
-            </div>
-            {!compact && selectedCreativeMass && (
-              <EvidencePanelBoundary resetKey={selectedCreativeMass.selectionKey}>
-                <CreativeMassEvidence mass={selectedCreativeMass} />
-              </EvidencePanelBoundary>
-            )}
-          </div>
-          <nav className="creative-mass-gallery" aria-label="Creative MASS candidates">
-            <header>
-              <span>PAGE {creativePageResult.page} / {creativePageResult.pageCount}</span>
-              <div>
-                <button
-                  type="button"
-                  disabled={creativePageResult.page === 1}
-                  onClick={() => setCreativePage((page) => Math.max(1, page - 1))}
-                >PREVIOUS</button>
-                <button
-                  type="button"
-                  disabled={creativePageResult.page === creativePageResult.pageCount}
-                  onClick={() => setCreativePage((page) => Math.min(creativePageResult.pageCount, page + 1))}
-                >NEXT</button>
-              </div>
-            </header>
-            <div>
-              {creativePageResult.items.map((mass, index) => (
-                <button
-                  type="button"
-                  key={mass.selectionKey}
-                  data-selected={mass.selectionKey === selectedCreativeMass?.selectionKey}
-                  onClick={() => {
-                    setSelectedCreativeKey(mass.selectionKey);
-                    const node = creativePortfolio.nodes.find(
-                      (item) => item.attributes.selectionKey === mass.selectionKey,
-                    );
-                    setSelectedNodeId(node?.id ?? null);
-                  }}
-                  aria-label={`${mass.candidateId} ${mass.family} pre-legal MASS`}
-                >
-                  <img src={mass.renderUrl} alt={`${mass.candidateId} creative MASS`} />
-                  <span>{String((creativePageResult.page - 1) * creativePageResult.pageSize + index + 1).padStart(3, '0')}</span>
-                  <strong>{mass.candidateId}</strong>
-                  <em>{mass.family} · {mass.capacityBand} · {mass.storeys}F</em>
-                </button>
-              ))}
-            </div>
-          </nav>
-        </section>
+        <CreativeMassPortfolioSection
+          creativeRunId={creativeManifest?.run_id}
+          creativePortfolio={creativePortfolio}
+          filteredCreativeCards={filteredCreativeCards}
+          creativeFilters={creativeFilters}
+          setCreativeFilters={setCreativeFilters}
+          setCreativePage={setCreativePage}
+          creativePageResult={creativePageResult}
+          selectedCreativeMass={selectedCreativeMass}
+          setSelectedCreativeKey={setSelectedCreativeKey}
+          selectedNodeId={selectedNodeId}
+          selectedCreativeNodeId={selectedCreativeNodeId}
+          setSelectedNodeId={setSelectedNodeId}
+          handleSelectNode={handleSelectNode}
+          viewportRef={viewportRef}
+          compact={compact}
+        />
       )}
 
       {archive && graphView === 'archive' && (
-        <section className="mass-only-archive" aria-label="실제 MASS 결과만 보기">
-          <header>
-            <div>
-              <span>ACTUAL MASS ARCHIVE</span>
-              <strong title={archive.selected_run_id}>{archive.selected_run_id}</strong>
-            </div>
-            <b>{recentMassCards.length} REPLAYABLE MASS RESULTS</b>
-          </header>
-          <div>
-            {recentMassCards.map((mass) => (
-              <button
-                type="button"
-                key={mass.key}
-                data-selected={mass.selected}
-                onClick={() => {
-                  if (mass.runId !== archive.selected_run_id) selectRun(mass.runId);
-                  else setSelectedMassIndex(mass.massIndex);
-                }}
-              >
-                <img src={mass.previewUrl} alt={`${mass.label} actual MASS`} />
-                <span>{String(mass.massIndex).padStart(2, '0')}</span>
-                <strong>{massLabel(mass.label)}</strong>
-                <em>{mass.operationLabel}</em>
-              </button>
-            ))}
-          </div>
-        </section>
+        <MassOnlyArchive
+          archive={archive}
+          recentMassCards={recentMassCards}
+          selectRun={selectRun}
+          setSelectedMassIndex={setSelectedMassIndex}
+        />
       )}
 
       {graphView !== 'archive' && graphView !== 'creative' && (selectedMass || (graphView === 'full' && languageManifest)) && (

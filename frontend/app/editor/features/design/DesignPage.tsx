@@ -11,45 +11,17 @@ import { useOptimizationStream } from './hooks/use-optimization-stream';
 import ControlPanel from './components/ControlPanel';
 import ConstraintSummary from './components/ConstraintSummary';
 import DatumInfoCard from './components/DatumInfoCard';
-import { MassExecutionPassportCard } from './components/MassExecutionPassportCard';
 import LegalBasisPanel from './components/LegalBasisPanel';
 import { SunlightSectionDiagram } from './components/SunlightSectionDiagram';
 import GenerationProgress from './components/GenerationProgress';
 import ParetoChart from './components/ParetoChart';
-import DesignInspector from './components/DesignInspector';
-import DesignList from './components/DesignList';
 import SiteMapPanel from './components/SiteMapPanel';
 import FloorPlanViewer from './components/FloorPlanViewer';
 import InteractiveDesignPanel from './components/InteractiveDesignPanel';
 import DefaultAgentFlowPanel from './components/DefaultAgentFlowPanel';
-
-const OBJECTIVE_LABELS: Record<string, string> = {
-  floor_area: 'Floor Area (m\u00B2)',
-  daylight_score: 'Daylight Score',
-  landscaping_pct: 'Open Space (%)',
-  setback: 'Setback (m)',
-  bcr: 'BCR (%)',
-  far: 'FAR (%)',
-  height: 'Height (m)',
-};
-
-const BUILDING_TYPES = [
-  { key: '공동주택', label: '공동주택 (아파트)', floorHeight: 2.8 },
-  { key: '근린생활시설', label: '근린생활시설', floorHeight: 3.5 },
-  { key: '업무시설', label: '업무시설 (오피스)', floorHeight: 3.8 },
-  { key: '판매시설', label: '판매시설 (상가)', floorHeight: 4.0 },
-  { key: '숙박시설', label: '숙박시설 (호텔)', floorHeight: 3.0 },
-  { key: '문화집회시설', label: '문화 및 집회시설', floorHeight: 4.5 },
-  { key: '의료시설', label: '의료시설', floorHeight: 3.6 },
-  { key: '교육연구시설', label: '교육연구시설', floorHeight: 3.5 },
-  { key: '공장', label: '공장', floorHeight: 5.0 },
-  { key: '창고시설', label: '창고시설', floorHeight: 6.0 },
-];
-
-const ALGORITHMS = [
-  { key: 'maas_legal_envelope', label: 'MAAS 법규 탐색' },
-  { key: 'all', label: 'Legacy 10종 비교' },
-];
+import { ALGORITHMS, BUILDING_TYPES, OBJECTIVE_LABELS } from './design-page-options';
+import { DesignMassTab } from './DesignMassTab';
+import { DesignPageHeader, DesignViewTabBar, ParetoEmptyState, ParetoVisibilityToggle } from './DesignPageSections';
 
 const DesignPage: React.FC = () => {
   const jobState = useDesignJob();
@@ -298,22 +270,7 @@ const DesignPage: React.FC = () => {
         background: '#0f172a',
         flexShrink: 0,
       }}>
-        <div style={{
-          padding: '4px 8px 14px',
-        }}>
-          <h2 style={{
-            color: '#e2e8f0',
-            fontSize: 17,
-            fontWeight: 700,
-            margin: 0,
-            letterSpacing: '-0.01em',
-          }}>
-            건물 매스 최적화
-          </h2>
-          <p style={{ color: '#475569', fontSize: 11, margin: '4px 0 0', letterSpacing: '0.02em' }}>
-            MAAS Legal Morphology Search
-          </p>
-        </div>
+        <DesignPageHeader />
 
         <ControlPanel
           constraints={jobState.constraints}
@@ -382,159 +339,43 @@ const DesignPage: React.FC = () => {
               yLabel={yLabel}
             />
           ) : stream.status === 'idle' ? (
-            <div style={{
-              background: 'rgba(30,41,59,0.5)',
-              borderRadius: 10,
-              padding: 32,
-              textAlign: 'center' as const,
-              color: '#334155',
-              border: '1px dashed #1e293b',
-            }}>
-              <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.4 }}>&#x25B3;</div>
-              <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-                왼쪽 지도에서 대지를 선택하고<br />
-                최적화를 시작하면<br />
-                파레토 프론트가 표시됩니다
-              </div>
-            </div>
+            <ParetoEmptyState />
           ) : null}
         </div>
 
         {/* Tab bar: 매스 | 평면 + 자동 토글 */}
-        <div style={{
-          display: 'flex', alignItems: 'center', padding: '6px 12px 0',
-          borderBottom: '1px solid rgba(255,255,255,0.04)',
-          flexShrink: 0,
-        }}>
-          {(['mass', 'floor'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setViewTab(tab)}
-              style={{
-                flex: 1, padding: '7px 0', border: 'none', cursor: 'pointer',
-                fontSize: 11, fontWeight: 600, letterSpacing: '0.05em',
-                background: 'transparent',
-                color: viewTab === tab ? '#e2e8f0' : '#475569',
-                borderBottom: viewTab === tab ? '2px solid #60c8ff' : '2px solid transparent',
-                transition: 'all 0.15s',
-              }}
-            >
-              {tab === 'mass' ? '매스' : '평면'}
-            </button>
-          ))}
-          <select
-            value={floorAlgorithm}
-            onChange={e => setFloorAlgorithm(e.target.value)}
-            style={{
-              marginLeft: 6, padding: '2px 4px', borderRadius: 4,
-              border: '1px solid #334155', background: '#0f172a',
-              color: '#94a3b8', fontSize: 9, cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
-            <option value="ga">GA</option>
-            <option value="subdivision">분할</option>
-            <option value="mcts">MCTS</option>
-            <option value="packing">패킹</option>
-            <option value="graph2plan">Graph2Plan</option>
-          </select>
-          <button
-            onClick={() => setAutoFloorPlan(prev => !prev)}
-            title={autoFloorPlan ? '자동 평면 생성 켜짐' : '자동 평면 생성 꺼짐'}
-            style={{
-              marginLeft: 4, padding: '3px 8px', borderRadius: 6,
-              border: 'none', cursor: 'pointer', fontSize: 9, fontWeight: 600,
-              background: autoFloorPlan ? 'rgba(96,200,255,0.12)' : 'rgba(255,255,255,0.03)',
-              color: autoFloorPlan ? '#60c8ff' : '#475569',
-              transition: 'all 0.15s', whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            자동 {autoFloorPlan ? 'ON' : 'OFF'}
-          </button>
-        </div>
+        <DesignViewTabBar
+          viewTab={viewTab}
+          setViewTab={setViewTab}
+          floorAlgorithm={floorAlgorithm}
+          setFloorAlgorithm={setFloorAlgorithm}
+          autoFloorPlan={autoFloorPlan}
+          setAutoFloorPlan={setAutoFloorPlan}
+        />
 
         {stream.paretoFront.length > 18 && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '7px 12px 0',
-            color: '#64748b',
-            fontSize: 10,
-            flexShrink: 0,
-          }}>
-            <span>
-              {showAllPareto ? `전체 ${stream.paretoFront.length}개 표시` : `최적 후보 ${visibleParetoDesigns.length}개 우선 표시`}
-            </span>
-            <button
-              onClick={() => setShowAllPareto(prev => !prev)}
-              style={{
-                border: '1px solid rgba(96,200,255,0.22)',
-                background: showAllPareto ? 'rgba(96,200,255,0.08)' : 'rgba(16,185,129,0.12)',
-                color: showAllPareto ? '#60c8ff' : '#34d399',
-                borderRadius: 6,
-                padding: '3px 7px',
-                fontSize: 10,
-                cursor: 'pointer',
-              }}
-            >
-              {showAllPareto ? '최적만' : '전체보기'}
-            </button>
-          </div>
+          <ParetoVisibilityToggle
+            showAllPareto={showAllPareto}
+            setShowAllPareto={setShowAllPareto}
+            paretoFrontCount={stream.paretoFront.length}
+            visibleParetoCount={visibleParetoDesigns.length}
+          />
         )}
 
         {/* Tab content */}
         <div style={{ minHeight: 360, overflow: 'visible', display: 'flex', flexDirection: 'column' }}>
           {viewTab === 'mass' ? (
-            <div style={{ padding: '8px 12px', minHeight: 0 }}>
-              <DesignList
-                designs={visibleParetoDesigns}
-                selectedId={selectedDesign?.id ?? null}
-                selectedUid={selectedDesign?.uid ?? null}
-                selectedAlgorithm={selectedDesign?.algorithm ?? null}
-                onSelect={handleDesignSelect}
-                objectiveNames={stream.objectives.map(o => o.name)}
-                featureForDesign={findFeatureForDesign}
-              />
-
-              {selectedDesign && (
-                <div style={{ marginTop: 8 }}>
-                  <DesignInspector
-                    design={selectedDesign}
-                    objectiveNames={stream.objectives.map(o => o.name)}
-                    feature={selectedMassGeojson}
-                  />
-                  <MassExecutionPassportCard
-                    value={selectedMassGeojson?.properties?.mass_execution_passport}
-                    title={String(
-                      selectedMassGeojson?.properties?.variant_id
-                      || selectedMassGeojson?.properties?.mass_shape
-                      || `MASS ${selectedDesign.id}`
-                    )}
-                  />
-                  {/* 평면 생성 버튼 */}
-                  {stream.paretoGeojson?.length > 0 && (
-                    <button
-                      onClick={handleGenerateFloorPlan}
-                      disabled={floorPlanLoading}
-                      style={{
-                        width: '100%', marginTop: 10, padding: '10px 0',
-                        borderRadius: 8, border: 'none', cursor: 'pointer',
-                        fontSize: 12, fontWeight: 700, letterSpacing: '0.03em',
-                        background: floorPlanLoading
-                          ? 'rgba(96,200,255,0.08)'
-                          : 'linear-gradient(135deg, rgba(96,200,255,0.15), rgba(96,200,255,0.08))',
-                        color: '#60c8ff',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {floorPlanLoading ? '생성 중...' : '⊞ 평면 생성'}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+            <DesignMassTab
+              designs={visibleParetoDesigns}
+              selectedDesign={selectedDesign}
+              onSelect={handleDesignSelect}
+              objectives={stream.objectives}
+              featureForDesign={findFeatureForDesign}
+              selectedMassGeojson={selectedMassGeojson}
+              showFloorPlanButton={stream.paretoGeojson?.length > 0}
+              floorPlanLoading={floorPlanLoading}
+              onGenerateFloorPlan={handleGenerateFloorPlan}
+            />
           ) : (
             <FloorPlanViewer
               result={floorPlanResult}
