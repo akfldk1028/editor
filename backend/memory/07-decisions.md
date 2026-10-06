@@ -41,3 +41,8 @@ be told to the Orchestrator session.
   for a parcel outside the installed mosaic (`tiles/wfs_<x>_<y>.tif`, mosaic listed last, so it
   wins). `elevation_api._get_ngii_dem_src` reopens when the file's mtime changes. Changed by the
   Orchestrator session; Site owns the tiles (agents/SiteContextAgent `dem.ensure_cover`).
+- 2026-10-06 Ordinance caps for all 163 jurisdictions (`d4ee05b9`), generator in
+  `law/reference/scripts/ordinance_batch/`. Calculator looks up the 시 of an 일반구
+  (`ordinance_codes`). Known: the original `fetch_ordinance_caps.parse_caps` misread "1,500" as
+  500 and spaced zone names; the rebuild parser replaced its values. Re-run the three scripts
+  rather than `fetch_ordinance_caps.py` alone. Changed by the Orchestrator session.
