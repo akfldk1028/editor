@@ -15,8 +15,7 @@ import os
 import math
 from copy import deepcopy
 from pathlib import Path
-from typing import Callable
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from datetime import datetime
 
 from .legal_use import classify_building_use
@@ -24,9 +23,34 @@ from .ordinance_evidence import assessment_day, source_eligibility
 
 from . import zoning_limits, overlays
 from .zoning_catalog import CatalogUnavailable
+from .calculator_rules import (
+    Extractor,
+    _empty_result,
+    _resolve_bcr_far,
+    _resolve_height,
+    _use_llm_extraction,
+    _resolve_sunlight,
+    _resolve_sunlight_from_json,
+    _resolve_corner_cutoff,
+    _resolve_road_diagonal,
+    _resolve_building_line,
+    _resolve_adjacent_setback,
+    _resolve_landscaping,
+    _resolve_building_designation,
+)
+from .calculator_parking import (
+    _PARKING_AMBIGUOUS_UMBRELLA,
+    _PARKING_CARVE_OUT,
+    _parking_row,
+    _parking_detached_house,
+    _parking_first_decimal,
+    _parking_round_note6,
+    _parking_finalize,
+    _accessible_row,
+    _accessible_use_status,
+)
 
 ORDINANCE_DIR = Path(__file__).with_name("data") / "ordinance_overrides"
-Extractor = Callable[[list[str], str], dict | None]
 
 logger = logging.getLogger(__name__)
 
@@ -124,232 +148,6 @@ def calculate_all(zone_names: list[str], land_info: dict | None = None,
     return result
 
 
-def _empty_result() -> dict:
-    return {
-        "bcr_pct": None, "bcr_article": "",
-        "far_pct": None, "far_article": "",
-        "national_bcr_ceiling_pct": None, "national_far_ceiling_pct": None,
-        "municipal_bcr_snapshot_pct": None, "municipal_far_snapshot_pct": None,
-        "municipal_coverage": {"status": "needs_evidence", "sources": [],
-                               "missing_evidence": ["recognized_zoning_and_jurisdiction"]},
-        "sunlight_status": "needs_evidence",
-        "parking_status": "needs_evidence",
-        "height_limit_m": None, "height_article": "",
-        "sunlight_applies": False, "sunlight_rules": [], "sunlight_article": "",
-        "corner_cutoff_required": False, "corner_cutoff_m": None, "corner_cutoff_article": "",
-        "road_diagonal_multiplier": None, "road_diagonal_rule": "",
-        "road_diagonal_article": "",
-        "building_line_setback_m": None, "building_line_article": "",
-        "adjacent_setback_m": None, "adjacent_setback_article": "",
-        "parking_rule": "", "parking_article": "",
-        "landscaping_threshold_m2": None, "landscaping_min_pct": None,
-        "landscaping_article": "",
-        "sunlight_source": "",
-        "adjacent_setback_source": "",
-        "building_designation_applies": False,
-        "building_designation_setback_m": None,
-        "building_designation_article": "",
-        "building_designation_source": "",
-        "zone_category": "",
-        "matched_zones": [],
-        "unmatched_zones": [],
-    }
-
-
-def _resolve_bcr_far(zones_data: list[dict], zone_areas: dict[str, float] | None = None) -> dict:
-    """BCR/FAR per 국토계획법 제84조. One implementation, in zoning_limits.
-
-    This used to take the strictest limit across zones independently of
-    `zoning_limits`, so the same wrong rule existed twice and fixing either one
-    alone changed nothing for callers of the other.
-    """
-
-    combined = zoning_limits.combine_limits(zones_data, zone_areas)
-    bcr = combined["bcr_limit"]
-    far = combined["far_limit"]
-
-    bcr_articles = list(dict.fromkeys(z["bcr_article"] for z in zones_data))
-    far_articles = list(dict.fromkeys(z["far_article"] for z in zones_data))
-
-    overlap = combined.get("overlap")
-    if overlap:
-        # The article that actually decided the number, not only the ones that
-        # set each zone's own default.
-        bcr_articles.append(overlap["article"])
-        far_articles.append(overlap["article"])
-
-    return {
-        "bcr_pct": bcr,
-        "bcr_article": "; ".join(dict.fromkeys(bcr_articles)),
-        "far_pct": far,
-        "far_article": "; ".join(dict.fromkeys(far_articles)),
-        "zone_overlap": overlap,
-    }
-
-
-def _resolve_height(zones_data: list[dict]) -> dict:
-    """Height limit: use strictest (lowest non-null)."""
-    heights = [z["height_limit_m"] for z in zones_data if z.get("height_limit_m") is not None]
-    articles = list(dict.fromkeys(z.get("height_limit_article", "") for z in zones_data if z.get("height_limit_article")))
-
-    return {
-        "height_limit_m": min(heights) if heights else None,
-        "height_article": "; ".join(articles) if articles else "",
-    }
-
-
-def _use_llm_extraction(override: bool | None) -> bool:
-    return bool(override)
-
-
-def _resolve_sunlight(zones_data: list[dict], use_llm_extraction: bool | None = None, *,
-                      extractor: Extractor | None = None) -> dict:
-    """Resolve static rules and keep any unverified extraction advisory."""
-    # Base: static JSON
-    base = _resolve_sunlight_from_json(zones_data)
-    base["sunlight_source"] = "static_json"
-
-    # Advisory extraction only; source identity/applicability are not verified.
-    if _use_llm_extraction(use_llm_extraction) and extractor is not None:
-        try:
-            zone_names = [z["zone_name"] for z in zones_data]
-            extracted = extractor(zone_names, "sunlight")
-            if extracted:
-                base['sunlight_proposal'] = {'status': 'unverified_proposal', 'values': extracted}
-        except Exception as e:
-            logger.warning(f"LLM sunlight extraction failed, using JSON fallback: {e}")
-
-    return base
-
-
-def _resolve_sunlight_from_json(zones_data: list[dict]) -> dict:
-    """Sunlight from static JSON (fallback)."""
-    applies = any(
-        z.get("sunlight_setback", {}).get("applies", False)
-        for z in zones_data
-    )
-
-    if not applies:
-        articles = list(dict.fromkeys(
-            z.get("sunlight_setback", {}).get("article", "")
-            for z in zones_data
-            if z.get("sunlight_setback", {}).get("article")
-        ))
-        return {
-            "sunlight_applies": False,
-            "sunlight_rules": [],
-            "sunlight_article": "; ".join(articles) if articles else "",
-        }
-
-    for z in zones_data:
-        ss = z.get("sunlight_setback", {})
-        if ss.get("applies"):
-            return {
-                "sunlight_applies": True,
-                "sunlight_rules": ss.get("rules", []),
-                "sunlight_article": ss.get("article", ""),
-            }
-
-    return {"sunlight_applies": False, "sunlight_rules": [], "sunlight_article": ""}
-
-
-def _resolve_corner_cutoff(zones_data: list[dict]) -> dict:
-    """Corner cutoff: required if ANY zone requires it. Cutoff distance from zone or ordinance."""
-    required = any(
-        z.get("corner_cutoff", {}).get("required", False)
-        for z in zones_data
-    )
-    articles = list(dict.fromkeys(
-        z.get("corner_cutoff", {}).get("article", "")
-        for z in zones_data
-        if z.get("corner_cutoff", {}).get("article")
-    ))
-    # Cutoff distance: ordinance/zone override or None (→ setback_geometry calculates dynamically)
-    cutoff_values = [
-        z.get("corner_cutoff", {}).get("default_cutoff_m")
-        for z in zones_data
-        if z.get("corner_cutoff", {}).get("default_cutoff_m") is not None
-    ]
-
-    return {
-        "corner_cutoff_required": required,
-        "corner_cutoff_m": max(cutoff_values) if cutoff_values else None,
-        "corner_cutoff_article": "; ".join(articles) if articles else "",
-    }
-
-
-def _resolve_road_diagonal(zones_data: list[dict]) -> dict:
-    """Road diagonal: use strictest (lowest multiplier)."""
-    multipliers = [
-        z.get("road_diagonal", {}).get("multiplier")
-        for z in zones_data
-        if z.get("road_diagonal", {}).get("multiplier") is not None
-    ]
-    notes = [
-        z.get("road_diagonal", {}).get("note", "")
-        for z in zones_data
-        if z.get("road_diagonal", {}).get("note")
-    ]
-    articles = list(dict.fromkeys(
-        z.get("road_diagonal", {}).get("article", "")
-        for z in zones_data
-        if z.get("road_diagonal", {}).get("article")
-    ))
-
-    return {
-        "road_diagonal_multiplier": min(multipliers) if multipliers else None,
-        "road_diagonal_rule": notes[0] if notes else "",
-        "road_diagonal_article": "; ".join(articles) if articles else "",
-    }
-
-
-def _resolve_building_line(zones_data: list[dict]) -> dict:
-    """Building line: rule text only (site-specific calculation in Phase 3+)."""
-    articles = list(dict.fromkeys(
-        z.get("building_line_article", "")
-        for z in zones_data
-        if z.get("building_line_article")
-    ))
-
-    return {
-        "building_line_setback_m": None,
-        "building_line_article": "; ".join(articles) if articles else "",
-    }
-
-
-def _resolve_adjacent_setback(zones_data: list[dict], use_llm_extraction: bool | None = None, *,
-                             extractor: Extractor | None = None) -> dict:
-    """Use the largest sourced setback; extractions never replace numeric rules."""
-    # Base: static JSON
-    setbacks = [
-        z.get("adjacent_setback_m")
-        for z in zones_data
-        if z.get("adjacent_setback_m") is not None
-    ]
-    articles = list(dict.fromkeys(
-        z.get("adjacent_setback_article", "")
-        for z in zones_data
-        if z.get("adjacent_setback_article")
-    ))
-    base = {
-        "adjacent_setback_m": max(setbacks) if setbacks else None,
-        "adjacent_setback_article": "; ".join(articles) if articles else "",
-        "adjacent_setback_source": "static_json",
-    }
-
-    # Advisory extraction only; source identity/applicability are not verified.
-    if _use_llm_extraction(use_llm_extraction) and extractor is not None:
-        try:
-            zone_names = [z["zone_name"] for z in zones_data]
-            extracted = extractor(zone_names, "adjacent_setback")
-            if extracted:
-                base['adjacent_setback_proposal'] = {'status': 'unverified_proposal', 'values': extracted}
-        except Exception as e:
-            logger.warning(f"LLM adjacent_setback extraction failed: {e}")
-
-    return base
-
-
 _parking_national_cache: dict | None = None
 
 
@@ -369,54 +167,6 @@ def _parking_national() -> dict:
             _parking_national_cache = None
             raise CatalogUnavailable('Parking reference unavailable') from exc
     return deepcopy(_parking_national_cache)
-
-
-# 별표 1 umbrellas whose statutory carve-out is a structural cross-reference, not a
-# declarable use label, so the umbrella itself can never be resolved:
-#   제1종 근린생활시설[건축법 시행령 별표1 제3호 바목·사목 … 은 제외한다]
-#   방송통신시설 중 방송국 (the row covers one subtype, not the umbrella)
-# 의료시설/운동시설/문화 및 집회시설/공장 stay here as a deliberate conservatism:
-# their carve-outs are declarable, but nothing in this pipeline needs the umbrella.
-_PARKING_AMBIGUOUS_UMBRELLA = {'방송통신시설', '제1종 근린생활시설', '의료시설',
-                               '운동시설', '문화 및 집회시설', '공장'}
-
-# Uses named in a 별표 1 parenthetical carve-out. Such a use never inherits its
-# category's row; it matches only a row that lists it explicitly.
-#   문화 및 집회시설(관람장은 제외한다)
-#   의료시설(정신병원·요양병원 및 격리병원은 제외한다)
-#   운동시설(골프장·골프연습장 및 옥외수영장은 제외한다)
-#   업무시설(외국공관 및 오피스텔은 제외한다)
-_PARKING_CARVE_OUT = {'관람장', '정신병원', '요양병원', '격리병원',
-                      '골프장', '골프연습장', '옥외수영장', '외국공관', '오피스텔'}
-
-
-def _parking_row(rows: list[dict], building_type: str) -> tuple[dict | None, str | None]:
-    """Resolve a use to its 별표 1 row. Returns (row, precision).
-
-    Exact legal identity wins. A use that is not itself listed may inherit its
-    statutory category's row ("category"), because 별표 1 writes those rows at
-    umbrella level - but never when the use is a named carve-out of that row.
-    Never broadens an excluded subtype and never falls back to 그 밖의 건축물.
-    """
-    classification = classify_building_use(building_type)
-    canonical = classification['canonical_use']
-    if canonical is None or canonical in _PARKING_AMBIGUOUS_UMBRELLA:
-        return None, None
-    if canonical in {'아파트', '연립주택', '다세대주택'}:
-        canonical = '공동주택'
-    for row in rows:
-        if any(canonical == classify_building_use(use)['canonical_use']
-               for use in row.get('uses', [])):
-            return row, 'exact'
-    category = classification['category']
-    if (category is None or category == canonical or canonical in _PARKING_CARVE_OUT
-            or category in _PARKING_AMBIGUOUS_UMBRELLA):
-        return None, None
-    for row in rows:
-        if any(category == classify_building_use(use)['canonical_use']
-               for use in row.get('uses', [])):
-            return row, 'category'
-    return None, None
 
 
 def _resolve_parking(zones_data: list[dict], common: dict | None = None, sigungu_code: str = "",
@@ -538,100 +288,6 @@ def _resolve_parking(zones_data: list[dict], common: dict | None = None, sigungu
     return out
 
 
-def _parking_detached_house(area: float, tier: dict) -> float:
-    """별표 1 제4호 단독주택(다가구주택 제외): 50㎡ 초과 first_max 이하 1대, 초과분은
-    step㎡당 1대 (시행령 150/100; 의정부 별표 3은 134/85). 50㎡ 이하는 표에 값이 없고
-    비고 4 단서가 면적을 100㎡로 나눈 대수로 정한다 (서울 별표 2 비고 4도 100㎡,
-    의정부 별표 3 비고 1은 85㎡) - the divisor is read from the ordinance snapshot."""
-    first_max = float(tier.get('first_max_m2', 150))
-    step = float(tier.get('step_m2', 100))
-    if area <= 50:
-        return area / float(tier.get('under_50_divisor_m2', 100))
-    if area <= first_max:
-        return 1.0
-    return 1 + (area - first_max) / step
-
-
-def _parking_first_decimal(cars: float) -> float:
-    """별표 1 비고 4's "소수점 이하 첫째자리까지의 주차대수".
-
-    별표 1 states the precision, not how to reach it; neither the 시행령, 서울 별표 2
-    비고 4 (same sentence), 의정부 별표 3 비고 1 (restates it with an 85㎡ divisor for
-    단독주택 50㎡ 이하) nor 법제처 법령해석 15-0777 says 반올림 or 절사. Round-half-up
-    is used, consistent with 비고 6's own treatment of 0.5, and the exact quotient
-    is preserved alongside so an ordinance that decides otherwise can override.
-    """
-    return float(Decimal(repr(cars)).quantize(Decimal('0.1'), rounding=ROUND_HALF_UP))
-
-
-def _parking_round_note6(subtotal: float) -> int:
-    """별표 1 비고 6: 0.5 이상은 1로, 총주차대수 1대 미만은 0대. 반올림이지 올림이 아니다."""
-    if subtotal < 1:
-        return 0
-    whole = math.floor(subtotal)
-    return whole + (1 if Decimal(repr(subtotal)) - whole >= Decimal('0.5') else 0)
-
-
-def _parking_finalize(out: dict, evaluated: list) -> None:
-    """별표 1 비고 6 단수처리 -> the binding 부설주차장 주차대수.
-
-    "소수점 이하의 수…가 0.5 이상인 경우에는 이를 1로 본다. 다만, 해당 시설물
-    전체에 대하여 설치기준을 적용하여 산정한 총주차대수가 1대 미만인 경우에는
-    주차대수를 0으로 본다." 서울 조례 별표 2 비고 6 and 별표 3 비고 7 repeat this
-    verbatim; 의정부 별표 3 carries no rounding note of its own, so the 시행령 sentence
-    governs there too. An ordinance may tighten the ratio (비고 11) without changing
-    this step. 법제처 법령해석 15-0777 (2015-12-31): the 단서's "해당 시설물 전체" is
-    the whole mixed-use building, so the 1대 미만 test runs on the summed total.
-
-    The number is emitted only when it binds: an ordinance snapshot is present
-    (시행령 별표 1 is the national floor, the ordinance is what binds the parcel),
-    every declared use resolved, and no unresolved 주차장설치제한지역 candidate -
-    there the 별표 3 cap is lower than the requirement, so an uncapped number
-    would overstate parking.
-    """
-    distinct = {(item.get('classification') or {}).get('canonical_use') for item in evaluated}
-    # 별표 1 비고 4 governs "용도가 다른 시설물이 복합된 시설물" only. A single use -
-    # or several entries of the same use - is summed at full precision, so a
-    # 0.95-car facility stays below 비고 6's 1대 threshold instead of being lifted
-    # to 1.0 by a rounding step the statute does not apply to it.
-    mixed_use = len(distinct - {None}) > 1
-    calculation = {
-        'notes_applied': (['별표1 비고4'] if mixed_use else []) + ['별표1 비고6'],
-        'mixed_use': mixed_use,
-        'rounding_policy': 'first_decimal_round_half_up' if mixed_use else 'exact_quotient',
-        'final_rule': '소수점 이하 0.5 이상은 1로 본다; 총주차대수 1대 미만은 0대',
-        'basis': out.get('parking_basis'),
-        'subtotal_first_decimal': None,
-        'uses': [{k: item.get(k) for k in
-                  ('id', 'building_type', 'ratio_m2_per_car', 'rule', 'use_precision',
-                   'calculated_intermediate', 'cars_first_decimal', 'status')}
-                 for item in evaluated],
-        # 비고 1 lists uses that need no 부설주차장 (변전소·수도원·동물 및 식물 관련
-        # 시설·송수신 중계시설·도시철도 역사·전통한옥 등). None of them is a
-        # declarable label in legal_use, so no exemption is evaluated here.
-        'note1_exemptions_evaluated': False,
-    }
-    out['parking_calculation'] = calculation
-    if not evaluated or any(item['cars_first_decimal'] is None for item in evaluated):
-        for item in evaluated:
-            for reason in item.get('missing_evidence', []):
-                if reason not in out['parking_missing_evidence']:
-                    out['parking_missing_evidence'].append(reason)
-        return
-    key = 'cars_first_decimal' if mixed_use else 'calculated_intermediate'
-    subtotal = float(sum(Decimal(repr(item[key])) for item in evaluated))
-    calculation['subtotal'] = subtotal
-    calculation['subtotal_first_decimal'] = subtotal if mixed_use else None
-    if out['parking_basis'] != 'municipal_snapshot':
-        # The national table is a floor; the ordinance is the binding number.
-        calculation['national_floor_cars'] = _parking_round_note6(subtotal)
-        return
-    if out['parking_restricted_candidate']:
-        return
-    out['parking_required'] = _parking_round_note6(subtotal)
-    out['parking_status'] = 'calculated'
-
-
 _accessible_applicability_cache: dict | None = None
 
 
@@ -654,39 +310,6 @@ def _accessible_applicability() -> dict:
             _accessible_applicability_cache = None
             raise CatalogUnavailable('Accessible parking reference unavailable') from exc
     return deepcopy(_accessible_applicability_cache)
-
-
-def _accessible_row(rows: list[dict], classification: dict) -> dict | None:
-    canonical = classification.get('canonical_use')
-    if canonical is None:
-        return None
-    for row in rows:
-        if canonical in row.get('uses', []):
-            return row
-    category = classification.get('category')
-    for row in rows:
-        if category in row.get('uses', []):
-            return row
-    return None
-
-
-def _accessible_use_status(row: dict | None, area) -> tuple[str, str]:
-    """One use against 별표 1: applies / not_applicable / needs_evidence, with its clause."""
-    if row is None:
-        return 'needs_evidence', 'accessibility_act_applicability_unknown_use'
-    if row.get('status'):
-        return row['status'], row.get('reason') or row.get('clause', '')
-    condition = row.get('applies_when') or {}
-    if condition.get('always'):
-        return 'applies', row.get('clause', '')
-    minimum = condition.get('min_floor_area_m2')
-    if minimum is not None:
-        if not (isinstance(area, (int, float)) and not isinstance(area, bool) and math.isfinite(area)):
-            return 'needs_evidence', 'floor_area_for_accessibility_threshold'
-        if area >= minimum:
-            return 'applies', row.get('clause', '')
-        return row.get('below', 'needs_evidence'), f"{row.get('clause', '')} 문턱 {minimum}㎡ 미달"
-    return 'needs_evidence', row.get('clause', '')
 
 
 def _parking_accessible(out: dict, evaluated: list, ordinance: dict | None) -> None:
@@ -775,41 +398,6 @@ def _ordinance_common(sigungu_code: str, assessment_date=None) -> dict:
     return common
 
 
-def _resolve_landscaping(zones_data: list[dict], land_info: dict | None = None,
-                         common: dict | None = None) -> dict:
-    """Landscaping (건축법 §42 -> 건축조례). Every 건축 조례 seen so far tiers the
-    minimum by the building's 연면적 (2,000 m2+ 15 %, 1,000-2,000 10 %, under
-    1,000 5 %), not by zone, so when the city's ordinance is on file the tiers are
-    returned and min_pct is left to the caller who knows the floor area. The
-    zone-keyed static value is only the fallback for cities without a file."""
-    ls_common = (common or {}).get("landscaping") if common else None
-    if isinstance(ls_common, dict) and ls_common.get("tiers"):
-        return {
-            "landscaping_threshold_m2": ls_common.get("threshold_m2", 200),
-            "landscaping_min_pct": None,
-            "landscaping_tiers": ls_common["tiers"],
-            "landscaping_article": ls_common.get("article", ""),
-        }
-    thresholds = []
-    pcts = []
-    articles_set = set()
-
-    for z in zones_data:
-        ls = z.get("landscaping", {})
-        if ls.get("threshold_m2") is not None:
-            thresholds.append(ls["threshold_m2"])
-        if ls.get("min_pct") is not None:
-            pcts.append(ls["min_pct"])
-        if ls.get("article"):
-            articles_set.add(ls["article"])
-
-    return {
-        "landscaping_threshold_m2": min(thresholds) if thresholds else None,
-        "landscaping_min_pct": max(pcts) if pcts else None,
-        "landscaping_article": "; ".join(articles_set) if articles_set else "",
-    }
-
-
 # ──────────────────────────────────────────────────────
 # Ordinance Override (지자체 조례)
 # ──────────────────────────────────────────────────────
@@ -874,44 +462,6 @@ def _apply_ordinance_overrides(zones_data: list[dict], sigungu_code: str, assess
         else:
             result.append(z)
     return result
-
-
-def _resolve_building_designation(
-    all_zone_names: list[str], use_llm_extraction: bool | None = None, *,
-    extractor: Extractor | None = None,
-) -> dict:
-    """A district-plan designation requires the parcel's actual plan evidence."""
-    is_district_plan = any("지구단위계획" in z for z in all_zone_names)
-
-    base = {
-        "building_designation_applies": is_district_plan,
-        "building_designation_setback_m": None,
-        "building_designation_article": (
-            "국토계획법 §49-52, 건축법 §46-47" if is_district_plan else ""
-        ),
-        "building_designation_source": "needs_district_plan_evidence" if is_district_plan else "",
-    }
-
-    if not is_district_plan:
-        return base
-
-    # Advisory extraction only; source identity/applicability are not verified.
-    if _use_llm_extraction(use_llm_extraction) and extractor is not None:
-        try:
-            standard_zones = [
-                z for z in all_zone_names
-                if zoning_limits.lookup(z) is not None
-            ]
-            if standard_zones:
-                extracted = extractor(
-                    standard_zones, "building_designation",
-                )
-                if extracted:
-                    base['building_designation_proposal'] = {'status': 'unverified_proposal', 'values': extracted}
-        except Exception as e:
-            logger.warning(f"LLM building_designation extraction failed: {e}")
-
-    return base
 
 
 def _municipal_coverage(zones_data, sigungu_code, assessment_date=None):
