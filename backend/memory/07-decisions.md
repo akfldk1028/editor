@@ -3,6 +3,15 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-06 Modularization round 1 (platform core, pure moves, originals stay the public import path):
+  `65045d70` cli.py -> `cli/` package; `94b08e71` design_runtime views.py -> 7 modules; `f14f7806`
+  masterplan planner/rows/validation -> siblings (plan_site hashes identical; planner.py still 835 —
+  `_plan_site_fixed` is one closure-heavy function, splitting it is a refactor); `4999585d`
+  regulations + land/reference calculator/setbacks split (385 output hashes identical; the two
+  diverged copies were NOT merged). Monkeypatched names and their callers stayed in the original
+  module. `backend/scripts/import_design_runtime.py` + `source-manifest.json` still hash the
+  pre-split files — do not re-run the importer over them (it would overwrite or flag the splits).
+  Agent doors unchanged. Not done: research code under `design/generation` (book_language, massv2).
 - 2026-10-06 `1ec08619` Delivered mass export by content: `/bundle` door, `files/` and
   `package.zip` routes, hrefs on results. Mass ships its cycle; nothing reads Mass's disk.
 - 2026-10-06 `5ddd2b35` A2A_TOKEN on agent doors; planm stages travel as bundles

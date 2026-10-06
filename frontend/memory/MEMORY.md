@@ -7,6 +7,8 @@ editor rules (3D viewer/editor layers) are in the repo-root `AGENTS.md` and `doc
 — this folder covers the 25_ACE platform side that was added on top.
 
 Who owns what (2026-10-06):
+- Since 2026-10-06 **one editor session owns both frontend and backend** (the two roles below are
+  held by the same session; it is modularizing both — see `05-decisions.md`).
 - **Editor frontend session** (you): `frontend/` — pages, API proxies, workspace (AG) UI, law/
   design/planm screens.
 - **Editor backend session**: `backend/` — see `../../backend/memory/MEMORY.md`. Every backend

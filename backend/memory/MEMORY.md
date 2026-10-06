@@ -6,6 +6,8 @@ file is short and factual; facts carry a date. When you learn something durable,
 matching file (or add one and list it here). Do not duplicate what the code or git log says.
 
 Who owns what (2026-10-06):
+- Since 2026-10-06 **one editor session owns both backend and frontend** (the two roles below are
+  held by the same session; it is modularizing both — see `07-decisions.md`).
 - **Editor backend session** (you): `backend/` — domain API, planning engine, workspace/AG,
   agent-facing doors. Port **18449**.
 - **Editor frontend session**: `frontend/` — see `../../frontend/memory/MEMORY.md`.

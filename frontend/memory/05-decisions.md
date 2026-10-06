@@ -2,6 +2,10 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-06 Modularization round 1 (pure splits, originals keep every export): `293cac0a` design
+  (mass-entities 513, sunlight, facade-materials, DesignPage, BookLanguageFlow, execution-graph-model);
+  `bbd24c52` workspace (PlaygroundPage 505, use-vworld-3d, layout-generator, TeamsPage, LawChat).
+  Upstream Pascal files (`components/`, `elements/`, app `build-tab`/`viewer-toolbar`) are not split.
 - 2026-10-06 Workspace models run locally on the Claude Code login (backend
   `EDITOR_MODEL_AUTH=oauth`); `/settings` keys are for deployment. (backend `792b4644`)
 - 2026-10-05~06 ARR and AG frontends absorbed: AG workspace pages under `(workspace)/`, AG
