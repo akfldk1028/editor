@@ -70,6 +70,11 @@ def test_planner_keeps_original_and_validates_compact_alternative(monkeypatch):
     ramps = planner.ramp_candidates
     monkeypatch.setattr(planner, "ramp_candidates", lambda *a, **k: ramps(*a, **k)[:1])
     monkeypatch.setattr(planner, "curved_ramp_candidates", lambda *a, **k: [])
+    # One ramp and ONE plate, the declared host (slab_envelopes returns it last): the compact
+    # proposal is then measured against the plate it was derived from. Demand-sized plates came
+    # later and can dig less than any compaction of the full host, which is a different question.
+    slabs = planner.slab_envelopes
+    monkeypatch.setattr(planner, "slab_envelopes", lambda *a, **k: slabs(*a, **k)[-1:])
     data = request(2, "basement")
     data["law"]["required_accessible_spaces"] = 0
     data["options"].update(target_surface_stalls=0, max_basement_levels=1)

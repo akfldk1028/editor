@@ -10,7 +10,7 @@ from backend.app.modules.design.generation.maas.masterplan.search_budget import 
 from shapely.geometry import LineString, Polygon, mapping, shape
 from shapely.affinity import translate
 
-from backend.app.modules.design.generation.maas.masterplan.geometry import EPS, digest, feature, footprint_inside, number, polygon, union_or_empty
+from backend.app.modules.design.generation.maas.masterplan.geometry import EPS, digest, feature, footprint_inside, number, parts, polygon, union_or_empty
 from backend.app.modules.design.generation.maas.masterplan.bounded_packing import pack_level
 from backend.app.modules.design.generation.maas.masterplan.basement_layout import solve_basement_level, slab_envelopes
 from backend.app.modules.design.generation.maas.masterplan.aisle_ramps import aisle_ramp_candidates
@@ -153,8 +153,8 @@ def _off_prohibited(candidates, prohibited):
         return candidates
     kept=[]
     for candidate in candidates:
-        parts=[candidate.get("polygon"),candidate.get("ground_connector")]
-        if any(g is not None and not g.is_empty and g.distance(prohibited)<=0.05 for g in parts):
+        pieces=[candidate.get("polygon"),candidate.get("ground_connector")]
+        if any(g is not None and not g.is_empty and g.distance(prohibited)<=0.05 for g in pieces):
             continue
         kept.append(candidate)
     return kept
@@ -437,8 +437,12 @@ def _plan_site_fixed(request):
         angle=explicit_angle
     def add_parking(plan,level,z):
         feats=[]
-        if plan.get('entrance') is not None and not plan['entrance'].is_empty:
-            feats.append(parking_entrance_feature(plan['entrance'],level,z))
+        # The entrance is clipped geometry; a clip can leave line or point slivers beside the strip
+        # (a GeometryCollection), which compact_slab and the validator rightly refuse. Only its
+        # area is a drivable entrance.
+        entrance=union_or_empty(parts(plan['entrance'])) if plan.get('entrance') is not None else None
+        if entrance is not None and not entrance.is_empty:
+            feats.append(parking_entrance_feature(entrance,level,z))
         for i,stall in enumerate(plan["stalls"],1):
             feats.append(feature("parking_stall",stall["polygon"],level,
                          stall_id=f"{'G' if level==0 else 'B'+str(-level)}-P{i:03d}",

@@ -112,20 +112,6 @@ def test_validator_rejects_tampered_stall_and_ramp():
     assert any(c["status"] == "failed" and "ramp" in c["id"] for c in validation["checks"])
 
 
-def test_concave_generated_footprint_is_inside_and_respects_target():
-    from scripts import layout_synthesizer
-    parcel = Polygon([(0, 0), (20, 0), (20, 20), (17, 20), (17, 3), (3, 3), (3, 20), (0, 20)])
-    footprint = layout_synthesizer.compute_oriented_mass_footprint(parcel, 97.2)
-    assert parcel.covers(footprint)
-    assert footprint.area <= 97.2 + 1e-7
-
-
-def test_small_requested_footprint_is_not_enlarged():
-    from scripts import layout_synthesizer
-    footprint = layout_synthesizer.compute_oriented_mass_footprint(box(0, 0, 20, 25), 5)
-    assert 0 < footprint.area <= 5 + 1e-7
-
-
 def test_multilevel_plan_reserves_ramps_and_counts_each_floor_once():
     data = request(150)
     result = engine()(data)

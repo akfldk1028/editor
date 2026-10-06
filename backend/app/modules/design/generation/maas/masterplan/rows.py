@@ -23,6 +23,7 @@ from __future__ import annotations
 import math
 
 from shapely.affinity import rotate
+from shapely import STRtree, from_wkb, prepare
 from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import substring, unary_union
 
@@ -127,6 +128,19 @@ def _fill_row(host, drive, y0, y1, xs, xe, stall_w, stall_l, acc_w, acc_l, want_
     n_exp = n_expanded_start
     # both are fixed for the whole row; buffering them per stall attempt was the hottest call here
     host_b, drive_b = host.buffer(EPS), drive.buffer(EPS)
+    # Fresh buffers, so preparing them in place touches nothing the caller holds; a prepared
+    # covers() answers the same question without rebuilding the index on every stall.
+    prepare(host_b)
+    prepare(drive_b)
+    blocked_live = blocked is not None and not blocked.is_empty
+    if blocked_live:
+        blocked_index = from_wkb(blocked.wkb)  # an exact copy, so preparing it leaves `blocked` untouched
+        prepare(blocked_index)
+
+    def clear(stall):
+        return (not blocked_live or not blocked_index.intersects(stall)
+                or stall.intersection(blocked).area <= EPS)
+
     while x + stall_w <= xe + EPS:
         acc = n_acc < want_acc
         exp = (not acc) and expanded is not None and n_exp < want_expanded \
@@ -145,7 +159,7 @@ def _fill_row(host, drive, y0, y1, xs, xe, stall_w, stall_l, acc_w, acc_l, want_
             stall = box(x, y0 - l, x + w, y0) if side < 0 else box(x, y1, x + w, y1 + l)
             manoeuvre = box(x, y0, x + w, y1)
             attempted = stall
-            if host_b.covers(stall) and drive_b.covers(manoeuvre) and stall.intersection(blocked).area <= EPS:
+            if host_b.covers(stall) and drive_b.covers(manoeuvre) and clear(stall):
                 stalls.append({"polygon": stall, "front": manoeuvre, "type": kind, "width_m": w, "length_m": l})
                 if kind == "accessible":
                     n_acc += 1
@@ -405,27 +419,43 @@ def _straight_off_aisle(xs, y, aisle, ydir, spec):
     return poly, upper, lower, center, spec, None
 
 
-def _curved_at_aisle_end(y, aisle, xdir, hand, spec, min_radius, ax0, ax1):
+def _curved_at_aisle_end(y, aisle, xdir, hand, spec, min_radius, ax0, ax1, *, lead_fraction=0.5, turn_deg=90.0):
     """The ramp leaves IN LINE with the aisle and then turns - what practice actually draws.
 
     고산 ALT1/ALT2 both continue the surface drive past the last stall and turn the ramp down; a
     straight in-line run rarely fits a Korean parcel, which is why the reference scheme curves it.
     Heading starts along the aisle axis, so the drive reads as one roadway rather than an appendage.
     """
-    w, total, landing = spec["width_m"], spec["length_m"], spec["landing_m"]
-    theta = math.pi / 2
-    radius = (min_radius or 0.0) + w / 2
-    arc_len = radius * theta
-    if radius <= 0 or arc_len > total - 2 * landing + EPS:
-        return None
-    lead = landing + (total - arc_len - 2 * landing) / 2
-    tail = total - arc_len - lead
     start = (ax1 if xdir > 0 else ax0, y + aisle / 2)
     head = 0.0 if xdir > 0 else math.pi
+    return _curved_ramp(start, head, hand, spec, min_radius, lead_fraction=lead_fraction, turn_deg=turn_deg)
+
+
+def _curved_ramp(start, head, hand, spec, min_radius, *, lead_fraction=0.5, turn_deg=90.0, steps=32):
+    """Lead straight, one arc on a fixed radius, tail straight; the centreline is exactly the ramp run.
+
+    The arc is drawn as `steps` chords on the true circle, so every arc vertex sits at `radius` from
+    the centre and the drawn turn is never tighter than the rule. Lead and tail absorb the run left
+    after the CHORD length (not the ideal arc length): the centreline then measures exactly
+    `spec["length_m"]`, and every grade station of `spec["profile"]` is a vertex carrying its own z.
+    `lead_fraction` is the share of the slack straight placed before the turn (0 = turn right after
+    the upper landing); `turn_deg` is the turn angle.
+    """
+    w, total, landing = spec["width_m"], spec["length_m"], spec["landing_m"]
+    theta = math.radians(turn_deg)
+    radius = (min_radius or 0.0) + w / 2
+    if radius <= 0 or not 0 < theta <= math.pi or not 0.0 <= lead_fraction <= 1.0:
+        return None
+    arc_len = steps * 2 * radius * math.sin(theta / (2 * steps))
+    slack = total - arc_len - 2 * landing
+    if slack < -EPS:
+        return None
+    slack = max(slack, 0.0)
+    lead = landing + slack * lead_fraction
+    tail = total - arc_len - lead
     p0 = (start[0] + math.cos(head) * lead, start[1] + math.sin(head) * lead)
-    centre = (p0[0] + math.cos(head + hand * theta) * radius, p0[1] + math.sin(head + hand * theta) * radius)
+    centre = (p0[0] + math.cos(head + hand * math.pi / 2) * radius, p0[1] + math.sin(head + hand * math.pi / 2) * radius)
     a0 = math.atan2(p0[1] - centre[1], p0[0] - centre[0])
-    steps = 32
     arc = [(centre[0] + radius * math.cos(a0 + hand * theta * i / steps),
             centre[1] + radius * math.sin(a0 + hand * theta * i / steps)) for i in range(steps + 1)]
     end_head = head + hand * theta
@@ -433,26 +463,53 @@ def _curved_at_aisle_end(y, aisle, xdir, hand, spec, min_radius, ax0, ax1):
     p2 = (p1[0] + math.cos(end_head) * tail, p1[1] + math.sin(end_head) * tail)
     spine = LineString([start, p0, *arc[1:], p2])
     poly = spine.buffer(w / 2, cap_style=2, join_style=1, quad_segs=32)
-    # THE LANDING IS THE FLAT PART, NOT THE WHOLE STRAIGHT. `lead`/`tail` carry the landing plus half
-    # the slack run, and that slack is already on grade in `spec["profile"]`. Handing the whole
+    # THE LANDING IS THE FLAT PART, NOT THE WHOLE STRAIGHT. `lead`/`tail` carry the landing plus a
+    # share of the slack run, and that slack is already on grade in `spec["profile"]`. Handing the whole
     # straight out as a landing let the drive be drawn onto the slope, which is why every curved-ramp
     # scheme failed `drive_obstructions` at all three levels and no curved ramp ever reached a sheet.
     upper = substring(spine, 0, landing).buffer(w / 2, cap_style=2, join_style=1, quad_segs=32)
     lower = substring(spine, spine.length - landing, spine.length).buffer(
         w / 2, cap_style=2, join_style=1, quad_segs=32)
-    zs = {q["distance_m"]: q["z_m"] for q in spec["profile"]}
-    ds = sorted(zs)
+    return poly, upper, lower, _graded_centerline(spine, spec["profile"]), spec, radius
 
-    def z_at(pt):
-        d = spine.project(Point(pt))
-        for d0, d1 in zip(ds, ds[1:]):
-            if d <= d1 + EPS:
-                span = d1 - d0
-                return zs[d0] if span <= EPS else zs[d0] + (zs[d1] - zs[d0]) * (d - d0) / span
-        return zs[ds[-1]]
 
-    center = LineString([(x, yy, z_at((x, yy))) for x, yy in spine.coords])
-    return poly, upper, lower, center, spec, radius
+def _graded_centerline(spine, profile):
+    """The 2-D spine with every grade station inserted as a vertex and z read by run distance."""
+    pts = list(spine.coords)
+    run = [0.0]
+    for a, b in zip(pts, pts[1:]):
+        run.append(run[-1] + math.dist(a, b))
+    stations = sorted((float(p["distance_m"]), float(p["z_m"])) for p in profile)
+    merged = list(zip(run, pts))
+    for d, _ in stations:
+        if any(abs(d - r) <= 1e-9 for r, _ in merged):
+            continue
+        for (r0, a), (r1, b) in zip(merged, merged[1:]):
+            if r0 < d < r1:
+                t = (d - r0) / (r1 - r0)
+                merged.append((d, (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)))
+                break
+        merged.sort(key=lambda item: item[0])
+
+    def z_at(d):
+        for (d0, z0), (d1, z1) in zip(stations, stations[1:]):
+            if d <= d1 + 1e-9:
+                return z0 if d1 - d0 <= EPS else z0 + (z1 - z0) * (d - d0) / (d1 - d0)
+        return stations[-1][1]
+
+    return LineString([(x, yy, z_at(d)) for d, (x, yy) in merged])
+
+
+def _adjacent_pairs(polygons, tolerance):
+    """Unordered pairs of stalls within `tolerance` of each other, through a spatial index.
+
+    The same count as testing every pair, without the O(n^2) distance calls that took 84 % of a
+    450-stall search.
+    """
+    if len(polygons) < 2:
+        return 0
+    left, right = STRtree(polygons).query(polygons, predicate="dwithin", distance=tolerance)
+    return int((left < right).sum())
 
 
 def _curved_off_aisle(xs, y, aisle, ydir, hand, spec, min_radius):
@@ -462,53 +519,71 @@ def _curved_off_aisle(xs, y, aisle, ydir, hand, spec, min_radius):
     a quarter turn on a fixed radius with straight lead and tail.  The radius is the rule's minimum
     inner radius plus half the band; the remaining run length is split between lead and tail.
     """
-    w, total, landing = spec["width_m"], spec["length_m"], spec["landing_m"]
-    theta = math.pi / 2
-    radius = (min_radius or 0.0) + w / 2
-    arc_len = radius * theta
-    if radius <= 0 or arc_len > total - 2 * landing + EPS:
-        return None
-    lead = landing + (total - arc_len - 2 * landing) / 2
-    tail = total - arc_len - lead
-    start = (xs + w / 2, y + aisle if ydir > 0 else y)
+    start = (xs + spec["width_m"] / 2, y + aisle if ydir > 0 else y)
     head = math.pi / 2 if ydir > 0 else -math.pi / 2
-    p0 = (start[0] + math.cos(head) * lead, start[1] + math.sin(head) * lead)
-    centre = (p0[0] + math.cos(head + hand * theta) * radius, p0[1] + math.sin(head + hand * theta) * radius)
-    a0 = math.atan2(p0[1] - centre[1], p0[0] - centre[0])
-    steps = 32
-    arc = [(centre[0] + radius * math.cos(a0 + hand * theta * i / steps),
-            centre[1] + radius * math.sin(a0 + hand * theta * i / steps)) for i in range(steps + 1)]
-    end_head = head + hand * theta
-    p1 = arc[-1]
-    p2 = (p1[0] + math.cos(end_head) * tail, p1[1] + math.sin(end_head) * tail)
-    spine = LineString([start, p0, *arc[1:], p2])
-    poly = spine.buffer(w / 2, cap_style=2, join_style=1, quad_segs=32)
-    # THE LANDING IS THE FLAT PART, NOT THE WHOLE STRAIGHT. `lead`/`tail` carry the landing plus half
-    # the slack run, and that slack is already on grade in `spec["profile"]`. Handing the whole
-    # straight out as a landing let the drive be drawn onto the slope, which is why every curved-ramp
-    # scheme failed `drive_obstructions` at all three levels and no curved ramp ever reached a sheet.
-    upper = substring(spine, 0, landing).buffer(w / 2, cap_style=2, join_style=1, quad_segs=32)
-    lower = substring(spine, spine.length - landing, spine.length).buffer(
-        w / 2, cap_style=2, join_style=1, quad_segs=32)
-    zs = {p["distance_m"]: p["z_m"] for p in spec["profile"]}
-    ds = sorted(zs)
+    return _curved_ramp(start, head, hand, spec, min_radius)
 
-    def z_at(pt):
-        d = spine.project(Point(pt))
-        for d0, d1 in zip(ds, ds[1:]):
-            if d <= d1 + EPS:
-                span = d1 - d0
-                return zs[d0] if span <= EPS else zs[d0] + (zs[d1] - zs[d0]) * (d - d0) / span
-        return zs[ds[-1]]
 
-    center = LineString([(x, y2, z_at((x, y2))) for x, y2 in spine.coords])
-    return poly, upper, lower, center, spec, radius
+LARGE_ENVELOPE_M2 = 10_000.0   # the line bounded_packing draws between the small and large search
+BOUNDED_OFFSETS = 32           # band offsets per orientation on a large envelope (search effort, not design)
+SEARCH_BUDGET = 384            # band offsets across all orientations on a large envelope
+
+
+def _band_offsets(g_ground, aisle, stall_w, stall_l, step, *, straight_entry, limit=None):
+    """Aisle-band offsets (y of the band's low edge) for one orientation.
+
+    The full sweep steps `step` from the lowest position that leaves a row on both sides (or both
+    edges, for a straight-entry study). A parcel too shallow for a double-loaded module still takes
+    ONE loaded row, so its two edge positions are offered instead of nothing.
+
+    `limit` bounds a large envelope: offsets whose band holds no straight two-bay run are dropped
+    first (they cost a full evaluation and can yield nothing), then a sample is kept - every module
+    pitch offset the tiling needs, thinned evenly, and the one-band positions spread evenly over the
+    rest including both extremes.
+    """
+    minx, miny, maxx, maxy = g_ground.bounds
+    y = miny if straight_entry else miny + stall_l
+    far_margin = 0 if straight_entry else stall_l
+    offsets = []
+    while y + aisle + far_margin <= maxy + EPS:
+        offsets.append(y)
+        y += step
+    if not offsets and not straight_entry and maxy - aisle >= miny - EPS:
+        offsets = list(dict.fromkeys((miny, maxy - aisle)))
+    if limit is None or len(offsets) <= limit:
+        return offsets
+
+    def usable(yy):
+        band = box(minx - 1, yy, maxx + 1, yy + aisle).intersection(g_ground)
+        return any(part.area >= aisle * 2 * stall_w
+                   and part.area >= 0.9 * (part.bounds[2] - part.bounds[0]) * aisle for part in parts(band))
+
+    offsets = [yy for yy in offsets if usable(yy)]
+    if len(offsets) <= limit:
+        return offsets
+
+    def spread(values, count):
+        if count <= 0 or not values:
+            return []
+        if len(values) <= count:
+            return list(values)
+        if count == 1:
+            return [values[0]]
+        return [values[round(i * (len(values) - 1) / (count - 1))] for i in range(count)]
+
+    module = 2 * stall_l + aisle
+    pitch = [yy for yy in offsets if yy - offsets[0] < module - EPS]
+    tiling = spread(pitch, limit // 2)
+    rest = [yy for yy in offsets if yy not in set(tiling)]
+    return sorted(set(tiling) | set(spread(rest, limit - len(tiling))))
+
 
 def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, required, accessible, *,
                    ramp=None, curved=None, curve_min_radius=None, weights=None, step=0.5, limit=14,
                    expanded_needed=None, ground_stalls=True, turn_radius_m=None, turn_lane_m=None,
                    field="auto", occupied_footprint=None, accept_ramp=None, ramp_shape="any", allowed_angles=None,
-                   preserve_banks=False, straight_entry=False, prohibited=None):  # noqa: E501
+                   preserve_banks=False, straight_entry=False, prohibited=None,
+                   search_budget=SEARCH_BUDGET):  # noqa: E501
     """Scored row-and-aisle candidates in world coordinates.
 
     ramp: None (surface only) or {"width_m", "length_m", "landing_m", "profile"} from ramps.ramp_profile.
@@ -532,9 +607,18 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
         return []
     longest_road = max(road_segs, key=lambda s: s.length)
     results = []
-    for angle in (allowed_angles if allowed_angles is not None else orientation_candidates(site, footprint, frontage)):
-        rot = lambda g: rotate(g, -angle, origin=(0, 0))  # noqa: E731
-        unrot = lambda g: rotate(g, angle, origin=(0, 0))  # noqa: E731
+    search_count = 0
+    angles = list(allowed_angles if allowed_angles is not None else orientation_candidates(site, footprint, frontage))
+    # A large envelope is searched on a bounded sample of band offsets (the same 10,000 m2 line
+    # bounded_packing draws); a practice-scale parcel keeps the full sweep, so its results do not move.
+    bounded = ground.area >= LARGE_ENVELOPE_M2
+    per_angle = max(1, min(BOUNDED_OFFSETS, int(search_budget) // max(1, len(angles))))
+    for angle in angles:
+        if angle % 360 == 0:
+            rot = unrot = lambda g: g  # noqa: E731  (a zero rotation is the identity; it was 5 s of copies)
+        else:
+            rot = lambda g: rotate(g, -angle, origin=(0, 0))  # noqa: E731
+            unrot = lambda g: rotate(g, angle, origin=(0, 0))  # noqa: E731
         g_site, g_ground, g_fp = rot(site), rot(ground), rot(footprint) if footprint is not None else Polygon()
         g_obst = rot(obstacles) if obstacles is not None and not obstacles.is_empty else Polygon()
         # An irregular cadastral parcel can rotate into a ring GEOS calls invalid, and the first
@@ -551,14 +635,16 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
         g_site_b, g_ground_b = g_site.buffer(EPS), g_ground.buffer(EPS)
         road_reach = road_union.buffer(float(turn_radius_m) * 1.5) if turn_radius_m else None
         minx, miny, maxx, maxy = g_ground.bounds
-        # An explicit straight-entry study must also see one-sided banks.
-        # _fill_row independently checks each side against the actual free host.
-        y = miny if straight_entry else miny + stall_l
-        far_margin = 0 if straight_entry else stall_l
-        while y + aisle + far_margin <= maxy + EPS:
+        offsets = _band_offsets(g_ground, aisle, stall_w, stall_l, step, straight_entry=straight_entry,
+                                limit=per_angle if bounded else None)
+        search_count += len(offsets)
+        for y in offsets:
             band = box(minx - 1, y, maxx + 1, y + aisle).intersection(g_ground)
             for aisle_poly in parts(band):
-                if aisle_poly.area < aisle * 3 * stall_w:
+                # An aisle whose end sits on the road needs no separate entrance zone, so two bays
+                # already make a field; one reached through a corridor still needs three.
+                direct = aisle_poly.distance(road_union) <= 0.05
+                if aisle_poly.area < aisle * (2 if direct else 3) * stall_w:
                     continue
                 ax0, _, ax1, _ = aisle_poly.bounds
                 # only keep a straight run: the band clipped must be close to its bounding box
@@ -584,9 +670,18 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                         entrance = box(xe0, y, xe1, y + aisle).intersection(g_ground)  # the aisle end itself sits on the road
                         if entrance.is_empty or entrance.distance(road_union) > 0.05:
                             entrance = None
+                        # ...over its full width: an aisle that grazes the road for a metre is not an entrance
+                        # (the same contact bounded_packing._width_connected requires of the result).
+                        elif (road_union.intersection(entrance.buffer(0.05)).length + 0.05
+                              < min(aisle, road_union.length)):
+                            entrance = None
                     elif not straight_entry:
+                        sy0, sy1 = g_site.bounds[1], g_site.bounds[3]
                         for ydir in (-1, 1):
-                            corridor = box(xe0, min(y, y + ydir * 200), xe1, max(y + aisle, y + aisle + ydir * 200)).intersection(g_site)
+                            # The corridor runs to the site's own edge: a fixed 200 m stopped a field
+                            # 450 m from its road short of the road it was meant to reach.
+                            corridor = (box(xe0, sy0 - 1, xe1, y + aisle) if ydir < 0 else
+                                        box(xe0, y, xe1, sy1 + 1)).intersection(g_site)
                             corridor = corridor.difference(g_fp).difference(g_obst)
                             piece = next((p for p in parts(corridor) if p.distance(aisle_poly) <= EPS), None)
                             if piece is None:
@@ -706,8 +801,12 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                                                   unary_union([g_obst, poly])))
                     for ramp_geom, basement, blocked in ramp_variants:
                         stalls = []
-                        xs0, xs1 = (ax0 + aisle, ax1) if (end == 0 and entrance.intersection(box(ax0, y, ax0 + aisle, y + aisle)).area > EPS) else (ax0, ax1)
-                        if end == 1 and entrance.intersection(box(ax1 - aisle, y, ax1, y + aisle)).area > EPS:
+                        # The entrance end is kept clear of bays - except on a direct field shorter than
+                        # two aisle widths, where that end IS the field: the car turns into the bay off
+                        # the aisle it entered by, and holding it back left a two-bay lot with none.
+                        short_direct = direct and (ax1 - ax0) < 2 * aisle - EPS
+                        xs0, xs1 = (ax0 + aisle, ax1) if (not short_direct and end == 0 and entrance.intersection(box(ax0, y, ax0 + aisle, y + aisle)).area > EPS) else (ax0, ax1)
+                        if not short_direct and end == 1 and entrance.intersection(box(ax1 - aisle, y, ax1, y + aisle)).area > EPS:
                             xs1 = ax1 - aisle
                         # A closed aisle end has to be turned in, not reversed out of.  Practice holds the
                         # rows back there (고산 ALT1 leaves its south row empty for 16.6 m at the closed end,
@@ -787,9 +886,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                             # masterplanagent.validation.accessible_placement, rather than priced
                             # here - see _fill_row's docstring for what re-pointing this cost.
                             acc_d = [s["polygon"].distance(ent_c) for s in cand_stalls if s["type"] == "accessible"]
-                            adj_pairs = sum(1 for i, s1 in enumerate(cand_stalls)
-                                            for s2 in cand_stalls[i+1:]
-                                            if s1["polygon"].distance(s2["polygon"]) <= 0.05)
+                            adj_pairs = _adjacent_pairs([s["polygon"] for s in cand_stalls], 0.05)
                             # A loop needs two crossovers to close; with fewer, the offset test can
                             # only ever return None, and it is the most expensive thing in this
                             # innermost block. Skipping it there is exact, not an approximation.
@@ -872,7 +969,6 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                                 tiled["drive"] = unary_union([tiled["drive"], ramp_geom["upper_landing"]]).buffer(0)
                             emit(tiled["stalls"], tiled["drive"], tiled["bands"], tiled["cross_aisles"],
                                  tiled["dead_end_stalls"], tiled["aisle_span_m"])
-            y += step
     import os as _os
     if _os.environ.get("MASTERPLAN_EXPLAIN_RANK") and ramp is not None:
         import sys as _sys
@@ -923,6 +1019,8 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
             out[-1] = loop
         else:
             out.append(loop)
+    for r in out:
+        r["search_count"] = search_count
     return out
 
 

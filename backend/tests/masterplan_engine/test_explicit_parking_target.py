@@ -12,7 +12,11 @@ def test_total_design_shortfall_closes_handoff_even_when_law_count_does_not_fail
     result = plan_site(data)
     assert result['metrics']['required_parking_stalls'] == required
     assert result['metrics']['planned_parking_stalls'] == 6
-    assert result['metrics']['provided_parking_stalls'] == (4 if required is not None else 0)
+    # Without a Law count the design target still draws an UNAPPROVED surface proposal, capped like
+    # any other (ARR dad68f5, 2026-09-30); the missing count stays a blocking line below.
+    assert result['metrics']['provided_parking_stalls'] == 4
+    if required is None:
+        assert 'law parking requirement is missing' in result['blocking']
     if required is not None:
         assert result['validation']['geometry_status'] == 'passed'
     assert result['status'] == 'needs_revision'
