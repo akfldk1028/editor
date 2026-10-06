@@ -3,6 +3,10 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-06 Verified: agent doors answer byte-identically before/after each refactor commit
+  (65045d70 94b08e71 f14f7806 4999585d 2fc0c8c4 cda1a007 57ef5810 05c42ec4; 24 calls via TestClient:
+  parking-count x5, 11 law ops, basement-storey x2, plan_site x5 incl. ramp_gosan, ramp_overhead).
+  The only door change today is parking-count from `d4ee05b9` (other session's ordinance data).
 - 2026-10-06 RULE (user): existing agent logic must not change yet — land/reference calculators,
   masterplan engine, maas/delivered, maas/parking. Moves/splits only with identical result hashes.
   HOLD: unifying `regulations` with `land/reference` (UI `/land` still reads the old ordinance
