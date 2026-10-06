@@ -3,6 +3,19 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-07 `194f0744` + `4887d59c` REVERTED the engine move (2dfb5b40) and the cli split (65045d70).
+  Reason: `agents/planm/scripts/import_from_editor.py` re-imports the floor-plan engine from this repo BY PATH
+  (`backend/engine/**`, `backend/app/cli.py`, the 17 engine packages generation_loop, layout_generator,
+  validator, visual_review, basic_design, alternative_composer, building_quality, egress_graph,
+  circulation_planner, core_planner, area_ledger, program_prior, mass_analyzer, llm_planner,
+  local_topology_planner, generator_adapters, precedent_retriever + planm_execution, schemas, grid services).
+  These are planm's (Plan Agent's) engine sources, to be deleted here after the editor is re-pointed to
+  planm (branch `plan-agent-repoint`) — never move or split them. Grouping them into `modules/building/`
+  was cancelled for the same reason. Net diff over all 160 planm sources vs b427e1bc: none.
+- 2026-10-07 RULE: `D:/Data/25_ACE/agents/**` and `editor/agents/**` are read-only for the editor session.
+  Agent code imports 71 editor module paths directly (MassAgent/KMass/MasterPlan scripts+tests, Lawagent
+  tests) — check they all still resolve before any move.
+- 2026-10-07 `1013b5b8` route inventory tool moved from `core/` to `app/route_inventory.py` (beside main).
 - 2026-10-06 `2dfb5b40` `backend/engine/` (geometry lib outside app) -> `backend/app/core/geometry/`;
   21 importers updated, no shim; 824 tests same; agent doors 24/24 identical.
 - 2026-10-06 Verified: agent doors answer byte-identically before/after each refactor commit
