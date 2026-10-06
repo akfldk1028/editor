@@ -1,6 +1,7 @@
 """Export the exact completed Mass cycle champion; never replay a pre-fit mesh."""
 
 from backend.app.modules.design.generation import paths as _design_paths
+import copy
 import hashlib
 import importlib
 import json
@@ -36,8 +37,35 @@ def _inside(path, root):
     return path
 
 
-def selected_source(request, roots):
-    raw = Path(request['completion_path'])
+def remap_origin(path, origins):
+    """Move an absolute path under one of `origins` onto its mapped prefix.
+
+    Separators are compared as '/'; a Windows prefix (drive or UNC) compares
+    case-insensitively. The longest matching prefix wins; other paths return unchanged.
+    """
+    text = str(path).replace('\\', '/')
+    prefixes = sorted(((str(origin).replace('\\', '/').rstrip('/'), target) for origin, target in origins.items()),
+                      key=lambda pair: len(pair[0]), reverse=True)
+    for prefix, target in prefixes:
+        head = text[:len(prefix)]
+        windows = re.match(r'[A-Za-z]:(/|$)|//', prefix) is not None
+        if ((head.lower() == prefix.lower() if windows else head == prefix)
+                and (len(text) == len(prefix) or text[len(prefix)] == '/')):
+            rest = text[len(prefix):].lstrip('/')
+            target = str(target).replace('\\', '/').rstrip('/')
+            return target + '/' + rest if rest else target
+    return str(path)
+
+
+def export_root(output_root=None):
+    return Path(output_root or os.environ.get('EDITOR_DELIVERED_MASS_EXPORT_ROOT',
+                str(BACKEND / 'runtime/delivered-mass-exports'))).resolve()
+
+
+def selected_source(request, roots, *, origins=None, source_roots=None, completion_path=None):
+    """`origins` maps Mass-host absolute prefixes onto local copies (a bundle sent as content)."""
+    local = (lambda path: remap_origin(path, origins)) if origins else (lambda path: path)
+    raw = Path(completion_path or request['completion_path'])
     if not raw.is_absolute():
         raise ValueError('completion_path must be absolute')
     completion = raw.resolve(strict=True)
@@ -46,8 +74,8 @@ def selected_source(request, roots):
     if len(matches) != 1:
         raise ValueError('completion workspace must be explicitly configured')
     workspace = matches[0]
-    source_roots = [Path(root).resolve() for root in json.loads(os.environ.get(
-        'EDITOR_MASS_SOURCE_ROOTS', json.dumps([os.environ.get('EDITOR_MASS_OUTPUT_ROOT', str(BACKEND / 'tmp_mass_check')), *[str(root) for root in roots]])))]
+    source_roots = [Path(root).resolve() for root in (source_roots if source_roots is not None else json.loads(os.environ.get(
+        'EDITOR_MASS_SOURCE_ROOTS', json.dumps([os.environ.get('EDITOR_MASS_OUTPUT_ROOT', str(BACKEND / 'tmp_mass_check')), *[str(root) for root in roots]]))))]
     if (completion.name != 'complete.json' or completion.parent.parent != workspace / 'runs'
             or not completion.parent.name.startswith('cycle-')):
         raise ValueError('completion must name a cycle receipt')
@@ -71,7 +99,7 @@ def selected_source(request, roots):
     outputs = {}
     for action in state['actions'].values():
         for path, expected in action.get('outputs', {}).items():
-            resolved = Path(path).resolve()
+            resolved = Path(local(path)).resolve()
             if resolved in outputs and outputs[resolved] != expected:
                 raise ValueError('conflicting cycle artifact receipts')
             outputs[resolved] = expected
@@ -88,7 +116,7 @@ def selected_source(request, roots):
         data = read(path)
         entry = (data.get('entries') or {}).get(champion)
         if entry:
-            book_dir = Path(data['book_dir']).resolve(strict=True)
+            book_dir = Path(local(data['book_dir'])).resolve(strict=True)
             if not any(book_dir.is_relative_to(root) for root in source_roots):
                 raise ValueError('geometry source directory must be explicitly configured')
             entries.append({**entry, 'book_dir': str(book_dir)})
@@ -263,7 +291,30 @@ def plan_handoff(mesh, entry, request):
             **{key: request[key] for key in ('source_identity', 'source_versions', 'source_run_id')}}
 
 
-def export_delivered_mass(request, *, roots=None, output_root=None):
+def with_hrefs(result):
+    """Add API-relative links (join as EDITOR_DOMAIN_URL + '/' + href) for agents on other servers.
+
+    Applied on return only: receipt.json keeps its bytes, and absolute paths stay for same-host callers.
+    """
+    result = copy.deepcopy(result)
+    handoff = result['elevation_handoff']['request']
+    target = Path(handoff['dataset_root']).parent
+    base = f"design/maas/delivered-mass-export/{result['request_hash']}"
+
+    def href(path):
+        return f'{base}/files/{Path(path).relative_to(target).as_posix()}'
+    for artifact in result['artifacts']:
+        artifact['href'] = href(artifact['path'])
+    handoff['package_href'] = f"{base}/package.zip?candidate={handoff['candidate']}"
+    handoff['selected_glb_href'] = href(handoff['selected_glb'])
+    if 'plan_handoff' in result:
+        result['plan_handoff']['artifact']['href'] = href(result['plan_handoff']['artifact']['path'])
+    return result
+
+
+def export_delivered_mass(request, *, roots=None, output_root=None, origins=None, source_roots=None,
+                          completion_path=None):
+    """`origins`/`source_roots`/`completion_path` serve a bundle staged from another server."""
     request_hash = digest(request)
     echo = {key: request.get(key) for key in ('source_run_id', 'source_identity', 'source_versions')}
     echo['request_hash'] = request_hash
@@ -282,19 +333,22 @@ def export_delivered_mass(request, *, roots=None, output_root=None):
             return archived
         roots = roots if roots is not None else json.loads(os.environ.get(
             'EDITOR_MASS_WORKSPACE_ROOTS', json.dumps([os.environ.get('MASSV2_WS', str(DEFAULT_WORKSPACE))])))
-        name, entry, config, evidence = selected_source(request, roots)
-        output_root = Path(output_root or os.environ.get('EDITOR_DELIVERED_MASS_EXPORT_ROOT',
-                           str(BACKEND / 'runtime/delivered-mass-exports'))).resolve()
+        name, entry, config, evidence = selected_source(request, roots, origins=origins,
+            source_roots=source_roots, completion_path=completion_path)
+        # A staged bundle is recorded by its Mass-host paths, so a resend matches its receipt.
+        inverse = {str(Path(local).resolve()): origin for origin, local in (origins or {}).items()}
+        recorded = {remap_origin(path, inverse): value for path, value in evidence.items()} if origins else evidence
+        output_root = export_root(output_root)
         target = output_root / request_hash
         if target.exists():
             receipt = read(target / 'receipt.json')
-            if receipt['request_hash'] != request_hash or receipt['evidence'] != evidence:
+            if receipt['request_hash'] != request_hash or receipt['evidence'] != recorded:
                 raise ValueError('export receipt source evidence changed')
             actual = {p.relative_to(target).as_posix(): file_hash(p)
                       for p in target.rglob('*') if p.is_file() and p.name != 'receipt.json'}
             if actual != receipt['files']:
                 raise ValueError('exported artifacts changed')
-            return receipt['result']
+            return with_hrefs(receipt['result'])
         mesh, certificate = reconstruct(name, entry, config)
         plan = plan_handoff(mesh, entry, request) if request.get('include_plan') else None
         program = source_program(entry)
@@ -329,9 +383,9 @@ def export_delivered_mass(request, *, roots=None, output_root=None):
                     'sha256': file_hash(staging / 'plan-handoff.json')}}} if plan is not None else {}),
                 'artifacts': [{'kind': 'mass.delivered_package', 'path': str(target / path), 'sha256': value}
                               for path, value in sorted(files.items())]}
-            (staging / 'receipt.json').write_text(json.dumps({'request_hash': request_hash, 'evidence': evidence,
+            (staging / 'receipt.json').write_text(json.dumps({'request_hash': request_hash, 'evidence': recorded,
                 'files': files, 'result': result}, ensure_ascii=False), encoding='utf-8')
             staging.rename(target)
-        return result
+        return with_hrefs(result)
     except (OSError, ValueError, KeyError, TypeError, ImportError, RuntimeError) as exc:
         return {**echo, 'status': 'needs_evidence', 'code': 'delivered_mass_export_refused', 'reason': str(exc)}

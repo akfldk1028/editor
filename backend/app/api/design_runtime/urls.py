@@ -1,7 +1,8 @@
 """URL configuration for design app."""
 from django.urls import path
 from backend.app.api.design_runtime import views
-from backend.app.api.design_runtime.delivered_mass_views import delivered_mass_export
+from backend.app.api.design_runtime.delivered_mass_views import (
+    delivered_mass_bundle, delivered_mass_export, delivered_mass_file, delivered_mass_package)
 from backend.app.api.design_runtime.masterplan_operations_views import masterplan_operations
 
 app_name = 'design'
@@ -9,6 +10,9 @@ app_name = 'design'
 urlpatterns = [
     path('masterplan/operations/', masterplan_operations, name='masterplan_operations'),
     path('maas/delivered-mass-export/', delivered_mass_export, name='delivered_mass_export'),
+    path('maas/delivered-mass-export/bundle/', delivered_mass_bundle, name='delivered_mass_bundle'),
+    path('maas/delivered-mass-export/<str:request_hash>/package.zip/', delivered_mass_package, name='delivered_mass_package'),
+    path('maas/delivered-mass-export/<str:request_hash>/files/<path:member>', delivered_mass_file, name='delivered_mass_file'),
     path('jobs/', views.create_job, name='create_job'),
     path('jobs/<uuid:job_id>/', views.get_job, name='get_job'),
     path('jobs/<uuid:job_id>/cancel/', views.cancel_job, name='cancel_job'),

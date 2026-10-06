@@ -1164,6 +1164,8 @@ def test_cli_alternatives_review_preserves_infeasible_family_rejection(tmp_path)
             "reasons": [
                 ("concept-basic footprint requires width >= 20.0 m and depth >= 10.0 m")
             ],
+            # RejectedAlternativeFamilyResult carries no-core diagnostics; none apply to a size refusal.
+            "diagnostics": [],
         }
     ]
     report = json.loads(

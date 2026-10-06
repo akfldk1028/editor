@@ -232,6 +232,36 @@
   },
   {
    "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/delivered-mass-export/bundle"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/delivered-mass-export/bundle"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/delivered-mass-export/{request_hash}/files/{member}"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/delivered-mass-export/{request_hash}/files/{member}"
+  },
+  {
+   "method": "GET",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/delivered-mass-export/{request_hash}/package.zip"
+  },
+  {
+   "method": "POST",
+   "owner": "design-runtime",
+   "path": "/api/v1/design/maas/delivered-mass-export/{request_hash}/package.zip"
+  },
+  {
+   "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/design/maas/executed-masses"
   },

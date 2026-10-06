@@ -14,6 +14,28 @@ from backend.app.modules.design.public_urls import normalize_design_urls
 from backend.app.core.agent_network import token_accepted
 
 logger = logging.getLogger(__name__)
+DELIVERED_EXPORT = 'maas/delivered-mass-export'
+BUNDLE_LIMIT = 512 * 1024 * 1024
+
+
+def _agent_only(path):
+    # Agents on other servers carry A2A_TOKEN: planning operations, and the delivered
+    # Mass bundle/files/package doors (the bare export door keeps its same-host contract).
+    path = path.rstrip('/')
+    return path == 'masterplan/operations' or path.startswith(DELIVERED_EXPORT + '/')
+
+
+async def _capped_body(request, limit):
+    declared = request.headers.get('content-length', '')
+    if declared.isdigit() and int(declared) > limit:
+        raise HTTPException(413, 'Design request is too large')
+    chunks, size = [], 0
+    async for chunk in request.stream():
+        size += len(chunk)
+        if size > limit:
+            raise HTTPException(413, 'Design request is too large')
+        chunks.append(chunk)
+    return b''.join(chunks)
 
 
 def _dispatch(method, path, query, headers, body):
@@ -79,17 +101,21 @@ def create_design_runtime_router(*, public_origin=None):
 
     @router.api_route('/{path:path}', methods=['GET', 'POST'])
     async def design_operation(path: str, request: Request):
-        # The planning operations are an agent-only door: agents on other servers carry A2A_TOKEN.
-        if path.rstrip('/') == 'masterplan/operations' and not token_accepted(request.headers.get('authorization')):
+        if _agent_only(path) and not token_accepted(request.headers.get('authorization')):
             raise HTTPException(401, 'Agent network token required')
         if request.method != 'GET' and (request.headers.get('sec-fetch-site') == 'cross-site' or (
             request.headers.get('origin') and request.headers['origin'] != origin
         )):
             raise HTTPException(403, 'Cross-origin changes are not allowed')
-        body = await request.body()
-        if len(body) > 20 * 1024 * 1024:
-            raise HTTPException(413, 'Design request is too large')
-        if request.method == 'POST' and body:
+        # A delivered Mass bundle is a zip of the cycle's files, not a JSON object.
+        bundle = path.rstrip('/') == DELIVERED_EXPORT + '/bundle'
+        if bundle:
+            body = await _capped_body(request, BUNDLE_LIMIT)
+        else:
+            body = await request.body()
+            if len(body) > 20 * 1024 * 1024:
+                raise HTTPException(413, 'Design request is too large')
+        if request.method == 'POST' and body and not bundle:
             try:
                 value = json.loads(body)
                 if not isinstance(value, dict):
