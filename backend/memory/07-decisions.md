@@ -59,3 +59,8 @@ be told to the Orchestrator session.
   (`ordinance_codes`). Known: the original `fetch_ordinance_caps.parse_caps` misread "1,500" as
   500 and spaced zone names; the rebuild parser replaced its values. Re-run the three scripts
   rather than `fetch_ordinance_caps.py` alone. Changed by the Orchestrator session.
+- 2026-10-06 `d467c0d8` Datum heights over HTTP: `ELEVATION_PROVIDER=sitecontext_ngii` (sdd env, with
+  `SITE_CONTEXT_AGENT_URL`) makes both datum engines POST points to SiteContextAgent
+  `/site/ground-heights` instead of opening its DEM file - strict, no fallback. Law grades it
+  `calculated` (`ngii_1to5000_sitecontext_dem`). Live: 고산 59.89 m, 1168010100108230026 26.07 m.
+  `ngii_local_dem` stays for a same-host install. Changed by the Orchestrator session.
