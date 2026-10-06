@@ -70,6 +70,9 @@ def fetch_elevations(points: list[tuple[float, float]]) -> list[float]:
     if provider == "ngii_local_dem":
         # Step 4 — 자체 호스팅 GeoTIFF (tools/ngii_contour_to_dem.py 결과).
         return _ngii_local_dem_batch(points)
+    if provider == "sitecontext_ngii":
+        # Site Context Agent가 자기 서버에서 NGII 모자이크를 들고 있다 — 파일을 열지 않고 HTTP로 묻는다.
+        return _sitecontext_batch(points)
     # 그 외 모두 opentopodata sidecar/공개 인스턴스 dataset name으로 처리.
     # 알려진 값: copernicus_glo30, ngii_5m, srtm30m, aster30m, mapzen, eudem25m, etc.
     # 미커버시 Open-Meteo 자동 폴백 (opentopodata 응답 None 또는 HTTP 실패).
@@ -311,6 +314,17 @@ def _get_5186_transformer():
         from pyproj import Transformer
         _to_5186_transformer = Transformer.from_crs("EPSG:4326", "EPSG:5186", always_xy=True)
     return _to_5186_transformer
+
+
+def _sitecontext_batch(points: list[tuple[float, float]]) -> list[float]:
+    """Site Context Agent의 NGII DEM 높이. 전부 아니면 ElevationFetchError — 다른 DEM으로 폴백하지 않는다."""
+    from backend.app.adapters.site_context import SiteHeightsError, ground_heights
+    try:
+        heights, _dataset = ground_heights(points)
+    except SiteHeightsError as e:
+        logger.error("Site Context ground heights unavailable: %s", e)
+        raise ElevationFetchError(str(e)) from None
+    return heights
 
 
 def _ngii_local_dem_batch(points: list[tuple[float, float]]) -> list[float]:

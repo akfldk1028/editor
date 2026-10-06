@@ -6,6 +6,9 @@ from urllib.parse import quote
 
 import httpx
 
+from backend.app.adapters.site_context import PROVIDER as SITE_PROVIDER, SiteHeightsError
+from backend.app.adapters.site_context import ground_heights as site_ground_heights
+
 
 class ElevationFetchError(RuntimeError):
     pass
@@ -47,6 +50,8 @@ class ElevationClient:
             except OSError:
                 raise ElevationFetchError('Local elevation dataset unavailable') from None
             return self.provider, str(path.resolve()), stat.st_mtime_ns, stat.st_size
+        if self.provider == SITE_PROVIDER:
+            return (self.provider,)
         return self.provider, self.open_meteo_url, self.opentopodata_url
 
     def fetch(self, points):
@@ -57,7 +62,7 @@ class ElevationClient:
                     or not -90 <= point[0] <= 90 or not -180 <= point[1] <= 180):
                 raise ElevationFetchError('Invalid elevation coordinates')
             # Fine local rasters must retain source sampling precision at pixel boundaries.
-            rounded.append(tuple(point) if self.provider == 'ngii_local_dem'
+            rounded.append(tuple(point) if self.provider in ('ngii_local_dem', SITE_PROVIDER)
                            else (round(point[0], 5), round(point[1], 5)))
         if not rounded:
             return []
@@ -68,6 +73,13 @@ class ElevationClient:
             chunk = missing[offset:offset + 100]
             if self.provider == 'ngii_local_dem':
                 values = self._local(chunk)
+                sources = [self.provider] * len(chunk)
+            elif self.provider == SITE_PROVIDER:
+                # Site holds the NGII mosaic on its own server; strict like the local DEM.
+                try:
+                    values, _dataset = site_ground_heights(chunk, transport=self.transport)
+                except SiteHeightsError:
+                    raise ElevationFetchError('Site Context Agent ground heights unavailable') from None
                 sources = [self.provider] * len(chunk)
             elif self.provider == 'open_meteo':
                 values = self._open_meteo(chunk)
