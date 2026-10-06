@@ -20,6 +20,7 @@ folders remain only as read-only reference; `infra/dev/inventory-original-ui.mjs
 - `app/modules/<domain>/` — logic (land, law, design, massing, workspace, planm_runs, ...).
 - `app/adapters/` — external systems (autogen, Vworld, Neo4j storage, planm agent client,
   Orchestrator client, CLI model client).
+- `app/core/geometry/` — shared 2D geometry helpers (was `backend/engine/`).
 - `app/core/` — single owners of cross-cutting names: `agent_network.py` (A2A_TOKEN),
   `model_auth.py` (EDITOR_MODEL_AUTH), `graph_config.py` (Neo4j), `mcp_params.py`,
   `route_inventory.py`.
