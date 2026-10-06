@@ -24,6 +24,8 @@ folders remain only as read-only reference; `infra/dev/inventory-original-ui.mjs
   `model_auth.py` (EDITOR_MODEL_AUTH), `graph_config.py` (Neo4j), `mcp_params.py`,
   `route_inventory.py`.
 - Files under ~500 lines; one env name has one owner module.
+- Splitting a module: make it a package (`foo/__init__.py` keeps every public/underscore name,
+  parts in `foo/<concern>.py`), as `app/cli/`, `regulations/calculator/`. No `foo_<part>.py` siblings.
 
 ## The planning engine
 `app/modules/design/generation/maas/masterplan/` (planner, rows, ramps, validation, ...) is the

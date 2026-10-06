@@ -24,3 +24,9 @@ into other screens; their AG unit tests were not ported).
 `backend-request.ts` (the one server-side fetch to the backend), `workspace-request.ts`,
 `design-operation-path.ts` (which design paths the proxy forwards), `platform-design-operation.ts`,
 `scene-*` (scene store/security), `api-surface.test.ts` (guard, see 02).
+
+## Where split pieces go (2026-10-06)
+A feature folder keeps its page/entry file at the root; pieces go to its own `components/`
+(subcomponents), `hooks/` (React hooks), `lib/` (pure helpers, loaders, types). Flat folders that
+already group one kind of file (`lib/cesium`, `lib/envelopes`, `book-language-flow`, `agentflow`)
+take siblings there. Upstream Pascal (`frontend/components`, `frontend/elements`) is not split.

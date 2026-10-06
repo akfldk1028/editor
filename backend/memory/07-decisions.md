@@ -3,14 +3,16 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
-- 2026-10-06 PENDING (not merged): split modules become packages like `cli/` —
-  branch `pkg/masterplan` `2d0e82e0` (`masterplan/{planner,rows,validation}/`, plan_site hashes
-  identical, 205 pass) and `pkg/regulations` `22b26556` (`regulations/{calculator,setbacks}/`,
-  `services/{regulation_calculator,setback_geometry}/`, 533 hashes identical, 421 pass; ORDINANCE_DIR
-  re-pointed; import_design_runtime.py maps package destinations to `__init__.py`). Held because
-  another session has uncommitted edits to planner.py/planner_rank.py/joint.py and both
-  calculators (ordinance_codes). Merge = cherry-pick after they commit; their edits then move
-  into the matching `__init__.py`/`rank.py`. Prefix sibling files are not the folder convention.
+- 2026-10-06 `2fc0c8c4` regulations/land split modules are packages like `cli/`:
+  `regulations/{calculator,setbacks}/`, `services/{regulation_calculator,setback_geometry}/`
+  (533 hashes identical, 421 pass after rebasing onto `d4ee05b9`; ORDINANCE_DIR re-pointed;
+  import_design_runtime.py maps package destinations to `__init__.py`).
+- 2026-10-06 PENDING: branch `pkg/masterplan` `2d0e82e0` (`masterplan/{planner,rows,validation}/`,
+  plan_site hashes identical, 205 pass). Held: another session has uncommitted edits to
+  planner.py/planner_rank.py/joint.py (+ new siting_terms.py). Cherry-pick after they commit;
+  their planner_rank edits land in `planner/rank.py`.
+- Folder rule (user, 10-06): a split module becomes a package (`foo/__init__.py` + parts), never
+  prefix siblings (`foo_rules.py`). Existing flat conventions (`design_runtime/*_views.py`) stay.
 - 2026-10-06 Modularization round 1 (platform core, pure moves, originals stay the public import path):
   `65045d70` cli.py -> `cli/` package; `94b08e71` design_runtime views.py -> 7 modules; `f14f7806`
   masterplan planner/rows/validation -> siblings (plan_site hashes identical; planner.py still 835 —
