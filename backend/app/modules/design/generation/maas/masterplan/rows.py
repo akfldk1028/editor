@@ -508,7 +508,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                    ramp=None, curved=None, curve_min_radius=None, weights=None, step=0.5, limit=14,
                    expanded_needed=None, ground_stalls=True, turn_radius_m=None, turn_lane_m=None,
                    field="auto", occupied_footprint=None, accept_ramp=None, ramp_shape="any", allowed_angles=None,
-                   preserve_banks=False, straight_entry=False):  # noqa: E501
+                   preserve_banks=False, straight_entry=False, prohibited=None):  # noqa: E501
     """Scored row-and-aisle candidates in world coordinates.
 
     ramp: None (surface only) or {"width_m", "length_m", "landing_m", "profile"} from ramps.ramp_profile.
@@ -546,6 +546,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
             continue
         g_roads = [rot(s) for s in road_segs]
         road_union = unary_union(g_roads)
+        g_prohibited = rot(prohibited) if prohibited is not None and not prohibited.is_empty else None
         # fixed for this orientation: the inner loops used to rebuild these on every iteration
         g_site_b, g_ground_b = g_site.buffer(EPS), g_ground.buffer(EPS)
         road_reach = road_union.buffer(float(turn_radius_m) * 1.5) if turn_radius_m else None
@@ -612,6 +613,11 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                         near_road = flare.intersection(road_reach)
                         if not near_road.is_empty:
                             entrance = unary_union([entrance, near_road]).buffer(0)
+                    # 차량출입불허구간: a vehicle entrance may not touch a prohibited interval. Ramp portals
+                    # avoid it by construction from the permitted frontage; the surface connector is
+                    # a parcel-edge strip and has to be checked outright.
+                    if g_prohibited is not None and entrance.distance(g_prohibited) <= 0.05:
+                        continue
                     drive = unary_union([aisle_poly, entrance])
                     turn_bay = None
                     # one entry per ramp the position can carry; a surface-only plan carries none and

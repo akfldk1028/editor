@@ -224,6 +224,7 @@ def validate_plan(request, result):
     accessible = 0
     levels = sorted({level for (level,layer),items in grouped.items()
                      if items and layer in {"parking_stall","parking_aisle","vehicular_access"}})
+    placement_stage = (request.get('options') or {}).get('planning_stage') == 'placement'
     for level in levels:
         plates=[g for g,p in grouped[(level,"basement_boundary")]]
         host = unary_union(plates) if level<0 and plates else basement if level<0 else site
@@ -323,7 +324,6 @@ def validate_plan(request, result):
                         'no closed full-width corridor certified; end access and recovery require review'),
                   scope='closed full-width aisle geometry; steering/swept path remains separate')
             arrivals = [g for g,p in grouped[(level,"vehicular_access")] if p.get("role")=="ramp_arrival"]
-            placement_stage = request.get('options', {}).get('planning_stage') == 'placement'
             if (core_clearance or placement_stage) and rules.get('aisle_width_m'):
                 check(f'{"placement_full_width_drive" if placement_stage else "core_repair_full_width_drive"}:{level}',
                       full_width_stall_access(navigable, [g for g,p in stalls], arrivals, rules['aisle_width_m']),

@@ -143,6 +143,23 @@ def plan_site(request):
     return result
 
 
+def _off_prohibited(candidates, prohibited):
+    """차량출입불허구간: a ramp whose body or road connector touches a prohibited interval is no candidate.
+
+    Portals are generated on the permitted frontage, but the ramp and its connector corridor are
+    full-width strips and can still reach the interval's end; the agent's frame tolerance is 0.05 m.
+    """
+    if prohibited is None:
+        return candidates
+    kept=[]
+    for candidate in candidates:
+        parts=[candidate.get("polygon"),candidate.get("ground_connector")]
+        if any(g is not None and not g.is_empty and g.distance(prohibited)<=0.05 for g in parts):
+            continue
+        kept.append(candidate)
+    return kept
+
+
 def _placement_target_refusal(request):
     options = request.get('options') or {}
     if (options.get('planning_stage') != 'placement' or request.get('footprint')
@@ -192,6 +209,7 @@ def _plan_site_fixed(request):
             kwargs['preserve_banks'] = True
         if straight_entry:
             kwargs['straight_entry'] = True
+        kwargs.setdefault('prohibited', prohibited)
         return row_candidates(*args, **kwargs)
     def plan_pack(*args, **kwargs):
         if common_axis:
@@ -327,6 +345,11 @@ def _plan_site_fixed(request):
         # Source line must represent actual shared frontage, not a nearby road centreline.
         missing.append("frontage is not a verified shared parcel boundary")
     front=shape(request["front_frontage"]) if request.get("front_frontage") else None
+    # 차량출입불허구간 registered in the district plan: the frontage already excludes it, and the
+    # intervals travel too so no generated vehicle entrance may touch them.
+    prohibited=shape(request["vehicle_prohibited"]) if request.get("vehicle_prohibited") else None
+    if prohibited is not None and prohibited.geom_type not in {"LineString","MultiLineString"}:
+        raise ValueError("vehicle_prohibited must be a line geometry")
     if request.get("footprint"):
         footprint=polygon(request["footprint"],"footprint")
     else:
@@ -522,6 +545,7 @@ def _plan_site_fixed(request):
                 # practice turns the ramp where a straight run will not fit beside the plate
                 if shape_opt!="straight":
                     ramps+=curved_ramp_candidates(ramp_host,frontage,blocked,rules,height,accept=accept_ramp)
+                ramps=_off_prohibited(ramps,prohibited)
                 if not ramps:
                     spec_len=(ramp_profile(rules,height) or {}).get("length_m")
                     reach=max(basement.bounds[2]-basement.bounds[0],basement.bounds[3]-basement.bounds[1]) if not basement.is_empty else 0
@@ -727,6 +751,7 @@ def _plan_site_fixed(request):
                         footprint=footprint,occupied=ground_footprint,
                         slab_soffit_z_m=-float(options['slab_depth_m']),
                         required_height_m=rules.get('min_headroom_m'),accept_ramp=accept_ramp)
+                    attached=_off_prohibited(attached,prohibited)
                     for rc in attached:
                         if placement_stage:
                             from backend.app.modules.design.generation.maas.masterplan.stall_banks import select_complete_banks
