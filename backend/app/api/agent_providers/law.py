@@ -168,6 +168,9 @@ def ordinance_receipt(regulation):
         "bcr_pct": regulation.get("bcr_pct"), "bcr_article": regulation.get("bcr_article"),
         "far_pct": regulation.get("far_pct"), "far_article": regulation.get("far_article"),
         "height_limit_m": regulation.get("height_limit_m"), "height_article": regulation.get("height_article"),
+        "height_status": regulation.get("height_status"),
+        "height_missing_evidence": regulation.get("height_missing_evidence"),
+        "height_overlays": regulation.get("height_overlays"),
         "national_bcr_ceiling_pct": regulation.get("national_bcr_ceiling_pct"),
         "national_far_ceiling_pct": regulation.get("national_far_ceiling_pct"),
         "municipal_coverage": {key: coverage.get(key) for key in

@@ -39,3 +39,14 @@ def test_parcel_limits_carries_the_receipt(monkeypatch):
     body = json.loads(law.parcel_limits(request).content)
     assert body['ordinance']['bcr_article'].endswith('제42조') and body['zones'] == ['제2종일반주거지역']
     assert body['far_pct'] == 250.0 and body['evidence'] == {'schema_version': 'x'}
+
+
+def test_a_street_block_ceiling_without_a_number_is_needs_evidence_not_resolved():
+    from backend.app.modules.land.reference.services.regulation_calculator import _height_evidence
+    got = _height_evidence(['일반상업지역', '가로구역별 최고높이 제한지역'])
+    assert got['height_status'] == 'needs_evidence'
+    assert got['height_missing_evidence'] == ['street_block_height:가로구역별 최고높이 제한지역']
+    valued = _height_evidence(['최고고도지구(20m)'])
+    assert valued['height_status'] == 'valued' and valued['height_overlays'][0]['values'] == {'max_height_m': 20}
+    assert _height_evidence(['일반상업지역'])['height_status'] == 'no_height_overlay'
+    assert _height_evidence(['최저고도지구'])['height_status'] == 'valued'   # a floor is not a missing ceiling

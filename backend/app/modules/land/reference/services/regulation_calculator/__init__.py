@@ -121,6 +121,7 @@ def calculate_all(zone_names: list[str], land_info: dict | None = None,
         result['bcr_pct'] = None
         result['far_pct'] = None
     result.update(_resolve_height(zones_data))
+    result.update(_height_evidence(zone_names))
     result.update(_resolve_sunlight(zones_data, use_llm_extraction=use_llm_extraction))
     result.update(_resolve_corner_cutoff(zones_data))
     result.update(_resolve_road_diagonal(zones_data))
@@ -451,6 +452,29 @@ def _apply_ordinance_overrides(zones_data: list[dict], sigungu_code: str, assess
         else:
             result.append(z)
     return result
+
+
+def _height_evidence(zone_names):
+    """A height overlay without a number is unresolved, not absent.
+
+    가로구역별 최고높이 is set by the permit authority street block by street block
+    (건축법 제60조); the zoning name says the parcel is in one, never how high it may go.
+    Recognising the overlay used to count as resolving it, so a parcel under a street-block
+    ceiling came back with height_limit_m None and nothing missing. A ceiling overlay with
+    no value is now named as missing evidence; BCR/FAR are untouched by it.
+    """
+    overlays, missing = [], []
+    for overlay in overlay_resolver.resolve_overlays(zone_names):
+        if overlay.get('constraint') != 'height':
+            continue
+        overlays.append({key: overlay.get(key) for key in ('name', 'raw_zone', 'article', 'values')})
+        if overlay['name'].startswith('최저고도'):
+            continue  # a floor on height, not a ceiling
+        if (overlay.get('values') or {}).get('max_height_m') is None:
+            kind = 'street_block_height' if overlay['name'].startswith('가로구역') else 'height_limit_value'
+            missing.append(f"{kind}:{overlay['raw_zone']}")
+    return {'height_overlays': overlays, 'height_missing_evidence': missing,
+            'height_status': 'needs_evidence' if missing else ('valued' if overlays else 'no_height_overlay')}
 
 
 def _municipal_coverage(zones_data, sigungu_code, assessment_date=None):
