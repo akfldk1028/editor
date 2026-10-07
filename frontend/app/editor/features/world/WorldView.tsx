@@ -32,9 +32,9 @@ export default function WorldView() {
   const asked = useRef(new Set<string>())       // cells already loaded or loading
   const queue = useRef<{ key: string; lat: number; lon: number }[]>([])
   const running = useRef(0)
-  const layers = useRef<{ buildings: any; ground: any } | null>(null)
+  const layers = useRef<{ buildings: any; ground: any; cover: any } | null>(null)
   const [base, setBase] = useState<Base>('white')
-  const [show, setShow] = useState({ buildings: true, ground: true })
+  const [show, setShow] = useState({ buildings: true, ground: true, cover: false })
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('3D 엔진 불러오는 중…')
   const [buildings, setBuildings] = useState(0)
@@ -48,7 +48,7 @@ export default function WorldView() {
       const cell = queue.current.shift()!
       running.current++
       const ground = fetchContextGround(cell.lat, cell.lon, CELL_RADIUS_M)
-        .then((reply) => { if (reply.status === 'ok' && !viewer.isDestroyed()) drawContextGround(layers.current!.ground.entities, Cesium, reply) })
+        .then((reply) => { if (reply.status === 'ok' && !viewer.isDestroyed()) drawContextGround({ blocks: layers.current!.ground, cover: layers.current!.cover }, Cesium, reply) })
       fetchContextBuildings(cell.lat, cell.lon, CELL_RADIUS_M)
         .then((reply) => {
           if (reply.status !== 'ok' || viewer.isDestroyed()) return
@@ -107,8 +107,8 @@ export default function WorldView() {
       viewer.entities.removeById('world-parcel')
       if (ring) {
         viewer.entities.add({ id: 'world-parcel', name: '대지', polyline: {
-          positions: Cesium.Cartesian3.fromDegreesArray(ring.flatMap((c) => [c[0], c[1]])),
-          width: 3, material: Cesium.Color.fromCssColorString('#e8590c'), clampToGround: false } })
+          positions: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((c) => [c[0]!, c[1]!, 1.0])),
+          width: 2, material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#d6336c'), dashLength: 10 }) } })
       }
       const lat = parcel.coordinates?.y ?? (ring ? ring.reduce((s, c) => s + c[1]!, 0) / ring.length : NaN)
       const lon = parcel.coordinates?.x ?? (ring ? ring.reduce((s, c) => s + c[0]!, 0) / ring.length : NaN)
@@ -131,14 +131,16 @@ export default function WorldView() {
         infoBox: true, selectionIndicator: true, terrainProvider: new Cesium.EllipsoidTerrainProvider(),
       })
       const scene = viewer.scene
-      scene.globe.baseColor = Cesium.Color.fromCssColorString('#ecebe6')
-      scene.backgroundColor = Cesium.Color.fromCssColorString('#f6f6f3')
+      scene.globe.baseColor = Cesium.Color.fromCssColorString('#f2f2f0')
+      scene.backgroundColor = Cesium.Color.fromCssColorString('#f7f7f5')
       if (scene.skyBox) scene.skyBox.show = false
       if (scene.skyAtmosphere) scene.skyAtmosphere.show = false
       if (scene.sun) scene.sun.show = false
       scene.fog.enabled = false
-      layers.current = { ground: new Cesium.CustomDataSource('ground'), buildings: new Cesium.CustomDataSource('buildings') }
+      layers.current = { ground: new Cesium.CustomDataSource('ground'), cover: new Cesium.CustomDataSource('cover'),
+        buildings: new Cesium.CustomDataSource('buildings') }
       viewer.dataSources.add(layers.current.ground)
+      viewer.dataSources.add(layers.current.cover)
       viewer.dataSources.add(layers.current.buildings)
       viewerRef.current = viewer
       viewer.camera.moveEnd.addEventListener(loadVisible)
@@ -182,6 +184,7 @@ export default function WorldView() {
     if (!layers.current) return
     layers.current.buildings.show = show.buildings
     layers.current.ground.show = show.ground
+    layers.current.cover.show = show.cover
   }, [show, status])
 
   return <div className="relative h-[calc(100vh-3.5rem)] w-full">
@@ -199,7 +202,8 @@ export default function WorldView() {
       </div>
       <div className="flex gap-3">
         <label><input type="checkbox" checked={show.buildings} onChange={(e) => setShow((v) => ({ ...v, buildings: e.target.checked }))} /> 건물</label>
-        <label><input type="checkbox" checked={show.ground} onChange={(e) => setShow((v) => ({ ...v, ground: e.target.checked }))} /> 바닥(도로·포장·녹지·물)</label>
+        <label><input type="checkbox" checked={show.ground} onChange={(e) => setShow((v) => ({ ...v, ground: e.target.checked }))} /> 필지·도로</label>
+        <label><input type="checkbox" checked={show.cover} onChange={(e) => setShow((v) => ({ ...v, cover: e.target.checked }))} /> 대지 안 피복</label>
       </div>
       <div className="text-xs text-muted-foreground">
         건물 {buildings}동{pending ? ` · 불러오는 칸 ${pending}개` : ''} — 화면을 움직이면 보이는 곳이 채워집니다

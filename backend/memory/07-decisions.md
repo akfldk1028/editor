@@ -117,3 +117,9 @@ be told to the Orchestrator session.
   Road parcel = whole right of way, so the pavement reads around the darker carriageway. Toggles:
   건물 / 바닥. No 보도 layer exists in VWorld WFS; NGII road-surface polygons are stale in new towns
   (고산 2 %). Changed by the Orchestrator session.
+- 2026-10-07 `/world` diagram ground (the site-analysis look the user pointed at): road parcels a grey channel at
+  0.3 m, every other parcel a white block 0.3-0.8 m with a dashed edge, the site a red dashed outline; land cover
+  inside lots (환경부 세분류 토지피복 2025 via Site `site_land_cover`, clipped to non-road parcels by SceneAgent) is a
+  toggle, off by default. Carriageways are no longer drawn (the grey road parcel reads as the street); SceneAgent
+  still returns them (lanes x 3.25 m capped by NGII rvwd, which is the whole road width). Ground floats above the
+  globe because flat polygons at ~0 m z-fight with it. Changed by the Orchestrator session.

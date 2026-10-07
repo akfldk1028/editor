@@ -74,30 +74,54 @@ export function drawContextMasses(entities: any, Cesium: any, reply: ContextRepl
   return { added: n, counts }
 }
 
-/** Diagram colours for the ground: paving light grey, carriageway a step darker, green, water. Plain lots stay the base colour. */
-const GROUND_COLOURS: Record<string, string> = {
-  road: '#dcdbd6', paved: '#dcdbd6', rail: '#d0d0cc', carriageway: '#c4c3bd',
-  green: '#dde7cf', forest: '#d2dfc3', farm: '#ebe8da', water: '#d3e2ec',
+/**
+ * Ground in the diagram style site-analysis tools use: road parcels a flat grey channel, every other parcel a white
+ * block raised a little with a dashed edge. Water and green parcels keep a faint tint. Carriageways are not drawn here
+ * (the grey road parcel already reads as the street); land cover inside lots is a separate layer.
+ */
+// Everything floats a little above the globe so it never z-fights with it at a distance.
+const ROAD_HEIGHT_M = 0.3
+const BLOCK_HEIGHT_M = 0.8
+const BLOCK_COLOURS: Record<string, string> = { water: '#e3edf3', green: '#f1f4ec', forest: '#eef2e8' }
+const ROAD_GREY = '#b4b4b0'
+const COVER_COLOURS: Record<string, string> = {
+  paved: '#e2e1dc', green: '#dfe8d1', forest: '#cfdcc0', farm: '#ece9da', bare: '#efe9de', water: '#d3e2ec', rail: '#d0d0cc',
 }
 
-/** Adds the reply's ground (parcels by 지목 class, then carriageways on top); already drawn pieces are skipped. */
-export function drawContextGround(entities: any, Cesium: any, reply: ContextReply): number {
+export interface GroundTargets { blocks: any; cover: any }
+
+/** Adds the reply's parcels (blocks + roads) and land cover; pieces already drawn are skipped. Returns how many were added. */
+export function drawContextGround(targets: GroundTargets, Cesium: any, reply: ContextReply): number {
   let n = 0
-  entities.suspendEvents()
+  const edge = new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#b8b8b4'), dashLength: 8 })
+  for (const t of [targets.blocks, targets.cover]) t.entities.suspendEvents()
   for (const f of reply.features?.features ?? []) {
     const p = f.properties ?? {}
-    const kind = p.layer === 'carriageway' ? 'carriageway' : p.ground
-    const colour = GROUND_COLOURS[kind]
-    if (!colour) continue
+    if (p.layer === 'carriageway') continue
+    const cover = p.layer === 'cover'
     rings(f.geometry).forEach((ring, i) => {
-      const id = `ground-${kind}-${p.id ?? `${ring[0]!.toFixed(6)},${ring[1]!.toFixed(6)}`}-${i}`
-      if (entities.getById(id)) return
-      entities.add({ id, name: kind === 'carriageway' ? `차도 ${p.width_m} m (${p.width_status === 'estimated' ? '차로 수로 추정' : '실측 폭'})` : `지목 ${p.jimok ?? '?'}`,
-        polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), height: kind === 'carriageway' ? 0.2 : 0.1,
+      const id = `${cover ? 'cover' : 'parcel'}-${p.id ?? ''}${cover ? `${ring[0]!.toFixed(6)},${ring[1]!.toFixed(6)}` : ''}-${i}`
+      const into = (cover ? targets.cover : targets.blocks).entities
+      if (into.getById(id)) return
+      const positions = Cesium.Cartesian3.fromDegreesArray(ring)
+      if (cover) {
+        const colour = COVER_COLOURS[p.cover]
+        if (!colour) return
+        into.add({ id, name: `토지피복 ${p.l3_name ?? p.cover}`, polygon: { hierarchy: positions, height: BLOCK_HEIGHT_M + 0.03,
           material: Cesium.Color.fromCssColorString(colour) } })
+      } else if (p.ground === 'road' || p.ground === 'rail') {
+        into.add({ id, name: `도로 (지목 ${p.jimok})`, polygon: { hierarchy: positions, height: ROAD_HEIGHT_M,
+          material: Cesium.Color.fromCssColorString(ROAD_GREY) } })
+      } else {
+        into.add({ id, name: `필지 (지목 ${p.jimok ?? '?'})`,
+          polygon: { hierarchy: positions, height: ROAD_HEIGHT_M, extrudedHeight: BLOCK_HEIGHT_M,
+            material: Cesium.Color.fromCssColorString(BLOCK_COLOURS[p.ground] ?? '#fbfbfa') },
+          polyline: { positions: Cesium.Cartesian3.fromDegreesArrayHeights(
+            ring.flatMap((v, k) => (k % 2 ? [v, BLOCK_HEIGHT_M + 0.02] : [v]))), width: 1, material: edge } })
+      }
       n++
     })
   }
-  entities.resumeEvents()
+  for (const t of [targets.blocks, targets.cover]) t.entities.resumeEvents()
   return n
 }
