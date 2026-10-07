@@ -3,6 +3,13 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-07 (MasterPlan session) `8ed39f9d` planner compact-slab pass: a ValueError from one degenerate
+  candidate no longer aborts plan_site (고산 target_surface_stalls=30 crashed). Results change only where
+  plan_site used to raise. The uncommitted rank change (road openings before excavation) was REVERTED — it
+  changed default results and moved nothing on 14 parcels. Untracked `masterplan/siting_terms.py` +
+  `tests/masterplan_engine/test_siting_terms.py` are measurement only (imported by nothing in the engine);
+  any future generation work there will be opt-in behind an option, default results hash-identical.
+
 - 2026-10-07 Final review at `d6ac0845`: backend suite (minus masterplan_engine, which sits under another
   session's uncommitted edits) 2119 passed / 3 skipped / 1 failed / 15 errors — the failure set is identical at
   b427e1bc (`test_mass_native_cli[generate_massv2]`, `provider_parity/test_maas_creative_floor_portfolio` x15).
