@@ -2,6 +2,18 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-07 `2a5404ea` editor-owned shell `features/shell/` (Shell, layout/, artifact-host/, conversation/,
+  sidebar/, artifact-types.ts contract, registry.ts) + right panel = artifact modules `features/artifacts/<id>/`
+  (manifest + lazy component; ArtifactChrome fills header/menu). CAD is artifact `cad`, using only the CAD
+  package public entry (`@click-around/workspace` public.ts: DwgWorkspaceProvider, DwgSidebar,
+  DwgConversation, useDwgArtifact...). `c9a91919` default artifact `site-map`: engine adapter (naver when
+  NEXT_PUBLIC_NAVER_MAP_KEY_ID is set -> naver.maps CadastralLayer 지적편집도, colors as given; else / on auth
+  failure OpenLayers + Vworld as given), parcel red dashed outline + search marker only, default PNU
+  4115011300106840001 (고산 공공1), `?artifact= ?pnu= ?address= ?engine=`. New features = new
+  `features/artifacts/<id>/` folder + registry entry. Naver key: NCP Maps app `editor`, Dynamic Map only,
+  URLs 127.0.0.1:3003, localhost:3003, 127.0.0.1:3005; key in frontend/app/editor/.env.local (ignored).
+  Open: CAD e2e specs for the old frame need moving to the shell; CAD styles.css still duplicates shell tokens;
+  backend only accepts Origin :3003 (3005 POSTs 403).
 - 2026-10-07 `c424ea49` /dwg shell rebuilt: modes by own width (layoutModes.ts single source, CSS checked by
   unit test): wide>=1200 sidebar 240 [200..320] + rail 56, artifact 45% (stored as ratio, prefs v3); medium
   768-1199 sidebar drawer; narrow<768 one panel ([대화|도면] switch). One header row; chat column 48rem,

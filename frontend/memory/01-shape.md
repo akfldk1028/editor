@@ -30,3 +30,8 @@ A feature folder keeps its page/entry file at the root; pieces go to its own `co
 (subcomponents), `hooks/` (React hooks), `lib/` (pure helpers, loaders, types). Flat folders that
 already group one kind of file (`lib/cesium`, `lib/envelopes`, `book-language-flow`, `agentflow`)
 take siblings there. Upstream Pascal (`frontend/components`, `frontend/elements`) is not split.
+
+## The shell (2026-10-07)
+`/dwg` = the product shell (`features/shell`): sidebar | conversation | artifact panel. Every feature is an
+artifact module in `features/artifacts/<id>/` registered in `features/shell/registry.ts` (default `site-map`,
+then `cad`). See 05-decisions 2026-10-07.
