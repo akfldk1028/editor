@@ -2,6 +2,13 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-07 `c424ea49` /dwg shell rebuilt: modes by own width (layoutModes.ts single source, CSS checked by
+  unit test): wide>=1200 sidebar 240 [200..320] + rail 56, artifact 45% (stored as ratio, prefs v3); medium
+  768-1199 sidebar drawer; narrow<768 one panel ([대화|도면] switch). One header row; chat column 48rem,
+  bubble/plain replies, model chip in composer; artifact header = title + Run agents + ⋯ menu (Ctrl+K) + close;
+  3 tabs. 11 widths: no overflow, min font 11, 0 buttons <24px. Unit 37/37, tsc 0. e2e specs updated but NOT
+  run (playwright chromium not installed). Open: dwg styles.css 570 lines (>500); editor global top nav (20
+  links) still scrolls horizontally above the shell -> move into the shell sidebar when features come in.
 - 2026-10-07 /dwg responsive rebuild (user: "반응형웹이 아닌데 제대로 해, 최신기술로"): platform CSS only —
   container queries (mode by the workspace's own width: wide >=1200 / medium 768-1199 / narrow <768),
   grid+clamp, dvh, :has(), View Transitions; no new npm dep (risk of a 2nd React from
