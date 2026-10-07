@@ -2,6 +2,15 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-07 `06f1dae9` site-map 3D: World3D uses useWorld3D directly, creates the engine only once the site is
+  known, places the camera instantly (flyTo + completeFlight, verified within 1.5 km) -> first context request at
+  고산, 305 buildings in 15-18 s, no Seoul requests. Cause was order: engine opened at MAP_CONFIG_3D.center (Seoul),
+  queued ~30 Seoul cells (PARALLEL=3, ~23 s each via SceneAgent). Context cells are uncached (7-23 s each).
+  REQUESTS for the features/world owner (not done by us): (1) useWorld3D({initialCenter}) opening there;
+  (2) public instant setView(lng,lat); (3) drop far queued cells (queue+asked) on a >1.5 km move; (4) ringOf
+  must handle MultiPolygon (non-contiguous bundles draw only the first parcel today). Speed plan: nearest-first
+  cell loading + cancel off-screen (world), one bbox request instead of 26 cells, SceneAgent parallel upstream
+  calls (agents session), long-term nationwide building PMTiles.
 - 2026-10-07 `1636df69` backend + `17b047f5` frontend: site selection. Click = whole parcel polygon (no points),
   Shift+click/카드 토글 = 묶음(합필) add/remove, union outline, contiguity (shapely 0.05 m). API
   `POST /land/selections/preview` (no save), `POST /land/selections`, `GET /land/selections[?limit]`,
