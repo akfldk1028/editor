@@ -27,7 +27,7 @@ class LandRepository:
     @staticmethod
     def _ensure_schema(db):
         version = db.execute('PRAGMA user_version').fetchone()[0]
-        if version not in (0, 1, 2, 3, 4):
+        if version not in (0, 1, 2, 3, 4, 5):
             raise ValueError('unsupported land database version')
         if version == 0:
             db.execute('''CREATE TABLE analyses (
@@ -68,6 +68,13 @@ class LandRepository:
                 parcels_json TEXT NOT NULL, source_json TEXT NOT NULL)''')
             db.execute('CREATE INDEX IF NOT EXISTS site_selections_created ON site_selections(created_at)')
             db.execute('PRAGMA user_version=4')
+        if version < 5:
+            # A site belongs to a scope (a project id, or 'default'); sites saved before scopes are 'default'.
+            columns = {row[1] for row in db.execute('PRAGMA table_info(site_selections)')}
+            if 'scope' not in columns:
+                db.execute("ALTER TABLE site_selections ADD COLUMN scope TEXT NOT NULL DEFAULT 'default'")
+            db.execute('CREATE INDEX IF NOT EXISTS site_selections_scope ON site_selections(scope, created_at)')
+            db.execute('PRAGMA user_version=5')
 
     def save(self, request: dict, result: dict, elapsed_ms: float, error: str = '') -> str:
         if not isinstance(request, dict) or not isinstance(result, dict):

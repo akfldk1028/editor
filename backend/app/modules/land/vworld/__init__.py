@@ -36,10 +36,12 @@ class VworldClient:
 
     async def fetch_parcel_geometry(self, pnu: str) -> dict:
         pnu = normalize_pnu(pnu)
-        geometry, _ = await self._parcel({'attrFilter':f'pnu:=:{pnu}'}, largest=True)
+        geometry, properties = await self._parcel({'attrFilter':f'pnu:=:{pnu}'}, largest=True)
         if geometry is None:
             return {'success':False, 'geometry':None, 'error':self._parcel_error()}
-        return {'success':True, 'geometry':geometry}
+        address = properties.get('addr') if isinstance(properties, dict) else None
+        # The parcel layer carries the full lot address, so a lookup by PNU needs no reverse geocode.
+        return {'success':True, 'geometry':geometry, **({'address':address} if isinstance(address, str) and address else {})}
 
     def _parcel_error(self):
         return 'Parcel lookup is not configured' if not self.api_key else 'Parcel lookup returned no usable result'

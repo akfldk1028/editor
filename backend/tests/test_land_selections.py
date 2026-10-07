@@ -2,7 +2,9 @@ import sqlite3
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+import pytest
 
+from backend.app.modules.land import selection_facts
 from backend.app.modules.land.repository import LandRepository
 from backend.app.modules.land.routers.analysis import create_land_router
 
@@ -27,9 +29,17 @@ def pick(pnu):
     return {'pnu': pnu, 'lng': ring[0][0] + 0.0001, 'lat': ring[0][1] + 0.0001}
 
 
+@pytest.fixture(autouse=True)
+def empty_facts_cache():
+    selection_facts.facts_cache.clear()
+    yield
+    selection_facts.facts_cache.clear()
+
+
 class Addresses:
     def __init__(self):
         self.calls = 0
+        self.outlines = []
 
     async def reverse_geocode(self, x, y):
         self.calls += 1
@@ -41,20 +51,28 @@ class Addresses:
         return {'success': False, 'pnu': None, 'address': None, 'geometry': None}
 
     async def fetch_parcel_geometry(self, pnu):
-        return {'success': pnu in PARCELS, 'geometry': PARCELS[pnu][0] if pnu in PARCELS else None}
+        self.outlines.append(pnu)
+        if pnu not in PARCELS:
+            return {'success': False, 'geometry': None}
+        return {'success': True, 'geometry': PARCELS[pnu][0], 'address': PARCELS[pnu][1]}
 
 
 class Attributes:
+    def __init__(self):
+        self.fetched = []
+
     async def fetch(self, pnu):
+        self.fetched.append(pnu)
         _, _, area, zones = PARCELS[pnu]
         return {'success': True, 'pnu': pnu, 'zones': zones, 'land_area_m2': area, 'official_land_price': None,
                 'land_use_situation': '대', 'source': 'vworld', 'zones_fetched': True}
 
 
-def client(tmp_path):
+def client(tmp_path, addresses=None, attributes=None):
     app = FastAPI()
     app.include_router(create_land_router(public_origin=ORIGIN, repository=LandRepository(tmp_path),
-                                          address_client=Addresses(), attribute_client=Attributes()))
+                                          address_client=addresses or Addresses(),
+                                          attribute_client=attributes or Attributes()))
     return TestClient(app)
 
 
@@ -65,7 +83,7 @@ def body(*pnus, **extra):
 A, B, FAR = PARCELS
 
 
-def test_v3_database_migrates_to_v4_and_keeps_existing_rows(tmp_path):
+def test_v3_database_migrates_to_v5_and_keeps_existing_rows(tmp_path):
     repo = LandRepository(tmp_path)
     repo.save({'input_type': 'pnu'}, {}, 1.0)
     with sqlite3.connect(repo.path) as db:
@@ -73,10 +91,10 @@ def test_v3_database_migrates_to_v4_and_keeps_existing_rows(tmp_path):
         db.execute('PRAGMA user_version=3')
     assert repo.stats()['total_queries'] == 1
     with sqlite3.connect(repo.path) as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 4
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 5
         columns = [row[1] for row in db.execute('PRAGMA table_info(site_selections)')]
     assert columns == ['selection_id', 'created_at', 'label', 'parcel_count', 'total_area_m2', 'contiguous',
-                       'parcels_json', 'source_json']
+                       'parcels_json', 'source_json', 'scope']
 
 
 def test_one_parcel_is_filled_by_the_server_and_round_trips(tmp_path):
@@ -144,3 +162,106 @@ def test_selection_without_storage_is_503(monkeypatch):
     api = TestClient(app)
     assert api.post('/api/v1/land/selections', json=body(A)).status_code == 503
     assert api.get('/api/v1/land/selections/latest').status_code == 503
+
+
+def test_same_bundle_again_makes_no_upstream_calls_and_never_reverse_geocodes(tmp_path):
+    addresses, attributes = Addresses(), Attributes()
+    api = client(tmp_path, addresses, attributes)
+    first = api.post('/api/v1/land/selections/preview', json=body(A, B)).json()
+    assert sorted(addresses.outlines) == sorted([A, B]) and sorted(attributes.fetched) == sorted([A, B])
+    second = api.post('/api/v1/land/selections/preview', json=body(A, B)).json()
+    assert len(addresses.outlines) == 2 and len(attributes.fetched) == 2
+    assert second == first
+    assert first['parcels'][0]['address'] == '경기도 의정부시 산곡동 684-1'
+    assert addresses.calls == 0
+
+
+def test_adding_a_parcel_fetches_only_the_new_one(tmp_path):
+    addresses, attributes = Addresses(), Attributes()
+    api = client(tmp_path, addresses, attributes)
+    api.post('/api/v1/land/selections/preview', json=body(A))
+    grown = api.post('/api/v1/land/selections/preview', json=body(A, B)).json()
+    assert addresses.outlines == [A, B] and attributes.fetched == [A, B]
+    assert grown['contiguous'] is True and grown['total_area_m2'] == 1500.5
+    saved = api.post('/api/v1/land/selections', json=body(A, B)).json()
+    assert saved['parcel_count'] == 2 and addresses.outlines == [A, B]
+    assert addresses.calls == 0
+
+
+def test_cache_expires_and_evicts_the_least_recently_used():
+    now = [0.0]
+    cache = selection_facts.FactsCache(ttl_s=10, max_entries=2, clock=lambda: now[0])
+    cache.put('a', 1)
+    cache.put('b', 2)
+    assert cache.get('a') == 1
+    cache.put('c', 3)
+    assert cache.get('b') is None and cache.get('a') == 1 and cache.get('c') == 3
+    now[0] = 10.0
+    assert cache.get('a') is None and len(cache) == 1
+
+
+def test_failed_lookups_are_not_remembered(tmp_path):
+    class Down(Attributes):
+        async def fetch(self, pnu):
+            self.fetched.append(pnu)
+            return {'success': False, 'pnu': pnu, 'zones': [], 'land_area_m2': None, 'official_land_price': None,
+                    'land_use_situation': '', 'source': 'unavailable', 'zones_fetched': False}
+
+    attributes = Down()
+    api = client(tmp_path, attributes=attributes)
+    api.post('/api/v1/land/selections/preview', json=body(A))
+    api.post('/api/v1/land/selections/preview', json=body(A))
+    assert attributes.fetched == [A, A]
+
+
+def test_too_many_new_parcels_in_one_request_is_400(tmp_path, monkeypatch):
+    monkeypatch.setattr(selection_facts, 'MAX_UPSTREAM_PER_REQUEST', 1)
+    addresses = Addresses()
+    api = client(tmp_path, addresses)
+    response = api.post('/api/v1/land/selections/preview', json=body(A, B))
+    assert response.status_code == 400 and 'new parcels' in response.json()['detail']
+    assert addresses.outlines == []
+    assert api.post('/api/v1/land/selections/preview', json=body(A)).status_code == 200
+    assert api.post('/api/v1/land/selections/preview', json=body(A, B)).status_code == 200
+
+
+def test_v4_database_upgrades_with_existing_rows_in_default_scope(tmp_path):
+    repo = LandRepository(tmp_path)
+    repo.save({'input_type': 'pnu'}, {}, 1.0)
+    with sqlite3.connect(repo.path) as db:
+        db.execute('DROP TABLE site_selections')
+        db.execute('''CREATE TABLE site_selections (
+            selection_id TEXT PRIMARY KEY, created_at TEXT NOT NULL, label TEXT NOT NULL,
+            parcel_count INTEGER NOT NULL, total_area_m2 REAL, contiguous INTEGER,
+            parcels_json TEXT NOT NULL, source_json TEXT NOT NULL)''')
+        db.execute("INSERT INTO site_selections VALUES ('old', '2026-10-01T00:00:00+00:00', '옛 대지', 1, 10.0, 1, "
+                   "'[{\"pnu\": \"4115011300106840001\", \"summary\": {\"zones\": []}}]', '{}')")
+        db.execute('PRAGMA user_version=4')
+    api = client(tmp_path)
+    latest = api.get('/api/v1/land/selections/latest').json()
+    assert latest['selection_id'] == 'old' and latest['scope'] == 'default' and latest['label'] == '옛 대지'
+    assert api.get('/api/v1/land/selections/latest?scope=default').json()['selection_id'] == 'old'
+    assert api.get('/api/v1/land/selections/latest?scope=p1').status_code == 404
+    with sqlite3.connect(repo.path) as db:
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 5
+
+
+def test_latest_is_per_scope(tmp_path):
+    api = client(tmp_path)
+    in_a = api.post('/api/v1/land/selections', json=body(A, scope='project-A')).json()
+    in_b = api.post('/api/v1/land/selections', json=body(FAR, scope='project.B_2')).json()
+    plain = api.post('/api/v1/land/selections', json=body(B)).json()
+    assert in_a['scope'] == 'project-A' and in_b['scope'] == 'project.B_2' and plain['scope'] == 'default'
+    assert api.get('/api/v1/land/selections/latest?scope=project-A').json()['selection_id'] == in_a['selection_id']
+    assert api.get('/api/v1/land/selections/latest?scope=project.B_2').json()['selection_id'] == in_b['selection_id']
+    assert api.get('/api/v1/land/selections/latest').json()['selection_id'] == plain['selection_id']
+    assert api.get('/api/v1/land/selections/latest?scope=nobody').status_code == 404
+    assert len(api.get('/api/v1/land/selections').json()['selections']) == 3
+
+
+@pytest.mark.parametrize('scope', ['', 'has space', 'a/b', 'x' * 65, '한글'])
+def test_bad_scope_is_422(tmp_path, scope):
+    api = client(tmp_path)
+    assert api.post('/api/v1/land/selections', json=body(A, scope=scope)).status_code == 422
+    assert api.get('/api/v1/land/selections/latest', params={'scope': scope}).status_code == 422
+    assert api.get('/api/v1/land/selections').json() == {'selections': []}
