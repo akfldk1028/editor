@@ -1,14 +1,33 @@
 'use client'
 
 import { Layers, Minus, Plus, Search } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 
 import { locateParcel } from '../../land-map/lib/land-api-client'
 import type { ArtifactProps } from '../../shell/artifact-types'
 import { chooseEngine, createMapEngine, type LngLat, type MapEngine, type MapEngineKind } from './engine'
 import { boundsCenter, parcelBounds, parcelRings } from './layers/parcelOutline'
-import { siteFromParams, type Site } from './site'
+import { latestSite, type SavedSite } from './selection'
+import { defaultSite, siteFromSelection, siteParam, type Site } from './site'
+import { SiteCard } from './SiteCard'
+import { usePicker } from './usePicker'
 import './site-map.css'
+
+/** Loaded the first time 3D is chosen; it stays mounted (hidden) after that. */
+const World3D = dynamic(() => import('./World3D'), { ssr: false })
+type View = '2d' | '3d'
+const VIEW_KEY = 'site-map.view'
+
+/** `?view=` wins, then the viewer's last choice. */
+function initialView3d(params: Readonly<Record<string, string>>): View {
+  if (params.view === '3d' || params.view === '2d') return params.view
+  try {
+    return window.localStorage.getItem(VIEW_KEY) === '3d' ? '3d' : '2d'
+  } catch {
+    return '2d'
+  }
+}
 
 const naverKeyId = process.env.NEXT_PUBLIC_NAVER_MAP_KEY_ID
 /** Near 고산 so the first frame is already in the right city while the parcel loads. */
@@ -17,22 +36,31 @@ const engineLabels: Record<MapEngineKind, string> = { naver: 'NAVER 지도', ope
 
 type Status = { kind: 'idle' } | { kind: 'busy'; text: string } | { kind: 'error'; text: string }
 
-/** The default artifact: the site's parcel on a 2D cadastral map. */
+/** The default artifact: the site's parcels on a 2D cadastral map; click to pick, Shift+click to add. */
 export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<MapEngine | null>(null)
   const searchAbort = useRef<AbortController | null>(null)
-  const [initialSite] = useState(() => siteFromParams(params))
+  // `?pnu=` / `?address=` wins; otherwise the last saved site, else the default.
+  const [requestedSite] = useState(() => siteParam(params))
   const [engineKind, setEngineKind] = useState<MapEngineKind | null>(null)
   const [cadastral, setCadastral] = useState(true)
   const cadastralRef = useRef(cadastral)
   const [query, setQuery] = useState('')
-  const [site, setSite] = useState<Site>(initialSite)
+  const [site, setSite] = useState<Site>(() => requestedSite ?? { query: '', label: '' })
   const [status, setStatus] = useState<Status>({ kind: 'busy', text: '지도를 불러오는 중' })
+  const [view, setView] = useState<View>(() => initialView3d(params))
+  const [opened3d, setOpened3d] = useState(view === '3d')
   const { setTitle } = shell
+  const onSaved = useCallback((saved: SavedSite) => setSite(siteFromSelection({ pnu: saved.parcels[0]!.pnu, address: saved.label })), [])
+  const picker = usePicker(engineRef, onSaved)
+  const { showSearched } = picker
+  // The engine is built once per mount; it reaches the latest handlers through this ref, so
+  // picking (which changes state) never rebuilds the map or moves the view.
+  const latest = useRef({ picker, locate: (_target: Site, _withMarker: boolean): Promise<void> => Promise.resolve() })
 
   useEffect(() => {
-    setTitle('대지 지도', site.label)
+    setTitle('대지 지도', site.label || undefined)
   }, [setTitle, site.label])
 
   const locate = useCallback(async (target: Site, withMarker: boolean) => {
@@ -45,7 +73,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     try {
       const parcel = await locateParcel(target.query, controller.signal)
       if (controller.signal.aborted || engineRef.current !== engine) return
-      engine.fitParcel(parcel.geometry)
+      showSearched(parcel.geometry)
       const bounds = parcelBounds(parcelRings(parcel.geometry))
       const position: LngLat | null = parcel.coordinates
         ? [parcel.coordinates.x, parcel.coordinates.y]
@@ -57,7 +85,8 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       if (controller.signal.aborted) return
       setStatus({ kind: 'error', text: error instanceof Error ? error.message : '필지를 찾지 못했습니다.' })
     }
-  }, [])
+  }, [showSearched])
+  useEffect(() => { latest.current = { picker, locate } })
 
   // One engine per mount; a refused Naver key falls back to the temporary engine.
   useEffect(() => {
@@ -84,7 +113,28 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       if (disposed) return engine.destroy()
       engineRef.current = engine
       setEngineKind(kind)
-      await locate(initialSite, false)
+      engine.onClick((event) => latest.current.picker.handleClick(event))
+      engine.onHover((at) => latest.current.picker.handleHover(at))
+      // The opening view, once: `?pnu=`/`?address=`, else the saved site, else the default.
+      if (requestedSite) return latest.current.locate(requestedSite, false)
+      if (!(await openSaved())) await latest.current.locate({ ...defaultSite }, false)
+    }
+
+    /** The last saved site, when there is one; false opens the default instead. */
+    async function openSaved(): Promise<boolean> {
+      try {
+        const saved = await latestSite()
+        if (!saved || disposed) return false
+        setStatus({ kind: 'busy', text: '선택한 대지를 불러오는 중' })
+        await latest.current.picker.restore(saved)
+        if (disposed) return true
+        setSite(siteFromSelection({ pnu: saved.parcels[0]!.pnu, address: saved.label }))
+        setStatus({ kind: 'idle' })
+        return true
+      } catch (error) {
+        console.error('[site-map] Saved site unavailable; opening the default site.', error)
+        return false
+      }
     }
 
     start(chooseEngine(params.engine, naverKeyId)).catch((error: unknown) => {
@@ -96,7 +146,20 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       engine?.destroy()
       engineRef.current = null
     }
-  }, [initialSite, locate, params.engine])
+  }, [params.engine, requestedSite])
+
+  /** Both views stay mounted; the switch only shows one. The URL changes by replaceState, never by navigation. */
+  function switchView(next: View) {
+    if (next === view) return
+    setView(next)
+    if (next === '3d') setOpened3d(true)
+    try { window.localStorage.setItem(VIEW_KEY, next) } catch { /* the choice is only a convenience */ }
+    const url = new URL(window.location.href)
+    url.searchParams.set('view', next)
+    window.history.replaceState(window.history.state, '', url)
+  }
+
+  const pick3d = useCallback((at: LngLat) => latest.current.picker.handleClick({ at, pixel: [0, 0], shift: false }), [])
 
   function toggleCadastral() {
     const next = !cadastral
@@ -112,9 +175,17 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   }
 
   return (
-    <div className="site-map" data-engine={engineKind ?? undefined}>
+    <div className="site-map" data-engine={engineKind ?? undefined} data-view={view}>
       {/* Providers restyle their target (Naver makes it position: relative), so they get an inner element. */}
       <div aria-label={`${site.label} 지도`} className="site-map-canvas" role="img"><div ref={mapRef} /></div>
+
+      {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} />}
+
+      <div aria-label="보기" className="site-map-views" role="group">
+        {(['2d', '3d'] as const).map((option) => (
+          <button aria-pressed={view === option} key={option} onClick={() => switchView(option)} type="button">{option.toUpperCase()}</button>
+        ))}
+      </div>
 
       <form className="site-map-search" onSubmit={submit} role="search">
         <Search aria-hidden="true" size={14} />
@@ -135,8 +206,21 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
 
       <div className="site-map-status" role="status">
         {status.kind !== 'idle' && <span data-kind={status.kind}>{status.text}</span>}
+        {picker.notice && <span data-kind="error">{picker.notice}</span>}
         {engineKind && <small>{engineLabels[engineKind]}</small>}
       </div>
+
+      {picker.card && (
+        <SiteCard
+          adding={picker.adding}
+          onAddingChange={picker.setAdding}
+          onClose={picker.close}
+          onRemove={picker.remove}
+          onSelect={() => void picker.select()}
+          state={picker.card}
+        />
+      )}
+      <p aria-live="polite" className="site-map-live">{picker.live}</p>
     </div>
   )
 }

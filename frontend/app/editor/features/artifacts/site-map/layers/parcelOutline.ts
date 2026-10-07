@@ -44,3 +44,52 @@ export function parcelBounds(rings: readonly Ring[]): [number, number, number, n
 export function boundsCenter([west, south, east, north]: readonly [number, number, number, number]): LngLat {
   return [(west + east) / 2, (south + north) / 2]
 }
+
+/** How a parcel is drawn: the searched site, a clicked pick, or the saved selection. */
+export type ParcelLook = 'site' | 'picked' | 'saved'
+
+/** Thin fill for picks in the shell's accent (--accent), so the map's own colours still show through. */
+export const selectionFill = { color: '#d97757', picked: 0.15, saved: 0.22 } as const
+
+/** The merged boundary of a multi-parcel site (합필 경계). */
+export const mergedOutline = { width: 3.5 } as const
+
+/** The hover preview: a faint 1px outline. */
+export const hoverOutline = { color: parcelOutline.color, width: 1, opacity: 0.55 } as const
+
+export interface ParcelStyle { width: number; dashed: boolean; fillOpacity: number }
+
+/** Site: dashed, no fill. Pick: dashed 2px over a light fill. Saved: solid 2px, a little more fill. */
+export function parcelStyle(look: ParcelLook): ParcelStyle {
+  if (look === 'picked') return { width: 2, dashed: true, fillOpacity: selectionFill.picked }
+  if (look === 'saved') return { width: 2, dashed: false, fillOpacity: selectionFill.saved }
+  return { width: parcelOutline.width, dashed: true, fillOpacity: 0 }
+}
+
+/** `#rrggbb` → `rgba(…)` for providers that take one colour string. */
+export function rgba(hex: string, alpha: number): string {
+  const value = Number.parseInt(hex.slice(1), 16)
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`
+}
+
+/** Whether the point lies inside the parcel (even-odd over all rings, so holes count). */
+export function containsPoint(geojson: unknown, [lng, lat]: LngLat): boolean {
+  let inside = false
+  for (const ring of parcelRings(geojson)) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]!
+      const [xj, yj] = ring[j]!
+      if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside
+    }
+  }
+  return inside
+}
+
+/** The 지번 part of a parcel address ("… 산곡동 684-1" → "684-1"). */
+export function lotLabel(address: string, pnu: string): string {
+  const tail = address.trim().match(/(산\s*)?\d+(-\d+)?$/)
+  if (tail) return tail[0].replace(/\s+/g, '')
+  const main = Number(pnu.slice(11, 15))
+  const sub = Number(pnu.slice(15, 19))
+  return `${pnu[10] === '2' ? '산' : ''}${main}${sub ? `-${sub}` : ''}`
+}

@@ -1,6 +1,6 @@
 import type { MapEngine, MapEngineKind } from './types'
 
-export type { LngLat, MapEngine, MapEngineKind, MapLayers, MapView } from './types'
+export type { LngLat, MapEngine, MapEngineKind, MapLayers, MapPointer, MapView, ParcelSet } from './types'
 
 /**
  * Naver when a key is configured, else the temporary OpenLayers engine; an

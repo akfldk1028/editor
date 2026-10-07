@@ -11,12 +11,25 @@ export function whenSized(element: HTMLElement, timeoutMs = 2000): Promise<void>
   })
 }
 
-/** Calls `onResize` with the element's size whenever it changes (panel resize, maximize, layout mode). */
+/**
+ * Calls `onResize` with the element's size whenever it changes (splitter drag, sidebar, maximize,
+ * window), at most once per animation frame.
+ */
 export function observeSize(element: HTMLElement, onResize: (width: number, height: number) => void): () => void {
   if (typeof ResizeObserver === 'undefined') return () => undefined
+  let frame = 0
+  let size: [number, number] | null = null
   const observer = new ResizeObserver(([entry]) => {
-    if (entry) onResize(entry.contentRect.width, entry.contentRect.height)
+    if (!entry) return
+    size = [entry.contentRect.width, entry.contentRect.height]
+    frame ||= requestAnimationFrame(() => {
+      frame = 0
+      if (size) onResize(...size)
+    })
   })
   observer.observe(element)
-  return () => observer.disconnect()
+  return () => {
+    cancelAnimationFrame(frame)
+    observer.disconnect()
+  }
 }

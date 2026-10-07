@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 
 import { chooseEngine } from './engine'
 import { boundsCenter, parcelBounds, parcelRings } from './layers/parcelOutline'
-import { siteFromParams } from './site'
+import { siteFromParams, siteFromSelection, siteParam } from './site'
 
 test('engine: naver with a key, openlayers without, ?engine=openlayers always wins', () => {
   expect(chooseEngine(undefined, 'key')).toBe('naver')
@@ -31,4 +31,45 @@ test('the site defaults to 고산 공공1 and takes a PNU or address from the sh
   expect(siteFromParams({ pnu: '1168010100107370000' })).toEqual({ query: '1168010100107370000', label: '1168010100107370000' })
   expect(siteFromParams({ address: '서울 강남구 역삼동 737' }).query).toBe('서울 강남구 역삼동 737')
   expect(siteFromParams({ pnu: '12' }).query).toBe('4115011300106840001')
+})
+
+test('an explicit pnu/address param is the only thing that beats the saved selection', () => {
+  expect(siteParam({})).toBeNull()
+  expect(siteParam({ pnu: '12' })).toBeNull()
+  expect(siteParam({ pnu: '1168010100107370000' })?.query).toBe('1168010100107370000')
+  expect(siteFromSelection({ pnu: '4115011300106840001', address: '경기도 의정부시 산곡동 684-1' }))
+    .toEqual({ query: '4115011300106840001', label: '경기도 의정부시 산곡동 684-1' })
+  expect(siteFromSelection({ pnu: '4115011300106840001', address: '' }).label).toBe('4115011300106840001')
+})
+
+test('picks: a click replaces, adding appends in order, clicking a selected parcel deselects it', async () => {
+  const { nextPicks } = await import('./selection')
+  const a = { pnu: 'a', at: [127, 37] as const }
+  const b = { pnu: 'b', at: [127.1, 37] as const }
+  expect(nextPicks([a], b, false)).toEqual([b])
+  expect(nextPicks([a], b, true)).toEqual([a, b])
+  expect(nextPicks([a, b], a, true)).toEqual([b])
+  expect(nextPicks([a], a, false)).toEqual([])
+  expect(nextPicks([a, b], b, false)).toEqual([a])
+})
+
+test('parcel looks, point-in-parcel, lot labels and the hover cache', async () => {
+  const { containsPoint, lotLabel, parcelStyle } = await import('./layers/parcelOutline')
+  const { ParcelCache } = await import('./parcelCache')
+  expect(parcelStyle('site')).toEqual({ width: 2.5, dashed: true, fillOpacity: 0 })
+  expect(parcelStyle('picked')).toEqual({ width: 2, dashed: true, fillOpacity: 0.15 })
+  expect(parcelStyle('saved')).toEqual({ width: 2, dashed: false, fillOpacity: 0.22 })
+  const square = { type: 'Polygon', coordinates: [[[127, 37], [127.001, 37], [127.001, 37.001], [127, 37.001], [127, 37]]] }
+  expect(containsPoint(square, [127.0005, 37.0005])).toBe(true)
+  expect(containsPoint(square, [127.002, 37.0005])).toBe(false)
+  expect(lotLabel('경기도 의정부시 산곡동 684-1', '4115011300106840001')).toBe('684-1')
+  expect(lotLabel('', '4115011300206840000')).toBe('산684')
+  expect(lotLabel('경기도 의정부시 민락동 산 98-17', '4115010600200980017')).toBe('산98-17')
+  const cache = new ParcelCache(2)
+  cache.add({ pnu: 'a', address: '', geometry: square })
+  expect(cache.find([127.0005, 37.0005])?.pnu).toBe('a')
+  expect(cache.find([128, 38])).toBeNull()
+  cache.add({ pnu: 'b', address: '', geometry: {} })
+  cache.add({ pnu: 'c', address: '', geometry: {} })
+  expect(cache.get('a')).toBeNull()
 })

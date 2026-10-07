@@ -9,11 +9,21 @@ export interface Site {
   label: string
 }
 
-/** The site to open: the shell's `pnu` (19 digits) or `address` parameter, else the default. */
-export function siteFromParams(params: Readonly<Record<string, string>>): Site {
+/** The site the shell's `pnu` (19 digits) or `address` parameter names, else null. */
+export function siteParam(params: Readonly<Record<string, string>>): Site | null {
   const pnu = params.pnu?.trim()
   if (pnu && isPnu(pnu)) return { query: pnu, label: pnu }
   const address = params.address?.trim()
   if (address) return { query: address, label: address }
-  return { ...defaultSite }
+  return null
+}
+
+/** The site to open: the shell's `pnu` or `address` parameter, else the default. */
+export function siteFromParams(params: Readonly<Record<string, string>>): Site {
+  return siteParam(params) ?? { ...defaultSite }
+}
+
+/** A saved selection opens by its PNU, labelled with its address. */
+export function siteFromSelection(selection: { pnu: string; address: string }): Site {
+  return { query: selection.pnu, label: selection.address || selection.pnu }
 }
