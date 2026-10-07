@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, HTTPException, Request, Response
 import asyncio
 
-from backend.app.adapters import scene_agent
+from backend.app.adapters import scene_agent, site_context
 from backend.app.modules.land.vworld.map import MapUnavailable, VworldMapClient
 
 logger = logging.getLogger(__name__)
@@ -65,6 +65,20 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
             return await asyncio.to_thread(ask, lat, lon, radius_m)
         except scene_agent.SceneAgentError as error:
             raise HTTPException(502, str(error)) from None
+
+    @router.get('/terrain-heights')
+    async def terrain_heights(west: float, south: float, east: float, north: float, size: int = 17):
+        """A size x size height grid over a box (rows north to south, columns west to east) from SiteContext's
+        NGII DEM - the world view's terrain tiles. All heights or a refusal, never a partial grid."""
+        if not (124 <= west < east <= 132 and 33 <= south < north <= 39) or east - west > 0.1 or north - south > 0.1                 or not 2 <= size <= 33:
+            raise HTTPException(422, 'box must be in Korea, at most 0.1 deg a side; size 2..33')
+        points = [(north - r * (north - south) / (size - 1), west + c * (east - west) / (size - 1))
+                  for r in range(size) for c in range(size)]
+        try:
+            heights, dataset = await asyncio.to_thread(site_context.ground_heights, points)
+        except site_context.SiteHeightsError as error:
+            raise HTTPException(502, str(error)) from None
+        return {'size': size, 'heights': [round(h, 2) for h in heights], 'dataset': dataset}
 
     @router.get('/context-buildings')
     async def context_buildings(lat: float, lon: float, radius_m: float = 300.0):

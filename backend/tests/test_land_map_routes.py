@@ -101,3 +101,26 @@ def test_context_buildings_route_says_when_scene_agent_is_down(monkeypatch):
     app.include_router(create_land_map_router())
     response = TestClient(app).get('/api/v1/land/context-buildings?lat=37.7&lon=127.1')
     assert response.status_code == 502 and 'SceneAgent unreachable' in response.json()['detail']
+
+
+def test_terrain_heights_asks_site_for_a_north_to_south_grid(monkeypatch):
+    from backend.app.adapters import site_context
+    seen = {}
+
+    def fake(points):
+        seen['points'] = points
+        return [float(i) for i in range(len(points))], {'name': 'ngii'}
+
+    monkeypatch.setattr(site_context, 'ground_heights', fake)
+    app = FastAPI()
+    app.include_router(create_land_map_router())
+    client = TestClient(app)
+    got = client.get('/api/v1/land/terrain-heights?west=127.0&south=37.0&east=127.01&north=37.01&size=3').json()
+    assert got['size'] == 3 and len(got['heights']) == 9
+    assert seen['points'][0] == (37.01, 127.0) and seen['points'][-1] == (37.0, 127.01)   # NW first, SE last
+    assert client.get('/api/v1/land/terrain-heights?west=127&south=37&east=128&north=38').status_code == 422
+
+    def down(points):
+        raise site_context.SiteHeightsError('no DEM here')
+    monkeypatch.setattr(site_context, 'ground_heights', down)
+    assert client.get('/api/v1/land/terrain-heights?west=127.0&south=37.0&east=127.01&north=37.01').status_code == 502

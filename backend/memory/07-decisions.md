@@ -138,3 +138,11 @@ be told to the Orchestrator session.
   colours and layer name as VWorld), the VWorld opening view, and flies to a highlighted parcel far from view. A
   search by PNU now fetches the parcel outline (`locateParcel`) so either engine can show and reach the site.
   `/map` is the 2D OpenLayers map and was left as it is. Changed by the Orchestrator session.
+- 2026-10-07 W5 terrain in the clean world (toggle 지형, on by default): `GET /api/v1/land/terrain-heights`
+  (box <= 0.1 deg, size 2..33, rows north->south) -> SiteContext `/site/ground-heights` (NGII DEM, all or nothing);
+  `features/world/lib/terrain.ts` is a CustomHeightmapTerrainProvider (levels 13-15 asked, coarser levels and any
+  refusal flat at the fallback level, at most 2 tile requests in flight so the context layers keep browser
+  connections). Ground layers drape on the terrain; masses stand on SceneAgent's DEM base height (`base_m`), never
+  on Cesium's RELATIVE_TO_GROUND - a zero-area footprint made TerrainOffsetProperty compute a NaN centre and stop
+  rendering; rings with < 3 distinct corners are dropped. Backend 18449 restarted to serve the route.
+  Changed by the Orchestrator session.

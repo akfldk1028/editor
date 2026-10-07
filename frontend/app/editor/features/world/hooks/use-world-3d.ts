@@ -4,8 +4,8 @@
  * clearHighlight, flyTo, setBuildingsVisible, viewerRef), so the design view's mass and setback renderers work on
  * either world.
  *
- * Until real terrain arrives the globe is flat at one ground level (setGroundLevel, e.g. the site's §119 datum), so
- * a mass placed at its datum stands on the ground instead of floating above sea level.
+ * The ground is the NGII DEM terrain (via SiteContext, toggle `terrain`); with it off, or where the DEM has no answer,
+ * the ground is flat at one level (setGroundLevel, e.g. the site's §119 datum), so a mass placed at its datum stands on it.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -14,7 +14,8 @@ import { MAP_CONFIG_3D } from '../../land-map/lib/constants'
 import { SETBACK_COLORS, SETBACK_DS_NAME } from '../../land-map/lib/vworld-3d-scene'
 import { loadCesium } from '../lib/cesium-loader'
 import { CELL_RADIUS_M, MAX_ALTITUDE_M, MAX_CELLS, cellsIn, visibleBox } from '../lib/context-cells'
-import { type HeightCounts, drawContextGround, drawContextMasses, fetchContextBuildings, fetchContextGround } from '../lib/context-masses'
+import { type Ground, type HeightCounts, drawContextGround, drawContextMasses, fetchContextBuildings, fetchContextGround } from '../lib/context-masses'
+import { demTerrain } from '../lib/terrain'
 
 const PARALLEL = 3
 export type WorldBase = 'white' | 'vworld2d'
@@ -44,6 +45,8 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   const queue = useRef<{ key: string; lat: number; lon: number }[]>([])
   const running = useRef(0)
   const level = useRef(0)
+  const terrainOn = useRef(true)
+  const generation = useRef(0)   // bumped whenever the drawn context is thrown away
   const site = useRef<number[][] | null>(null)
   const hideOnSite = useRef(false)
   const clickRef = useRef(onClick)
@@ -53,6 +56,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   const [status, setStatus] = useState('3D 엔진 불러오는 중…')
   const [base, setBase] = useState<WorldBase>('white')
   const [show, setShow] = useState<WorldLayers>({ buildings: true, ground: true, cover: false })
+  const [terrain, setTerrain] = useState(true)
   const [buildings, setBuildings] = useState(0)
   const [counts, setCounts] = useState<HeightCounts>({ measured: 0, estimated: 0, unknown: 0 })
   const [pending, setPending] = useState(0)
@@ -75,16 +79,17 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     if (!viewer || !Cesium || !layers.current) return
     while (running.current < PARALLEL && queue.current.length) {
       const cell = queue.current.shift()!
-      const z = level.current
+      const gen = generation.current
+      const z: Ground = terrainOn.current ? 'terrain' : level.current
       running.current++
       const ground = fetchContextGround(cell.lat, cell.lon, CELL_RADIUS_M).then((reply) => {
-        if (reply.status === 'ok' && !viewer.isDestroyed() && z === level.current)
+        if (reply.status === 'ok' && !viewer.isDestroyed() && gen === generation.current)
           drawContextGround({ blocks: layers.current!.ground, cover: layers.current!.cover }, Cesium, reply, z)
       })
       fetchContextBuildings(cell.lat, cell.lon, CELL_RADIUS_M)
         .then((reply) => {
-          if (reply.status !== 'ok' || viewer.isDestroyed() || z !== level.current) return
-          const { counts: got } = drawContextMasses(layers.current!.buildings.entities, Cesium, reply, z)
+          if (reply.status !== 'ok' || viewer.isDestroyed() || gen !== generation.current) return
+          const { counts: got } = drawContextMasses(layers.current!.buildings.entities, Cesium, reply, z, level.current)
           setBuildings((n) => n + got.measured + got.estimated + got.unknown)
           setCounts((c) => ({ measured: c.measured + got.measured, estimated: c.estimated + got.estimated, unknown: c.unknown + got.unknown }))
           if (hideOnSite.current) applyOnSite()
@@ -119,15 +124,9 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     pump()
   }, [pump])
 
-  /** Put the flat ground at z metres (the site datum) and redraw the context on it. */
-  const setGroundLevel = useCallback((z: number) => {
-    const viewer = viewerRef.current, Cesium = cesiumRef.current
-    if (!viewer || !Cesium || !Number.isFinite(z) || z === level.current) return
-    if (!Cesium.CustomHeightmapTerrainProvider) return // an old Cesium (from the VWorld SDK in this tab): stays at 0
-    level.current = z
-    viewer.terrainProvider = new Cesium.CustomHeightmapTerrainProvider({
-      width: 2, height: 2, callback: () => new Float32Array([z, z, z, z]),
-    })
+  /** Throw the drawn context away and load what the camera sees again (the ground under it changed). */
+  const redraw = useCallback(() => {
+    generation.current++
     for (const l of Object.values(layers.current ?? {})) l.entities.removeAll()
     asked.current.clear()
     queue.current = []
@@ -135,6 +134,25 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     setCounts({ measured: 0, estimated: 0, unknown: 0 })
     loadVisible()
   }, [loadVisible])
+
+  /** The ground: the DEM terrain, or flat at level.current. An old Cesium (from the VWorld SDK in this tab) stays flat at 0. */
+  const applyGround = useCallback(() => {
+    const viewer = viewerRef.current, Cesium = cesiumRef.current
+    if (!viewer || !Cesium || !Cesium.CustomHeightmapTerrainProvider) return
+    const z = level.current
+    viewer.terrainProvider = terrainOn.current
+      ? demTerrain(Cesium, () => level.current)
+      : new Cesium.CustomHeightmapTerrainProvider({ width: 2, height: 2, callback: () => new Float32Array([z, z, z, z]) })
+  }, [])
+
+  /** The site's datum: the flat ground stands there (terrain off), and far tiles the DEM does not cover stand there. */
+  const setGroundLevel = useCallback((z: number) => {
+    if (!Number.isFinite(z) || z === level.current) return
+    level.current = z
+    if (terrainOn.current) return
+    applyGround()
+    redraw()
+  }, [applyGround, redraw])
 
   const flyTo = useCallback((lng: number, lat: number) => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
@@ -153,7 +171,9 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     site.current = ring
     viewer.entities.removeById('world-parcel')
     viewer.entities.add({ id: 'world-parcel', name: '대지', polyline: {
-      positions: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((c) => [c[0]!, c[1]!, level.current + 1.0])),
+      ...(terrainOn.current
+        ? { positions: Cesium.Cartesian3.fromDegreesArray(ring.flatMap((c) => [c[0]!, c[1]!])), clampToGround: true }
+        : { positions: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((c) => [c[0]!, c[1]!, level.current + 1.0])) }),
       width: 2, material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#d6336c'), dashLength: 10 }) } })
     applyOnSite()
     // A parcel far from what the camera looks at (a search by PNU gives no coordinates): go there.
@@ -227,6 +247,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
         orientation: { heading: 0, pitch: Cesium.Math.toRadians(MAP_CONFIG_3D.defaultPitch), roll: 0 },
       })
       viewerRef.current = viewer
+      applyGround()
       viewer.camera.moveEnd.addEventListener(loadVisible)
       viewer.screenSpaceEventHandler.setInputAction((click: any) => {
         const ray = viewer.camera.getPickRay(click.position)
@@ -245,7 +266,14 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
       viewerRef.current = null
       setReady(false)
     }
-  }, [target, loadVisible])
+  }, [target, loadVisible, applyGround])
+
+  useEffect(() => {
+    if (!ready || terrainOn.current === terrain) return
+    terrainOn.current = terrain
+    applyGround()
+    redraw()
+  }, [terrain, ready, applyGround, redraw])
 
   useEffect(() => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
@@ -269,6 +297,6 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   return {
     ready, loading: !ready && !error, error, viewerRef, cesiumRef,
     highlightParcel, clearHighlight, flyTo, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines,
-    base, setBase, show, setShow, status, setStatus, stats: { buildings, counts, pending },
+    base, setBase, show, setShow, terrain, setTerrain, status, setStatus, stats: { buildings, counts, pending },
   }
 }

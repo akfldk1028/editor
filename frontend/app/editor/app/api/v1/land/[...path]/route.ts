@@ -3,7 +3,7 @@ import { backendRequest } from '@/lib/backend-request'
 // One entry per backend land operation the browser may reach; tiles/ has its own route.
 const methods: Record<string, string> = {
   zones: 'GET', stats: 'GET', analyze: 'POST', resolve: 'POST', reverse: 'POST', 'parcel-geometry': 'POST',
-  wms: 'GET', 'map-config': 'GET', 'agent-analyze/stream': 'GET', 'context-buildings': 'GET', 'context-ground': 'GET',
+  wms: 'GET', 'map-config': 'GET', 'agent-analyze/stream': 'GET', 'context-buildings': 'GET', 'context-ground': 'GET', 'terrain-heights': 'GET',
 }
 
 async function handle(request: Request, { params }: { params: Promise<{ path: string[] }> }) {

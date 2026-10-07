@@ -543,6 +543,11 @@
   {
    "method": "GET",
    "owner": "fastapi",
+   "path": "/api/v1/land/terrain-heights"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
    "path": "/api/v1/land/tiles/{z}/{y}/{x}.png"
   },
   {

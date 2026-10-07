@@ -8,7 +8,7 @@ import type { useWorld3D } from '../hooks/use-world-3d'
 export function WorldControls({ world, title, children, className, compact }: {
   world: ReturnType<typeof useWorld3D>; title: string; children?: ReactNode; className?: string; compact?: boolean
 }) {
-  const { base, setBase, show, setShow, status, error, stats } = world
+  const { base, setBase, show, setShow, terrain, setTerrain, status, error, stats } = world
   return <div className={className ?? 'absolute left-3 top-3 z-10 flex w-80 flex-col gap-2 rounded-md bg-white/90 p-3 text-sm text-neutral-800 shadow'}>
     <div className="font-medium">{title}</div>
     {children}
@@ -20,6 +20,7 @@ export function WorldControls({ world, title, children, className, compact }: {
       <label><input type="checkbox" checked={show.buildings} onChange={(e) => setShow((v) => ({ ...v, buildings: e.target.checked }))} /> 건물</label>
       <label><input type="checkbox" checked={show.ground} onChange={(e) => setShow((v) => ({ ...v, ground: e.target.checked }))} /> 필지·도로</label>
       <label><input type="checkbox" checked={show.cover} onChange={(e) => setShow((v) => ({ ...v, cover: e.target.checked }))} /> 대지 안 피복</label>
+      <label><input type="checkbox" checked={terrain} onChange={(e) => setTerrain(e.target.checked)} /> 지형</label>
     </div>
     {compact ? <div className="text-neutral-500">건물 {stats.buildings}동{stats.pending ? ` · 칸 ${stats.pending}개 불러오는 중` : ''}</div> : <>
     <div className="text-xs text-neutral-500">
