@@ -104,3 +104,9 @@ be told to the Orchestrator session.
   ≤30 cells per move, 3 in parallel, failed cells retried on the next move, buildings de-duplicated by
   id). Site now also keeps 건물정보 footprints the 1:5,000 map lacks (agents/SiteContextAgent `2312bde`;
   고산 300 m 76 -> 161). Changed by the Orchestrator session.
+- 2026-10-07 `/world` ground layer: `GET /api/v1/land/context-ground` -> SceneAgent `/scene/context-ground`
+  = 연속지적도 parcels by 지목 class (SiteContext `site_ground_cover`: road / paved / green / water / farm /
+  forest / lot) + carriageways (NGII centreline x recorded width; no width -> left out and counted).
+  Road parcel = whole right of way, so the pavement reads around the darker carriageway. Toggles:
+  건물 / 바닥. No 보도 layer exists in VWorld WFS; NGII road-surface polygons are stale in new towns
+  (고산 2 %). Changed by the Orchestrator session.

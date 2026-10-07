@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { locateParcel } from '../land-map/lib/land-api-client'
 import { loadCesium } from './lib/cesium-loader'
 import { CELL_RADIUS_M, MAX_ALTITUDE_M, MAX_CELLS, cellsIn, visibleBox } from './lib/context-cells'
-import { type HeightCounts, drawContextMasses, fetchContextBuildings } from './lib/context-masses'
+import { type HeightCounts, drawContextGround, drawContextMasses, fetchContextBuildings, fetchContextGround } from './lib/context-masses'
 
 const GOSAN = { lat: 37.73002, lon: 127.1085 } // only where the view opens when nothing is asked for
 const PARALLEL = 3
@@ -32,7 +32,9 @@ export default function WorldView() {
   const asked = useRef(new Set<string>())       // cells already loaded or loading
   const queue = useRef<{ key: string; lat: number; lon: number }[]>([])
   const running = useRef(0)
+  const layers = useRef<{ buildings: any; ground: any } | null>(null)
   const [base, setBase] = useState<Base>('white')
+  const [show, setShow] = useState({ buildings: true, ground: true })
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('3D 엔진 불러오는 중…')
   const [buildings, setBuildings] = useState(0)
@@ -45,14 +47,17 @@ export default function WorldView() {
     while (running.current < PARALLEL && queue.current.length) {
       const cell = queue.current.shift()!
       running.current++
+      const ground = fetchContextGround(cell.lat, cell.lon, CELL_RADIUS_M)
+        .then((reply) => { if (reply.status === 'ok' && !viewer.isDestroyed()) drawContextGround(layers.current!.ground.entities, Cesium, reply) })
       fetchContextBuildings(cell.lat, cell.lon, CELL_RADIUS_M)
         .then((reply) => {
           if (reply.status !== 'ok' || viewer.isDestroyed()) return
-          const { counts: got } = drawContextMasses(viewer, Cesium, reply)
+          const { counts: got } = drawContextMasses(layers.current!.buildings.entities, Cesium, reply)
           setBuildings((n) => n + got.measured + got.estimated + got.unknown)
           setCounts((c) => ({ measured: c.measured + got.measured, estimated: c.estimated + got.estimated,
             unknown: c.unknown + got.unknown }))
         })
+        .then(() => ground)
         .catch((error) => {
           asked.current.delete(cell.key) // try again on the next move
           setStatus(error instanceof Error ? error.message : String(error))
@@ -132,6 +137,9 @@ export default function WorldView() {
       if (scene.skyAtmosphere) scene.skyAtmosphere.show = false
       if (scene.sun) scene.sun.show = false
       scene.fog.enabled = false
+      layers.current = { ground: new Cesium.CustomDataSource('ground'), buildings: new Cesium.CustomDataSource('buildings') }
+      viewer.dataSources.add(layers.current.ground)
+      viewer.dataSources.add(layers.current.buildings)
       viewerRef.current = viewer
       viewer.camera.moveEnd.addEventListener(loadVisible)
       const q = new URLSearchParams(window.location.search)
@@ -170,6 +178,12 @@ export default function WorldView() {
     }
   }, [base, status])
 
+  useEffect(() => {
+    if (!layers.current) return
+    layers.current.buildings.show = show.buildings
+    layers.current.ground.show = show.ground
+  }, [show, status])
+
   return <div className="relative h-[calc(100vh-3.5rem)] w-full">
     <div ref={host} className="absolute inset-0" />
     <div className="absolute left-3 top-3 z-10 flex w-80 flex-col gap-2 rounded-md bg-white/90 p-3 text-sm shadow">
@@ -182,6 +196,10 @@ export default function WorldView() {
       <div className="flex gap-3">
         <label><input type="radio" checked={base === 'white'} onChange={() => setBase('white')} /> 흰 바탕</label>
         <label><input type="radio" checked={base === 'vworld2d'} onChange={() => setBase('vworld2d')} /> 브이월드 2D 지도</label>
+      </div>
+      <div className="flex gap-3">
+        <label><input type="checkbox" checked={show.buildings} onChange={(e) => setShow((v) => ({ ...v, buildings: e.target.checked }))} /> 건물</label>
+        <label><input type="checkbox" checked={show.ground} onChange={(e) => setShow((v) => ({ ...v, ground: e.target.checked }))} /> 바닥(도로·포장·녹지·물)</label>
       </div>
       <div className="text-xs text-muted-foreground">
         건물 {buildings}동{pending ? ` · 불러오는 칸 ${pending}개` : ''} — 화면을 움직이면 보이는 곳이 채워집니다

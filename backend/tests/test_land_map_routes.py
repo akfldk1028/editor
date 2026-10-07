@@ -88,6 +88,10 @@ def test_context_buildings_route_asks_scene_agent_and_passes_its_reply(monkeypat
     assert ok.status_code == 200 and ok.json()['status'] == 'ok'
     assert str(seen[0].url) == 'http://scene/scene/context-buildings'
     assert client.get('/api/v1/land/context-buildings?lat=10&lon=127').status_code == 422
+    monkeypatch.setattr(scene_agent, 'context_ground',
+                        lambda lat, lon, r: real.__globals__['_ask']('/scene/context-ground', lat, lon, r, base_url='http://scene', transport=httpx.MockTransport(upstream)))
+    assert client.get('/api/v1/land/context-ground?lat=37.7&lon=127.1').json()['status'] == 'ok'
+    assert str(seen[-1].url) == 'http://scene/scene/context-ground'
 
 
 def test_context_buildings_route_says_when_scene_agent_is_down(monkeypatch):

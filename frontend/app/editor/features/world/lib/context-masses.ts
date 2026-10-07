@@ -13,11 +13,16 @@ export interface ContextReply {
   record?: Record<string, unknown>
 }
 
-export async function fetchContextBuildings(lat: number, lon: number, radiusM: number, signal?: AbortSignal): Promise<ContextReply> {
+export const fetchContextBuildings = (lat: number, lon: number, radiusM: number, signal?: AbortSignal) =>
+  fetchContext('/api/v1/land/context-buildings', lat, lon, radiusM, signal)
+export const fetchContextGround = (lat: number, lon: number, radiusM: number, signal?: AbortSignal) =>
+  fetchContext('/api/v1/land/context-ground', lat, lon, radiusM, signal)
+
+async function fetchContext(path: string, lat: number, lon: number, radiusM: number, signal?: AbortSignal): Promise<ContextReply> {
   const query = new URLSearchParams({ lat: String(lat), lon: String(lon), radius_m: String(radiusM) })
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/context-buildings?${query}`, { signal })
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${path}?${query}`, { signal })
   const body = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(body.detail || `context buildings failed (${res.status})`)
+  if (!res.ok) throw new Error(body.detail || `${path} failed (${res.status})`)
   return body as ContextReply
 }
 
@@ -29,21 +34,16 @@ function rings(geometry: any): number[][] {
   return polys.filter((p: any) => p?.[0]?.length >= 3).map((p: any) => p[0].flatMap((c: number[]) => [c[0], c[1]]))
 }
 
-export function clearContextMasses(viewer: any) {
-  const entities = viewer.entities.values.slice()
-  for (const e of entities) if (String(e.id).startsWith(PREFIX)) viewer.entities.remove(e)
-}
-
 export type HeightCounts = { measured: number; estimated: number; unknown: number }
 
 /** Adds the reply's buildings; one already drawn (neighbouring cells overlap) is skipped. Returns what was added. */
-export function drawContextMasses(viewer: any, Cesium: any, reply: ContextReply): { added: number; counts: HeightCounts } {
+export function drawContextMasses(entities: any, Cesium: any, reply: ContextReply): { added: number; counts: HeightCounts } {
   const white = Cesium.Color.fromCssColorString('#fbfbf9')
   const pale = Cesium.Color.fromCssColorString('#ffffff').withAlpha(0.55)
   const edge = Cesium.Color.fromCssColorString('#9a9a96')
   let n = 0
   const counts: HeightCounts = { measured: 0, estimated: 0, unknown: 0 }
-  viewer.entities.suspendEvents()
+  entities.suspendEvents()
   for (const f of reply.features?.features ?? []) {
     const p = f.properties ?? {}
     let drew = false
@@ -51,8 +51,8 @@ export function drawContextMasses(viewer: any, Cesium: any, reply: ContextReply)
       // A building without a source id is named by its outline, so the same one from two cells is drawn once.
       const key = /^site-\d+$/.test(String(p.id)) ? `xy${ring[0]!.toFixed(6)},${ring[1]!.toFixed(6)}` : p.id
       const id = `${PREFIX}${key}-${i}`
-      if (viewer.entities.getById(id)) return
-      viewer.entities.add({
+      if (entities.getById(id)) return
+      entities.add({
         id,
         name: p.use || '건물',
         description: `높이 ${p.height_m} m (${p.height_status}) — ${p.method}`,
@@ -70,6 +70,34 @@ export function drawContextMasses(viewer: any, Cesium: any, reply: ContextReply)
     })
     if (drew && p.height_status in counts) counts[p.height_status as keyof HeightCounts]++
   }
-  viewer.entities.resumeEvents()
+  entities.resumeEvents()
   return { added: n, counts }
+}
+
+/** Diagram colours for the ground: paving light grey, carriageway a step darker, green, water. Plain lots stay the base colour. */
+const GROUND_COLOURS: Record<string, string> = {
+  road: '#dcdbd6', paved: '#dcdbd6', rail: '#d0d0cc', carriageway: '#c4c3bd',
+  green: '#dde7cf', forest: '#d2dfc3', farm: '#ebe8da', water: '#d3e2ec',
+}
+
+/** Adds the reply's ground (parcels by 지목 class, then carriageways on top); already drawn pieces are skipped. */
+export function drawContextGround(entities: any, Cesium: any, reply: ContextReply): number {
+  let n = 0
+  entities.suspendEvents()
+  for (const f of reply.features?.features ?? []) {
+    const p = f.properties ?? {}
+    const kind = p.layer === 'carriageway' ? 'carriageway' : p.ground
+    const colour = GROUND_COLOURS[kind]
+    if (!colour) continue
+    rings(f.geometry).forEach((ring, i) => {
+      const id = `ground-${kind}-${p.id ?? `${ring[0]!.toFixed(6)},${ring[1]!.toFixed(6)}`}-${i}`
+      if (entities.getById(id)) return
+      entities.add({ id, name: kind === 'carriageway' ? `차도 ${p.width_m} m` : `지목 ${p.jimok ?? '?'}`,
+        polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), height: kind === 'carriageway' ? 0.2 : 0.1,
+          material: Cesium.Color.fromCssColorString(colour) } })
+      n++
+    })
+  }
+  entities.resumeEvents()
+  return n
 }

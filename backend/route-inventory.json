@@ -513,6 +513,11 @@
   {
    "method": "GET",
    "owner": "fastapi",
+   "path": "/api/v1/land/context-ground"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
    "path": "/api/v1/land/map-config"
   },
   {

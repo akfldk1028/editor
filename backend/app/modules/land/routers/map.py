@@ -58,14 +58,22 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
                   'LAYERS': layers, 'FORMAT': 'image/png', 'TRANSPARENT': 'true'}
         return await image(provider.wms(params), 300)
 
-    @router.get('/context-buildings')
-    async def context_buildings(lat: float, lon: float, radius_m: float = 300.0):
-        """White context masses around a point (SceneAgent: SiteContext footprints + height rule) - no VWorld SDK needed."""
+    async def context(ask, lat, lon, radius_m):
         if not (33 <= lat <= 39 and 124 <= lon <= 132) or not 10 <= radius_m <= 1000:
             raise HTTPException(422, 'lat/lon must be in Korea and radius_m 10..1000')
         try:
-            return await asyncio.to_thread(scene_agent.context_buildings, lat, lon, radius_m)
+            return await asyncio.to_thread(ask, lat, lon, radius_m)
         except scene_agent.SceneAgentError as error:
             raise HTTPException(502, str(error)) from None
+
+    @router.get('/context-buildings')
+    async def context_buildings(lat: float, lon: float, radius_m: float = 300.0):
+        """White context masses around a point (SceneAgent: SiteContext footprints + height rule) - no VWorld SDK needed."""
+        return await context(scene_agent.context_buildings, lat, lon, radius_m)
+
+    @router.get('/context-ground')
+    async def context_ground(lat: float, lon: float, radius_m: float = 300.0):
+        """The ground around a point: cadastral parcels by 지목 class and carriageways (SceneAgent over SiteContext)."""
+        return await context(scene_agent.context_ground, lat, lon, radius_m)
 
     return router
