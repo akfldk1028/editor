@@ -15,3 +15,6 @@
 - **Turbopack dev breaks on `@dwg/contracts`** (`./cad.js` not resolved). Run `next dev --webpack`; a
   compile error from one page is then served for every page until restart.
 - **Proxy 404 "Unknown platform/PLANM operation"** is the proxy allowlist, not a missing backend route.
+- **Map selection UX (user, 2026-10-07):** a click selects the whole parcel polygon (fill + outline); never draw
+  points/markers/ripples at the click location — it looks wrong. Progress = cursor only; the only overlay on the
+  map besides parcels is one info card. A site can be several parcels (합필): Shift+click adds/removes.
