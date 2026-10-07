@@ -1,0 +1,471 @@
+/*
+ * Editor shell frame. Layout modes follow the shell's own inline size:
+ * `.editor-shell` is the size container, and the two thresholds below
+ * (768px, 1200px) mirror layout/layoutModes.ts — layout/layoutModes.test.ts
+ * fails if they drift. Every other layout number arrives as a custom property
+ * written from layoutModes.ts (see Shell.tsx). Artifacts and slot modules use
+ * the tokens defined on `.app-shell`.
+ */
+.editor-shell {
+  container: editor-shell / inline-size;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  overflow: hidden;
+& {
+  --fs-1: 11px;
+  --fs-2: 12px;
+  --fs-3: 14px;
+  --fs-4: 16px;
+  --lh: 1.45;
+  --radius-s: 8px;
+  --radius-m: 10px;
+  --radius-l: 12px;
+  --target: 32px;
+  font-family: Inter, "Segoe UI", system-ui, Arial, sans-serif;
+  font-size: var(--fs-3);
+  line-height: var(--lh);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+button, input, select { color: inherit; font: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.app-shell {
+  --bg: #f9f8f6;
+  --panel: #fffefa;
+  --panel-raised: #ffffff;
+  --sidebar: #f4f3ef;
+  --artifact: #faf9f6;
+  --border: #e3e0d8;
+  --border-soft: #ecebe5;
+  --ink: #2a2825;
+  --muted: #6f6a62;
+  --subtle: #efede7;
+  --hover: #ebe9e2;
+  --accent: #d97757;
+  --accent-ink: #ffffff;
+  --accent-soft: #f8e9e3;
+  --success: #3d7a5a;
+  --warning: #a65f2b;
+  --shadow: 0 8px 28px rgb(40 34 27 / .12);
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+  color: var(--ink);
+  background: var(--panel);
+}
+
+.app-shell[data-theme="dark"] {
+  --bg: #191816;
+  --panel: #211f1c;
+  --panel-raised: #2a2724;
+  --sidebar: #1a1917;
+  --artifact: #1d1c19;
+  --border: #3a3631;
+  --border-soft: #2f2c28;
+  --ink: #eeeae2;
+  --muted: #a8a299;
+  --subtle: #2b2925;
+  --hover: #33302b;
+  --accent: #e28a69;
+  --accent-ink: #1d1a17;
+  --accent-soft: #442d25;
+  --success: #72aa86;
+  --warning: #e4a36f;
+  --shadow: 0 8px 28px rgb(0 0 0 / .45);
+  color-scheme: dark;
+}
+
+/* Slot anchors for portaled artifact content take no box of their own. */
+.shell-slot { display: contents; }
+
+/* ---------- header (one row) ---------- */
+.topbar {
+  position: relative;
+  z-index: 20;
+  block-size: 52px;
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 8px 12px;
+  background: var(--panel);
+}
+.topbar > :not(.icon-button, .panel-switch, .topbar-actions) { min-inline-size: 0; flex: 1 1 auto; }
+
+.icon-button {
+  inline-size: var(--target);
+  block-size: var(--target);
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-s);
+}
+.icon-button:hover, .icon-button:focus-visible { color: var(--ink); background: var(--hover); }
+.icon-button:disabled { cursor: not-allowed; opacity: .45; }
+
+.panel-switch {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding: 3px;
+  background: var(--subtle);
+  border-radius: var(--radius-m);
+}
+.panel-switch button {
+  min-block-size: 30px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-inline: 10px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+  font-weight: 600;
+}
+.panel-switch button[aria-pressed="true"] { color: var(--ink); background: var(--panel-raised); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+
+.topbar-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; }
+.settings-anchor { position: relative; }
+.settings-popover {
+  position: absolute;
+  z-index: 50;
+  inset-block-start: 40px;
+  inset-inline-end: 0;
+  inline-size: 232px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-2);
+}
+.settings-popover label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.settings-popover select { min-inline-size: 96px; min-block-size: 28px; padding: 2px 6px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-s); }
+.settings-popover input[type="checkbox"] { inline-size: 18px; block-size: 18px; accent-color: var(--accent); }
+.settings-notifications { display: grid; gap: 2px; padding-block-start: 8px; border-block-start: 1px solid var(--border-soft); }
+.settings-notifications p { margin: 0; color: var(--muted); }
+
+/* ---------- native popover menus (artifacts fill them with these rows) ---------- */
+.workspace-menu {
+  inline-size: 260px;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  color: var(--ink);
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-2);
+}
+.workspace-menu:popover-open { display: grid; gap: 4px; }
+.workspace-menu > .menu-group:first-child { padding-block-start: 0; border-block-start: 0; }
+.menu-search {
+  min-block-size: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 10px;
+  color: var(--muted);
+  background: var(--subtle);
+  border-radius: var(--radius-s);
+}
+.menu-search input { min-inline-size: 0; flex: 1; color: var(--ink); background: transparent; border: 0; outline: 0; font-size: var(--fs-2); }
+.menu-search kbd { color: var(--muted); font: var(--fs-1) ui-monospace, monospace; }
+.menu-field { min-block-size: 32px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-inline: 10px; color: var(--muted); }
+.menu-field select { min-block-size: 28px; color: var(--ink); background: transparent; border: 0; font-size: var(--fs-2); }
+.menu-group { display: grid; gap: 2px; padding-block-start: 4px; border-block-start: 1px solid var(--border-soft); }
+.menu-group button {
+  min-block-size: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 10px;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-s);
+  text-align: start;
+}
+.menu-group button:hover, .menu-group button:focus-visible, .menu-group button[aria-current="true"] { background: var(--hover); }
+.menu-group button svg { color: var(--muted); }
+.menu-group button b { margin-inline-start: auto; color: var(--muted); font-size: var(--fs-1); font-weight: 600; }
+
+/* ---------- grid ----------
+ * Named lines keep placement explicit whatever tracks exist:
+ *   side | ssep | conv | asep | art
+ * The header and the conversation share the conv column; the sidebar and the
+ * artifact run the full height beside them (ChatGPT / Claude layout).
+ */
+.workspace-grid {
+  --sidebar-track: [conv-start];
+  min-inline-size: 0;
+  min-block-size: 0;
+  display: grid;
+  grid-template-columns: var(--sidebar-track) minmax(0, 1fr) [conv-end];
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--panel);
+}
+.workspace-grid[data-sidebar="inline"] { --sidebar-track: [side-start] var(--sidebar-width) [side-end ssep-start] var(--separator) [ssep-end conv-start]; }
+.workspace-grid[data-sidebar="rail"] { --sidebar-track: [side-start] var(--rail-width) [side-end conv-start]; }
+.workspace-grid > .topbar { grid-row: 1; grid-column: conv; }
+.workspace-grid > .shell-conversation { grid-row: 2; grid-column: conv; }
+.workspace-grid > .workspace-sidebar:not(.overlay) { grid-row: 1 / -1; grid-column: side; }
+.workspace-grid > .sidebar-resizer { grid-row: 1 / -1; grid-column: ssep; }
+.workspace-grid > .artifact-resizer { grid-row: 1 / -1; grid-column: asep; }
+.workspace-grid > .artifact-panel[data-presentation="inline"] { grid-row: 1 / -1; grid-column: art; }
+.workspace-grid > .artifact-panel[data-presentation="panel"] { grid-row: 2; grid-column: conv; }
+
+@container editor-shell (min-width: 768px) {
+  .workspace-grid[data-artifact="inline"] {
+    grid-template-columns: var(--sidebar-track) minmax(0, 1fr) [conv-end asep-start] var(--separator) [asep-end art-start] var(--artifact-width) [art-end];
+  }
+}
+@container editor-shell (min-width: 1200px) {
+  .app-shell[data-layout="wide"] .menu-button { display: none; }
+}
+@container editor-shell (max-width: 767px) {
+  .topbar .agent-context span { display: none; }
+  .topbar { padding-inline: 8px; gap: 4px; }
+}
+
+.workspace-grid[data-maximized="true"][data-artifact] { grid-template-columns: [conv-start art-start] minmax(0, 1fr) [conv-end art-end]; }
+.workspace-grid[data-maximized="true"] > :is(.workspace-sidebar, .sidebar-resizer, .topbar, .shell-conversation, .artifact-resizer) { display: none; }
+.workspace-grid[data-artifact="panel"] > .shell-conversation { display: none; }
+
+/* ---------- sidebar ---------- */
+.workspace-sidebar {
+  min-inline-size: 0;
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--sidebar);
+  view-transition-name: shell-sidebar;
+}
+.workspace-sidebar.rail { align-items: center; gap: 4px; padding-block: 10px; }
+.workspace-sidebar.rail .icon-button[aria-pressed="true"] { color: var(--ink); background: var(--hover); }
+.workspace-sidebar.overlay {
+  position: absolute;
+  z-index: 40;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: min(100%, var(--drawer-max));
+  box-shadow: var(--shadow);
+}
+.sidebar-heading {
+  block-size: 52px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 12px 8px;
+  font-size: var(--fs-3);
+}
+.sidebar-heading strong { min-inline-size: 0; overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-heading-actions { display: flex; flex: 0 0 auto; gap: 2px; margin-inline-start: auto; }
+.brand-mark {
+  inline-size: 24px;
+  block-size: 24px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #fff;
+  background: #473c33;
+  border-radius: 7px;
+  font-size: var(--fs-1);
+  font-weight: 800;
+}
+.artifact-list-nav { display: grid; flex: 0 0 auto; gap: 2px; margin: 0 8px 8px; }
+.artifact-entry {
+  min-block-size: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 8px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  text-align: start;
+}
+.artifact-entry span { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.artifact-entry:hover, .artifact-entry:focus-visible { color: var(--ink); background: var(--hover); }
+.artifact-entry[aria-current="true"] { color: var(--ink); background: var(--subtle); font-weight: 600; }
+
+/* ---------- separators ---------- */
+.sidebar-resizer,
+.artifact-resizer {
+  position: relative;
+  z-index: 5;
+  min-block-size: 0;
+  background: var(--panel);
+  cursor: col-resize;
+  outline: none;
+  touch-action: none;
+}
+.sidebar-resizer { background: var(--sidebar); }
+.sidebar-resizer::after, .artifact-resizer::after {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - .5px);
+  inline-size: 1px;
+  content: "";
+  background: var(--border-soft);
+  transition: background .15s, inline-size .15s, inset-inline-start .15s;
+}
+.sidebar-resizer::after { background: transparent; }
+:is(.sidebar-resizer, .artifact-resizer):is(:hover, :focus-visible)::after { inset-inline-start: calc(50% - 1.5px); inline-size: 3px; background: var(--accent); }
+:is(body.resizing-artifact, body.resizing-sidebar) &, :is(body.resizing-artifact, body.resizing-sidebar) & * { cursor: col-resize !important; user-select: none !important; }
+
+.scrim {
+  position: absolute;
+  z-index: 35;
+  inset: 0;
+  padding: 0;
+  background: rgb(20 18 15 / .32);
+  border: 0;
+  cursor: default;
+}
+
+/* ---------- conversation ---------- */
+.shell-conversation { position: relative; min-inline-size: 0; min-block-size: 0; display: grid; background: var(--panel); }
+
+/* ---------- artifact ---------- */
+.artifact-panel {
+  container: shell-artifact / inline-size;
+  min-inline-size: 0;
+  min-block-size: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--artifact);
+  view-transition-name: shell-artifact;
+}
+.artifact-panel:not(:has(> .artifact-tabs)) { grid-template-rows: auto minmax(0, 1fr); }
+.artifact-panel[data-presentation="sheet"] {
+  position: absolute;
+  z-index: 40;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: min(100%, max(var(--artifact-min), 45%));
+  box-shadow: var(--shadow);
+}
+.artifact-header {
+  min-inline-size: 0;
+  min-block-size: 52px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 8px 4px 16px;
+}
+.artifact-title { min-inline-size: 0; display: flex; flex: 1 1 auto; flex-direction: column; margin-inline-end: 4px; }
+.artifact-title strong { overflow: hidden; font-size: var(--fs-3); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.artifact-title span { min-inline-size: 0; display: block; overflow: hidden; color: var(--muted); font-size: var(--fs-1); text-overflow: ellipsis; white-space: nowrap; }
+.artifact-title span svg { display: inline-block; color: var(--success); vertical-align: -2px; }
+.artifact-title b { color: var(--success); font-weight: 600; }
+.artifact-title i { color: var(--ink); font-style: normal; }
+.artifact-primary {
+  min-block-size: var(--target);
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 12px;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 0;
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.artifact-primary:hover { filter: brightness(.96); }
+.artifact-primary:disabled { opacity: .6; cursor: progress; }
+.artifact-close { margin-inline-start: 2px; }
+
+.artifact-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  margin-inline: 12px;
+  padding-block: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.artifact-tabs::-webkit-scrollbar { display: none; }
+.artifact-tabs button {
+  position: relative;
+  min-block-size: 30px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 10px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+.artifact-tabs button:hover { color: var(--ink); background: var(--hover); }
+.artifact-tabs button.active { color: var(--ink); background: var(--subtle); font-weight: 600; }
+.artifact-tabs b { min-inline-size: 18px; padding: 0 5px; color: var(--muted); background: var(--panel); border-radius: 9px; font-size: var(--fs-1); font-weight: 600; text-align: center; }
+
+@container shell-artifact (max-width: 440px) {
+  .artifact-tabs .tab-label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .artifact-header { padding-inline-start: 12px; }
+}
+@container shell-artifact (max-width: 340px) {
+  .artifact-primary span { display: none; }
+  .artifact-primary { padding-inline: 8px; }
+}
+
+.artifact-content { position: relative; min-inline-size: 0; min-block-size: 0; display: grid; overflow: auto; background: var(--artifact); }
+.artifact-loading { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: var(--fs-2); }
+.loading-mark { inline-size: 14px; block-size: 14px; border: 2px solid var(--accent-soft); border-block-start-color: var(--accent); border-radius: 50%; animation: shell-spin .8s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-resizer::after, .artifact-resizer::after { transition: none; }
+}
+
+}
+
+::view-transition-group(shell-sidebar),
+::view-transition-group(shell-artifact) { animation-duration: .18s; animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: .14s; }
+
+@keyframes shell-spin { to { transform: rotate(360deg); } }

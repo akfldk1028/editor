@@ -1,9 +1,9 @@
 /*
- * DWG workspace shell. Layout modes follow the workspace's own inline size:
- * `.dwg-workspace` is the size container, and the two thresholds below
- * (768px, 1200px) mirror layoutModes.ts — tests/unit/layout-modes.test.ts
- * fails if they drift. Every other layout number arrives as a custom
- * property written from layoutModes.ts (see App.tsx).
+ * DWG workspace. Every piece the public entry exports renders inside a
+ * `.dwg-workspace` scope, so these rules apply under the standalone frame
+ * (App.tsx) and inside a host shell alike. Colours come from the frame's
+ * tokens (`.app-shell` here; the host shell defines the same names). The
+ * responsive frame itself (layout modes, resizing, drawers) is the host's.
  */
 .dwg-workspace {
   container: dwg-workspace / inline-size;
@@ -112,7 +112,7 @@ button { cursor: pointer; }
 .icon-button:hover, .icon-button:focus-visible { color: var(--ink); background: var(--hover); }
 .icon-button:disabled { cursor: not-allowed; opacity: .45; }
 
-.topbar .agent-context {
+.agent-context {
   min-inline-size: 0;
   display: flex;
   flex: 1 1 auto;
@@ -120,56 +120,10 @@ button { cursor: pointer; }
   gap: 8px;
   padding-inline-start: 4px;
 }
-.topbar .agent-avatar { display: none; }
-.topbar .agent-context > div { min-inline-size: 0; display: flex; flex-direction: column; }
-.topbar .agent-context strong { overflow: hidden; font-size: var(--fs-3); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.topbar .agent-context span { overflow: hidden; color: var(--muted); font-size: var(--fs-1); text-overflow: ellipsis; white-space: nowrap; }
-
-.panel-switch {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 2px;
-  padding: 3px;
-  background: var(--subtle);
-  border-radius: var(--radius-m);
-}
-.panel-switch button {
-  min-block-size: 30px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding-inline: 10px;
-  color: var(--muted);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-s);
-  font-size: var(--fs-2);
-  font-weight: 600;
-}
-.panel-switch button[aria-pressed="true"] { color: var(--ink); background: var(--panel-raised); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
-
-.topbar-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; }
-.settings-anchor { position: relative; }
-.settings-popover {
-  position: absolute;
-  z-index: 50;
-  inset-block-start: 40px;
-  inset-inline-end: 0;
-  inline-size: 232px;
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-  background: var(--panel-raised);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-l);
-  box-shadow: var(--shadow);
-  font-size: var(--fs-2);
-}
-.settings-popover label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.settings-popover select { min-inline-size: 96px; min-block-size: 28px; padding: 2px 6px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-s); }
-.settings-popover input[type="checkbox"] { inline-size: 18px; block-size: 18px; accent-color: var(--accent); }
-.settings-notifications { display: grid; gap: 2px; padding-block-start: 8px; border-block-start: 1px solid var(--border-soft); }
-.settings-notifications p { margin: 0; color: var(--muted); }
+.agent-avatar { display: none; }
+.agent-context > div { min-inline-size: 0; display: flex; flex-direction: column; }
+.agent-context strong { overflow: hidden; font-size: var(--fs-3); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.agent-context span { overflow: hidden; color: var(--muted); font-size: var(--fs-1); text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- native popover menus ---------- */
 .workspace-menu {
@@ -216,68 +170,37 @@ button { cursor: pointer; }
 .menu-group button svg { color: var(--muted); }
 .menu-group button b { margin-inline-start: auto; color: var(--muted); font-size: var(--fs-1); font-weight: 600; }
 
-/* ---------- grid ----------
- * Named lines keep placement explicit whatever tracks exist:
- *   side | ssep | conv | asep | art
- * The header and the conversation share the conv column; the sidebar and the
- * artifact run the full height beside them (ChatGPT / Claude layout).
- */
-.workspace-grid {
-  --sidebar-track: [conv-start];
-  min-inline-size: 0;
-  min-block-size: 0;
-  display: grid;
-  grid-template-columns: var(--sidebar-track) minmax(0, 1fr) [conv-end];
+/* ---------- standalone frame: sidebar | conversation | artifact ---------- */
+.standalone-frame {
+  grid-template-columns: 240px minmax(320px, 1fr) minmax(360px, 45%);
   grid-template-rows: auto minmax(0, 1fr);
-  background: var(--panel);
 }
-.workspace-grid[data-sidebar="inline"] { --sidebar-track: [side-start] var(--sidebar-width) [side-end ssep-start] var(--separator) [ssep-end conv-start]; }
-.workspace-grid[data-sidebar="rail"] { --sidebar-track: [side-start] var(--rail-width) [side-end conv-start]; }
-.workspace-grid > .topbar { grid-row: 1; grid-column: conv; }
-.workspace-grid > .conversation-panel { grid-row: 2; grid-column: conv; }
-.workspace-grid > .workspace-sidebar:not(.overlay) { grid-row: 1 / -1; grid-column: side; }
-.workspace-grid > .sidebar-resizer { grid-row: 1 / -1; grid-column: ssep; }
-.workspace-grid > .artifact-resizer { grid-row: 1 / -1; grid-column: asep; }
-.workspace-grid > .cad-artifact[data-presentation="inline"] { grid-row: 1 / -1; grid-column: art; }
-.workspace-grid > .cad-artifact[data-presentation="panel"] { grid-row: 2; grid-column: conv; }
+.standalone-frame > .workspace-sidebar { grid-row: 1 / -1; grid-column: 1; }
+.standalone-frame > .topbar { grid-row: 1; grid-column: 2; }
+.standalone-frame > .dwg-conversation { grid-row: 2; grid-column: 2; }
+.standalone-frame > .cad-artifact { grid-row: 1 / -1; grid-column: 3; border-inline-start: 1px solid var(--border-soft); }
 
-@container dwg-workspace (min-width: 768px) {
-  .workspace-grid[data-artifact="inline"] {
-    grid-template-columns: var(--sidebar-track) minmax(0, 1fr) [conv-end asep-start] var(--separator) [asep-end art-start] var(--artifact-width) [art-end];
-  }
+/* ---------- pieces placed in a host frame (each piece is its own .dwg-workspace) ---------- */
+&.dwg-heading { min-inline-size: 0; inline-size: auto; block-size: auto; flex: 1 1 auto; overflow: visible; }
+&.dwg-sidebar-content {
+  container-name: dwg-workspace dwg-sidebar;
+  min-block-size: 0;
+  block-size: auto;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
-@container dwg-workspace (min-width: 1200px) {
-  .app-shell[data-layout="wide"] .menu-button { display: none; }
-}
-@container dwg-workspace (max-width: 767px) {
-  .topbar .agent-context span { display: none; }
-  .topbar { padding-inline: 8px; gap: 4px; }
-}
-
-.workspace-grid[data-maximized="true"][data-artifact] { grid-template-columns: [conv-start art-start] minmax(0, 1fr) [conv-end art-end]; }
-.workspace-grid[data-maximized="true"] > :is(.workspace-sidebar, .sidebar-resizer, .topbar, .conversation-panel, .artifact-resizer) { display: none; }
-.workspace-grid[data-artifact="panel"] > .conversation-panel { display: none; }
+&.dwg-conversation { min-block-size: 0; display: grid; }
+&.dwg-artifact-body { min-block-size: 0; overflow: auto; background: var(--artifact); }
 
 /* ---------- sidebar ---------- */
 .workspace-sidebar {
-  container: dwg-sidebar / inline-size;
   min-inline-size: 0;
   min-block-size: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: var(--sidebar);
-  view-transition-name: dwg-sidebar;
-}
-.workspace-sidebar.rail { align-items: center; gap: 4px; padding-block: 10px; }
-.workspace-sidebar.rail .icon-button[aria-pressed="true"] { color: var(--ink); background: var(--hover); }
-.workspace-sidebar.overlay {
-  position: absolute;
-  z-index: 40;
-  inset-block: 0;
-  inset-inline-start: 0;
-  inline-size: min(100%, var(--drawer-max));
-  box-shadow: var(--shadow);
 }
 .sidebar-heading {
   block-size: 52px;
@@ -342,53 +265,19 @@ button { cursor: pointer; }
 .sidebar-search input { min-inline-size: 0; flex: 1; background: transparent; border: 0; outline: 0; font-size: var(--fs-2); }
 .sidebar-panel { min-block-size: 0; flex: 1 1 auto; display: flex; overflow: hidden; }
 
-/* ---------- separators ---------- */
-.sidebar-resizer,
-.artifact-resizer {
-  position: relative;
-  z-index: 5;
-  min-block-size: 0;
-  background: var(--panel);
-  cursor: col-resize;
-  outline: none;
-  touch-action: none;
-}
-.sidebar-resizer { background: var(--sidebar); }
-.sidebar-resizer::after, .artifact-resizer::after {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: calc(50% - .5px);
-  inline-size: 1px;
-  content: "";
-  background: var(--border-soft);
-  transition: background .15s, inline-size .15s, inset-inline-start .15s;
-}
-.sidebar-resizer::after { background: transparent; }
-:is(.sidebar-resizer, .artifact-resizer):is(:hover, :focus-visible)::after { inset-inline-start: calc(50% - 1.5px); inline-size: 3px; background: var(--accent); }
-:is(body.resizing-artifact, body.resizing-sidebar) &, :is(body.resizing-artifact, body.resizing-sidebar) & * { cursor: col-resize !important; user-select: none !important; }
-
-.scrim {
-  position: absolute;
-  z-index: 35;
-  inset: 0;
-  padding: 0;
-  background: rgb(20 18 15 / .32);
-  border: 0;
-  cursor: default;
-}
-
 /* ---------- conversation ---------- */
 .conversation-panel.agent-workspace {
   position: relative;
+  block-size: 100%;
   min-inline-size: 0;
   min-block-size: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   background: var(--panel);
 }
-.conversation-panel:has(.conversation-empty) { grid-template-rows: minmax(0, 1fr) auto minmax(0, 1.25fr); }
-.conversation-panel:has(.conversation-empty) .conversation { grid-row: 2; overflow: visible; }
-.conversation-panel:has(.conversation-empty) .composer { grid-row: 3; align-self: start; }
+.conversation-panel.agent-workspace:has(.conversation-empty) { grid-template-rows: minmax(0, 1fr) auto minmax(0, 1.25fr); }
+.conversation-panel.agent-workspace:has(.conversation-empty) .conversation { grid-row: 2; overflow: visible; }
+.conversation-panel.agent-workspace:has(.conversation-empty) .composer { grid-row: 3; align-self: start; }
 
 /* ---------- artifact ---------- */
 .cad-artifact {
@@ -399,15 +288,6 @@ button { cursor: pointer; }
   grid-template-rows: auto auto minmax(0, 1fr);
   overflow: hidden;
   background: var(--artifact);
-  view-transition-name: dwg-artifact;
-}
-.cad-artifact[data-presentation="sheet"] {
-  position: absolute;
-  z-index: 40;
-  inset-block: 0;
-  inset-inline-end: 0;
-  inline-size: min(100%, max(var(--artifact-min), 45%));
-  box-shadow: var(--shadow);
 }
 .artifact-header {
   min-inline-size: 0;
@@ -492,7 +372,7 @@ button { cursor: pointer; }
 }
 
 .artifact-content { min-inline-size: 0; min-block-size: 0; overflow: auto; background: var(--artifact); }
-.artifact-content > .viewer-shell {
+&.dwg-artifact-body > .viewer-shell {
   inline-size: 100%;
   block-size: 100%;
   min-inline-size: 0;
@@ -501,8 +381,8 @@ button { cursor: pointer; }
   grid-template-rows: 40px minmax(0, 1fr) 30px;
   background: var(--artifact);
 }
-.artifact-content .viewer-toolbar, .artifact-content .viewer-status { background: var(--artifact); border-color: var(--border-soft); }
-.artifact-content .viewer-maximized { position: static; z-index: auto; }
+&.dwg-artifact-body .viewer-toolbar, &.dwg-artifact-body .viewer-status { background: var(--artifact); border-color: var(--border-soft); }
+&.dwg-artifact-body .viewer-maximized { position: static; z-index: auto; }
 .artifact-list { display: grid; gap: 8px; padding: 12px 16px; }
 .finding-group { overflow: hidden; background: var(--panel-raised); border-radius: var(--radius-m); }
 .finding-group-heading {
@@ -539,32 +419,26 @@ button { cursor: pointer; }
 .error-state { color: #a14242; }
 .loading-mark { inline-size: 14px; block-size: 14px; border: 2px solid #eadfd9; border-block-start-color: #d97757; border-radius: 50%; animation: dwg-spin .8s linear infinite; }
 
-.app-shell[data-theme="dark"] .viewer-crumb,
-.app-shell[data-theme="dark"] .viewer-status,
-.app-shell[data-theme="dark"] .tool-button { color: var(--muted); }
-.app-shell[data-theme="dark"] .canvas-wrap,
-.app-shell[data-theme="dark"] .cad-canvas { background: #171a1c; }
-.app-shell[data-theme="dark"] .minor-grid { stroke: #242a2e; }
-.app-shell[data-theme="dark"] .major-grid { stroke: #30383d; }
-.app-shell[data-theme="dark"] .cad-entity { stroke: #a9bac3; }
-.app-shell[data-theme="dark"] .cad-entity[data-geometry-kind="point"] { fill: #a9bac3; }
-.app-shell[data-theme="dark"] .cad-text { fill: #c8d3d8; stroke: none; }
-.app-shell[data-theme="dark"] .tree-row { color: var(--muted); }
-.app-shell[data-theme="dark"] .tree-row.selected-row,
-.app-shell[data-theme="dark"] .tree-root { color: var(--ink); }
-.app-shell[data-theme="dark"] .tree-row:hover { background: var(--subtle); }
-.app-shell[data-theme="dark"] .axis-gizmo svg,
-.app-shell[data-theme="dark"] .scale-readout { background: var(--panel-raised); }
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-resizer::after, .artifact-resizer::after { transition: none; }
-}
 
 }
 
-::view-transition-group(dwg-sidebar),
-::view-transition-group(dwg-artifact) { animation-duration: .18s; animation-timing-function: cubic-bezier(.2, 0, 0, 1); }
-::view-transition-old(root),
-::view-transition-new(root) { animation-duration: .14s; }
+/* Dark frame: the host (or standalone) frame root carries data-theme. */
+[data-theme="dark"] .dwg-workspace .viewer-crumb,
+[data-theme="dark"] .dwg-workspace .viewer-status,
+[data-theme="dark"] .dwg-workspace .tool-button { color: var(--muted); }
+[data-theme="dark"] .dwg-workspace .canvas-wrap,
+[data-theme="dark"] .dwg-workspace .cad-canvas { background: #171a1c; }
+[data-theme="dark"] .dwg-workspace .minor-grid { stroke: #242a2e; }
+[data-theme="dark"] .dwg-workspace .major-grid { stroke: #30383d; }
+[data-theme="dark"] .dwg-workspace .cad-entity { stroke: #a9bac3; }
+[data-theme="dark"] .dwg-workspace .cad-entity[data-geometry-kind="point"] { fill: #a9bac3; }
+[data-theme="dark"] .dwg-workspace .cad-text { fill: #c8d3d8; stroke: none; }
+[data-theme="dark"] .dwg-workspace .tree-row { color: var(--muted); }
+[data-theme="dark"] .dwg-workspace .tree-row.selected-row,
+[data-theme="dark"] .dwg-workspace .tree-root { color: var(--ink); }
+[data-theme="dark"] .dwg-workspace .tree-row:hover { background: var(--subtle); }
+[data-theme="dark"] .dwg-workspace .axis-gizmo svg,
+[data-theme="dark"] .dwg-workspace .scale-readout { background: var(--panel-raised); }
+
 
 @keyframes dwg-spin { to { transform: rotate(360deg); } }

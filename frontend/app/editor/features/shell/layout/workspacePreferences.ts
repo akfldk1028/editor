@@ -17,6 +17,11 @@ export interface WorkspacePreferences {
   sidebarWidth: number;
   /** Wide layout only: the sidebar is folded into its rail. */
   sidebarCollapsed: boolean;
+  /**
+   * The DWG sidebar section and section folds from before the shell owned
+   * these preferences. Kept so stored records still validate; the shell does
+   * not read them.
+   */
   sidebarTab: SidebarTab;
   sidebarSections: {
     project: boolean;

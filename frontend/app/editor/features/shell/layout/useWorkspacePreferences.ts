@@ -5,7 +5,6 @@ import {
   createWorkspacePreferencesStore,
   defaultWorkspacePreferences,
   resolveTheme,
-  type SidebarTab,
   type ThemePreference,
   type WorkspacePreferences
 } from "./workspacePreferences";
@@ -46,18 +45,6 @@ export function useWorkspacePreferences() {
     },
     setSidebarCollapsed(sidebarCollapsed: boolean) {
       update({ ...preferences, sidebarCollapsed });
-    },
-    setSidebarTab(sidebarTab: SidebarTab) {
-      update({ ...preferences, sidebarTab });
-    },
-    toggleSection(section: keyof WorkspacePreferences["sidebarSections"]) {
-      update({
-        ...preferences,
-        sidebarSections: {
-          ...preferences.sidebarSections,
-          [section]: !preferences.sidebarSections[section]
-        }
-      });
     }
   }), [preferences, systemDark]);
 }

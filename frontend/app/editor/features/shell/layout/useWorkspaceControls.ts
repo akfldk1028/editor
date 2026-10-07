@@ -61,14 +61,11 @@ export function useWorkspaceControls({
   const [artifactOpen, setArtifactOpen] = useState(true);
   const [narrowPanel, setNarrowPanel] = useState<NarrowPanel>("conversation");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [gridVisible, setGridVisible] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [artifactMaximized, setArtifactMaximized] = useState(false);
   const artifactDragStart = useRef<{ x: number; width: number } | null>(null);
   const sidebarDragStart = useRef<{ x: number; width: number } | null>(null);
   const activeResizeTarget = useRef<{ element: HTMLDivElement; pointerId: number } | null>(null);
   const removeResizeListeners = useRef<(() => void) | null>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const artifactButtonRef = useRef<HTMLButtonElement>(null);
   const topActionsRef = useRef<HTMLDivElement>(null);
@@ -156,18 +153,6 @@ export function useWorkspaceControls({
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        const input = searchRef.current;
-        // The drawing search lives in the artifact menu; open it first.
-        const menu = input?.closest<HTMLElement>("[popover]");
-        try {
-          if (menu && !menu.matches(":popover-open")) menu.showPopover();
-        } catch {
-          // Unsupported popover: the input is still focusable when visible.
-        }
-        input?.focus();
-      }
       if (event.key === "Escape") {
         setSettingsOpen(false);
         setArtifactMaximized(false);
@@ -270,7 +255,7 @@ export function useWorkspaceControls({
   };
 
   const artifactSeparatorProps: HTMLAttributes<HTMLDivElement> = {
-    "aria-label": "CAD 아티팩트 너비 조절",
+    "aria-label": "아티팩트 너비 조절",
     "aria-orientation": "vertical",
     "aria-valuemax": artifactMaxWidth,
     "aria-valuemin": artifactMinWidth,
@@ -302,10 +287,7 @@ export function useWorkspaceControls({
     artifactPresentation,
     artifactVisible,
     artifactWidth,
-    gridVisible,
     narrowPanel,
-    searchQuery,
-    searchRef,
     menuButtonRef,
     artifactButtonRef,
     sidebarPresentation,
@@ -318,8 +300,6 @@ export function useWorkspaceControls({
     closeArtifact,
     openArtifact,
     setArtifactMaximized,
-    setGridVisible,
-    setSearchQuery,
     setSettingsOpen,
     setSidebarExpanded,
     showNarrowPanel,

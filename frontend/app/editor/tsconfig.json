@@ -8,7 +8,8 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@planm/*": ["../planm/src/*"]
+      "@planm/*": ["../planm/src/*"],
+      "@click-around/workspace": ["../../../infra/services/dwg/apps/workspace/src/public.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "next-env.d.ts", "next.config.js", ".next/types/**/*.ts"],

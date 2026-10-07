@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "bun:test";
 
 import {
   clampSidebarWidth,
   createWorkspacePreferencesStore,
   defaultWorkspacePreferences,
   resolveTheme
-} from "../../src/app/workspacePreferences.js";
+} from "./workspacePreferences";
 
 test("resolves explicit and system theme preferences", () => {
   assert.equal(resolveTheme("light", true), "light");

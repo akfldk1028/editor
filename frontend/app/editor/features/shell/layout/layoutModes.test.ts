@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import test from "node:test";
+import { test } from "bun:test";
 
 import {
   artifactPresentationFor,
@@ -11,7 +11,7 @@ import {
   layoutModeFor,
   maximumArtifactWidth,
   sharedRowWidth
-} from "../../src/app/layoutModes.js";
+} from "./layoutModes";
 
 test("modes follow the workspace width at the shared thresholds", () => {
   assert.equal(layoutModeFor(1920), "wide");
@@ -23,9 +23,9 @@ test("modes follow the workspace width at the shared thresholds", () => {
 });
 
 test("the stylesheet's container queries repeat the layoutModes thresholds", () => {
-  const css = readFileSync(new URL("../../src/app/styles.css", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../shell.css", import.meta.url), "utf8");
   const thresholds = new Set(
-    [...css.matchAll(/@container dwg-workspace \((min|max)-width: (\d+)px\)/g)]
+    [...css.matchAll(/@container editor-shell \((min|max)-width: (\d+)px\)/g)]
       .map(([, kind, value]) => kind === "max" ? Number(value) + 1 : Number(value))
   );
   assert.deepEqual([...thresholds].sort((a, b) => a - b), [layout.mediumMinWidth, layout.wideMinWidth]);
