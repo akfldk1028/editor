@@ -31,7 +31,7 @@ violation fails the test; never add to `ignore_imports` without a reason line.
   (route inventory tool lives at `app/route_inventory.py`, beside `main.py`).
 - Files under ~500 lines; one env name has one owner module.
 - Splitting a module: make it a package (`foo/__init__.py` keeps every public/underscore name,
-  parts in `foo/<concern>.py`), as `app/cli/`, `regulations/calculator/`. No `foo_<part>.py` siblings.
+  parts in `foo/<concern>.py`), as `regulations/calculator/`, `maas/delivered/`. No `foo_<part>.py` siblings.
 
 ## The planning engine
 `app/modules/design/generation/maas/masterplan/` (planner, rows, ramps, validation, ...) is the

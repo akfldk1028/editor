@@ -23,7 +23,7 @@ be told to the Orchestrator session.
   Agent code imports 71 editor module paths directly (MassAgent/KMass/MasterPlan scripts+tests, Lawagent
   tests) — check they all still resolve before any move.
 - 2026-10-07 `1013b5b8` route inventory tool moved from `core/` to `app/route_inventory.py` (beside main).
-- 2026-10-06 `2dfb5b40` `backend/engine/` (geometry lib outside app) -> `backend/app/core/geometry/`;
+- 2026-10-06 `2dfb5b40` [REVERTED by 194f0744 — planm sources] `backend/engine/` -> `backend/app/core/geometry/`;
   21 importers updated, no shim; 824 tests same; agent doors 24/24 identical.
 - 2026-10-06 Verified: agent doors answer byte-identically before/after each refactor commit
   (65045d70 94b08e71 f14f7806 4999585d 2fc0c8c4 cda1a007 57ef5810 05c42ec4; 24 calls via TestClient:
@@ -34,7 +34,7 @@ be told to the Orchestrator session.
   HOLD: unifying `regulations` with `land/reference` (UI `/land` still reads the old ordinance
   data in `regulations/data`; agents read the 163-jurisdiction set in `land/reference/data`).
   Reference case: `D:/Data/25_ACE/data/projects/01_example/Alt1|Alt2` (고산 공공1 real alternatives).
-- 2026-10-06 `cda1a007` adapters/vworld/, `57ef5810` adapters/workspace/ (+ one-time catalog migration
+- 2026-10-06 `cda1a007` adapters/vworld/ (moved on to `modules/land/vworld/` in db167db3), `57ef5810` adapters/workspace/ (+ one-time catalog migration
   of stored tool providers, live on next backend restart), `05c42ec4` maas/delivered/ + maas/parking/.
 - 2026-10-06 `2fc0c8c4` regulations/land split modules are packages like `cli/`:
   `regulations/{calculator,setbacks}/`, `services/{regulation_calculator,setback_geometry}/`
@@ -47,7 +47,7 @@ be told to the Orchestrator session.
 - Folder rule (user, 10-06): a split module becomes a package (`foo/__init__.py` + parts), never
   prefix siblings (`foo_rules.py`). Existing flat conventions (`design_runtime/*_views.py`) stay.
 - 2026-10-06 Modularization round 1 (platform core, pure moves, originals stay the public import path):
-  `65045d70` cli.py -> `cli/` package; `94b08e71` design_runtime views.py -> 7 modules; `f14f7806`
+  `65045d70` cli.py -> `cli/` package [REVERTED by 4887d59c — planm source]; `94b08e71` design_runtime views.py -> 7 modules; `f14f7806`
   masterplan planner/rows/validation -> siblings (plan_site hashes identical; planner.py still 835 —
   `_plan_site_fixed` is one closure-heavy function, splitting it is a refactor); `4999585d`
   regulations + land/reference calculator/setbacks split (385 output hashes identical; the two
