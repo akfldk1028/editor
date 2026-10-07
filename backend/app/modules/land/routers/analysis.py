@@ -13,6 +13,7 @@ from backend.app.modules.land.analysis_request import normalize_program_request
 from backend.app.modules.land.parcel_geometry import parcel_geometry
 from backend.app.modules.land.services import DatumConfigurationError, LandServices
 from backend.app.modules.land.routers.map import create_land_map_router
+from backend.app.modules.land.routers.selections import create_land_selections_router
 
 
 class LandRequest(BaseModel):
@@ -169,4 +170,5 @@ def create_land_router(*, public_origin=None, address_client=None, repository=No
                                  headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})
 
     router.include_router(create_land_map_router(prefix=''))
+    router.include_router(create_land_selections_router(services, check_origin))
     return router

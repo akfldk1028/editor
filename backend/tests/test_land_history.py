@@ -90,7 +90,7 @@ def test_v2_migration_preserves_existing_records(tmp_path):
         db.execute('PRAGMA user_version=2')
     assert repo.stats()['total_queries'] == 1
     assert repo.get('old')['elapsed_ms'] == 5
-    with sqlite3.connect(repo.path) as db: assert db.execute('PRAGMA user_version').fetchone()[0] == 3
+    with sqlite3.connect(repo.path) as db: assert db.execute('PRAGMA user_version').fetchone()[0] == 4
 
 
 def test_append_only_snapshot_import_and_namespaced_retrieval(tmp_path):

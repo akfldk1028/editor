@@ -27,7 +27,7 @@ class LandRepository:
     @staticmethod
     def _ensure_schema(db):
         version = db.execute('PRAGMA user_version').fetchone()[0]
-        if version not in (0, 1, 2, 3):
+        if version not in (0, 1, 2, 3, 4):
             raise ValueError('unsupported land database version')
         if version == 0:
             db.execute('''CREATE TABLE analyses (
@@ -58,6 +58,16 @@ class LandRepository:
                 query_count INTEGER NOT NULL, result_count INTEGER NOT NULL,
                 PRIMARY KEY(source_id, snapshot_sha256))""")
             db.execute('PRAGMA user_version=3')
+        if version < 4:
+            # A site is a bundle of parcels (they may be merged). Facts, sources and the adjacency
+            # verdict only: Vworld terms forbid storing their data, so no raw payloads and no geometry
+            # (re-fetched by PNU when needed).
+            db.execute('''CREATE TABLE IF NOT EXISTS site_selections (
+                selection_id TEXT PRIMARY KEY, created_at TEXT NOT NULL, label TEXT NOT NULL,
+                parcel_count INTEGER NOT NULL, total_area_m2 REAL, contiguous INTEGER,
+                parcels_json TEXT NOT NULL, source_json TEXT NOT NULL)''')
+            db.execute('CREATE INDEX IF NOT EXISTS site_selections_created ON site_selections(created_at)')
+            db.execute('PRAGMA user_version=4')
 
     def save(self, request: dict, result: dict, elapsed_ms: float, error: str = '') -> str:
         if not isinstance(request, dict) or not isinstance(result, dict):

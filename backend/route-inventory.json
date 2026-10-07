@@ -538,6 +538,26 @@
   {
    "method": "GET",
    "owner": "fastapi",
+   "path": "/api/v1/land/selections"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/land/selections"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/land/selections/latest"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/land/selections/preview"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
    "path": "/api/v1/land/stats"
   },
   {
