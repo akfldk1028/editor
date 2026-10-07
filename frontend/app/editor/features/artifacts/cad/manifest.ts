@@ -5,12 +5,12 @@ import type { ArtifactManifest, ArtifactTab } from '../../shell/artifact-types'
 
 /** Mirrors the CAD package's `dwgArtifactTabs`; ids are checked against its tab type. */
 const tabs: readonly (ArtifactTab & { id: DwgArtifactTab })[] = [
-  { id: 'preview', label: 'CAD Preview', icon: View },
-  { id: 'findings', label: 'Findings', icon: ScanSearch },
-  { id: 'changes', label: 'Changes', icon: FileDiff },
-  { id: 'evidence', label: 'Evidence', icon: FileCheck2, overflow: true },
-  { id: 'export', label: 'Export', icon: Download, overflow: true },
-  { id: 'warnings', label: 'Warnings', icon: AlertTriangle, overflow: true },
+  { id: 'preview', label: '도면 미리보기', icon: View },
+  { id: 'findings', label: '검토 결과', icon: ScanSearch },
+  { id: 'changes', label: '변경', icon: FileDiff },
+  { id: 'evidence', label: '근거', icon: FileCheck2, overflow: true },
+  { id: 'export', label: '내보내기', icon: Download, overflow: true },
+  { id: 'warnings', label: '경고', icon: AlertTriangle, overflow: true },
 ]
 
 export const cadArtifact: ArtifactManifest = {

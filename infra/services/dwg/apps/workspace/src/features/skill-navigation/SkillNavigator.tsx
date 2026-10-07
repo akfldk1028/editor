@@ -28,12 +28,12 @@ export function SkillNavigator({ query }: Props) {
     return () => controller.abort();
   }, []);
 
-  if (state.kind === "loading") return <section aria-label="Skills" className="skill-navigation" role="region"><div className="skill-navigation-state"><LoaderCircle className="spin" size={14} />Loading skills…</div></section>;
-  if (state.kind === "error") return <section aria-label="Skills" className="skill-navigation" role="region"><div className="skill-navigation-state error"><AlertCircle size={14} />Unable to load skills: {state.message}</div></section>;
+  if (state.kind === "loading") return <section aria-label="스킬" className="skill-navigation" role="region"><div className="skill-navigation-state"><LoaderCircle className="spin" size={14} />스킬을 불러오는 중…</div></section>;
+  if (state.kind === "error") return <section aria-label="스킬" className="skill-navigation" role="region"><div className="skill-navigation-state error"><AlertCircle size={14} />스킬을 불러오지 못했습니다: {state.message}</div></section>;
 
   const skills = state.skills.filter((skill) => skill.id.toLocaleLowerCase().includes(normalizedQuery));
   return (
-    <section aria-label="Skills" className="skill-navigation" role="region">
+    <section aria-label="스킬" className="skill-navigation" role="region">
       <div className="skill-navigation-scroll">
         {skills.map((skill) => <SkillRow key={`${skill.id}:${skill.version}`} skill={skill} />)}
         {skills.length === 0 && <div className="skill-navigation-state">No skills available.</div>}

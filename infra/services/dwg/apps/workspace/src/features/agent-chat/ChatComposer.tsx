@@ -144,10 +144,8 @@ export function ChatComposer({
             className="send-button cancel-button"
             aria-label="응답 취소"
             onClick={onCancel}
-            onPointerDown={(event) => {
-              event.preventDefault();
-              onCancel();
-            }}
+            // Keeps focus in the composer; the cancel itself fires once, on click (also from the keyboard).
+            onPointerDown={(event) => event.preventDefault()}
             type="button"
           >
             <Square size={11} />

@@ -161,7 +161,7 @@ test("switching drawings clears inspection evidence owned by the previous sessio
     })
   }));
   await page.goto("/");
-  await page.getByRole("button", { name: "Run agents" }).click();
+  await page.getByRole("button", { name: "검토 실행" }).click();
   await expect(page.locator(".response-message")).toBeVisible();
 
   await page.getByRole("button", { name: "second-building.dwg" }).click();
@@ -196,7 +196,7 @@ for (const viewport of [
     await expect(page.getByRole("tree", { name: "Drawing hierarchy" })).toContainText("export_sample.dwg");
     await expect(page.getByRole("main", { name: "대화" })).toBeVisible();
     await expect(page.getByRole("region", { name: "CAD 아티팩트" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: /Findings/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /검토 결과/ })).toBeVisible();
     await expect(page.getByRole("tab", { name: /Evidence/ })).toBeVisible();
     expect(consoleErrors).toEqual([]);
     expect(failedResponses).toEqual([]);
@@ -210,7 +210,7 @@ test("real agent run exposes grounded findings, evidence, and warnings", async (
   await mockProviderStatus(page);
   await page.goto("/");
 
-  await page.getByRole("button", { name: "Run agents" }).click();
+  await page.getByRole("button", { name: "검토 실행" }).click();
   await expect(page.getByText("VERIFIED RESULT")).toBeVisible();
   await expect(page.getByText(
     `${defaultLayerEntityCount}개 주요 객체`
@@ -223,12 +223,12 @@ test("real agent run exposes grounded findings, evidence, and warnings", async (
     fullPage: true
   });
 
-  await page.getByRole("tab", { name: /Findings/ }).click();
+  await page.getByRole("tab", { name: /검토 결과/ }).click();
   await page.getByRole("button", { name: /0 LWPOLYLINE/ }).click();
   await page.locator(".finding-row").filter({ hasText: "handle 239" }).click();
   await expect(page.getByTestId("evidence-card")).toContainText("239");
   await capture(page, "finding-evidence-1440x900");
-  await page.getByRole("tab", { name: /CAD Preview/ }).click();
+  await page.getByRole("tab", { name: /도면 미리보기/ }).click();
   await expect(page.locator('[data-handle="239"]')).toHaveClass(/highlighted/);
 
   await page.getByRole("tab", { name: /Warnings/ }).click();

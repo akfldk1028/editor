@@ -28,12 +28,12 @@ test("uses readable conversation typography", async ({ page }) => {
 test("completed inspection removes the empty prompt and groups findings", async ({ page }) => {
   await mockInspection(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Run agents" }).click();
+  await page.getByRole("button", { name: "검토 실행" }).click();
 
   await expect(page.locator(".conversation-empty")).toHaveCount(0);
-  await expect(page.locator(".tool-step").first()).toContainText("PLANNED");
+  await expect(page.locator(".tool-step").first()).toContainText("계획됨");
 
-  await page.getByRole("tab", { name: /Findings/ }).click();
+  await page.getByRole("tab", { name: /검토 결과/ }).click();
   await expect(page.locator(".finding-group")).toHaveCount(2);
   await expect(page.locator(".finding-row")).toHaveCount(0);
 
@@ -52,11 +52,11 @@ test("layer visibility reports visible and total model entities", async ({ page 
 test("project and session navigation keep independent scroll containers", async ({ page }) => {
   await page.goto("/");
 
-  const search = page.getByLabel("Search workspace");
+  const search = page.getByLabel("작업 검색");
   const projectScroll = page.locator(".project-navigation-scroll");
   await expect(search).toBeVisible();
   await expect(projectScroll).toHaveCSS("overflow-y", "auto");
-  await page.getByRole("tab", { name: "Sessions" }).click();
+  await page.getByRole("tab", { name: "세션" }).click();
   const sessionScroll = page.locator(".session-navigation-scroll");
   await expect(sessionScroll).toHaveCSS("overflow-y", "auto");
   await expect(projectScroll).toHaveCount(0);
@@ -68,11 +68,11 @@ test("keeps CAD controls inside the artifact instead of the global header", asyn
 
   const topbar = page.locator(".topbar");
   const artifact = page.getByRole("region", { name: "CAD 아티팩트" });
-  await expect(topbar.getByText("Indexed", { exact: true })).toHaveCount(0);
-  await expect(topbar.getByRole("button", { name: "Run agents" })).toHaveCount(0);
+  await expect(topbar.getByText("색인됨", { exact: true })).toHaveCount(0);
+  await expect(topbar.getByRole("button", { name: "검토 실행" })).toHaveCount(0);
   await expect(topbar.getByLabel("전체 도면 검색")).toHaveCount(0);
-  await expect(artifact.locator(".artifact-header").getByText("Indexed", { exact: true })).toBeVisible();
-  await expect(artifact.getByRole("button", { name: "Run agents" })).toBeVisible();
+  await expect(artifact.locator(".artifact-header").getByText("색인됨", { exact: true })).toBeVisible();
+  await expect(artifact.getByRole("button", { name: "검토 실행" })).toBeVisible();
   await openArtifactMenu(page);
   await expect(artifact.getByLabel("전체 도면 검색")).toBeVisible();
 });
@@ -107,11 +107,11 @@ test("offers Claude-like artifact version, copy, and download controls", async (
 test("uses Claude-style sidebar hierarchy and wider default chat", async ({ page }) => {
   await page.goto("/");
 
-  const sidebar = page.getByLabel("Workspace navigation");
-  await expect(sidebar.getByLabel("Search workspace")).toBeVisible();
-  await expect(sidebar.getByRole("tab", { name: "Project", exact: true })).toHaveAttribute("aria-selected", "true");
-  await expect(sidebar.getByRole("tab", { name: "Sessions", exact: true })).toBeVisible();
-  await expect(sidebar.getByRole("tab", { name: "Skills", exact: true })).toBeVisible();
+  const sidebar = page.getByLabel("작업 탐색");
+  await expect(sidebar.getByLabel("작업 검색")).toBeVisible();
+  await expect(sidebar.getByRole("tab", { name: "프로젝트", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(sidebar.getByRole("tab", { name: "세션", exact: true })).toBeVisible();
+  await expect(sidebar.getByRole("tab", { name: "스킬", exact: true })).toBeVisible();
   await expect(sidebar.getByRole("tree", { name: "Drawing hierarchy" })).toBeVisible();
 
   const conversation = await page.getByRole("main", { name: "대화" }).boundingBox();
@@ -163,7 +163,7 @@ test("migrates sidebar defaults from v1 and persists the v3 preference after rel
   });
   await page.goto("/");
 
-  const resizer = page.getByRole("separator", { name: "Sidebar width" });
+  const resizer = page.getByRole("separator", { name: "사이드바 너비" });
   await expect(resizer).toHaveAttribute("aria-valuenow", "240");
   await expect(resizer).toHaveAttribute("aria-valuemin", "200");
   await expect(resizer).toHaveAttribute("aria-valuemax", "320");
@@ -176,7 +176,7 @@ test("migrates sidebar defaults from v1 and persists the v3 preference after rel
 
 test("sidebar resizer uses 16px keyboard steps and clamps pointer resize at both bounds", async ({ page }) => {
   await page.goto("/");
-  const resizer = page.getByRole("separator", { name: "Sidebar width" });
+  const resizer = page.getByRole("separator", { name: "사이드바 너비" });
 
   await resizer.press("ArrowRight");
   await expect(resizer).toHaveAttribute("aria-valuenow", "256");
@@ -203,7 +203,7 @@ test("sidebar resizer uses 16px keyboard steps and clamps pointer resize at both
 
 test("pointer cancellation clears resize state and permits a later pointer resize", async ({ page }) => {
   await page.goto("/");
-  const resizer = page.getByRole("separator", { name: "Sidebar width" });
+  const resizer = page.getByRole("separator", { name: "사이드바 너비" });
   const first = await beginPointerResize(page, resizer);
 
   await resizer.dispatchEvent("pointercancel", {
@@ -222,7 +222,7 @@ test("pointer cancellation clears resize state and permits a later pointer resiz
 
 test("lost capture and window blur clean resize state without stale width commits", async ({ page }) => {
   await page.goto("/");
-  const resizer = page.getByRole("separator", { name: "Sidebar width" });
+  const resizer = page.getByRole("separator", { name: "사이드바 너비" });
   const lost = await beginPointerResize(page, resizer);
 
   await expect.poll(() => resizer.evaluate(
@@ -265,7 +265,7 @@ test("invalid v3 sidebar storage falls back to usable defaults", async ({ page }
   });
   await page.goto("/");
 
-  await expect(page.getByRole("separator", { name: "Sidebar width" })).toHaveAttribute(
+  await expect(page.getByRole("separator", { name: "사이드바 너비" })).toHaveAttribute(
     "aria-valuenow",
     "240"
   );

@@ -21,7 +21,8 @@
   background: var(--subtle);
   border-radius: 18px;
 }
-.user-message .message-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+/* Who spoke is read out, not shown: the layout already tells the two apart. */
+.message .message-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
 .agent-message { padding: 0; }
 .response-message .message-label { color: var(--success); }
 
@@ -165,6 +166,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pending-dots i { animation: none; opacity: 0.6; }
+  .spin { animation: none; }
   .tool-stack-chevron { transition: none; }
 }
 

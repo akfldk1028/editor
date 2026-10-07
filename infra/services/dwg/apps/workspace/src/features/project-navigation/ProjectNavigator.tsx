@@ -28,7 +28,7 @@ export function ProjectNavigator({ index, hiddenLayers, query, onToggleLayer }: 
   const revision = index.schemaVersion === "cad-index/v0.2" ? index.drawing?.revision ?? 0 : 0;
 
   return (
-    <section aria-label="Project" className="project-navigation" role="region">
+    <section aria-label="프로젝트" className="project-navigation" role="region">
       <div className="project-navigation-scroll">
         <div aria-label="Drawing hierarchy" className="project-tree" role="tree">
           <div aria-expanded="true" aria-level={1} className="project-tree-root" role="treeitem">

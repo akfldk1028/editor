@@ -21,7 +21,7 @@ export function PendingResponse({ onCancel }: { onCancel(): void }) {
 
   return (
     <div className="message agent-message pending-response" data-testid="pending-response">
-      <div className="message-label"><Bot size={12} /> ASSISTANT</div>
+      <div className="message-label"><Bot aria-hidden="true" size={12} /> AI 응답</div>
       <p aria-live="polite" role="status">
         <span className="pending-dots" aria-hidden="true"><i /><i /><i /></span>
         응답 생성 중… {formatElapsed(seconds)}

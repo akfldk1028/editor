@@ -442,3 +442,6 @@ button { cursor: pointer; }
 
 
 @keyframes dwg-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .loading-mark, .spin { animation: none; }
+}

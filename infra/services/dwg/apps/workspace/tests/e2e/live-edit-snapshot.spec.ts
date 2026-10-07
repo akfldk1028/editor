@@ -45,14 +45,14 @@ test("the real gateway and workspace render apply undo redo from one in-memory s
   await page.goto("/");
   const beforePath = await page.locator('[data-handle="239"]').getAttribute("d");
 
-  await page.getByRole("button", { name: "Run agents" }).click();
-  await page.getByRole("tab", { name: /Findings/ }).click();
+  await page.getByRole("button", { name: "검토 실행" }).click();
+  await page.getByRole("tab", { name: /검토 결과/ }).click();
   const revisedFinding = page.locator(".finding-row").filter({ hasText: "handle 239" });
   if (!await revisedFinding.isVisible()) {
     await page.locator(".finding-group-heading").filter({ hasText: "LWPOLYLINE" }).click();
   }
   await revisedFinding.click();
-  await page.getByRole("tab", { name: "Changes" }).click();
+  await page.getByRole("tab", { name: "변경" }).click();
   await page.getByLabel("Move X").fill("5");
   await page.getByRole("button", { name: "Preview move" }).click();
   await page.getByRole("button", { name: "Approve changes" }).click();
@@ -60,22 +60,22 @@ test("the real gateway and workspace render apply undo redo from one in-memory s
 
   await expectSnapshot(page, [5, 0, 0], [105, 100, 0], 1);
   await expect(page.locator('[data-handle="239"]')).not.toHaveAttribute("d", beforePath ?? "");
-  await page.getByRole("button", { name: "Run agents" }).click();
-  await page.getByRole("tab", { name: /Findings/ }).click();
+  await page.getByRole("button", { name: "검토 실행" }).click();
+  await page.getByRole("tab", { name: /검토 결과/ }).click();
   if (!await revisedFinding.isVisible()) {
     await page.locator(".finding-group-heading").filter({ hasText: "LWPOLYLINE" }).click();
   }
   await revisedFinding.click();
-  await openArtifactView(page, "Evidence");
+  await openArtifactView(page, "근거");
   await expect(page.getByTestId("evidence-card")).toContainText("[5,0,0]");
   await expect(page.getByTestId("evidence-card")).toContainText("REVISION");
   expect(sha256(await readFile(fixturePath))).toBe(sourceHash);
 
-  await page.getByRole("tab", { name: "Changes" }).click();
+  await page.getByRole("tab", { name: "변경" }).click();
   await page.getByRole("button", { name: "Undo changes" }).click();
   await expect(page.getByRole("status")).toContainText("Undone at revision 2");
   await expectSnapshot(page, [0, 0, 0], [100, 100, 0], 2);
-  await page.getByRole("tab", { name: "Changes" }).click();
+  await page.getByRole("tab", { name: "변경" }).click();
   await page.getByRole("button", { name: "Redo changes" }).click();
   await expect(page.getByRole("status")).toContainText("Redone at revision 3");
   await expectSnapshot(page, [5, 0, 0], [105, 100, 0], 3);
@@ -90,7 +90,7 @@ async function expectSnapshot(page: Page, min: number[], max: number[], revision
   const entity = drawing.entities.find((candidate) => candidate.handle === "239");
   expect(entity?.bbox).toEqual({ min, max });
   expect(drawing.drawing?.revision).toBe(revision);
-  await page.getByRole("tab", { name: "CAD Preview" }).click();
+  await page.getByRole("tab", { name: "도면 미리보기" }).click();
   await expect(page.locator(".viewer-status")).toContainText(`Revision ${revision}`);
   await expect(page.locator(".project-navigation-footer")).toContainText(`Revision ${revision}`);
 }

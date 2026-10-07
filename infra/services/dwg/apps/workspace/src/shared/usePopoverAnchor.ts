@@ -1,5 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
+// Copy of the editor shell's hook (features/shell/artifact-host): this package's standalone Vite app cannot import the Next app.
+
 /**
  * Places a native `popover` element next to its trigger each time it opens.
  * The popover itself (top layer, light dismiss, Escape) is the platform's;

@@ -1,7 +1,7 @@
 import { SquarePen } from "lucide-react";
 
 import { AgentWorkspace, ConversationHeading } from "../../features/agent-chat/AgentWorkspace";
-import { useDwgWorkspace } from "./DwgWorkspaceProvider";
+import { useDwgChatInput, useDwgWorkspace } from "./DwgWorkspaceProvider";
 
 /** The conversation's identity block, for the host's header row. */
 export function DwgConversationHeading() {
@@ -26,12 +26,13 @@ export function DwgConversationActions() {
 /** Extra rows for the host's settings popover. */
 export function DwgSettings() {
   const { gridVisible, setGridVisible } = useDwgWorkspace();
-  return <label><span>CAD grid</span><input checked={gridVisible} onChange={(event) => setGridVisible(event.target.checked)} type="checkbox" /></label>;
+  return <label><span>격자</span><input checked={gridVisible} onChange={(event) => setGridVisible(event.target.checked)} type="checkbox" /></label>;
 }
 
 /** Messages and composer, filling the host's conversation cell. */
 export function DwgConversation() {
   const { chat, inspection } = useDwgWorkspace();
+  const { message, setMessage } = useDwgChatInput();
   return (
     <div className="dwg-workspace dwg-conversation">
       <AgentWorkspace
@@ -42,9 +43,9 @@ export function DwgConversation() {
         inspectionError={inspection.error}
         inspectionLoading={inspection.loading}
         inspectionRun={inspection.run}
-        message={chat.message}
+        message={message}
         onCancel={chat.cancel}
-        onMessageChange={chat.setMessage}
+        onMessageChange={setMessage}
         onProviderChange={chat.setSelectedProvider}
         onSubmit={chat.submit}
         providers={chat.providers}

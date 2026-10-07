@@ -12,8 +12,8 @@ export async function openArtifactMenu(page: Page) {
   return menu;
 }
 
-/** Opens a secondary artifact view (Evidence, Export, Warnings) from the menu. */
-export async function openArtifactView(page: Page, name: "Evidence" | "Export" | "Warnings") {
+/** Opens a secondary artifact view (근거, 내보내기, 경고) from the menu. */
+export async function openArtifactView(page: Page, name: "근거" | "내보내기" | "경고") {
   const menu = await openArtifactMenu(page);
   await menu.getByRole("button", { name, exact: false }).click();
 }

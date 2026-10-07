@@ -91,7 +91,7 @@ export function AgentWorkspace({
             key={entry.id}
           >
             <div className="message-label">
-              {entry.role === "user" ? "YOU" : <><Bot size={12} /> ASSISTANT</>}
+              {entry.role === "user" ? "나" : <><Bot aria-hidden="true" size={12} /> AI 응답</>}
             </div>
             <p>{entry.text}</p>
             {entry.role === "assistant" &&
@@ -179,7 +179,7 @@ function ToolStep({ label, tool, state }: {
           ? <Check size={14} />
           : <ChevronRight size={14} />}
       <div><strong>{label}</strong><span><TerminalSquare size={11} /> {tool}</span></div>
-      <em>{state === "running" ? "RUNNING" : state === "done" ? "DONE" : state === "rejected" ? "REJECTED" : state === "planned" ? "PLANNED" : "QUEUED"}</em>
+      <em>{state === "running" ? "진행 중" : state === "done" ? "완료" : state === "rejected" ? "거절됨" : state === "planned" ? "계획됨" : "대기 중"}</em>
     </div>
   );
 }

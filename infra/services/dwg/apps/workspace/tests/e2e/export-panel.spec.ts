@@ -13,7 +13,7 @@ test("uses the assembled export capability endpoint and separates report export 
   });
   expect(capabilityStatus).toBe(200);
 
-  await openArtifactView(page, "Export");
+  await openArtifactView(page, "내보내기");
   const panel = page.getByRole("region", { name: "Export" });
   await expect(panel.getByRole("heading", { name: "Report export" })).toBeVisible();
   await expect(panel.getByRole("heading", { name: "Drawing Save As" })).toBeVisible();
@@ -28,7 +28,7 @@ test("keeps the conversation floor and exposes both keyboard resizers at 1280 by
   await expect(conversation).toBeVisible();
   expect((await conversation.boundingBox())!.width).toBeGreaterThanOrEqual(320);
 
-  const sidebar = page.getByRole("separator", { name: "Sidebar width" });
+  const sidebar = page.getByRole("separator", { name: "사이드바 너비" });
   const artifact = page.locator(".artifact-resizer");
   await expect(sidebar).toHaveAttribute("tabindex", "0");
   await expect(artifact).toHaveAttribute("tabindex", "0");
@@ -47,7 +47,7 @@ test("failed Save As consumes the selected grant and requires a new destination"
       body: JSON.stringify({ error: { code: "CAD_SAVE_FAILED", message: "forced failure" } })
     });
   });
-  await openArtifactView(page, "Export");
+  await openArtifactView(page, "내보내기");
   const panel = page.getByRole("region", { name: "Export" });
   await panel.getByRole("button", { name: "Choose destination" }).click();
   const save = panel.getByRole("button", { name: "Save As DWG" });
@@ -76,7 +76,7 @@ test("disables every export control while a destination action is in flight", as
       })
     });
   });
-  await openArtifactView(page, "Export");
+  await openArtifactView(page, "내보내기");
   const panel = page.getByRole("region", { name: "Export" });
   await panel.getByRole("button", { name: "Choose destination" }).click();
 

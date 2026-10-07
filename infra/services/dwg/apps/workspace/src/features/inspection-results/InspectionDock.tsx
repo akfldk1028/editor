@@ -38,7 +38,7 @@ export function InspectionDock({ run, selected, onSelectFinding }: Props) {
           <span className="finding-status">VERIFIED</span>
         </button>}
         {activeTab === "overview" && !firstFinding && (
-          <div className="dock-empty finding-empty">Run agents를 눌러 실제 도면 검사를 실행하세요.</div>
+          <div className="dock-empty finding-empty">검토 실행을 눌러 실제 도면 검사를 실행하세요.</div>
         )}
 
         {(activeTab === "overview" || activeTab === "evidence") && <div className="evidence-card" data-testid="evidence-card">

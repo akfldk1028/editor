@@ -17,8 +17,8 @@ test("captures desktop and narrow sidebar navigation", async ({ page }) => {
   await stabilize(page);
   await capture(page, "sidebar-desktop.png");
 
-  await page.getByRole("tab", { name: "Skills" }).click();
-  await expect(page.getByRole("region", { name: "Skills" })).toContainText("inspect-drawing");
+  await page.getByRole("tab", { name: "스킬" }).click();
+  await expect(page.getByRole("region", { name: "스킬" })).toContainText("inspect-drawing");
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.reload();
   await page.locator(".menu-button").click();

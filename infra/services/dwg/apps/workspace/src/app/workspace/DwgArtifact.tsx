@@ -30,18 +30,18 @@ export type DwgArtifactTab = "preview" | "findings" | "evidence" | "changes" | "
  * tab strip only while active; a host renders the strip from this list.
  */
 export const dwgArtifactTabs: readonly { id: DwgArtifactTab; label: string; icon: typeof View; overflow?: true }[] = [
-  { id: "preview", label: "CAD Preview", icon: View },
-  { id: "findings", label: "Findings", icon: ScanSearch },
-  { id: "changes", label: "Changes", icon: FileDiff },
-  { id: "evidence", label: "Evidence", icon: FileCheck2, overflow: true },
-  { id: "export", label: "Export", icon: Download, overflow: true },
-  { id: "warnings", label: "Warnings", icon: AlertTriangle, overflow: true }
+  { id: "preview", label: "도면 미리보기", icon: View },
+  { id: "findings", label: "검토 결과", icon: ScanSearch },
+  { id: "changes", label: "변경", icon: FileDiff },
+  { id: "evidence", label: "근거", icon: FileCheck2, overflow: true },
+  { id: "export", label: "내보내기", icon: Download, overflow: true },
+  { id: "warnings", label: "경고", icon: AlertTriangle, overflow: true }
 ];
 
 export interface DwgArtifactView {
   /** Title block: drawing name and index status line. */
   title: ReactNode;
-  /** Primary header action (Run agents). */
+  /** Primary header action (검토 실행). */
   actions: ReactNode;
   /** Artifact-specific ⋯ menu rows (search, version, JSON actions). */
   menu: ReactNode;
@@ -114,7 +114,7 @@ export function useDwgArtifact({ tab, onSelectTab }: { tab: string; onSelectTab(
     <>
       <strong title={index.source.displayName}>{index.source.displayName}</strong>
       <span>
-        <CheckCircle2 aria-hidden="true" size={12} /> <b>Indexed</b> · Revision {revision} · {index.summary.modelSpaceCount} entities
+        <CheckCircle2 aria-hidden="true" size={12} /> <b>색인됨</b> · 개정 {revision} · 객체 {index.summary.modelSpaceCount}
         {searchQuery && <> · <i>&ldquo;{searchQuery}&rdquo;</i></>}
       </span>
     </>
@@ -122,7 +122,7 @@ export function useDwgArtifact({ tab, onSelectTab }: { tab: string; onSelectTab(
 
   const actions = (
     <button className="run-agents artifact-primary" disabled={inspection.loading} onClick={() => void workspace.runAgents()}>
-      <Play aria-hidden="true" size={14} /> <span>{inspection.loading ? "Running" : "Run agents"}</span>
+      <Play aria-hidden="true" size={14} /> <span>{inspection.loading ? "검토 중" : "검토 실행"}</span>
     </button>
   );
 

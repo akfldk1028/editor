@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("uses the Claude-style project, conversation, and artifact order", async ({ page }) => {
-  const sidebar = page.getByRole("complementary", { name: "Workspace navigation" });
+  const sidebar = page.getByRole("complementary", { name: "작업 탐색" });
   const conversation = page.getByRole("main", { name: "대화" });
   const artifact = page.getByRole("region", { name: "CAD 아티팩트" });
 
@@ -35,7 +35,7 @@ test("artifact panel switches tabs, resizes, and maximizes", async ({ page }) =>
   const artifact = page.getByRole("region", { name: "CAD 아티팩트" });
   const initial = await artifact.boundingBox();
 
-  await page.getByRole("tab", { name: "Findings", exact: false }).click();
+  await page.getByRole("tab", { name: "검토 결과", exact: false }).click();
   await expect(page.getByText("검사를 실행하면 근거가 표시됩니다.")).toBeVisible();
 
   const handle = page.getByRole("separator", { name: "CAD 아티팩트 너비 조절" });
@@ -66,13 +66,13 @@ test("narrow workspace opens the project tree as an overlay", async ({ page }) =
   await page.reload();
 
   const menu = page.getByRole("button", { name: "탐색 열기" });
-  await expect(page.getByRole("dialog", { name: "Workspace navigation" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "작업 탐색" })).toHaveCount(0);
   await menu.focus();
   await menu.click();
-  const sidebar = page.getByRole("dialog", { name: "Workspace navigation" });
+  const sidebar = page.getByRole("dialog", { name: "작업 탐색" });
   await expect(sidebar).toHaveClass(/overlay/);
   await expect(sidebar).toHaveAttribute("aria-modal", "true");
-  await expect(sidebar.getByRole("button", { name: "Close navigation" })).toBeFocused();
+  await expect(sidebar.getByRole("button", { name: "탐색 닫기" })).toBeFocused();
   await expect(page.locator(".agent-workspace")).toBeVisible();
   await expect(page.locator(".cad-artifact")).toBeVisible();
   await page.keyboard.press("Escape");
@@ -81,7 +81,7 @@ test("narrow workspace opens the project tree as an overlay", async ({ page }) =
 
   await menu.click();
   await page.getByRole("button", { name: "탐색 닫기" }).click({ position: { x: 900, y: 300 } });
-  await expect(page.getByRole("dialog", { name: "Workspace navigation" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "작업 탐색" })).toHaveCount(0);
   await expect(menu).toBeFocused();
 });
 

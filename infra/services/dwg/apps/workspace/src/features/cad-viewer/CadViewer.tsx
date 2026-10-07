@@ -178,7 +178,7 @@ export function CadViewer({
       </div>
 
       <div className="viewer-status">
-        <span><i className="status-dot ready" /> Indexed</span>
+        <span><i className="status-dot ready" /> 색인됨</span>
         <span>
           {renderedEntityCount < visibleModelEntityCount
             ? `${renderedEntityCount} rendered / ${visibleModelEntityCount} visible`

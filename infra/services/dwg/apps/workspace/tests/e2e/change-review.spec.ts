@@ -33,7 +33,7 @@ test("reviews bounded typed changes, rejects without applying, and re-previews s
   await page.goto("/");
 
   await selectGroundedEntity(page);
-  const changes = page.getByRole("tab", { name: "Changes" });
+  const changes = page.getByRole("tab", { name: "변경" });
   await expect(changes).toBeVisible();
   await changes.click();
   await expect(page.getByText("Selected handle 239")).toBeVisible();
@@ -128,7 +128,7 @@ test("blocks an immediate integration proposal without aborting a delayed commit
   }));
   await page.goto("/");
   await selectGroundedEntity(page);
-  await page.getByRole("tab", { name: "Changes" }).click();
+  await page.getByRole("tab", { name: "변경" }).click();
   await page.getByLabel("Move X").fill("4");
   await page.getByRole("button", { name: "Preview move" }).click();
   await expect(page.getByRole("status")).toContainText("Ready for approval");
@@ -175,7 +175,7 @@ test("retries an initial preview failure from the retained product proposal", as
   });
   await page.goto("/");
   await selectGroundedEntity(page);
-  await page.getByRole("tab", { name: "Changes" }).click();
+  await page.getByRole("tab", { name: "변경" }).click();
   await page.getByLabel("Move X").fill("1");
   await page.getByRole("button", { name: "Preview move" }).click();
 
@@ -216,7 +216,7 @@ test("rejects uncorrelated preview apply and history responses before updating s
   }));
   await page.goto("/");
   await selectGroundedEntity(page);
-  await page.getByRole("tab", { name: "Changes" }).click();
+  await page.getByRole("tab", { name: "변경" }).click();
   await page.getByLabel("Move X").fill("2");
   await page.getByRole("button", { name: "Preview move" }).click();
   await expect(page.getByRole("alert")).toContainText("Preview response does not match proposal.");
@@ -246,8 +246,8 @@ test("ignores malformed proposal events and keeps the error bounded", async ({ p
   await page.evaluate(() => window.dispatchEvent(new CustomEvent("dwg:cad-edit-proposal/v1", {
     detail: { documentId: "not-a-batch", commands: [] }
   })));
-  await page.getByRole("tab", { name: "Changes" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Invalid CAD edit proposal.");
+  await page.getByRole("tab", { name: "변경" }).click();
+  await expect(page.getByRole("alert")).toHaveText("도면 변경 제안의 형식이 올바르지 않습니다.");
   await expect(page.getByText("No proposed changes to review.")).toBeVisible();
 });
 
@@ -264,7 +264,7 @@ test("bounds a contract-valid oversized evidence handle", async ({ page }) => {
   });
   await page.goto("/");
   await selectGroundedEntity(page);
-  await page.getByRole("tab", { name: "Changes" }).click();
+  await page.getByRole("tab", { name: "변경" }).click();
   await page.getByLabel("Move X").fill("3");
   await page.getByRole("button", { name: "Preview move" }).click();
 
@@ -377,8 +377,8 @@ async function mockInspection(page: Page) {
 }
 
 async function selectGroundedEntity(page: Page) {
-  await page.getByRole("button", { name: "Run agents" }).click();
-  await page.getByRole("tab", { name: /Findings/ }).click();
+  await page.getByRole("button", { name: "검토 실행" }).click();
+  await page.getByRole("tab", { name: /검토 결과/ }).click();
   await page.locator(".finding-group-heading").click();
   await page.locator(".finding-row").click();
 }

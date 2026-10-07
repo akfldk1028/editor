@@ -23,7 +23,7 @@ export function SessionNavigator({ activeSessionId, onNewSession, onSelectSessio
   const groups = groupSessions(visibleSessions);
 
   return (
-    <section aria-label="Sessions" className="session-navigation" role="region">
+    <section aria-label="세션" className="session-navigation" role="region">
       <div className="session-navigation-actions"><button onClick={onNewSession}><MessageSquarePlus size={15} />New session</button></div>
       <div className="session-navigation-scroll">
         {groups.map(([label, items]) => <div className="session-group" key={label}>

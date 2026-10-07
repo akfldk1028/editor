@@ -46,7 +46,7 @@ function StandaloneFrame() {
 
   return (
     <div className="app-shell standalone-frame" data-theme={theme}>
-      <aside aria-label="Workspace navigation" className="workspace-sidebar">
+      <aside aria-label="작업 탐색" className="workspace-sidebar">
         <div className="sidebar-heading">
           <div aria-hidden="true" className="brand-mark">DI</div><strong>DWG Intelligence</strong>
           <span className="sidebar-heading-actions"><DwgSidebarActions /></span>

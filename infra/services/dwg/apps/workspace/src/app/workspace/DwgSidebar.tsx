@@ -8,7 +8,7 @@ import { useDwgWorkspace, type DwgSidebarTab } from "./DwgWorkspaceProvider";
 import { DwgLoadState } from "./DwgLoadState";
 
 const tabs: readonly DwgSidebarTab[] = ["project", "sessions", "skills"];
-const tabLabels: Record<DwgSidebarTab, string> = { project: "Project", sessions: "Sessions", skills: "Skills" };
+const tabLabels: Record<DwgSidebarTab, string> = { project: "프로젝트", sessions: "세션", skills: "스킬" };
 
 /** Controls for the sidebar heading row (open another drawing). */
 export function DwgSidebarActions() {
@@ -45,7 +45,7 @@ export function DwgSidebar() {
 
   return (
     <div className="dwg-workspace dwg-sidebar-content">
-      <div aria-label="Workspace navigation sections" className="sidebar-tabs" role="tablist">
+      <div aria-label="작업 탐색 구역" className="sidebar-tabs" role="tablist">
         {tabs.map((candidate) => <button
           aria-controls={`workspace-panel-${candidate}`}
           aria-selected={candidate === tab}
@@ -61,7 +61,7 @@ export function DwgSidebar() {
 
       <label className="sidebar-search">
         <Search aria-hidden="true" size={14} />
-        <input aria-label="Search workspace" onChange={(event) => workspace.setSidebarQuery(event.target.value)} placeholder="Search workspace" type="search" value={query} />
+        <input aria-label="작업 검색" onChange={(event) => workspace.setSidebarQuery(event.target.value)} placeholder="작업 검색" type="search" value={query} />
       </label>
 
       <DrawingSessionBar {...workspace.drawingSessionProps} />

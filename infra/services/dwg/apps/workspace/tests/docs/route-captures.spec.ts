@@ -21,8 +21,8 @@ test("captures the required navigation, change, narrow, and theme states through
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
-  await page.getByRole("tab", { name: "Skills", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Skills" })).toContainText("inspect-drawing");
+  await page.getByRole("tab", { name: "스킬", exact: true }).click();
+  await expect(page.getByRole("region", { name: "스킬" })).toContainText("inspect-drawing");
   await stabilize(page);
   await capture(page, "skill-selected.png");
 
@@ -39,7 +39,7 @@ test("captures the required navigation, change, narrow, and theme states through
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.reload();
   await page.getByRole("button", { name: "탐색 열기" }).click();
-  await expect(page.getByRole("dialog", { name: "Workspace navigation" })).toHaveClass(/overlay/);
+  await expect(page.getByRole("dialog", { name: "작업 탐색" })).toHaveClass(/overlay/);
   await capture(page, "sidebar-narrow.png");
 
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -60,14 +60,14 @@ test("captures the single workspace route in its key states", async ({ page }) =
   await stabilize(page);
   await capture(page, "01-workspace-loaded.png");
 
-  await page.getByRole("button", { name: "Run agents" }).click();
+  await page.getByRole("button", { name: "검토 실행" }).click();
   await expect(page.getByText("VERIFIED RESULT")).toBeVisible();
-  await page.getByRole("tab", { name: /Findings/ }).click();
+  await page.getByRole("tab", { name: /검토 결과/ }).click();
   await capture(page, "02-inspection-complete.png");
 
   await openArtifactMenu(page);
   await page.getByRole("button", { name: "검사 초기화" }).click();
-  await page.getByRole("tab", { name: /CAD Preview/ }).click();
+  await page.getByRole("tab", { name: /도면 미리보기/ }).click();
   const layerToggle = page.locator(".layer-visibility-button").first();
   await layerToggle.click();
   await expect(layerToggle).toHaveAccessibleName("Show layer 0");
@@ -145,7 +145,7 @@ test("captures verified Save As and report download through visible controls", a
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await openArtifactView(page, "Export");
+  await openArtifactView(page, "내보내기");
   await page.getByRole("button", { name: "Choose destination" }).click();
   await page.getByLabel("Base filename").fill("verified-copy");
   await page.getByRole("button", { name: "Save As DXF" }).click();
@@ -166,7 +166,7 @@ test("captures the focused desktop sidebar preference state", async ({ page }) =
   await mockProviderStatus(page);
   await page.goto("/");
 
-  const resizer = page.getByRole("separator", { name: "Sidebar width" });
+  const resizer = page.getByRole("separator", { name: "사이드바 너비" });
   await expect(resizer).toHaveAttribute("aria-valuenow", "320");
   await resizer.press("ArrowRight");
   await expect(resizer).toHaveAttribute("aria-valuenow", "336");
@@ -262,11 +262,11 @@ async function capture(page: Page, fileName: string) {
 }
 
 async function createVisibleMoveProposal(page: Page) {
-  await page.getByRole("button", { name: "Run agents" }).click();
-  await page.getByRole("tab", { name: /Findings/ }).click();
+  await page.getByRole("button", { name: "검토 실행" }).click();
+  await page.getByRole("tab", { name: /검토 결과/ }).click();
   await page.locator(".finding-group-heading").click();
   await page.locator(".finding-row").click();
-  await page.getByRole("tab", { name: "Changes" }).click();
+  await page.getByRole("tab", { name: "변경" }).click();
   await page.getByLabel("Move X").fill("5");
   await page.getByRole("button", { name: "Preview move" }).click();
   await expect(page.getByRole("status")).toContainText("Ready for approval");
