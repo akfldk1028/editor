@@ -1,19 +1,25 @@
 import {
   AtSign,
+  ChevronDown,
   Paperclip,
   Send,
   Square,
   X
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import {
   MAX_PROVIDER_MESSAGE_CHARS,
-  type ProviderId
+  type ProviderId,
+  type ProviderStatus
 } from "../../shared/types";
+import { closePopover, usePopoverAnchor } from "../../shared/usePopoverAnchor";
 import { buildAttachmentMessage } from "./attachmentMessage";
+import { ProviderSwitch } from "./ProviderSwitch";
 
 interface Props {
+  providers: ProviderStatus[];
+  onProviderChange(provider: ProviderId): void;
   provider: ProviderId;
   message: string;
   loading: boolean;
@@ -23,6 +29,8 @@ interface Props {
 }
 
 export function ChatComposer({
+  providers,
+  onProviderChange,
   provider,
   message,
   loading,
@@ -34,6 +42,11 @@ export function ChatComposer({
   const [attachmentBlock, setAttachmentBlock] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
+  const modelChipRef = useRef<HTMLButtonElement>(null);
+  const modelMenuId = useId();
+  usePopoverAnchor(modelMenuRef, modelChipRef, "above");
+  const providerName = provider === "codex" ? "GPT" : "Claude";
 
   useEffect(() => {
     if (!message && attachmentName) {
@@ -104,7 +117,28 @@ export function ChatComposer({
           <button aria-label="에이전트 멘션" onClick={insertMention} type="button"><AtSign size={14} /></button>
           <button aria-label="파일 첨부" onClick={() => fileInputRef.current?.click()} type="button"><Paperclip size={14} /></button>
         </span>
-        <span className="composer-provider">{provider === "codex" ? "GPT" : "CLAUDE"} · OAUTH</span>
+        <button
+          aria-haspopup="menu"
+          aria-label={`AI 모델: ${providerName}`}
+          className="model-chip"
+          popoverTarget={modelMenuId}
+          ref={modelChipRef}
+          title="AI 모델 (OAuth CLI)"
+          type="button"
+        >
+          {providerName}<ChevronDown aria-hidden="true" size={12} />
+        </button>
+        <div className="workspace-menu model-menu" id={modelMenuId} popover="auto" ref={modelMenuRef}>
+          <ProviderSwitch
+            providers={providers}
+            selectedProvider={provider}
+            onProviderChange={(next) => {
+              onProviderChange(next);
+              closePopover(modelMenuRef.current);
+            }}
+          />
+          <small>OAuth CLI 로그인 세션</small>
+        </div>
         {loading ? (
           <button
             className="send-button cancel-button"

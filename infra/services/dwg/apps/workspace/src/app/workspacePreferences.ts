@@ -1,11 +1,22 @@
+import { clampArtifactShare, clampSidebarWidth, layout } from "./layoutModes";
+
+export { clampSidebarWidth } from "./layoutModes";
+
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 export type SidebarTab = "project" | "sessions" | "skills";
 
 export interface WorkspacePreferences {
   theme: ThemePreference;
-  artifactWidth: number;
+  /**
+   * Preferred artifact share of the row it shares with the conversation
+   * (0..1); null follows the default. A share, not px, so a width chosen on
+   * a large screen still leaves the conversation room on a smaller one.
+   */
+  artifactShare: number | null;
   sidebarWidth: number;
+  /** Wide layout only: the sidebar is folded into its rail. */
+  sidebarCollapsed: boolean;
   sidebarTab: SidebarTab;
   sidebarSections: {
     project: boolean;
@@ -19,19 +30,15 @@ interface StorageLike {
   setItem(key: string, value: string): void;
 }
 
-const storageKey = "dwg.workspace-preferences.v2";
-const legacyStorageKey = "dwg.workspace-preferences.v1";
-const defaultSidebarWidth = 320;
-const minimumSidebarWidth = 280;
-const maximumSidebarWidth = 420;
-const conversationMinimumWidth = 500;
-const separatorWidth = 7;
-const artifactMinimumWidth = 520;
+const storageKey = "dwg.workspace-preferences.v3";
+/** Older keys, newest first. Their artifact widths used the 520px-floor model and are dropped. */
+const legacyStorageKeys = ["dwg.workspace-preferences.v2", "dwg.workspace-preferences.v1"] as const;
 
 export const defaultWorkspacePreferences: WorkspacePreferences = {
   theme: "system",
-  artifactWidth: artifactMinimumWidth,
-  sidebarWidth: defaultSidebarWidth,
+  artifactShare: null,
+  sidebarWidth: layout.sidebar.default,
+  sidebarCollapsed: false,
   sidebarTab: "project",
   sidebarSections: {
     project: true,
@@ -50,26 +57,6 @@ export function resolveTheme(
   return preference;
 }
 
-export function clampArtifactWidth(
-  viewportWidth: number,
-  desiredWidth: number,
-  sidebarVisible: boolean,
-  preferredSidebarWidth = defaultSidebarWidth
-) {
-  const availableWidth =
-    viewportWidth -
-    (sidebarVisible ? clampSidebarWidth(preferredSidebarWidth) : 0) -
-    conversationMinimumWidth -
-    (sidebarVisible ? separatorWidth * 2 : separatorWidth);
-  const maximumWidth = Math.max(0, availableWidth);
-  const minimumWidth = Math.min(artifactMinimumWidth, maximumWidth);
-  return Math.min(maximumWidth, Math.max(minimumWidth, desiredWidth));
-}
-
-export function clampSidebarWidth(desiredWidth: number) {
-  return Math.min(maximumSidebarWidth, Math.max(minimumSidebarWidth, desiredWidth));
-}
-
 export function createWorkspacePreferencesStore(storage: StorageLike) {
   let memoryValue = defaultWorkspacePreferences;
   let legacyMigrationAttempted = false;
@@ -85,14 +72,17 @@ export function createWorkspacePreferencesStore(storage: StorageLike) {
 
         if (legacyMigrationAttempted) return memoryValue;
         legacyMigrationAttempted = true;
-        const legacyRaw = storage.getItem(legacyStorageKey);
-        if (!legacyRaw) return memoryValue;
-        const migrated = migrateLegacyPreferences(legacyRaw);
-        if (!migrated) {
-          memoryValue = defaultWorkspacePreferences;
+        for (const key of legacyStorageKeys) {
+          const legacyRaw = storage.getItem(key);
+          if (!legacyRaw) continue;
+          const migrated = migrateLegacyPreferences(legacyRaw);
+          if (!migrated) {
+            memoryValue = defaultWorkspacePreferences;
+            return memoryValue;
+          }
+          this.save(migrated);
           return memoryValue;
         }
-        this.save(migrated);
         return memoryValue;
       } catch {
         return memoryValue;
@@ -117,20 +107,32 @@ function parseCurrentPreferences(raw: string): WorkspacePreferences | null {
   }
 }
 
+/** v1 and v2 share theme and sections; v2 adds a sidebar width and tab. */
 function migrateLegacyPreferences(raw: string): WorkspacePreferences | null {
   try {
-    const legacy = validateLegacyPreferences(JSON.parse(raw));
-    return legacy && {
-      ...legacy,
-      sidebarWidth: defaultSidebarWidth,
-      sidebarTab: "project"
+    const value: unknown = JSON.parse(raw);
+    const base = validateBase(value);
+    if (!base) return null;
+    const record = value as Record<string, unknown>;
+    return {
+      ...base,
+      artifactShare: null,
+      sidebarWidth: typeof record.sidebarWidth === "number" && Number.isFinite(record.sidebarWidth)
+        ? clampSidebarWidth(record.sidebarWidth)
+        : layout.sidebar.default,
+      sidebarCollapsed: false,
+      sidebarTab: isSidebarTab(record.sidebarTab) ? record.sidebarTab : "project"
     };
   } catch {
     return null;
   }
 }
 
-function validateLegacyPreferences(value: unknown): Omit<WorkspacePreferences, "sidebarWidth" | "sidebarTab"> | null {
+function isSidebarTab(value: unknown): value is SidebarTab {
+  return value === "project" || value === "sessions" || value === "skills";
+}
+
+function validateBase(value: unknown): Pick<WorkspacePreferences, "theme" | "sidebarSections"> | null {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   const sections = record.sidebarSections;
@@ -138,8 +140,6 @@ function validateLegacyPreferences(value: unknown): Omit<WorkspacePreferences, "
     (record.theme !== "light" &&
       record.theme !== "dark" &&
       record.theme !== "system") ||
-    typeof record.artifactWidth !== "number" ||
-    !Number.isFinite(record.artifactWidth) ||
     !sections ||
     typeof sections !== "object"
   ) {
@@ -155,7 +155,6 @@ function validateLegacyPreferences(value: unknown): Omit<WorkspacePreferences, "
   }
   return {
     theme: record.theme,
-    artifactWidth: record.artifactWidth,
     sidebarSections: {
       project: sectionRecord.project,
       drawing: sectionRecord.drawing,
@@ -165,21 +164,26 @@ function validateLegacyPreferences(value: unknown): Omit<WorkspacePreferences, "
 }
 
 function validatePreferences(value: unknown): WorkspacePreferences | null {
-  const legacy = validateLegacyPreferences(value);
-  if (!legacy) return null;
+  const base = validateBase(value);
+  if (!base) return null;
   const record = value as Record<string, unknown>;
+  // Absent (an early v3 that stored px) reads as the default share.
+  const share = record.artifactShare ?? null;
   if (
+    (share !== null && (typeof share !== "number" || !Number.isFinite(share))) ||
     typeof record.sidebarWidth !== "number" ||
     !Number.isFinite(record.sidebarWidth) ||
-    (record.sidebarTab !== "project" &&
-      record.sidebarTab !== "sessions" &&
-      record.sidebarTab !== "skills")
+    typeof record.sidebarCollapsed !== "boolean" ||
+    !isSidebarTab(record.sidebarTab)
   ) {
     return null;
   }
   return {
-    ...legacy,
+    ...base,
+    artifactShare: share === null ? null : clampArtifactShare(share),
     sidebarWidth: clampSidebarWidth(record.sidebarWidth),
+    sidebarCollapsed: record.sidebarCollapsed,
     sidebarTab: record.sidebarTab
   };
 }
+

@@ -13,7 +13,7 @@
   gap: 6px;
   padding: 6px 10px;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-2);
   cursor: pointer;
   background: var(--surface, #fff);
   border: 1px solid var(--border, #e5e5e5);
@@ -39,7 +39,7 @@
   overflow: hidden;
   padding: 4px 8px;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--fs-2);
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -57,7 +57,7 @@
 
 .drawing-sessions-error {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--fs-1);
   color: var(--danger, #b3261e);
 }
 

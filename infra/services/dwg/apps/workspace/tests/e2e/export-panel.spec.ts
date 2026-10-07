@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openArtifactView } from "../support/workspaceMenus.ts";
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -12,7 +13,7 @@ test("uses the assembled export capability endpoint and separates report export 
   });
   expect(capabilityStatus).toBe(200);
 
-  await page.getByRole("tab", { name: "Export", exact: true }).click();
+  await openArtifactView(page, "Export");
   const panel = page.getByRole("region", { name: "Export" });
   await expect(panel.getByRole("heading", { name: "Report export" })).toBeVisible();
   await expect(panel.getByRole("heading", { name: "Drawing Save As" })).toBeVisible();
@@ -22,10 +23,10 @@ test("uses the assembled export capability endpoint and separates report export 
   await expect(panel.locator(".destination-status")).toContainText("Destination required");
 });
 
-test("keeps a 500 pixel conversation and exposes both keyboard resizers at 1280 by 800", async ({ page }) => {
+test("keeps the conversation floor and exposes both keyboard resizers at 1280 by 800", async ({ page }) => {
   const conversation = page.getByRole("main", { name: "대화" });
   await expect(conversation).toBeVisible();
-  expect((await conversation.boundingBox())!.width).toBeGreaterThanOrEqual(500);
+  expect((await conversation.boundingBox())!.width).toBeGreaterThanOrEqual(320);
 
   const sidebar = page.getByRole("separator", { name: "Sidebar width" });
   const artifact = page.locator(".artifact-resizer");
@@ -33,7 +34,7 @@ test("keeps a 500 pixel conversation and exposes both keyboard resizers at 1280 
   await expect(artifact).toHaveAttribute("tabindex", "0");
   await sidebar.press("ArrowRight");
   await artifact.press("ArrowLeft");
-  expect((await conversation.boundingBox())!.width).toBeGreaterThanOrEqual(500);
+  expect((await conversation.boundingBox())!.width).toBeGreaterThanOrEqual(320);
 });
 
 test("failed Save As consumes the selected grant and requires a new destination", async ({ page }) => {
@@ -46,7 +47,7 @@ test("failed Save As consumes the selected grant and requires a new destination"
       body: JSON.stringify({ error: { code: "CAD_SAVE_FAILED", message: "forced failure" } })
     });
   });
-  await page.getByRole("tab", { name: "Export", exact: true }).click();
+  await openArtifactView(page, "Export");
   const panel = page.getByRole("region", { name: "Export" });
   await panel.getByRole("button", { name: "Choose destination" }).click();
   const save = panel.getByRole("button", { name: "Save As DWG" });
@@ -75,7 +76,7 @@ test("disables every export control while a destination action is in flight", as
       })
     });
   });
-  await page.getByRole("tab", { name: "Export", exact: true }).click();
+  await openArtifactView(page, "Export");
   const panel = page.getByRole("region", { name: "Export" });
   await panel.getByRole("button", { name: "Choose destination" }).click();
 

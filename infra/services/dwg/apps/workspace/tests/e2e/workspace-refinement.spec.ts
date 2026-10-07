@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { openArtifactMenu } from "../support/workspaceMenus.ts";
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -72,6 +73,7 @@ test("keeps CAD controls inside the artifact instead of the global header", asyn
   await expect(topbar.getByLabel("전체 도면 검색")).toHaveCount(0);
   await expect(artifact.locator(".artifact-header").getByText("Indexed", { exact: true })).toBeVisible();
   await expect(artifact.getByRole("button", { name: "Run agents" })).toBeVisible();
+  await openArtifactMenu(page);
   await expect(artifact.getByLabel("전체 도면 검색")).toBeVisible();
 });
 
@@ -93,6 +95,7 @@ test("offers Claude-like artifact version, copy, and download controls", async (
   await page.goto("/");
   const artifact = page.getByRole("region", { name: "CAD 아티팩트" });
 
+  await openArtifactMenu(page);
   await expect(artifact.getByLabel("아티팩트 버전")).toHaveValue("cad-index/v0.2");
   await expect(artifact.getByRole("button", { name: "아티팩트 복사" })).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
@@ -112,11 +115,11 @@ test("uses Claude-style sidebar hierarchy and wider default chat", async ({ page
   await expect(sidebar.getByRole("tree", { name: "Drawing hierarchy" })).toBeVisible();
 
   const conversation = await page.getByRole("main", { name: "대화" }).boundingBox();
-  expect(conversation!.width).toBeGreaterThanOrEqual(500);
+  expect(conversation!.width).toBeGreaterThanOrEqual(320);
   await expect(page.getByText("export_sample.dwg", { exact: true })).toHaveCount(2);
 });
 
-test("preserves a 500px conversation when restoring an older wide artifact", async ({ page }) => {
+test("preserves the conversation floor when restoring an older wide artifact", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("dwg.workspace-preferences.v1", JSON.stringify({
       theme: "system",
@@ -131,7 +134,7 @@ test("preserves a 500px conversation when restoring an older wide artifact", asy
   await page.goto("/");
 
   const conversation = await page.getByRole("main", { name: "대화" }).boundingBox();
-  expect(conversation!.width).toBeGreaterThanOrEqual(500);
+  expect(conversation!.width).toBeGreaterThanOrEqual(320);
 });
 
 test("loads with in-memory defaults when browser storage access is blocked", async ({ page }) => {
@@ -150,7 +153,7 @@ test("loads with in-memory defaults when browser storage access is blocked", asy
   await expect(page.getByText("export_sample.dwg", { exact: true }).first()).toBeVisible();
 });
 
-test("migrates sidebar defaults from v1 and persists the v2 preference after reload", async ({ page }) => {
+test("migrates sidebar defaults from v1 and persists the v3 preference after reload", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("dwg.workspace-preferences.v1", JSON.stringify({
       theme: "system",
@@ -161,14 +164,14 @@ test("migrates sidebar defaults from v1 and persists the v2 preference after rel
   await page.goto("/");
 
   const resizer = page.getByRole("separator", { name: "Sidebar width" });
-  await expect(resizer).toHaveAttribute("aria-valuenow", "320");
-  await expect(resizer).toHaveAttribute("aria-valuemin", "280");
-  await expect(resizer).toHaveAttribute("aria-valuemax", "420");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "240");
+  await expect(resizer).toHaveAttribute("aria-valuemin", "200");
+  await expect(resizer).toHaveAttribute("aria-valuemax", "320");
   await expect(resizer).toHaveAttribute("aria-orientation", "vertical");
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("dwg.workspace-preferences.v2"))).not.toBeNull();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("dwg.workspace-preferences.v3"))).not.toBeNull();
 
   await page.reload();
-  await expect(resizer).toHaveAttribute("aria-valuenow", "320");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "240");
 });
 
 test("sidebar resizer uses 16px keyboard steps and clamps pointer resize at both bounds", async ({ page }) => {
@@ -176,11 +179,11 @@ test("sidebar resizer uses 16px keyboard steps and clamps pointer resize at both
   const resizer = page.getByRole("separator", { name: "Sidebar width" });
 
   await resizer.press("ArrowRight");
-  await expect(resizer).toHaveAttribute("aria-valuenow", "336");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "256");
   await resizer.press("End");
-  await expect(resizer).toHaveAttribute("aria-valuenow", "420");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "320");
   await resizer.press("Home");
-  await expect(resizer).toHaveAttribute("aria-valuenow", "280");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "200");
 
   const box = await resizer.boundingBox();
   expect(box).not.toBeNull();
@@ -188,14 +191,14 @@ test("sidebar resizer uses 16px keyboard steps and clamps pointer resize at both
   await page.mouse.down();
   await page.mouse.move(1000, box!.y + box!.height / 2);
   await page.mouse.up();
-  await expect(resizer).toHaveAttribute("aria-valuenow", "420");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "320");
 
   const maxBox = await resizer.boundingBox();
   await page.mouse.move(maxBox!.x + maxBox!.width / 2, maxBox!.y + maxBox!.height / 2);
   await page.mouse.down();
   await page.mouse.move(0, maxBox!.y + maxBox!.height / 2);
   await page.mouse.up();
-  await expect(resizer).toHaveAttribute("aria-valuenow", "280");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "200");
 });
 
 test("pointer cancellation clears resize state and permits a later pointer resize", async ({ page }) => {
@@ -211,10 +214,10 @@ test("pointer cancellation clears resize state and permits a later pointer resiz
   await expect(page.locator("body")).not.toHaveClass(/resizing-sidebar/);
   await page.mouse.move(first.x + 80, first.y);
   await page.mouse.up();
-  await expect(resizer).toHaveAttribute("aria-valuenow", "320");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "240");
 
   await resizeSidebarWithPointer(page, resizer, 32);
-  await expect(resizer).toHaveAttribute("aria-valuenow", "352");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "272");
 });
 
 test("lost capture and window blur clean resize state without stale width commits", async ({ page }) => {
@@ -236,25 +239,26 @@ test("lost capture and window blur clean resize state without stale width commit
   )).toBe(false);
   await page.mouse.move(lost.x + 80, lost.y);
   await page.mouse.up();
-  await expect(resizer).toHaveAttribute("aria-valuenow", "320");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "240");
 
   const blurred = await beginPointerResize(page, resizer);
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
   await expect(page.locator("body")).not.toHaveClass(/resizing-sidebar/);
   await page.mouse.move(blurred.x + 80, blurred.y);
   await page.mouse.up();
-  await expect(resizer).toHaveAttribute("aria-valuenow", "320");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "240");
 
   await resizeSidebarWithPointer(page, resizer, 16);
-  await expect(resizer).toHaveAttribute("aria-valuenow", "336");
+  await expect(resizer).toHaveAttribute("aria-valuenow", "256");
 });
 
-test("invalid v2 sidebar storage falls back to usable defaults", async ({ page }) => {
+test("invalid v3 sidebar storage falls back to usable defaults", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("dwg.workspace-preferences.v2", JSON.stringify({
+    localStorage.setItem("dwg.workspace-preferences.v3", JSON.stringify({
       theme: "system",
-      artifactWidth: 680,
-      sidebarWidth: 320,
+      artifactShare: 0.5,
+      sidebarWidth: 300,
+      sidebarCollapsed: false,
       sidebarTab: "not-a-tab",
       sidebarSections: { project: true, drawing: true, sessions: true }
     }));
@@ -263,7 +267,7 @@ test("invalid v2 sidebar storage falls back to usable defaults", async ({ page }
 
   await expect(page.getByRole("separator", { name: "Sidebar width" })).toHaveAttribute(
     "aria-valuenow",
-    "320"
+    "240"
   );
 });
 

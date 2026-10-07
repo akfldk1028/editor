@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openArtifactView } from "../support/workspaceMenus.ts";
 import {
   parseCadDrawingExportResponse,
   parseCadVerificationResponse
@@ -6,7 +7,7 @@ import {
 
 test("saves a verified drawing copy and downloads a report", async ({ page }, testInfo) => {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Export", exact: true }).click();
+  await openArtifactView(page, "Export");
   await page.getByRole("button", { name: "Choose destination" }).click();
   await page.getByLabel("Base filename").fill("verified-copy");
   await page.getByRole("button", { name: "Save As DWG" }).click();
@@ -28,7 +29,7 @@ test("saves a verified drawing copy and downloads a report", async ({ page }, te
 
 test("saves a verified DXF copy from a DWG source", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("tab", { name: "Export", exact: true }).click();
+  await openArtifactView(page, "Export");
   const dxf = page.getByRole("button", { name: "Save As DXF" });
   await expect(dxf).toBeDisabled();
 

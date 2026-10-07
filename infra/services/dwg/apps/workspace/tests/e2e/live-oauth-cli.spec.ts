@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openModelMenu } from "../support/workspaceMenus.ts";
 import {
   createSafeLiveOAuthSummary,
   hasCadHandleEvidence,
@@ -56,6 +57,7 @@ for (const provider of selectedProviders) {
       .locator(".provider-switch button")
       .filter({ hasText: provider.buttonName });
     await expect(providerButton).toBeEnabled({ timeout: 30_000 });
+    await openModelMenu(page);
     await providerButton.click();
 
     const firstPrompt = LIVE_OAUTH_PROMPTS.initial;
@@ -64,6 +66,7 @@ for (const provider of selectedProviders) {
     await page.reload();
     await expectSensitiveRegionsToBeHidden(page);
     await expect(providerButton).toBeEnabled({ timeout: 30_000 });
+    await openModelMenu(page);
     await providerButton.click();
 
     const resumedPrompt = LIVE_OAUTH_PROMPTS.resume;

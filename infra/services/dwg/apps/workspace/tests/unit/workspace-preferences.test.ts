@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  clampArtifactWidth,
   clampSidebarWidth,
   createWorkspacePreferencesStore,
   defaultWorkspacePreferences,
@@ -16,12 +15,6 @@ test("resolves explicit and system theme preferences", () => {
   assert.equal(resolveTheme("system", false), "light");
 });
 
-test("clamps the CAD artifact width while preserving the conversation", () => {
-  assert.equal(clampArtifactWidth(1440, 900, true), 606);
-  assert.equal(clampArtifactWidth(1440, 300, true), 520);
-  assert.equal(clampArtifactWidth(1200, 1000, false), 693);
-});
-
 test("workspace preferences persist and reject malformed storage", () => {
   const values = new Map<string, string>();
   const storage = {
@@ -33,8 +26,9 @@ test("workspace preferences persist and reject malformed storage", () => {
   assert.deepEqual(store.load(), defaultWorkspacePreferences);
   store.save({
     theme: "dark",
-    artifactWidth: 720,
-    sidebarWidth: 400,
+    artifactShare: 0.6,
+    sidebarWidth: 300,
+    sidebarCollapsed: true,
     sidebarTab: "skills",
     sidebarSections: {
       project: false,
@@ -43,13 +37,14 @@ test("workspace preferences persist and reject malformed storage", () => {
     }
   });
   assert.equal(store.load().theme, "dark");
-  assert.equal(store.load().artifactWidth, 720);
+  assert.equal(store.load().artifactShare, 0.6);
+  assert.equal(store.load().sidebarCollapsed, true);
 
-  values.set("dwg.workspace-preferences.v2", "{\"theme\":\"invalid\"}");
+  values.set("dwg.workspace-preferences.v3", "{\"theme\":\"invalid\"}");
   assert.deepEqual(store.load(), defaultWorkspacePreferences);
 });
 
-test("migrates legacy v1 preferences to a clamped v2 sidebar preference", () => {
+test("migrates legacy v1 preferences to v3 defaults for the new layout", () => {
   const values = new Map<string, string>();
   const storage = {
     getItem: (key: string) => values.get(key) ?? null,
@@ -68,8 +63,9 @@ test("migrates legacy v1 preferences to a clamped v2 sidebar preference", () => 
   const store = createWorkspacePreferencesStore(storage);
   assert.deepEqual(store.load(), {
     theme: "dark",
-    artifactWidth: 720,
-    sidebarWidth: 320,
+    artifactShare: null,
+    sidebarWidth: 240,
+    sidebarCollapsed: false,
     sidebarTab: "project",
     sidebarSections: {
       project: false,
@@ -77,17 +73,19 @@ test("migrates legacy v1 preferences to a clamped v2 sidebar preference", () => 
       sessions: true
     }
   });
-  assert.deepEqual(JSON.parse(values.get("dwg.workspace-preferences.v2")!), store.load());
+  assert.deepEqual(JSON.parse(values.get("dwg.workspace-preferences.v3")!), store.load());
 });
 
 test("clamps persisted sidebar widths and rejects unknown sidebar tabs", () => {
-  assert.equal(clampSidebarWidth(200), 280);
-  assert.equal(clampSidebarWidth(500), 420);
+  assert.equal(clampSidebarWidth(150), 200);
+  assert.equal(clampSidebarWidth(500), 320);
+  assert.equal(clampSidebarWidth(320), 320);
 
-  const values = new Map<string, string>([["dwg.workspace-preferences.v2", JSON.stringify({
+  const values = new Map<string, string>([["dwg.workspace-preferences.v3", JSON.stringify({
     theme: "system",
-    artifactWidth: 680,
+    artifactShare: 0.5,
     sidebarWidth: 500,
+    sidebarCollapsed: false,
     sidebarTab: "skills",
     sidebarSections: {
       project: true,
@@ -100,12 +98,13 @@ test("clamps persisted sidebar widths and rejects unknown sidebar tabs", () => {
     setItem: (key: string, value: string) => void values.set(key, value)
   });
 
-  assert.equal(store.load().sidebarWidth, 420);
+  assert.equal(store.load().sidebarWidth, 320);
 
-  values.set("dwg.workspace-preferences.v2", JSON.stringify({
+  values.set("dwg.workspace-preferences.v3", JSON.stringify({
     theme: "system",
-    artifactWidth: 680,
-    sidebarWidth: 320,
+    artifactShare: 0.5,
+    sidebarWidth: 240,
+    sidebarCollapsed: false,
     sidebarTab: "unknown",
     sidebarSections: {
       project: true,
@@ -114,6 +113,45 @@ test("clamps persisted sidebar widths and rejects unknown sidebar tabs", () => {
     }
   }));
   assert.deepEqual(store.load(), defaultWorkspacePreferences);
+});
+
+test("migrates v2 preferences: keeps theme, tab and a clamped sidebar, drops the px artifact width", () => {
+  const values = new Map<string, string>([["dwg.workspace-preferences.v2", JSON.stringify({
+    theme: "light",
+    artifactWidth: 998,
+    sidebarWidth: 420,
+    sidebarTab: "sessions",
+    sidebarSections: { project: true, drawing: false, sessions: true }
+  })]]);
+  const store = createWorkspacePreferencesStore({
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => void values.set(key, value)
+  });
+  assert.deepEqual(store.load(), {
+    theme: "light",
+    artifactShare: null,
+    sidebarWidth: 320,
+    sidebarCollapsed: false,
+    sidebarTab: "sessions",
+    sidebarSections: { project: true, drawing: false, sessions: true }
+  });
+});
+
+test("an early v3 record without an artifact share reads as the default share", () => {
+  const values = new Map<string, string>([["dwg.workspace-preferences.v3", JSON.stringify({
+    theme: "dark",
+    artifactWidth: 998,
+    sidebarWidth: 240,
+    sidebarCollapsed: false,
+    sidebarTab: "project",
+    sidebarSections: { project: true, drawing: true, sessions: true }
+  })]]);
+  const store = createWorkspacePreferencesStore({
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => void values.set(key, value)
+  });
+  assert.equal(store.load().artifactShare, null);
+  assert.equal(store.load().theme, "dark");
 });
 
 test("workspace preference storage failures preserve usable defaults", () => {
@@ -157,8 +195,9 @@ test("attempts a legacy migration only once when v2 persistence is blocked", () 
   });
   const expected = {
     theme: "dark" as const,
-    artifactWidth: 720,
-    sidebarWidth: 320,
+    artifactShare: null,
+    sidebarWidth: 240,
+    sidebarCollapsed: false,
     sidebarTab: "project" as const,
     sidebarSections: {
       project: false,

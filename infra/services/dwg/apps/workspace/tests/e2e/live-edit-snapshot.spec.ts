@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { expect, test, type Page } from "@playwright/test";
+import { openArtifactView } from "../support/workspaceMenus.ts";
 import { createCadGatewayServer } from "../../../../modules/cad-runtime/src/http/gateway.js";
 
 const fixturePath = fileURLToPath(new URL("../../../../tests/fixtures/dwg/export_sample.dwg", import.meta.url));
@@ -65,7 +66,7 @@ test("the real gateway and workspace render apply undo redo from one in-memory s
     await page.locator(".finding-group-heading").filter({ hasText: "LWPOLYLINE" }).click();
   }
   await revisedFinding.click();
-  await page.getByRole("tab", { name: "Evidence" }).click();
+  await openArtifactView(page, "Evidence");
   await expect(page.getByTestId("evidence-card")).toContainText("[5,0,0]");
   await expect(page.getByTestId("evidence-card")).toContainText("REVISION");
   expect(sha256(await readFile(fixturePath))).toBe(sourceHash);

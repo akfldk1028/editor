@@ -31,47 +31,26 @@ test("narrow navigation dialog traps focus, hides its background, and restores t
   await expect(trigger).toBeFocused();
 });
 
-test("compact CAD artifact dialog traps focus, hides its background, and restores its trigger", async ({ page }) => {
-  const trigger = page.locator(".artifact-toggle");
-  await trigger.focus();
-  await trigger.press("Enter");
-
-  const dialog = page.getByRole("dialog", { name: "CAD 아티팩트" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toHaveAttribute("aria-modal", "true");
-  await expect(page.locator(".topbar")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.locator(".workspace-grid > .agent-workspace")).toHaveAttribute("aria-hidden", "true");
-  await expectFocusWithin(page, dialog);
-
-  await page.keyboard.press("Shift+Tab");
-  await expectFocusWithin(page, dialog);
-  await page.keyboard.press("Tab");
-  await expectFocusWithin(page, dialog);
-  await page.keyboard.press("Escape");
-
-  await expect(dialog).toHaveCount(0);
-  await expect(trigger).toBeFocused();
-});
-
-test("breakpoint transition keeps one modal owner with focus trap and Escape restoration", async ({ page }) => {
+test("a layout mode change closes the drawer and leaves no modal behind", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 800 });
   await page.reload();
   await page.locator(".menu-button").click();
-  await expect(page.locator(".workspace-sidebar")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Workspace navigation" })).toBeVisible();
   await expect(page.locator(".cad-artifact")).toBeVisible();
 
-  await page.setViewportSize({ width: 800, height: 800 });
+  await page.setViewportSize({ width: 700, height: 800 });
 
-  const dialogs = page.getByRole("dialog");
-  await expect(dialogs).toHaveCount(1);
-  await expect(page.getByRole("dialog", { name: "CAD 아티팩트" })).toBeVisible();
-  await expect(page.locator(".topbar")).toHaveAttribute("aria-hidden", "true");
-  await expect(page.locator(".workspace-grid > .agent-workspace")).toHaveAttribute("aria-hidden", "true");
-  await expectFocusWithin(page, page.getByRole("dialog", { name: "CAD 아티팩트" }));
-
-  await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.locator(".artifact-toggle")).toBeFocused();
+  await expect(page.locator(".topbar")).not.toHaveAttribute("aria-hidden", "true");
+  await expect(page.getByRole("main", { name: "대화" })).toBeVisible();
+});
+
+test("widening to the wide layout puts the sidebar inline", async ({ page }) => {
+  await page.locator(".menu-button").click();
+  await expect(page.getByRole("dialog", { name: "Workspace navigation" })).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 800 });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "Workspace navigation" })).toBeVisible();
 });
 
 async function expectFocusWithin(page: Page, dialog: ReturnType<Page["getByRole"]>) {

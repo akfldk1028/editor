@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openArtifactMenu } from "../support/workspaceMenus.ts";
 import { mkdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
@@ -114,6 +115,7 @@ test("bounds large SVG rendering while retaining a searched entity", async ({
   await prepare(page);
 
   await expect(page.locator(".cad-entity")).toHaveCount(2000);
+  await openArtifactMenu(page);
   await page.getByLabel("전체 도면 검색").fill("LOD-2001");
   await expect(page.locator('[data-handle="LOD-2001"]')).toBeVisible();
   await expect(page.locator(".viewer-status")).toContainText(
@@ -139,6 +141,7 @@ test("layer visibility and handle highlighting apply to typed geometry", async (
   await expect(page.locator(".cad-entity")).toHaveCount(visibleAfterHide);
 
   await toggle.click();
+  await openArtifactMenu(page);
   await page.getByLabel("전체 도면 검색").fill("23E");
   await expect(page.locator('[data-handle="23E"]'))
     .toHaveClass(/highlighted/);

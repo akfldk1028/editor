@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openArtifactMenu, openModelMenu } from "../support/workspaceMenus.ts";
 import { readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -257,6 +258,7 @@ test("switches OAuth provider and renders a grounded response", async ({ page })
   });
   await page.goto("/");
 
+  await openModelMenu(page);
   await page.getByRole("button", { name: "Claude", exact: true }).click();
   await page.getByLabel("AI 질문").fill("도면의 텍스트를 알려줘");
   await page.getByRole("button", { name: "전송" }).click();
@@ -333,6 +335,7 @@ test("workspace controls change visible state instead of remaining inert", async
   await page.getByLabel("테마").selectOption("dark");
   await expect(page.locator(".app-shell")).toHaveAttribute("data-theme", "dark");
 
+  await openArtifactMenu(page);
   await page.getByLabel("전체 도면 검색").fill("239");
   await expect(page.locator(".cad-entity.highlighted")).toHaveCount(1);
 

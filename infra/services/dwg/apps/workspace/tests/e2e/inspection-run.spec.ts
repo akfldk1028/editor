@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openArtifactMenu } from "../support/workspaceMenus.ts";
 
 const findingHandles = ["239", "23A", "23B", "23C", "23D"];
 
@@ -85,6 +86,7 @@ test("runs the real inspection API and renders returned evidence", async ({ page
   await page.getByRole("tab", { name: /CAD Preview/ }).click();
   await expect(page.locator('[data-handle="239"]')).toHaveClass(/highlighted/);
 
+  await openArtifactMenu(page);
   await page.getByRole("button", { name: "검사 초기화" }).click();
   await expect(page.locator(".cad-entity.highlighted")).toHaveCount(0);
   await expect(page.getByText("VERIFIED RESULT")).toBeHidden();

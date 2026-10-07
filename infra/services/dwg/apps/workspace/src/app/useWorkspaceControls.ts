@@ -3,73 +3,101 @@ import {
   useEffect,
   useRef,
   useState,
+  type HTMLAttributes,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent
 } from "react";
+import { flushSync } from "react-dom";
 
-import { clampArtifactWidth, clampSidebarWidth } from "./workspacePreferences";
+import {
+  artifactPresentationFor,
+  artifactShareFor,
+  artifactWidthFor,
+  clampArtifactWidth,
+  clampSidebarWidth,
+  layout,
+  layoutModeFor,
+  maximumArtifactWidth,
+  sharedRowWidth
+} from "./layoutModes";
 
-const compactArtifactBreakpoint = 886;
-const desktopSidebarBreakpoint = 1280;
+export type NarrowPanel = "conversation" | "artifact";
+/** How the sidebar is shown right now. */
+export type SidebarPresentation = "inline" | "rail" | "drawer" | "hidden";
 
 interface WorkspaceControlsOptions {
-  preferredArtifactWidth: number;
+  /** Inline size of the workspace root, from its ResizeObserver. */
+  workspaceWidth: number;
+  preferredArtifactShare: number | null;
   preferredSidebarWidth: number;
-  setPreferredArtifactWidth(width: number): void;
+  sidebarCollapsed: boolean;
+  setPreferredArtifactShare(share: number): void;
   setPreferredSidebarWidth(width: number): void;
+  setSidebarCollapsed(collapsed: boolean): void;
+}
+
+/** Runs a panel open/close inside a View Transition when the platform offers one and motion is allowed. */
+function withViewTransition(update: () => void) {
+  const reduceMotion = typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (typeof document.startViewTransition !== "function" || reduceMotion) {
+    update();
+    return;
+  }
+  document.startViewTransition(() => flushSync(update));
 }
 
 export function useWorkspaceControls({
-  preferredArtifactWidth,
+  workspaceWidth,
+  preferredArtifactShare,
   preferredSidebarWidth,
-  setPreferredArtifactWidth,
-  setPreferredSidebarWidth
+  sidebarCollapsed,
+  setPreferredArtifactShare,
+  setPreferredSidebarWidth,
+  setSidebarCollapsed
 }: WorkspaceControlsOptions) {
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => window.innerWidth >= desktopSidebarBreakpoint
-  );
+  const mode = layoutModeFor(workspaceWidth);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [artifactOpen, setArtifactOpen] = useState(true);
+  const [narrowPanel, setNarrowPanel] = useState<NarrowPanel>("conversation");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [gridVisible, setGridVisible] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [artifactMaximized, setArtifactMaximized] = useState(false);
-  const [artifactOpen, setArtifactOpen] = useState(
-    () => window.innerWidth > compactArtifactBreakpoint
-  );
   const artifactDragStart = useRef<{ x: number; width: number } | null>(null);
   const sidebarDragStart = useRef<{ x: number; width: number } | null>(null);
-  const artifactOpenRef = useRef(artifactOpen);
-  const sidebarOpenRef = useRef(sidebarOpen);
-  const activeResizeTarget = useRef<{
-    element: HTMLDivElement;
-    pointerId: number;
-  } | null>(null);
+  const activeResizeTarget = useRef<{ element: HTMLDivElement; pointerId: number } | null>(null);
   const removeResizeListeners = useRef<(() => void) | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const artifactButtonRef = useRef<HTMLButtonElement>(null);
   const topActionsRef = useRef<HTMLDivElement>(null);
-  const setPreferredArtifactWidthRef = useRef(setPreferredArtifactWidth);
-  const setPreferredSidebarWidthRef = useRef(setPreferredSidebarWidth);
-  const desktop = viewportWidth >= desktopSidebarBreakpoint;
-  const artifactOverlay = viewportWidth <= compactArtifactBreakpoint;
+  const previousMode = useRef(mode);
+
   const sidebarWidth = clampSidebarWidth(preferredSidebarWidth);
-  const artifactWidth = clampArtifactWidth(
-    viewportWidth,
-    preferredArtifactWidth,
-    desktop,
-    sidebarWidth
-  );
-  artifactOpenRef.current = artifactOpen;
-  sidebarOpenRef.current = sidebarOpen;
+  const sidebarExpanded = !sidebarCollapsed;
+  const sidebarPresentation: SidebarPresentation = mode === "wide"
+    ? sidebarExpanded ? "inline" : "rail"
+    : drawerOpen ? "drawer" : "hidden";
+  const rowWidth = sharedRowWidth(workspaceWidth, mode, sidebarExpanded, sidebarWidth);
+  const artifactPresentation = artifactPresentationFor(mode, rowWidth);
+  const artifactWidth = artifactWidthFor(rowWidth, preferredArtifactShare);
+  const artifactMaxWidth = maximumArtifactWidth(rowWidth);
+  const artifactMinWidth = Math.min(layout.artifact.min, artifactMaxWidth);
+  const artifactVisible = mode === "narrow" ? narrowPanel === "artifact" : artifactOpen;
 
-  useEffect(() => {
-    setPreferredArtifactWidthRef.current = setPreferredArtifactWidth;
-  }, [setPreferredArtifactWidth]);
+  const latest = useRef({ rowWidth, setPreferredArtifactShare, setPreferredSidebarWidth });
+  latest.current = { rowWidth, setPreferredArtifactShare, setPreferredSidebarWidth };
 
+  // A mode change re-seats every panel: drawers and overlays close, narrow
+  // starts on the conversation, and a maximized artifact is restored.
   useEffect(() => {
-    setPreferredSidebarWidthRef.current = setPreferredSidebarWidth;
-  }, [setPreferredSidebarWidth]);
+    if (previousMode.current === mode) return;
+    previousMode.current = mode;
+    setDrawerOpen(false);
+    setNarrowPanel("conversation");
+    setArtifactMaximized(false);
+  }, [mode]);
 
   const finishResize = useCallback(() => {
     artifactDragStart.current = null;
@@ -93,64 +121,61 @@ export function useWorkspaceControls({
   useEffect(() => finishResize, [finishResize]);
 
   const closeSidebar = useCallback(() => {
-    setSidebarOpen(false);
+    withViewTransition(() => setDrawerOpen(false));
   }, []);
 
   const toggleSidebarFromMenu = useCallback(() => {
-    setSidebarOpen((open) => {
-      if (!open && window.innerWidth <= compactArtifactBreakpoint) setArtifactOpen(false);
-      return !open;
+    withViewTransition(() => {
+      if (mode === "wide") setSidebarCollapsed(!sidebarCollapsed);
+      else setDrawerOpen((open) => !open);
     });
-  }, []);
+  }, [mode, setSidebarCollapsed, sidebarCollapsed]);
+
+  const setSidebarExpanded = useCallback((expanded: boolean) => {
+    withViewTransition(() => setSidebarCollapsed(!expanded));
+  }, [setSidebarCollapsed]);
 
   const openArtifact = useCallback(() => {
-    if (window.innerWidth <= compactArtifactBreakpoint) setSidebarOpen(false);
-    setArtifactOpen(true);
-  }, []);
+    withViewTransition(() => {
+      if (mode === "narrow") setNarrowPanel("artifact");
+      else setArtifactOpen(true);
+    });
+  }, [mode]);
 
   const closeArtifact = useCallback(() => {
-    setArtifactMaximized(false);
-    setArtifactOpen(false);
-  }, []);
+    withViewTransition(() => {
+      setArtifactMaximized(false);
+      if (mode === "narrow") setNarrowPanel("conversation");
+      else setArtifactOpen(false);
+    });
+  }, [mode]);
 
-  useEffect(() => {
-    const resize = () => {
-      const width = window.innerWidth;
-      if (
-        width <= compactArtifactBreakpoint &&
-        artifactOpenRef.current &&
-        sidebarOpenRef.current
-      ) {
-        sidebarOpenRef.current = false;
-        setSidebarOpen(false);
-      }
-      setViewportWidth(width);
-      if (width >= desktopSidebarBreakpoint) {
-        sidebarOpenRef.current = true;
-        setSidebarOpen(true);
-      }
-    };
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
+  const showNarrowPanel = useCallback((panel: NarrowPanel) => {
+    withViewTransition(() => setNarrowPanel(panel));
   }, []);
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        searchRef.current?.focus();
+        const input = searchRef.current;
+        // The drawing search lives in the artifact menu; open it first.
+        const menu = input?.closest<HTMLElement>("[popover]");
+        try {
+          if (menu && !menu.matches(":popover-open")) menu.showPopover();
+        } catch {
+          // Unsupported popover: the input is still focusable when visible.
+        }
+        input?.focus();
       }
       if (event.key === "Escape") {
         setSettingsOpen(false);
-        setNotificationsOpen(false);
         setArtifactMaximized(false);
-        if (!desktop && sidebarOpen) closeSidebar();
       }
     };
     const pointerdown = (event: PointerEvent) => {
       if (!topActionsRef.current?.contains(event.target as Node)) {
         setSettingsOpen(false);
-        setNotificationsOpen(false);
       }
     };
     window.addEventListener("keydown", keydown);
@@ -159,31 +184,14 @@ export function useWorkspaceControls({
       window.removeEventListener("keydown", keydown);
       window.removeEventListener("pointerdown", pointerdown);
     };
-  }, [closeSidebar, desktop, sidebarOpen]);
+  }, []);
 
-  function resizeArtifactBy(delta: number) {
-    setPreferredArtifactWidth(clampArtifactWidth(
-      viewportWidth,
-      artifactWidth + delta,
-      desktop,
-      sidebarWidth
-    ));
+  function setArtifactWidth(width: number) {
+    setPreferredArtifactShare(artifactShareFor(rowWidth, clampArtifactWidth(rowWidth, width)));
   }
 
-  function resizeSidebarBy(delta: number) {
-    setPreferredSidebarWidth(clampSidebarWidth(sidebarWidth + delta));
-  }
-
-  function startArtifactResize(event: ReactPointerEvent<HTMLDivElement>) {
-    finishResize();
-    artifactDragStart.current = { x: event.clientX, width: artifactWidth };
-    startResize(event, "resizing-artifact");
-  }
-
-  function startSidebarResize(event: ReactPointerEvent<HTMLDivElement>) {
-    finishResize();
-    sidebarDragStart.current = { x: event.clientX, width: sidebarWidth };
-    startResize(event, "resizing-sidebar");
+  function setSidebarWidth(width: number) {
+    setPreferredSidebarWidth(clampSidebarWidth(width));
   }
 
   function startResize(
@@ -196,16 +204,15 @@ export function useWorkspaceControls({
 
     const move = (pointerEvent: PointerEvent) => {
       if (pointerEvent.pointerId !== pointerId) return;
+      const current = latest.current;
       if (artifactDragStart.current) {
-        setPreferredArtifactWidthRef.current(clampArtifactWidth(
-          window.innerWidth,
-          artifactDragStart.current.width + artifactDragStart.current.x - pointerEvent.clientX,
-          window.innerWidth >= desktopSidebarBreakpoint,
-          sidebarWidth
-        ));
+        current.setPreferredArtifactShare(artifactShareFor(current.rowWidth, clampArtifactWidth(
+          current.rowWidth,
+          artifactDragStart.current.width + artifactDragStart.current.x - pointerEvent.clientX
+        )));
       }
       if (sidebarDragStart.current) {
-        setPreferredSidebarWidthRef.current(clampSidebarWidth(
+        current.setPreferredSidebarWidth(clampSidebarWidth(
           sidebarDragStart.current.width + pointerEvent.clientX - sidebarDragStart.current.x
         ));
       }
@@ -235,35 +242,87 @@ export function useWorkspaceControls({
     }
   }
 
+  /** Pointer and keyboard props for a `role="separator"` between two panels. */
+  const sidebarSeparatorProps: HTMLAttributes<HTMLDivElement> = {
+    "aria-label": "Sidebar width",
+    "aria-orientation": "vertical",
+    "aria-valuemax": layout.sidebar.max,
+    "aria-valuemin": layout.sidebar.min,
+    "aria-valuenow": Math.round(sidebarWidth),
+    role: "separator",
+    tabIndex: 0,
+    onPointerDown(event) {
+      finishResize();
+      sidebarDragStart.current = { x: event.clientX, width: sidebarWidth };
+      startResize(event, "resizing-sidebar");
+    },
+    onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+      const next = {
+        ArrowLeft: sidebarWidth - layout.resizeStep,
+        ArrowRight: sidebarWidth + layout.resizeStep,
+        Home: layout.sidebar.min,
+        End: layout.sidebar.max
+      }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      setSidebarWidth(next);
+    }
+  };
+
+  const artifactSeparatorProps: HTMLAttributes<HTMLDivElement> = {
+    "aria-label": "CAD 아티팩트 너비 조절",
+    "aria-orientation": "vertical",
+    "aria-valuemax": artifactMaxWidth,
+    "aria-valuemin": artifactMinWidth,
+    "aria-valuenow": artifactWidth,
+    role: "separator",
+    tabIndex: 0,
+    onPointerDown(event) {
+      finishResize();
+      artifactDragStart.current = { x: event.clientX, width: artifactWidth };
+      startResize(event, "resizing-artifact");
+    },
+    onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+      // The artifact grows leftwards, so ArrowLeft widens it.
+      const next = {
+        ArrowLeft: artifactWidth + layout.resizeStep,
+        ArrowRight: artifactWidth - layout.resizeStep,
+        Home: artifactMinWidth,
+        End: artifactMaxWidth
+      }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      setArtifactWidth(next);
+    }
+  };
+
   return {
+    mode,
     artifactMaximized,
-    artifactOverlay,
-    artifactOpen,
+    artifactPresentation,
+    artifactVisible,
     artifactWidth,
-    desktop,
     gridVisible,
-    notificationsOpen,
+    narrowPanel,
     searchQuery,
     searchRef,
     menuButtonRef,
     artifactButtonRef,
+    sidebarPresentation,
     sidebarWidth,
     settingsOpen,
-    sidebarOpen,
     topActionsRef,
+    artifactSeparatorProps,
+    sidebarSeparatorProps,
     closeSidebar,
     closeArtifact,
     openArtifact,
-    resizeArtifactBy,
-    resizeSidebarBy,
     setArtifactMaximized,
-    setArtifactOpen,
     setGridVisible,
-    setNotificationsOpen,
     setSearchQuery,
     setSettingsOpen,
-    startArtifactResize,
-    startSidebarResize,
+    setSidebarExpanded,
+    showNarrowPanel,
     toggleSidebarFromMenu
   };
 }

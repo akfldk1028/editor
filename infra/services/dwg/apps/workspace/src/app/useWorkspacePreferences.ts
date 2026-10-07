@@ -38,11 +38,14 @@ export function useWorkspacePreferences() {
     setTheme(theme: ThemePreference) {
       update({ ...preferences, theme });
     },
-    setArtifactWidth(artifactWidth: number) {
-      update({ ...preferences, artifactWidth });
+    setArtifactShare(artifactShare: number) {
+      update({ ...preferences, artifactShare });
     },
     setSidebarWidth(sidebarWidth: number) {
       update({ ...preferences, sidebarWidth: clampSidebarWidth(sidebarWidth) });
+    },
+    setSidebarCollapsed(sidebarCollapsed: boolean) {
+      update({ ...preferences, sidebarCollapsed });
     },
     setSidebarTab(sidebarTab: SidebarTab) {
       update({ ...preferences, sidebarTab });

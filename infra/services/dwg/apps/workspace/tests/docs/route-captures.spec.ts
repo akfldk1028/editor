@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openArtifactMenu, openArtifactView, openModelMenu } from "../support/workspaceMenus.ts";
 import { mkdir } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import {
@@ -64,6 +65,7 @@ test("captures the single workspace route in its key states", async ({ page }) =
   await page.getByRole("tab", { name: /Findings/ }).click();
   await capture(page, "02-inspection-complete.png");
 
+  await openArtifactMenu(page);
   await page.getByRole("button", { name: "검사 초기화" }).click();
   await page.getByRole("tab", { name: /CAD Preview/ }).click();
   const layerToggle = page.locator(".layer-visibility-button").first();
@@ -75,6 +77,7 @@ test("captures the single workspace route in its key states", async ({ page }) =
   await stabilize(page);
   const claudeButton = page.getByRole("button", { name: "Claude", exact: true });
   await expect(claudeButton).toBeEnabled();
+  await openModelMenu(page);
   await claudeButton.click();
   await expect(claudeButton).toHaveClass(/active/);
   await page.getByLabel("AI 질문").fill("도면의 TEXT 객체를 근거와 함께 알려줘");
@@ -142,7 +145,7 @@ test("captures verified Save As and report download through visible controls", a
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("tab", { name: "Export", exact: true }).click();
+  await openArtifactView(page, "Export");
   await page.getByRole("button", { name: "Choose destination" }).click();
   await page.getByLabel("Base filename").fill("verified-copy");
   await page.getByRole("button", { name: "Save As DXF" }).click();
@@ -191,7 +194,6 @@ test("captures populated change review at desktop and narrow widths", async ({ p
 
   await page.setViewportSize({ width: 800, height: 900 });
   await page.reload();
-  await page.locator(".artifact-toggle").click();
   await createVisibleMoveProposal(page);
   await expect(review).toContainText("Selected handle 239");
   await page.getByRole("button", { name: "Approve changes" }).scrollIntoViewIfNeeded();

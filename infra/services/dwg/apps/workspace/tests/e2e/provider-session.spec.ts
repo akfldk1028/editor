@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openModelMenu } from "../support/workspaceMenus.ts";
 
 const sessionId = "98d84d53-7861-4c73-a789-d6c8f5490966";
 
@@ -43,6 +44,7 @@ test("continues the selected OAuth provider session after reload", async ({ page
   });
 
   await page.goto("/");
+  await openModelMenu(page);
   await page.getByRole("button", { name: "Claude", exact: true }).click();
   await page.locator(".composer input:not([type=file])").fill("first question");
   await page.locator(".composer .send-button").click();
@@ -65,7 +67,7 @@ test("continues the selected OAuth provider session after reload", async ({ page
     sessionId
   });
 
-  await page.getByRole("main", { name: "대화" })
+  await page.locator(".topbar")
     .getByRole("button", { name: "새 대화" })
     .click();
   await page.locator(".composer input:not([type=file])").fill("fresh thread");

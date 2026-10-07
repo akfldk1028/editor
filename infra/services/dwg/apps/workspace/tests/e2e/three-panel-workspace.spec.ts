@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openArtifactMenu } from "../support/workspaceMenus.ts";
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -42,6 +43,7 @@ test("artifact panel switches tabs, resizes, and maximizes", async ({ page }) =>
   const resized = await artifact.boundingBox();
   expect(resized!.width).toBeGreaterThan(initial!.width);
 
+  await openArtifactMenu(page);
   await page.getByRole("button", { name: "아티팩트 최대화" }).click();
   await expect(artifact).toHaveAttribute("data-maximized", "true");
   await page.keyboard.press("Escape");
@@ -83,15 +85,30 @@ test("narrow workspace opens the project tree as an overlay", async ({ page }) =
   await expect(menu).toBeFocused();
 });
 
-test("compact workspace opens CAD as a full artifact overlay", async ({ page }) => {
-  await page.setViewportSize({ width: 800, height: 700 });
+test("narrow workspace shows one panel at a time through the header switch", async ({ page }) => {
+  await page.setViewportSize({ width: 600, height: 800 });
   await page.reload();
 
   await expect(page.getByRole("main", { name: "대화" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "CAD 아티팩트" })).toBeHidden();
-  await page.getByRole("button", { name: "CAD 아티팩트 열기" }).click();
-  await expect(page.getByRole("dialog", { name: "CAD 아티팩트" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "CAD 아티팩트" })).toHaveCount(0);
+  await page.getByRole("button", { name: "도면", exact: true }).click();
+  await expect(page.getByRole("region", { name: "CAD 아티팩트" })).toBeVisible();
+  await expect(page.getByRole("main", { name: "대화" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "CAD 아티팩트 닫기" })).toBeInViewport();
   await page.getByRole("button", { name: "CAD 아티팩트 닫기" }).click();
-  await expect(page.getByRole("region", { name: "CAD 아티팩트" })).toBeHidden();
+  await expect(page.getByRole("region", { name: "CAD 아티팩트" })).toHaveCount(0);
+  await expect(page.getByRole("main", { name: "대화" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(600);
+});
+
+test("medium workspace keeps the artifact beside the conversation", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 700 });
+  await page.reload();
+
+  const conversation = await page.getByRole("main", { name: "대화" }).boundingBox();
+  const artifact = await page.getByRole("region", { name: "CAD 아티팩트" }).boundingBox();
+  expect(conversation!.width).toBeGreaterThanOrEqual(320);
+  expect(artifact!.width).toBeGreaterThanOrEqual(360);
+  expect(conversation!.x).toBeLessThan(artifact!.x);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(800);
 });

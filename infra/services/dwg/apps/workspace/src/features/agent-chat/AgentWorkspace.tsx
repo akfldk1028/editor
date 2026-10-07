@@ -3,7 +3,6 @@ import {
   Check,
   ChevronRight,
   LoaderCircle,
-  MessageSquarePlus,
   TerminalSquare
 } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -16,12 +15,10 @@ import type {
 } from "../../shared/types";
 import { ChatComposer } from "./ChatComposer";
 import { PendingResponse } from "./PendingResponse";
-import { ProviderSwitch } from "./ProviderSwitch";
 import type { WorkspaceSession } from "./workspaceSessionStore";
 import "./styles.css";
 
 interface Props {
-  drawingDisplayName: string;
   inspectionRun: InspectionRun | null;
   inspectionLoading: boolean;
   inspectionError: string | null;
@@ -32,15 +29,32 @@ interface Props {
   onMessageChange(message: string): void;
   onSubmit(): void;
   onCancel(): void;
-  onNewChat(): void;
   chatLoading: boolean;
   chatResult: ProviderChatResult | null;
   chatError: string | null;
   activeSession?: WorkspaceSession | null;
 }
 
+/**
+ * The conversation's identity block. The workspace places it in its single
+ * header row, so the conversation itself carries no title rows.
+ */
+export function ConversationHeading({ activeSession, drawingDisplayName }: {
+  activeSession?: WorkspaceSession | null;
+  drawingDisplayName: string;
+}) {
+  return (
+    <div className="agent-context">
+      <span aria-hidden="true" className="agent-avatar">DI</span>
+      <div>
+        <strong>{activeSession?.title ?? "새 검사 대화"}</strong>
+        <span>Drawing review · {drawingDisplayName} · OAuth CLI</span>
+      </div>
+    </div>
+  );
+}
+
 export function AgentWorkspace({
-  drawingDisplayName,
   inspectionRun,
   inspectionLoading,
   inspectionError,
@@ -51,7 +65,6 @@ export function AgentWorkspace({
   onMessageChange,
   onSubmit,
   onCancel,
-  onNewChat,
   chatLoading,
   chatResult,
   chatError,
@@ -65,26 +78,6 @@ export function AgentWorkspace({
 
   return (
     <main className="panel agent-workspace conversation-panel" aria-label="대화" data-modal-background>
-      <div className="agent-tabs">
-        <div className="conversation-title"><Bot size={14} /> Drawing inspection</div>
-        <button className="agent-tab icon-tab" aria-label="새 대화" onClick={onNewChat}>
-          <MessageSquarePlus size={15} />
-        </button>
-      </div>
-
-      <div className="agent-context">
-        <span className="agent-avatar">DI</span>
-        <div>
-          <strong>{activeSession?.title ?? "새 검사 대화"}</strong>
-          <span>{drawingDisplayName} · OAuth CLI</span>
-        </div>
-        <ProviderSwitch
-          providers={providers}
-          selectedProvider={selectedProvider}
-          onProviderChange={onProviderChange}
-        />
-      </div>
-
       <div className="conversation">
         {activeSession?.messages.map((entry, entryIndex) => (
           <div
@@ -110,20 +103,20 @@ export function AgentWorkspace({
         {chatLoading && <PendingResponse onCancel={onCancel} />}
         {!activeSession && !inspectionRun && !inspectionLoading && !chatLoading && (
           <div className="conversation-empty">
-            <Bot size={22} />
             <strong>도면에 대해 질문하세요</strong>
             <span>레이어, 객체, handle과 검사 근거를 함께 확인합니다.</span>
           </div>
         )}
 
-        {inspectionLoading && (
-          <div className="tool-stack" aria-label="에이전트 실행 상태">
-            <ToolStep label="orchestrator" tool="POST /api/inspections" state="running" />
-          </div>
-        )}
-        {inspectionRun?.events.length ? (
-          <div className="tool-stack" aria-label="에이전트 실행 상태">
-            {inspectionRun.events.map((event) => (
+        {(inspectionLoading || inspectionRun?.events.length) ? (
+          <details aria-label="에이전트 실행 상태" className="tool-stack">
+            <summary>
+              {inspectionLoading ? <LoaderCircle aria-hidden="true" className="spin" size={14} /> : <TerminalSquare aria-hidden="true" size={14} />}
+              <span>{toolSummary(inspectionLoading, inspectionRun)}</span>
+              <ChevronRight aria-hidden="true" className="tool-stack-chevron" size={14} />
+            </summary>
+            {inspectionLoading && <ToolStep label="orchestrator" tool="POST /api/inspections" state="running" />}
+            {inspectionRun?.events.map((event) => (
               <ToolStep
                 key={`${event.sequence}:${event.agentId}:${event.action}`}
                 label={event.agentId}
@@ -139,7 +132,7 @@ export function AgentWorkspace({
                 }
               />
             ))}
-          </div>
+          </details>
         ) : null}
         {inspectionRun?.status === "completed" && (
           <div className="message agent-message response-message">
@@ -153,6 +146,8 @@ export function AgentWorkspace({
       </div>
 
       <ChatComposer
+        providers={providers}
+        onProviderChange={onProviderChange}
         provider={selectedProvider}
         message={message}
         loading={chatLoading}
@@ -162,6 +157,13 @@ export function AgentWorkspace({
       />
     </main>
   );
+}
+
+function toolSummary(loading: boolean, run: InspectionRun | null) {
+  if (loading) return "에이전트 실행 중";
+  const events = run?.events ?? [];
+  const done = events.filter((event) => event.status === "completed").length;
+  return `에이전트 ${events.length}단계 · 완료 ${done}`;
 }
 
 function ToolStep({ label, tool, state }: {
