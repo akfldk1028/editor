@@ -3,6 +3,11 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-07 (MasterPlan session, user-approved result change: "커밋하고 진행해 비교를 해야지") planner:
+  compact_basement_search now defaults on, and a capped basement budget keeps one solve for the row-and-aisle
+  family. 고산 (district plan incl. 차량출입불허구간, practice programme) 0+50 -> 22+28, one gate, entrance
+  0.78 m / ramp 6.2 m from practice ALT1. 16-parcel corpus: totals and pass/fail identical, 2 split changes.
+  masterplan_engine 205 passed. Evidence: MasterPlan runs/siting-eval/{baseline,fix1-default}-20261007.
 - 2026-10-07 (MasterPlan session) `8ed39f9d` planner compact-slab pass: a ValueError from one degenerate
   candidate no longer aborts plan_site (고산 target_surface_stalls=30 crashed). Results change only where
   plan_site used to raise. The uncommitted rank change (road openings before excavation) was REVERTED — it

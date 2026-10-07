@@ -504,8 +504,15 @@ def _plan_site_fixed(request):
                     # produce. Sizing may only add options.
                     for slab in [*(sized or [])[:3], basement]:
                         ramp_slabs.append((ramp,slab))
+                # KEEP ONE BASEMENT SOLVE FOR THE ROW-AND-AISLE FAMILY. It runs after this loop on the same
+                # budget, so a capped run (the alternatives door requires max_basement_solves 1..3) used to
+                # spend every solve here: on 고산 the row scheme sharing the surface gate (22 + 28, ramp
+                # off the aisle) was generated and never got a basement, and 0 + 50 won. With a cap of
+                # two or more and a frontage the rows can reach, the last solve is theirs.
+                rows_reserve=1 if (frontage is not None and search_budget.limit is not None
+                                   and search_budget.limit>=2) else 0
                 for rindex,(ramp,basement_plate) in enumerate(ramp_slabs):
-                    if search_budget.limit is not None and search_budget.invoked >= search_budget.limit:
+                    if search_budget.limit is not None and search_budget.invoked >= search_budget.limit-rows_reserve:
                         search_budget.truncated = True
                         break
                     feats=list(base)
@@ -796,7 +803,10 @@ def _plan_site_fixed(request):
     if os.environ.get("MASTERPLAN_EXPLAIN_RANK") and 'strategy' in dir():
         import sys as _sys
         print("ROWS-BASEMENT drops %s" % (_drop if '_drop' in dir() else None),file=_sys.stderr)
-    if options.get("compact_basement_search",surface_target is not None):
+    # Compact slabs by default: without them every candidate's plate is the declared envelope (the
+    # whole site when none is authored), excavation reads equal across schemes, and the next key -
+    # stalls per basement area - always favours burying everything. 고산: 0 + 50 over 22 + 28.
+    if options.get("compact_basement_search",True):
         envelope=polygon(request.get("basement_boundary") or request["site"],"excavation envelope")
         for original_index,original in enumerate(list(candidates)):
             compact=copy.deepcopy(original)
