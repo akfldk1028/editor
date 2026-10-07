@@ -2,6 +2,15 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-07 /dwg responsive rebuild (user: "반응형웹이 아닌데 제대로 해, 최신기술로"): platform CSS only —
+  container queries (mode by the workspace's own width: wide >=1200 / medium 768-1199 / narrow <768),
+  grid+clamp, dvh, :has(), View Transitions; no new npm dep (risk of a 2nd React from
+  infra/services/dwg/node_modules). Numbers from research: sidebar 260 [220..360] (ChatGPT), chat column
+  max 48rem centered, artifact beside chat only while chat >= 320px else overlay (Claude), artifact default
+  45% min 360; narrow = one panel at a time; type 11/12/14/16, targets >= 28px.
+  Sources: openskillindex ChatGPT sidebar CSS, aiuxplayground Claude artifacts, chatjs chat-layout,
+  servicetitan artifact-panel-layout, shadcn resizable. Module findings: shell lives inside the CAD package
+  and is CAD-specific; app/dwg/page.tsx deep-imports src/app/App instead of the package export (public.ts).
 - 2026-10-07 User: `/dwg` (Claude/ChatGPT-style 3 panels: sidebar | chat | artifact) is THE fixed shell —
   every feature will go inside it. Its code lives in `infra/services/dwg/apps/workspace` (layout: App.tsx,
   styles.css, useWorkspaceControls.ts breakpoints 1280/886, workspacePreferences.ts widths sidebar 320
