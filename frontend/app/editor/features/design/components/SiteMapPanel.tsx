@@ -1,5 +1,7 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { useVworld3D } from '../../land-map/hooks/use-vworld-3d';
+import { WorldControls } from '../../world/components/WorldControls';
+import { useWorld3D } from '../../world/hooks/use-world-3d';
 import { reverse } from '../../land-map/lib/land-api-client';
 import type { GeoJSONFeature, SetbackGeometriesMap } from '../lib/types';
 import { clearDatumPlane, renderDatumMarkers } from '../lib/envelopes/datum-plane';
@@ -28,7 +30,18 @@ interface Props {
   setbackGeometries?: SetbackGeometriesMap;
 }
 
-const SiteMapPanel: React.FC<Props> = React.memo(({
+/** clean = our own world (white masses, diagram ground, no VWorld SDK); vworld = the VWorld 3D SDK as before. */
+type Engine = 'clean' | 'vworld';
+
+const SiteMapPanel: React.FC<Props> = React.memo((props) => {
+  const [engine, setEngine] = useState<Engine>('clean');
+  // A different engine is a different viewer: remount so each keeps its own hooks and cleanup.
+  return <SiteMap key={engine} {...props} engine={engine} onEngine={setEngine} />;
+});
+
+const SiteMap: React.FC<Props & { engine: Engine; onEngine: (e: Engine) => void }> = ({
+  engine,
+  onEngine,
   sitePolygon,
   massFeatures,
   selectedDesignId,
@@ -79,10 +92,11 @@ const SiteMapPanel: React.FC<Props> = React.memo(({
     }
   }, [onParcelClick]);
 
-  const { ready, loading, error, highlightParcel, clearHighlight, flyTo, setBuildingsVisible, viewerRef } = useVworld3D({
-    target: mapRef,
-    onClick: handleMapClick,
-  });
+  // engine is fixed for this component's life (the parent remounts on change), so the hook order never changes.
+  const use3D = engine === 'clean' ? useWorld3D : useVworld3D;
+  const map = use3D({ target: mapRef, onClick: handleMapClick });
+  const { ready, loading, error, highlightParcel, clearHighlight, flyTo, setBuildingsVisible, viewerRef } = map;
+  const world = engine === 'clean' ? (map as ReturnType<typeof useWorld3D>) : null;
 
   actionsRef.current = { highlightParcel, clearHighlight, flyTo, viewerRef };
 
@@ -107,6 +121,12 @@ const SiteMapPanel: React.FC<Props> = React.memo(({
       viewer.scene?.requestRender?.();
     };
   }, [ready, viewerRef, clearHighlight, setBuildingsVisible]);
+
+  // Clean world: the flat ground stands at the site's §119 datum so the mass (placed at its datum) stands on it.
+  const datumLevel = setbackGeometries?.datum_result?.parcel_datum_m ?? setbackGeometries?.datum_result?.elevation_m;
+  React.useEffect(() => {
+    if (ready && world && typeof datumLevel === 'number') world.setGroundLevel(datumLevel);
+  }, [ready, world, datumLevel]);
 
   // Highlight + flyTo when sitePolygon changes
   React.useEffect(() => {
@@ -257,7 +277,7 @@ const SiteMapPanel: React.FC<Props> = React.memo(({
       <div
         ref={mapRef}
         id="vworld-3d-design"
-        style={{ width: '100%', height: '100%', background: '#0f172a' }}
+        style={{ width: '100%', height: '100%', background: engine === 'clean' ? '#f7f7f5' : '#0f172a' }}
       />
 
       {/* Loading overlay */}
@@ -301,6 +321,20 @@ const SiteMapPanel: React.FC<Props> = React.memo(({
         </div>
       )}
 
+      {/* Engine toggle — our clean world (default) or the VWorld 3D SDK */}
+      <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 11, display: 'flex', gap: 4,
+        background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: 3, fontSize: 12 }}>
+        {([['clean', '깔끔한 3D'], ['vworld', '브이월드']] as const).map(([key, label]) => (
+          <button key={key} type="button" onClick={() => onEngine(key)}
+            style={{ padding: '3px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              background: engine === key ? '#1f2937' : 'transparent', color: engine === key ? '#fff' : '#374151' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {world && <WorldControls world={world} title="주변 맥락" compact
+        className="absolute bottom-14 right-3 z-10 flex flex-col gap-0.5 rounded-md bg-white/90 px-2 py-1 text-[11px] text-neutral-800 shadow" />}
+
       {/* Mass info overlay — shows building stats */}
       <MassInfoOverlay massFeatures={massFeatures} />
 
@@ -335,7 +369,8 @@ const SiteMapPanel: React.FC<Props> = React.memo(({
       )}
     </div>
   );
-});
+};
 
 SiteMapPanel.displayName = 'SiteMapPanel';
+SiteMap.displayName = 'SiteMap';
 export default SiteMapPanel;

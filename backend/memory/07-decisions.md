@@ -123,3 +123,11 @@ be told to the Orchestrator session.
   toggle, off by default. Carriageways are no longer drawn (the grey road parcel reads as the street); SceneAgent
   still returns them (lanes x 3.25 m capped by NGII rvwd, which is the whole road width). Ground floats above the
   globe because flat polygons at ~0 m z-fight with it. Changed by the Orchestrator session.
+- 2026-10-07 W2 `/design` on the clean world: `SiteMapPanel` has an engine toggle (깔끔한 3D default / 브이월드);
+  the engine change remounts the inner `SiteMap`, which calls `useWorld3D` or `useVworld3D` (same actions:
+  highlightParcel, clearHighlight, flyTo, setBuildingsVisible, viewerRef), so the mass / setback / datum renderers
+  are unchanged. `features/world/hooks/use-world-3d.ts` now owns the world (WorldView uses it too); the globe is a
+  flat CustomHeightmapTerrainProvider at the site's §119 datum (`setGroundLevel`) so masses placed at their datum
+  stand on the ground; setBuildingsVisible(false) hides the context buildings on the site. SceneAgent now drops
+  map-only buildings that no longer stand (no storeys/height and <20 % built-up in 환경부 토지피복 2025, or >50 % on a
+  road/river parcel): 고산 56, 종로 74. Changed by the Orchestrator session.

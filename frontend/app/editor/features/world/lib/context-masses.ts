@@ -37,7 +37,7 @@ function rings(geometry: any): number[][] {
 export type HeightCounts = { measured: number; estimated: number; unknown: number }
 
 /** Adds the reply's buildings; one already drawn (neighbouring cells overlap) is skipped. Returns what was added. */
-export function drawContextMasses(entities: any, Cesium: any, reply: ContextReply): { added: number; counts: HeightCounts } {
+export function drawContextMasses(entities: any, Cesium: any, reply: ContextReply, base = 0): { added: number; counts: HeightCounts } {
   const white = Cesium.Color.fromCssColorString('#fbfbf9')
   const pale = Cesium.Color.fromCssColorString('#ffffff').withAlpha(0.55)
   const edge = Cesium.Color.fromCssColorString('#9a9a96')
@@ -58,8 +58,8 @@ export function drawContextMasses(entities: any, Cesium: any, reply: ContextRepl
         description: `높이 ${p.height_m} m (${p.height_status}) — ${p.method}`,
         polygon: {
           hierarchy: Cesium.Cartesian3.fromDegreesArray(ring),
-          height: 0,
-          extrudedHeight: p.height_m,
+          height: base,
+          extrudedHeight: base + p.height_m,
           material: p.height_status === 'unknown' ? pale : white,
           outline: true,
           outlineColor: edge,
@@ -91,7 +91,7 @@ const COVER_COLOURS: Record<string, string> = {
 export interface GroundTargets { blocks: any; cover: any }
 
 /** Adds the reply's parcels (blocks + roads) and land cover; pieces already drawn are skipped. Returns how many were added. */
-export function drawContextGround(targets: GroundTargets, Cesium: any, reply: ContextReply): number {
+export function drawContextGround(targets: GroundTargets, Cesium: any, reply: ContextReply, base = 0): number {
   let n = 0
   const edge = new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#b8b8b4'), dashLength: 8 })
   for (const t of [targets.blocks, targets.cover]) t.entities.suspendEvents()
@@ -107,17 +107,17 @@ export function drawContextGround(targets: GroundTargets, Cesium: any, reply: Co
       if (cover) {
         const colour = COVER_COLOURS[p.cover]
         if (!colour) return
-        into.add({ id, name: `토지피복 ${p.l3_name ?? p.cover}`, polygon: { hierarchy: positions, height: BLOCK_HEIGHT_M + 0.03,
+        into.add({ id, name: `토지피복 ${p.l3_name ?? p.cover}`, polygon: { hierarchy: positions, height: base + BLOCK_HEIGHT_M + 0.03,
           material: Cesium.Color.fromCssColorString(colour) } })
       } else if (p.ground === 'road' || p.ground === 'rail') {
-        into.add({ id, name: `도로 (지목 ${p.jimok})`, polygon: { hierarchy: positions, height: ROAD_HEIGHT_M,
+        into.add({ id, name: `도로 (지목 ${p.jimok})`, polygon: { hierarchy: positions, height: base + ROAD_HEIGHT_M,
           material: Cesium.Color.fromCssColorString(ROAD_GREY) } })
       } else {
         into.add({ id, name: `필지 (지목 ${p.jimok ?? '?'})`,
-          polygon: { hierarchy: positions, height: ROAD_HEIGHT_M, extrudedHeight: BLOCK_HEIGHT_M,
+          polygon: { hierarchy: positions, height: base + ROAD_HEIGHT_M, extrudedHeight: base + BLOCK_HEIGHT_M,
             material: Cesium.Color.fromCssColorString(BLOCK_COLOURS[p.ground] ?? '#fbfbfa') },
           polyline: { positions: Cesium.Cartesian3.fromDegreesArrayHeights(
-            ring.flatMap((v, k) => (k % 2 ? [v, BLOCK_HEIGHT_M + 0.02] : [v]))), width: 1, material: edge } })
+            ring.flatMap((v, k) => (k % 2 ? [v, base + BLOCK_HEIGHT_M + 0.02] : [v]))), width: 1, material: edge } })
       }
       n++
     })
