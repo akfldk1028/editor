@@ -2,6 +2,15 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-07 `1636df69` backend + `17b047f5` frontend: site selection. Click = whole parcel polygon (no points),
+  Shift+click/카드 토글 = 묶음(합필) add/remove, union outline, contiguity (shapely 0.05 m). API
+  `POST /land/selections/preview` (no save), `POST /land/selections`, `GET /land/selections[?limit]`,
+  `GET /land/selections/latest` (404 if none). land.sqlite v4 `site_selections` (facts+sources+contiguity,
+  no geometry/raw Vworld). Map engine created once (callbacks via refs), no pan/zoom on click, no router
+  navigation (history.replaceState only), resize() via ResizeObserver, [2D|3D] toggle (3D = features/world,
+  lazy, both kept alive, `?view=3d`). Outline vs Naver 지적편집도 offset 1.2-1.8 m measured at 686-2 only =
+  source data difference (no transform in code). Open: 3D highlight not visually checked; terrain-heights
+  502 in 3D (world feature); narrow-panel card sheet not live-verified; preview re-fetches facts per click.
 - 2026-10-07 `2a5404ea` editor-owned shell `features/shell/` (Shell, layout/, artifact-host/, conversation/,
   sidebar/, artifact-types.ts contract, registry.ts) + right panel = artifact modules `features/artifacts/<id>/`
   (manifest + lazy component; ArtifactChrome fills header/menu). CAD is artifact `cad`, using only the CAD
