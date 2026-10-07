@@ -9,7 +9,8 @@
 .venv/Scripts/python.exe -m uvicorn backend.app.main:app --host 127.0.0.1 --port 18449 \
   --env-file D:/Data/25_ACE/editor/.superpowers/sdd/editor-law.env --log-level warning
 ```
-or the whole stack with `bun run plan:dev` (`infra/dev/runtime.mjs`). A code change is live only
+Logs used 2026-10-07: `> logs/backend-18449.log 2> logs/backend-18449.err`; health
+`GET /api/v1/platform/health`. Or the whole stack with `bun run plan:dev` (`infra/dev/runtime.mjs`). A code change is live only
 after the process is replaced — check the listener PID's start time, not just the port.
 For other servers: `--host` / env as in `agents/docs/AGENT_MODULE_CONVENTIONS.md` §5; set
 `A2A_TOKEN` to the network's value.

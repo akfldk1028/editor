@@ -12,3 +12,6 @@
   and restarted.
 - **Model keys.** A failing OpenAI key in `/settings` is expected locally (no credits); the
   backend uses the local Claude Code login (oauth) for workspace runs.
+- **Turbopack dev breaks on `@dwg/contracts`** (`./cad.js` not resolved). Run `next dev --webpack`; a
+  compile error from one page is then served for every page until restart.
+- **Proxy 404 "Unknown platform/PLANM operation"** is the proxy allowlist, not a missing backend route.
