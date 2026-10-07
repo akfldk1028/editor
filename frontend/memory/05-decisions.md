@@ -2,6 +2,15 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 UI/UX review fixes `65c5755d` (site-map+shell) `3a63f1c8` (CAD pkg, Korean labels) `12aa371e` (backend):
+  save/restore races (snapshot+generation), AbortController, click policy (plain click in bundle = only that parcel;
+  re-click sole parcel = deselect; Shift/추가 = add/remove), Esc inner-first + defaultPrevented, hidden 3D stops
+  render loop, narrow keeps ArtifactHost mounted (hidden+inert; Naver size from outer element), focus restore,
+  separator hit 20px, prefs saved on drag end, Korean copy, dark tokens, role=application. Backend: per-PNU facts+
+  geometry memory cache (10 min, 500, never disk), no reverse geocode (addr from parcel layer), selections.scope
+  (land.sqlite v5, `latest?scope=`, site-map passes ?project= else default). Open: per-request new-PNU cap 20 vs
+  save cap 50 (restore of >20 parcels after cache loss -> 400). Dev server on webpack grows to ~15 GB over a day:
+  restart it daily until the production build (/_global-error prerender failure) is fixed.
 - 2026-10-07 `06f1dae9` site-map 3D: World3D uses useWorld3D directly, creates the engine only once the site is
   known, places the camera instantly (flyTo + completeFlight, verified within 1.5 km) -> first context request at
   고산, 305 buildings in 15-18 s, no Seoul requests. Cause was order: engine opened at MAP_CONFIG_3D.center (Seoul),
