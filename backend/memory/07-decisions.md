@@ -3,6 +3,13 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-07 Final review at `d6ac0845`: backend suite (minus masterplan_engine, which sits under another
+  session's uncommitted edits) 2119 passed / 3 skipped / 1 failed / 15 errors — the failure set is identical at
+  b427e1bc (`test_mass_native_cli[generate_massv2]`, `provider_parity/test_maas_creative_floor_portfolio` x15).
+  Agent doors 24/24 same across all 13 refactor commits; HEAD vs b427 differs only in parking-count (other
+  sessions' law/ordinance commits). 71 agent-imported paths and 113 imported names resolve; planm sources net
+  diff none; lint-imports kept. Removed pyc-only leftover dirs (adapters/vworld, cli, core/geometry) — they made
+  old paths import as empty namespace packages. Trap: after moving a package, delete its old dir's __pycache__.
 - 2026-10-07 Structure from researched practice (FastAPI 'Bigger Applications', zhanymkanov/fastapi-best-practices
   after Netflix Dispatch, Kraken + import-linter): `db167db3` every domain owns its routers/clients —
   `modules/{land,design,workspace,platform,planm_runs}/routers/`, `modules/law/router.py`, `modules/land/vworld/`,

@@ -19,3 +19,5 @@
 - **CRLF warnings** on commit are harmless (git normalises).
 - **Public IP.** This machine's 163.239.x address is public — never bind `0.0.0.0` for tests;
   use 127.0.0.1 or the host-only adapter 172.27.80.1.
+- **Leftover `__pycache__` dirs after a move.** A directory holding only `__pycache__` makes the old
+  dotted path import as an empty namespace package (no ModuleNotFoundError). Delete it after `git mv`.
