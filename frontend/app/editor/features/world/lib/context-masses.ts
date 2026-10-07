@@ -92,7 +92,7 @@ export function drawContextGround(entities: any, Cesium: any, reply: ContextRepl
     rings(f.geometry).forEach((ring, i) => {
       const id = `ground-${kind}-${p.id ?? `${ring[0]!.toFixed(6)},${ring[1]!.toFixed(6)}`}-${i}`
       if (entities.getById(id)) return
-      entities.add({ id, name: kind === 'carriageway' ? `차도 ${p.width_m} m` : `지목 ${p.jimok ?? '?'}`,
+      entities.add({ id, name: kind === 'carriageway' ? `차도 ${p.width_m} m (${p.width_status === 'estimated' ? '차로 수로 추정' : '실측 폭'})` : `지목 ${p.jimok ?? '?'}`,
         polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), height: kind === 'carriageway' ? 0.2 : 0.1,
           material: Cesium.Color.fromCssColorString(colour) } })
       n++
