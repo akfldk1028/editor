@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 import { ArtifactHost } from './artifact-host/ArtifactHost'
 import type { ShellApi } from './artifact-types'
@@ -69,6 +69,7 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
     setPreferredArtifactShare: workspace.setArtifactShare,
     setPreferredSidebarWidth: workspace.setSidebarWidth,
     setSidebarCollapsed: workspace.setSidebarCollapsed,
+    persistPreferences: workspace.persist,
   })
   const [initial] = useState(initialLocation)
   const [artifactId, setArtifactId] = useState(initial.id)
@@ -99,7 +100,21 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
     }),
   }), [openArtifact, closeArtifact, artifactId])
 
-  const { mode, sidebarPresentation, artifactVisible, artifactPresentation, artifactMaximized } = controls
+  const { mode, sidebarPresentation, artifactVisible, artifactMounted, artifactPresentation, artifactMaximized } = controls
+
+  // Closing from the artifact's own X sends focus to the button that brings it back, once that button is drawn.
+  const focusAfterClose = useRef(false)
+  const closeFromArtifact = useCallback(() => {
+    focusAfterClose.current = true
+    closeArtifact()
+  }, [closeArtifact])
+  const { artifactButtonRef } = controls
+  useEffect(() => {
+    if (artifactVisible || !focusAfterClose.current) return
+    focusAfterClose.current = false
+    const frame = requestAnimationFrame(() => artifactButtonRef.current?.focus())
+    return () => cancelAnimationFrame(frame)
+  }, [artifactVisible, artifactButtonRef])
 
   return (
     <div className="app-shell" data-layout={mode} data-theme={workspace.resolvedTheme} style={layoutProperties}>
@@ -156,15 +171,16 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
           <div className="shell-conversation" data-modal-background>{conversation.body}</div>
         </ConversationSlot>
 
-        {artifactVisible && (
+        {artifactMounted && (
           <>
-            {artifactPresentation === 'inline' && <div className="artifact-resizer" {...controls.artifactSeparatorProps} />}
-            {artifactPresentation === 'sheet' && <button aria-label="아티팩트 배경 닫기" className="scrim artifact-scrim" onClick={closeArtifact} tabIndex={-1} type="button" />}
+            {artifactVisible && artifactPresentation === 'inline' && <div className="artifact-resizer" {...controls.artifactSeparatorProps} />}
+            {artifactVisible && artifactPresentation === 'sheet' && <button aria-label="아티팩트 배경 닫기" className="scrim artifact-scrim" onClick={closeArtifact} tabIndex={-1} type="button" />}
             <ArtifactHost
+              hidden={!artifactVisible}
               key={manifest.id}
               manifest={manifest}
               maximized={artifactMaximized}
-              onClose={closeArtifact}
+              onClose={closeFromArtifact}
               onMaximizedChange={controls.setArtifactMaximized}
               params={params}
               presentation={artifactPresentation}

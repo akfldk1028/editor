@@ -28,6 +28,8 @@ interface Props {
   /** Plain-text title set through ShellApi.setTitle. */
   textTitle: { title: string; subtitle?: string } | null
   presentation: ArtifactPresentation
+  /** Mounted but not shown (narrow mode, conversation in front): hidden and inert, its state kept. */
+  hidden?: boolean
   maximized: boolean
   restoreFocusRef?: RefObject<HTMLElement | null>
   onClose(): void
@@ -39,7 +41,7 @@ interface Props {
  * tab strip and the artifact's lazily loaded body. Remount it (key) per
  * artifact so slots and counts start fresh.
  */
-export function ArtifactHost({ manifest, tab, params, shell, textTitle, presentation, maximized, restoreFocusRef, onClose, onMaximizedChange }: Props) {
+export function ArtifactHost({ manifest, tab, params, shell, textTitle, presentation, hidden = false, maximized, restoreFocusRef, onClose, onMaximizedChange }: Props) {
   const overlay = presentation === 'sheet'
   const dialogRef = useRef<HTMLElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -80,6 +82,8 @@ export function ArtifactHost({ manifest, tab, params, shell, textTitle, presenta
       data-maximized={maximized}
       data-modal-background
       data-presentation={presentation}
+      hidden={hidden}
+      inert={hidden}
       ref={dialogRef}
       role={overlay ? 'dialog' : undefined}
     >

@@ -24,7 +24,8 @@ export function observeSize(element: HTMLElement, onResize: (width: number, heig
     size = [entry.contentRect.width, entry.contentRect.height]
     frame ||= requestAnimationFrame(() => {
       frame = 0
-      if (size) onResize(...size)
+      // A hidden panel (0×0) is skipped; the next real size redraws.
+      if (size && size[0] > 0 && size[1] > 0) onResize(...size)
     })
   })
   observer.observe(element)

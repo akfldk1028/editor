@@ -3,6 +3,8 @@
  * the shell tokens (--panel-raised, --ink, --muted …) and its 11/12/14 type.
  */
 .site-map {
+  /* What the search box leaves free at its right: the 2D|3D switch plus the zoom/layer controls. */
+  --site-map-reserve: 160px;
   position: relative;
   container-type: size;
   container-name: site-map;
@@ -19,7 +21,7 @@
   z-index: 2;
   inset-block-start: 12px;
   inset-inline-start: 12px;
-  inline-size: min(320px, calc(100% - 72px));
+  inline-size: min(320px, calc(100% - var(--site-map-reserve)));
   min-block-size: 36px;
   display: flex;
   align-items: center;
@@ -206,9 +208,14 @@
   white-space: nowrap;
 }
 
-/* Narrow artifact panel: compact search, card as a bottom sheet. */
+/* Narrow artifact panel: the 2D|3D switch gets its own row under the search, the card is a bottom sheet. */
+@container site-map (max-width: 480px) {
+  /* Only the zoom/layer controls share the first row (none in 3D). A container query styles descendants only. */
+  .site-map-search { inline-size: calc(100% - 80px); }
+  .site-map[data-view="3d"] .site-map-search { inline-size: calc(100% - 24px); }
+  .site-map-status, .site-map-3d-status { inset-block-start: 98px; }
+}
 @container site-map (max-width: 420px) {
-  .site-map-search { inline-size: calc(100% - 72px); }
   .site-map-search input::placeholder { color: transparent; }
   .site-card {
     inset-inline: 0;
@@ -247,6 +254,7 @@
   border-radius: var(--radius-m);
   box-shadow: var(--shadow);
 }
+.site-map[data-view="3d"] { --site-map-reserve: 112px; }
 .site-map[data-view="3d"] .site-map-views { inset-inline-end: 12px; }
 .site-map-views button {
   min-inline-size: 36px;
@@ -265,3 +273,28 @@
 .site-map[data-view="3d"] .site-map-status small { display: none; }
 /* In 3D the world's own controls sit bottom-right, so the card moves left. */
 .site-map[data-view="3d"] .site-card { inset-inline-end: auto; inset-inline-start: 12px; }
+.site-map-world { inline-size: 100%; block-size: 100%; background: var(--artifact); }
+.site-map-world-controls {
+  position: absolute;
+  z-index: 10;
+  inset-block-end: 12px;
+  inset-inline-end: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--panel-raised) 90%, transparent);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-1);
+}
+.site-map-world-controls .text-neutral-500 { color: var(--muted); }
+.site-map-world-controls input { accent-color: var(--accent); }
+
+/* After the 3D rules above, so the narrow placement of the 2D|3D switch wins in both views. */
+@container site-map (max-width: 480px) {
+  .site-map .site-map-views,
+  .site-map[data-view="3d"] .site-map-views { inset-block-start: 56px; inset-inline-start: 12px; inset-inline-end: auto; }
+}

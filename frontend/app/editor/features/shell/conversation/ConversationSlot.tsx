@@ -97,9 +97,9 @@ export function ConversationSlot(props: Props) {
                 <label>
                   <span>테마</span>
                   <select aria-label="테마" onChange={(event) => props.onThemeChange(event.target.value as ThemePreference)} value={props.theme}>
-                    <option value="system">System</option>
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
+                    <option value="system">시스템</option>
+                    <option value="light">밝게</option>
+                    <option value="dark">어둡게</option>
                   </select>
                 </label>
                 {props.settings}

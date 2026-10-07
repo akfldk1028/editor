@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   clampSidebarWidth,
@@ -26,9 +26,14 @@ export function useWorkspacePreferences() {
     return () => media.removeEventListener("change", update);
   }, []);
 
-  function update(next: WorkspacePreferences) {
+  /** The newest preferences, so a drag that ends can save what its last move set. */
+  const latest = useRef(preferences);
+
+  /** `save: false` only updates the view (a resize drag in progress); `persist()` saves it at the end. */
+  function update(next: WorkspacePreferences, save = true) {
+    latest.current = next;
     setPreferences(next);
-    browserStore?.save(next);
+    if (save) browserStore?.save(next);
   }
 
   return useMemo(() => ({
@@ -37,11 +42,14 @@ export function useWorkspacePreferences() {
     setTheme(theme: ThemePreference) {
       update({ ...preferences, theme });
     },
-    setArtifactShare(artifactShare: number) {
-      update({ ...preferences, artifactShare });
+    setArtifactShare(artifactShare: number, save = true) {
+      update({ ...latest.current, artifactShare }, save);
     },
-    setSidebarWidth(sidebarWidth: number) {
-      update({ ...preferences, sidebarWidth: clampSidebarWidth(sidebarWidth) });
+    setSidebarWidth(sidebarWidth: number, save = true) {
+      update({ ...latest.current, sidebarWidth: clampSidebarWidth(sidebarWidth) }, save);
+    },
+    persist() {
+      browserStore?.save(latest.current);
     },
     setSidebarCollapsed(sidebarCollapsed: boolean) {
       update({ ...preferences, sidebarCollapsed });

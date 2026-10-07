@@ -1,7 +1,7 @@
 /**
  * Single source of the workspace layout numbers. The CSS container queries in
- * styles.css repeat the two mode thresholds as literals (container query
- * conditions cannot read custom properties); tests/unit/layout-modes.test.ts
+ * shell.css repeat the two mode thresholds as literals (container query
+ * conditions cannot read custom properties); layout/layoutModes.test.ts
  * fails when the two drift apart. Every other size reaches CSS as a custom
  * property written from these constants.
  */

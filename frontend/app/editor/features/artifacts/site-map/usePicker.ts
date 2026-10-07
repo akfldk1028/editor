@@ -8,7 +8,7 @@ import { ParcelCache } from './parcelCache'
 import { NoParcelError, nextPicks, parcelAt, previewSite, saveSite, savedPicks, type Pick, type SavedSite, type SiteBundle } from './selection'
 import type { CardState } from './SiteCard'
 
-/** A second click this soon is the tail of a double click and is ignored (double-click zoom is off). */
+/** A second plain click this soon is the tail of a double click and is ignored (double-click zoom is off); Shift-clicks always count. */
 const DOUBLE_CLICK_MS = 300
 /** The pointer must rest this long before the parcel under it is previewed. */
 const HOVER_REST_MS = 250
@@ -29,12 +29,24 @@ function drawing(cache: ParcelCache, picks: Pick[], geometries: Record<string, o
   return { parcels: { geometries: shapes.filter((shape): shape is object => shape !== null), outline: picks.length > 1 ? outline : null, look }, labels, picks }
 }
 
+/** Esc belongs to a focused field or an open popover first; the picker only takes it when neither is in play. */
+function escapeIsElsewhere(event: KeyboardEvent): boolean {
+  const target = event.target instanceof Element ? event.target : null
+  if (target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')) return true
+  try {
+    return document.querySelector(':popover-open') !== null
+  } catch {
+    return false
+  }
+}
+
 /**
- * Picking a site on the map: click = that parcel alone, Shift+click (or the
- * card's 필지 추가 toggle) adds/removes a parcel, the server describes the
- * bundle, and 이 대지로 선택 saves it. Also the hover preview and cursor states.
+ * Picking a site on the map: click = that parcel alone (the only pick: deselect),
+ * Shift+click (or the card's 필지 추가 toggle) adds/removes a parcel, the server
+ * describes the bundle, and 이 대지로 선택 saves it under `scope`. Also the
+ * hover preview and cursor states.
  */
-export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site: SavedSite) => void) {
+export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site: SavedSite) => void, scope: string) {
   const cache = useRef(new ParcelCache(20))
   const state = useRef({ busy: false, lastClick: -Infinity, hoverTimer: undefined as number | undefined,
     hoverBusy: false, hoverAt: null as LngLat | null, adding: false, generation: 0 })
@@ -48,6 +60,10 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
   /** What is drawn now, for views that mirror the 2D map (the 3D view). */
   const [drawn, setDrawn] = useState<ParcelSet>(empty.parcels)
   const noticeTimer = useRef<number | undefined>(undefined)
+  /** The describe request in flight; the next describe, close and unmount abort it. */
+  const describing = useRef<AbortController | null>(null)
+  /** The saved-site restore in flight; aborted on unmount only. */
+  const restoring = useRef<AbortController | null>(null)
 
   const draw = useCallback((drawing: Drawing, fit = false) => {
     current.current = drawing
@@ -70,6 +86,8 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
   /** Describe `picks` on the server and show them; an empty bundle goes back to the baseline. */
   const describe = useCallback(async (picks: Pick[]) => {
     const generation = ++state.current.generation
+    describing.current?.abort()
+    describing.current = null
     if (picks.length === 0) {
       draw(baseline.current)
       setCard(null)
@@ -77,13 +95,15 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
     }
     draw(drawing(cache.current, picks, {}, null, 'picked'))
     setCard({ kind: 'loading', count: picks.length })
+    const controller = new AbortController()
+    describing.current = controller
     try {
-      const site = await previewSite(picks)
+      const site = await previewSite(picks, controller.signal)
       if (generation !== state.current.generation) return
       draw(drawing(cache.current, picks, site.geometries, site.outline, 'picked', site))
       setCard({ kind: 'ready', site, save: 'idle' })
     } catch (error) {
-      if (generation !== state.current.generation) return
+      if (generation !== state.current.generation || controller.signal.aborted) return
       setCard({ kind: 'error', text: error instanceof Error ? error.message : '필지 정보를 불러오지 못했습니다.' })
     }
   }, [draw])
@@ -114,7 +134,7 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
   /** A click picks at once; ignored mid-lookup and right after another click. */
   const handleClick = useCallback((event: MapPointer) => {
     const now = performance.now()
-    if (state.current.busy || now - state.current.lastClick < DOUBLE_CLICK_MS) return
+    if (state.current.busy || (!event.shift && now - state.current.lastClick < DOUBLE_CLICK_MS)) return
     state.current.lastClick = now
     void pick(event)
   }, [pick])
@@ -153,27 +173,35 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
     void describe(current.current.picks.filter((item) => item.pnu !== pnu))
   }, [describe])
 
+  /**
+   * Saves what is drawn now. The bundle is snapshotted before the request: a pick made while it is
+   * in flight does not change what is saved, and the answer then only moves the baseline.
+   */
   const select = useCallback(async () => {
     if (card?.kind !== 'ready') return
     const { site } = card
-    const picks = current.current.picks
+    const snapshot = current.current
+    const generation = state.current.generation
     setCard({ kind: 'ready', site, save: 'saving' })
     try {
-      const saved = await saveSite(picks)
-      const committed: Drawing = { ...current.current, parcels: { ...current.current.parcels, look: 'saved' } }
+      const saved = await saveSite(snapshot.picks, scope)
+      const committed: Drawing = { ...snapshot, parcels: { ...snapshot.parcels, look: 'saved' } }
       baseline.current = committed
-      draw(committed)
-      setCard({ kind: 'ready', site: saved, save: 'saved' })
       setLive(`${saved.label} 선택됨`)
       onSaved(saved)
+      if (generation !== state.current.generation) return
+      draw(committed)
+      setCard({ kind: 'ready', site: saved, save: 'saved' })
     } catch {
-      setCard({ kind: 'ready', site, save: 'failed' })
+      if (generation === state.current.generation) setCard({ kind: 'ready', site, save: 'failed' })
     }
-  }, [card, draw, onSaved])
+  }, [card, draw, onSaved, scope])
 
   /** Close / Esc: unsaved picks are dropped (back to the baseline); a saved site stays drawn. */
   const close = useCallback(() => {
     state.current.generation++
+    describing.current?.abort()
+    describing.current = null
     if (card?.kind !== 'ready' || card.save !== 'saved') draw(baseline.current)
     setCard(null)
   }, [card, draw])
@@ -186,12 +214,20 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
     setCard(null)
   }, [draw])
 
-  /** The saved site, redrawn from its PNUs (outlines are fetched again; none were stored). */
+  /**
+   * The saved site, redrawn from its PNUs (outlines are fetched again; none were stored). A pick made
+   * while the outlines load wins: the answer then only becomes the baseline, nothing is drawn or fitted.
+   */
   const restore = useCallback(async (saved: SavedSite) => {
     const picks = savedPicks(saved)
+    const generation = state.current.generation
     setCard({ kind: 'ready', site: saved, save: 'saved' })
-    const preview = await previewSite(picks)
+    restoring.current?.abort()
+    const controller = new AbortController()
+    restoring.current = controller
+    const preview = await previewSite(picks, controller.signal)
     baseline.current = drawing(cache.current, picks, preview.geometries, preview.outline, 'saved', saved)
+    if (generation !== state.current.generation) return
     draw(baseline.current, true)
   }, [draw])
 
@@ -200,16 +236,24 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
     setAddingState(value)
   }, [])
 
+  // Capture phase, so the picker (the inner owner) hears Esc before the shell's window listener,
+  // which skips an event the picker consumed (it un-maximizes the panel otherwise).
   useEffect(() => {
     if (!card) return
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') close() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || escapeIsElsewhere(event)) return
+      event.preventDefault()
+      close()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [card, close])
 
   useEffect(() => () => {
     window.clearTimeout(state.current.hoverTimer)
     window.clearTimeout(noticeTimer.current)
+    describing.current?.abort()
+    restoring.current?.abort()
   }, [])
 
   return { card, adding, setAdding, notice, live, drawn, handleClick, handleHover, remove, select, close, showSearched, restore }

@@ -42,7 +42,13 @@ async function post<T>(path: string, body: unknown, signal?: AbortSignal): Promi
   const response = await fetch(base() + path, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal,
   })
-  if (!response.ok) throw new Error(`요청 실패 (${response.status})`)
+  if (!response.ok) {
+    // The status and body stay in the console; the card shows a sentence.
+    console.error(`[site-map] ${path} failed (${response.status})`, await response.text().catch(() => ''))
+    throw new Error(response.status >= 500
+      ? '서버가 응답하지 않습니다. 잠시 후 다시 시도해 주세요.'
+      : '요청을 처리하지 못했습니다. 다시 시도해 주세요.')
+  }
   return response.json() as Promise<T>
 }
 
@@ -73,22 +79,32 @@ export function previewSite(picks: readonly Pick[], signal?: AbortSignal): Promi
   return post<PreviewedSite>('/api/v1/land/selections/preview', picksBody(picks), signal)
 }
 
-export function saveSite(picks: readonly Pick[]): Promise<SavedSite> {
-  return post<SavedSite>('/api/v1/land/selections', picksBody(picks))
+/** Saves the bundle as the site of `scope` (a project id, or `default`). */
+export function saveSite(picks: readonly Pick[], scope: string): Promise<SavedSite> {
+  return post<SavedSite>('/api/v1/land/selections', { ...picksBody(picks), scope })
 }
 
-/** The last saved site, or null when none has been selected yet. */
-export async function latestSite(signal?: AbortSignal): Promise<SavedSite | null> {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/selections/latest`, { signal, cache: 'no-store' })
+/** The scope a site is saved under: the shell's `?project=`, else `default`. */
+export const selectionScope = (params: Readonly<Record<string, string>>): string =>
+  /^[A-Za-z0-9_.-]{1,64}$/.test(params.project ?? '') ? params.project! : 'default'
+
+/** The last site saved in `scope`, or null when none has been selected yet. */
+export async function latestSite(scope: string, signal?: AbortSignal): Promise<SavedSite | null> {
+  const query = new URLSearchParams({ scope })
+  const response = await fetch(`${base()}/api/v1/land/selections/latest?${query}`, { signal, cache: 'no-store' })
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`선택한 대지를 불러오지 못했습니다 (${response.status})`)
   return response.json() as Promise<SavedSite>
 }
 
-/** Clicking a selected parcel deselects it; otherwise a click selects that parcel alone and adding (Shift or the card toggle) appends it. */
+/**
+ * Adding (Shift or the card toggle) adds or removes the clicked parcel. A plain click selects that
+ * parcel alone — also one inside a bundle — and clicking the only selected parcel deselects it.
+ */
 export function nextPicks(current: readonly Pick[], clicked: Pick, adding: boolean): Pick[] {
-  if (current.some((pick) => pick.pnu === clicked.pnu)) return current.filter((pick) => pick.pnu !== clicked.pnu)
-  return adding ? [...current, clicked] : [clicked]
+  const selected = current.some((pick) => pick.pnu === clicked.pnu)
+  if (adding) return selected ? current.filter((pick) => pick.pnu !== clicked.pnu) : [...current, clicked]
+  return selected && current.length === 1 ? [] : [clicked]
 }
 
 export const savedPicks = (site: SiteBundle): Pick[] => site.parcels.map(({ pnu, lng, lat }) => ({ pnu, at: [lng, lat] as const }))

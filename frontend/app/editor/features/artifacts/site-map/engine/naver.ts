@@ -1,4 +1,4 @@
-import { hoverOutline, mergedOutline, parcelBounds, parcelOutline, parcelRings, parcelStyle, selectionFill } from '../layers/parcelOutline'
+import { accentColor, hoverOutline, mergedOutline, parcelBounds, parcelOutline, parcelRings, parcelStyle } from '../layers/parcelOutline'
 import { lotChipHtml } from '../layers/lotChip'
 import { searchMarker, searchMarkerHtml } from '../layers/searchMarker'
 import { mapCursor } from './cursor'
@@ -127,8 +127,9 @@ export function createNaverEngine(keyId: string): MapEngine {
       cursor = mapCursor(element)
       dragListeners = [maps.Event.addListener(instance, 'dragstart', () => cursor?.dragging(true)),
         maps.Event.addListener(instance, 'dragend', () => cursor?.dragging(false))]
-      container = element
-      stopObserving = observeSize(element, () => this.resize())
+      // setSize pins the map element's own px size, so the size is read from (and watched on) its parent.
+      container = element.parentElement ?? element
+      stopObserving = observeSize(container, () => this.resize())
       cadastral = new maps.CadastralLayer()
       if (layers.cadastral) cadastral.setMap(instance)
       // Authentication failures are reported asynchronously through a global callback.
@@ -151,7 +152,7 @@ export function createNaverEngine(keyId: string): MapEngine {
         strokeColor: parcelOutline.color,
         strokeWeight: style.width,
         strokeStyle: style.dashed ? 'shortdash' : 'solid',
-        fillColor: selectionFill.color,
+        fillColor: accentColor(container),
         fillOpacity: style.fillOpacity,
       })
       syncPolygons(merged, outline ? [outline] : [], {

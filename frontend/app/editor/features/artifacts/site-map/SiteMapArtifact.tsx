@@ -8,7 +8,7 @@ import { locateParcel } from '../../land-map/lib/land-api-client'
 import type { ArtifactProps } from '../../shell/artifact-types'
 import { chooseEngine, createMapEngine, type LngLat, type MapEngine, type MapEngineKind } from './engine'
 import { boundsCenter, parcelBounds, parcelRings } from './layers/parcelOutline'
-import { latestSite, type SavedSite } from './selection'
+import { latestSite, selectionScope, type SavedSite } from './selection'
 import { defaultSite, siteFromSelection, siteParam, type Site } from './site'
 import { SiteCard } from './SiteCard'
 import { usePicker } from './usePicker'
@@ -43,6 +43,8 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   const searchAbort = useRef<AbortController | null>(null)
   // `?pnu=` / `?address=` wins; otherwise the last saved site, else the default.
   const [requestedSite] = useState(() => siteParam(params))
+  /** Saved sites are kept per project (`?project=`), else under `default`. */
+  const scope = selectionScope(params)
   const [engineKind, setEngineKind] = useState<MapEngineKind | null>(null)
   const [cadastral, setCadastral] = useState(true)
   const cadastralRef = useRef(cadastral)
@@ -53,7 +55,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   const [opened3d, setOpened3d] = useState(view === '3d')
   const { setTitle } = shell
   const onSaved = useCallback((saved: SavedSite) => setSite(siteFromSelection({ pnu: saved.parcels[0]!.pnu, address: saved.label })), [])
-  const picker = usePicker(engineRef, onSaved)
+  const picker = usePicker(engineRef, onSaved, scope)
   const { showSearched } = picker
   // The engine is built once per mount; it reaches the latest handlers through this ref, so
   // picking (which changes state) never rebuilds the map or moves the view.
@@ -123,7 +125,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     /** The last saved site, when there is one; false opens the default instead. */
     async function openSaved(): Promise<boolean> {
       try {
-        const saved = await latestSite()
+        const saved = await latestSite(scope)
         if (!saved || disposed) return false
         setStatus({ kind: 'busy', text: '선택한 대지를 불러오는 중' })
         await latest.current.picker.restore(saved)
@@ -146,7 +148,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       engine?.destroy()
       engineRef.current = null
     }
-  }, [params.engine, requestedSite])
+  }, [params.engine, requestedSite, scope])
 
   /** Both views stay mounted; the switch only shows one. The URL changes by replaceState, never by navigation. */
   function switchView(next: View) {
@@ -177,7 +179,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   return (
     <div className="site-map" data-engine={engineKind ?? undefined} data-view={view}>
       {/* Providers restyle their target (Naver makes it position: relative), so they get an inner element. */}
-      <div aria-label={`${site.label} 지도`} className="site-map-canvas" role="img"><div ref={mapRef} /></div>
+      <div aria-label="대지 지도 — 클릭으로 필지 선택" className="site-map-canvas" role="application"><div ref={mapRef} /></div>
 
       {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} />}
 

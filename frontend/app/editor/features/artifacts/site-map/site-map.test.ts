@@ -42,15 +42,29 @@ test('an explicit pnu/address param is the only thing that beats the saved selec
   expect(siteFromSelection({ pnu: '4115011300106840001', address: '' }).label).toBe('4115011300106840001')
 })
 
-test('picks: a click replaces, adding appends in order, clicking a selected parcel deselects it', async () => {
+test('picks: a click selects that parcel alone, adding toggles in order, clicking the only pick deselects it', async () => {
   const { nextPicks } = await import('./selection')
   const a = { pnu: 'a', at: [127, 37] as const }
   const b = { pnu: 'b', at: [127.1, 37] as const }
+  const c = { pnu: 'c', at: [127.2, 37] as const }
+  expect(nextPicks([], a, false)).toEqual([a])
   expect(nextPicks([a], b, false)).toEqual([b])
-  expect(nextPicks([a], b, true)).toEqual([a, b])
-  expect(nextPicks([a, b], a, true)).toEqual([b])
+  // A plain click on a parcel inside a bundle keeps only that parcel.
+  expect(nextPicks([a, b, c], b, false)).toEqual([b])
+  // A plain click on the only selected parcel deselects it.
   expect(nextPicks([a], a, false)).toEqual([])
-  expect(nextPicks([a, b], b, false)).toEqual([a])
+  // Adding appends or removes, keeping the order.
+  expect(nextPicks([a], b, true)).toEqual([a, b])
+  expect(nextPicks([a, b, c], b, true)).toEqual([a, c])
+  expect(nextPicks([a], a, true)).toEqual([])
+})
+
+test("the selection scope is the shell's ?project=, else default", async () => {
+  const { selectionScope } = await import('./selection')
+  expect(selectionScope({})).toBe('default')
+  expect(selectionScope({ project: 'gosan-1' })).toBe('gosan-1')
+  expect(selectionScope({ project: 'a b' })).toBe('default')
+  expect(selectionScope({ project: 'x'.repeat(65) })).toBe('default')
 })
 
 test('parcel looks, point-in-parcel, lot labels and the hover cache', async () => {

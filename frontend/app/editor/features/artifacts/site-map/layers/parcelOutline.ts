@@ -1,6 +1,6 @@
 import type { LngLat } from '../engine/types'
 
-/** The selected parcel: a red dashed outline, no fill (the map's colours stay visible). */
+/** Parcel outlines: red, dashed for the searched site and picks, solid once saved (fills: `selectionFill`). */
 export const parcelOutline = {
   color: '#ef4444',
   width: 2.5,
@@ -48,8 +48,15 @@ export function boundsCenter([west, south, east, north]: readonly [number, numbe
 /** How a parcel is drawn: the searched site, a clicked pick, or the saved selection. */
 export type ParcelLook = 'site' | 'picked' | 'saved'
 
-/** Thin fill for picks in the shell's accent (--accent), so the map's own colours still show through. */
+/** Thin fill for picks in the shell's accent, so the map's own colours still show through; `color` is the light theme's. */
 export const selectionFill = { color: '#d97757', picked: 0.15, saved: 0.22 } as const
+
+/** The shell's `--accent` as seen from `element` (it follows the theme), else the light default. */
+export function accentColor(element: Element | null | undefined): string {
+  if (!element || typeof getComputedStyle !== 'function') return selectionFill.color
+  const value = getComputedStyle(element).getPropertyValue('--accent').trim()
+  return /^#[0-9a-f]{6}$/i.test(value) ? value : selectionFill.color
+}
 
 /** The merged boundary of a multi-parcel site (합필 경계). */
 export const mergedOutline = { width: 3.5 } as const

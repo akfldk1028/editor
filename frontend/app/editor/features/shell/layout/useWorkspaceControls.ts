@@ -31,9 +31,11 @@ interface WorkspaceControlsOptions {
   preferredArtifactShare: number | null;
   preferredSidebarWidth: number;
   sidebarCollapsed: boolean;
-  setPreferredArtifactShare(share: number): void;
-  setPreferredSidebarWidth(width: number): void;
+  /** `save: false` while a drag is in progress; `persistPreferences` saves once it ends. */
+  setPreferredArtifactShare(share: number, save?: boolean): void;
+  setPreferredSidebarWidth(width: number, save?: boolean): void;
   setSidebarCollapsed(collapsed: boolean): void;
+  persistPreferences(): void;
 }
 
 /** Runs a panel open/close inside a View Transition when the platform offers one and motion is allowed. */
@@ -55,7 +57,8 @@ export function useWorkspaceControls({
   sidebarCollapsed,
   setPreferredArtifactShare,
   setPreferredSidebarWidth,
-  setSidebarCollapsed
+  setSidebarCollapsed,
+  persistPreferences
 }: WorkspaceControlsOptions) {
   const mode = layoutModeFor(workspaceWidth);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -83,9 +86,11 @@ export function useWorkspaceControls({
   const artifactMaxWidth = maximumArtifactWidth(rowWidth);
   const artifactMinWidth = Math.min(layout.artifact.min, artifactMaxWidth);
   const artifactVisible = mode === "narrow" ? narrowPanel === "artifact" : artifactOpen;
+  /** Narrow keeps the artifact mounted (hidden) behind the conversation, so switching never rebuilds it. */
+  const artifactMounted = artifactVisible || mode === "narrow";
 
-  const latest = useRef({ rowWidth, setPreferredArtifactShare, setPreferredSidebarWidth });
-  latest.current = { rowWidth, setPreferredArtifactShare, setPreferredSidebarWidth };
+  const latest = useRef({ rowWidth, setPreferredArtifactShare, setPreferredSidebarWidth, persistPreferences });
+  latest.current = { rowWidth, setPreferredArtifactShare, setPreferredSidebarWidth, persistPreferences };
 
   // A mode change re-seats every panel: drawers and overlays close, narrow
   // starts on the conversation, and a maximized artifact is restored.
@@ -98,6 +103,8 @@ export function useWorkspaceControls({
   }, [mode]);
 
   const finishResize = useCallback(() => {
+    // A drag saves its final size once, here, not on every move.
+    if (artifactDragStart.current || sidebarDragStart.current) latest.current.persistPreferences();
     artifactDragStart.current = null;
     sidebarDragStart.current = null;
     const target = activeResizeTarget.current;
@@ -154,7 +161,8 @@ export function useWorkspaceControls({
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      // An inner owner (the site map's selection, a popover) that consumed Esc called preventDefault.
+      if (event.key === "Escape" && !event.defaultPrevented) {
         setSettingsOpen(false);
         setArtifactMaximized(false);
       }
@@ -195,12 +203,12 @@ export function useWorkspaceControls({
         current.setPreferredArtifactShare(artifactShareFor(current.rowWidth, clampArtifactWidth(
           current.rowWidth,
           artifactDragStart.current.width + artifactDragStart.current.x - pointerEvent.clientX
-        )));
+        )), false);
       }
       if (sidebarDragStart.current) {
         current.setPreferredSidebarWidth(clampSidebarWidth(
           sidebarDragStart.current.width + pointerEvent.clientX - sidebarDragStart.current.x
-        ));
+        ), false);
       }
     };
     const finishPointer = (pointerEvent: PointerEvent) => {
@@ -230,7 +238,7 @@ export function useWorkspaceControls({
 
   /** Pointer and keyboard props for a `role="separator"` between two panels. */
   const sidebarSeparatorProps: HTMLAttributes<HTMLDivElement> = {
-    "aria-label": "Sidebar width",
+    "aria-label": "사이드바 너비",
     "aria-orientation": "vertical",
     "aria-valuemax": layout.sidebar.max,
     "aria-valuemin": layout.sidebar.min,
@@ -286,6 +294,7 @@ export function useWorkspaceControls({
     mode,
     artifactMaximized,
     artifactPresentation,
+    artifactMounted,
     artifactVisible,
     artifactWidth,
     narrowPanel,

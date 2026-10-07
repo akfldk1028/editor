@@ -46,8 +46,8 @@ export function ShellSidebar({
 
   if (presentation === 'rail') {
     return (
-      <aside aria-label="Workspace navigation" className="workspace-sidebar rail" data-modal-background>
-        <button aria-label="Expand navigation" className="icon-button" onClick={() => onExpandedChange(true)} title="탐색 펼치기" type="button">
+      <aside aria-label="작업 탐색" className="workspace-sidebar rail" data-modal-background>
+        <button aria-label="탐색 펼치기" className="icon-button" onClick={() => onExpandedChange(true)} title="탐색 펼치기" type="button">
           <PanelLeftOpen size={16} />
         </button>
         {artifacts.map(({ id, title, icon: Icon }) => (
@@ -69,7 +69,7 @@ export function ShellSidebar({
 
   return (
     <aside
-      aria-label="Workspace navigation"
+      aria-label="작업 탐색"
       aria-modal={overlay ? true : undefined}
       className={`workspace-sidebar ${overlay ? 'overlay modal-overlay' : ''}`}
       data-modal-background
@@ -80,9 +80,9 @@ export function ShellSidebar({
         <div aria-hidden="true" className="brand-mark">{brand.mark}</div><strong>{brand.name}</strong>
         <span className="sidebar-heading-actions">
           {/* In the drawer, close comes first so the dialog's initial focus lands on it. */}
-          {overlay && <button aria-label="Close navigation" className="icon-button" onClick={onClose} title="닫기" type="button"><PanelLeftClose size={16} /></button>}
+          {overlay && <button aria-label="탐색 닫기" className="icon-button" onClick={onClose} title="닫기" type="button"><PanelLeftClose size={16} /></button>}
           {headingActions}
-          {!overlay && <button aria-label="Collapse navigation" className="icon-button" onClick={() => onExpandedChange(false)} title="탐색 접기" type="button"><PanelLeftClose size={16} /></button>}
+          {!overlay && <button aria-label="탐색 접기" className="icon-button" onClick={() => onExpandedChange(false)} title="탐색 접기" type="button"><PanelLeftClose size={16} /></button>}
         </span>
       </div>
 

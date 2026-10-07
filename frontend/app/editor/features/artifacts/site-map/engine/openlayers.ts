@@ -19,7 +19,7 @@ import View from 'ol/View'
 
 import { MAP_CONFIG } from '../../../land-map/lib/constants'
 import { lotChipElement } from '../layers/lotChip'
-import { hoverOutline, mergedOutline, parcelOutline, parcelStyle, rgba, selectionFill, type ParcelLook } from '../layers/parcelOutline'
+import { accentColor, hoverOutline, mergedOutline, parcelOutline, parcelStyle, rgba, type ParcelLook } from '../layers/parcelOutline'
 import { searchMarker } from '../layers/searchMarker'
 import { mapCursor } from './cursor'
 import { observeSize, whenSized } from './size'
@@ -43,11 +43,12 @@ async function browserKey(): Promise<string | null> {
   }
 }
 
-function lookStyle(look: ParcelLook) {
+/** `fill` is the theme's accent, read when the parcels are drawn. */
+function lookStyle(look: ParcelLook, fill: string) {
   const style = parcelStyle(look)
   return new Style({
     stroke: new Stroke({ color: parcelOutline.color, width: style.width, lineDash: style.dashed ? [...parcelOutline.dash] : undefined }),
-    fill: style.fillOpacity ? new Fill({ color: rgba(selectionFill.color, style.fillOpacity) }) : undefined,
+    fill: style.fillOpacity ? new Fill({ color: rgba(fill, style.fillOpacity) }) : undefined,
   })
 }
 
@@ -58,11 +59,12 @@ function lookStyle(look: ParcelLook) {
  */
 export function createOpenLayersEngine(): MapEngine {
   let map: OlMap | null = null
+  let host: HTMLElement | null = null
   const parcelSource = new VectorSource()
   const mergedSource = new VectorSource()
   const hoverSource = new VectorSource()
   const markerSource = new VectorSource()
-  const parcelLayer = new VectorLayer({ source: parcelSource, style: lookStyle('site'), zIndex: 10 })
+  const parcelLayer = new VectorLayer({ source: parcelSource, style: lookStyle('site', accentColor(null)), zIndex: 10 })
   const cadastralLayers: TileLayer[] = []
   let labels: Overlay[] = []
   let cursor: ReturnType<typeof mapCursor> | null = null
@@ -122,6 +124,7 @@ export function createOpenLayersEngine(): MapEngine {
       })
 
       await whenSized(element)
+      host = element
       map = new OlMap({
         target: element,
         layers: [base, ...cadastralLayers, hover, parcelLayer, merged, marker],
@@ -149,7 +152,7 @@ export function createOpenLayersEngine(): MapEngine {
     showParcels({ geometries, outline, look }: ParcelSet, fit = true) {
       parcelSource.clear()
       mergedSource.clear()
-      parcelLayer.setStyle(lookStyle(look))
+      parcelLayer.setStyle(lookStyle(look, accentColor(host)))
       for (const geometry of geometries) parcelSource.addFeatures(read(geometry))
       if (outline) mergedSource.addFeatures(read(outline))
       const extent = parcelSource.getExtent()
@@ -187,7 +190,8 @@ export function createOpenLayersEngine(): MapEngine {
     },
 
     resize() {
-      map?.updateSize()
+      const box = host?.getBoundingClientRect()
+      if (box?.width && box.height) map?.updateSize()
     },
 
     getZoom() {
@@ -233,7 +237,9 @@ export function createOpenLayersEngine(): MapEngine {
       clickListener = moveListener = null
       leaveListener = null
       map?.setTarget(undefined)
+      map?.dispose()
       map = null
+      host = null
     },
   }
 }

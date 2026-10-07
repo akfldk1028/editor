@@ -233,6 +233,8 @@ button { cursor: pointer; }
 .workspace-grid > .artifact-resizer { grid-row: 1 / -1; grid-column: asep; }
 .workspace-grid > .artifact-panel[data-presentation="inline"] { grid-row: 1 / -1; grid-column: art; }
 .workspace-grid > .artifact-panel[data-presentation="panel"] { grid-row: 2; grid-column: conv; }
+/* Narrow keeps the artifact mounted behind the conversation (see Shell). */
+.workspace-grid > .artifact-panel[hidden] { display: none; }
 
 @container editor-shell (min-width: 768px) {
   .workspace-grid[data-artifact="inline"] {
@@ -325,6 +327,14 @@ button { cursor: pointer; }
   touch-action: none;
 }
 .sidebar-resizer { background: var(--sidebar); }
+/* The line stays 7px wide; the pointer target is 20px, overhanging both panels (no layout shift). */
+.sidebar-resizer::before, .artifact-resizer::before {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - 10px);
+  inline-size: 20px;
+  content: "";
+}
 .sidebar-resizer::after, .artifact-resizer::after {
   position: absolute;
   inset-block: 0;
@@ -459,6 +469,7 @@ button { cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   .sidebar-resizer::after, .artifact-resizer::after { transition: none; }
+  .loading-mark { animation: none; }
 }
 
 }

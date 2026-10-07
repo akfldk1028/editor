@@ -68,6 +68,14 @@ function SiteWorld({ active, drawn, onPick, shape }: { active: boolean; drawn: P
     if (!active) placed.current = null
   }, [active])
 
+  // Hidden, the 3D view must not keep rendering frames: its render loop stops and restarts on return.
+  useEffect(() => {
+    const viewer = viewerRef.current
+    if (!ready || !viewer || viewer.isDestroyed()) return
+    viewer.useDefaultRenderLoop = active
+    if (active) viewer.scene.requestRender()
+  }, [ready, active, viewerRef])
+
   useEffect(() => {
     if (!ready) return
     if (!shape) {
@@ -92,9 +100,8 @@ function SiteWorld({ active, drawn, onPick, shape }: { active: boolean; drawn: P
 
   return (
     <>
-      <div ref={target} style={{ width: '100%', height: '100%', background: '#f7f7f5' }} />
-      <WorldControls world={world} title="주변 맥락" compact
-        className="absolute bottom-3 right-3 z-10 flex flex-col gap-0.5 rounded-md bg-white/90 px-2 py-1 text-[11px] text-neutral-800 shadow" />
+      <div className="site-map-world" ref={target} />
+      <WorldControls world={world} title="주변 맥락" compact className="site-map-world-controls" />
       {!ready && <span className="site-map-3d-status">{error ?? '3D 불러오는 중'}</span>}
     </>
   )
