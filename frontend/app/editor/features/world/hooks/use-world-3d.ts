@@ -91,7 +91,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
       })
       const masses = fetchContextBuildings(cell.lat, cell.lon, CELL_RADIUS_M).then((reply) => {
         if (reply.status !== 'ok' || !live()) return
-        const { counts: got } = drawContextMasses(layers.current!.buildings.entities, Cesium, reply, z, level.current)
+        const { counts: got } = drawContextMasses(layers.current!.buildings.entities, Cesium, reply, z)
         setBuildings((n) => n + got.measured + got.estimated + got.unknown)
         setCounts((c) => ({ measured: c.measured + got.measured, estimated: c.estimated + got.estimated, unknown: c.unknown + got.unknown }))
         if (hideOnSite.current) applyOnSite()
@@ -170,8 +170,10 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
       return
     }
     const z = level.current
+    // On terrain the masses' feet go into the ground: the globe must hide what is below it.
+    viewer.scene.globe.depthTestAgainstTerrain = terrainOn.current
     if (terrainOn.current) {
-      terrainProvider.current = demTerrain(Cesium, () => level.current)
+      terrainProvider.current = demTerrain(Cesium, () => level.current, () => visibleBox(viewer, Cesium)?.focus ?? null)
       viewer.terrainProvider = terrainProvider.current
     } else {
       viewer.terrainProvider = new Cesium.CustomHeightmapTerrainProvider({ width: 2, height: 2, callback: () => new Float32Array([z, z, z, z]) })

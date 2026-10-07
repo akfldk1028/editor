@@ -160,3 +160,14 @@ be told to the Orchestrator session.
   the site outline is redrawn on a terrain toggle; /law re-shows the site and setback lines after a switch.
   "handler is not a function" on switching to VWorld comes from the dev overlay `agentation` wrapping the VWorld
   SDK's requestAnimationFrame, not from this code. Changed by the Orchestrator session.
+- 2026-10-08 floating context masses in the clean world (user: masses still float): on /world the fallback ground is
+  0 m, every DEM tile coarser than level 13 or refused was flat at 0, and tiles were served in arrival order 2 at a
+  time (5-12 s each) while Cesium asked out to the horizon - the ground under the camera stayed flat 0 for minutes
+  and the masses, at absolute DEM heights (~60 m at 고산), hung in the air (no shadows, so it hardly showed). Now:
+  masses stand RELATIVE_TO_GROUND on the terrain as drawn, their foot sunk by the DEM fall from centre to lowest
+  corner (SceneAgent `top_m - height_m - base_m`) + 12 m, globe.depthTestAgainstTerrain on with terrain; rings with
+  no area are dropped too (the old NaN stop came from zero-area rings). terrain.ts: waiting tiles are served nearest
+  the camera focus first, levels 12-15 are asked at 33 x 33 (as fast as 17 x 17), a 5xx is asked once more, and a refused tile is filled from its
+  nearest answered ancestor instead of flat 0 (that cut 60-100 m cliffs). Measured on 고산 /world (drawn ground under every
+  corner): 615 masses, none on flat 0 after ~60 s, 1 with a 3.5 m gap (an apartment over a 24 m terrace edge). Backend 18449 (gone, no log) and the hung dev server 3003 (`write EPIPE`) were restarted
+  with the documented commands. Changed by the Orchestrator session.

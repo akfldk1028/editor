@@ -27,14 +27,27 @@ async function fetchContext(path: string, lat: number, lon: number, radiusM: num
 }
 
 const PREFIX = 'context-mass-'
+// Below the DEM's own fall under a mass: the drawn terrain (33 x 33 samples a tile, ~18 m apart) smears a terrace
+// edge under a building (고산: 93 m platform beside a 60 m street, 6-11.5 m gaps at 4 m). Buried parts never show.
+const FOOTING_M = 12
 
 /** Outer rings of a Polygon / MultiPolygon as flat [lon, lat, lon, lat, …] arrays; rings with fewer than 3 distinct
- *  corners are dropped (Cesium cannot centre them and stops rendering). */
+ *  corners or no area (all corners on one line) are dropped (Cesium cannot centre them and stops rendering). */
 function rings(geometry: any): number[][] {
   const polys = geometry?.type === 'Polygon' ? [geometry.coordinates] : geometry?.type === 'MultiPolygon' ? geometry.coordinates : []
   return polys
-    .filter((p: any) => new Set((p?.[0] ?? []).map((c: number[]) => `${c[0]},${c[1]}`)).size >= 3)
+    .filter((p: any) => new Set((p?.[0] ?? []).map((c: number[]) => `${c[0]},${c[1]}`)).size >= 3 && areaDeg2(p[0]) > 1e-12)
     .map((p: any) => p[0].flatMap((c: number[]) => [c[0], c[1]]))
+}
+
+/** Shoelace area in square degrees (1e-12 deg² ≈ 0.01 m²). */
+function areaDeg2(ring: number[][]): number {
+  const [x0, y0] = ring[0]!   // relative to the first corner: lon x lat products would eat the precision
+  let a = 0
+  for (let i = 0; i < ring.length - 1; i++) {
+    a += (ring[i]![0]! - x0!) * (ring[i + 1]![1]! - y0!) - (ring[i + 1]![0]! - x0!) * (ring[i]![1]! - y0!)
+  }
+  return Math.abs(a) / 2
 }
 
 export type HeightCounts = { measured: number; estimated: number; unknown: number }
@@ -43,7 +56,7 @@ export type HeightCounts = { measured: number; estimated: number; unknown: numbe
 export type Ground = number | 'terrain'
 
 /** Adds the reply's buildings; one already drawn (neighbouring cells overlap) is skipped. Returns what was added. */
-export function drawContextMasses(entities: any, Cesium: any, reply: ContextReply, base: Ground = 0, fallback = 0): { added: number; counts: HeightCounts } {
+export function drawContextMasses(entities: any, Cesium: any, reply: ContextReply, base: Ground = 0): { added: number; counts: HeightCounts } {
   const white = Cesium.Color.fromCssColorString('#fbfbf9')
   const pale = Cesium.Color.fromCssColorString('#ffffff').withAlpha(0.55)
   const edge = Cesium.Color.fromCssColorString('#9a9a96')
@@ -64,9 +77,16 @@ export function drawContextMasses(entities: any, Cesium: any, reply: ContextRepl
         description: `높이 ${p.height_m} m (${p.height_status}) — ${p.method}`,
         polygon: {
           hierarchy: Cesium.Cartesian3.fromDegreesArray(ring),
-          // On terrain a mass stands on the DEM height under it (SceneAgent base_m), never on a height Cesium samples
-          // while drawing; without base_m it stands at the fallback ground level.
-          ...(() => { const z = base === 'terrain' ? (p.base_m ?? fallback) : base; return { height: z, extrudedHeight: z + p.height_m } })(),
+          // On terrain a mass stands on the ground as drawn (relative to ground): DEM tiles arrive late (5-12 s each)
+          // and far ones are flat, so an absolute DEM height (SceneAgent base_m) hung masses in the air until then.
+          // Its foot goes into the ground as far as the DEM falls from its centre to its lowest corner (SceneAgent:
+          // centre = top_m - height_m, lowest = base_m) plus FOOTING_M, so a slope under it never shows a gap; the
+          // terrain depth test hides the buried part.
+          ...(base === 'terrain'
+            ? { height: -(FOOTING_M + Math.max(0, p.top_m != null && p.base_m != null ? p.top_m - p.height_m - p.base_m : 0)),
+                extrudedHeight: p.height_m, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                extrudedHeightReference: Cesium.HeightReference.RELATIVE_TO_GROUND }
+            : { height: base, extrudedHeight: base + p.height_m }),
           material: p.height_status === 'unknown' ? pale : white,
           outline: true,
           outlineColor: edge,
