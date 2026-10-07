@@ -12,7 +12,7 @@
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
 import { MAP_CONFIG_3D } from '../../land-map/lib/constants'
 import { SETBACK_COLORS, SETBACK_DS_NAME } from '../../land-map/lib/vworld-3d-scene'
-import { loadCesium } from '../lib/cesium-loader'
+import { acquireCesium } from '../lib/cesium-loader'
 import { CELL_RADIUS_M, MAX_ALTITUDE_M, MAX_CELLS, cellsIn, visibleBox } from '../lib/context-cells'
 import { type Ground, type HeightCounts, drawContextGround, drawContextMasses, fetchContextBuildings, fetchContextGround } from '../lib/context-masses'
 import { demTerrain } from '../lib/terrain'
@@ -48,6 +48,8 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   const terrainOn = useRef(true)
   const generation = useRef(0)   // bumped whenever the drawn context is thrown away
   const site = useRef<number[][] | null>(null)
+  const outline = useRef<number[][] | null>(null)   // the highlighted parcel's outline (may differ from site after clearHighlight)
+  const terrainProvider = useRef<any>(null)
   const hideOnSite = useRef(false)
   const clickRef = useRef(onClick)
   clickRef.current = onClick
@@ -82,28 +84,29 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
       const gen = generation.current
       const z: Ground = terrainOn.current ? 'terrain' : level.current
       running.current++
+      const live = () => !viewer.isDestroyed() && gen === generation.current && layers.current
       const ground = fetchContextGround(cell.lat, cell.lon, CELL_RADIUS_M).then((reply) => {
-        if (reply.status === 'ok' && !viewer.isDestroyed() && gen === generation.current)
+        if (reply.status === 'ok' && live())
           drawContextGround({ blocks: layers.current!.ground, cover: layers.current!.cover }, Cesium, reply, z)
       })
-      fetchContextBuildings(cell.lat, cell.lon, CELL_RADIUS_M)
-        .then((reply) => {
-          if (reply.status !== 'ok' || viewer.isDestroyed() || gen !== generation.current) return
-          const { counts: got } = drawContextMasses(layers.current!.buildings.entities, Cesium, reply, z, level.current)
-          setBuildings((n) => n + got.measured + got.estimated + got.unknown)
-          setCounts((c) => ({ measured: c.measured + got.measured, estimated: c.estimated + got.estimated, unknown: c.unknown + got.unknown }))
-          if (hideOnSite.current) applyOnSite()
-        })
-        .then(() => ground)
-        .catch((e) => {
-          asked.current.delete(cell.key) // try again on the next move
-          setStatus(e instanceof Error ? e.message : String(e))
-        })
-        .finally(() => {
-          running.current--
-          setPending(queue.current.length + running.current)
-          pump()
-        })
+      const masses = fetchContextBuildings(cell.lat, cell.lon, CELL_RADIUS_M).then((reply) => {
+        if (reply.status !== 'ok' || !live()) return
+        const { counts: got } = drawContextMasses(layers.current!.buildings.entities, Cesium, reply, z, level.current)
+        setBuildings((n) => n + got.measured + got.estimated + got.unknown)
+        setCounts((c) => ({ measured: c.measured + got.measured, estimated: c.estimated + got.estimated, unknown: c.unknown + got.unknown }))
+        if (hideOnSite.current) applyOnSite()
+      })
+      // the cell is done when both have settled; a failure of either is retried on the next camera move
+      Promise.allSettled([ground, masses]).then((results) => {
+        const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
+        if (failed) {
+          asked.current.delete(cell.key)
+          if (!viewer.isDestroyed()) setStatus(failed.reason instanceof Error ? failed.reason.message : String(failed.reason))
+        }
+        running.current--
+        setPending(queue.current.length + running.current)
+        if (!viewer.isDestroyed()) pump()
+      })
     }
     setPending(queue.current.length + running.current)
   }, [applyOnSite])
@@ -124,6 +127,25 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     pump()
   }, [pump])
 
+  /** The site's red dashed outline, draped on the terrain or just above the flat ground. */
+  const drawOutline = useCallback(() => {
+    const viewer = viewerRef.current, Cesium = cesiumRef.current, ring = outline.current
+    if (!viewer || !Cesium) return
+    viewer.entities.removeById('world-parcel')
+    if (!ring) return
+    viewer.entities.add({ id: 'world-parcel', name: '대지', polyline: {
+      ...(terrainOn.current
+        ? { positions: Cesium.Cartesian3.fromDegreesArray(ring.flatMap((c) => [c[0]!, c[1]!])), clampToGround: true }
+        : { positions: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((c) => [c[0]!, c[1]!, level.current + 1.0])) }),
+      width: 2, material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#d6336c'), dashLength: 10 }) } })
+  }, [])
+
+  /** Record the site (whose context buildings make way for the project) without drawing its outline. */
+  const setSite = useCallback((geometry: object | null) => {
+    site.current = geometry ? ringOf(geometry) : null
+    applyOnSite()
+  }, [applyOnSite])
+
   /** Throw the drawn context away and load what the camera sees again (the ground under it changed). */
   const redraw = useCallback(() => {
     generation.current++
@@ -132,17 +154,28 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     queue.current = []
     setBuildings(0)
     setCounts({ measured: 0, estimated: 0, unknown: 0 })
+    drawOutline()
     loadVisible()
-  }, [loadVisible])
+  }, [loadVisible, drawOutline])
 
   /** The ground: the DEM terrain, or flat at level.current. An old Cesium (from the VWorld SDK in this tab) stays flat at 0. */
   const applyGround = useCallback(() => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
-    if (!viewer || !Cesium || !Cesium.CustomHeightmapTerrainProvider) return
+    if (!viewer || !Cesium) return
+    terrainProvider.current?.dispose?.()
+    terrainProvider.current = null
+    if (!Cesium.CustomHeightmapTerrainProvider) {   // cannot happen with our own 1.122; never draw on a ground we cannot make
+      terrainOn.current = false
+      level.current = 0
+      return
+    }
     const z = level.current
-    viewer.terrainProvider = terrainOn.current
-      ? demTerrain(Cesium, () => level.current)
-      : new Cesium.CustomHeightmapTerrainProvider({ width: 2, height: 2, callback: () => new Float32Array([z, z, z, z]) })
+    if (terrainOn.current) {
+      terrainProvider.current = demTerrain(Cesium, () => level.current)
+      viewer.terrainProvider = terrainProvider.current
+    } else {
+      viewer.terrainProvider = new Cesium.CustomHeightmapTerrainProvider({ width: 2, height: 2, callback: () => new Float32Array([z, z, z, z]) })
+    }
   }, [])
 
   /** The site's datum: the flat ground stands there (terrain off), and far tiles the DEM does not cover stand there. */
@@ -169,21 +202,18 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     const ring = ringOf(geometry)
     if (!viewer || !Cesium || !ring) return
     site.current = ring
-    viewer.entities.removeById('world-parcel')
-    viewer.entities.add({ id: 'world-parcel', name: '대지', polyline: {
-      ...(terrainOn.current
-        ? { positions: Cesium.Cartesian3.fromDegreesArray(ring.flatMap((c) => [c[0]!, c[1]!])), clampToGround: true }
-        : { positions: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((c) => [c[0]!, c[1]!, level.current + 1.0])) }),
-      width: 2, material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#d6336c'), dashLength: 10 }) } })
+    outline.current = ring
+    drawOutline()
     applyOnSite()
     // A parcel far from what the camera looks at (a search by PNU gives no coordinates): go there.
     const lon = ring.reduce((t, c) => t + c[0]!, 0) / ring.length, lat = ring.reduce((t, c) => t + c[1]!, 0) / ring.length
     const seen = visibleBox(viewer, Cesium)
     const far = !seen || Math.hypot((seen.focus.lat - lat) * 111_000, (seen.focus.lon - lon) * 88_000) > 1500
     if (far) flyTo(lon, lat)
-  }, [applyOnSite, flyTo])
+  }, [applyOnSite, flyTo, drawOutline])
 
   const clearHighlight = useCallback(() => {
+    outline.current = null
     viewerRef.current?.entities.removeById('world-parcel')
   }, [])
 
@@ -222,8 +252,10 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
 
   useEffect(() => {
     let disposed = false
-    loadCesium().then((Cesium) => {
-      if (disposed || !target.current) return
+    let release = () => {}
+    acquireCesium().then(({ Cesium, release: give }) => {
+      release = give
+      if (disposed || !target.current) return give()
       cesiumRef.current = Cesium
       const viewer = new Cesium.Viewer(target.current, {
         baseLayer: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
@@ -262,8 +294,11 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     return () => {
       disposed = true
       queue.current = []
+      terrainProvider.current?.dispose?.()
+      terrainProvider.current = null
       viewerRef.current?.destroy()
       viewerRef.current = null
+      release()   // the VWorld engine may mount next: its own Cesium goes back on the globals
       setReady(false)
     }
   }, [target, loadVisible, applyGround])
@@ -272,6 +307,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     if (!ready || terrainOn.current === terrain) return
     terrainOn.current = terrain
     applyGround()
+    if (terrain && !terrainOn.current) setTerrain(false)
     redraw()
   }, [terrain, ready, applyGround, redraw])
 
@@ -296,7 +332,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
 
   return {
     ready, loading: !ready && !error, error, viewerRef, cesiumRef,
-    highlightParcel, clearHighlight, flyTo, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines,
+    highlightParcel, clearHighlight, setSite, flyTo, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines,
     base, setBase, show, setShow, terrain, setTerrain, status, setStatus, stats: { buildings, counts, pending },
   }
 }

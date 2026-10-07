@@ -146,3 +146,12 @@ be told to the Orchestrator session.
   on Cesium's RELATIVE_TO_GROUND - a zero-area footprint made TerrainOffsetProperty compute a NaN centre and stop
   rendering; rings with < 3 distinct corners are dropped. Backend 18449 restarted to serve the route.
   Changed by the Orchestrator session.
+- 2026-10-07 review fixes to the world view (independent review of all 10-07 world commits): our Cesium 1.122 is
+  kept off the globals and lent with a count (`acquireCesium`) only while a clean viewer is mounted, so a /law or
+  /design engine switch never mixes it with the VWorld SDK's 1.99 (verified clean->vworld->clean->vworld:
+  1.122 / 1.99 / 1.122 / 1.99; a stacked release under StrictMode had left window.Cesium empty). /design records
+  the site in both branches (`setSite`) so old buildings never show through the mass; a cell is done when both
+  requests settle (no unhandled rejections when the backend is down); a replaced DEM provider stops fetching;
+  the site outline is redrawn on a terrain toggle; /law re-shows the site and setback lines after a switch.
+  "handler is not a function" on switching to VWorld comes from the dev overlay `agentation` wrapping the VWorld
+  SDK's requestAnimationFrame, not from this code. Changed by the Orchestrator session.

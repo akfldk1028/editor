@@ -14,6 +14,7 @@ const KOREA = { west: 124, south: 33, east: 132, north: 39 }
 
 export function demTerrain(Cesium: any, fallback: () => number): any {
   let running = 0
+  let disposed = false
   const waiting: (() => void)[] = []
   const slot = () => new Promise<void>((go) => { if (running < IN_FLIGHT) { running++; go() } else waiting.push(() => { running++; go() }) })
   const release = () => { running--; waiting.shift()?.() }
@@ -29,12 +30,14 @@ export function demTerrain(Cesium: any, fallback: () => number): any {
       if (west < KOREA.west || east > KOREA.east || south < KOREA.south || north > KOREA.north) return flat()
       const query = new URLSearchParams({ west: String(west), south: String(south), east: String(east), north: String(north), size: String(SIZE) })
       return slot()
-        .then(() => fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/terrain-heights?${query}`))
-        .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+        .then(() => (disposed ? Promise.reject(new Error('terrain replaced')) : fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/terrain-heights?${query}`)))
+        .then((res: Response) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
         .then((body) => (Array.isArray(body.heights) && body.heights.length === SIZE * SIZE ? new Float32Array(body.heights) : flat()))
         .catch(() => flat())
         .finally(release)
     },
   })
+  // replaced or unmounted: queued tiles resolve flat without fetching
+  provider.dispose = () => { disposed = true }
   return provider
 }

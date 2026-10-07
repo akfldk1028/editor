@@ -97,6 +97,8 @@ const SiteMap: React.FC<Props & { engine: Engine; onEngine: (e: Engine) => void 
   const map = use3D({ target: mapRef, onClick: handleMapClick });
   const { ready, loading, error, highlightParcel, clearHighlight, flyTo, setBuildingsVisible, viewerRef } = map;
   const world = engine === 'clean' ? (map as ReturnType<typeof useWorld3D>) : null;
+  const setSite = world?.setSite;
+  const setGroundLevel = world?.setGroundLevel;
 
   actionsRef.current = { highlightParcel, clearHighlight, flyTo, viewerRef };
 
@@ -125,8 +127,8 @@ const SiteMap: React.FC<Props & { engine: Engine; onEngine: (e: Engine) => void 
   // Clean world: the flat ground stands at the site's §119 datum so the mass (placed at its datum) stands on it.
   const datumLevel = setbackGeometries?.datum_result?.parcel_datum_m ?? setbackGeometries?.datum_result?.elevation_m;
   React.useEffect(() => {
-    if (ready && world && typeof datumLevel === 'number') world.setGroundLevel(datumLevel);
-  }, [ready, world, datumLevel]);
+    if (ready && setGroundLevel && typeof datumLevel === 'number') setGroundLevel(datumLevel);
+  }, [ready, setGroundLevel, datumLevel]);
 
   // Highlight + flyTo when sitePolygon changes
   React.useEffect(() => {
@@ -137,8 +139,9 @@ const SiteMap: React.FC<Props & { engine: Engine; onEngine: (e: Engine) => void 
     } else {
       highlightParcel(sitePolygon);
     }
+    setSite?.(sitePolygon); // the clean world hides its context buildings on the site even without an outline
     flyToGeometryBbox(viewerRef, sitePolygon);
-  }, [sitePolygon, setbackGeometries, ready, highlightParcel, clearHighlight, viewerRef]);
+  }, [sitePolygon, setbackGeometries, ready, highlightParcel, clearHighlight, viewerRef, setSite]);
 
   // Render 3D building mass when features change + hide existing Vworld buildings
   React.useEffect(() => {

@@ -96,6 +96,9 @@ export function useMapLawSearch({
   const drawSetbackRef = useRef<(lines: Record<string, unknown>) => void>(() => {});
   const clearSetbackRef = useRef<() => void>(() => {});
   const buildingsRef = useRef<(visible: boolean) => void>(() => {});
+  const lastSite = useRef<object | null>(null);
+  const lastLines = useRef<Record<string, unknown> | null>(null);
+  const mapWasReady = useRef(false);
   const [mapState, setMapState] = useState<{ ready: boolean; loading: boolean; error: string | null }>({ ready: false, loading: true, error: null });
   const analyzingRef = useRef(false);
   const analysisModeRef = useRef(analysisMode);
@@ -250,12 +253,18 @@ export function useMapLawSearch({
 
   // ── 3D map: the engine (clean world or VWorld SDK) is mounted by MapEngine and hands its actions over here ──
   const bindMap = useCallback((a: MapActions) => {
-    highlightRef.current = a.highlightParcel;
-    clearHighlightRef.current = a.clearHighlight;
+    highlightRef.current = (g) => { lastSite.current = g; a.highlightParcel(g); };
+    clearHighlightRef.current = () => { lastSite.current = null; a.clearHighlight(); };
     flyToRef.current = a.flyTo;
-    drawSetbackRef.current = a.drawSetbackLines;
-    clearSetbackRef.current = a.clearSetbackLines;
+    drawSetbackRef.current = (lines) => { lastLines.current = lines; a.drawSetbackLines(lines); };
+    clearSetbackRef.current = () => { lastLines.current = null; a.clearSetbackLines(); };
     buildingsRef.current = a.setBuildingsVisible;
+    // a new engine just became ready (the user switched): show the site and its lines on it again
+    if (a.ready && !mapWasReady.current) {
+      if (lastSite.current) a.highlightParcel(lastSite.current);
+      if (lastLines.current) a.drawSetbackLines(lastLines.current);
+    }
+    mapWasReady.current = a.ready;
     setMapState((s) => (s.ready === a.ready && s.loading === a.loading && s.error === a.error ? s
       : { ready: a.ready, loading: a.loading, error: a.error }));
   }, []);
