@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "biome lint",
     "check-types": "next typegen && tsc --noEmit",
-    "test": "bun test lib features/agent-dialogue features/agent-flow features/context-usage features/design/components features/design/lib features/export features/land-map features/mcp features/model-registry features/playground features/schedule features/shell features/streaming features/tool-approval",
+    "test": "bun test lib features/agent-dialogue features/artifacts features/agent-flow features/context-usage features/design/components features/design/lib features/export features/land-map features/mcp features/model-registry features/playground features/schedule features/shell features/streaming features/tool-approval",
     "test:browser": "bun test features/design/hooks"
   },
   "dependencies": {

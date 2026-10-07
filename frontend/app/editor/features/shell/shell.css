@@ -453,7 +453,7 @@ button { cursor: pointer; }
   .artifact-primary { padding-inline: 8px; }
 }
 
-.artifact-content { position: relative; min-inline-size: 0; min-block-size: 0; display: grid; overflow: auto; background: var(--artifact); }
+.artifact-content { position: relative; min-inline-size: 0; min-block-size: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); overflow: auto; background: var(--artifact); }
 .artifact-loading { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: var(--fs-2); }
 .loading-mark { inline-size: 14px; block-size: 14px; border: 2px solid var(--accent-soft); border-block-start-color: var(--accent); border-radius: 50%; animation: shell-spin .8s linear infinite; }
 

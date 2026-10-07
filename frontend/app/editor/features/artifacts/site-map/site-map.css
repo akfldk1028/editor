@@ -1,0 +1,94 @@
+/*
+ * Site map artifact. The map draws in its provider's colours; the controls use
+ * the shell tokens (--panel-raised, --ink, --muted …) and its 11/12/14 type.
+ */
+.site-map {
+  position: relative;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+  background: var(--artifact);
+}
+.site-map-canvas { position: absolute; inset: 0; }
+.site-map-canvas > div { inline-size: 100%; block-size: 100%; }
+
+.site-map-search {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 12px;
+  inset-inline-start: 12px;
+  inline-size: min(320px, calc(100% - 72px));
+  min-block-size: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 12px;
+  color: var(--muted);
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow);
+}
+.site-map-search input {
+  min-inline-size: 0;
+  flex: 1;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: var(--fs-2);
+}
+.site-map-search:focus-within { border-color: var(--accent); }
+
+.site-map-controls {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  display: grid;
+  gap: 2px;
+  padding: 2px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow);
+}
+.site-map-button {
+  inline-size: var(--target);
+  block-size: var(--target);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-s);
+}
+.site-map-button:hover, .site-map-button:focus-visible { color: var(--ink); background: var(--hover); }
+.site-map-button[aria-pressed="true"] { color: var(--ink); background: var(--subtle); }
+
+.site-map-status {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 56px;
+  inset-inline-start: 12px;
+  max-inline-size: calc(100% - 24px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.site-map-status > * {
+  padding: 4px 8px;
+  color: var(--muted);
+  background: var(--panel-raised);
+  border-radius: var(--radius-s);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .08);
+  font-size: var(--fs-1);
+}
+.site-map-status span { color: var(--ink); font-size: var(--fs-2); }
+.site-map-status span[data-kind="error"] { color: var(--warning); }
+
+/* Provider attribution stays bottom-right, clear of the controls. */
+.site-map .ol-attribution { font-size: var(--fs-1); }

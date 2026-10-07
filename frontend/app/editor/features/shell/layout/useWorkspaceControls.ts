@@ -44,7 +44,8 @@ function withViewTransition(update: () => void) {
     update();
     return;
   }
-  document.startViewTransition(() => flushSync(update));
+  // A second panel change while one animates skips the first; that is expected, not an error.
+  document.startViewTransition(() => flushSync(update)).ready.catch(() => undefined);
 }
 
 export function useWorkspaceControls({
