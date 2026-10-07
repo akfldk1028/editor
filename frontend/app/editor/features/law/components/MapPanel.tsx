@@ -2,18 +2,20 @@
  * MapPanel — 3D Vworld 지도 패널 (로딩/에러/클릭토스트 오버레이 포함).
  *
  * LawChat 우측에 배치. useMapLawSearch 훅의 상태를 받아 오버레이만 렌더링.
- * 지도 자체는 외부에서 ref로 마운트 (useVworld3D가 직접 DOM 조작).
+ * 지도 자체는 MapEngine(우리 3D 세계 또는 브이월드 SDK)이 마운트한다.
  */
 
-import React from 'react';
 import { Loader2 } from 'lucide-react';
+import { MapEngine, type MapActions, type MapEngineKind } from '../../world/components/MapEngine';
 
 /** MapPanel 자체 keyframes — 부모(LawChat) 의존 없이 독립 동작 */
 const MAP_KEYFRAMES = `@keyframes spin { to { transform: rotate(360deg) } }`;
 
 interface MapPanelProps {
-  /** 맵 컨테이너 ref — useVworld3D 타겟 */
-  mapRef: React.RefObject<HTMLDivElement | null>;
+  /** 지도 엔진 — clean(우리 3D 세계) / vworld(브이월드 SDK) */
+  engine: MapEngineKind;
+  onMapClick: (lng: number, lat: number) => void;
+  onActions: (actions: MapActions) => void;
   /** 3D 맵 초기화 완료 */
   ready: boolean;
   /** 3D 맵 로딩 중 (스크립트/타일 로드) */
@@ -24,19 +26,16 @@ interface MapPanelProps {
   clickLoading: boolean;
 }
 
-export function MapPanel({ mapRef, ready, loading, error, clickLoading }: MapPanelProps) {
+export function MapPanel({ engine, onMapClick, onActions, ready, loading, error, clickLoading }: MapPanelProps) {
   return (
     <div style={{
       flex: 1, position: 'relative', minWidth: 360,
       borderLeft: '1px solid rgba(255,255,255,0.06)',
     }}>
       <style>{MAP_KEYFRAMES}</style>
-      {/* 지도 컨테이너 — useVworld3D가 직접 초기화 */}
-      <div
-        ref={mapRef}
-        id="vworld-3d-map-law"
-        style={{ width: '100%', height: '100%', background: '#0a0a1a' }}
-      />
+      {/* 지도 — 엔진을 바꾸면 이 부분만 다시 마운트된다 (채팅·분석 상태는 유지) */}
+      <MapEngine key={engine} engine={engine} onClick={onMapClick} onActions={onActions}
+        id="vworld-3d-map-law" style={{ background: '#0a0a1a' }} />
 
       {/* 필지 클릭 → 법규 검색 진행 토스트 (검색바 아래) */}
       {clickLoading && (

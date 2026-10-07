@@ -27,6 +27,7 @@ import { BottomInput } from './components/BottomInput';
 import { ChatHeader } from './components/ChatHeader';
 import { HeroSearch } from './components/HeroSearch';
 import { MapPanel } from './components/MapPanel';
+import type { MapEngineKind } from '../world/components/MapEngine';
 import { MessageList } from './components/MessageList';
 /* ── Context & hooks ── */
 import { LawAPIProvider, useLawAPI } from './contexts/LawAPIContext';
@@ -84,9 +85,9 @@ function LawChatInner() {
   const hasMessages = messages.length > 0;
 
   /* ── 3D Map (다이어그램) + 지적도 클릭/검색→법규 분석 ── */
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const { mapReady, mapLoading, mapError, mapClickLoading, analysisMode, setAnalysisMode, searchByAddress, setBuildingsVisible, agent } =
-    useMapLawSearch({ target: mapContainerRef, busy, addMessage });
+  const [mapEngine, setMapEngine] = useState<MapEngineKind>('clean');
+  const { mapReady, mapLoading, mapError, mapClickLoading, analysisMode, setAnalysisMode, searchByAddress, setBuildingsVisible, bindMap, onMapClick, agent } =
+    useMapLawSearch({ busy, addMessage });
   const [buildingsOn, setBuildingsOn] = useState(true);
   useEffect(() => {
     if (mapReady) setBuildingsVisible(buildingsOn);
@@ -264,10 +265,21 @@ function LawChatInner() {
           >
             {buildingsOn ? '🏢 건물 ON' : '🏢 건물 OFF'}
           </button>
+          <button
+            type="button"
+            onClick={() => setMapEngine(mapEngine === 'clean' ? 'vworld' : 'clean')}
+            title="3D 지도 엔진: 깔끔한 3D(브이월드 없이) / 브이월드"
+            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', cursor: 'pointer',
+              fontSize: 12, background: 'rgba(17,17,17,0.85)', color: '#e2e8f0' }}
+          >
+            {mapEngine === 'clean' ? '지도: 깔끔한 3D' : '지도: 브이월드'}
+          </button>
         </div>
 
         <MapPanel
-          mapRef={mapContainerRef}
+          engine={mapEngine}
+          onMapClick={onMapClick}
+          onActions={bindMap}
           ready={mapReady}
           loading={mapLoading}
           error={mapError}

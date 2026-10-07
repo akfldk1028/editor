@@ -17,8 +17,8 @@
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { useVworld3D } from '../../land-map/hooks/use-vworld-3d';
-import { reverse, resolve, analyze } from '../../land-map/lib/land-api-client';
+import type { MapActions } from '../../world/components/MapEngine';
+import { reverse, resolve, analyze, locateParcel } from '../../land-map/lib/land-api-client';
 import { useAgentAnalyze } from '../../land-map/hooks/use-agent-analyze';
 import type { ChatMessage } from '../lib/types';
 import type { AgentAnalysisEvent, AgentMessage, LandAnalysisResult } from '../../land-map/lib/types';
@@ -26,8 +26,6 @@ import type { AgentAnalysisEvent, AgentMessage, LandAnalysisResult } from '../..
 export type AnalysisMode = 'quick' | 'agent';
 
 interface UseMapLawSearchOptions {
-  /** 3D 맵 컨테이너 ref */
-  target: React.RefObject<HTMLDivElement | null>;
   /** 검색/분석 중이면 클릭 무시 */
   busy: boolean;
   /** useLawChat.addMessage — 채팅에 메시지 추가 */
@@ -51,6 +49,10 @@ interface UseMapLawSearchReturn {
   searchByAddress: (input: string) => Promise<void>;
   /** 3D 건물 표시/숨김 토글 */
   setBuildingsVisible: (visible: boolean) => void;
+  /** 지도 엔진(MapEngine)이 자기 동작을 넘겨줄 때 */
+  bindMap: (actions: MapActions) => void;
+  /** 지도 클릭 → 필지 조회·분석 */
+  onMapClick: (lng: number, lat: number) => void;
   /** 에이전트 분석 상태 (agent 모드용) */
   agent: {
     event: AgentAnalysisEvent | null;
@@ -68,7 +70,6 @@ interface UseMapLawSearchReturn {
  * 지적도 클릭/주소검색 → 토지 규제 분석.
  */
 export function useMapLawSearch({
-  target,
   busy,
   addMessage,
 }: UseMapLawSearchOptions): UseMapLawSearchReturn {
@@ -94,6 +95,8 @@ export function useMapLawSearch({
   const flyToRef = useRef<(lng: number, lat: number, zoom?: number) => void>(() => {});
   const drawSetbackRef = useRef<(lines: Record<string, unknown>) => void>(() => {});
   const clearSetbackRef = useRef<() => void>(() => {});
+  const buildingsRef = useRef<(visible: boolean) => void>(() => {});
+  const [mapState, setMapState] = useState<{ ready: boolean; loading: boolean; error: string | null }>({ ready: false, loading: true, error: null });
   const analyzingRef = useRef(false);
   const analysisModeRef = useRef(analysisMode);
 
@@ -184,7 +187,9 @@ export function useMapLawSearch({
       const isPnu = /^\d{19}$/.test(trimmed);
 
       if (isPnu) {
-        await runAnalysis(trimmed, trimmed);
+        // Fetch the parcel outline too, so the map shows the site and moves to it.
+        const parcel = await locateParcel(trimmed).catch(() => null);
+        await runAnalysis(trimmed, trimmed, parcel?.geometry);
         return;
       }
 
@@ -221,7 +226,9 @@ export function useMapLawSearch({
             }
           } catch { /* fallback */ }
         }
-        await runAnalysis(resolved.pnu, resolved.address || trimmed);
+        // No coordinates (e.g. a PNU typed in): fetch the parcel outline so the map can show and reach it.
+        const parcel = await locateParcel(resolved.pnu).catch(() => null);
+        await runAnalysis(resolved.pnu, resolved.address || trimmed, parcel?.geometry);
       } else {
         // 동/구 단위 → 이동만, 클릭 대기 안내
         addMessage({
@@ -241,30 +248,24 @@ export function useMapLawSearch({
     }
   }, [busy, addMessage, runAnalysis]);
 
-  // ── 3D Vworld map (다이어그램 GRAPHIC + 지적도 WMS) ──
-  const {
-    ready: mapReady,
-    loading: mapLoading,
-    error: mapError,
-    highlightParcel,
-    clearHighlight,
-    flyTo,
-    setBuildingsVisible,
-    drawSetbackLines,
-    clearSetbackLines,
-  } = useVworld3D({ target, onClick: handleMapClick });
-
-  // ref 동기화
-  useEffect(() => { highlightRef.current = highlightParcel; }, [highlightParcel]);
-  useEffect(() => { clearHighlightRef.current = clearHighlight; }, [clearHighlight]);
-  useEffect(() => { flyToRef.current = flyTo; }, [flyTo]);
-  useEffect(() => { drawSetbackRef.current = drawSetbackLines; }, [drawSetbackLines]);
-  useEffect(() => { clearSetbackRef.current = clearSetbackLines; }, [clearSetbackLines]);
+  // ── 3D map: the engine (clean world or VWorld SDK) is mounted by MapEngine and hands its actions over here ──
+  const bindMap = useCallback((a: MapActions) => {
+    highlightRef.current = a.highlightParcel;
+    clearHighlightRef.current = a.clearHighlight;
+    flyToRef.current = a.flyTo;
+    drawSetbackRef.current = a.drawSetbackLines;
+    clearSetbackRef.current = a.clearSetbackLines;
+    buildingsRef.current = a.setBuildingsVisible;
+    setMapState((s) => (s.ready === a.ready && s.loading === a.loading && s.error === a.error ? s
+      : { ready: a.ready, loading: a.loading, error: a.error }));
+  }, []);
+  const setBuildingsVisible = useCallback((visible: boolean) => buildingsRef.current(visible), []);
+  const { ready: mapReady, loading: mapLoading, error: mapError } = mapState;
 
   return {
     mapReady, mapLoading, mapError, mapClickLoading,
     analysisMode, setAnalysisMode,
-    searchByAddress, setBuildingsVisible,
+    searchByAddress, setBuildingsVisible, bindMap, onMapClick: handleMapClick,
     agent: {
       event: agentEvent,
       quickResult,

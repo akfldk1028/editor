@@ -131,3 +131,10 @@ be told to the Orchestrator session.
   stand on the ground; setBuildingsVisible(false) hides the context buildings on the site. SceneAgent now drops
   map-only buildings that no longer stand (no storeys/height and <20 % built-up in 환경부 토지피복 2025, or >50 % on a
   road/river parcel): 고산 56, 종로 74. Changed by the Orchestrator session.
+- 2026-10-07 W4 `/law` on the clean world: `features/world/components/MapEngine.tsx` mounts either engine and hands
+  its actions up (`onActions`); `useMapLawSearch` no longer calls `useVworld3D` - it keeps the actions in its refs
+  (`bindMap`) and exposes `onMapClick`, so switching engine (button "지도: 깔끔한 3D / 브이월드", clean default)
+  remounts only the map and the chat survives. `useWorld3D` gained drawSetbackLines / clearSetbackLines (same
+  colours and layer name as VWorld), the VWorld opening view, and flies to a highlighted parcel far from view. A
+  search by PNU now fetches the parcel outline (`locateParcel`) so either engine can show and reach the site.
+  `/map` is the 2D OpenLayers map and was left as it is. Changed by the Orchestrator session.

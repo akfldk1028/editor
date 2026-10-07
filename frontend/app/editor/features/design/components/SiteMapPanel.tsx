@@ -322,7 +322,7 @@ const SiteMap: React.FC<Props & { engine: Engine; onEngine: (e: Engine) => void 
       )}
 
       {/* Engine toggle — our clean world (default) or the VWorld 3D SDK */}
-      <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 11, display: 'flex', gap: 4,
+      <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 11, display: 'flex', gap: 4,
         background: 'rgba(255,255,255,0.92)', borderRadius: 8, padding: 3, fontSize: 12 }}>
         {([['clean', '깔끔한 3D'], ['vworld', '브이월드']] as const).map(([key, label]) => (
           <button key={key} type="button" onClick={() => onEngine(key)}

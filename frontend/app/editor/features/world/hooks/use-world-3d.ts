@@ -10,6 +10,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
+import { MAP_CONFIG_3D } from '../../land-map/lib/constants'
+import { SETBACK_COLORS, SETBACK_DS_NAME } from '../../land-map/lib/vworld-3d-scene'
 import { loadCesium } from '../lib/cesium-loader'
 import { CELL_RADIUS_M, MAX_ALTITUDE_M, MAX_CELLS, cellsIn, visibleBox } from '../lib/context-cells'
 import { type HeightCounts, drawContextGround, drawContextMasses, fetchContextBuildings, fetchContextGround } from '../lib/context-masses'
@@ -134,22 +136,6 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     loadVisible()
   }, [loadVisible])
 
-  const highlightParcel = useCallback((geometry: object) => {
-    const viewer = viewerRef.current, Cesium = cesiumRef.current
-    const ring = ringOf(geometry)
-    if (!viewer || !Cesium || !ring) return
-    site.current = ring
-    viewer.entities.removeById('world-parcel')
-    viewer.entities.add({ id: 'world-parcel', name: '대지', polyline: {
-      positions: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((c) => [c[0]!, c[1]!, level.current + 1.0])),
-      width: 2, material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#d6336c'), dashLength: 10 }) } })
-    applyOnSite()
-  }, [applyOnSite])
-
-  const clearHighlight = useCallback(() => {
-    viewerRef.current?.entities.removeById('world-parcel')
-  }, [])
-
   const flyTo = useCallback((lng: number, lat: number) => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
     if (!viewer || !Cesium) return
@@ -160,11 +146,59 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     })
   }, [])
 
+  const highlightParcel = useCallback((geometry: object) => {
+    const viewer = viewerRef.current, Cesium = cesiumRef.current
+    const ring = ringOf(geometry)
+    if (!viewer || !Cesium || !ring) return
+    site.current = ring
+    viewer.entities.removeById('world-parcel')
+    viewer.entities.add({ id: 'world-parcel', name: '대지', polyline: {
+      positions: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((c) => [c[0]!, c[1]!, level.current + 1.0])),
+      width: 2, material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#d6336c'), dashLength: 10 }) } })
+    applyOnSite()
+    // A parcel far from what the camera looks at (a search by PNU gives no coordinates): go there.
+    const lon = ring.reduce((t, c) => t + c[0]!, 0) / ring.length, lat = ring.reduce((t, c) => t + c[1]!, 0) / ring.length
+    const seen = visibleBox(viewer, Cesium)
+    const far = !seen || Math.hypot((seen.focus.lat - lat) * 111_000, (seen.focus.lon - lon) * 88_000) > 1500
+    if (far) flyTo(lon, lat)
+  }, [applyOnSite, flyTo])
+
+  const clearHighlight = useCallback(() => {
+    viewerRef.current?.entities.removeById('world-parcel')
+  }, [])
+
   /** VWorld semantics: false = "existing buildings make way for the project" — here, the ones on the site hide. */
   const setBuildingsVisible = useCallback((visible: boolean) => {
     hideOnSite.current = !visible
     applyOnSite()
   }, [applyOnSite])
+
+  /** Regulation lines from a land analysis (same colours and layer name as the VWorld view), on the ground. */
+  const clearSetbackLines = useCallback(() => {
+    const viewer = viewerRef.current
+    if (!viewer) return
+    for (let i = viewer.dataSources.length - 1; i >= 0; i--) {
+      const ds = viewer.dataSources.get(i)
+      if (ds.name === SETBACK_DS_NAME) viewer.dataSources.remove(ds, true)
+    }
+  }, [])
+
+  const drawSetbackLines = useCallback((lines: Record<string, unknown>) => {
+    const viewer = viewerRef.current, Cesium = cesiumRef.current
+    if (!viewer || !Cesium || !lines) return
+    clearSetbackLines()
+    for (const [key, geojson] of Object.entries(lines)) {
+      if (!geojson || key === 'sunlight_envelope' || key === 'daylight_diagonal_envelope') continue
+      const colors = SETBACK_COLORS[key] || SETBACK_COLORS.adjacent_setback!
+      Cesium.GeoJsonDataSource.load(geojson, {
+        stroke: Cesium.Color.fromCssColorString(colors.stroke), fill: Cesium.Color.fromCssColorString(colors.fill),
+        strokeWidth: colors.width, clampToGround: true,
+      }).then((ds: any) => {
+        ds.name = SETBACK_DS_NAME
+        if (!viewer.isDestroyed()) viewer.dataSources.add(ds)
+      }).catch((e: unknown) => console.warn(`Setback ${key} 렌더 실패:`, e))
+    }
+  }, [clearSetbackLines])
 
   useEffect(() => {
     let disposed = false
@@ -186,6 +220,12 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
       layers.current = { ground: new Cesium.CustomDataSource('ground'), cover: new Cesium.CustomDataSource('cover'),
         buildings: new Cesium.CustomDataSource('buildings') }
       for (const l of Object.values(layers.current)) viewer.dataSources.add(l)
+      // Same opening view as the VWorld engine; pages that know their site move the camera themselves.
+      const [lon0, lat0] = MAP_CONFIG_3D.center
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(lon0, lat0 - 0.008, MAP_CONFIG_3D.defaultAltitude),
+        orientation: { heading: 0, pitch: Cesium.Math.toRadians(MAP_CONFIG_3D.defaultPitch), roll: 0 },
+      })
       viewerRef.current = viewer
       viewer.camera.moveEnd.addEventListener(loadVisible)
       viewer.screenSpaceEventHandler.setInputAction((click: any) => {
@@ -228,7 +268,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
 
   return {
     ready, loading: !ready && !error, error, viewerRef, cesiumRef,
-    highlightParcel, clearHighlight, flyTo, setBuildingsVisible, setGroundLevel, loadVisible,
+    highlightParcel, clearHighlight, flyTo, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines,
     base, setBase, show, setShow, status, setStatus, stats: { buildings, counts, pending },
   }
 }
