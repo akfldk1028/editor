@@ -99,3 +99,8 @@ be told to the Orchestrator session.
   127.0.0.1:8310). Existing `/map` `/law` `/design` untouched; their move onto this view is W2-W4 in
   agents/SceneAgent/docs/editor-world-plan.md. If VWorld SDK already loaded `window.Cesium` in the tab,
   it is reused. Changed by the Orchestrator session.
+- 2026-10-07 `/world` anywhere: search by 주소/PNU (`locateParcel`, parcel outline drawn), open with
+  `?pnu=` / `?q=` / `?lat&lon`, and the camera's view is filled cell by cell (~440 m cells, radius 320 m,
+  ≤30 cells per move, 3 in parallel, failed cells retried on the next move, buildings de-duplicated by
+  id). Site now also keeps 건물정보 footprints the 1:5,000 map lacks (agents/SiteContextAgent `2312bde`;
+  고산 300 m 76 -> 161). Changed by the Orchestrator session.

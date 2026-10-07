@@ -34,18 +34,26 @@ export function clearContextMasses(viewer: any) {
   for (const e of entities) if (String(e.id).startsWith(PREFIX)) viewer.entities.remove(e)
 }
 
-export function drawContextMasses(viewer: any, Cesium: any, reply: ContextReply): number {
-  clearContextMasses(viewer)
+export type HeightCounts = { measured: number; estimated: number; unknown: number }
+
+/** Adds the reply's buildings; one already drawn (neighbouring cells overlap) is skipped. Returns what was added. */
+export function drawContextMasses(viewer: any, Cesium: any, reply: ContextReply): { added: number; counts: HeightCounts } {
   const white = Cesium.Color.fromCssColorString('#fbfbf9')
   const pale = Cesium.Color.fromCssColorString('#ffffff').withAlpha(0.55)
   const edge = Cesium.Color.fromCssColorString('#9a9a96')
   let n = 0
+  const counts: HeightCounts = { measured: 0, estimated: 0, unknown: 0 }
   viewer.entities.suspendEvents()
   for (const f of reply.features?.features ?? []) {
     const p = f.properties ?? {}
+    let drew = false
     rings(f.geometry).forEach((ring, i) => {
+      // A building without a source id is named by its outline, so the same one from two cells is drawn once.
+      const key = /^site-\d+$/.test(String(p.id)) ? `xy${ring[0]!.toFixed(6)},${ring[1]!.toFixed(6)}` : p.id
+      const id = `${PREFIX}${key}-${i}`
+      if (viewer.entities.getById(id)) return
       viewer.entities.add({
-        id: `${PREFIX}${p.id}-${i}`,
+        id,
         name: p.use || '건물',
         description: `높이 ${p.height_m} m (${p.height_status}) — ${p.method}`,
         polygon: {
@@ -58,8 +66,10 @@ export function drawContextMasses(viewer: any, Cesium: any, reply: ContextReply)
         },
       })
       n++
+      drew = true
     })
+    if (drew && p.height_status in counts) counts[p.height_status as keyof HeightCounts]++
   }
   viewer.entities.resumeEvents()
-  return n
+  return { added: n, counts }
 }
