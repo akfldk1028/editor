@@ -61,8 +61,13 @@ export function killTree(pid) {
   try { process.kill(pid, 'SIGTERM'); } catch { /* already gone */ }
 }
 
-/** KEY=value lines (quotes stripped, `export ` and comments ignored); missing file -> {}. */
-export function readEnvFile(path) {
+/**
+ * KEY=value lines (quotes stripped, `export ` and comments ignored); missing file -> {}. A value may
+ * reference earlier keys or the process env the shell way — `${NAME}` / `${NAME:-default}` — because
+ * the agents' env files are written for `source` (MassAgent: `export MASS_A2A_PORT="${MASS_A2A_PORT:-18331}"`);
+ * passed literally, the server was told `--port '${MASS_A2A_PORT:-18331}'` and never came up.
+ */
+export function readEnvFile(path, base = process.env) {
   if (!existsSync(path)) return {};
   const env = {};
   for (const raw of readFileSync(path, 'utf8').split(/\r?\n/)) {
@@ -70,9 +75,21 @@ export function readEnvFile(path) {
     if (!line || line.startsWith('#')) continue;
     const eq = line.indexOf('=');
     if (eq <= 0) continue;
-    env[line.slice(0, eq).trim()] = line.slice(eq + 1).trim().replace(/^(['"])(.*)\1$/, '$2');
+    const key = line.slice(0, eq).trim();
+    const value = line.slice(eq + 1).trim().replace(/^(['"])(.*)\1$/, '$2');
+    env[key] = expand(value, name => env[name] ?? base[name]);
   }
   return env;
+}
+
+/** Innermost `${NAME}` / `${NAME:-default}` first, repeated until none is left (defaults may nest one reference). */
+function expand(value, lookup) {
+  const reference = /\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^${}]*))?\}/g;
+  let current = value;
+  for (let round = 0; round < 8 && reference.test(current); round += 1) {
+    current = current.replace(reference, (_, name, fallback) => lookup(name) ?? fallback ?? '');
+  }
+  return current;
 }
 
 /** `python` means the editor's own interpreter when its venv exists (the native dev runner does the same). */
