@@ -1,7 +1,7 @@
 /** What the Site Agent says: its eight site facts (`sitecontextagent/facts.py` SITE_KEYS). Pure. */
-import type { FeedInput } from '../feed'
-import { confidenceLabel, evidenceLabel, SITE_FACTS } from '../labels'
-import type { RunResults } from '../types'
+import type { FeedInput } from '@/lib/orchestrator-runs/feed'
+import { confidenceLabel, evidenceLabel, SITE_FACTS } from '@/lib/orchestrator-runs/labels'
+import type { RunResults } from '@/lib/orchestrator-runs/types'
 
 /**
  * The Site Agent's answer as its eight facts: each one established (with its confidence, date and a

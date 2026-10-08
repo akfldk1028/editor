@@ -1,5 +1,5 @@
 /** Korean words for run statuses, agents, tools, step states and missing-evidence codes. Pure. */
-import { agentSpec, canonicalAgent, toolOwner, toolSpecLabel } from './agents'
+import { agentSpec, canonicalAgent, toolOwner, toolSpecLabel } from '@/lib/agents'
 
 /** The run page's open statuses; anything else is terminal (RunPage polls on these three too). */
 const OPEN = new Set(['queued', 'running', 'queued_input'])

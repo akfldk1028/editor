@@ -2,10 +2,13 @@
  * What the Law Agent says: the parcel's limits (tiles with their articles), its legal basis (links),
  * its land analysis, and its answers to typed questions (statute passages, ordinance articles). Pure.
  */
-import type { FeedAction, FeedCard, FeedInput, FeedTone } from '../feed'
-import { evidenceLabel, frontageLabel, heightLabel, limitationLabel } from '../labels'
-import type { AskAnswer, LandAnalysisAnswer, RunLaw, RunResults } from '../types'
-import { excerpt, fmt, isoDate, type LawTarget, lawParams, ORCHESTRATOR } from './shared'
+import type { FeedAction, FeedCard, FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
+import { evidenceLabel, frontageLabel, heightLabel, limitationLabel } from '@/lib/orchestrator-runs/labels'
+import type { AskAnswer, LandAnalysisAnswer, RunLaw, RunResults } from '@/lib/orchestrator-runs/types'
+import { excerpt, fmt, isoDate } from '@/lib/orchestrator-runs/format'
+import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
+
+const ORCHESTRATOR = 'orchestrator'
 
 const LAW = 'law'
 

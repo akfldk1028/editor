@@ -3,12 +3,15 @@
  * question that follows, connection, the request going out, receipts, every step as it changes,
  * the verdict and the closing question. Pure: the hooks decide when to post.
  */
-import type { RunConditions } from '../conditions'
-import type { FeedAction, FeedCard, FeedInput, FeedTone } from '../feed'
-import { agentForTool, agentLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from '../labels'
-import { failureText, type RunFailure } from '../submit'
-import type { Communication, OrchestratorConnection, RunResults, RunSummary } from '../types'
-import { fmt, type LawTarget, lawParams, ORCHESTRATOR } from './shared'
+import type { RunConditions } from '@/lib/orchestrator-runs/conditions'
+import type { FeedAction, FeedCard, FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
+import { agentForTool, agentLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from '@/lib/orchestrator-runs/labels'
+import { failureText, type RunFailure } from '@/lib/orchestrator-runs/submit'
+import type { Communication, OrchestratorConnection, RunResults, RunSummary } from '@/lib/orchestrator-runs/types'
+import { fmt } from '@/lib/orchestrator-runs/format'
+import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
+
+const ORCHESTRATOR = 'orchestrator'
 
 export interface SelectedSite {
   label: string

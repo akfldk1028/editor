@@ -1,7 +1,7 @@
 /** What the Revision Agent says: its triage, finding by finding. Pure. */
-import type { FeedInput, FeedTone } from '../feed'
-import { actionLabel, agentLabel, categoryLabel, evidenceLabel, stateLabel } from '../labels'
-import type { RunResults } from '../types'
+import type { FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
+import { actionLabel, agentLabel, categoryLabel, evidenceLabel, stateLabel } from '@/lib/orchestrator-runs/labels'
+import type { RunResults } from '@/lib/orchestrator-runs/types'
 
 /**
  * The Revision Agent's triage as it wrote it: its verdict code and every finding it weighed — what,
