@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.app.adapters import law_agent
-from backend.app.modules.platform.ask import ask_law, normalize, plan
+from backend.app.modules.platform.ask import analyze_land, ask_law, normalize, plan
 from backend.app.modules.platform.routers.ask import create_ask_router
 from backend.app.schemas.ask import AskCreate
 
@@ -150,6 +150,78 @@ def test_route_maps_an_unreachable_agent_to_503_and_a_refusal_to_502():
     assert app_with(down).post('/api/v1/platform/ask', json={'text': 'x'}, headers={'Origin': ORIGIN}).status_code == 503
     response = app_with(refused).post('/api/v1/platform/ask', json={'text': 'x'}, headers={'Origin': ORIGIN})
     assert response.status_code == 502 and 'TASK_STATE_FAILED' in response.json()['detail']
+
+
+LAND = {'status': 200, 'findings': [{'id': 'law-parking-x', 'severity': 'major', 'raised_by': 'law'}],
+        'raw': {'pnu': '4115011300106840001',
+                'regulations': {'bcr': {'limit_pct': None, 'article': '의정부시 도시계획 조례 제42조', 'national_ceiling_pct': 59.9225, 'status': 'needs_evidence'}},
+                'zone_info': {'bcr_limit': None, 'far_limit': None, 'zones': ['제2종일반주거지역', '자연녹지지역'], 'unmatched': ['과밀억제권역', '공공청사'],
+                              'zone_areas_m2': {'자연녹지지역': 4.85, '제2종일반주거지역': 2499.69}},
+                'land_info': {'land_area_m2': 2500.0}, 'law_articles': None,
+                'restrictions': ['건폐율·용적률: 적용 조례·판본·용도지역 증거 부족 — 상한 미확정', '일조사선: 정북방향 H/2 이격'],
+                'assessment': {'status': 'needs_evidence', 'permit_compliance_verified': False,
+                               'municipal_coverage': {'missing_evidence': ['unresolved_zoning:공공청사']}, 'missing_evidence': ['complete_design_applicability_and_permit_checks']}}}
+LIMITS = {'pnu': '4115011300106840001', 'building_type': '업무시설', 'parcel_area_m2': 2499.691, 'ground_capacity_m2': 1497.877, 'far_capacity_m2': 6240.995,
+          'max_storeys': 5, 'bcr_pct': 59.92, 'far_pct': 249.67, 'zones': ['제2종일반주거지역', '자연녹지지역'],
+          'policy': {'policy_id': 'gosan-public1-molit-2026-334', 'parcel_label': '경기도 의정부시 산곡동 684-1 / 공공1', 'max_storeys': 5, 'max_bcr_pct': 60.0, 'max_far_pct': 250.0,
+                     'sources': [{'title': '의정부고산 토지이용계획도', 'date': '2026-06-29'}]},
+          'ordinance': {'assessment_date': '2026-10-08', 'bcr_article': '의정부시 도시계획 조례 제42조', 'far_article': '의정부시 도시계획 조례 제46조',
+                        'municipal_coverage': {'sources': [{'name': '의정부시 도시계획 조례', 'edition_id': '2072835', 'effective_date': '20250925'}]}}}
+
+
+def test_analyze_land_asks_both_law_tools_and_answers_the_analysis_with_its_limits_and_summary():
+    recorder = Recorder()
+    calls = []
+
+    async def agent(tool, args, *, trace=None):
+        calls.append((tool, args, trace))
+        return {'tool': tool, 'payload': LAND if tool == 'law_land_analyze' else LIMITS, 'task_id': 't', 'version': 'v1'}
+
+    answer = run(analyze_land('4115011300106840001', building_type='업무시설', floor_area_m2=None, assessment_date='2026-10-08', recorder=recorder, agent=agent))
+    tools = {tool: args for tool, args, _ in calls}
+    assert tools['law_land_analyze'] == {'input': '4115011300106840001', 'input_type': 'pnu', 'full': True, 'include_law': True, 'building_type': '업무시설',
+                                        'floor_area_m2': None, 'assessment_date': '2026-10-08'}
+    assert tools['law_parcel_limits'] == {'pnu': '4115011300106840001', 'building_type': '업무시설'}
+    assert {trace['tool'] for _, _, trace in calls} == {'law_land_analyze', 'law_parcel_limits'}
+    assert len({trace['trace_id'] for _, _, trace in calls}) == 1
+    assert answer['analysis'] is LAND['raw'] or answer['analysis'] == LAND['raw']
+    assert answer['findings'] == LAND['findings'] and answer['version'] == 'v1' and answer['limits_error'] is None
+    limits = answer['limits']
+    assert (limits['bcr_pct'], limits['far_pct'], limits['max_floors'], limits['policy_id']) == (59.92, 249.67, 5, 'gosan-public1-molit-2026-334')
+    assert limits['articles']['bcr'] == '의정부시 도시계획 조례 제42조' and limits['ordinance']['edition_id'] == '2072835'
+    assert answer['summary'] == {'zones': ['제2종일반주거지역', '자연녹지지역'], 'unmatched_zones': ['과밀억제권역', '공공청사'],
+                                 'zone_areas_m2': {'자연녹지지역': 4.85, '제2종일반주거지역': 2499.69},
+                                 'restrictions': LAND['raw']['restrictions'], 'assessment_status': 'needs_evidence', 'permit_compliance_verified': False,
+                                 'missing_evidence': ['complete_design_applicability_and_permit_checks', 'unresolved_zoning:공공청사']}
+    assert [(row['name'], row['status']) for row in recorder.rows] == [('invoke_agent law', 'ok'), ('invoke_agent law', 'ok')]
+
+
+def test_analyze_land_keeps_the_analysis_when_only_the_limits_call_fails_and_fails_when_the_analysis_does():
+    async def limits_down(tool, args, *, trace=None):
+        if tool == 'law_parcel_limits':
+            raise law_agent.LawAgentError('law_parcel_limits: TASK_STATE_FAILED')
+        return {'tool': tool, 'payload': LAND, 'task_id': 't', 'version': None}
+
+    answer = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=limits_down))
+    assert answer['limits'] is None and 'TASK_STATE_FAILED' in answer['limits_error'] and answer['summary']['zones'] == ['제2종일반주거지역', '자연녹지지역']
+
+    async def land_down(tool, args, *, trace=None):
+        raise law_agent.LawAgentUnavailable('off')
+
+    with pytest.raises(law_agent.LawAgentUnavailable):
+        run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=land_down))
+
+
+def test_law_analysis_route_validates_and_answers():
+    async def agent(tool, args, *, trace=None):
+        return {'tool': tool, 'payload': LAND if tool == 'law_land_analyze' else LIMITS, 'task_id': 't', 'version': 'v1'}
+
+    client = app_with(agent)
+    ok = client.post('/api/v1/platform/law-analysis', json={'pnu': '4115011300106840001', 'building_type': '업무시설', 'assessment_date': '2026-10-08'}, headers={'Origin': ORIGIN})
+    assert ok.status_code == 200 and ok.json()['limits']['bcr_pct'] == 59.92 and ok.json()['analysis']['land_info']['land_area_m2'] == 2500.0
+    assert client.post('/api/v1/platform/law-analysis', json={'pnu': '12'}, headers={'Origin': ORIGIN}).status_code == 422
+    assert client.post('/api/v1/platform/law-analysis', json={'pnu': '4115011300106840001', 'floor_area_m2': 0}, headers={'Origin': ORIGIN}).status_code == 422
+    assert client.post('/api/v1/platform/law-analysis', json={'pnu': '4115011300106840001'}, headers={'Origin': 'http://evil.test'}).status_code == 403
 
 
 def test_ask_schema_is_strict():

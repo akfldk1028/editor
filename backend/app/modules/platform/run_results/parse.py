@@ -245,6 +245,11 @@ def _review(row, response, rationale):
             'missing_evidence': _strings(response.get('missing_evidence')), 'actions': rationale}
 
 
+def law_from_response(payload, *, truncated=False):
+    """The `law` shape of the contract from one `law_parcel_limits` answer (the Law Agent asked directly)."""
+    return _law({'state': 'succeeded', 'truncated': truncated}, _dict(payload), [], [])
+
+
 def parse_run_results(run):
     """Never raises: a run that is not a dict reads as an empty result with status 'unknown'."""
     run = _dict(run)

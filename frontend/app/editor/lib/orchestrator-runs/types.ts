@@ -200,6 +200,29 @@ export interface AskAnswer {
       }
 }
 
+/** What the conversation says about a Law Agent land analysis (`POST /platform/law-analysis`); the artifact shows the rest. */
+export interface LandAnalysisSummary {
+  zones: string[]
+  unmatched_zones: string[]
+  zone_areas_m2: Record<string, number>
+  restrictions: string[]
+  assessment_status: string | null
+  permit_compliance_verified: boolean
+  missing_evidence: string[]
+}
+
+/** `POST /platform/law-analysis` without the full `analysis` (the law slice types that part). */
+export interface LandAnalysisAnswer {
+  pnu: string
+  agent: 'law'
+  trace_id: string
+  version: string | null
+  /** The parcel's caps from `law_parcel_limits` (district policy / ordinance, area-weighted); null when that call failed. */
+  limits: RunLaw | null
+  limits_error: string | null
+  summary: LandAnalysisSummary
+}
+
 /** The Orchestrator row of `GET /platform/status`, reduced to what a feed line needs. */
 export interface OrchestratorConnection {
   state: 'up' | 'down' | 'invalid'

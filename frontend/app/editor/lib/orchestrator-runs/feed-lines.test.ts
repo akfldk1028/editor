@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test'
 
 import {
-  answerLine, askFailedLine, askLines, connectionLine, evidenceCard, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine, requestingLines, resultLine,
-  resultPrompt, revisionLine, selectedLine, selectedPrompt, siteFactsLine, stepChanges, stepState, submittedLine,
+  answerLine, askFailedLine, askLines, connectionLine, evidenceCard, landAnalysisLine, landAnalysisLines, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine,
+  requestingLines, resultLine, resultPrompt, revisionLine, selectedLine, selectedPrompt, siteFactsLine, stepChanges, stepState, submittedLine,
 } from './feed-lines'
-import type { AskAnswer } from './types'
+import type { AskAnswer, LandAnalysisAnswer } from './types'
 import { FAST_WINDOW_MS, POLL_FAST_MS, POLL_MS, pollInterval } from './poll'
 import type { Communication, RunResults } from './types'
 
@@ -121,6 +121,30 @@ test("a typed question: the user's bubble and the Orchestrator asking the Law Ag
   ] })
   expect(askFailedLine(503, null)).toEqual({ kind: 'error', agent: 'orchestrator', text: 'Law Agent에 연결할 수 없어요 — 켜진 뒤 다시 물어보세요', actions: [{ label: '시스템 보기', artifact: 'system' }] })
   expect(askFailedLine(502, 'law_agent_error: law_search: TASK_STATE_FAILED')).toEqual({ kind: 'error', agent: 'orchestrator', text: 'Law Agent가 답하지 못했어요 — law_agent_error: law_search: TASK_STATE_FAILED' })
+})
+
+test("a land analysis: the user's 법규 요약 bubble, the Orchestrator asking, then the Law Agent's caps, zones, restrictions and what is missing", () => {
+  expect(landAnalysisLines('산곡동 684-1', { buildingType: '업무시설', assessmentDate: '2026-10-08' })).toEqual([
+    { kind: 'user', text: '법규 요약 · 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설' },
+    { kind: 'progress', agent: 'orchestrator', tone: 'busy', text: 'Law Agent에게 법규 분석 요청 중' },
+  ])
+  const target = { pnu: '4115011300106840001', address: '산곡동 684-1' }
+  const answer: LandAnalysisAnswer = {
+    pnu: target.pnu, agent: 'law', trace_id: 't', version: 'v', limits_error: null,
+    limits: { ...results().law!, policy_id: 'gosan-public1-molit-2026-334', articles: { bcr: '의정부시 도시계획 조례 제42조', far: '의정부시 도시계획 조례 제46조', height: null } },
+    summary: { zones: ['제2종일반주거지역', '자연녹지지역'], unmatched_zones: ['공공청사'], zone_areas_m2: { 제2종일반주거지역: 2499.69, 자연녹지지역: 4.85 },
+      restrictions: ['a', 'b', 'c'], assessment_status: 'needs_evidence', permit_compliance_verified: false,
+      missing_evidence: ['complete_design_applicability_and_permit_checks', 'unresolved_zoning:공공청사'] },
+  }
+  const line = landAnalysisLine(answer, target)
+  expect(line.agent).toBe('law')
+  expect(line.tone).toBe('warn')
+  expect(line.text).toBe('법규 요약 (제2종일반주거지역 · 자연녹지지역): 건폐 59.92% · 용적 249.67% · 5층 · 지구단위 정책 gosan-public1-molit-2026-334 · 제한 3건 · 확인 필요: 설계 적용성·허가 검토 미완료, 미인식 용도지역: 공공청사')
+  expect((line.card as { items: { label: string; value: string }[] }).items[1]).toEqual({ label: '건폐율', value: '59.92%', hint: '의정부시 도시계획 조례 제42조' })
+  expect(line.actions?.map((action) => `${action.label}→${action.params?.tab}`)).toEqual(['법규 보기→summary', '관련 법규 보기→articles'])
+  const noLimits = landAnalysisLine({ ...answer, limits: null, limits_error: 'LawAgentError: x' }, target)
+  expect(noLimits.text).toContain('상한 미확정 (law_parcel_limits 실패)')
+  expect(noLimits.card).toBeUndefined()
 })
 
 test('the receipt line shows 8 hex of the run and the trace', () => {

@@ -27,6 +27,27 @@ export function formatCap(cap: Cap): { value: string; note: string | null } {
   return { value: '미확정', note: `${ceiling}조례 증거 확인 필요` }
 }
 
+/** What a cap stat shows: value, the note under it, the basis line, and whether it is a warning. */
+export interface CapStat { value: string; note: string | null; basis: string; warn: boolean }
+
+/**
+ * The Law Agent's cap (`law_parcel_limits`: district policy or ordinance, area-weighted over split
+ * zoning) is the answer when it has one; the editor calculator's own verdict stays under it as a
+ * note when it differs (미확정 — it does not weight across zones or settle unmatched districts).
+ * Without the Law Agent's number the calculator's own result shows as before.
+ */
+export function capStat(cap: Cap, agentPct: number | null, agentArticle: string | null, policyId: string | null): CapStat {
+  if (agentPct === null) {
+    const own = formatCap(cap)
+    return { value: own.value, note: own.note, basis: cap.article, warn: own.note !== null }
+  }
+  const basis = ['Law Agent', agentArticle ?? (cap.article || null), policyId ? `지구단위 정책 ${policyId}` : null].filter((part): part is string => Boolean(part)).join(' · ')
+  const own = formatCap(cap)
+  const differs = cap.limit !== null && Math.abs(cap.limit - agentPct) > 0.05
+  const note = cap.limit === null ? `에디터 계산기: ${own.value} — ${own.note}` : differs ? `에디터 계산기: ${own.value}` : null
+  return { value: `${pct(agentPct)}%`, note, basis, warn: false }
+}
+
 export type Tone = 'ok' | 'warn' | 'muted'
 export interface AssessmentBadge { label: string; tone: Tone; detail: string[] }
 

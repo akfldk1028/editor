@@ -12,10 +12,12 @@ Answer contract (every key present):
            matches: [{article, title, text}], legal_evidence}
   legal_evidence: {assessment_date, currency_status, coverage_status, reason} | null
 """
+import asyncio
 import re
 
 from backend.app.adapters import law_agent
 from backend.app.core.tracing import Span, continue_or_start
+from backend.app.modules.platform.run_results import law_from_response
 
 ORDINANCE = re.compile(r'(?P<name>[가-힣]+(?:\s+[가-힣]+)*?\s*조례)\s*(?P<article>제?\s*\d+\s*조(?:\s*의\s*\d+)?)')
 SEARCH_LIMIT = 8
@@ -73,6 +75,58 @@ def normalize(tool: str, payload: dict) -> dict:
             'total': stats.get('total') if isinstance(stats.get('total'), int) else len(items),
             'degraded': stats.get('degraded') is True,
             'legal_evidence': _legal_evidence(payload.get('legal_evidence'))}
+
+
+def _summary(analysis: dict) -> dict:
+    """The few numbers the conversation says about a land analysis (the artifact shows the rest)."""
+    zone = analysis.get('zone_info') if isinstance(analysis.get('zone_info'), dict) else {}
+    assessment = analysis.get('assessment') if isinstance(analysis.get('assessment'), dict) else {}
+    coverage = assessment.get('municipal_coverage') if isinstance(assessment.get('municipal_coverage'), dict) else {}
+    missing = [code for code in [*(assessment.get('missing_evidence') or []), *(coverage.get('missing_evidence') or [])] if isinstance(code, str)]
+    return {'zones': [z for z in zone.get('zones') or [] if isinstance(z, str)],
+            'unmatched_zones': [z for z in zone.get('unmatched') or [] if isinstance(z, str)],
+            'zone_areas_m2': {k: v for k, v in (zone.get('zone_areas_m2') or {}).items() if isinstance(k, str) and isinstance(v, (int, float))},
+            'restrictions': [r for r in analysis.get('restrictions') or [] if isinstance(r, str)],
+            'assessment_status': _str(assessment.get('status')),
+            'permit_compliance_verified': assessment.get('permit_compliance_verified') is True,
+            'missing_evidence': list(dict.fromkeys(missing))}
+
+
+async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: float | None, assessment_date: str | None, recorder,
+                       traceparent: str | None = None, agent=law_agent.ask) -> dict:
+    """The law artifact's analysis, from the Law Agent: `law_land_analyze` (the 42 regulations, lines, articles —
+    the whole answer) and `law_parcel_limits` (the parcel's caps: district policy / ordinance, area-weighted),
+    asked together; each hop is one span. `limits` is null when that call failed (the analysis still answers)."""
+    parent = continue_or_start(traceparent)
+    dated = {'assessment_date': assessment_date} if assessment_date else {}
+    land_args = {'input': pnu, 'input_type': 'pnu', 'full': True, 'include_law': True, 'building_type': building_type or '',
+                 'floor_area_m2': floor_area_m2, **dated}
+    limits_args = {'pnu': pnu, **({'building_type': building_type} if building_type else {})}
+
+    async def hop(tool, args):
+        span = Span.start(recorder, parent, agent='law', conversation_id=f'editor:law-analysis:{pnu}')
+        trace = {'caller': 'editor', 'trace_id': span.context.trace_id, 'span_id': span.context.span_id, 'hop': 1, 'tool': tool}
+        try:
+            raw = await agent(tool, args, trace=trace)
+        except Exception as exc:
+            span.end('error', error_type=type(exc).__name__)
+            raise
+        span.end('ok')
+        return raw
+
+    land, limits = await asyncio.gather(hop('law_land_analyze', land_args), hop('law_parcel_limits', limits_args), return_exceptions=True)
+    if isinstance(land, BaseException):
+        raise land
+    payload = land.get('payload') or {}
+    analysis = payload.get('raw') if isinstance(payload.get('raw'), dict) else payload
+    limits_error = None
+    if isinstance(limits, BaseException):
+        limits_error = f'{type(limits).__name__}: {limits}'
+        limits = None
+    return {'pnu': pnu, 'agent': 'law', 'trace_id': parent.trace_id, 'version': land.get('version'),
+            'analysis': analysis, 'findings': [f for f in payload.get('findings') or [] if isinstance(f, dict)],
+            'limits': law_from_response(limits['payload']) if limits else None, 'limits_error': limits_error,
+            'summary': _summary(analysis)}
 
 
 async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None, recorder, traceparent: str | None = None,

@@ -1,5 +1,18 @@
 import { expect, test } from 'bun:test'
 
+import { capStat } from './summary'
+
+test("a cap stat is the Law Agent's number with its article and policy; the calculator's 미확정 stays as a note; without it the calculator speaks", () => {
+  const unsettled = { limit: null, ceiling: 59.9225, status: 'needs_evidence', article: '의정부시 도시계획 조례 제42조; 국토의 계획 및 이용에 관한 법률 제84조' }
+  expect(capStat(unsettled, 59.92, '의정부시 도시계획 조례 제42조', 'gosan-public1-molit-2026-334')).toEqual({
+    value: '59.9%', note: '에디터 계산기: 미확정 — 법정 상한 59.9% 이하 · 조례 증거 확인 필요',
+    basis: 'Law Agent · 의정부시 도시계획 조례 제42조 · 지구단위 정책 gosan-public1-molit-2026-334', warn: false,
+  })
+  expect(capStat({ limit: 60, ceiling: 60, status: 'complete', article: '제42조' }, 60, null, null)).toEqual({ value: '60%', note: null, basis: 'Law Agent · 제42조', warn: false })
+  expect(capStat({ limit: 60, ceiling: 60, status: 'complete', article: '제42조' }, 20, null, null).note).toBe('에디터 계산기: 60%')
+  expect(capStat(unsettled, null, null, null)).toEqual({ value: '미확정', note: '법정 상한 59.9% 이하 · 조례 증거 확인 필요', basis: unsettled.article, warn: true })
+})
+
 import { fixture } from './summary.fixture'
 import { assessmentBadge, capOf, countArticles, countRegulations, formatCap, lotLabel, summarize } from './summary'
 

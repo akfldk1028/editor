@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { analyzeSite, type LawAnalysis } from '../api/analyze'
+import { dismissFeed, postFeed } from '@/lib/orchestrator-runs/feed'
+import { askFailedLine, landAnalysisLine, landAnalysisLines } from '@/lib/orchestrator-runs/feed-lines'
+import type { RunLaw } from '@/lib/orchestrator-runs/types'
+
+import { AnalyzeError, analyzeSite, type LawAgentAnalysis, type LawAnalysis } from '../api/analyze'
 import { latestSite, selectionScope } from '../api/site'
 import { cacheKey, type Conditions } from '../lib/conditions'
 import { lotLabel } from '../lib/summary'
@@ -17,19 +21,21 @@ export type Target =
 export type Phase =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'ready'; analysis: LawAnalysis }
+  | { kind: 'ready'; analysis: LawAnalysis; limits: RunLaw | null; answer: LawAgentAnalysis }
   | { kind: 'error'; text: string }
 
 const CACHE_MAX = 20
 
 /**
- * Resolves the target parcel, then analyses it once per (pnu, 조건); results are kept in a small
- * in-hook cache so switching 조건 back and forth does not refetch. `rerun()` bypasses the cache.
+ * Resolves the target parcel, then asks the Law Agent once per (pnu, 조건) — the request and its
+ * answer reach the conversation (법규 요약 · site → "Law Agent에게 법규 분석 요청 중" → the Law Agent's
+ * turn); results are kept in a small in-hook cache so switching 조건 back and forth neither refetches
+ * nor re-posts. `rerun()` bypasses the cache.
  */
 export function useLawAnalysis(params: Readonly<Record<string, string>>, conditions: Conditions) {
   const [target, setTarget] = useState<Target>({ kind: 'resolving' })
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' })
-  const cache = useRef(new Map<string, LawAnalysis>())
+  const cache = useRef(new Map<string, LawAgentAnalysis>())
   const active = useRef<AbortController | null>(null)
   const scope = selectionScope(params)
   const { pnu: pnuParam, address: addressParam } = params
@@ -56,23 +62,34 @@ export function useLawAnalysis(params: Readonly<Record<string, string>>, conditi
   }, [pnuParam, addressParam, scope])
 
   const pnu = target.kind === 'site' ? target.pnu : null
+  const address = target.kind === 'site' ? target.address : ''
   const key = pnu ? cacheKey(pnu, conditions) : null
 
   /** One request at a time: a new load (or unmount) aborts the one in flight. */
-  const load = useCallback((targetPnu: string, targetKey: string, options: Conditions) => {
+  const load = useCallback((targetPnu: string, targetAddress: string, targetKey: string, options: Conditions) => {
     active.current?.abort()
     const controller = new AbortController()
     active.current = controller
     setPhase({ kind: 'loading' })
+    const [bubble, asking] = landAnalysisLines(targetAddress || `PNU ${targetPnu}`, { buildingType: options.buildingType, assessmentDate: options.assessmentDate })
+    postFeed(bubble!)
+    const pending = postFeed(asking!)
+    const lawTarget = { pnu: targetPnu, ...(targetAddress ? { address: targetAddress } : {}) }
     analyzeSite(targetPnu, { buildingType: options.buildingType.trim(), floorAreaM2: options.floorAreaM2, assessmentDate: options.assessmentDate }, controller.signal)
-      .then((analysis) => {
+      .then((answer) => {
         if (controller.signal.aborted) return
         if (cache.current.size >= CACHE_MAX) cache.current.delete(cache.current.keys().next().value!)
-        cache.current.set(targetKey, analysis)
-        setPhase({ kind: 'ready', analysis })
+        cache.current.set(targetKey, answer)
+        postFeed(landAnalysisLine(answer, lawTarget))
+        setPhase({ kind: 'ready', analysis: answer.analysis, limits: answer.limits, answer })
       })
       .catch((error: unknown) => {
-        if (!controller.signal.aborted) setPhase({ kind: 'error', text: error instanceof Error ? error.message : '법규를 분석하지 못했습니다.' })
+        if (controller.signal.aborted) return
+        postFeed(askFailedLine(error instanceof AnalyzeError ? error.status : null, null))
+        setPhase({ kind: 'error', text: error instanceof Error ? error.message : '법규를 분석하지 못했습니다.' })
+      })
+      .finally(() => {
+        if (pending) dismissFeed(pending.id)
       })
   }, [])
 
@@ -82,17 +99,17 @@ export function useLawAnalysis(params: Readonly<Record<string, string>>, conditi
       return
     }
     const cached = cache.current.get(key)
-    if (cached) setPhase({ kind: 'ready', analysis: cached })
-    else load(pnu, key, conditions)
-  }, [pnu, key, conditions, load])
+    if (cached) setPhase({ kind: 'ready', analysis: cached.analysis, limits: cached.limits, answer: cached })
+    else load(pnu, address, key, conditions)
+  }, [pnu, address, key, conditions, load])
 
   useEffect(() => () => active.current?.abort(), [])
 
   const rerun = useCallback(() => {
     if (!pnu || !key) return
     cache.current.delete(key)
-    load(pnu, key, conditions)
-  }, [pnu, key, conditions, load])
+    load(pnu, address, key, conditions)
+  }, [pnu, address, key, conditions, load])
 
   return { target, phase, rerun }
 }

@@ -6,7 +6,7 @@ import {
   shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel,
 } from './labels'
 import { failureText, type RunFailure } from './submit'
-import type { AskAnswer, Communication, OrchestratorConnection, RunResults, RunSummary } from './types'
+import type { AskAnswer, Communication, LandAnalysisAnswer, OrchestratorConnection, RunLaw, RunResults, RunSummary } from './types'
 
 const fmt = (value: number, digits: number) => value.toLocaleString('ko-KR', { maximumFractionDigits: digits })
 
@@ -126,6 +126,41 @@ export function answerLine(answer: AskAnswer, target: LawTarget | null): FeedInp
     text,
     card: { type: 'links', items: items.map((item) => ({ label: [item.law, item.kind ? `(${item.kind})` : null, item.article].filter(Boolean).join(' '), ...(item.text ? { note: excerpt(item.text)! } : {}) })) },
     actions,
+  }
+}
+
+/** When the law artifact asks for a parcel's analysis: the user's bubble and the Orchestrator naming whom it asks. */
+export function landAnalysisLines(label: string, conditions: { buildingType?: string; assessmentDate?: string }): FeedInput[] {
+  const use = conditions.buildingType?.trim()
+  const detail = [conditions.assessmentDate ? `기준일 ${conditions.assessmentDate}` : null, use ? `용도 ${use}` : null].filter(Boolean).join(' · ')
+  return [
+    { kind: 'user', text: `법규 요약 · ${label}${detail ? ` · ${detail}` : ''}` },
+    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: 'Law Agent에게 법규 분석 요청 중' },
+  ]
+}
+
+/**
+ * The Law Agent's land analysis as its turn: the caps it set for the parcel (district policy or
+ * ordinance, area-weighted) as tiles, the zones, how many restrictions, what evidence is missing.
+ */
+export function landAnalysisLine(answer: LandAnalysisAnswer, target: LawTarget): FeedInput {
+  const { summary, limits } = answer
+  const zones = summary.zones.length ? ` (${summary.zones.join(' · ')})` : ''
+  const caps = limits && limits.bcr_pct !== null && limits.far_pct !== null
+    ? `건폐 ${fmt(limits.bcr_pct, 2)}% · 용적 ${fmt(limits.far_pct, 2)}%${limits.max_floors !== null ? ` · ${limits.max_floors}층` : ''}${limits.policy_id ? ` · 지구단위 정책 ${limits.policy_id}` : ''}`
+    : limits
+      ? '상한 미확정'
+      : `상한 미확정 (law_parcel_limits ${answer.limits_error ? '실패' : '없음'})`
+  const missing = summary.missing_evidence.map(evidenceLabel)
+  const text = `법규 요약${zones}: ${caps} · 제한 ${summary.restrictions.length}건${missing.length ? ` · 확인 필요: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` 외 ${missing.length - 3}` : ''}` : ''}`
+  const tone: FeedTone = limits && limits.bcr_pct !== null && summary.permit_compliance_verified ? 'ok' : 'warn'
+  return {
+    kind: 'progress',
+    agent: 'law',
+    tone,
+    text,
+    ...(limits ? { card: limitsCard(limits) ?? undefined } : {}),
+    actions: [{ label: '법규 보기', artifact: 'law', params: lawParams(target, 'summary') }, { label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }],
   }
 }
 
@@ -256,8 +291,10 @@ export function lawLine(results: RunResults): string | null {
  * and the national ceiling for the caps, the capacities Law derived from them, and the height rule.
  */
 export function lawCard(results: RunResults): FeedCard | null {
-  const law = results.law
-  if (!law) return null
+  return results.law ? limitsCard(results.law) : null
+}
+
+export function limitsCard(law: RunLaw): FeedCard | null {
   const ceiling = (value: number | null) => (value !== null ? `국가 상한 ${fmt(value, 2)}%` : null)
   const hint = (...parts: (string | null)[]) => {
     const text = parts.filter((part): part is string => Boolean(part)).join(' · ')

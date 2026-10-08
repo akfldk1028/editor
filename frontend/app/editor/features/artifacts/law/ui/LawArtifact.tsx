@@ -8,6 +8,8 @@ import LandAnalysisPanel from '../../../land-map/components/LandAnalysisPanel'
 import { LawArticlesList } from '../../../land-map/components/LawArticlesList'
 import type { LandAnalysisResult } from '../../../land-map/lib/types'
 import { ArtifactChrome } from '../../../shell/artifact-host/ArtifactChrome'
+import type { RunLaw } from '@/lib/orchestrator-runs/types'
+
 import type { ArtifactProps, ShellApi } from '../../../shell/artifact-types'
 import type { LawAnalysis } from '../api/analyze'
 import { type Conditions, defaultConditions, describeConditions } from '../lib/conditions'
@@ -25,6 +27,7 @@ export default function LawArtifact({ tab = 'summary', params, shell }: Artifact
   const [conditions, setConditions] = useState<Conditions>(defaultConditions)
   const { target, phase, rerun } = useLawAnalysis(params, conditions)
   const analysis = phase.kind === 'ready' ? phase.analysis : null
+  const limits = phase.kind === 'ready' ? phase.limits : null
   const title = target.kind === 'site' ? target.address || `PNU ${target.pnu}` : '법규·한계'
   const subtitle = target.kind === 'site' ? describeConditions(conditions) : null
   const orchestrator = tab === 'orchestrator'
@@ -61,7 +64,7 @@ export default function LawArtifact({ tab = 'summary', params, shell }: Artifact
             {orchestrator ? (
               <OrchestratorTab address={target.address} editor={analysis ? summarize(analysis) : null} key={target.pnu} pnu={target.pnu} project={params.project} shell={shell} />
             ) : (
-              analysis && <Body address={target.address} analysis={analysis} tab={tab} />
+              analysis && <Body address={target.address} analysis={analysis} limits={limits} tab={tab} />
             )}
           </>
         )}
@@ -70,7 +73,7 @@ export default function LawArtifact({ tab = 'summary', params, shell }: Artifact
   )
 }
 
-function Body({ tab, analysis, address }: { tab: string; analysis: LawAnalysis; address: string }) {
+function Body({ tab, analysis, limits, address }: { tab: string; analysis: LawAnalysis; limits: RunLaw | null; address: string }) {
   switch (tab) {
     case 'regulations':
       // The /land page's panel, unchanged (its own dark palette, see .law-legacy). `zone_info` caps may be
@@ -96,7 +99,7 @@ function Body({ tab, analysis, address }: { tab: string; analysis: LawAnalysis; 
     case 'setbacks':
       return <SetbacksTab analysis={analysis} />
     default:
-      return <SummaryTab analysis={analysis} />
+      return <SummaryTab analysis={analysis} limits={limits} />
   }
 }
 

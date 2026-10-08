@@ -1,8 +1,11 @@
 /**
- * `POST /api/v1/land/analyze` for one parcel. The response types come from `features/land-map`
- * (a legacy page feature this slice reuses read-only; to be folded in later); the fields the
- * `/land` page never read (assessment, program, zone overlap) are typed here.
+ * The Law Agent's analysis of one parcel, `POST /api/v1/platform/law-analysis` (the backend asks
+ * `law_land_analyze` for the regulations, lines and articles and `law_parcel_limits` for the caps over
+ * A2A). The analysis types come from `features/land-map` (a legacy page feature this slice reuses
+ * read-only; to be folded in later); the fields the `/land` page never read are typed here.
  */
+import type { LandAnalysisAnswer } from '@/lib/orchestrator-runs/types'
+
 import type { LandAnalysisResult, ZoneInfo } from '../../../land-map/lib/types'
 
 export interface CoverageSource { name: string; effective_date?: string; url?: string }
@@ -45,21 +48,35 @@ export interface AnalyzeOptions {
   assessmentDate?: string
 }
 
+/** The Law Agent's answer: the whole analysis for the tabs, plus the caps and the conversation's summary. */
+export interface LawAgentAnalysis extends LandAnalysisAnswer {
+  analysis: LawAnalysis
+}
+
+export class AnalyzeError extends Error {
+  constructor(message: string, readonly status: number | null) {
+    super(message)
+  }
+}
+
 const base = () => process.env.NEXT_PUBLIC_BASE_PATH || ''
 
-export async function analyzeSite(pnu: string, options: AnalyzeOptions, signal?: AbortSignal): Promise<LawAnalysis> {
-  const body: Record<string, unknown> = { input: pnu, input_type: 'pnu' }
+export async function analyzeSite(pnu: string, options: AnalyzeOptions, signal?: AbortSignal): Promise<LawAgentAnalysis> {
+  const body: Record<string, unknown> = { pnu }
   if (options.buildingType) body.building_type = options.buildingType
   if (options.floorAreaM2 != null && options.floorAreaM2 > 0) body.floor_area_m2 = options.floorAreaM2
   if (options.assessmentDate) body.assessment_date = options.assessmentDate
-  const response = await fetch(`${base()}/api/v1/land/analyze`, {
+  const response = await fetch(`${base()}/api/v1/platform/law-analysis`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal,
   })
   if (!response.ok) {
     console.error(`[law] analyze failed (${response.status})`, await response.text().catch(() => ''))
-    throw new Error(response.status >= 500
-      ? '분석 서버가 응답하지 않습니다. 잠시 후 다시 시도해 주세요.'
-      : `분석 요청을 처리하지 못했습니다 (${response.status}).`)
+    throw new AnalyzeError(
+      response.status === 503 ? 'Law Agent에 연결할 수 없어요 — 켜진 뒤 다시 분석해 주세요.'
+        : response.status >= 500 ? 'Law Agent가 분석을 마치지 못했어요. 잠시 후 다시 시도해 주세요.'
+          : `분석 요청을 처리하지 못했습니다 (${response.status}).`,
+      response.status,
+    )
   }
-  return response.json() as Promise<LawAnalysis>
+  return response.json() as Promise<LawAgentAnalysis>
 }

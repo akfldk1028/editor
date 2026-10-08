@@ -686,6 +686,11 @@
    "path": "/api/v1/platform/health"
   },
   {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/law-analysis"
+  },
+  {
    "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/platform/projects"

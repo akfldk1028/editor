@@ -120,6 +120,8 @@ const EVIDENCE: Record<string, string> = {
   district_complete_provisions_review_required: '지구단위계획 전체 조문 검토',
   regulation_receipt: '조례 영수증',
   parcels_not_contiguous: '필지가 서로 붙어 있지 않음',
+  complete_design_applicability_and_permit_checks: '설계 적용성·허가 검토 미완료',
+  missing_ordinance_snapshot: '조례 스냅숏 없음',
 }
 
 /** A missing-evidence code in Korean; a `finding: sentence` entry keeps the sentence; unknown codes stay. */

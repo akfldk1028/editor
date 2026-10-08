@@ -1,12 +1,14 @@
+import type { RunLaw } from '@/lib/orchestrator-runs/types'
+
 import type { LawAnalysis } from '../api/analyze'
-import { formatArea, formatCap, formatWon, summarize } from '../lib/summary'
+import { capStat, formatArea, formatWon, summarize } from '../lib/summary'
 import { Stat } from './Stat'
 
-/** 요약: 용도지역, 건폐율/용적률 상한, 대지면적, 심사 상태, 제한 목록. */
-export function SummaryTab({ analysis }: { analysis: LawAnalysis }) {
+/** 요약: 용도지역, 건폐율/용적률 상한 (the Law Agent's when it set them), 대지면적, 심사 상태, 제한 목록. */
+export function SummaryTab({ analysis, limits }: { analysis: LawAnalysis; limits: RunLaw | null }) {
   const summary = summarize(analysis)
-  const bcr = formatCap(summary.bcr)
-  const far = formatCap(summary.far)
+  const bcr = capStat(summary.bcr, limits?.bcr_pct ?? null, limits?.articles.bcr ?? null, limits?.policy_id ?? null)
+  const far = capStat(summary.far, limits?.far_pct ?? null, limits?.articles.far ?? null, limits?.policy_id ?? null)
   const landNote = [
     summary.landCategory ? `지목 ${summary.landCategory}` : null,
     summary.officialPrice !== null ? `공시지가 ${formatWon(summary.officialPrice)}` : null,
@@ -32,8 +34,11 @@ export function SummaryTab({ analysis }: { analysis: LawAnalysis }) {
       </section>
 
       <div className="law-stats">
-        <Stat basis={summary.bcr.article} label="건폐율 상한" note={bcr.note} tone={bcr.note ? 'warn' : undefined} value={bcr.value} />
-        <Stat basis={summary.far.article} label="용적률 상한" note={far.note} tone={far.note ? 'warn' : undefined} value={far.value} />
+        <Stat basis={bcr.basis} label="건폐율 상한" note={bcr.note} tone={bcr.warn ? 'warn' : undefined} value={bcr.value} />
+        <Stat basis={far.basis} label="용적률 상한" note={far.note} tone={far.warn ? 'warn' : undefined} value={far.value} />
+        {limits?.max_floors !== null && limits?.max_floors !== undefined && (
+          <Stat basis={limits.policy_id ? `Law Agent · 지구단위 정책 ${limits.policy_id}` : 'Law Agent'} label="최고 층수" value={`${limits.max_floors}층`} />
+        )}
         <Stat label="대지면적" note={landNote || null} value={formatArea(summary.areaM2)} />
       </div>
 
