@@ -91,7 +91,8 @@ export function lawBasisLine(results: RunResults, target: LawTarget): FeedInput 
 export function askLines(text: string, role: string | null = null): FeedInput[] {
   const to = role ?? ORCHESTRATOR
   return [
-    { kind: 'user', text },
+    // A role picked from the choices: the bubble shows the pick, not the question again.
+    { kind: 'user', text: role ? `${agentLabel(role)}에게: ${text}` : text },
     { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: role ? ORCHESTRATOR : 'user', to },
       text: role ? `${agentLabel(role)}에게 묻는 중` : 'Orchestrator Agent가 담당을 고르는 중' },
   ]

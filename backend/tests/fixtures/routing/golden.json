@@ -1,35 +1,141 @@
 {
-  "note": "30 typed questions labelled with the agent that owns them (null = the router should ask). Written 2026-10-08 from the agents' A2A card skills.",
+  "note": "30 typed questions labelled with the agent that owns them (null = the router should ask). Written 2026-10-08 from the agents' A2A card skills; 10-08 review added 방법/법인 (no single '법'), 주차 대수, 높이 몇.",
   "cases": [
-    {"text": "의정부시 도시계획 조례 제42조", "agent": "law"},
-    {"text": "자연녹지지역 건폐율이 얼마야", "agent": "law"},
-    {"text": "일조권 사선제한 기준", "agent": "law"},
-    {"text": "인접대지 이격 거리", "agent": "law"},
-    {"text": "조경 면적 의무 기준", "agent": "law"},
-    {"text": "이 땅에 적용되는 지구단위계획 규제", "agent": "law"},
-    {"text": "건축법 제55조 보여줘", "agent": "law"},
-    {"text": "지하층 판정 기준이 뭐야", "agent": "law"},
-    {"text": "접도 도로 폭이 몇 미터야", "agent": "site_context"},
-    {"text": "대지 경계 확인해 줘", "agent": "site_context"},
-    {"text": "이 필지 표고와 경사", "agent": "site_context"},
-    {"text": "출입구를 어디로 낼 수 있어", "agent": "site_context"},
-    {"text": "주변 건물 높이 알려줘", "agent": "site_context"},
-    {"text": "침수 재해 위험 있어?", "agent": "site_context"},
-    {"text": "건물 배치 대안 만들어 줘", "agent": "masterplan"},
-    {"text": "지하 주차 램프 넣어서 배치", "agent": "masterplan"},
-    {"text": "필로티 주차 배치로 바꿔", "agent": "masterplan"},
-    {"text": "차량 동선 다시 잡아 줘", "agent": "masterplan"},
-    {"text": "코어 위치 바꾸고 레이아웃 다시", "agent": "masterplan"},
-    {"text": "매스 쌓아 봐", "agent": "mass"},
-    {"text": "볼륨을 몇 층까지 올릴 수 있어", "agent": "mass"},
-    {"text": "테라스 형태 매싱으로", "agent": "mass"},
-    {"text": "건물 외형 덩어리 보여줘", "agent": "mass"},
-    {"text": "면적표 뽑아 줘", "agent": "program"},
-    {"text": "실 구성이랑 소요 면적", "agent": "program"},
-    {"text": "세대 구성 100세대로 프로그램", "agent": "program"},
-    {"text": "입면 디자인 해 줘", "agent": "elevation"},
-    {"text": "파사드 창 배치", "agent": "elevation"},
-    {"text": "뭐 할 수 있어?", "agent": null},
-    {"text": "진행 상황 알려줘", "agent": null}
+    {
+      "text": "의정부시 도시계획 조례 제42조",
+      "agent": "law"
+    },
+    {
+      "text": "자연녹지지역 건폐율이 얼마야",
+      "agent": "law"
+    },
+    {
+      "text": "일조권 사선제한 기준",
+      "agent": "law"
+    },
+    {
+      "text": "인접대지 이격 거리",
+      "agent": "law"
+    },
+    {
+      "text": "조경 면적 의무 기준",
+      "agent": "law"
+    },
+    {
+      "text": "이 땅에 적용되는 지구단위계획 규제",
+      "agent": "law"
+    },
+    {
+      "text": "건축법 제55조 보여줘",
+      "agent": "law"
+    },
+    {
+      "text": "지하층 판정 기준이 뭐야",
+      "agent": "law"
+    },
+    {
+      "text": "접도 도로 폭이 몇 미터야",
+      "agent": "site_context"
+    },
+    {
+      "text": "대지 경계 확인해 줘",
+      "agent": "site_context"
+    },
+    {
+      "text": "이 필지 표고와 경사",
+      "agent": "site_context"
+    },
+    {
+      "text": "출입구를 어디로 낼 수 있어",
+      "agent": "site_context"
+    },
+    {
+      "text": "주변 건물 높이 알려줘",
+      "agent": "site_context"
+    },
+    {
+      "text": "침수 재해 위험 있어?",
+      "agent": "site_context"
+    },
+    {
+      "text": "건물 배치 대안 만들어 줘",
+      "agent": "masterplan"
+    },
+    {
+      "text": "지하 주차 램프 넣어서 배치",
+      "agent": "masterplan"
+    },
+    {
+      "text": "필로티 주차 배치로 바꿔",
+      "agent": "masterplan"
+    },
+    {
+      "text": "차량 동선 다시 잡아 줘",
+      "agent": "masterplan"
+    },
+    {
+      "text": "코어 위치 바꾸고 레이아웃 다시",
+      "agent": "masterplan"
+    },
+    {
+      "text": "매스 쌓아 봐",
+      "agent": "mass"
+    },
+    {
+      "text": "볼륨을 몇 층까지 올릴 수 있어",
+      "agent": "mass"
+    },
+    {
+      "text": "테라스 형태 매싱으로",
+      "agent": "mass"
+    },
+    {
+      "text": "건물 외형 덩어리 보여줘",
+      "agent": "mass"
+    },
+    {
+      "text": "면적표 뽑아 줘",
+      "agent": "program"
+    },
+    {
+      "text": "실 구성이랑 소요 면적",
+      "agent": "program"
+    },
+    {
+      "text": "세대 구성 100세대로 프로그램",
+      "agent": "program"
+    },
+    {
+      "text": "입면 디자인 해 줘",
+      "agent": "elevation"
+    },
+    {
+      "text": "파사드 창 배치",
+      "agent": "elevation"
+    },
+    {
+      "text": "뭐 할 수 있어?",
+      "agent": null
+    },
+    {
+      "text": "진행 상황 알려줘",
+      "agent": null
+    },
+    {
+      "text": "배치 방법 알려줘",
+      "agent": "masterplan"
+    },
+    {
+      "text": "주차 몇 대 필요해",
+      "agent": "law"
+    },
+    {
+      "text": "높이 몇 미터까지 돼",
+      "agent": "law"
+    },
+    {
+      "text": "법인 사옥 매스 올려 봐",
+      "agent": "mass"
+    }
   ]
 }

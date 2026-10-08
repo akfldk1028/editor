@@ -95,7 +95,7 @@ test('polling is fast for the first 20 s of a run, then every 3 s', () => {
 
 test("a typed question: the user's bubble and the Orchestrator asking the Law Agent; the answer is the Law Agent's turn with links", () => {
   expect(askLines('자연녹지지역 건폐율')).toEqual([{ kind: 'user', text: '자연녹지지역 건폐율' }, { kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'user', to: 'orchestrator' }, text: 'Orchestrator Agent가 담당을 고르는 중' }])
-  expect(askLines('자연녹지지역 건폐율', 'law')[1]).toEqual({ kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'law' }, text: 'Law Agent에게 묻는 중' })
+  expect(askLines('자연녹지지역 건폐율', 'law')).toEqual([{ kind: 'user', text: 'Law Agent에게: 자연녹지지역 건폐율' }, { kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'law' }, text: 'Law Agent에게 묻는 중' }])
   const evidence = { assessment_date: '2026-10-08', currency_status: 'needs_evidence', coverage_status: 'needs_evidence', reason: 'r' }
   const skill = (agent: string, skill: string) => ({ kind: 'skill' as const, agent, skill, goal: null, confidence: 0.7, reason: 'r', choices: [] })
   const search: AskAnswer = {
