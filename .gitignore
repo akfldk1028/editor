@@ -100,4 +100,6 @@ clone/
 /runtime/editor/legacy-*.json
 /runtime/editor/native-*.json
 /runtime/editor/retained-plan-body.json
+# infra/host supervisor: pid records, wanted set, daemon record.
+/runtime/host/
 /frontend/app/editor/test-results-product/

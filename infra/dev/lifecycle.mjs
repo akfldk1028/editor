@@ -1,5 +1,8 @@
+// Editor-owned, editor-session entries: product.mjs may start them when they are down and
+// stops the ones it created. Persistent ones are normally kept alive by infra/host and are
+// simply reused here when their probe answers.
 export function canManageService(service) {
-  return service.owner_repo === 'editor' && service.lifecycle === 'session' && service.management === 'editor-session';
+  return service.owner_repo === 'editor' && service.management === 'editor-session';
 }
 
 export async function ensureService(service, { probe, start, wait }) {

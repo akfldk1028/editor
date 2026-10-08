@@ -24,7 +24,7 @@
           },
           "lifecycle": { "enum": ["persistent", "session"] },
           "management": {
-            "description": "agent-host: started by the Orchestrator launcher; editor-session: started by infra/dev/product.mjs; external: docker or a manual process.",
+            "description": "agent-host: started by the Orchestrator launcher; editor-session: started by infra/dev/product.mjs (and, when lifecycle is persistent, kept alive by infra/host); external: docker or a manual process.",
             "enum": ["agent-host", "editor-session", "external"]
           },
           "host_env": {

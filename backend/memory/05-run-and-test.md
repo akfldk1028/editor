@@ -36,3 +36,7 @@ before committing (repos overlap under D:\Data\25_ACE).
 - **Start servers detached (2026-10-08):** a backend/frontend started as a Claude background command is killed
   when the machine runs low on memory. Use PowerShell `Start-Process ... -WindowStyle Hidden -RedirectStandardOutput
   logs/backend-18449.log -RedirectStandardError logs/backend-18449.err -PassThru` from the editor root instead.
+- **Or let the host keep it alive (2026-10-08, plan P2):** `bun run host:start backend` (infra/host/cli.mjs) adopts a
+  listener already on 18449 or launches `.venv` uvicorn with `.superpowers/sdd/editor-law.env`, and a detached daemon
+  restarts it when it dies (kill -> healthy 200 measured at 13.8 s). `bun run host:status` for the table,
+  `bun run host:stop backend` to stop. Logs `logs/host/backend.{log,err}`, pid records `runtime/host/`.
