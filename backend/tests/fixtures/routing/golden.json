@@ -1,5 +1,5 @@
 {
-  "note": "30 typed questions labelled with the agent that owns them (null = the router should ask). Written 2026-10-08 from the agents' A2A card skills; 10-08 review added 방법/법인 (no single '법'), 주차 대수, 높이 몇.",
+  "note": "30 typed questions labelled with the agent that owns them (null = the router should ask). Written 2026-10-08 from the agents' A2A card skills; 10-08 review added 방법/법인 (no single '법'), 주차 대수, 높이 몇; 10-08 night: 2 sentences per role for the 10 roles added (16 roles).",
   "cases": [
     {
       "text": "의정부시 도시계획 조례 제42조",
@@ -136,6 +136,86 @@
     {
       "text": "법인 사옥 매스 올려 봐",
       "agent": "mass"
+    },
+    {
+      "text": "어떤 에이전트를 다시 돌려야 해",
+      "agent": "revision"
+    },
+    {
+      "text": "열린 이슈 정리해 줘",
+      "agent": "revision"
+    },
+    {
+      "text": "건축주 브리프를 요구사항으로 정리해",
+      "agent": "requirement"
+    },
+    {
+      "text": "의뢰 조건 정리하고 열린 질문 뽑아",
+      "agent": "requirement"
+    },
+    {
+      "text": "설계 의도 선언하자 파르티는 중정형",
+      "agent": "design_intent"
+    },
+    {
+      "text": "컨셉을 지켰는지 확인해",
+      "agent": "design_intent"
+    },
+    {
+      "text": "3층 평면도 그려 줘",
+      "agent": "plan"
+    },
+    {
+      "text": "실 배치랑 피난 동선 잡아",
+      "agent": "plan"
+    },
+    {
+      "text": "기둥 간격과 슬래브 두께",
+      "agent": "systems"
+    },
+    {
+      "text": "설비 샤프트 어디에 둘까",
+      "agent": "systems"
+    },
+    {
+      "text": "전문가 검토 받아 보자",
+      "agent": "domain_expert"
+    },
+    {
+      "text": "실무자가 보면 어떤지 자문",
+      "agent": "domain_expert"
+    },
+    {
+      "text": "실내 마감이랑 가구 배치",
+      "agent": "interior"
+    },
+    {
+      "text": "인테리어 컨셉 잡아 줘",
+      "agent": "interior"
+    },
+    {
+      "text": "주변 3D 장면 보여 줘",
+      "agent": "scene"
+    },
+    {
+      "text": "보고서 뷰 카메라 잡아",
+      "agent": "scene"
+    },
+    {
+      "text": "공사비 얼마나 들어",
+      "agent": "cost"
+    },
+    {
+      "text": "평당 단가로 예산 뽑아",
+      "agent": "cost"
+    },
+    {
+      "text": "판상형 아파트 매스 올려",
+      "agent": "kmass"
+    },
+    {
+      "text": "주동 배치 탑상형으로",
+      "agent": "kmass"
     }
   ]
 }

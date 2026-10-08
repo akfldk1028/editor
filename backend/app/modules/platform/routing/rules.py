@@ -42,7 +42,8 @@ class Choice:
 
 @dataclass(frozen=True)
 class Route:
-    """`kind`: 'skill' (call the agent's skill now), 'goal' (hand off to a catalog goal), 'ask' (the user picks a role)."""
+    """`kind`: 'skill' (call the agent's skill now), 'goal' (hand off to a catalog goal), 'ask' (the user picks a role),
+    'answer' (the Orchestrator answers the user itself; `instruction` is its reply)."""
     kind: str
     agent: str | None
     skill: str | None
@@ -51,7 +52,12 @@ class Route:
     confidence: float
     reason: str
     choices: tuple[Choice, ...] = ()
+    # Who decided: 'pattern' (deterministic claim), 'llm' (the Orchestrator's judgment), 'rules' (keyword fallback), 'user' (picked role).
+    decided_by: str = 'rules'
+    # What the Orchestrator says to the agent it chose (Magentic-One `instruction_or_question`); None when rules decided.
+    instruction: str | None = None
 
     def to_dict(self) -> dict:
         return {'kind': self.kind, 'agent': self.agent, 'skill': self.skill, 'goal': self.goal, 'confidence': self.confidence,
-                'reason': self.reason, 'choices': [{'agent': c.agent, 'label': c.label} for c in self.choices]}
+                'reason': self.reason, 'choices': [{'agent': c.agent, 'label': c.label} for c in self.choices],
+                'decided_by': self.decided_by, 'instruction': self.instruction}

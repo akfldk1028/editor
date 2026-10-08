@@ -98,7 +98,7 @@ def create_platform_router(
             raise HTTPException(502, 'Project source contract invalid') from None
 
     router.include_router(create_run_router(projects_service, owner, allowed_origin, trace_recorder))
-    router.include_router(create_ask_router(allowed_origin, trace_recorder))
+    router.include_router(create_ask_router(allowed_origin, trace_recorder, owner=owner))
     router.include_router(create_status_router(owner, status_service))
     router.include_router(create_scene_assets_router())
     router.include_router(create_design_router(projects_service, allowed_origin, design_repository,

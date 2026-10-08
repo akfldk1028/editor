@@ -18,7 +18,7 @@ import re
 from backend.app.adapters import law_agent
 from backend.app.core.tracing import Span, continue_or_start
 from backend.app.modules.platform.goals import goal
-from backend.app.modules.platform.routing import route
+from backend.app.modules.platform.routing import decide
 from backend.app.modules.platform.run_results import law_from_response
 
 EXCERPT = 400
@@ -122,19 +122,23 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
 
 
 async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None, recorder, traceparent: str | None = None,
-                  role: str | None = None, agent=law_agent.ask) -> dict:
-    """One question → one route: a Law skill called now (one recorded span), a goal handed off to the
-    catalog (no agent call; the conversation offers to start it), or a question back to the user with the
-    roles as choices. Every answer carries the same keys; `route.kind` says which part is filled."""
-    chosen = route(question, assessment_date=assessment_date, role=role)
+                  role: str | None = None, agent=law_agent.ask, judge=None, situation: str = '') -> dict:
+    """One question → one route (the Orchestrator's judgment, `routing.decide`): a Law skill called now (one
+    recorded span), a goal handed off to the catalog (no agent call; the conversation offers to start it), or a
+    question back to the user with the roles as choices. Every answer carries the same keys; `route.kind` says
+    which part is filled and `route.decided_by` who decided (pattern · llm · rules · user)."""
+    chosen = await decide(question, assessment_date=assessment_date, role=role, judge=judge, situation=situation)
     base = {'question': question, 'route': chosen.to_dict(), 'agent': chosen.agent, 'tool': chosen.skill, 'trace_id': None,
             'version': None, 'answer': None, 'handoff': None}
-    if chosen.kind == 'ask':
+    if chosen.kind in ('ask', 'answer'):
+        # The Orchestrator speaks itself: a question back (choices in the route) or its own reply (route.instruction).
         return base
     if chosen.kind == 'goal':
         catalog = goal(chosen.goal) or {}
         return {**base, 'handoff': {'goal': chosen.goal, 'label': catalog.get('label') or chosen.goal,
-                                    'owners': catalog.get('owners') or [], 'available': catalog.get('available') is True}}
+                                    'owners': catalog.get('owners') or [],
+                                    # Offered to start only when the door takes it AND the conversation may offer it.
+                                    'available': catalog.get('available') is True and catalog.get('offer') is True}}
     tool, args = chosen.skill, chosen.args
     span = Span.start(recorder, continue_or_start(traceparent), agent=chosen.agent, conversation_id=f'editor:ask:{pnu or "-"}')
     trace = {'caller': 'editor', 'trace_id': span.context.trace_id, 'span_id': span.context.span_id, 'hop': 1, 'tool': tool}

@@ -3,15 +3,26 @@ from fastapi import APIRouter, HTTPException, Request
 from backend.app.adapters.law_agent import LawAgentError, LawAgentUnavailable
 from backend.app.core.tracing import JsonlTraceRecorder
 from backend.app.modules.platform.ask import analyze_land, ask_law
+from backend.app.modules.platform.situation import describe
 from backend.app.schemas.ask import AskCreate, LawAnalysisCreate
 
 
-def create_ask_router(allowed_origin, trace_recorder=None, agent=None):
-    """The Law Agent's doors for the conversation and the law artifact (same-origin only, like a run submission):
-    `POST /ask` answers a typed question, `POST /law-analysis` analyses one parcel."""
+def create_ask_router(allowed_origin, trace_recorder=None, agent=None, owner=None):
+    """The conversation's doors (same-origin only, like a run submission): `POST /ask` routes and answers a typed
+    question — the Orchestrator's judgment over the situation (site, goal catalog, which agents `owner` reports up) —
+    and `POST /law-analysis` analyses one parcel with the Law Agent."""
     router = APIRouter()
     recorder = trace_recorder or JsonlTraceRecorder()
     kwargs = {'agent': agent} if agent is not None else {}
+
+    async def agents():
+        """Best effort: the Orchestrator catalog, or None when it is down (the situation then says so)."""
+        if owner is None:
+            return None
+        try:
+            return await owner.list_agents()
+        except Exception:
+            return None
 
     def same_origin(request: Request):
         origin = request.headers.get('origin')
@@ -29,8 +40,9 @@ def create_ask_router(allowed_origin, trace_recorder=None, agent=None):
     @router.post('/ask')
     async def ask(body: AskCreate, request: Request):
         same_origin(request)
+        situation = describe(pnu=body.pnu, address=body.address, assessment_date=body.assessment_date, agents=await agents())
         return await answer(ask_law(body.text, pnu=body.pnu, assessment_date=body.assessment_date, recorder=recorder,
-                                    traceparent=request.headers.get('traceparent'), role=body.role, **kwargs))
+                                    traceparent=request.headers.get('traceparent'), role=body.role, situation=situation, **kwargs))
 
     @router.post('/law-analysis')
     async def law_analysis(body: LawAnalysisCreate, request: Request):

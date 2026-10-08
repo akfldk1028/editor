@@ -52,3 +52,67 @@ def test_golden_set_is_never_routed_to_a_wrong_role_and_mostly_to_the_right_one(
     # A wrong role is worse than a question: the router may ask, it may not misdirect.
     assert wrong == []
     assert right / len(GOLDEN) >= 0.9, f'{right}/{len(GOLDEN)} right; asked: {asked}'
+
+
+def test_decide_lets_the_orchestrators_ledger_name_the_speaker_or_itself_and_falls_back_to_rules():
+    import asyncio
+
+    from backend.app.modules.platform.routing import decide
+    from backend.app.modules.platform.routing.judge import Ledger, team_description, participants
+
+    def ledger(speaker, reason, instruction, satisfied=False):
+        async def _judge(text, situation=''):
+            return Ledger.model_validate({'is_request_satisfied': {'reason': reason, 'answer': satisfied},
+                                          'next_speaker': {'reason': reason, 'answer': speaker},
+                                          'instruction_or_question': {'reason': 'r', 'answer': instruction}})
+        return _judge
+
+    async def silent(text, situation=''):
+        return None
+
+    replied = asyncio.run(decide('안녕, 뭐 할 수 있어?', judge=ledger('orchestrator', '인사와 소개는 제가 답할 수 있어요', '안녕하세요! 지금은 법규·한계 검토가 열려 있어요.', satisfied=True), enabled=True))
+    assert (replied.kind, replied.agent, replied.decided_by, replied.instruction) == ('answer', 'orchestrator', 'llm', '안녕하세요! 지금은 법규·한계 검토가 열려 있어요.')
+
+    judged = asyncio.run(decide('배치 방법 알려줘', judge=ledger('masterplan', '배치 질문이에요', '이 대지의 배치 대안을 만들어 주세요'), enabled=True))
+    assert (judged.kind, judged.agent, judged.goal, judged.confidence, judged.decided_by) == ('goal', 'masterplan', 'masterplan', 0.85, 'llm')
+    assert (judged.reason, judged.instruction) == ('배치 질문이에요', '이 대지의 배치 대안을 만들어 주세요')
+    assert judged.to_dict()['instruction'] == '이 대지의 배치 대안을 만들어 주세요'
+    asked = asyncio.run(decide('경계 정리하고 매스 올려', judge=ledger('orchestrator', '둘에 걸쳐요', '대지 경계 정리와 매스, 어느 쪽부터 할까요?'), enabled=True))
+    assert asked.kind == 'ask' and asked.decided_by == 'llm' and asked.reason == '대지 경계 정리와 매스, 어느 쪽부터 할까요?' and len(asked.choices) == len(ROLES)
+    fallback = asyncio.run(decide('매스 쌓아 봐', judge=silent, enabled=True))
+    assert (fallback.kind, fallback.agent, fallback.decided_by, fallback.instruction) == ('goal', 'mass', 'rules', None)
+    # A pattern or a picked role never waits for the model.
+    pattern = asyncio.run(decide('의정부시 도시계획 조례 제42조', judge=silent, enabled=True))
+    assert (pattern.skill, pattern.decided_by) == ('law_ordinance', 'pattern')
+    picked = asyncio.run(decide('뭐 할 수 있어?', role='cost', judge=silent, enabled=True))
+    assert (picked.agent, picked.goal, picked.decided_by) == ('cost', 'cost', 'user')
+    off = asyncio.run(decide('매스 쌓아 봐', judge=ledger('cost', 'x', 'x'), enabled=False))
+    assert (off.agent, off.decided_by) == ('mass', 'rules')
+    # The team is described as Magentic-One does: one `name: description` line per participant, the Orchestrator last.
+    lines = team_description().splitlines()
+    assert [line.split(':')[0] for line in lines] == participants() and lines[-1].startswith('orchestrator: ') and all('  ' not in line for line in lines)
+
+
+def test_judge_refuses_a_speaker_outside_the_team_and_retries_then_gives_up():
+    import asyncio
+
+    from backend.app.modules.platform.routing import judge as judging
+
+    class Client:
+        def __init__(self, answers):
+            self.answers, self.calls = list(answers), 0
+
+        async def create(self, messages, *, json_output=None):
+            self.calls += 1
+            assert 'Who should speak next?' in messages[0].content and 'law: ' in messages[0].content and 'Is the request fully satisfied' in messages[0].content
+            return type('R', (), {'content': self.answers.pop(0)})()
+
+    sat = '"is_request_satisfied": {"reason": "r", "answer": false}, '
+    bad = '{' + sat + '"next_speaker": {"reason": "r", "answer": "nobody"}, "instruction_or_question": {"reason": "r", "answer": "x"}}'
+    good = '{' + sat + '"next_speaker": {"reason": "r", "answer": "scene"}, "instruction_or_question": {"reason": "r", "answer": "주변 3D를 보여 주세요"}}'
+    client = Client([bad, good])
+    ledger = asyncio.run(judging.judge('주변을 3D로', client=client))
+    assert ledger.next_speaker.answer == 'scene' and client.calls == 2
+    client = Client([bad] * (judging.MAX_JSON_RETRIES + 1))
+    assert asyncio.run(judging.judge('x', client=client)) is None and client.calls == judging.MAX_JSON_RETRIES + 1
+    assert asyncio.run(judging.judge('x', client=Client(['not json']))) is None

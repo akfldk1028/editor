@@ -201,17 +201,24 @@ export function resultPrompt(results: RunResults, target: LawTarget): { text: st
 export function handoffLine(answer: AskAnswer): FeedInput {
   const { route, handoff } = answer
   const who = agentLabel(route.agent ?? ORCHESTRATOR)
+  // The Orchestrator's own words to that agent (its ledger), shown as the instruction it would give.
+  const said = route.instruction ? ` · ${who}에게: "${route.instruction}"` : ''
   if (!handoff) return { kind: 'error', agent: ORCHESTRATOR, text: `${who}의 일인데 아직 넘길 목표가 없어요` }
   if (handoff.available) {
     return {
       kind: 'prompt',
       agent: ORCHESTRATOR,
-      text: `이건 ${who}의 일이에요 — ${handoff.label}을(를) 시작할까요?`,
+      text: `이건 ${who}의 일이에요${said} — ${handoff.label}을(를) 시작할까요?`,
       actions: [{ label: `${handoff.label} 시작`, command: { kind: 'start-review', goal: handoff.goal } }, { label: '나중에' }],
     }
   }
   const owners = handoff.owners.map(agentLabel).join(' → ')
-  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'warn', text: `이건 ${who}의 일이에요 (${handoff.label}${owners ? `: ${owners}` : ''}) — 이 목표는 아직 열리지 않았어요` }
+  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'warn', text: `이건 ${who}의 일이에요${said} (${handoff.label}${owners ? `: ${owners}` : ''}) — 이 목표는 아직 열리지 않았어요` }
+}
+
+/** The Orchestrator answered the user itself (its ledger found the request satisfied): its words as its turn. */
+export function orchestratorReplyLine(answer: AskAnswer): FeedInput {
+  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'ok', text: answer.route.instruction ?? answer.route.reason }
 }
 
 /** The router could not tell whose question it is: the Orchestrator asks, the roles are the answers. */

@@ -185,13 +185,18 @@ export interface LegalEvidence {
 
 /** How the backend's router decided: a skill called now, a goal handed off, or a question back to the user. */
 export interface AskRoute {
-  kind: 'skill' | 'goal' | 'ask'
+  /** 'answer': the Orchestrator replied itself; its words are `instruction`. */
+  kind: 'skill' | 'goal' | 'ask' | 'answer'
   agent: string | null
   skill: string | null
   goal: string | null
   confidence: number
   reason: string
   choices: { agent: string; label: string }[]
+  /** Who decided: a deterministic pattern, the Orchestrator's model judgment, the keyword fallback, or the user's pick. */
+  decided_by?: 'pattern' | 'llm' | 'rules' | 'user'
+  /** What the Orchestrator told the chosen agent (Magentic-One `instruction_or_question`); null when rules decided. */
+  instruction?: string | null
 }
 
 export type LawAnswerBody =

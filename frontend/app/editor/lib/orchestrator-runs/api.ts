@@ -191,7 +191,7 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
 }
 
 /** A typed question for the Law Agent (`POST /platform/ask`); the backend picks the tool and shapes the answer. */
-export async function askLaw(body: { text: string; pnu?: string; assessment_date?: string; role?: string }, signal?: AbortSignal): Promise<AskAnswer> {
+export async function askLaw(body: { text: string; pnu?: string; address?: string; assessment_date?: string; role?: string }, signal?: AbortSignal): Promise<AskAnswer> {
   return (await request('/ask', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })) as AskAnswer
 }
 

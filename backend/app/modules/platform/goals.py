@@ -21,6 +21,14 @@ GOALS = (
     {'id': 'masterplan', 'label': '배치 설계', 'owners': ['program', 'masterplan', 'revision'], 'inputs': ['pnu', 'program'], 'optional': [], 'offer': True},
     {'id': 'mass', 'label': '매스 생성', 'owners': ['program', 'masterplan', 'mass', 'revision'], 'inputs': ['pnu', 'program'], 'optional': [], 'offer': True},
     {'id': 'elevation', 'label': '입면 설계', 'owners': ['elevation'], 'inputs': ['mass'], 'optional': [], 'offer': True},
+    {'id': 'kmass', 'label': '한국형 주거 매스', 'owners': ['program', 'kmass', 'revision'], 'inputs': ['pnu', 'brief'], 'optional': [], 'offer': True},
+    {'id': 'plan', 'label': '평면 생성', 'owners': ['program', 'plan', 'revision'], 'inputs': ['mass', 'program'], 'optional': [], 'offer': True},
+    {'id': 'intent', 'label': '설계 의도 선언', 'owners': ['design_intent'], 'inputs': ['brief'], 'optional': [], 'offer': True},
+    {'id': 'scene', 'label': '3D 장면', 'owners': ['scene'], 'inputs': ['pnu'], 'optional': ['mass'], 'offer': True},
+    # Agents with a folder and a role but no Orchestrator flow yet: the handoff names them, the door refuses them.
+    {'id': 'systems', 'label': '구조·설비 검토', 'owners': ['systems'], 'inputs': ['mass'], 'optional': [], 'offer': True},
+    {'id': 'interior', 'label': '인테리어', 'owners': ['interior'], 'inputs': ['plan'], 'optional': [], 'offer': True},
+    {'id': 'cost', 'label': '공사비 산정', 'owners': ['cost'], 'inputs': ['mass'], 'optional': ['program'], 'offer': True},
 )
 
 # What the editor door accepts today, besides the site goals: restated from editor_runs.py.

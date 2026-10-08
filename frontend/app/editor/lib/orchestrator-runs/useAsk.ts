@@ -33,7 +33,7 @@ export function useAsk() {
     const pending = postFeed(asking!)
     const site = conversationSite()
     try {
-      const answer = await askLaw({ text, ...(site ? { pnu: site.pnu } : {}), ...(role ? { role } : {}) }, controller.signal)
+      const answer = await askLaw({ text, ...(site ? { pnu: site.pnu, ...(site.address ? { address: site.address } : {}) } : {}), ...(role ? { role } : {}) }, controller.signal)
       if (controller.signal.aborted) return
       postFeed(answerLine(answer, site ? { pnu: site.pnu, address: site.address } : null))
     } catch (error) {

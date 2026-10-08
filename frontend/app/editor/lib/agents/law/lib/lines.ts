@@ -7,7 +7,7 @@ import { agentLabel, evidenceLabel, frontageLabel, heightLabel, limitationLabel 
 import type { AskAnswer, LandAnalysisAnswer, LawAnswerBody, RunLaw, RunResults } from '@/lib/orchestrator-runs/types'
 import { excerpt, fmt, isoDate } from '@/lib/orchestrator-runs/format'
 import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
-import { askRolePrompt, handoffLine } from '@/lib/agents/orchestrator/lib/lines'
+import { askRolePrompt, handoffLine, orchestratorReplyLine } from '@/lib/agents/orchestrator/lib/lines'
 
 const ORCHESTRATOR = 'orchestrator'
 
@@ -114,6 +114,7 @@ function evidenceNote(evidence: LawAnswerBody['legal_evidence']): string | null 
  */
 export function answerLine(answer: AskAnswer, target: LawTarget | null): FeedInput {
   if (answer.route.kind === 'ask') return askRolePrompt(answer)
+  if (answer.route.kind === 'answer') return orchestratorReplyLine(answer)
   if (answer.route.kind === 'goal' || !answer.answer) return handoffLine(answer)
   const actions: FeedAction[] = target ? [{ label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }] : []
   const note = evidenceNote(answer.answer.legal_evidence)

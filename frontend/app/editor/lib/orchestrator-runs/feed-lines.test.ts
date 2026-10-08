@@ -138,6 +138,10 @@ test("a typed question: the user's bubble and the Orchestrator asking the Law Ag
     route: { kind: 'ask', agent: null, skill: null, goal: null, confidence: 0.3, reason: '어느 에이전트의 일인지 분명하지 않아요', choices: [{ agent: 'law', label: '법령·조례 검색 (Law Agent)' }, { agent: 'mass', label: '매스 생성 (Mass Agent)' }] } }
   expect(answerLine(unsure, null)).toEqual({ kind: 'prompt', agent: 'orchestrator', text: '어느 에이전트의 일인지 분명하지 않아요. 누구에게 물을까요?',
     actions: [{ label: '법령·조례 검색 (Law Agent)', command: { kind: 'ask', text: '뭐 할 수 있어?', role: 'law' } }, { label: '매스 생성 (Mass Agent)', command: { kind: 'ask', text: '뭐 할 수 있어?', role: 'mass' } }, { label: '나중에' }] })
+  const replied: AskAnswer = { ...unsure, question: '안녕, 뭐 할 수 있어?', route: { kind: 'answer', agent: 'orchestrator', skill: null, goal: null, confidence: 0.85, reason: '소개는 제가 답해요', choices: [], decided_by: 'llm', instruction: '안녕하세요! 지금은 법규·한계 검토가 열려 있어요.' } }
+  expect(answerLine(replied, null)).toEqual({ kind: 'progress', agent: 'orchestrator', tone: 'ok', text: '안녕하세요! 지금은 법규·한계 검토가 열려 있어요.' })
+  const told: AskAnswer = { ...handoff(false), route: { ...handoff(false).route, decided_by: 'llm', instruction: '이 대지에 매스를 쌓아 주세요' } }
+  expect(answerLine(told, null).text).toContain('Mass Agent에게: "이 대지에 매스를 쌓아 주세요"')
   expect(askFailedLine(503, null)).toEqual({ kind: 'error', agent: 'orchestrator', text: 'Law Agent에 연결할 수 없어요 — 켜진 뒤 다시 물어보세요', actions: [{ label: '시스템 보기', artifact: 'system' }] })
   expect(askFailedLine(502, 'law_agent_error: law_search: TASK_STATE_FAILED')).toEqual({ kind: 'error', agent: 'orchestrator', text: 'Law Agent가 답하지 못했어요 — law_agent_error: law_search: TASK_STATE_FAILED' })
 })

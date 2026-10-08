@@ -43,6 +43,8 @@ class AskCreate(BaseModel):
     model_config = ConfigDict(strict=True, extra='forbid')
     text: str = Field(min_length=1, max_length=500)
     pnu: str | None = None
+    # The site's address as the conversation shows it; only read into the Orchestrator's situation text.
+    address: str | None = Field(default=None, max_length=200)
     assessment_date: str | None = None
     # The agent the user picked when the router asked (a choice button); the router then skips its guess.
     role: str | None = Field(default=None, min_length=1, max_length=40, pattern=r'^[a-z_]+$')
