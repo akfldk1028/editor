@@ -219,6 +219,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
           onClose={picker.close}
           onRemove={picker.remove}
           onSelect={() => void picker.select()}
+          project={params.project}
           state={picker.card}
         />
       )}

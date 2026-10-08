@@ -6,11 +6,22 @@ export interface RunSummary extends Communications {
 }
 export interface RunContext { scene_revision: number; source_versions: Record<string, number> }
 
+/** A refused platform call: `status` and the backend `detail` let a caller tell 503 (owner down) from 409/422. */
+export class RunRequestError extends Error {
+  constructor(message: string, readonly status: number, readonly detail: string | null) { super(message); }
+}
+/** What the editor door accepts today (schemas/platform.py `RunCreate.supported_request`), minus specialist reviews. */
+export type RunRequest = { goal: 'health' } | { goal: 'limits'; pnu: string; building_type?: string };
+
 async function request(path: string, options?: RequestInit) {
   const response = await fetch((process.env.NEXT_PUBLIC_BASE_PATH || '') + '/api/v1/platform' + path, options);
-  if (!response.ok) throw new Error(options?.method === 'POST' && response.status >= 500
-    ? '실행 접수 여부를 확인하지 못했습니다. 같은 요청으로 다시 확인하거나 실행 목록을 조회하세요.'
-    : `실행 연결 실패 (${response.status})`);
+  if (!response.ok) {
+    const detail = await response.json().then((v: unknown) => typeof (v as { detail?: unknown })?.detail === 'string'
+      ? (v as { detail: string }).detail : null).catch(() => null);
+    throw new RunRequestError(options?.method === 'POST' && response.status >= 500
+      ? '실행 접수 여부를 확인하지 못했습니다. 같은 요청으로 다시 확인하거나 실행 목록을 조회하세요.'
+      : `실행 연결 실패 (${response.status})`, response.status, detail);
+  }
   return response.json();
 }
 function parseRun(value: unknown): RunSummary {
@@ -40,9 +51,12 @@ export async function getRunContext(projectId: string, signal?: AbortSignal): Pr
   return value;
 }
 
-export async function submitHealth(projectId: string, context: RunContext, key: string, signal?: AbortSignal): Promise<RunSummary> {
+export async function submitRun(projectId: string, context: RunContext, key: string, body: RunRequest, signal?: AbortSignal): Promise<RunSummary> {
   return parseRun(await request(`/projects/${encodeURIComponent(projectId)}/runs`, { method: 'POST', signal,
     headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
-    body: JSON.stringify({ ...context, request: { goal: 'health' } }),
+    body: JSON.stringify({ ...context, request: body }),
   }));
+}
+export function submitHealth(projectId: string, context: RunContext, key: string, signal?: AbortSignal): Promise<RunSummary> {
+  return submitRun(projectId, context, key, { goal: 'health' }, signal);
 }

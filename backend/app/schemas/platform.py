@@ -1,5 +1,6 @@
 from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from .site_run import is_site_run, validate_site_run
 from .specialist_review import specialist_items, validate_specialist_review
 
 
@@ -48,7 +49,11 @@ class RunCreate(BaseModel):
     @field_validator('request')
     @classmethod
     def supported_request(cls, value):
-        if value != {'goal':'health'}:
+        if value == {'goal':'health'}:
+            return value
+        if is_site_run(value):
+            validate_site_run(value)
+        else:
             validate_specialist_review(value)
         return value
 

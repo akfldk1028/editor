@@ -169,6 +169,29 @@
   border-radius: var(--radius-s);
   font-weight: 600;
 }
+/* 검토 시작 under the saved site: project choice, the one-parcel notice, then the run's status. */
+.site-card-run { display: grid; gap: 8px; padding-block-start: 8px; border-block-start: 1px solid var(--border-soft); }
+.site-card-run .site-card-note { padding-inline-end: 0; }
+.site-card-run .site-card-note[data-kind="notice"] { display: flex; align-items: flex-start; gap: 6px; font-size: var(--fs-1); }
+.site-card-run .site-card-note[data-kind="notice"] svg { flex: 0 0 auto; margin-block-start: 2px; }
+.site-card-run-project { display: grid; gap: 4px; color: var(--muted); font-size: var(--fs-1); }
+.site-card-run-project select {
+  min-block-size: 28px;
+  color: var(--ink);
+  background: var(--subtle);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+}
+.site-card-run-status { display: grid; gap: 4px; padding: 8px; background: var(--subtle); border-radius: var(--radius-s); }
+.site-card-run-status p { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.site-card-run-status b { font-weight: 600; }
+.site-card-run-status code { font-size: var(--fs-1); overflow-wrap: anywhere; }
+.site-card-run-status small { color: var(--muted); font-size: var(--fs-1); }
+.site-card-run-status svg { color: var(--success); }
+.site-card-run-status a { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 3px; color: var(--accent); font-size: var(--fs-1); }
+.site-card-run-status .loading-mark { inline-size: 12px; block-size: 12px; }
+
 .site-card-icon {
   flex: 0 0 auto;
   inline-size: 24px;
