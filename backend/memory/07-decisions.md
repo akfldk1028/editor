@@ -299,3 +299,7 @@ be told to the Orchestrator session.
   (`--port '${MASS_A2A_PORT:-18331}'` → "invalid int value")** so the host restarts it in a loop — agents/*, Orchestrator
   session's fix; `host:stop mass` ends the loop. Next steps: 2 = conversation calls ensure before a goal whose owners are
   down ("켜고 시작"), 3 = idle stop policy in the host.
+  **Correction (10-09 00:10):** the Mass port bug was the editor host, not agents/*: `processes.mjs::readEnvFile` passed
+  `export MASS_A2A_PORT="${MASS_A2A_PORT:-18331}"` literally. Fixed (shell-style `${NAME}` / `${NAME:-default}` expansion,
+  innermost first; `processes.test.mjs`). The daemon loads the parser once — a host code change needs `host:stop` +
+  `host:start`. After that `POST /host/ensure {mass, scene}` → both up in 7.1 s.
