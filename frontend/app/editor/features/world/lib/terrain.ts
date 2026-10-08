@@ -46,7 +46,9 @@ export function demTerrain(Cesium: any, fallback: () => number, focus: () => { l
   const release = () => {
     running--
     if (!waiting.length) return
-    const f = focus()
+    let f: { lon: number; lat: number } | null = null
+    // never let the camera lookup stop the queue: a destroyed viewer throws, and waiting tiles would never start
+    try { f = disposed ? null : focus() } catch { f = null }
     let best = 0
     if (f) {
       const d = (w: { lon: number; lat: number }) => ((w.lon - f.lon) * Math.cos((f.lat * Math.PI) / 180)) ** 2 + (w.lat - f.lat) ** 2

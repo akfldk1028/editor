@@ -173,7 +173,8 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     // On terrain the masses' feet go into the ground: the globe must hide what is below it.
     viewer.scene.globe.depthTestAgainstTerrain = terrainOn.current
     if (terrainOn.current) {
-      terrainProvider.current = demTerrain(Cesium, () => level.current, () => visibleBox(viewer, Cesium)?.focus ?? null)
+      terrainProvider.current = demTerrain(Cesium, () => level.current,
+        () => (viewer.isDestroyed() ? null : visibleBox(viewer, Cesium)?.focus ?? null))
       viewer.terrainProvider = terrainProvider.current
     } else {
       viewer.terrainProvider = new Cesium.CustomHeightmapTerrainProvider({ width: 2, height: 2, callback: () => new Float32Array([z, z, z, z]) })
