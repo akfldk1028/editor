@@ -3,6 +3,9 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 P4 `b0eb964a`: `run_results/` = `common.py` (loads_tolerant + coercions) · `agents/{site,law,review}.py`
+  (`TOOL`, `AGENT`, `parse`; law also `law_from_response`) · `agents/__init__.py` `PARSERS` · `parse.py` composes.
+  Contract and fixture results unchanged (78 tests). A new agent's step = one module in `agents/` + its row in parse.py.
 - 2026-10-08 P2 `6c746035` `modules/platform/goals.py` + `GET /api/v1/platform/capabilities`: the goal catalog (id, label,
   owner sequence, inputs, `available` = editor door takes it — health/limits/specialist_review restated from
   orchestrator/editor_runs.py — and `offer`); unopened flows (program, masterplan, mass, elevation) listed unavailable.

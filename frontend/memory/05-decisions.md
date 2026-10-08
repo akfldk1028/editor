@@ -2,6 +2,11 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 P4 `b0eb964a`: each answering agent folder exports `detail` (its detailed turn for its step); registry
+  `detailFor(tool)` (tool owner's detail); `useRunFeed` reads it — no per-tool table left. Orchestrator prompts
+  (`handoffLine`, `askRolePrompt`) live in `lib/agents/orchestrator/lib/lines.ts`. Live (산곡동 313): Site/Law/Revision
+  detailed turns + question in 31 s. Pitfall: a submission during a Next dev Fast Refresh rebuild got a 503 from the
+  editor door once (transient; retry passed) — not a product fault, dev only.
 - 2026-10-08 P2 `6c746035` + P3 `bbbd7d13`: goal catalog and role routing in the conversation. `lib/goals/` loads
   `GET /platform/capabilities` once (fallback = limits); `selectedPrompt(site, capabilities)` derives "<goal> 시작" buttons —
   no button spelled in a component; `Command` = `start-review {goal}` | `ask {text, role}`; the site card refuses a goal
