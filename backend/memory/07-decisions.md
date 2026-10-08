@@ -3,6 +3,14 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `39c4b8dd` `run_results/parse.py` reads more of each agent's answer, keyed to the agents' own code
+  (SiteContextAgent `facts.py` SITE_KEYS, Lawagent ordinance receipt): site `facts[]` {key, confidence, source, as_of,
+  summary} from `state_patch` (a cut answer keeps the first facts); law `ground_capacity_m2`, `far_capacity_m2`, `zones`,
+  `national_*_ceiling_pct`, `articles{bcr,far,height}`, `height{status,limit_m}`, `ordinance.sources[]` (name,
+  ordinance_id, edition_id, effective_date, law.go.kr url), `ordinance.limitations[]`, `evidence{floor_height_m,
+  datum_measured, frontage_grade, legal_floor_section_count}`. Every old key unchanged. Fixture `limits-single-683`
+  = live 산곡동 683 run whose Law answer fits the cap. Backend process must be replaced to serve it (host daemon
+  restarts it in ~8 s after a kill).
 - 2026-10-08 `928f9f51` `modules/platform/run_results/` parses a run's communications into a stable UI contract
   (steps, site, law, review, missing_evidence_all; tolerant of the owner's 8,000-char response_text cut) —
   `GET /platform/runs/{id}/results`, `GET /platform/projects/{id}/runs/latest?goal&pnu` (fetches <=10 newest runs

@@ -2,6 +2,18 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `39c4b8dd` Per-agent detail from the agents' own code (user: "INTERFACE도 디테일하게 각 AGENT
+  코드 보고"). Read: SiteContextAgent `facts.py` (SITE_KEYS 8, CONFIDENCE 4, BLOCKS_SITING boundary/roads/north),
+  Lawagent `district_plan_review.py` (categories), live 683 run (Law whole). Backend parser gained site `facts[]`, law
+  capacities/zones/ceilings/articles/height/ordinance sources(url)+limitations/evidence (fixture `limits-single-683`).
+  Conversation: step line → replaced by the agent's detailed turn when `results` parse (Site 8-fact checklist `checks`,
+  Law tiles with hints + 법적 근거 `links` with law.go.kr + 관련 법규 보기 → law tab articles, Revision `findings`);
+  Orchestrator relay "<Agent>에게 <tool> 요청 중" while a step runs (dismissed on completion); header = nothing while
+  empty, then "<site> / 법규·한계 검토 · 보류" (`thread.conversationTitle`); `FeedCard.tsx` + `feed-card.css` shared with
+  the strip. Labels: `SITE_FACTS`, confidence/category/height/limitation/frontage labels. Verified live (고산동 919 run
+  6b99698a: relay +7.5 s, Site +11 s, Law +16 s, Revision/verdict +18 s). Open: big parcels' Site answers are cut before
+  most facts (8000-char cap → "응답이 잘려 읽지 못함"), Law's district finding carries the project's pnu (684-1) not the
+  reviewed parcel — both for the Orchestrator/Law sessions.
 - 2026-10-08 `aa50c6fa` Agents in English with their own marks; the user drives. `agentLabel` →
   Orchestrator / Site / Law / Revision / MasterPlan … Agent (bodies Korean). `shell/conversation/agentMarks.tsx`: icon per
   agent + tint by `data-agent` (Orchestrator = accent). Selecting a site posts the Orchestrator's question "<site> 대지가
