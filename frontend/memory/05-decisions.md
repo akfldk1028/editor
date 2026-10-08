@@ -2,6 +2,14 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `1186aad0` 검토 시작 answers at once + fast polling. Measured through the editor door with 1 s polls
+  (scratchpad time_run.py): context 0.35 s, submit 0.83 s, 대지 +3.9 s, 법규 +6.3 s (Law itself ~2.4 s), 검토 조정 +7.5,
+  end +8.7 s — "법규 검색이 느리다" was the UI's 3 s cadence + silence until the POST answered. Now `requestingLine`
+  ('검토 요청 중 · 대지 · 기준일 · 용도', busy dot) posts before any request in both start paths (site card, law tab),
+  `requestFailedLine` on a refused submission, and `poll.ts` `pollInterval`: 1 s for the first 20 s, then 3 s. Live in
+  the browser: first line +0.1 s, 접수 +5.6 s (dev-only: the proxy route handlers compile on first hit after a reload),
+  question +16 s. `25435317` also: CAD conversation opens empty (`useProviderChat` activeSessionId null) — it used to
+  reopen the newest localStorage session, which read as a stray sample chat.
 - 2026-10-08 `8d7229ad` Agent feed relays a run as cards + a question (user: "오케스트라 에이전트가 전해주는 거 시각화하고
   법규를 보시겠어요? 이런식으로"): `lib/orchestrator-runs/feed` gains `tone` (step dot ok/warn/busy), `card` (`stats` =
   Law numbers as tiles; `chips` = missing evidence in Korean), kind `prompt` (bubble whose actions are the answers;
