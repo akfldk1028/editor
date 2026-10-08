@@ -190,6 +190,8 @@ export interface AskAnswer {
   agent: 'law'
   trace_id: string
   version: string | null
+  /** How the backend's router chose (agent, skill, confidence, why) — shown so a wrong route is visible. */
+  route?: { agent: string; skill: string; confidence: number; reason: string }
   answer:
     | { kind: 'search'; items: LawSearchItem[]; total: number; degraded: boolean; legal_evidence: LegalEvidence | null }
     | {

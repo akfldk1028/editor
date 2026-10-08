@@ -1,12 +1,11 @@
 """A question typed in the conversation, answered by the Law Agent.
 
-`plan` picks the Law Agent tool from the text (an ordinance name with an article → `law_ordinance`,
-anything else → `law_search`, the 7-stage statute-graph search); `normalize` turns the tool's own
-JSON into one UI shape without restating any legal value; `ask_law` records the hop as a span
-(`invoke_agent law`, OTel GenAI names) so the conversation can show the trace.
+`routing.route` picks the agent and skill for the text (one rule table; `plan` keeps the old name);
+`normalize` turns the tool's own JSON into one UI shape without restating any legal value; `ask_law`
+records the hop as a span (`invoke_agent law`, OTel GenAI names) so the conversation can show the trace.
 
 Answer contract (every key present):
-  question, tool, agent: 'law', trace_id, version,
+  question, tool, agent: 'law', trace_id, version, route: {agent, skill, confidence, reason},
   answer: {kind: 'search', items: [{id, law, kind, article, text}], total, degraded, legal_evidence}
         | {kind: 'ordinance', ordinance: {name, ordinance_id, edition_id, effective_date, url},
            matches: [{article, title, text}], legal_evidence}
@@ -17,24 +16,17 @@ import re
 
 from backend.app.adapters import law_agent
 from backend.app.core.tracing import Span, continue_or_start
+from backend.app.modules.platform.routing import route
 from backend.app.modules.platform.run_results import law_from_response
 
-ORDINANCE = re.compile(r'(?P<name>[가-힣]+(?:\s+[가-힣]+)*?\s*조례)\s*(?P<article>제?\s*\d+\s*조(?:\s*의\s*\d+)?)')
-SEARCH_LIMIT = 8
 EXCERPT = 400
 LAW_GO_KR = 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq='
 
 
 def plan(text: str, assessment_date: str | None = None) -> tuple[str, dict]:
-    """Which Law Agent tool answers this text, with its arguments."""
-    dated = {'assessment_date': assessment_date} if assessment_date else {}
-    match = ORDINANCE.search(text)
-    if match:
-        article = re.sub(r'\s+', '', match.group('article'))
-        if not article.startswith('제'):
-            article = '제' + article
-        return 'law_ordinance', {'name': re.sub(r'\s+', ' ', match.group('name')).strip(), 'article': article, 'limit': 3, **dated}
-    return 'law_search', {'query': text.strip(), 'limit': SEARCH_LIMIT, **dated}
+    """Which Law Agent tool answers this text, with its arguments (the routing table decides)."""
+    chosen = route(text, assessment_date=assessment_date)
+    return chosen.skill, chosen.args
 
 
 def _str(value):
@@ -53,6 +45,10 @@ def _iso(value):
 
 
 def normalize(tool: str, payload: dict) -> dict:
+    if tool == 'law_article':
+        # One article: the agent's dict as it is, under the search shape so the UI reads it the same way.
+        payload = {'results': [payload] if payload else [], 'stats': {'total': 1 if payload else 0}, 'legal_evidence': payload.get('legal_evidence')}
+        tool = 'law_search'
     if tool == 'law_ordinance':
         ordinance = payload.get('ordinance') if isinstance(payload.get('ordinance'), dict) else {}
         edition = _str(ordinance.get('edition_id'))
@@ -132,14 +128,15 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
 async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None, recorder, traceparent: str | None = None,
                   agent=law_agent.ask) -> dict:
     """One question → one Law Agent tool call → the answer; the hop is one recorded span."""
-    tool, args = plan(question, assessment_date)
-    span = Span.start(recorder, continue_or_start(traceparent), agent='law', conversation_id=f'editor:ask:{pnu or "-"}')
-    trace = {'caller': 'editor', 'trace_id': span.context.trace_id, 'span_id': span.context.span_id, 'hop': 1}
+    chosen = route(question, assessment_date=assessment_date)
+    tool, args = chosen.skill, chosen.args
+    span = Span.start(recorder, continue_or_start(traceparent), agent=chosen.agent, conversation_id=f'editor:ask:{pnu or "-"}')
+    trace = {'caller': 'editor', 'trace_id': span.context.trace_id, 'span_id': span.context.span_id, 'hop': 1, 'tool': tool}
     try:
         raw = await agent(tool, args, trace=trace)
     except Exception as exc:
         span.end('error', error_type=type(exc).__name__)
         raise
     span.end('ok')
-    return {'question': question, 'tool': tool, 'agent': 'law', 'trace_id': span.context.trace_id, 'version': raw.get('version'),
-            'answer': normalize(tool, raw.get('payload') or {})}
+    return {'question': question, 'tool': tool, 'agent': chosen.agent, 'trace_id': span.context.trace_id, 'version': raw.get('version'),
+            'route': chosen.to_dict(), 'answer': normalize(tool, raw.get('payload') or {})}

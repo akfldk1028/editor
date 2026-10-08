@@ -56,6 +56,7 @@
   border-radius: 50%;
 }
 .agent-turn-who b { color: var(--ink); }
+/* Each agent's tint comes from agentMarks.tsx (`--mark` inline); the two parties around them are styled here. */
 .agent-turn-mark[data-agent="orchestrator"] { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
 .agent-turn-mark[data-agent="user"] { --mark: var(--ink); background: var(--subtle); }
 
@@ -95,14 +96,6 @@
   to { inset-inline-start: calc(100% - 8px); opacity: 0; }
 }
 .agent-relay > p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: var(--fs-2); }
-.agent-turn-mark[data-agent="site_context"], .agent-turn-mark[data-agent="site-context"] { --mark: #3d7a5a; }
-.agent-turn-mark[data-agent="law"] { --mark: #4b5fb5; }
-.agent-turn-mark[data-agent="revision"] { --mark: #a65f2b; }
-.agent-turn-mark[data-agent="masterplan"] { --mark: #7a4f9d; }
-.agent-turn-mark[data-agent="mass"], .agent-turn-mark[data-agent="kmass"] { --mark: #2f7f8f; }
-.agent-turn-mark[data-agent="program"], .agent-turn-mark[data-agent="requirement"] { --mark: #8a6d1f; }
-.agent-turn-mark[data-agent="design_intent"], .agent-turn-mark[data-agent="design-intent"] { --mark: #b0485f; }
-.agent-turn-mark[data-agent="scene"], .agent-turn-mark[data-agent="elevation"] { --mark: #5c6b3c; }
 .app-shell[data-theme="dark"] .agent-turn-mark:not([data-agent="orchestrator"]) { color: color-mix(in srgb, var(--mark) 55%, white); background: color-mix(in srgb, var(--mark) 28%, var(--panel)); }
 .agent-turn-who b { color: var(--ink); font-size: var(--fs-2); font-weight: 600; }
 .agent-turn-who time { color: var(--muted); font-size: var(--fs-1); font-variant-numeric: tabular-nums; }

@@ -1,4 +1,5 @@
 /** Korean words for run statuses, agents, tools, step states and missing-evidence codes. Pure. */
+import { agentSpec, canonicalAgent, toolOwner, toolSpecLabel } from './agents'
 
 /** The run page's open statuses; anything else is terminal (RunPage polls on these three too). */
 const OPEN = new Set(['queued', 'running', 'queued_input'])
@@ -33,52 +34,20 @@ export function statusLabel(status: string): string {
 /** The card shows the first 8 hex of the 32-hex W3C trace id (and of a run id); the copy button carries the whole id. */
 export const traceLabel = (id: string) => id.slice(0, 8)
 
-/** Agents go by their network names in English (user, 2026-10-08); what they say stays Korean. */
-const AGENTS: Record<string, string> = {
-  site_context: 'Site Agent',
-  'site-context': 'Site Agent',
-  law: 'Law Agent',
-  revision: 'Revision Agent',
-  masterplan: 'MasterPlan Agent',
-  mass: 'Mass Agent',
-  kmass: 'KMass Agent',
-  program: 'Program Agent',
-  requirement: 'Requirement Agent',
-  design_intent: 'DesignIntent Agent',
-  'design-intent': 'DesignIntent Agent',
-  elevation: 'Elevation Agent',
-  plan: 'Plan Agent',
-  systems: 'Systems Agent',
-  domain_expert: 'DomainExpert Agent',
-  'domain-expert': 'DomainExpert Agent',
-  interior: 'Interior Agent',
-  scene: 'Scene Agent',
-  orchestrator: 'Orchestrator Agent',
-  user: '사용자',
-}
-
-export const agentLabel = (agent: string | null | undefined): string => (agent ? AGENTS[agent] ?? agent : '—')
-
-const TOOLS: Record<string, string> = {
-  site_resolve: '대지 사실 확인',
-  law_parcel_limits: '법규 한계',
-  revision_triage: '재검토 판정',
-}
-
-const TOOL_OWNER: Record<string, string> = { site_resolve: 'site_context', law_parcel_limits: 'law', revision_triage: 'revision' }
+/** Agents go by their network names in English (user, 2026-10-08); the table is `agents.ts`. */
+export const agentLabel = (agent: string | null | undefined): string => (agent ? agentSpec(agent)?.name ?? agent : '—')
 
 /** The agent that owns a tool, for a step record that has not named its agent yet (a running step). */
 export function agentForTool(tool: string | null | undefined, agent?: string | null): string | null {
-  if (agent) return agent
+  if (agent) return canonicalAgent(agent)
   if (!tool) return null
-  if (tool.endsWith('_health')) return tool.slice(0, -'_health'.length)
-  return TOOL_OWNER[tool] ?? null
+  return toolOwner(tool)
 }
 
 export function toolLabel(tool: string | null | undefined): string {
   if (!tool) return '—'
-  if (tool.endsWith('_health')) return `${agentLabel(tool.slice(0, -'_health'.length))} 상태 확인`
-  return TOOLS[tool] ?? tool
+  if (tool.endsWith('_health')) return `${agentLabel(toolOwner(tool) ?? tool.slice(0, -'_health'.length))} 상태 확인`
+  return toolSpecLabel(tool) ?? tool
 }
 
 /** A communication's `state`, or a tool's own `status` word. */

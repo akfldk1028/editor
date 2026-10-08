@@ -3,12 +3,12 @@
 import { useEffect, useRef } from 'react'
 
 import { getResults } from './api'
-import { dismissFeed, postFeed } from './feed'
+import { dismissFeed, type FeedInput, postFeed } from './feed'
 import {
-  evidenceCard, lawBasisLine, lawCard, lawLine, relayLine, resultLine, resultPrompt, revisionLine, siteFactsLine, stepChanges, stepState, submittedLine,
+  evidenceCard, lawBasisLine, lawCard, lawLine, type LawTarget, relayLine, resultLine, resultPrompt, revisionLine, siteFactsLine, stepChanges, stepState, submittedLine,
 } from './feed-lines'
 import { isTerminal } from './labels'
-import type { RunSummary } from './types'
+import type { RunResults, RunSummary } from './types'
 
 export interface RunFeedContext {
   projectId: string | null
@@ -22,6 +22,19 @@ const SITE_TOOL = 'site_resolve'
 const LAW_TOOL = 'law_parcel_limits'
 const REVIEW_TOOL = 'revision_triage'
 const OPEN_STATES = new Set(['running', 'queued', 'pending'])
+
+/**
+ * Each agent's detailed answer, keyed by the tool whose short step line it replaces once `results`
+ * are parsed. A new agent in the pipeline is one row here (its line lives in `lines/<agent>.ts`).
+ */
+const DETAILS: Record<string, (results: RunResults, target: LawTarget) => FeedInput | null> = {
+  [SITE_TOOL]: (results) => siteFactsLine(results),
+  [LAW_TOOL]: (results) => {
+    const text = lawLine(results)
+    return text ? { kind: 'progress', agent: 'law', text, tone: 'ok', card: lawCard(results) ?? undefined } : null
+  },
+  [REVIEW_TOOL]: (results) => revisionLine(results),
+}
 
 /**
  * Posts the conversation of one followed run, each line once (feed keys): the receipt; while a step
@@ -98,19 +111,18 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
       .finally(() => inFlight.current.delete(controller))
       .then((results) => {
         if (controller.signal.aborted) return
-        if (wanted.includes('site')) {
-          const site = siteFactsLine(results)
-          if (site && postFeed({ ...site, key: key('site'), run_id: run.run_id })) replace(SITE_TOOL)
+        const detail = (tool: string, name: string) => {
+          const line = DETAILS[tool]?.(results, target)
+          if (line && postFeed({ ...line, key: key(name), run_id: run.run_id })) replace(tool)
         }
+        if (wanted.includes('site')) detail(SITE_TOOL, 'site')
         if (wanted.includes('law')) {
-          const law = lawLine(results)
-          if (law && postFeed({ kind: 'progress', key: key('law'), run_id: run.run_id, agent: 'law', text: law, tone: 'ok', card: lawCard(results) ?? undefined })) replace(LAW_TOOL)
+          detail(LAW_TOOL, 'law')
           const basis = lawBasisLine(results, target)
           if (basis) postFeed({ ...basis, key: key('law-basis'), run_id: run.run_id })
         }
         if (ended) {
-          const revision = revisionLine(results)
-          if (revision && postFeed({ ...revision, key: key('revision'), run_id: run.run_id })) replace(REVIEW_TOOL)
+          detail(REVIEW_TOOL, 'revision')
           const failed = results.status === 'failed'
           postFeed({ kind: failed ? 'error' : 'result', key: key('result'), run_id: run.run_id, agent: 'orchestrator', text: resultLine(results), card: evidenceCard(results) ?? undefined })
           const prompt = resultPrompt(results, target)

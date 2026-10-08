@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from backend.app.adapters import law_agent
 from backend.app.modules.platform.ask import analyze_land, ask_law, normalize, plan
+from backend.app.modules.platform.routing import RULES, route
 from backend.app.modules.platform.routers.ask import create_ask_router
 from backend.app.schemas.ask import AskCreate
 
@@ -36,6 +37,14 @@ def test_plan_routes_an_ordinance_article_to_law_ordinance_and_everything_else_t
     assert plan('서울특별시 도시계획 조례 45조의3 보여줘') == ('law_ordinance', {'name': '서울특별시 도시계획 조례', 'article': '제45조의3', 'limit': 3})
     assert plan(' 자연녹지지역 건폐율 ') == ('law_search', {'query': '자연녹지지역 건폐율', 'limit': 8})
     assert plan('조례가 뭐야')[0] == 'law_search'
+    assert plan('국토의 계획 및 이용에 관한 법률(시행령)::제6장::제84조::8') == ('law_article', {'full_id': '국토의 계획 및 이용에 관한 법률(시행령)::제6장::제84조::8'})
+
+
+def test_route_explains_itself_and_ends_with_a_default():
+    chosen = route('의정부시 도시계획 조례 제42조')
+    assert (chosen.agent, chosen.skill, chosen.confidence) == ('law', 'law_ordinance', 0.95) and '조례' in chosen.reason
+    assert route('아무 말').to_dict() == {'agent': 'law', 'skill': 'law_search', 'confidence': 0.6, 'reason': '법령 본문 검색 (기본)'}
+    assert RULES[-1].build('x', {}) is not None
 
 
 def test_normalize_keeps_the_tools_values_and_shapes_them_for_the_ui():
@@ -114,8 +123,9 @@ def test_ask_law_records_one_law_span_and_answers_in_the_contract_shape():
                          traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01', agent=agent))
     assert calls[0][0] == 'law_search' and calls[0][1]['query'] == '자연녹지지역 건폐율'
     assert calls[0][2]['caller'] == 'editor' and calls[0][2]['trace_id'] == '4bf92f3577b34da6a3ce929d0e0e4736'
-    assert set(answer) == {'question', 'tool', 'agent', 'trace_id', 'version', 'answer'}
+    assert set(answer) == {'question', 'tool', 'agent', 'trace_id', 'version', 'route', 'answer'}
     assert answer['agent'] == 'law' and answer['trace_id'] == '4bf92f3577b34da6a3ce929d0e0e4736' and answer['answer']['kind'] == 'search'
+    assert answer['route'] == {'agent': 'law', 'skill': 'law_search', 'confidence': 0.6, 'reason': '법령 본문 검색 (기본)'}
     row = recorder.rows[0]
     assert (row['name'], row['gen_ai.agent.name'], row['gen_ai.conversation.id'], row['status']) == ('invoke_agent law', 'law', 'editor:ask:4115011300106830000', 'ok')
 
