@@ -3,12 +3,12 @@
 import { useEffect, useRef } from 'react'
 
 import { getResults } from './api'
-import { dismissFeed, type FeedInput, postFeed } from './feed'
-import {
-  evidenceCard, lawBasisLine, lawCard, lawLine, type LawTarget, relayLine, resultLine, resultPrompt, revisionLine, siteFactsLine, stepChanges, stepState, submittedLine,
-} from './feed-lines'
+import { detailFor } from '@/lib/agents'
+
+import { dismissFeed, postFeed } from './feed'
+import { evidenceCard, lawBasisLine, relayLine, resultLine, resultPrompt, stepChanges, stepState, submittedLine } from './feed-lines'
 import { isTerminal } from './labels'
-import type { RunResults, RunSummary } from './types'
+import type { RunSummary } from './types'
 
 export interface RunFeedContext {
   projectId: string | null
@@ -23,18 +23,6 @@ const LAW_TOOL = 'law_parcel_limits'
 const REVIEW_TOOL = 'revision_triage'
 const OPEN_STATES = new Set(['running', 'queued', 'pending'])
 
-/**
- * Each agent's detailed answer, keyed by the tool whose short step line it replaces once `results`
- * are parsed. A new agent in the pipeline is one row here (its line lives in `lines/<agent>.ts`).
- */
-const DETAILS: Record<string, (results: RunResults, target: LawTarget) => FeedInput | null> = {
-  [SITE_TOOL]: (results) => siteFactsLine(results),
-  [LAW_TOOL]: (results) => {
-    const text = lawLine(results)
-    return text ? { kind: 'progress', agent: 'law', text, tone: 'ok', card: lawCard(results) ?? undefined } : null
-  },
-  [REVIEW_TOOL]: (results) => revisionLine(results),
-}
 
 /**
  * Posts the conversation of one followed run, each line once (feed keys): the receipt; while a step
@@ -112,7 +100,7 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
       .then((results) => {
         if (controller.signal.aborted) return
         const detail = (tool: string, name: string) => {
-          const line = DETAILS[tool]?.(results, target)
+          const line = detailFor(tool)?.(results)
           if (line && postFeed({ ...line, key: key(name), run_id: run.run_id })) replace(tool)
         }
         if (wanted.includes('site')) detail(SITE_TOOL, 'site')

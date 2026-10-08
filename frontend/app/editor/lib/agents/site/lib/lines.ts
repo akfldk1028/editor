@@ -28,3 +28,6 @@ export function siteFactsLine(results: RunResults): FeedInput | null {
   const text = `대지 사실 ${known} 확인${lacking.length ? ` — 미제공: ${lacking.join(', ')}` : ''}`
   return { kind: 'progress', agent: 'site_context', tone: lacking.length ? 'warn' : 'ok', text, card: { type: 'checks', items } }
 }
+
+/** The Site Agent's detailed turn for its `site_resolve` step. */
+export const detail = siteFactsLine

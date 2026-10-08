@@ -7,6 +7,9 @@
  */
 import { Bot } from 'lucide-react'
 
+import type { FeedInput } from '@/lib/orchestrator-runs/feed'
+import type { RunResults } from '@/lib/orchestrator-runs/types'
+
 import * as cost from './cost'
 import * as designIntent from './design-intent'
 import * as domainExpert from './domain-expert'
@@ -53,6 +56,18 @@ const UNKNOWN_MARK: AgentMarkSpec = { icon: Bot }
 
 /** The agent's own mark; an unknown agent gets a plain bot. */
 export const markOf = (agent: string): AgentMarkSpec => MARKS.get(canonicalAgent(agent)) ?? UNKNOWN_MARK
+
+/** An agent's detailed turn for one of its run steps, once `results` are parsed (its folder exports `detail`). */
+export type DetailLine = (results: RunResults) => FeedInput | null
+
+const DETAILS = new Map<string, DetailLine>()
+for (const folder of FOLDERS) if ('detail' in folder && typeof folder.detail === 'function') DETAILS.set(folder.spec.id, folder.detail as DetailLine)
+
+/** The detailed line for a tool's step: the tool's owner's `detail`, or null when that agent has none yet. */
+export function detailFor(tool: string): DetailLine | null {
+  const owner = toolOwner(tool)
+  return owner ? DETAILS.get(owner) ?? null : null
+}
 
 /** The agent that owns a tool: the one listing it, else the one whose id or alias prefixes it (`law_*`, `masterplan_*`). */
 export function toolOwner(tool: string): string | null {

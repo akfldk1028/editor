@@ -22,3 +22,6 @@ export function revisionLine(results: RunResults): FeedInput | null {
   const tone: FeedTone = review.status === 'succeeded' || review.status === 'completed' ? 'ok' : 'warn'
   return { kind: 'progress', agent: 'revision', tone, text, ...(items.length ? { card: { type: 'findings', items } } : {}) }
 }
+
+/** The Revision Agent's detailed turn for its `revision_triage` step. */
+export const detail = revisionLine

@@ -7,6 +7,7 @@ import { agentLabel, evidenceLabel, frontageLabel, heightLabel, limitationLabel 
 import type { AskAnswer, LandAnalysisAnswer, LawAnswerBody, RunLaw, RunResults } from '@/lib/orchestrator-runs/types'
 import { excerpt, fmt, isoDate } from '@/lib/orchestrator-runs/format'
 import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
+import { askRolePrompt, handoffLine } from '@/lib/agents/orchestrator/lib/lines'
 
 const ORCHESTRATOR = 'orchestrator'
 
@@ -96,36 +97,6 @@ export function askLines(text: string, role: string | null = null): FeedInput[] 
   ]
 }
 
-/**
- * A question that is another agent's business: the Orchestrator says whose and, when the catalog
- * goal is open, offers to start it; when it is not, says so (fail closed, no guess).
- */
-export function handoffLine(answer: AskAnswer): FeedInput {
-  const { route, handoff } = answer
-  const who = agentLabel(route.agent ?? ORCHESTRATOR)
-  if (!handoff) return { kind: 'error', agent: ORCHESTRATOR, text: `${who}의 일인데 아직 넘길 목표가 없어요` }
-  if (handoff.available) {
-    return {
-      kind: 'prompt',
-      agent: ORCHESTRATOR,
-      text: `이건 ${who}의 일이에요 — ${handoff.label}을(를) 시작할까요?`,
-      actions: [{ label: `${handoff.label} 시작`, command: { kind: 'start-review', goal: handoff.goal } }, { label: '나중에' }],
-    }
-  }
-  const owners = handoff.owners.map(agentLabel).join(' → ')
-  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'warn', text: `이건 ${who}의 일이에요 (${handoff.label}${owners ? `: ${owners}` : ''}) — 이 목표는 아직 열리지 않았어요` }
-}
-
-/** The router could not tell whose question it is: the Orchestrator asks, the roles are the answers. */
-export function askRolePrompt(answer: AskAnswer): FeedInput {
-  return {
-    kind: 'prompt',
-    agent: ORCHESTRATOR,
-    text: `${answer.route.reason}. 누구에게 물을까요?`,
-    actions: [...answer.route.choices.map((choice) => ({ label: choice.label, command: { kind: 'ask' as const, text: answer.question, role: choice.agent } })), { label: '나중에' }],
-  }
-}
-
 /** Legal-evidence status words of the Law Agent's search/ordinance answers. */
 function evidenceNote(evidence: LawAnswerBody['legal_evidence']): string | null {
   if (!evidence) return null
@@ -211,4 +182,10 @@ export function askFailedLine(status: number | null, detail: string | null): Fee
     return { kind: 'error', agent: ORCHESTRATOR, text: 'Law Agent에 연결할 수 없어요 — 켜진 뒤 다시 물어보세요', actions: [{ label: '시스템 보기', artifact: 'system' }] }
   }
   return { kind: 'error', agent: ORCHESTRATOR, text: `Law Agent가 답하지 못했어요${detail ? ` — ${detail}` : ''}` }
+}
+
+/** The Law Agent's detailed turn for its `law_parcel_limits` step, once results are parsed. */
+export function detail(results: RunResults): FeedInput | null {
+  const text = lawLine(results)
+  return text ? { kind: 'progress', agent: LAW, text, tone: 'ok', card: lawCard(results) ?? undefined } : null
 }

@@ -7,7 +7,7 @@ import type { RunConditions } from '@/lib/orchestrator-runs/conditions'
 import type { FeedAction, FeedCard, FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
 import { agentForTool, agentLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from '@/lib/orchestrator-runs/labels'
 import { failureText, type RunFailure } from '@/lib/orchestrator-runs/submit'
-import type { Capabilities, Communication, OrchestratorConnection, RunResults, RunSummary } from '@/lib/orchestrator-runs/types'
+import type { AskAnswer, Capabilities, Communication, OrchestratorConnection, RunResults, RunSummary } from '@/lib/orchestrator-runs/types'
 import { fmt } from '@/lib/orchestrator-runs/format'
 import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
 
@@ -192,4 +192,34 @@ export function resultPrompt(results: RunResults, target: LawTarget): { text: st
     }
   }
   return { text: '법규 검토가 끝났어요. 법규를 보시겠어요?', actions: [law, related, later] }
+}
+
+/**
+ * A question that is another agent's business: the Orchestrator says whose and, when the catalog
+ * goal is open, offers to start it; when it is not, says so (fail closed, no guess).
+ */
+export function handoffLine(answer: AskAnswer): FeedInput {
+  const { route, handoff } = answer
+  const who = agentLabel(route.agent ?? ORCHESTRATOR)
+  if (!handoff) return { kind: 'error', agent: ORCHESTRATOR, text: `${who}의 일인데 아직 넘길 목표가 없어요` }
+  if (handoff.available) {
+    return {
+      kind: 'prompt',
+      agent: ORCHESTRATOR,
+      text: `이건 ${who}의 일이에요 — ${handoff.label}을(를) 시작할까요?`,
+      actions: [{ label: `${handoff.label} 시작`, command: { kind: 'start-review', goal: handoff.goal } }, { label: '나중에' }],
+    }
+  }
+  const owners = handoff.owners.map(agentLabel).join(' → ')
+  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'warn', text: `이건 ${who}의 일이에요 (${handoff.label}${owners ? `: ${owners}` : ''}) — 이 목표는 아직 열리지 않았어요` }
+}
+
+/** The router could not tell whose question it is: the Orchestrator asks, the roles are the answers. */
+export function askRolePrompt(answer: AskAnswer): FeedInput {
+  return {
+    kind: 'prompt',
+    agent: ORCHESTRATOR,
+    text: `${answer.route.reason}. 누구에게 물을까요?`,
+    actions: [...answer.route.choices.map((choice) => ({ label: choice.label, command: { kind: 'ask' as const, text: answer.question, role: choice.agent } })), { label: '나중에' }],
+  }
 }
