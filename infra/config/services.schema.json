@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "25_ACE service registry",
+  "description": "The one owner of ports and base URLs for the editor, the Orchestrator, the A2A agents and shared infrastructure. Everything else (infra/dev/runtime.mjs, the host supervisor, the status page) derives from it; the Orchestrator's a2a.ps1 and config/*_agent.json are compared against it by infra/host/derivation.test.mjs, never edited from here.",
+  "type": "object",
+  "required": ["services"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "services": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "owner_repo", "lifecycle", "management", "host_env", "port", "health_url", "card_url", "start", "depends_on", "version_source", "notes"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9-]*$" },
+          "kind": { "enum": ["agent", "orchestrator", "editor", "infra"] },
+          "owner_repo": {
+            "description": "Repository that owns the process, as a path relative to D:/Data/25_ACE.",
+            "type": "string",
+            "pattern": "^(editor|ops|agents/[A-Za-z0-9_-]+)$"
+          },
+          "lifecycle": { "enum": ["persistent", "session"] },
+          "management": {
+            "description": "agent-host: started by the Orchestrator launcher; editor-session: started by infra/dev/product.mjs; external: docker or a manual process.",
+            "enum": ["agent-host", "editor-session", "external"]
+          },
+          "host_env": {
+            "description": "Environment variable the editor host reads to override the base URL. Unset -> http://127.0.0.1:{port}.",
+            "type": ["string", "null"],
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "port": { "type": ["integer", "null"], "minimum": 1, "maximum": 65535 },
+          "health_url": { "type": ["string", "null"], "pattern": "^\\{base\\}/" },
+          "card_url": {
+            "description": "A2A agent card (agents/a2a_common/protocol.py serves it at /.well-known/agent-card.json).",
+            "type": ["string", "null"],
+            "pattern": "^\\{base\\}/"
+          },
+          "start": {
+            "description": "How the owner starts it. cwd is relative to D:/Data/25_ACE; '{port}' in cmd is filled from port. For agents this mirrors a2a.ps1 and is informational for the host.",
+            "type": ["object", "null"],
+            "required": ["cwd", "cmd"],
+            "additionalProperties": false,
+            "properties": {
+              "cwd": { "type": "string" },
+              "cmd": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+              "env_file": { "type": "string" }
+            }
+          },
+          "launcher": {
+            "description": "The entry OrchestratorAgent/scripts/services/a2a.ps1 keeps for this agent (its join keys). Present exactly when kind is agent.",
+            "type": "object",
+            "required": ["directory", "catalog", "name", "skill"],
+            "additionalProperties": false,
+            "properties": {
+              "directory": { "type": "string" },
+              "catalog": { "type": "string", "pattern": "^[a-z_]+_agent\\.json$" },
+              "name": { "type": "string" },
+              "skill": { "type": "string" }
+            }
+          },
+          "depends_on": { "type": "array", "items": { "type": "string" } },
+          "version_source": {
+            "type": ["string", "null"],
+            "pattern": "^(health:version|card:version|git:[A-Za-z0-9_/-]+)$"
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

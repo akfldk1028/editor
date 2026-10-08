@@ -6,6 +6,13 @@ be told to the Orchestrator session.
 - 2026-10-08 `a978fce0` run door also accepts a site run: `schemas/site_run.py` — exactly {goal, pnu[, building_type]},
   goal in {limits}, pnu 19 digits (regex restated there: schemas sit below modules in the layer contract, so
   modules.land.pnu cannot be imported). RunService/adapter unchanged; Orchestrator REQUEST_KEYS has no `parcels`.
+- 2026-10-08 (Frontend session, plan P1) service registry: `infra/config/services.json` grew from 7 lifecycle
+  rows to 22 schema-checked entries (editor 5, orchestrator 1, agent 15, infra 1) and became the only place a
+  port lives; `infra/host/registry.mjs` derives URLs, `infra/dev/runtime.mjs` reads it (keys `source_owner` ->
+  `owner_repo`, `planAgent` -> `plan`). `bun run host:check` (infra/host/*.test.mjs) proves a2a.ps1, the
+  catalogs, the owners' serve scripts and editor_api.py agree with it. Findings for the Orchestrator session:
+  a2a.ps1 lists 15 agents (not 16); SiteContext's serve-a2a.sh reads SITE_A2A_URL while everyone else says
+  SITE_CONTEXT_A2A_URL; Program/KMass/Systems/DomainExpert/Interior read no *_A2A_URL at all (catalog-only).
 - 2026-10-07 (MasterPlan session, user-approved result change: "커밋하고 진행해 비교를 해야지") planner:
   compact_basement_search now defaults on, and a capped basement budget keeps one solve for the row-and-aisle
   family. 고산 (district plan incl. 차량출입불허구간, practice programme) 0+50 -> 22+28, one gate, entrance

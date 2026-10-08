@@ -31,6 +31,7 @@
     "plan:dev:docker": "docker compose -f infra/docker/compose.yml up --build",
     "plan:dev:docker:down": "docker compose -f infra/docker/compose.yml down",
     "plan:test:dev": "node --test infra/dev/*.test.mjs",
+    "host:check": "node --test infra/host/*.test.mjs",
     "plan:test:browser": "playwright test -c infra/e2e/visual-review.config.cjs",
     "plan:test:frontend": "playwright test -c infra/e2e/frontend.config.cjs",
     "plan:test:product": "playwright test -c infra/e2e/product.config.cjs",

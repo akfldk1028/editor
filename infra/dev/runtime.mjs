@@ -1,21 +1,22 @@
 import { resolve } from "node:path";
 import { createHash } from 'node:crypto';
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { canManageService } from './lifecycle.mjs';
-
-const registry = JSON.parse(readFileSync(new URL('../config/services.json', import.meta.url), 'utf8'));
+import { baseUrl, byId, healthUrl } from '../host/registry.mjs';
 
 function npmCommand(platform) {
   return platform === "win32" ? "npm.cmd" : "npm";
 }
 
-/** Where the editor and the MCP bridge listen during development. */
-export const EDITOR_PORT = 3002;
-export const PASCAL_MCP_PORT = 3917;
-export const FRONTEND_PORT = 5173;
-/** The backend port is declared once, in config/services.json: the agents
- *  (Law, Site, Orchestrator, ops/compose.yml) carry it as their default. */
-export const BACKEND_PORT = registry.backend.port;
+/** Every port is declared once, in config/services.json (infra/host/registry.mjs reads it);
+ *  the agents (Law, Site, Orchestrator, ops/compose.yml) carry the backend's as their default. */
+export const EDITOR_PORT = byId('editor').port;
+export const PASCAL_MCP_PORT = byId('pascalMcp').port;
+export const FRONTEND_PORT = byId('frontend').port;
+export const BACKEND_PORT = byId('backend').port;
+/** Loopback address of a registered service, ignoring env overrides: these processes
+ *  are the ones product.mjs itself starts or checks on this machine. */
+const loopback = (id) => baseUrl(byId(id), {});
 /** The editor is one surface of the shell, reachable at this path. */
 export const EDITOR_BASE_PATH = "/editor";
 
@@ -27,14 +28,15 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
   const definitions = {
     orchestrator: {
       name: 'orchestrator-editor-api',
-      healthUrl: 'http://127.0.0.1:8791/editor/v1/health',
+      healthUrl: healthUrl(byId('orchestrator'), {}),
       timeoutMs: 30_000,
       configId: ownerConfigId,
       validate: ({body}) => body?.service === 'orchestrator-editor-api' && body?.mode === 'local-execution' && body?.config_id === ownerConfigId,
     },
-    planAgent: {
+    plan: {
       name: 'plan-agent',
-      healthUrl: `${(process.env.PLANM_AGENT_URL || 'http://127.0.0.1:8309').replace(/\/$/, '')}/health`,
+      // PLANM_AGENT_URL (the entry's host_env) may point at another machine.
+      healthUrl: healthUrl(byId('plan'), process.env),
       timeoutMs: 5_000,
       validate: ({ body }) => body?.agent === 'plan' && Array.isArray(body?.tools) && body.tools.includes('plan_stage'),
       describe: ({ body }) => `Plan Agent ${body?.version ?? ''} answering plan_stage and plan_generate`,
@@ -45,8 +47,8 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       args: ["-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", String(BACKEND_PORT)],
       cwd: resolve(repositoryRoot),
       env: {
-        EDITOR_ORCHESTRATOR_URL: 'http://127.0.0.1:8791',
-        PLANM_AGENT_URL: process.env.PLANM_AGENT_URL || 'http://127.0.0.1:8309',
+        EDITOR_ORCHESTRATOR_URL: loopback('orchestrator'),
+        PLANM_AGENT_URL: baseUrl(byId('plan'), process.env),
         EDITOR_LAND_DATA_DIR: process.env.EDITOR_LAND_DATA_DIR || resolve(repositoryRoot, 'runtime/editor/land'),
         EDITOR_DESIGN_DATA_DIR: process.env.EDITOR_DESIGN_DATA_DIR || resolve(repositoryRoot, 'runtime/editor/design'),
         EDITOR_PUBLIC_URL: `http://127.0.0.1:${FRONTEND_PORT}`,
@@ -64,20 +66,20 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       command: npm,
       args: ["run", "gateway"],
       cwd: resolve(repositoryRoot, "infra/services/dwg"),
-      healthUrl: "http://127.0.0.1:4317/api/health",
+      healthUrl: healthUrl(byId('dwg'), {}),
       timeoutMs: 120_000,
       validate: ({ body }) => body?.ok === true && body?.service === "dwg-provider-gateway",
     },
     frontend: {
       name: "frontend",
       command: npm,
-      args: ["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173"],
+      args: ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(FRONTEND_PORT)],
       // Its own directory: vite picks up the config sitting next to it, and
       // `frontend/` itself holds no package.json now that the app moved into
       // frontend/app/planm.
       cwd: resolve(repositoryRoot, "frontend/app/planm"),
-      healthUrl: "http://127.0.0.1:5173/api/drawing",
-      publicUrl: "http://127.0.0.1:5173",
+      healthUrl: healthUrl(byId('frontend'), {}),
+      publicUrl: loopback('frontend'),
       timeoutMs: 30_000,
       validate: ({ body }) => body?.schemaVersion === "cad-index/v0.2",
     },
@@ -121,15 +123,13 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       validate: ({ body }) => body?.status === "ok" && body?.app === "editor",
     },
   };
-  return Object.fromEntries(Object.entries(definitions).map(([key, service]) => {
-    if (!registry[key]) throw new Error(`Missing lifecycle registration: ${key}`);
-    return [key, { ...service, ...registry[key] }];
-  }));
+  // The registry entry (owner_repo, lifecycle, management, port, ...) rides on each definition.
+  return Object.fromEntries(Object.entries(definitions).map(([key, service]) => [key, { ...service, ...byId(key) }]));
 }
 
 export function createNativeServiceDefinitions(repositoryRoot, platform = process.platform) {
   const { editor, backend, orchestrator, pascalMcp } = createServiceDefinitions(repositoryRoot, platform);
-  const publicUrl = `http://127.0.0.1:${EDITOR_PORT}`;
+  const publicUrl = loopback('editor');
   const localPython = resolve(repositoryRoot, '.venv', platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
   return {
     orchestrator, pascalMcp,

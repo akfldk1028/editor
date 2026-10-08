@@ -1,5 +1,5 @@
 export function canManageService(service) {
-  return service.source_owner === 'editor' && service.lifecycle === 'session' && service.management === 'editor-session';
+  return service.owner_repo === 'editor' && service.lifecycle === 'session' && service.management === 'editor-session';
 }
 
 export async function ensureService(service, { probe, start, wait }) {

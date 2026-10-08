@@ -3,8 +3,8 @@
 ## Start
 - Whole stack: `bun run plan:dev` from the editor root (`node infra/dev/product.mjs`): backend
   18449, frontend 5173 (base path `/editor` for the Pascal editor surface), standalone editor
-  3002, MCP bridge 3917. Ports live in `infra/dev/runtime.mjs` (backend port from
-  `infra/config/services.json`).
+  3002, MCP bridge 3917. Every port lives in `infra/config/services.json` (schema-checked;
+  `infra/host/registry.mjs` reads it, `runtime.mjs` holds no literal; `bun run host:check`).
 - Currently (2026-10-06) a production build is served manually by
   `next start --hostname 127.0.0.1 --port 3003` (started by another session). A code change is
   live there only after `next build` and a restart of that process.

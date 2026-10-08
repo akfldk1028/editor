@@ -5,8 +5,8 @@ import { once } from 'node:events';
 import { ensureService, settleStartup, canManageService } from './lifecycle.mjs';
 import { BACKEND_PORT, createServiceDefinitions, stopOwnedProcesses } from './runtime.mjs';
 
-const session = { name: 'test', source_owner: 'editor', lifecycle: 'session', management: 'editor-session' };
-const shared = { name: 'agent', source_owner: 'agents', lifecycle: 'persistent', management: 'agent-host' };
+const session = { name: 'test', owner_repo: 'editor', lifecycle: 'session', management: 'editor-session' };
+const shared = { name: 'agent', owner_repo: 'agents/OrchestratorAgent', lifecycle: 'persistent', management: 'agent-host' };
 
 test('test_shared_offline_never_spawns', async () => {
   for (const state of ['offline', 'occupied', 'healthy']) {
@@ -63,12 +63,12 @@ test('registry makes the external owner probe-only without a launch command', ()
   assert.equal(services.orchestrator.management, 'agent-host');
   assert.equal(services.orchestrator.command, undefined);
   // The Plan Agent (agents/planm) is another external owner: probed, never launched from here.
-  assert.equal(canManageService(services.planAgent), false);
-  assert.equal(services.planAgent.command, undefined);
-  assert.ok(services.planAgent.validate({ body: { agent: 'plan', tools: ['plan_stage', 'plan_generate'] } }));
-  assert.ok(!services.planAgent.validate({ body: { agent: 'plan', tools: ['plan_health'] } }));
+  assert.equal(canManageService(services.plan), false);
+  assert.equal(services.plan.command, undefined);
+  assert.ok(services.plan.validate({ body: { agent: 'plan', tools: ['plan_stage', 'plan_generate'] } }));
+  assert.ok(!services.plan.validate({ body: { agent: 'plan', tools: ['plan_health'] } }));
   for (const [name, service] of Object.entries(services)) {
-    if (!['orchestrator', 'planAgent'].includes(name)) assert.equal(canManageService(service), true, name);
+    if (!['orchestrator', 'plan'].includes(name)) assert.equal(canManageService(service), true, name);
   }
 });
 

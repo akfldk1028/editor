@@ -132,7 +132,7 @@ test("waitForService retries offline probes until the contract is healthy", asyn
 
 test("stopOwnedProcesses never receives reused services", async () => {
   const killed = [];
-  const ownership = { source_owner: 'editor', lifecycle: 'session', management: 'editor-session', created: true };
+  const ownership = { owner_repo: 'editor', lifecycle: 'session', management: 'editor-session', created: true };
   await stopOwnedProcesses(
     [{ ...ownership, name: "backend", pid: 101 }, { ...ownership, name: "frontend", pid: 202 }],
     async ({ name, pid }) => killed.push({ name, pid }),

@@ -33,6 +33,15 @@ violation fails the test; never add to `ignore_imports` without a reason line.
 - Splitting a module: make it a package (`foo/__init__.py` keeps every public/underscore name,
   parts in `foo/<concern>.py`), as `regulations/calculator/`, `maas/delivered/`. No `foo_<part>.py` siblings.
 
+## Service registry (2026-10-08)
+`infra/config/services.json` (schema `services.schema.json`) is the one owner of every port and
+base URL: editor services, the Orchestrator editor API, the 15 A2A agents of a2a.ps1 and Neo4j.
+`infra/host/registry.mjs` reads and validates it (`byId`, `baseUrl` = host_env override else
+127.0.0.1:port, `healthUrl`, `cardUrl`, `startCommand`); `infra/dev/runtime.mjs` takes its ports from
+there and may hold no literal. **Derive, never restate**: `bun run host:check` compares the registry
+with `OrchestratorAgent/scripts/services/a2a.ps1`, `config/*_agent.json`, each owner's serve script
+and `editor_api.py` read-only. A mismatch is a finding for the Orchestrator session, not an edit in agents/.
+
 ## The planning engine
 `app/modules/design/generation/maas/masterplan/` (planner, rows, ramps, validation, ...) is the
 engine the MasterPlan **agent** used to import; it is now owned here and reached by agents only

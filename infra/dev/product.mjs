@@ -29,7 +29,7 @@ async function main() {
     if (native) checkWorkspaceLinks(repositoryRoot);
     // Everything that does not depend on another service starts together.
     await ensureService(services.orchestrator);
-    if (services.planAgent) await ensureService(services.planAgent);
+    if (services.plan) await ensureService(services.plan);
     await settleStartup([
       () => ensureService(services.pascalMcp),
       ...(services.dwg ? [() => ensureService(services.dwg)] : []),
