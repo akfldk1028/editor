@@ -853,6 +853,11 @@
   {
    "method": "GET",
    "owner": "fastapi",
+   "path": "/api/v1/platform/status"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
    "path": "/api/v1/workspace/health"
   },
   {

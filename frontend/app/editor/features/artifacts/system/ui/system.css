@@ -1,0 +1,99 @@
+/*
+ * 시스템 artifact. Shell tokens only (--panel-raised, --ink, --muted, --success, --warning …)
+ * and the shell's 11/12/14/16 type scale. Rows are a grid; under 640px of the artifact's own
+ * width they stack and each cell shows its label.
+ */
+.system-artifact {
+  container: system-artifact / inline-size;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: auto;
+  padding: 16px;
+  color: var(--ink);
+  background: var(--artifact);
+}
+
+.system-note { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: var(--fs-2); }
+.system-note[data-kind="error"] { color: var(--warning); }
+
+.system-groups { display: grid; gap: 20px; max-inline-size: 1100px; }
+
+.system-banner {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+}
+.system-banner[data-kind="stale"] { color: var(--muted); background: var(--subtle); }
+
+.system-group { display: grid; gap: 6px; }
+.system-group h2 {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--fs-4);
+  font-weight: 600;
+}
+.system-group h2 small { color: var(--muted); font-size: var(--fs-1); font-weight: 500; }
+
+.system-rows {
+  --system-columns: 10px minmax(140px, 1.6fr) minmax(120px, 1.2fr) 64px minmax(96px, 1fr) 96px 120px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+}
+.system-head,
+.system-row {
+  display: grid;
+  grid-template-columns: var(--system-columns);
+  column-gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: var(--fs-2);
+}
+.system-head { color: var(--muted); font-size: var(--fs-1); font-weight: 600; border-block-end: 1px solid var(--border-soft); }
+.system-row + .system-row { border-block-start: 1px solid var(--border-soft); }
+.system-row[data-state="down"] { background: color-mix(in srgb, var(--warning) 6%, transparent); }
+
+.system-dot { inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--muted); }
+.system-row[data-state="up"] .system-dot { background: var(--success); }
+.system-row[data-state="down"] .system-dot { background: var(--warning); }
+
+.system-name { min-inline-size: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.system-name b { font-weight: 600; }
+.system-name code { color: var(--muted); font-size: var(--fs-1); }
+
+.system-cell { min-inline-size: 0; display: grid; }
+.system-cell > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.system-cell-label { display: none; color: var(--muted); font-size: var(--fs-1); }
+.system-sub { color: var(--muted); font-size: var(--fs-1); }
+.system-version { font-family: ui-monospace, monospace; font-size: var(--fs-1); }
+
+.system-hint {
+  grid-column: 2 / -1;
+  margin: 2px 0 0;
+  color: var(--warning);
+  font-size: var(--fs-1);
+}
+.system-row[data-state="unknown"] .system-hint { color: var(--muted); }
+.system-hint code { font-family: ui-monospace, monospace; }
+
+@container system-artifact (max-width: 640px) {
+  .system-artifact { padding: 12px; }
+  .system-head { display: none; }
+  .system-row { grid-template-columns: 10px minmax(0, 1fr); row-gap: 4px; align-items: start; }
+  .system-row > .system-dot { margin-block-start: 5px; }
+  .system-row > :not(.system-dot) { grid-column: 2; }
+  .system-cell { grid-template-columns: 72px minmax(0, 1fr); column-gap: 8px; }
+  .system-cell-label { display: block; }
+  .system-cell > span { white-space: normal; overflow-wrap: anywhere; }
+  .system-hint { grid-column: 2; }
+}

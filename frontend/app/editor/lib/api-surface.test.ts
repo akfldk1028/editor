@@ -35,6 +35,7 @@ const CLIENTS: Record<string, Client> = {
   'features/land-map/hooks/use-agent-analyze.ts': {},
   'features/artifacts/site-map/engine/openlayers.ts': {},
   'features/artifacts/site-map/selection.ts': {},
+  'features/artifacts/system/api/status.ts': {},
   'features/world/lib/context-masses.ts': {},
   'features/world/hooks/use-world-3d.ts': {},
   'features/world/lib/terrain.ts': {},

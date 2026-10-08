@@ -1,6 +1,7 @@
 import os
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from backend.app.adapters.orchestrator import OrchestratorClient, OwnerContractError, OwnerUnavailable
 from backend.app.schemas.platform import AgentSummary
@@ -11,11 +12,12 @@ from backend.app.modules.platform.projects import ProjectService, BindingConflic
 from backend.app.modules.platform.routers.runs import create_run_router
 from backend.app.modules.design.routers.projects import create_design_router
 from backend.app.modules.platform.routers.scene_assets import create_scene_assets_router
+from backend.app.modules.platform.routers.status import create_status_router
 
 
 def create_platform_router(
     client: OrchestratorClient | None = None, *, project_service=None, public_origin=None,
-    design_repository=None, execution_catalog=None, native_design_service=None,
+    design_repository=None, execution_catalog=None, native_design_service=None, status_service=None,
 ) -> APIRouter:
     owner = client or OrchestratorClient(os.environ.get('EDITOR_ORCHESTRATOR_URL'))
     router = APIRouter(prefix='/api/v1/platform', tags=['platform'])
@@ -41,12 +43,16 @@ def create_platform_router(
 
     @router.get('/agents', response_model=list[AgentSummary])
     async def agents():
+        # Without the Orchestrator the answer is still a shape, not a bare string: the status
+        # artifact and the agents page both read `orchestrator.state`.
         try:
             return await owner.list_agents()
         except OwnerUnavailable:
-            raise HTTPException(503, 'Orchestrator catalog unavailable') from None
+            return JSONResponse({'agents': [], 'orchestrator': {'state': 'down', 'error': 'Orchestrator catalog unavailable'}},
+                                status_code=503)
         except OwnerContractError:
-            raise HTTPException(502, 'Orchestrator catalog contract invalid') from None
+            return JSONResponse({'agents': [], 'orchestrator': {'state': 'invalid', 'error': 'Orchestrator catalog contract invalid'}},
+                                status_code=502)
 
     @router.get('/projects', response_model=list[ProjectBinding])
     async def projects():
@@ -90,6 +96,7 @@ def create_platform_router(
             raise HTTPException(502, 'Project source contract invalid') from None
 
     router.include_router(create_run_router(projects_service, owner, allowed_origin))
+    router.include_router(create_status_router(owner, status_service))
     router.include_router(create_scene_assets_router())
     router.include_router(create_design_router(projects_service, allowed_origin, design_repository,
                                               execution_catalog, native_design_service))
