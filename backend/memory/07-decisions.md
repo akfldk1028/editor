@@ -310,3 +310,9 @@ be told to the Orchestrator session.
   stop/spawn-error/gave-up/ensure), gives up after `giveUpAfter` (6) restarts (`gave_up` state; ensure fails at once),
   `restart-daemon` ends only the daemon (killOne — killTree took the services with it, seen live) and `status` says
   STALE when host code/registry is newer than the daemon's `codeStamp`. Next: A1 leases + idle stop.
+- 2026-10-09 activation A1: **leases + idle stop** (design §3). Registry agents carry `idle_timeout_s` (1800, scene 900) and
+  `memory_mb` 90; `ensure --lease`/`touch` write `runtime/host/leases.json`; the daemon stops ≤ 2 idle entries per tick
+  (lease ended + idle_timeout, never within 10 min of a start), forgets them from wanted, logs `idle-stop`. Backend
+  `POST /host/ensure {lease_s}` and `POST /host/touch`. Live: scene auto-stopped 19 min after an unleased start; touch
+  extends. Pitfall: the daemon restart adopts running processes with their real start time, so an agent started before
+  A1 can be idle-stopped on the very first tick — intended, but surprising the first time.
