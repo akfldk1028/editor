@@ -43,6 +43,12 @@ export type FeedCard =
   | { type: 'findings'; items: { title: string; by: string; category: string; action: string; owners: string }[] }
   | { type: 'links'; items: { label: string; href?: string; note?: string }[] }
 
+/** A request in flight between two parties ("Orchestrator Agent ⟶ Law Agent"): drawn as a diagram while the line lives. */
+export interface FeedRelay {
+  from: FeedAgent
+  to: FeedAgent
+}
+
 export interface FeedEntry {
   id: number
   kind: FeedKind
@@ -53,6 +59,7 @@ export interface FeedEntry {
   /** The speaker; absent on a `user` line. */
   agent?: FeedAgent
   tone?: FeedTone
+  relay?: FeedRelay
   card?: FeedCard
   actions?: FeedAction[]
 }
@@ -64,6 +71,7 @@ export interface FeedInput {
   run_id?: string
   agent?: FeedAgent
   tone?: FeedTone
+  relay?: FeedRelay
   card?: FeedCard
   actions?: FeedAction[]
   /** Posting the same key again is a no-op. */
@@ -103,6 +111,7 @@ export function createFeedStore(limit = 200): FeedStore {
         ...(input.run_id ? { run_id: input.run_id } : {}),
         ...(input.agent ? { agent: input.agent } : {}),
         ...(input.tone ? { tone: input.tone } : {}),
+        ...(input.relay ? { relay: input.relay } : {}),
         ...(input.card?.items.length ? { card: input.card } : {}),
         ...(input.actions?.length ? { actions: input.actions } : {}),
       }

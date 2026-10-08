@@ -61,7 +61,7 @@ export function requestingLines(label: string, conditions: Pick<RunConditions, '
   const use = conditions.buildingType.trim()
   return [
     { kind: 'user', text: `검토 시작 · ${label} · 기준일 ${conditions.assessmentDate}${use ? ` · 용도 ${use}` : ''}` },
-    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: '요청 보내는 중' },
+    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: 'user', to: ORCHESTRATOR }, text: 'Orchestrator Agent에게 검토 요청 중' },
   ]
 }
 
@@ -79,7 +79,7 @@ export function requestFailedLine(failure: RunFailure): FeedInput {
 export function askLines(text: string): FeedInput[] {
   return [
     { kind: 'user', text },
-    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: 'Law Agent에게 묻는 중' },
+    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: ORCHESTRATOR, to: 'law' }, text: 'Law Agent에게 묻는 중' },
   ]
 }
 
@@ -135,7 +135,7 @@ export function landAnalysisLines(label: string, conditions: { buildingType?: st
   const detail = [conditions.assessmentDate ? `기준일 ${conditions.assessmentDate}` : null, use ? `용도 ${use}` : null].filter(Boolean).join(' · ')
   return [
     { kind: 'user', text: `법규 요약 · ${label}${detail ? ` · ${detail}` : ''}` },
-    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: 'Law Agent에게 법규 분석 요청 중' },
+    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: ORCHESTRATOR, to: 'law' }, text: 'Law Agent에게 법규 분석 요청 중' },
   ]
 }
 
@@ -222,7 +222,8 @@ export interface StepChange {
 
 /** While a step runs, the Orchestrator says whom it is asking: "Law Agent에게 법규 한계 요청 중" (busy). */
 export function relayLine(change: Pick<StepChange, 'tool' | 'agent'>): FeedInput {
-  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: `${agentLabel(change.agent ?? ORCHESTRATOR)}에게 ${toolLabel(change.tool)} 요청 중` }
+  const to = change.agent ?? ORCHESTRATOR
+  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: ORCHESTRATOR, to }, text: `${agentLabel(to)}에게 ${toolLabel(change.tool)} 요청 중` }
 }
 
 /** "대지 · 대지 사실 확인: 근거 부족 (5/8 사실)" — one per step whose state is new or changed since `prev`. */

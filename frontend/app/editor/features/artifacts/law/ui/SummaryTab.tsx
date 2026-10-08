@@ -1,7 +1,7 @@
 import type { RunLaw } from '@/lib/orchestrator-runs/types'
 
 import type { LawAnalysis } from '../api/analyze'
-import { capStat, formatArea, formatWon, summarize } from '../lib/summary'
+import { capStat, formatArea, formatWon, restrictionsWith, summarize } from '../lib/summary'
 import { Stat } from './Stat'
 
 /** 요약: 용도지역, 건폐율/용적률 상한 (the Law Agent's when it set them), 대지면적, 심사 상태, 제한 목록. */
@@ -9,6 +9,7 @@ export function SummaryTab({ analysis, limits }: { analysis: LawAnalysis; limits
   const summary = summarize(analysis)
   const bcr = capStat(summary.bcr, limits?.bcr_pct ?? null, limits?.articles.bcr ?? null, limits?.policy_id ?? null)
   const far = capStat(summary.far, limits?.far_pct ?? null, limits?.articles.far ?? null, limits?.policy_id ?? null)
+  const restrictions = restrictionsWith(summary.restrictions, limits?.bcr_pct ?? null, limits?.far_pct ?? null, limits?.policy_id ?? null)
   const landNote = [
     summary.landCategory ? `지목 ${summary.landCategory}` : null,
     summary.officialPrice !== null ? `공시지가 ${formatWon(summary.officialPrice)}` : null,
@@ -53,9 +54,9 @@ export function SummaryTab({ analysis, limits }: { analysis: LawAnalysis; limits
       </section>
 
       <section aria-label="제한 목록" className="law-card">
-        <h2>제한 목록 <small>{summary.restrictions.length}</small></h2>
-        {summary.restrictions.length > 0
-          ? <ol className="law-list">{summary.restrictions.map((line) => <li key={line}>{line}</li>)}</ol>
+        <h2>제한 목록 <small>{restrictions.length}</small></h2>
+        {restrictions.length > 0
+          ? <ol className="law-list">{restrictions.map((line) => <li key={line}>{line}</li>)}</ol>
           : <p className="law-sub">제한 항목이 없어요.</p>}
       </section>
     </div>

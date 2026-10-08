@@ -32,9 +32,8 @@ export interface CapStat { value: string; note: string | null; basis: string; wa
 
 /**
  * The Law Agent's cap (`law_parcel_limits`: district policy or ordinance, area-weighted over split
- * zoning) is the answer when it has one; the editor calculator's own verdict stays under it as a
- * note when it differs (미확정 — it does not weight across zones or settle unmatched districts).
- * Without the Law Agent's number the calculator's own result shows as before.
+ * zoning) is the answer; the product computes nothing itself. Only when the Law Agent sent no number
+ * does the regulation lookup's own verdict show (미확정 with the statutory ceiling as context).
  */
 export function capStat(cap: Cap, agentPct: number | null, agentArticle: string | null, policyId: string | null): CapStat {
   if (agentPct === null) {
@@ -42,10 +41,15 @@ export function capStat(cap: Cap, agentPct: number | null, agentArticle: string 
     return { value: own.value, note: own.note, basis: cap.article, warn: own.note !== null }
   }
   const basis = ['Law Agent', agentArticle ?? (cap.article || null), policyId ? `지구단위 정책 ${policyId}` : null].filter((part): part is string => Boolean(part)).join(' · ')
-  const own = formatCap(cap)
-  const differs = cap.limit !== null && Math.abs(cap.limit - agentPct) > 0.05
-  const note = cap.limit === null ? `에디터 계산기: ${own.value} — ${own.note}` : differs ? `에디터 계산기: ${own.value}` : null
-  return { value: `${pct(agentPct)}%`, note, basis, warn: false }
+  return { value: `${pct(agentPct)}%`, note: null, basis, warn: false }
+}
+
+/** The 제한 목록 with the lookup's "상한 미확정" line replaced by the Law Agent's caps when it set them. */
+export function restrictionsWith(restrictions: string[], bcrPct: number | null, farPct: number | null, policyId: string | null): string[] {
+  if (bcrPct === null || farPct === null) return restrictions
+  const settled = `건폐율·용적률: ${pct(bcrPct)}% / ${pct(farPct)}% (Law Agent${policyId ? ` · 지구단위 정책 ${policyId}` : ''})`
+  const rest = restrictions.filter((line) => !line.startsWith('건폐율·용적률:'))
+  return [settled, ...rest]
 }
 
 export type Tone = 'ok' | 'warn' | 'muted'

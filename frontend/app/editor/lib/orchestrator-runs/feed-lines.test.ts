@@ -71,7 +71,7 @@ test('the connection line counts agents when up and offers 시스템 보기 when
 test("the click answers at once: the user's bubble with the 조건 and the Orchestrator's busy line; a failure line names 시스템 보기 only when it is off", () => {
   expect(requestingLines('경기도 의정부시 산곡동 684-1', { assessmentDate: '2026-10-08', buildingType: '업무시설' })).toEqual([
     { kind: 'user', text: '검토 시작 · 경기도 의정부시 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설' },
-    { kind: 'progress', agent: 'orchestrator', tone: 'busy', text: '요청 보내는 중' },
+    { kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'user', to: 'orchestrator' }, text: 'Orchestrator Agent에게 검토 요청 중' },
   ])
   expect(requestingLines('684-1', { assessmentDate: '2026-10-08', buildingType: ' ' })[0]!.text).toBe('검토 시작 · 684-1 · 기준일 2026-10-08')
   expect(requestFailedLine({ kind: 'unavailable' })).toEqual({
@@ -88,7 +88,7 @@ test('polling is fast for the first 20 s of a run, then every 3 s', () => {
 })
 
 test("a typed question: the user's bubble and the Orchestrator asking the Law Agent; the answer is the Law Agent's turn with links", () => {
-  expect(askLines('자연녹지지역 건폐율')).toEqual([{ kind: 'user', text: '자연녹지지역 건폐율' }, { kind: 'progress', agent: 'orchestrator', tone: 'busy', text: 'Law Agent에게 묻는 중' }])
+  expect(askLines('자연녹지지역 건폐율')).toEqual([{ kind: 'user', text: '자연녹지지역 건폐율' }, { kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'law' }, text: 'Law Agent에게 묻는 중' }])
   const evidence = { assessment_date: '2026-10-08', currency_status: 'needs_evidence', coverage_status: 'needs_evidence', reason: 'r' }
   const search: AskAnswer = {
     question: '자연녹지지역 건폐율', tool: 'law_search', agent: 'law', trace_id: 't', version: 'v',
@@ -126,7 +126,7 @@ test("a typed question: the user's bubble and the Orchestrator asking the Law Ag
 test("a land analysis: the user's 법규 요약 bubble, the Orchestrator asking, then the Law Agent's caps, zones, restrictions and what is missing", () => {
   expect(landAnalysisLines('산곡동 684-1', { buildingType: '업무시설', assessmentDate: '2026-10-08' })).toEqual([
     { kind: 'user', text: '법규 요약 · 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설' },
-    { kind: 'progress', agent: 'orchestrator', tone: 'busy', text: 'Law Agent에게 법규 분석 요청 중' },
+    { kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'law' }, text: 'Law Agent에게 법규 분석 요청 중' },
   ])
   const target = { pnu: '4115011300106840001', address: '산곡동 684-1' }
   const answer: LandAnalysisAnswer = {
@@ -179,7 +179,7 @@ test('step lines appear once per state change, in Korean, with facts or the fail
   const started = stepChanges(null, { communications: [{ ...running, agent: null }] })
   expect(started).toEqual([{ key: 'law_parcel_limits:running', tool: 'law_parcel_limits', text: '법규 한계: 진행 중', tone: 'busy', agent: 'law' }])
   // While it runs, the Orchestrator says whom it is asking.
-  expect(relayLine(started[0]!)).toEqual({ kind: 'progress', agent: 'orchestrator', tone: 'busy', text: 'Law Agent에게 법규 한계 요청 중' })
+  expect(relayLine(started[0]!)).toEqual({ kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'law' }, text: 'Law Agent에게 법규 한계 요청 중' })
 })
 
 test("Law's legal basis: the ordinance source with its law.go.kr link, the articles, limitations and Law's premises; the truncation is named", () => {

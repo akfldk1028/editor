@@ -1,16 +1,23 @@
 import { expect, test } from 'bun:test'
 
-import { capStat } from './summary'
+import { capStat, restrictionsWith } from './summary'
 
-test("a cap stat is the Law Agent's number with its article and policy; the calculator's 미확정 stays as a note; without it the calculator speaks", () => {
+test("a cap stat is the Law Agent's number with its article and policy — no product computation beside it; without it the lookup's 미확정 shows", () => {
   const unsettled = { limit: null, ceiling: 59.9225, status: 'needs_evidence', article: '의정부시 도시계획 조례 제42조; 국토의 계획 및 이용에 관한 법률 제84조' }
   expect(capStat(unsettled, 59.92, '의정부시 도시계획 조례 제42조', 'gosan-public1-molit-2026-334')).toEqual({
-    value: '59.9%', note: '에디터 계산기: 미확정 — 법정 상한 59.9% 이하 · 조례 증거 확인 필요',
-    basis: 'Law Agent · 의정부시 도시계획 조례 제42조 · 지구단위 정책 gosan-public1-molit-2026-334', warn: false,
+    value: '59.9%', note: null, basis: 'Law Agent · 의정부시 도시계획 조례 제42조 · 지구단위 정책 gosan-public1-molit-2026-334', warn: false,
   })
   expect(capStat({ limit: 60, ceiling: 60, status: 'complete', article: '제42조' }, 60, null, null)).toEqual({ value: '60%', note: null, basis: 'Law Agent · 제42조', warn: false })
-  expect(capStat({ limit: 60, ceiling: 60, status: 'complete', article: '제42조' }, 20, null, null).note).toBe('에디터 계산기: 60%')
   expect(capStat(unsettled, null, null, null)).toEqual({ value: '미확정', note: '법정 상한 59.9% 이하 · 조례 증거 확인 필요', basis: unsettled.article, warn: true })
+})
+
+test("the restriction list leads with the Law Agent's caps instead of the lookup's 상한 미확정 line", () => {
+  const lines = ['건폐율·용적률: 적용 조례·판본·용도지역 증거 부족 — 상한 미확정', '일조사선: 정북방향 H/2 이격']
+  expect(restrictionsWith(lines, 59.92, 249.67, 'gosan-public1-molit-2026-334')).toEqual([
+    '건폐율·용적률: 59.9% / 249.7% (Law Agent · 지구단위 정책 gosan-public1-molit-2026-334)', '일조사선: 정북방향 H/2 이격',
+  ])
+  expect(restrictionsWith(lines, 20, 80, null)[0]).toBe('건폐율·용적률: 20% / 80% (Law Agent)')
+  expect(restrictionsWith(lines, null, 80, null)).toBe(lines)
 })
 
 import { fixture } from './summary.fixture'

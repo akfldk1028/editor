@@ -152,6 +152,7 @@ function TurnView({ turn, shell }: { turn: Turn; shell: ShellApi }) {
     )
   }
   const lead = leadOf(turn)
+  if (lead.relay && turn.steps.length === 1) return <RelayView entry={lead} />
   const steps = turn.steps.filter((step) => step !== lead)
   return (
     <article className="agent-turn" data-agent={turn.agent} data-error={turn.error ? 'true' : undefined}>
@@ -163,6 +164,28 @@ function TurnView({ turn, shell }: { turn: Turn; shell: ShellApi }) {
       )}
       <Step entry={lead} lead shell={shell} />
     </article>
+  )
+}
+
+/**
+ * A request in flight, drawn: who asks ⟶ who is asked, the connector pulsing while the line lives
+ * (it is dismissed when the answer arrives), the request named under it.
+ */
+function RelayView({ entry }: { entry: FeedEntry }) {
+  const { from, to } = entry.relay!
+  return (
+    <div aria-live="polite" className="agent-relay" role="status">
+      <div className="agent-relay-party">
+        <AgentMark agent={from} size={18} />
+        <span>{agentLabel(from)}</span>
+      </div>
+      <div aria-hidden="true" className="agent-relay-track"><i /><i /><i /></div>
+      <div className="agent-relay-party" data-target="true">
+        <AgentMark agent={to} size={18} />
+        <span>{agentLabel(to)}</span>
+      </div>
+      <p>{entry.text}</p>
+    </div>
   )
 }
 

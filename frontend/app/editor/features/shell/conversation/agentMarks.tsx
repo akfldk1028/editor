@@ -1,12 +1,13 @@
 import {
-  Bot, Box, Boxes, Cable, Camera, ClipboardCheck, FileText, Grid2x2, LayoutGrid, Lightbulb, ListTree, MapPin, Mountain, Scale, Sofa, UserCheck, Workflow,
+  Bot, Box, Boxes, Cable, Camera, ClipboardCheck, FileText, Grid2x2, LayoutGrid, Lightbulb, ListTree, MapPin, Mountain, Scale, Sofa, UserCheck, UserRound, Workflow,
 } from 'lucide-react'
 import type { ComponentType } from 'react'
 
 type Icon = ComponentType<{ size?: number; 'aria-hidden'?: boolean | 'true' }>
 
-/** Each agent's own mark: an icon (and, in CSS by `data-agent`, its own tint) — never a shared initial. */
+/** Each party's own mark: an icon (and, in CSS by `data-agent`, its own tint) — never a shared initial. */
 const MARKS: Record<string, Icon> = {
+  user: UserRound,
   orchestrator: Workflow,
   site_context: MapPin,
   'site-context': MapPin,
@@ -28,7 +29,7 @@ const MARKS: Record<string, Icon> = {
   scene: Camera,
 }
 
-export function AgentMark({ agent, size = 13 }: { agent: string; size?: number }) {
+export function AgentMark({ agent, size = 15 }: { agent: string; size?: number }) {
   const Icon = MARKS[agent] ?? Bot
   return (
     <span aria-hidden="true" className="agent-turn-mark" data-agent={agent}>
