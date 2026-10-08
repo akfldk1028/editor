@@ -25,6 +25,11 @@ export interface ArtifactManifest {
   icon: ArtifactIcon
   /** First entry is the default view. Omitted: no tab strip. */
   tabs?: readonly ArtifactTab[]
+  /**
+   * What the centre column shows while this artifact is active: the Orchestrator conversation
+   * (default, `'agents'`) or the page's own conversation (`'page'`, e.g. the CAD drawing chat).
+   */
+  conversation?: 'agents' | 'page'
   load(): Promise<{ default: ComponentType<ArtifactProps> }>
 }
 

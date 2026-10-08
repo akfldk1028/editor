@@ -1,7 +1,7 @@
 /** Feed lines from run snapshots and parsed results. Pure: the hooks decide when to post. */
 import type { RunConditions } from './conditions'
 import type { FeedAction, FeedCard, FeedInput, FeedTone } from './feed'
-import { agentForTool, agentLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from './labels'
+import { agentForTool, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from './labels'
 import { failureText, type RunFailure } from './submit'
 import type { Communication, OrchestratorConnection, RunResults, RunSummary } from './types'
 
@@ -19,25 +19,35 @@ export function selectedLine(site: SelectedSite): string {
   return `대지 선택: ${site.label} (${site.parcels.length}필지${area})`
 }
 
+const ORCHESTRATOR = 'orchestrator'
+
 export function connectionLine(connection: OrchestratorConnection): FeedInput {
-  if (connection.state === 'up') return { kind: 'system', text: `오케스트레이터 연결됨 · 에이전트 ${connection.agentsUp}/${connection.agentsTotal}` }
+  if (connection.state === 'up') return { kind: 'system', agent: ORCHESTRATOR, text: `오케스트레이터 연결됨 · 에이전트 ${connection.agentsUp}/${connection.agentsTotal}` }
   return {
     kind: 'error',
+    agent: ORCHESTRATOR,
     text: connection.state === 'invalid' ? '오케스트레이터 응답 형식이 맞지 않아요' : '오케스트레이터에 연결할 수 없어요',
     actions: [{ label: '시스템 보기', artifact: 'system' }],
   }
 }
 
-/** "검토 요청 중 · 경기도 의정부시 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설" — posted the moment 검토 시작 is pressed. */
-export function requestingLine(label: string, conditions: Pick<RunConditions, 'assessmentDate' | 'buildingType'>): FeedInput {
+/**
+ * The moment 검토 시작 is pressed: the user's bubble ("검토 시작 · 산곡동 684-1 · 기준일 2026-10-08 · 용도
+ * 업무시설") and the Orchestrator's busy line until the receipt arrives.
+ */
+export function requestingLines(label: string, conditions: Pick<RunConditions, 'assessmentDate' | 'buildingType'>): FeedInput[] {
   const use = conditions.buildingType.trim()
-  return { kind: 'progress', tone: 'busy', text: `검토 요청 중 · ${label} · 기준일 ${conditions.assessmentDate}${use ? ` · 용도 ${use}` : ''}` }
+  return [
+    { kind: 'user', text: `검토 시작 · ${label} · 기준일 ${conditions.assessmentDate}${use ? ` · 용도 ${use}` : ''}` },
+    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: '검토 요청을 전달하는 중' },
+  ]
 }
 
 /** "검토 요청 실패 — 오케스트레이터에 연결할 수 없어요", with 시스템 보기 when it is unreachable. */
 export function requestFailedLine(failure: RunFailure): FeedInput {
   return {
     kind: 'error',
+    agent: ORCHESTRATOR,
     text: `검토 요청 실패 — ${failureText(failure)}`,
     ...(failure.kind === 'unavailable' ? { actions: [{ label: '시스템 보기', artifact: 'system' }] } : {}),
   }
@@ -86,6 +96,8 @@ export interface StepChange {
   key: string
   text: string
   tone: FeedTone
+  /** The agent that spoke: the record's, else the tool's owner. */
+  agent: string | null
 }
 
 /** "대지 · 대지 사실 확인: 근거 부족 (5/8 사실)" — one per step whose state is new or changed since `prev`. */
@@ -98,16 +110,18 @@ export function stepChanges(prev: Pick<RunSummary, 'communications'> | null, nex
     const response = parsed(comm.response_text)
     const facts = typeof response.summary === 'string' ? response.summary.match(/(\d+)\s*\/\s*(\d+)\s*site facts/) : null
     const detail = facts ? ` (${facts[1]}/${facts[2]} 사실)` : typeof response.code === 'string' && state === 'failed' ? ` — ${evidenceLabel(response.code)}` : ''
+    const agent = agentForTool(comm.tool, comm.agent)
     lines.push({
       key: `${comm.tool}:${state}`,
-      text: `${agentLabel(agentForTool(comm.tool, comm.agent))} · ${toolLabel(comm.tool)}: ${stateLabel(state)}${detail}`,
+      text: `${toolLabel(comm.tool)}: ${stateLabel(state)}${detail}`,
       tone: stepTone(state),
+      agent,
     })
   }
   return lines
 }
 
-/** "법규: 대지 2,499.7㎡ · 건폐 59.92% · 용적 249.67% · 5층" — null until Law's numbers arrive. */
+/** "법규 한계: 대지 2,499.7㎡ · 건폐 59.92% · 용적 249.67% · 5층" — Law speaking; null until its numbers arrive. */
 export function lawLine(results: RunResults): string | null {
   const law = results.law
   if (!law) return null
@@ -117,7 +131,7 @@ export function lawLine(results: RunResults): string | null {
     law.far_pct !== null ? `용적 ${fmt(law.far_pct, 2)}%` : null,
     law.max_floors !== null ? `${law.max_floors}층` : null,
   ].filter((part): part is string => part !== null)
-  return parts.length ? `법규: ${parts.join(' · ')}` : null
+  return parts.length ? `법규 한계: ${parts.join(' · ')}` : null
 }
 
 /** Law's four numbers as stat tiles under the law line; null without any. */

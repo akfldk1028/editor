@@ -46,8 +46,10 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
     const prev = previous.current?.run_id === run.run_id ? previous.current : null
     previous.current = run
     const key = (name: string) => `${run.run_id}:${name}`
-    if (!prev) postFeed({ kind: 'system', key: key('submitted'), run_id: run.run_id, text: submittedLine(run) })
-    for (const change of stepChanges(prev, run)) postFeed({ kind: 'progress', key: key(change.key), run_id: run.run_id, text: change.text, tone: change.tone })
+    if (!prev) postFeed({ kind: 'system', key: key('submitted'), run_id: run.run_id, agent: 'orchestrator', text: submittedLine(run) })
+    for (const change of stepChanges(prev, run)) {
+      postFeed({ kind: 'progress', key: key(change.key), run_id: run.run_id, agent: change.agent ?? 'orchestrator', text: change.text, tone: change.tone })
+    }
 
     const lawDone = run.communications.some((comm) => comm.tool === LAW_TOOL && stepState(comm) === 'succeeded')
     const ended = isTerminal(run.status)
@@ -62,18 +64,18 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
       .then((results) => {
         if (controller.signal.aborted) return
         const law = lawLine(results)
-        if (law) postFeed({ kind: 'progress', key: key('law'), run_id: run.run_id, text: law, tone: 'ok', card: lawCard(results) ?? undefined })
+        if (law) postFeed({ kind: 'progress', key: key('law'), run_id: run.run_id, agent: 'law', text: law, tone: 'ok', card: lawCard(results) ?? undefined })
         if (ended) {
           const failed = results.status === 'failed'
-          postFeed({ kind: failed ? 'error' : 'result', key: key('result'), run_id: run.run_id, text: resultLine(results), card: evidenceCard(results) ?? undefined })
+          postFeed({ kind: failed ? 'error' : 'result', key: key('result'), run_id: run.run_id, agent: 'orchestrator', text: resultLine(results), card: evidenceCard(results) ?? undefined })
           const prompt = resultPrompt(results, { pnu, ...(address ? { address } : {}), ...(project ? { project } : {}) })
-          postFeed({ kind: 'prompt', key: key('prompt'), run_id: run.run_id, text: prompt.text, actions: prompt.actions })
+          postFeed({ kind: 'prompt', key: key('prompt'), run_id: run.run_id, agent: 'orchestrator', text: prompt.text, actions: prompt.actions })
         }
       })
       .catch(() => {
         if (controller.signal.aborted) return
         for (const name of wanted) fetched.current.delete(key(name))
-        if (ended) postFeed({ kind: 'error', key: key('result-error'), run_id: run.run_id, text: '검토 결과를 읽지 못했어요 — 법규 패널에서 다시 확인해 주세요' })
+        if (ended) postFeed({ kind: 'error', key: key('result-error'), run_id: run.run_id, agent: 'orchestrator', text: '검토 결과를 읽지 못했어요 — 법규 패널에서 다시 확인해 주세요' })
       })
   }, [run, projectId, pnu, address, project])
 }

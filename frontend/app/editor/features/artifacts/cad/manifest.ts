@@ -19,5 +19,6 @@ export const cadArtifact: ArtifactManifest = {
   label: '도면',
   icon: PencilRuler,
   tabs,
+  conversation: 'page',
   load: () => import('./CadArtifact'),
 }

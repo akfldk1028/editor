@@ -7,8 +7,14 @@ import { useSyncExternalStore } from 'react'
  * in the conversation column by the shell. Slices only `post`; the shell renders. Kept in memory for
  * the session (a reload starts empty). A `key` makes a line post once — one line per step change.
  */
-/** `prompt`: the network asks the user something ("법규를 보시겠어요?") — a bubble with its actions as answers. */
-export type FeedKind = 'system' | 'progress' | 'result' | 'error' | 'prompt'
+/**
+ * `user`: what the user did (대지 선택, 검토 시작) — their bubble. `system`: a receipt or connection
+ * note. `prompt`: the network asks the user something ("법규를 보시겠어요?") — its actions are the answers.
+ */
+export type FeedKind = 'user' | 'system' | 'progress' | 'result' | 'error' | 'prompt'
+
+/** Who speaks a line: an agent id of `labels.agentLabel` (`site_context`, `law`, `revision`, …) or `orchestrator`. */
+export type FeedAgent = string
 
 /** How a progress line went: a dot before the text. */
 export type FeedTone = 'ok' | 'warn' | 'busy'
@@ -32,6 +38,8 @@ export interface FeedEntry {
   /** Epoch ms. */
   at: number
   run_id?: string
+  /** The speaker; absent on a `user` line. */
+  agent?: FeedAgent
   tone?: FeedTone
   card?: FeedCard
   actions?: FeedAction[]
@@ -42,6 +50,7 @@ export interface FeedInput {
   text: string
   at?: number
   run_id?: string
+  agent?: FeedAgent
   tone?: FeedTone
   card?: FeedCard
   actions?: FeedAction[]
@@ -80,6 +89,7 @@ export function createFeedStore(limit = 200): FeedStore {
         text: input.text,
         at: input.at ?? Date.now(),
         ...(input.run_id ? { run_id: input.run_id } : {}),
+        ...(input.agent ? { agent: input.agent } : {}),
         ...(input.tone ? { tone: input.tone } : {}),
         ...(input.card?.items.length ? { card: input.card } : {}),
         ...(input.actions?.length ? { actions: input.actions } : {}),

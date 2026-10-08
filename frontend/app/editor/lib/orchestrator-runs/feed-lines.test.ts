@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { connectionLine, evidenceCard, lawCard, lawLine, requestFailedLine, requestingLine, resultLine, resultPrompt, selectedLine, stepChanges, stepState, submittedLine } from './feed-lines'
+import { connectionLine, evidenceCard, lawCard, lawLine, requestFailedLine, requestingLines, resultLine, resultPrompt, selectedLine, stepChanges, stepState, submittedLine } from './feed-lines'
 import { FAST_WINDOW_MS, POLL_FAST_MS, POLL_MS, pollInterval } from './poll'
 import type { Communication, RunResults } from './types'
 
@@ -32,21 +32,24 @@ test('the selection line names the site, its parcel count and area', () => {
 })
 
 test('the connection line counts agents when up and offers 시스템 보기 when not', () => {
-  expect(connectionLine({ state: 'up', agentsUp: 15, agentsTotal: 15 })).toEqual({ kind: 'system', text: '오케스트레이터 연결됨 · 에이전트 15/15' })
+  expect(connectionLine({ state: 'up', agentsUp: 15, agentsTotal: 15 })).toEqual({ kind: 'system', agent: 'orchestrator', text: '오케스트레이터 연결됨 · 에이전트 15/15' })
   const down = connectionLine({ state: 'down', agentsUp: 0, agentsTotal: 15 })
   expect(down.kind).toBe('error')
+  expect(down.agent).toBe('orchestrator')
   expect(down.text).toBe('오케스트레이터에 연결할 수 없어요')
   expect(down.actions).toEqual([{ label: '시스템 보기', artifact: 'system' }])
 })
 
-test('the click answers at once: a busy 요청 중 line with the 조건, and a failure line with 시스템 보기 only when the Orchestrator is off', () => {
-  expect(requestingLine('경기도 의정부시 산곡동 684-1', { assessmentDate: '2026-10-08', buildingType: '업무시설' }))
-    .toEqual({ kind: 'progress', tone: 'busy', text: '검토 요청 중 · 경기도 의정부시 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설' })
-  expect(requestingLine('684-1', { assessmentDate: '2026-10-08', buildingType: ' ' }).text).toBe('검토 요청 중 · 684-1 · 기준일 2026-10-08')
+test("the click answers at once: the user's bubble with the 조건 and the Orchestrator's busy line; a failure line names 시스템 보기 only when it is off", () => {
+  expect(requestingLines('경기도 의정부시 산곡동 684-1', { assessmentDate: '2026-10-08', buildingType: '업무시설' })).toEqual([
+    { kind: 'user', text: '검토 시작 · 경기도 의정부시 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설' },
+    { kind: 'progress', agent: 'orchestrator', tone: 'busy', text: '검토 요청을 전달하는 중' },
+  ])
+  expect(requestingLines('684-1', { assessmentDate: '2026-10-08', buildingType: ' ' })[0]!.text).toBe('검토 시작 · 684-1 · 기준일 2026-10-08')
   expect(requestFailedLine({ kind: 'unavailable' })).toEqual({
-    kind: 'error', text: '검토 요청 실패 — 오케스트레이터에 연결할 수 없어요 — 켜진 뒤 다시 시도', actions: [{ label: '시스템 보기', artifact: 'system' }],
+    kind: 'error', agent: 'orchestrator', text: '검토 요청 실패 — 오케스트레이터에 연결할 수 없어요 — 켜진 뒤 다시 시도', actions: [{ label: '시스템 보기', artifact: 'system' }],
   })
-  expect(requestFailedLine({ kind: 'rejected', text: '요청이 거절됐어요 (400) — x' })).toEqual({ kind: 'error', text: '검토 요청 실패 — 요청이 거절됐어요 (400) — x' })
+  expect(requestFailedLine({ kind: 'rejected', text: '요청이 거절됐어요 (400) — x' })).toEqual({ kind: 'error', agent: 'orchestrator', text: '검토 요청 실패 — 요청이 거절됐어요 (400) — x' })
 })
 
 test('polling is fast for the first 20 s of a run, then every 3 s', () => {
@@ -72,20 +75,20 @@ test("a step's state prefers the tool's own status word, also inside a cut respo
 test('step lines appear once per state change, in Korean, with facts or the failure code and a tone', () => {
   const first = stepChanges(null, { communications: [site, law] })
   expect(first).toEqual([
-    { key: 'site_resolve:needs_evidence', text: '대지 · 대지 사실 확인: 근거 부족 (5/8 사실)', tone: 'warn' },
-    { key: 'law_parcel_limits:succeeded', text: '법규 · 법규 한계: 성공', tone: 'ok' },
+    { key: 'site_resolve:needs_evidence', text: '대지 사실 확인: 근거 부족 (5/8 사실)', tone: 'warn', agent: 'site_context' },
+    { key: 'law_parcel_limits:succeeded', text: '법규 한계: 성공', tone: 'ok', agent: 'law' },
   ])
   expect(stepChanges({ communications: [site, law] }, { communications: [site, law] })).toEqual([])
   expect(stepChanges({ communications: [site, law] }, { communications: [site, law, review] })).toEqual([
-    { key: 'revision_triage:needs_evidence', text: '검토 조정 · 재검토 판정: 근거 부족', tone: 'warn' },
+    { key: 'revision_triage:needs_evidence', text: '재검토 판정: 근거 부족', tone: 'warn', agent: 'revision' },
   ])
   expect(stepChanges(null, { communications: [apart] })).toEqual([
-    { key: 'site_resolve:failed', text: '대지 · 대지 사실 확인: 실패 — 필지가 서로 붙어 있지 않음', tone: 'warn' },
+    { key: 'site_resolve:failed', text: '대지 사실 확인: 실패 — 필지가 서로 붙어 있지 않음', tone: 'warn', agent: 'site_context' },
   ])
   const running = comm('law_parcel_limits', 'law', 'running', null)
-  expect(stepChanges({ communications: [running] }, { communications: [law] })).toEqual([{ key: 'law_parcel_limits:succeeded', text: '법규 · 법규 한계: 성공', tone: 'ok' }])
+  expect(stepChanges({ communications: [running] }, { communications: [law] })).toEqual([{ key: 'law_parcel_limits:succeeded', text: '법규 한계: 성공', tone: 'ok', agent: 'law' }])
   // A step still running has no agent on its record yet: the tool's owner names it.
-  expect(stepChanges(null, { communications: [{ ...running, agent: null }] })).toEqual([{ key: 'law_parcel_limits:running', text: '법규 · 법규 한계: 진행 중', tone: 'busy' }])
+  expect(stepChanges(null, { communications: [{ ...running, agent: null }] })).toEqual([{ key: 'law_parcel_limits:running', text: '법규 한계: 진행 중', tone: 'busy', agent: 'law' }])
 })
 
 test("the law card carries Law's numbers as stat tiles, only the ones it sent", () => {
@@ -119,9 +122,9 @@ test('the prompt asks 법규를 보시겠어요 with 법규 보기 opening the l
 })
 
 test('the law line carries the four numbers as the UI shows them', () => {
-  expect(lawLine(results())).toBe('법규: 대지 2,499.7㎡ · 건폐 59.92% · 용적 249.67% · 5층')
+  expect(lawLine(results())).toBe('법규 한계: 대지 2,499.7㎡ · 건폐 59.92% · 용적 249.67% · 5층')
   expect(lawLine(results({ law: null }))).toBeNull()
-  expect(lawLine(results({ law: { ...results().law!, site_area_m2: null, max_floors: null } }))).toBe('법규: 건폐 59.92% · 용적 249.67%')
+  expect(lawLine(results({ law: { ...results().law!, site_area_m2: null, max_floors: null } }))).toBe('법규 한계: 건폐 59.92% · 용적 249.67%')
 })
 
 test('the verdict line says 보류 with the short missing-evidence list, or the failure code', () => {

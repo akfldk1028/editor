@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 
 import { ArtifactHost } from './artifact-host/ArtifactHost'
 import type { ShellApi } from './artifact-types'
+import { AgentConversation, AgentConversationActions, AgentConversationHeading } from './conversation/AgentConversation'
 import { AgentFeed } from './conversation/AgentFeed'
 import { ConversationSlot } from './conversation/ConversationSlot'
 import { layout } from './layout/layoutModes'
@@ -102,6 +103,8 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
   }), [openArtifact, closeArtifact, artifactId])
 
   const { mode, sidebarPresentation, artifactVisible, artifactMounted, artifactPresentation, artifactMaximized } = controls
+  // The centre column: the agent conversation, unless the active artifact brings the page's own (CAD).
+  const pageConversation = manifest.conversation === 'page'
 
   // Closing from the artifact's own X sends focus to the button that brings it back, once that button is drawn.
   const focusAfterClose = useRef(false)
@@ -149,13 +152,13 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
         {sidebarPresentation === 'inline' && <div className="sidebar-resizer" {...controls.sidebarSeparatorProps} />}
 
         <ConversationSlot
-          actions={conversation.actions}
+          actions={pageConversation ? conversation.actions : <AgentConversationActions />}
           artifactButtonRef={controls.artifactButtonRef}
           artifactLabel={manifest.label}
           artifactTitle={manifest.title}
           artifactVisible={artifactVisible}
           drawerOpen={sidebarPresentation === 'drawer'}
-          heading={conversation.heading}
+          heading={pageConversation ? conversation.heading : <AgentConversationHeading />}
           menuButtonRef={controls.menuButtonRef}
           mode={mode}
           narrowPanel={controls.narrowPanel}
@@ -170,8 +173,14 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
           topActionsRef={controls.topActionsRef}
         >
           <div className="shell-conversation" data-modal-background>
-            <AgentFeed shell={shell} />
-            {conversation.body}
+            {pageConversation ? (
+              <>
+                <AgentFeed shell={shell} />
+                {conversation.body}
+              </>
+            ) : (
+              <AgentConversation shell={shell} />
+            )}
           </div>
         </ConversationSlot>
 

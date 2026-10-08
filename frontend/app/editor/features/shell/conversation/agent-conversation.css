@@ -1,0 +1,108 @@
+/*
+ * The Orchestrator conversation in the centre column, in the chat's shape: 48rem measure, the thread
+ * scrolls, the composer stays at the bottom. Shell tokens, 11/12/14 scale, colours unchanged.
+ */
+.agent-conversation {
+  min-inline-size: 0;
+  min-block-size: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--panel);
+}
+.agent-thread {
+  min-block-size: 0;
+  overflow: auto;
+  padding-block: 16px 8px;
+  padding-inline: max(16px, calc((100% - 48rem) / 2));
+  scroll-behavior: smooth;
+}
+
+/* Header identity block (the shell's top row). */
+.agent-heading { min-inline-size: 0; display: flex; align-items: center; gap: 10px; }
+.agent-heading-mark { display: grid; place-items: center; inline-size: 28px; block-size: 28px; color: var(--accent-ink); background: var(--accent); border-radius: 8px; }
+.agent-heading > div { min-inline-size: 0; display: flex; flex-direction: column; }
+.agent-heading strong { overflow: hidden; font-size: var(--fs-3); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.agent-heading span { overflow: hidden; color: var(--muted); font-size: var(--fs-1); text-overflow: ellipsis; white-space: nowrap; }
+
+/* Empty thread. */
+.agent-thread-empty { display: grid; justify-items: center; gap: 6px; margin-block-start: 18vh; color: var(--muted); text-align: center; }
+.agent-thread-empty strong { color: var(--ink); font-size: var(--fs-4); font-weight: 600; }
+.agent-thread-empty span { max-inline-size: 30rem; font-size: var(--fs-2); line-height: var(--lh); }
+.agent-thread-empty b { color: var(--ink); font-weight: 600; }
+
+/* The user's bubble, right-aligned like the chat's. */
+.agent-turn-user { display: grid; justify-items: end; gap: 3px; margin-block: 4px 18px; }
+.agent-turn-user p { margin: 0; inline-size: fit-content; max-inline-size: min(80%, 36rem); padding: 10px 16px; color: var(--ink); background: var(--subtle); border-radius: 18px; font-size: var(--fs-3); line-height: 1.6; overflow-wrap: anywhere; }
+.agent-turn-user time { color: var(--muted); font-size: var(--fs-1); font-variant-numeric: tabular-nums; }
+
+/* Receipts and connection notes: a small centred line. */
+.agent-turn-system { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 6px 8px; margin-block: 6px 14px; color: var(--muted); font-size: var(--fs-2); text-align: center; }
+.agent-turn-system time { font-size: var(--fs-1); font-variant-numeric: tabular-nums; }
+
+/* One agent's turn: the speaker row names the agent; the Orchestrator's mark is the accent, the agents' the subtle tint. */
+.agent-turn { margin-block-end: 22px; }
+.agent-turn-who { display: flex; align-items: center; gap: 8px; margin-block-end: 6px; }
+.agent-turn-mark { display: grid; place-items: center; inline-size: 24px; block-size: 24px; color: var(--ink); background: var(--subtle); border: 1px solid var(--border); border-radius: 50%; font-size: var(--fs-1); font-weight: 700; }
+.agent-turn[data-agent="orchestrator"] .agent-turn-mark { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+.agent-turn-who b { color: var(--ink); font-size: var(--fs-2); font-weight: 600; }
+.agent-turn-who time { color: var(--muted); font-size: var(--fs-1); font-variant-numeric: tabular-nums; }
+.agent-turn p { margin: 0; color: var(--ink); font-size: var(--fs-3); line-height: 1.6; overflow-wrap: anywhere; }
+.agent-turn[data-error="true"] .agent-lead p { color: var(--warning); }
+.agent-turn[data-kind="prompt"] p { font-size: var(--fs-3); }
+
+/* The steps of a run, under the lead line. */
+.agent-steps { margin: 0 0 8px; padding: 0 0 0 12px; list-style: none; display: grid; gap: 4px; border-inline-start: 2px solid var(--border-soft); }
+.agent-steps p { color: var(--muted); font-size: var(--fs-2); line-height: 1.5; }
+.agent-lead p { font-weight: 600; }
+.agent-lead[data-kind="progress"] p { font-weight: 500; }
+
+/* Step tone dot: green done, amber wants evidence/failed, spinning while open. */
+.agent-dot { display: inline-block; inline-size: 8px; block-size: 8px; margin-inline-end: 7px; vertical-align: 1px; border-radius: 50%; background: var(--muted); }
+[data-tone="ok"] > p > .agent-dot { background: var(--success); }
+[data-tone="warn"] > p > .agent-dot { background: var(--warning); }
+[data-tone="busy"] > p > .agent-dot { background: transparent; border: 2px solid var(--accent-soft); border-block-start-color: var(--accent); animation: shell-spin .8s linear infinite; }
+/* A step folded under a later one is over: its "진행 중" dot rests. */
+.agent-steps [data-tone="busy"] > p > .agent-dot { background: var(--muted); border: 0; animation: none; }
+
+/* Law's numbers and the missing evidence. */
+.agent-stats { margin: 8px 0 4px; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.agent-stats > div { padding: 8px 12px; background: var(--subtle); border-radius: var(--radius-m); }
+.agent-stats dt { color: var(--muted); font-size: var(--fs-1); }
+.agent-stats dd { margin: 0; color: var(--ink); font-size: var(--fs-4); font-weight: 600; font-variant-numeric: tabular-nums; }
+.agent-chips { margin: 8px 0 4px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.agent-chips li { padding: 3px 9px; color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); border-radius: 10px; font-size: var(--fs-1); font-weight: 600; }
+
+/* Links inside a turn and the answers under a question. */
+.agent-turn-link { min-block-size: 26px; padding-inline: 8px; color: var(--accent); background: transparent; border: 0; border-radius: var(--radius-s); font-size: var(--fs-2); font-weight: 600; }
+.agent-turn-link:hover { background: var(--accent-soft); }
+.agent-answers { margin-block-start: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.agent-answer { min-block-size: 32px; padding-inline: 14px; color: var(--ink); background: var(--subtle); border: 0; border-radius: 16px; font-size: var(--fs-2); font-weight: 600; }
+.agent-answer:hover { background: var(--hover); }
+.agent-answer[data-primary="true"] { color: var(--accent-ink); background: var(--accent); }
+.agent-answer[data-primary="true"]:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink)); }
+
+/* Composer: the chat's shape; input lands with the next step. */
+.agent-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline: max(16px, calc((100% - 48rem) / 2));
+  margin-block: 8px 16px;
+  padding: 8px 8px 8px 16px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+}
+.agent-composer > input { flex: 1 1 auto; min-inline-size: 0; min-block-size: 28px; color: var(--ink); background: transparent; border: 0; outline: 0; font-size: var(--fs-3); }
+.agent-composer > input::placeholder { color: var(--muted); }
+.agent-composer-send { display: grid; place-items: center; inline-size: 32px; block-size: 32px; padding: 0; color: var(--accent-ink); background: var(--ink); border: 0; border-radius: 50%; }
+.agent-composer-send:disabled { color: var(--panel); background: var(--border); cursor: not-allowed; }
+
+@container editor-shell (max-width: 767px) {
+  .agent-thread { padding-inline: 16px; }
+  .agent-composer { margin-inline: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-thread { scroll-behavior: auto; }
+  [data-tone="busy"] > p > .agent-dot { animation: none; }
+}
