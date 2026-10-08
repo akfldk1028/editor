@@ -3,6 +3,14 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `14778a6f` `POST /api/v1/platform/ask` — a typed question for the Law Agent. `adapters/law_agent.py`
+  speaks A2A JSON-RPC with plain httpx (method `SendMessage`; text part `{"tool","args"}`; reply = completed task's status
+  message text; `metadata.version` = code that answered; `message/send` is NOT the method name in a2a-sdk 1.0). The editor's
+  trace record rides on `message.metadata.trace`; the hop is one `invoke_agent law` span. `modules/platform/ask.py`: `plan`
+  (조례명+제N조 → law_ordinance, else law_search limit 8), `normalize` (search items / ordinance+matches, legal_evidence
+  verbatim), `ask_law`. `schemas/ask.py` strict. Same-origin only; 503 unavailable / 502 refused. Env `LAW_A2A_URL`
+  (registry `host_env`), default :8301. Deviation on record: editor→Law Agent directly (hub-and-spoke says via the
+  Orchestrator) until the Orchestrator session adds a question door — then this adapter becomes that door's client.
 - 2026-10-08 `39c4b8dd` `run_results/parse.py` reads more of each agent's answer, keyed to the agents' own code
   (SiteContextAgent `facts.py` SITE_KEYS, Lawagent ordinance receipt): site `facts[]` {key, confidence, source, as_of,
   summary} from `state_patch` (a cut answer keeps the first facts); law `ground_capacity_m2`, `far_capacity_m2`, `zones`,

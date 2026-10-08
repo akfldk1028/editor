@@ -2,6 +2,15 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `14778a6f` Composer live → Law Agent (user: "lawagent가 있는데 조례 다 볼 수 있잖아", "메시지도
+  계속 입력되게"). `POST /api/v1/platform/ask` {text, pnu?, assessment_date?} → backend picks `law_ordinance` (조례 이름+조)
+  or `law_search` and returns `AskAnswer` (types.ts). Frontend: proxy allowlist `ask`; `api.askLaw`; `site-context.ts`
+  (the conversation's site, set on save) so 관련 법규 보기 opens its 조문; `useAsk` (one at a time, user bubble →
+  "Law Agent에게 묻는 중" → Law Agent turn with `links` card: law (kind) article + passage ≤220 chars, or the ordinance with
+  its law.go.kr edition + article text; 503 → 시스템 보기). Composer: Enter sends, maxLength 500. Live: search 0.5 s, ordinance
+  2 s. Open: the hop is editor→Law Agent directly until the Orchestrator exposes a question door (request filed);
+  answers are not kept across reloads (feed is memory); the 요약 tab still says 미확정 for split-zoned parcels
+  (editor calculator) while the Law Agent run gives weighted caps — next: show the Law Agent's cap there.
 - 2026-10-08 `39c4b8dd` Per-agent detail from the agents' own code (user: "INTERFACE도 디테일하게 각 AGENT
   코드 보고"). Read: SiteContextAgent `facts.py` (SITE_KEYS 8, CONFIDENCE 4, BLOCKS_SITING boundary/roads/north),
   Lawagent `district_plan_review.py` (categories), live 683 run (Law whole). Backend parser gained site `facts[]`, law
