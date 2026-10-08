@@ -143,6 +143,35 @@ def merged_outline(geometries):
     return mapping(utm_to_wgs84(unary_union(present).buffer(-TOUCH_TOLERANCE_M / 2)))
 
 
+outline_cache = FactsCache()
+
+
+async def site_outlines(services, pnus):
+    """Outlines (and their merged boundary) of an already described site, for redrawing a saved one.
+
+    The saved record keeps the facts, so only outlines are asked again: one lookup per parcel not
+    in memory, bounded by the site size itself (MAX_PARCELS, checked by the caller).
+    """
+    known = {}
+    for pnu in pnus:
+        facts = facts_cache.get(pnu)
+        known[pnu] = facts['geometry'] if facts else outline_cache.get(pnu)
+    missing = [pnu for pnu, geometry in known.items() if geometry is None]
+    gate = asyncio.Semaphore(_CONCURRENCY)
+
+    async def fetch(pnu):
+        async with gate:
+            answer = await services.addresses.fetch_parcel_geometry(pnu)
+        geometry = answer.get('geometry') if answer.get('success') is True else None
+        if geometry:
+            outline_cache.put(pnu, geometry)
+        return geometry
+
+    known.update(zip(missing, await asyncio.gather(*(fetch(pnu) for pnu in missing))))
+    geometries = [known[pnu] for pnu in pnus]
+    return {'geometries': dict(known), 'outline': merged_outline(geometries)}
+
+
 async def describe_site(services, picks, label=''):
     try:
         local = services.local_repository()

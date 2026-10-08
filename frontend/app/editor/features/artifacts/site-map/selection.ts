@@ -79,6 +79,11 @@ export function previewSite(picks: readonly Pick[], signal?: AbortSignal): Promi
   return post<PreviewedSite>('/api/v1/land/selections/preview', picksBody(picks), signal)
 }
 
+/** A saved site's outlines and merged boundary for redrawing; its facts are already in the record. */
+export function siteOutlines(pnus: readonly string[], signal?: AbortSignal): Promise<{ geometries: PreviewedSite['geometries']; outline: PreviewedSite['outline'] }> {
+  return post('/api/v1/land/selections/outlines', { pnus }, signal)
+}
+
 /** Saves the bundle as the site of `scope` (a project id, or `default`). */
 export function saveSite(picks: readonly Pick[], scope: string): Promise<SavedSite> {
   return post<SavedSite>('/api/v1/land/selections', { ...picksBody(picks), scope })

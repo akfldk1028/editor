@@ -34,6 +34,21 @@ class SelectionRequest(BaseModel):
     scope: str = Field(default=DEFAULT_SCOPE, pattern=SCOPE_PATTERN)
 
 
+class OutlinesRequest(BaseModel):
+    model_config = ConfigDict(strict=True, extra='forbid')
+    pnus: list[str] = Field(min_length=1, max_length=1000)
+
+
+def check_pnus(body: OutlinesRequest) -> list[str]:
+    """Normalized PNUs of a saved site; ValueError for a bad, repeated or excess PNU."""
+    if len(body.pnus) > MAX_PARCELS:
+        raise ValueError(f'A site holds at most {MAX_PARCELS} parcels')
+    pnus = [normalize_pnu(pnu) for pnu in body.pnus]
+    if len(set(pnus)) != len(pnus):
+        raise ValueError('Each parcel may appear once')
+    return pnus
+
+
 def check_parcels(body: SelectionRequest) -> list[dict]:
     """The picks in the user's order with normalized PNUs; ValueError for a bad, repeated or excess PNU."""
     if len(body.parcels) > MAX_PARCELS:

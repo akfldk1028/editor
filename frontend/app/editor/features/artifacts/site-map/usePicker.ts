@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import type { LngLat, MapEngine, MapPointer, ParcelSet } from './engine'
 import { boundsCenter, lotLabel, parcelBounds, parcelRings, type ParcelLook } from './layers/parcelOutline'
 import { ParcelCache } from './parcelCache'
-import { NoParcelError, nextPicks, parcelAt, previewSite, saveSite, savedPicks, type Pick, type SavedSite, type SiteBundle } from './selection'
+import { NoParcelError, nextPicks, parcelAt, previewSite, saveSite, savedPicks, siteOutlines, type Pick, type SavedSite, type SiteBundle } from './selection'
 import type { CardState } from './SiteCard'
 
 /** A second plain click this soon is the tail of a double click and is ignored (double-click zoom is off); Shift-clicks always count. */
@@ -215,8 +215,9 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
   }, [draw])
 
   /**
-   * The saved site, redrawn from its PNUs (outlines are fetched again; none were stored). A pick made
-   * while the outlines load wins: the answer then only becomes the baseline, nothing is drawn or fitted.
+   * The saved site, redrawn from its PNUs: the card shows the saved facts at once and only outlines are
+   * fetched again (none were stored). A pick made while the outlines load wins: the answer then only
+   * becomes the baseline, nothing is drawn or fitted.
    */
   const restore = useCallback(async (saved: SavedSite) => {
     const picks = savedPicks(saved)
@@ -225,8 +226,8 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
     restoring.current?.abort()
     const controller = new AbortController()
     restoring.current = controller
-    const preview = await previewSite(picks, controller.signal)
-    baseline.current = drawing(cache.current, picks, preview.geometries, preview.outline, 'saved', saved)
+    const shapes = await siteOutlines(picks.map((pick) => pick.pnu), controller.signal)
+    baseline.current = drawing(cache.current, picks, shapes.geometries, shapes.outline, 'saved', saved)
     if (generation !== state.current.generation) return
     draw(baseline.current, true)
   }, [draw])

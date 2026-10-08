@@ -32,8 +32,10 @@ def pick(pnu):
 @pytest.fixture(autouse=True)
 def empty_facts_cache():
     selection_facts.facts_cache.clear()
+    selection_facts.outline_cache.clear()
     yield
     selection_facts.facts_cache.clear()
+    selection_facts.outline_cache.clear()
 
 
 class Addresses:
@@ -265,3 +267,37 @@ def test_bad_scope_is_422(tmp_path, scope):
     assert api.post('/api/v1/land/selections', json=body(A, scope=scope)).status_code == 422
     assert api.get('/api/v1/land/selections/latest', params={'scope': scope}).status_code == 422
     assert api.get('/api/v1/land/selections').json() == {'selections': []}
+
+
+def test_redrawing_a_saved_site_asks_outlines_only_and_remembers_them(tmp_path):
+    addresses, attributes = Addresses(), Attributes()
+    api = client(tmp_path, addresses, attributes)
+    drawn = api.post('/api/v1/land/selections/outlines', json={'pnus': [A, B]}, headers={'Origin': ORIGIN}).json()
+    assert set(drawn['geometries']) == {A, B} and drawn['outline']['type'] in ('Polygon', 'MultiPolygon')
+    assert sorted(addresses.outlines) == sorted([A, B]) and attributes.fetched == [] and addresses.calls == 0
+    again = api.post('/api/v1/land/selections/outlines', json={'pnus': [A, B]}).json()
+    assert again == drawn and len(addresses.outlines) == 2
+
+
+def test_outlines_reuse_facts_already_described(tmp_path):
+    addresses = Addresses()
+    api = client(tmp_path, addresses)
+    api.post('/api/v1/land/selections/preview', json=body(A, B))
+    api.post('/api/v1/land/selections/outlines', json={'pnus': [A, B]})
+    assert sorted(addresses.outlines) == sorted([A, B])
+
+
+def test_outlines_of_a_full_site_are_not_capped_by_the_preview_budget(tmp_path, monkeypatch):
+    monkeypatch.setattr(selection_facts, 'MAX_UPSTREAM_PER_REQUEST', 1)
+    api = client(tmp_path)
+    assert api.post('/api/v1/land/selections/outlines', json={'pnus': [A, B, FAR]}).status_code == 200
+
+
+def test_outlines_reject_bad_repeated_too_many_and_cross_origin(tmp_path):
+    api = client(tmp_path)
+    assert api.post('/api/v1/land/selections/outlines', json={'pnus': ['123']}).status_code == 400
+    assert api.post('/api/v1/land/selections/outlines', json={'pnus': [A, A]}).status_code == 400
+    many = [f'41150113001{index:08d}' for index in range(51)]
+    assert api.post('/api/v1/land/selections/outlines', json={'pnus': many}).status_code == 400
+    assert api.post('/api/v1/land/selections/outlines', json={'pnus': [A]},
+                    headers={'Origin': 'https://other.test'}).status_code == 403

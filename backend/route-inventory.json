@@ -553,6 +553,11 @@
   {
    "method": "POST",
    "owner": "fastapi",
+   "path": "/api/v1/land/selections/outlines"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
    "path": "/api/v1/land/selections/preview"
   },
   {

@@ -3,9 +3,9 @@ import sqlite3
 from fastapi import APIRouter, HTTPException, Query, Request
 from starlette.concurrency import run_in_threadpool
 
-from backend.app.modules.land.selection_facts import UpstreamBudgetExceeded, describe_site
-from backend.app.modules.land.selections import (DEFAULT_SCOPE, SCOPE_PATTERN, SelectionRequest, check_parcels,
-                                                 list_selections, save_selection)
+from backend.app.modules.land.selection_facts import UpstreamBudgetExceeded, describe_site, site_outlines
+from backend.app.modules.land.selections import (DEFAULT_SCOPE, SCOPE_PATTERN, OutlinesRequest, SelectionRequest,
+                                                 check_parcels, check_pnus, list_selections, save_selection)
 
 
 def create_land_selections_router(services, check_origin) -> APIRouter:
@@ -13,7 +13,8 @@ def create_land_selections_router(services, check_origin) -> APIRouter:
 
     POST /selections/preview describes a bundle with outlines for drawing (nothing stored);
     POST /selections describes and saves it under `scope` (no geometry); GET lists newest first;
-    /latest?scope= is the current one of that scope (a project id, or `default`).
+    /latest?scope= is the current one of that scope (a project id, or `default`);
+    POST /selections/outlines redraws a saved site: outlines only, its facts are already in the record.
     """
     router = APIRouter(tags=['land'])
 
@@ -40,6 +41,15 @@ def create_land_selections_router(services, check_origin) -> APIRouter:
     async def preview(body: SelectionRequest, request: Request):
         check_origin(request)
         return await described(body)
+
+    @router.post('/selections/outlines')
+    async def outlines(body: OutlinesRequest, request: Request):
+        check_origin(request)
+        try:
+            pnus = check_pnus(body)
+        except ValueError as error:
+            raise HTTPException(400, str(error)) from None
+        return await site_outlines(services, pnus)
 
     @router.post('/selections')
     async def create(body: SelectionRequest, request: Request):
