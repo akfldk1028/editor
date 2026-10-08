@@ -2,6 +2,14 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `aa50c6fa` Agents in English with their own marks; the user drives. `agentLabel` →
+  Orchestrator / Site / Law / Revision / MasterPlan … Agent (bodies Korean). `shell/conversation/agentMarks.tsx`: icon per
+  agent + tint by `data-agent` (Orchestrator = accent). Selecting a site posts the Orchestrator's question "<site> 대지가
+  준비됐어요. 무엇을 할까요?" [법규·한계 검토 시작 | 대지 정보 보기 | 법규 요약 보기] — nothing runs until the user
+  answers. 검토 시작 is a `command` (`lib/orchestrator-runs/commands.ts`: one-slot bus, a command waits for its owner to
+  mount; `conversation/act.ts` opens site-map when nobody listens); `useSiteRun` runs it or answers why not (project not
+  chosen / bad date) with the same button again. Verified live on 683 (run 55e92636). Open: a prompt is dismissed on any
+  answer, so the error line re-offers the button; after a reload the thread is empty though the card shows 선택됨.
 - 2026-10-08 `978965ec` Centre column = agent conversation, multi-agent (user: "대지 고르면 오케스트라에서 LAW로 뜨는
   대화창에 그게 떠야 해, ChatGPT나 Claude처럼" + "멀티에이전트니까 설계 잘해야"). Feed entries carry `agent`
   (`site_context` / `law` / `revision` / `orchestrator`; kind `user` for the user's own lines). `thread.ts` folds
