@@ -290,3 +290,12 @@ be told to the Orchestrator session.
   (CLI start + long answers) — the Orchestrator's own door should run this ledger over its live A2A cards and own the
   latency. Live 684-1: greeting / 켜진 에이전트 answered directly; 이격 질문 → limits with an instruction to Site;
   "매스 쌓아 봐" → explains the missing brief and the agents that are off, asks.
+- 2026-10-09 (activation step 1, user "하나씩"): **agents are brought up at the call, not by hand.** `infra/host/cli.mjs ensure
+  <ids> --json` = start + `ensure.mjs::waitHealthy` (parallel probes until every id answers or the deadline); backend
+  `modules/platform/host.py::ensure` runs it and `POST /platform/host/ensure {agents, timeout_s}` (same-origin) answers
+  `{requested, up, failed[{agent,error}], waited_s}` in agent ids (site_context ↔ site-context). Research in memory
+  `agent-activation-research` (Dapr virtual actors, AutoGen factory, KEDA interceptor, OTP supervisor). Live: masterplan
+  11 s, program/domain_expert ~40 s; **MassAgent's `scripts/serve-a2a.sh` launches server.py with the port unexpanded
+  (`--port '${MASS_A2A_PORT:-18331}'` → "invalid int value")** so the host restarts it in a loop — agents/*, Orchestrator
+  session's fix; `host:stop mass` ends the loop. Next steps: 2 = conversation calls ensure before a goal whose owners are
+  down ("켜고 시작"), 3 = idle stop policy in the host.
