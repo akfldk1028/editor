@@ -7,7 +7,7 @@ import type { RunConditions } from '@/lib/orchestrator-runs/conditions'
 import type { FeedAction, FeedCard, FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
 import { agentForTool, agentLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from '@/lib/orchestrator-runs/labels'
 import { failureText, type RunFailure } from '@/lib/orchestrator-runs/submit'
-import type { Communication, OrchestratorConnection, RunResults, RunSummary } from '@/lib/orchestrator-runs/types'
+import type { Capabilities, Communication, OrchestratorConnection, RunResults, RunSummary } from '@/lib/orchestrator-runs/types'
 import { fmt } from '@/lib/orchestrator-runs/format'
 import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
 
@@ -26,20 +26,24 @@ export function selectedLine(site: SelectedSite): string {
 }
 
 /**
- * Once the site is saved and the Orchestrator answers: it asks what to do, and the user chooses —
- * 법규·한계 검토 시작 (a command the site card carries out), 대지 정보 보기, 법규 요약 보기.
+ * Once the site is saved and the Orchestrator answers: it asks what to do, and the user chooses.
+ * The choices are derived from the goal catalog — one "<goal> 시작" command per goal the door takes
+ * and the catalog offers — then 대지 정보 보기 and, when the conversation can ask Law, 법규 요약 보기.
  */
-export function selectedPrompt(site: SelectedSite): FeedInput {
+export function selectedPrompt(site: SelectedSite, capabilities: Capabilities): FeedInput {
   const first = site.parcels[0]!
   const target = { pnu: first.pnu, ...(first.address || site.label ? { address: first.address || site.label } : {}) }
+  const starts: FeedAction[] = capabilities.goals
+    .filter((goal) => goal.available && goal.offer)
+    .map((goal) => ({ label: `${goal.label} 시작`, command: { kind: 'start-review', goal: goal.id } }))
   return {
     kind: 'prompt',
     agent: ORCHESTRATOR,
     text: `${site.label} — 무엇을 할까요?`,
     actions: [
-      { label: '법규·한계 검토 시작', command: { kind: 'start-review', goal: 'limits' } },
+      ...starts,
       { label: '대지 정보 보기', artifact: 'site-map' },
-      { label: '법규 요약 보기', artifact: 'law', params: { ...target, tab: 'summary' } },
+      ...(capabilities.conversation.law_analysis ? [{ label: '법규 요약 보기', artifact: 'law', params: { ...target, tab: 'summary' } }] : []),
     ],
   }
 }

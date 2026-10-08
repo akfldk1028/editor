@@ -23,6 +23,9 @@ export type RunPhase =
 
 export type Projects = { kind: 'loading' } | { kind: 'error'; text: string } | ProjectChoice
 
+/** The one goal the site card submits (`siteRunRequest`). */
+const SITE_GOAL = 'limits'
+
 /**
  * 검토 시작 for a saved site: pick the project binding and the 조건 (기준일, 용도), submit
  * `{goal: limits, pnu, parcels, assessment_date, building_type?}` through the editor door with a
@@ -97,6 +100,11 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
   // The conversation's 법규·한계 검토 시작 answer lands here; what the card cannot do yet, it says so.
   useEffect(() => onCommand((command) => {
     if (command.kind !== 'start-review') return
+    if (command.goal !== SITE_GOAL) {
+      // The card submits `limits` only; another goal the catalog offers needs its own door first (fail closed).
+      postFeed({ kind: 'error', agent: 'orchestrator', text: `'${command.goal}' 목표는 아직 대지 카드에서 보낼 수 없어요` })
+      return
+    }
     if (chosen && ready) {
       void start()
       return

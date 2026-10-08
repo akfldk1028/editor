@@ -3,7 +3,8 @@
  * do it listens (`onCommand`); a command sent while nobody listens waits for the next listener, so
  * opening the artifact that owns the action is enough to have it carried out.
  */
-export type Command = { kind: 'start-review'; goal: 'limits' }
+/** `goal` is a catalog id (`lib/goals`); the owning slice refuses one the door does not take. */
+export type Command = { kind: 'start-review'; goal: string }
 
 type Listener = (command: Command) => void
 

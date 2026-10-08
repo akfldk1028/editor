@@ -225,6 +225,26 @@ export interface LandAnalysisAnswer {
   summary: LandAnalysisSummary
 }
 
+/** One goal the product can ask the Orchestrator for (`GET /platform/capabilities`). */
+export interface Goal {
+  id: string
+  label: string
+  /** The owner sequence the Orchestrator's flow walks, in order. */
+  owners: string[]
+  inputs: string[]
+  optional: string[]
+  /** The editor door accepts it today. */
+  available: boolean
+  /** The conversation shows it as a choice after a site is selected (when also available). */
+  offer: boolean
+}
+
+export interface Capabilities {
+  goals: Goal[]
+  conversation: { ask: boolean; law_analysis: boolean }
+  source: string
+}
+
 /** The Orchestrator row of `GET /platform/status`, reduced to what a feed line needs. */
 export interface OrchestratorConnection {
   state: 'up' | 'down' | 'invalid'

@@ -683,6 +683,11 @@
   {
    "method": "GET",
    "owner": "fastapi",
+   "path": "/api/v1/platform/capabilities"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
    "path": "/api/v1/platform/health"
   },
   {

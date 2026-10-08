@@ -5,7 +5,9 @@
  */
 import type {
   AskAnswer,
+  Capabilities,
   Communications,
+  Goal,
   OrchestratorConnection,
   ProjectBinding,
   RunContext,
@@ -177,6 +179,17 @@ export function submitHealth(projectId: string, context: RunContext, key: string
 }
 
 /** Is the Orchestrator reachable, and how many of the registered agents are up (`GET /platform/status`). */
+/** The goal catalog (`GET /platform/capabilities`): what the conversation may offer and what the door takes. */
+export async function getCapabilities(signal?: AbortSignal): Promise<Capabilities> {
+  const value = (await request('/capabilities', { signal })) as Partial<Capabilities>
+  const goals = Array.isArray(value.goals) ? value.goals.filter((goal): goal is Goal => typeof goal?.id === 'string' && typeof goal?.label === 'string') : []
+  return {
+    goals: goals.map((goal) => ({ ...goal, owners: goal.owners ?? [], inputs: goal.inputs ?? [], optional: goal.optional ?? [], available: goal.available === true, offer: goal.offer === true })),
+    conversation: { ask: value.conversation?.ask === true, law_analysis: value.conversation?.law_analysis === true },
+    source: typeof value.source === 'string' ? value.source : '',
+  }
+}
+
 /** A typed question for the Law Agent (`POST /platform/ask`); the backend picks the tool and shapes the answer. */
 export async function askLaw(body: { text: string; pnu?: string; assessment_date?: string }, signal?: AbortSignal): Promise<AskAnswer> {
   return (await request('/ask', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })) as AskAnswer

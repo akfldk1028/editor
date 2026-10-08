@@ -4,6 +4,8 @@ import {
   answerLine, askFailedLine, askLines, connectionLine, evidenceCard, landAnalysisLine, landAnalysisLines, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine,
   requestingLines, resultLine, resultPrompt, revisionLine, selectedLine, selectedPrompt, siteFactsLine, stepChanges, stepState, submittedLine,
 } from './feed-lines'
+import { FALLBACK } from '@/lib/goals'
+
 import type { AskAnswer, LandAnalysisAnswer } from './types'
 import { FAST_WINDOW_MS, POLL_FAST_MS, POLL_MS, pollInterval } from './poll'
 import type { Communication, RunResults } from './types'
@@ -46,7 +48,7 @@ test('the selection line names the site, its parcel count and area', () => {
 })
 
 test('after the selection the Orchestrator asks what to do; the user chooses — review is a command, the rest open artifacts', () => {
-  const prompt = selectedPrompt({ label: '산곡동 684-1', parcels: [p1], total_area_m2: 2500 })
+  const prompt = selectedPrompt({ label: '산곡동 684-1', parcels: [p1], total_area_m2: 2500 }, FALLBACK)
   expect(prompt.kind).toBe('prompt')
   expect(prompt.agent).toBe('orchestrator')
   expect(prompt.text).toBe('산곡동 684-1 — 무엇을 할까요?')
@@ -56,7 +58,11 @@ test('after the selection the Orchestrator asks what to do; the user chooses —
     { label: '법규 요약 보기', artifact: 'law', params: { pnu: p1.pnu, address: p1.address, tab: 'summary' } },
   ])
   // A parcel without an address falls back to the site label.
-  expect(selectedPrompt({ label: '684-3', parcels: [p2], total_area_m2: null }).actions?.[2]?.params).toEqual({ pnu: p2.pnu, address: '684-3', tab: 'summary' })
+  expect(selectedPrompt({ label: '684-3', parcels: [p2], total_area_m2: null }, FALLBACK).actions?.[2]?.params).toEqual({ pnu: p2.pnu, address: '684-3', tab: 'summary' })
+  // The choices are derived from the catalog: an opened goal becomes a button, an unopened one does not, 법규 요약 only when the conversation can ask Law.
+  const wider = { ...FALLBACK, goals: [...FALLBACK.goals, { id: 'mass', label: '매스 생성', owners: ['mass'], inputs: [], optional: [], available: true, offer: true },
+    { id: 'elevation', label: '입면 설계', owners: ['elevation'], inputs: [], optional: [], available: false, offer: true }], conversation: { ask: true, law_analysis: false } }
+  expect(selectedPrompt({ label: '684-3', parcels: [p2], total_area_m2: null }, wider).actions?.map((action) => action.label)).toEqual(['법규·한계 검토 시작', '매스 생성 시작', '대지 정보 보기'])
 })
 
 test('the connection line counts agents when up and offers 시스템 보기 when not', () => {
