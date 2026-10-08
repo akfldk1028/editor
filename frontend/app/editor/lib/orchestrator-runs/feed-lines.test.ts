@@ -48,7 +48,7 @@ test('after the selection the Orchestrator asks what to do; the user chooses —
   const prompt = selectedPrompt({ label: '산곡동 684-1', parcels: [p1], total_area_m2: 2500 })
   expect(prompt.kind).toBe('prompt')
   expect(prompt.agent).toBe('orchestrator')
-  expect(prompt.text).toBe('산곡동 684-1 대지가 준비됐어요. 무엇을 할까요?')
+  expect(prompt.text).toBe('산곡동 684-1 — 무엇을 할까요?')
   expect(prompt.actions).toEqual([
     { label: '법규·한계 검토 시작', command: { kind: 'start-review', goal: 'limits' } },
     { label: '대지 정보 보기', artifact: 'site-map' },
@@ -59,22 +59,22 @@ test('after the selection the Orchestrator asks what to do; the user chooses —
 })
 
 test('the connection line counts agents when up and offers 시스템 보기 when not', () => {
-  expect(connectionLine({ state: 'up', agentsUp: 15, agentsTotal: 15 })).toEqual({ kind: 'system', agent: 'orchestrator', text: '오케스트레이터 연결됨 · 에이전트 15/15' })
+  expect(connectionLine({ state: 'up', agentsUp: 15, agentsTotal: 15 })).toEqual({ kind: 'system', agent: 'orchestrator', text: 'Orchestrator Agent 연결됨 · 에이전트 15/15' })
   const down = connectionLine({ state: 'down', agentsUp: 0, agentsTotal: 15 })
   expect(down.kind).toBe('error')
   expect(down.agent).toBe('orchestrator')
-  expect(down.text).toBe('오케스트레이터에 연결할 수 없어요')
+  expect(down.text).toBe('Orchestrator Agent에 연결할 수 없어요')
   expect(down.actions).toEqual([{ label: '시스템 보기', artifact: 'system' }])
 })
 
 test("the click answers at once: the user's bubble with the 조건 and the Orchestrator's busy line; a failure line names 시스템 보기 only when it is off", () => {
   expect(requestingLines('경기도 의정부시 산곡동 684-1', { assessmentDate: '2026-10-08', buildingType: '업무시설' })).toEqual([
     { kind: 'user', text: '검토 시작 · 경기도 의정부시 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설' },
-    { kind: 'progress', agent: 'orchestrator', tone: 'busy', text: '검토 요청을 전달하는 중' },
+    { kind: 'progress', agent: 'orchestrator', tone: 'busy', text: '요청 보내는 중' },
   ])
   expect(requestingLines('684-1', { assessmentDate: '2026-10-08', buildingType: ' ' })[0]!.text).toBe('검토 시작 · 684-1 · 기준일 2026-10-08')
   expect(requestFailedLine({ kind: 'unavailable' })).toEqual({
-    kind: 'error', agent: 'orchestrator', text: '검토 요청 실패 — 오케스트레이터에 연결할 수 없어요 — 켜진 뒤 다시 시도', actions: [{ label: '시스템 보기', artifact: 'system' }],
+    kind: 'error', agent: 'orchestrator', text: '검토 요청 실패 — Orchestrator Agent에 연결할 수 없어요 — 켜진 뒤 다시 시도', actions: [{ label: '시스템 보기', artifact: 'system' }],
   })
   expect(requestFailedLine({ kind: 'rejected', text: '요청이 거절됐어요 (400) — x' })).toEqual({ kind: 'error', agent: 'orchestrator', text: '검토 요청 실패 — 요청이 거절됐어요 (400) — x' })
 })

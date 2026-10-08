@@ -34,7 +34,7 @@ export function selectedPrompt(site: SelectedSite): FeedInput {
   return {
     kind: 'prompt',
     agent: ORCHESTRATOR,
-    text: `${site.label} 대지가 준비됐어요. 무엇을 할까요?`,
+    text: `${site.label} — 무엇을 할까요?`,
     actions: [
       { label: '법규·한계 검토 시작', command: { kind: 'start-review', goal: 'limits' } },
       { label: '대지 정보 보기', artifact: 'site-map' },
@@ -44,11 +44,11 @@ export function selectedPrompt(site: SelectedSite): FeedInput {
 }
 
 export function connectionLine(connection: OrchestratorConnection): FeedInput {
-  if (connection.state === 'up') return { kind: 'system', agent: ORCHESTRATOR, text: `오케스트레이터 연결됨 · 에이전트 ${connection.agentsUp}/${connection.agentsTotal}` }
+  if (connection.state === 'up') return { kind: 'system', agent: ORCHESTRATOR, text: `Orchestrator Agent 연결됨 · 에이전트 ${connection.agentsUp}/${connection.agentsTotal}` }
   return {
     kind: 'error',
     agent: ORCHESTRATOR,
-    text: connection.state === 'invalid' ? '오케스트레이터 응답 형식이 맞지 않아요' : '오케스트레이터에 연결할 수 없어요',
+    text: connection.state === 'invalid' ? 'Orchestrator Agent 응답 형식이 맞지 않아요' : 'Orchestrator Agent에 연결할 수 없어요',
     actions: [{ label: '시스템 보기', artifact: 'system' }],
   }
 }
@@ -61,7 +61,7 @@ export function requestingLines(label: string, conditions: Pick<RunConditions, '
   const use = conditions.buildingType.trim()
   return [
     { kind: 'user', text: `검토 시작 · ${label} · 기준일 ${conditions.assessmentDate}${use ? ` · 용도 ${use}` : ''}` },
-    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: '검토 요청을 전달하는 중' },
+    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: '요청 보내는 중' },
   ]
 }
 

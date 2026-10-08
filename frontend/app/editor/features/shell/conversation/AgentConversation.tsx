@@ -65,8 +65,8 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
         {turns.length === 0 ? (
           <div className="agent-thread-empty">
             <Workflow aria-hidden="true" size={28} />
-            <strong>대지를 선택하면 Orchestrator Agent가 묻습니다</strong>
-            <span>지도에서 필지를 고르고 <b>이 대지로 선택</b>을 누르면, 무엇을 할지 여기서 고를 수 있어요 — 법규·한계 검토, 대지 정보, 법규 요약.</span>
+            <strong>무엇을 도와드릴까요?</strong>
+            <span>지도에서 대지를 고르면 시작돼요.</span>
           </div>
         ) : (
           turns.map((turn) => <TurnView key={turnKey(turn)} shell={shell} turn={turn} />)
@@ -74,7 +74,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
         <div ref={endRef} />
       </div>
       <form className="agent-composer" onSubmit={(event) => event.preventDefault()}>
-        <input aria-label="에이전트에게 보낼 말" disabled placeholder="에이전트에게 말하기 — 다음 단계에서 연결돼요" type="text" />
+        <input aria-label="메시지" disabled placeholder="메시지를 입력하세요 — 곧 연결돼요" type="text" />
         <button aria-label="보내기" className="agent-composer-send" disabled type="submit"><Send size={15} /></button>
       </form>
     </section>

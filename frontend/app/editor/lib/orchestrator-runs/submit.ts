@@ -44,7 +44,7 @@ export function describeFailure(error: unknown): RunFailure {
 }
 
 export const failureText = (failure: RunFailure) =>
-  failure.kind === 'unavailable' ? '오케스트레이터에 연결할 수 없어요 — 켜진 뒤 다시 시도' : failure.text
+  failure.kind === 'unavailable' ? 'Orchestrator Agent에 연결할 수 없어요 — 켜진 뒤 다시 시도' : failure.text
 
 const REASONS: Record<string, string> = {
   'Request identity or source version conflict': '같은 키로 다른 내용이 접수됐거나 장면·원본 버전이 바뀌었어요. 다시 시도하면 새 키로 보내요.',
