@@ -2,6 +2,12 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `2055f327` Relay diagram + agents only (user: "자체 계산은 없어 … agent 배분", "도식화 로딩",
+  "avatar 전부 따로"). `feed.ts` `relay: {from, to}` on busy lines (user→orchestrator on 검토 시작, orchestrator→agent per
+  step / question / 법규 요약); `AgentConversation` `RelayView` draws marks + travelling dots + request text, dismissed
+  with the answer. Marks 30 px, `user` mark added. 요약 tab: `capStat` no longer notes the lookup's 미확정 beside the
+  Law Agent's cap; `restrictionsWith` replaces the lookup's "상한 미확정" line with the Law Agent's caps. The lookup's
+  own verdict shows only when the Law Agent sent no number.
 - 2026-10-08 `b894aee4` 법규 요약 = Law Agent's analysis (user: "미확정이 말이 되나 — law agent 호출인데").
   Law slice `api/analyze.ts` → `POST /platform/law-analysis` (backend asks `law_land_analyze` full+include_law and
   `law_parcel_limits` over A2A); `useLawAnalysis` posts 법규 요약 bubble → "Law Agent에게 법규 분석 요청 중" → Law Agent
