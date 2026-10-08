@@ -2,6 +2,9 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `9bd8d015` site-map slice in FSD segments: manifest / ui/ / model/ / api/ (only place with /api/v1
+  literals: selection.ts, mapConfig.ts) / lib/ (picks.ts types+pure, site-run.ts, engine/, layers/). Run panel
+  gets `shell` and shows 시스템 보기 when the Orchestrator is unavailable. Rule for every artifact slice.
 - 2026-10-08 `1ce68ad9` artifact `system` (features/artifacts/system/{manifest,api,model,lib,ui}): service/agent
   status table from /platform/status, Korean down-hints, 다시 확인 = ?refresh=1. First slice written in the FSD
   segment layout; site-map still to be reorganised (P5). Run panel lacks a 시스템 보기 link (needs shell prop).

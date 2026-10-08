@@ -35,3 +35,8 @@ take siblings there. Upstream Pascal (`frontend/components`, `frontend/elements`
 `/dwg` = the product shell (`features/shell`): sidebar | conversation | artifact panel. Every feature is an
 artifact module in `features/artifacts/<id>/` registered in `features/shell/registry.ts` (default `site-map`,
 then `cad`). See 05-decisions 2026-10-07.
+
+## Artifact slice layout (2026-10-08, FSD)
+`features/artifacts/<id>/` = `manifest.ts` + `ui/` (components + css) + `model/` (hooks, state) + `api/` (backend
+calls; URL literals only here; register in lib/api-surface.test.ts) + `lib/` (pure; `engine/`, `layers/` allowed).
+Slices never import each other — only `features/shell/artifact-types.ts` and shared `lib/`. Examples: site-map, system.
