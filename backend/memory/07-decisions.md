@@ -3,6 +3,15 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 P2 `6c746035` `modules/platform/goals.py` + `GET /api/v1/platform/capabilities`: the goal catalog (id, label,
+  owner sequence, inputs, `available` = editor door takes it — health/limits/specialist_review restated from
+  orchestrator/editor_runs.py — and `offer`); unopened flows (program, masterplan, mass, elevation) listed unavailable.
+  P3 `bbbd7d13`: `modules/platform/routing/` package — `rules.py`, `roles/<agent>.py` (law/site/masterplan/mass/program/
+  elevation: patterns + keywords from the A2A card skills), `route(text, assessment_date, role)` → Route kind skill|goal|ask
+  (pattern ≥0.9 → keyword winner 0.7 → tie/none asks 0.3; picked role 0.9). `ask_law` answers all three kinds in one shape
+  (`answer` for skill, `handoff` for goal, `route.choices` for ask); `AskCreate.role`. Golden set
+  `tests/fixtures/routing/golden.json` (30; wrong role = failure, ask allowed; 29/30). Hand-over shape for the Orchestrator
+  question door (memory §11).
 - 2026-10-08 `a7689389` `modules/platform/routing.py` — the interim question router as a rule table
   (`RULES`: law_ordinance 0.95 → law_article 0.9 → law_search 0.6 default; each `Route` = agent, skill, args, confidence,
   reason; `to_dict()` rides on `/platform/ask` as `route`). Shape = what the Orchestrator's question door should return

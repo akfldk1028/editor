@@ -2,6 +2,14 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 P2 `6c746035` + P3 `bbbd7d13`: goal catalog and role routing in the conversation. `lib/goals/` loads
+  `GET /platform/capabilities` once (fallback = limits); `selectedPrompt(site, capabilities)` derives "<goal> 시작" buttons —
+  no button spelled in a component; `Command` = `start-review {goal}` | `ask {text, role}`; the site card refuses a goal
+  other than `limits` (fail closed). `/platform/ask` now returns `route {kind: skill|goal|ask, agent, skill, goal,
+  confidence, reason, choices}` + `answer` | `handoff`; `askLines(text, role)` draws user ⟶ Orchestrator ("담당을 고르는
+  중") or Orchestrator ⟶ picked role; `handoffLine` (open goal → start prompt; closed → "아직 열리지 않았어요" with the
+  owners) and `askRolePrompt` (roles as buttons that re-ask with `role`) live in `lib/agents/law/lib/lines.ts` (to move to
+  the orchestrator folder with P4). `useAsk.send(text, role)` + subscribes to `ask` commands.
 - 2026-10-08 `e90216a8` P1 of plan `role-routing-and-agent-entities-20261008`: `lib/agents/<id>/` one folder per party
   (18: 16 agents + orchestrator + user) — `model/spec.ts` (id, English name, aliases, tools+labels), `ui/mark.tsx` (icon,
   tint), `lib/lines.ts` where it has turns (orchestrator, site, law, revision; moved from orchestrator-runs/lines).
