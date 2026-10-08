@@ -3,6 +3,10 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `a7689389` `modules/platform/routing.py` — the interim question router as a rule table
+  (`RULES`: law_ordinance 0.95 → law_article 0.9 → law_search 0.6 default; each `Route` = agent, skill, args, confidence,
+  reason; `to_dict()` rides on `/platform/ask` as `route`). Shape = what the Orchestrator's question door should return
+  (memory `multi-agent-routing-research`). `ask.plan` now delegates to it.
 - 2026-10-08 `b894aee4` `POST /api/v1/platform/law-analysis` — the law artifact's analysis from the Law
   Agent: `modules/platform/ask.analyze_land` gathers `law_land_analyze` (full=True, include_law=True; the `raw` key is
   the ARR-shaped analysis) and `law_parcel_limits` (caps; parsed with `run_results.law_from_response` into the run

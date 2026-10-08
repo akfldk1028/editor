@@ -2,6 +2,13 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `a7689389` Modularity review for 16 agents (user: "모듈화도 되어야, 에이전트가 많거든").
+  `lib/orchestrator-runs/agents.ts` = the one agent table (id, English name, aliases, tools+labels); labels.ts reads it
+  (`toolOwner` by listing, else id prefix); `agentMarks.tsx` icon+tint per canonical id (`--mark` inline; per-agent
+  CSS rules removed). `lib/orchestrator-runs/lines/{shared,orchestrator,site,law,revision}.ts` one module per
+  speaker, `feed-lines.ts` a barrel (importers unchanged); `useRunFeed` DETAILS table tool → detailed line. Adding an
+  agent: one row in agents.ts, one in agentMarks.tsx, a `lines/<id>.ts` + DETAILS row if it has a detailed turn.
+  Routing research → global memory `multi-agent-routing-research`.
 - 2026-10-08 `2055f327` Relay diagram + agents only (user: "자체 계산은 없어 … agent 배분", "도식화 로딩",
   "avatar 전부 따로"). `feed.ts` `relay: {from, to}` on busy lines (user→orchestrator on 검토 시작, orchestrator→agent per
   step / question / 법규 요약); `AgentConversation` `RelayView` draws marks + travelling dots + request text, dismissed
