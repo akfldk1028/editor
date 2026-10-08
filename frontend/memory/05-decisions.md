@@ -2,6 +2,11 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `a978fce0` saved site -> Orchestrator: card shows "검토 시작 (법규·한계)" (site-map/run/: site-run.ts,
+  useSiteRun.ts, SiteRunPanel.tsx); project = shell ?project= else the only binding else select; request
+  {goal:'limits', pnu: parcels[0].pnu} via POST /platform/projects/{id}/runs (Idempotency-Key site-<sel>-<n>),
+  polls /platform/runs/{id} every 3 s; Orchestrator down -> Korean error + retry. Bundles send only the first
+  PNU until Orchestrator accepts `parcels[]` (requested). `agent-dialogue/runs.ts` gained generic submitRun.
 - 2026-10-08 `588ac348` reopening a saved site uses its stored facts + `POST /land/selections/outlines` (outlines only,
   own memory cache, cap = MAX_PARCELS 50) instead of the preview (whose 20-new-PNU budget broke large restores).
 - 2026-10-08 UI/UX review fixes `65c5755d` (site-map+shell) `3a63f1c8` (CAD pkg, Korean labels) `12aa371e` (backend):
