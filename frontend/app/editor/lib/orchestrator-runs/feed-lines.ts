@@ -6,7 +6,7 @@ import {
   shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel,
 } from './labels'
 import { failureText, type RunFailure } from './submit'
-import type { Communication, OrchestratorConnection, RunResults, RunSummary } from './types'
+import type { AskAnswer, Communication, OrchestratorConnection, RunResults, RunSummary } from './types'
 
 const fmt = (value: number, digits: number) => value.toLocaleString('ko-KR', { maximumFractionDigits: digits })
 
@@ -73,6 +73,68 @@ export function requestFailedLine(failure: RunFailure): FeedInput {
     text: `검토 요청 실패 — ${failureText(failure)}`,
     ...(failure.kind === 'unavailable' ? { actions: [{ label: '시스템 보기', artifact: 'system' }] } : {}),
   }
+}
+
+/** The moment a question is sent: the user's bubble and the Orchestrator's busy line naming whom it asks. */
+export function askLines(text: string): FeedInput[] {
+  return [
+    { kind: 'user', text },
+    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', text: 'Law Agent에게 묻는 중' },
+  ]
+}
+
+/** A passage under a link: enough to recognise the clause; the whole text lives in the law artifact. */
+const EXCERPT = 220
+const excerpt = (text: string | null) => (text ? (text.length > EXCERPT ? `${text.slice(0, EXCERPT)}…` : text) : null)
+
+/** Legal-evidence status words of the Law Agent's search/ordinance answers. */
+function evidenceNote(evidence: AskAnswer['answer']['legal_evidence']): string | null {
+  if (!evidence) return null
+  const parts = [
+    evidence.assessment_date ? `기준일 ${evidence.assessment_date}` : null,
+    evidence.currency_status === 'needs_evidence' || evidence.coverage_status === 'needs_evidence' ? '최신성·적용 범위는 확인 필요' : null,
+  ].filter((part): part is string => Boolean(part))
+  return parts.length ? parts.join(' · ') : null
+}
+
+/**
+ * The Law Agent's answer as its turn: statute passages (`law_search`) or an ordinance article
+ * (`law_ordinance`) as link cards, with 관련 법규 보기 when the conversation has a site.
+ */
+export function answerLine(answer: AskAnswer, target: LawTarget | null): FeedInput {
+  const actions: FeedAction[] = target ? [{ label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }] : []
+  const note = evidenceNote(answer.answer.legal_evidence)
+  if (answer.answer.kind === 'ordinance') {
+    const { ordinance, matches } = answer.answer
+    const head = [ordinance.name, matches[0]?.article, matches[0]?.title ? `(${matches[0].title})` : null].filter(Boolean).join(' ')
+    const edition = [ordinance.edition_id ? `판본 ${ordinance.edition_id}` : null, ordinance.effective_date ? `시행 ${ordinance.effective_date}` : null].filter(Boolean).join(' · ')
+    const items = [
+      ...(ordinance.name ? [{ label: `${ordinance.name} — law.go.kr`, ...(ordinance.url ? { href: ordinance.url } : {}), ...(edition ? { note: edition } : {}) }] : []),
+      ...matches.map((match) => ({ label: [match.article, match.title].filter(Boolean).join(' ') || '조문', ...(match.text ? { note: excerpt(match.text)! } : {}) })),
+    ]
+    if (!matches.length) return { kind: 'progress', agent: 'law', tone: 'warn', text: `${ordinance.name ?? '조례'}에서 해당 조문을 찾지 못했어요`, actions }
+    return { kind: 'progress', agent: 'law', tone: 'ok', text: `${head}${note ? ` · ${note}` : ''}`, card: { type: 'links', items }, actions }
+  }
+  const { items, total, degraded } = answer.answer
+  if (!items.length) return { kind: 'progress', agent: 'law', tone: 'warn', text: `'${answer.question}' 관련 조문을 찾지 못했어요`, actions }
+  const laws = [...new Set(items.map((item) => item.law).filter((law): law is string => Boolean(law)))]
+  const text = `'${answer.question}' 관련 조문 ${total}건 — ${laws.slice(0, 3).join(', ')}${laws.length > 3 ? ` 외 ${laws.length - 3}` : ''}${degraded ? ' · 검색 일부 저하' : ''}${note ? ` · ${note}` : ''}`
+  return {
+    kind: 'progress',
+    agent: 'law',
+    tone: 'ok',
+    text,
+    card: { type: 'links', items: items.map((item) => ({ label: [item.law, item.kind ? `(${item.kind})` : null, item.article].filter(Boolean).join(' '), ...(item.text ? { note: excerpt(item.text)! } : {}) })) },
+    actions,
+  }
+}
+
+/** When the question could not be answered: the Law Agent is off (시스템 보기) or refused. */
+export function askFailedLine(status: number | null, detail: string | null): FeedInput {
+  if (status === 503 || status === null) {
+    return { kind: 'error', agent: ORCHESTRATOR, text: 'Law Agent에 연결할 수 없어요 — 켜진 뒤 다시 물어보세요', actions: [{ label: '시스템 보기', artifact: 'system' }] }
+  }
+  return { kind: 'error', agent: ORCHESTRATOR, text: `Law Agent가 답하지 못했어요${detail ? ` — ${detail}` : ''}` }
 }
 
 /** "검토 요청 접수 · run 8c7f6fb7 · trace 4bf92f35" */

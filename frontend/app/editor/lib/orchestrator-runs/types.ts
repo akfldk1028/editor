@@ -166,6 +166,40 @@ export interface RunWithResults extends RunSummary {
   results: RunResults
 }
 
+/** A statute passage the Law Agent's `law_search` found (the :8011 statute graph). */
+export interface LawSearchItem {
+  id: string | null
+  law: string | null
+  /** 법률 · 시행령 · 시행규칙 … */
+  kind: string | null
+  article: string | null
+  text: string | null
+}
+
+export interface LegalEvidence {
+  assessment_date: string | null
+  currency_status: string | null
+  coverage_status: string | null
+  reason: string | null
+}
+
+/** `POST /platform/ask` — the Law Agent's answer to a typed question, in the backend's one shape. */
+export interface AskAnswer {
+  question: string
+  tool: string
+  agent: 'law'
+  trace_id: string
+  version: string | null
+  answer:
+    | { kind: 'search'; items: LawSearchItem[]; total: number; degraded: boolean; legal_evidence: LegalEvidence | null }
+    | {
+        kind: 'ordinance'
+        ordinance: { name: string | null; ordinance_id: string | null; edition_id: string | null; effective_date: string | null; url: string | null }
+        matches: { article: string | null; title: string | null; text: string | null }[]
+        legal_evidence: LegalEvidence | null
+      }
+}
+
 /** The Orchestrator row of `GET /platform/status`, reduced to what a feed line needs. */
 export interface OrchestratorConnection {
   state: 'up' | 'down' | 'invalid'

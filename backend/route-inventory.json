@@ -676,6 +676,11 @@
    "path": "/api/v1/platform/agents"
   },
   {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/ask"
+  },
+  {
    "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/platform/health"

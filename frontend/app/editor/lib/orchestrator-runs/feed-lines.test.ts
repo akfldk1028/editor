@@ -1,9 +1,10 @@
 import { expect, test } from 'bun:test'
 
 import {
-  connectionLine, evidenceCard, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine, requestingLines, resultLine, resultPrompt, revisionLine, selectedLine,
-  selectedPrompt, siteFactsLine, stepChanges, stepState, submittedLine,
+  answerLine, askFailedLine, askLines, connectionLine, evidenceCard, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine, requestingLines, resultLine,
+  resultPrompt, revisionLine, selectedLine, selectedPrompt, siteFactsLine, stepChanges, stepState, submittedLine,
 } from './feed-lines'
+import type { AskAnswer } from './types'
 import { FAST_WINDOW_MS, POLL_FAST_MS, POLL_MS, pollInterval } from './poll'
 import type { Communication, RunResults } from './types'
 
@@ -84,6 +85,42 @@ test('polling is fast for the first 20 s of a run, then every 3 s', () => {
   expect(pollInterval(FAST_WINDOW_MS - 1)).toBe(POLL_FAST_MS)
   expect(pollInterval(FAST_WINDOW_MS)).toBe(POLL_MS)
   expect([POLL_FAST_MS, POLL_MS]).toEqual([1000, 3000])
+})
+
+test("a typed question: the user's bubble and the Orchestrator asking the Law Agent; the answer is the Law Agent's turn with links", () => {
+  expect(askLines('자연녹지지역 건폐율')).toEqual([{ kind: 'user', text: '자연녹지지역 건폐율' }, { kind: 'progress', agent: 'orchestrator', tone: 'busy', text: 'Law Agent에게 묻는 중' }])
+  const evidence = { assessment_date: '2026-10-08', currency_status: 'needs_evidence', coverage_status: 'needs_evidence', reason: 'r' }
+  const search: AskAnswer = {
+    question: '자연녹지지역 건폐율', tool: 'law_search', agent: 'law', trace_id: 't', version: 'v',
+    answer: { kind: 'search', total: 5, degraded: false, legal_evidence: evidence, items: [
+      { id: 'a', law: '국토의 계획 및 이용에 관한 법률', kind: '시행령', article: '제84조', text: '제1항에도 불구하고 …' },
+      { id: 'b', law: '건축법', kind: '법률', article: '제55조', text: null },
+    ] },
+  }
+  const target = { pnu: '4115011300106830000', address: '산곡동 683' }
+  const line = answerLine(search, target)
+  expect(line.agent).toBe('law')
+  expect(line.text).toBe("'자연녹지지역 건폐율' 관련 조문 5건 — 국토의 계획 및 이용에 관한 법률, 건축법 · 기준일 2026-10-08 · 최신성·적용 범위는 확인 필요")
+  expect(line.card).toEqual({ type: 'links', items: [
+    { label: '국토의 계획 및 이용에 관한 법률 (시행령) 제84조', note: '제1항에도 불구하고 …' }, { label: '건축법 (법률) 제55조' },
+  ] })
+  expect(line.actions).toEqual([{ label: '관련 법규 보기', artifact: 'law', params: { pnu: target.pnu, tab: 'articles', address: '산곡동 683' } }])
+  expect(answerLine({ ...search, answer: { ...search.answer, items: [], total: 0 } }, null)).toEqual({ kind: 'progress', agent: 'law', tone: 'warn', text: "'자연녹지지역 건폐율' 관련 조문을 찾지 못했어요", actions: [] })
+
+  const ordinance: AskAnswer = {
+    question: '의정부시 도시계획 조례 제42조', tool: 'law_ordinance', agent: 'law', trace_id: 't', version: null,
+    answer: { kind: 'ordinance', legal_evidence: evidence,
+      ordinance: { name: '의정부시 도시계획 조례', ordinance_id: '2149163', edition_id: '2072835', effective_date: '2025-09-25', url: 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835' },
+      matches: [{ article: '제42조', title: '용도지역안에서의 건폐율', text: '제42조(용도지역안에서의 건폐율) …' }] },
+  }
+  const ord = answerLine(ordinance, null)
+  expect(ord.text).toBe('의정부시 도시계획 조례 제42조 (용도지역안에서의 건폐율) · 기준일 2026-10-08 · 최신성·적용 범위는 확인 필요')
+  expect(ord.card).toEqual({ type: 'links', items: [
+    { label: '의정부시 도시계획 조례 — law.go.kr', href: 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835', note: '판본 2072835 · 시행 2025-09-25' },
+    { label: '제42조 용도지역안에서의 건폐율', note: '제42조(용도지역안에서의 건폐율) …' },
+  ] })
+  expect(askFailedLine(503, null)).toEqual({ kind: 'error', agent: 'orchestrator', text: 'Law Agent에 연결할 수 없어요 — 켜진 뒤 다시 물어보세요', actions: [{ label: '시스템 보기', artifact: 'system' }] })
+  expect(askFailedLine(502, 'law_agent_error: law_search: TASK_STATE_FAILED')).toEqual({ kind: 'error', agent: 'orchestrator', text: 'Law Agent가 답하지 못했어요 — law_agent_error: law_search: TASK_STATE_FAILED' })
 })
 
 test('the receipt line shows 8 hex of the run and the trace', () => {

@@ -4,6 +4,7 @@
  * communications}.ts` re-export from here for their older callers.
  */
 import type {
+  AskAnswer,
   Communications,
   OrchestratorConnection,
   ProjectBinding,
@@ -176,6 +177,11 @@ export function submitHealth(projectId: string, context: RunContext, key: string
 }
 
 /** Is the Orchestrator reachable, and how many of the registered agents are up (`GET /platform/status`). */
+/** A typed question for the Law Agent (`POST /platform/ask`); the backend picks the tool and shapes the answer. */
+export async function askLaw(body: { text: string; pnu?: string; assessment_date?: string }, signal?: AbortSignal): Promise<AskAnswer> {
+  return (await request('/ask', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })) as AskAnswer
+}
+
 export async function getOrchestratorConnection(refresh = false, signal?: AbortSignal): Promise<OrchestratorConnection> {
   const value = (await request('/status' + (refresh ? '?refresh=1' : ''), { signal, cache: 'no-store' })) as {
     orchestrator?: { state?: unknown }

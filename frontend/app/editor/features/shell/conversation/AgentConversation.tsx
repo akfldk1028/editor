@@ -1,11 +1,12 @@
 'use client'
 
 import { Send, SquarePen, Workflow } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { clearFeed, dismissFeed, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 import { conversationTitle, leadOf, threadOf, type Turn } from '@/lib/orchestrator-runs/thread'
+import { useAsk } from '@/lib/orchestrator-runs/useAsk'
 
 import type { ShellApi } from '../artifact-types'
 import { act } from './act'
@@ -53,6 +54,14 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   const turns = threadOf(entries)
   const endRef = useRef<HTMLDivElement>(null)
   const count = entries.length
+  const { send, busy } = useAsk()
+  const [draft, setDraft] = useState('')
+  const submit = () => {
+    const text = draft.trim()
+    if (!text || busy) return
+    setDraft('')
+    void send(text)
+  }
 
   // The newest turn stays in view; only the thread scrolls.
   useEffect(() => {
@@ -73,9 +82,25 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
         )}
         <div ref={endRef} />
       </div>
-      <form className="agent-composer" onSubmit={(event) => event.preventDefault()}>
-        <input aria-label="메시지" disabled placeholder="메시지를 입력하세요 — 곧 연결돼요" type="text" />
-        <button aria-label="보내기" className="agent-composer-send" disabled type="submit"><Send size={15} /></button>
+      <form
+        className="agent-composer"
+        onSubmit={(event) => {
+          event.preventDefault()
+          submit()
+        }}
+      >
+        <input
+          aria-label="메시지"
+          autoComplete="off"
+          maxLength={500}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="법규를 물어보세요 — 예: 자연녹지지역 건폐율, 의정부시 도시계획 조례 제42조"
+          type="text"
+          value={draft}
+        />
+        <button aria-label="보내기" className="agent-composer-send" disabled={busy || !draft.trim()} type="submit">
+          {busy ? <span aria-hidden="true" className="loading-mark" /> : <Send size={15} />}
+        </button>
       </form>
     </section>
   )

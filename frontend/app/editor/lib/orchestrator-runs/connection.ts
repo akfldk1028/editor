@@ -1,6 +1,7 @@
 import { getOrchestratorConnection } from './api'
 import { postFeed } from './feed'
 import { connectionLine, type SelectedSite, selectedLine, selectedPrompt } from './feed-lines'
+import { setConversationSite } from './site-context'
 
 /**
  * After 이 대지로 선택 saved: the user's bubble says which site, the Orchestrator answers whether it is
@@ -8,6 +9,8 @@ import { connectionLine, type SelectedSite, selectedLine, selectedPrompt } from 
  * nothing starts until the user chooses. Never throws; an unreachable backend reads as "down".
  */
 export async function announceSiteSelected(site: SelectedSite, signal?: AbortSignal): Promise<void> {
+  const first = site.parcels[0]
+  setConversationSite(first ? { pnu: first.pnu, address: first.address || site.label } : null)
   postFeed({ kind: 'user', text: selectedLine(site) })
   let up = false
   try {
