@@ -45,7 +45,7 @@ def test_golden_set_is_never_routed_to_a_wrong_role_and_mostly_to_the_right_one(
             asked.append(case['text'])
             if case['agent'] is None:
                 right += 1
-        elif chosen.agent == case['agent']:
+        elif chosen.agent in (case['agent'] if isinstance(case['agent'], list) else [case['agent']]):
             right += 1
         else:
             wrong.append((case['text'], case['agent'], chosen.agent))

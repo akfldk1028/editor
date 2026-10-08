@@ -1,5 +1,5 @@
 {
-  "note": "30 typed questions labelled with the agent that owns them (null = the router should ask). Written 2026-10-08 from the agents' A2A card skills; 10-08 review added 방법/법인 (no single '법'), 주차 대수, 높이 몇; 10-08 night: 2 sentences per role for the 10 roles added (16 roles).",
+  "note": "30 typed questions labelled with the agent that owns them (null = the router should ask). Written 2026-10-08 from the agents' A2A card skills; 10-08 review added 방법/법인 (no single '법'), 주차 대수, 높이 몇; 10-08 night: 2 sentences per role for the 10 roles added (16 roles); `agent` may be a list when two owners are both right (몇 층까지 = legal cap or massing).",
   "cases": [
     {
       "text": "의정부시 도시계획 조례 제42조",
@@ -83,7 +83,10 @@
     },
     {
       "text": "볼륨을 몇 층까지 올릴 수 있어",
-      "agent": "mass"
+      "agent": [
+        "mass",
+        "law"
+      ]
     },
     {
       "text": "테라스 형태 매싱으로",
