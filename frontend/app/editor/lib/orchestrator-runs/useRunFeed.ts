@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 
 import { getResults } from './api'
 import { postFeed } from './feed'
-import { lawLine, resultLine, stepChanges, stepState, submittedLine } from './feed-lines'
+import { evidenceCard, lawCard, lawLine, resultLine, resultPrompt, stepChanges, stepState, submittedLine } from './feed-lines'
 import { isTerminal } from './labels'
 import type { RunSummary } from './types'
 
@@ -20,7 +20,8 @@ const LAW_TOOL = 'law_parcel_limits'
 
 /**
  * Posts the feed lines of one followed run, each once (feed keys): the receipt, every step state
- * change, Law's numbers as soon as its step succeeded, and the verdict with 법규 결과 보기 at the end.
+ * change (with its tone), Law's numbers as stat tiles as soon as its step succeeded, the verdict with
+ * the missing evidence as chips, and then the question — "법규를 보시겠어요?" — with 법규 보기 as its answer.
  * Numbers come from `GET /runs/{id}/results`, the one parser of agent answers.
  */
 export function useRunFeed(run: RunSummary | null, context: RunFeedContext): void {
@@ -46,7 +47,7 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
     previous.current = run
     const key = (name: string) => `${run.run_id}:${name}`
     if (!prev) postFeed({ kind: 'system', key: key('submitted'), run_id: run.run_id, text: submittedLine(run) })
-    for (const change of stepChanges(prev, run)) postFeed({ kind: 'progress', key: key(change.key), run_id: run.run_id, text: change.text })
+    for (const change of stepChanges(prev, run)) postFeed({ kind: 'progress', key: key(change.key), run_id: run.run_id, text: change.text, tone: change.tone })
 
     const lawDone = run.communications.some((comm) => comm.tool === LAW_TOOL && stepState(comm) === 'succeeded')
     const ended = isTerminal(run.status)
@@ -61,15 +62,12 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
       .then((results) => {
         if (controller.signal.aborted) return
         const law = lawLine(results)
-        if (law) postFeed({ kind: 'progress', key: key('law'), run_id: run.run_id, text: law })
+        if (law) postFeed({ kind: 'progress', key: key('law'), run_id: run.run_id, text: law, tone: 'ok', card: lawCard(results) ?? undefined })
         if (ended) {
-          postFeed({
-            kind: results.status === 'failed' ? 'error' : 'result',
-            key: key('result'),
-            run_id: run.run_id,
-            text: resultLine(results),
-            actions: [{ label: '법규 결과 보기', artifact: 'law', params: { pnu, tab: 'orchestrator', ...(address ? { address } : {}), ...(project ? { project } : {}) } }],
-          })
+          const failed = results.status === 'failed'
+          postFeed({ kind: failed ? 'error' : 'result', key: key('result'), run_id: run.run_id, text: resultLine(results), card: evidenceCard(results) ?? undefined })
+          const prompt = resultPrompt(results, { pnu, ...(address ? { address } : {}), ...(project ? { project } : {}) })
+          postFeed({ kind: 'prompt', key: key('prompt'), run_id: run.run_id, text: prompt.text, actions: prompt.actions })
         }
       })
       .catch(() => {

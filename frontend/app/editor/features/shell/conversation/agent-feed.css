@@ -1,12 +1,13 @@
 /*
  * Agent stream above the conversation: system-message style (plain text, no bubble, small time),
- * the chat's 48rem measure, its own scroll (at most 40% of the column). Shell tokens, 11/12/14 scale.
+ * the chat's 48rem measure, its own scroll (at most 60% of the column — a run's stat tiles, evidence
+ * chips and the closing question need the room). Shell tokens, 11/12/14 scale.
  */
 .shell-conversation:has(> .agent-feed) { grid-template-rows: auto minmax(0, 1fr); }
 
 .agent-feed {
   min-inline-size: 0;
-  max-block-size: 40%;
+  max-block-size: 60%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   padding-block: 8px 4px;
@@ -19,7 +20,8 @@
 .agent-feed-clear { --target: 28px; color: var(--muted); }
 
 .agent-feed > ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; overflow: auto; scroll-behavior: smooth; }
-.agent-feed li {
+/* Only the feed's own rows: a chip list nested in a row keeps its flex layout. */
+.agent-feed > ol > li {
   min-inline-size: 0;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -47,9 +49,73 @@
 }
 .agent-feed-action:hover { background: color-mix(in srgb, var(--accent) 22%, var(--panel)); }
 
+/* Step tone: a dot before the text — green done, amber wants evidence/failed, spinning while open. */
+.agent-feed-dot {
+  display: inline-block;
+  inline-size: 8px;
+  block-size: 8px;
+  margin-inline-end: 7px;
+  vertical-align: 1px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.agent-feed li[data-tone="ok"] .agent-feed-dot { background: var(--success); }
+.agent-feed li[data-tone="warn"] .agent-feed-dot { background: var(--warning); }
+.agent-feed li[data-tone="busy"] .agent-feed-dot {
+  background: transparent;
+  border: 2px solid var(--accent-soft);
+  border-block-start-color: var(--accent);
+  animation: shell-spin .8s linear infinite;
+}
+
+/* Law's numbers: stat tiles in a row under the line. */
+.agent-feed-stats {
+  grid-column: 2;
+  margin: 4px 0 2px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px;
+}
+.agent-feed-stats > div { padding: 6px 10px; background: var(--subtle); border-radius: var(--radius-s); }
+.agent-feed-stats dt { color: var(--muted); font-size: var(--fs-1); }
+.agent-feed-stats dd { margin: 0; color: var(--ink); font-size: var(--fs-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Missing evidence: chips under the verdict. */
+.agent-feed-chips { grid-column: 2; margin: 4px 0 2px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.agent-feed-chips li { padding: 2px 8px; color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); border-radius: 9px; font-size: var(--fs-1); font-weight: 600; }
+
+/* The network's question: a reply-style bubble with its answers as buttons. */
+.agent-feed li[data-kind="prompt"] { padding-block: 6px 4px; }
+.agent-feed-prompt {
+  min-inline-size: 0;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-m);
+  border-start-start-radius: 4px;
+}
+.agent-feed-prompt > p { color: var(--ink); font-size: var(--fs-3); }
+.agent-feed-answers { display: flex; flex-wrap: wrap; gap: 6px; }
+.agent-feed-answer {
+  min-block-size: 30px;
+  padding-inline: 12px;
+  color: var(--ink);
+  background: var(--subtle);
+  border: 0;
+  border-radius: 15px;
+  font-size: var(--fs-2);
+  font-weight: 600;
+}
+.agent-feed-answer:hover { background: var(--hover); }
+.agent-feed-answer[data-primary="true"] { color: var(--accent-ink); background: var(--accent); }
+.agent-feed-answer[data-primary="true"]:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink)); }
+
 @container editor-shell (max-width: 767px) {
-  .agent-feed { max-block-size: 45%; padding-inline: 16px; }
+  .agent-feed { max-block-size: 65%; padding-inline: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .agent-feed > ol { scroll-behavior: auto; }
+  .agent-feed li[data-tone="busy"] .agent-feed-dot { animation: none; }
 }

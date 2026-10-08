@@ -1,5 +1,5 @@
 /** Feed lines from run snapshots and parsed results. Pure: the hooks decide when to post. */
-import type { FeedInput } from './feed'
+import type { FeedAction, FeedCard, FeedInput, FeedTone } from './feed'
 import { agentForTool, agentLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from './labels'
 import type { Communication, OrchestratorConnection, RunResults, RunSummary } from './types'
 
@@ -58,17 +58,34 @@ export function stepState(comm: Pick<Communication, 'state' | 'response_text'>):
   return typeof own === 'string' && OWN_STATES.has(own) ? own : comm.state
 }
 
+/** The dot before a step line: green when the step succeeded, amber when it wants evidence or failed, spinning while open. */
+export function stepTone(state: string): FeedTone {
+  if (state === 'succeeded' || state === 'completed' || state === 'complete') return 'ok'
+  if (state === 'running' || state === 'queued' || state === 'pending') return 'busy'
+  return 'warn'
+}
+
+export interface StepChange {
+  key: string
+  text: string
+  tone: FeedTone
+}
+
 /** "대지 · 대지 사실 확인: 근거 부족 (5/8 사실)" — one per step whose state is new or changed since `prev`. */
-export function stepChanges(prev: Pick<RunSummary, 'communications'> | null, next: Pick<RunSummary, 'communications'>): { key: string; text: string }[] {
+export function stepChanges(prev: Pick<RunSummary, 'communications'> | null, next: Pick<RunSummary, 'communications'>): StepChange[] {
   const before = new Map((prev?.communications ?? []).map((comm) => [comm.tool, stepState(comm)]))
-  const lines: { key: string; text: string }[] = []
+  const lines: StepChange[] = []
   for (const comm of next.communications) {
     const state = stepState(comm)
     if (before.get(comm.tool) === state) continue
     const response = parsed(comm.response_text)
     const facts = typeof response.summary === 'string' ? response.summary.match(/(\d+)\s*\/\s*(\d+)\s*site facts/) : null
     const detail = facts ? ` (${facts[1]}/${facts[2]} 사실)` : typeof response.code === 'string' && state === 'failed' ? ` — ${evidenceLabel(response.code)}` : ''
-    lines.push({ key: `${comm.tool}:${state}`, text: `${agentLabel(agentForTool(comm.tool, comm.agent))} · ${toolLabel(comm.tool)}: ${stateLabel(state)}${detail}` })
+    lines.push({
+      key: `${comm.tool}:${state}`,
+      text: `${agentLabel(agentForTool(comm.tool, comm.agent))} · ${toolLabel(comm.tool)}: ${stateLabel(state)}${detail}`,
+      tone: stepTone(state),
+    })
   }
   return lines
 }
@@ -86,6 +103,25 @@ export function lawLine(results: RunResults): string | null {
   return parts.length ? `법규: ${parts.join(' · ')}` : null
 }
 
+/** Law's four numbers as stat tiles under the law line; null without any. */
+export function lawCard(results: RunResults): FeedCard | null {
+  const law = results.law
+  if (!law) return null
+  const items = [
+    law.site_area_m2 !== null ? { label: '대지면적', value: `${fmt(law.site_area_m2, 1)}㎡` } : null,
+    law.bcr_pct !== null ? { label: '건폐율', value: `${fmt(law.bcr_pct, 2)}%` } : null,
+    law.far_pct !== null ? { label: '용적률', value: `${fmt(law.far_pct, 2)}%` } : null,
+    law.max_floors !== null ? { label: '최고 층수', value: `${law.max_floors}층` } : null,
+  ].filter((item): item is { label: string; value: string } => item !== null)
+  return items.length ? { type: 'stats', items } : null
+}
+
+/** The missing evidence as Korean chips (codes only, each once); null when nothing is missing. */
+export function evidenceCard(results: RunResults): FeedCard | null {
+  const items = [...new Set(results.missing_evidence_all.filter((code) => !code.includes(': ')).map(evidenceLabel))]
+  return items.length ? { type: 'chips', items } : null
+}
+
 /** "검토 결과: 보류 — 근거 보충 필요: 기준일, 대지 접근·재해·설비" */
 export function resultLine(results: RunResults): string {
   const verdict = verdictLabel(results.status, results.review?.code)
@@ -95,4 +131,32 @@ export function resultLine(results: RunResults): string {
   }
   const missing = shortEvidence(results.missing_evidence_all)
   return `검토 결과: ${verdict}${verdict.includes('근거') && missing ? `: ${missing}` : ''}`
+}
+
+/** Where 법규 보기 lands: the law artifact's 오케스트레이터 검토 tab on this site, under the run's binding. */
+export interface LawTarget {
+  pnu: string
+  address?: string
+  project?: string
+}
+
+/**
+ * The question the network asks once a run ended — "법규를 보시겠어요?" with 법규 보기 as the answer and
+ * 나중에 to dismiss. After a failure it offers 시스템 보기 as well.
+ */
+export function resultPrompt(results: RunResults, target: LawTarget): { text: string; actions: FeedAction[] } {
+  const params = { pnu: target.pnu, tab: 'orchestrator', ...(target.address ? { address: target.address } : {}), ...(target.project ? { project: target.project } : {}) }
+  const law: FeedAction = { label: '법규 보기', artifact: 'law', params }
+  const later: FeedAction = { label: '나중에' }
+  if (results.status === 'failed') {
+    return { text: '검토가 실패했어요. 어디서 멈췄는지 법규 패널에서 보시겠어요?', actions: [law, { label: '시스템 보기', artifact: 'system' }, later] }
+  }
+  if (verdictLabel(results.status, results.review?.code).includes('근거')) {
+    const numbers = results.law && (results.law.bcr_pct !== null || results.law.far_pct !== null)
+    return {
+      text: numbers ? '법규 한계는 나왔지만 근거가 더 필요해요. 법규를 보시겠어요?' : '근거가 부족해 법규 한계를 확정하지 못했어요. 법규를 보시겠어요?',
+      actions: [law, later],
+    }
+  }
+  return { text: '법규 검토가 끝났어요. 법규를 보시겠어요?', actions: [law, later] }
 }

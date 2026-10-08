@@ -7,14 +7,23 @@ import { useSyncExternalStore } from 'react'
  * in the conversation column by the shell. Slices only `post`; the shell renders. Kept in memory for
  * the session (a reload starts empty). A `key` makes a line post once — one line per step change.
  */
-export type FeedKind = 'system' | 'progress' | 'result' | 'error'
+/** `prompt`: the network asks the user something ("법규를 보시겠어요?") — a bubble with its actions as answers. */
+export type FeedKind = 'system' | 'progress' | 'result' | 'error' | 'prompt'
+
+/** How a progress line went: a dot before the text. */
+export type FeedTone = 'ok' | 'warn' | 'busy'
 
 export interface FeedAction {
   label: string
-  /** Opened through `shell.openArtifact(artifact, params)`. */
-  artifact: string
+  /** Opened through `shell.openArtifact(artifact, params)`; omitted: the button only dismisses the prompt. */
+  artifact?: string
   params?: Record<string, string>
 }
+
+/** Structured content under a line: Law's numbers as stat tiles, or missing evidence as chips. */
+export type FeedCard =
+  | { type: 'stats'; items: { label: string; value: string }[] }
+  | { type: 'chips'; items: string[] }
 
 export interface FeedEntry {
   id: number
@@ -23,6 +32,8 @@ export interface FeedEntry {
   /** Epoch ms. */
   at: number
   run_id?: string
+  tone?: FeedTone
+  card?: FeedCard
   actions?: FeedAction[]
 }
 
@@ -31,6 +42,8 @@ export interface FeedInput {
   text: string
   at?: number
   run_id?: string
+  tone?: FeedTone
+  card?: FeedCard
   actions?: FeedAction[]
   /** Posting the same key again is a no-op. */
   key?: string
@@ -38,6 +51,8 @@ export interface FeedInput {
 
 export interface FeedStore {
   post(input: FeedInput): FeedEntry | null
+  /** Removes one line (a prompt the user answered); its key stays taken. */
+  dismiss(id: number): void
   clear(): void
   subscribe(listener: () => void): () => void
   get(): readonly FeedEntry[]
@@ -65,11 +80,18 @@ export function createFeedStore(limit = 200): FeedStore {
         text: input.text,
         at: input.at ?? Date.now(),
         ...(input.run_id ? { run_id: input.run_id } : {}),
+        ...(input.tone ? { tone: input.tone } : {}),
+        ...(input.card?.items.length ? { card: input.card } : {}),
         ...(input.actions?.length ? { actions: input.actions } : {}),
       }
       entries = [...entries, entry].slice(-limit)
       emit()
       return entry
+    },
+    dismiss(id) {
+      if (!entries.some((entry) => entry.id === id)) return
+      entries = entries.filter((entry) => entry.id !== id)
+      emit()
     },
     clear() {
       entries = EMPTY
@@ -90,6 +112,7 @@ export function createFeedStore(limit = 200): FeedStore {
 export const feed = createFeedStore()
 
 export const postFeed = (input: FeedInput) => feed.post(input)
+export const dismissFeed = (id: number) => feed.dismiss(id)
 export const clearFeed = () => feed.clear()
 
 export function useFeed(): readonly FeedEntry[] {

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { connectionLine, lawLine, resultLine, selectedLine, stepChanges, stepState, submittedLine } from './feed-lines'
+import { connectionLine, evidenceCard, lawCard, lawLine, resultLine, resultPrompt, selectedLine, stepChanges, stepState, submittedLine } from './feed-lines'
 import type { Communication, RunResults } from './types'
 
 const comm = (tool: string, agent: string, state: string, response_text: string | null): Communication => ({
@@ -51,23 +51,53 @@ test("a step's state prefers the tool's own status word, also inside a cut respo
   expect(stepState(comm('x', 'law', 'running', '{"status": "partial"'))).toBe('running')
 })
 
-test('step lines appear once per state change, in Korean, with facts or the failure code', () => {
+test('step lines appear once per state change, in Korean, with facts or the failure code and a tone', () => {
   const first = stepChanges(null, { communications: [site, law] })
   expect(first).toEqual([
-    { key: 'site_resolve:needs_evidence', text: '대지 · 대지 사실 확인: 근거 부족 (5/8 사실)' },
-    { key: 'law_parcel_limits:succeeded', text: '법규 · 법규 한계: 성공' },
+    { key: 'site_resolve:needs_evidence', text: '대지 · 대지 사실 확인: 근거 부족 (5/8 사실)', tone: 'warn' },
+    { key: 'law_parcel_limits:succeeded', text: '법규 · 법규 한계: 성공', tone: 'ok' },
   ])
   expect(stepChanges({ communications: [site, law] }, { communications: [site, law] })).toEqual([])
   expect(stepChanges({ communications: [site, law] }, { communications: [site, law, review] })).toEqual([
-    { key: 'revision_triage:needs_evidence', text: '검토 조정 · 재검토 판정: 근거 부족' },
+    { key: 'revision_triage:needs_evidence', text: '검토 조정 · 재검토 판정: 근거 부족', tone: 'warn' },
   ])
   expect(stepChanges(null, { communications: [apart] })).toEqual([
-    { key: 'site_resolve:failed', text: '대지 · 대지 사실 확인: 실패 — 필지가 서로 붙어 있지 않음' },
+    { key: 'site_resolve:failed', text: '대지 · 대지 사실 확인: 실패 — 필지가 서로 붙어 있지 않음', tone: 'warn' },
   ])
   const running = comm('law_parcel_limits', 'law', 'running', null)
-  expect(stepChanges({ communications: [running] }, { communications: [law] })).toEqual([{ key: 'law_parcel_limits:succeeded', text: '법규 · 법규 한계: 성공' }])
+  expect(stepChanges({ communications: [running] }, { communications: [law] })).toEqual([{ key: 'law_parcel_limits:succeeded', text: '법규 · 법규 한계: 성공', tone: 'ok' }])
   // A step still running has no agent on its record yet: the tool's owner names it.
-  expect(stepChanges(null, { communications: [{ ...running, agent: null }] })).toEqual([{ key: 'law_parcel_limits:running', text: '법규 · 법규 한계: 진행 중' }])
+  expect(stepChanges(null, { communications: [{ ...running, agent: null }] })).toEqual([{ key: 'law_parcel_limits:running', text: '법규 · 법규 한계: 진행 중', tone: 'busy' }])
+})
+
+test("the law card carries Law's numbers as stat tiles, only the ones it sent", () => {
+  expect(lawCard(results())).toEqual({ type: 'stats', items: [
+    { label: '대지면적', value: '2,499.7㎡' }, { label: '건폐율', value: '59.92%' }, { label: '용적률', value: '249.67%' }, { label: '최고 층수', value: '5층' },
+  ] })
+  expect(lawCard(results({ law: { ...results().law!, site_area_m2: null, max_floors: null } }))).toEqual({ type: 'stats', items: [{ label: '건폐율', value: '59.92%' }, { label: '용적률', value: '249.67%' }] })
+  expect(lawCard(results({ law: null }))).toBeNull()
+})
+
+test('the evidence card lists the missing-evidence codes in Korean, each once, without finding sentences', () => {
+  expect(evidenceCard(results())).toEqual({ type: 'chips', items: ['대지 접근(출입구·접도)', '재해 위험 정보', '설비 인입 정보', '기준일 지정', '지구단위계획 시행 근거 미확인'] })
+  expect(evidenceCard(results({ missing_evidence_all: ['SITE-ACCESS', 'SITE-ACCESS'] }))).toEqual({ type: 'chips', items: ['대지 접근(출입구·접도)'] })
+  expect(evidenceCard(results({ missing_evidence_all: [] }))).toBeNull()
+})
+
+test('the prompt asks 법규를 보시겠어요 with 법규 보기 opening the law tab on the site and 나중에 as a plain dismissal', () => {
+  const target = { pnu: '4115011300106840001', address: '산곡동 684-1', project: 'p1' }
+  const held = resultPrompt(results(), target)
+  expect(held.text).toBe('법규 한계는 나왔지만 근거가 더 필요해요. 법규를 보시겠어요?')
+  expect(held.actions).toEqual([
+    { label: '법규 보기', artifact: 'law', params: { pnu: '4115011300106840001', tab: 'orchestrator', address: '산곡동 684-1', project: 'p1' } },
+    { label: '나중에' },
+  ])
+  expect(resultPrompt(results({ law: null }), target).text).toBe('근거가 부족해 법규 한계를 확정하지 못했어요. 법규를 보시겠어요?')
+  expect(resultPrompt(results({ status: 'completed', review: null, missing_evidence_all: [] }), { pnu: 'x' }).text).toBe('법규 검토가 끝났어요. 법규를 보시겠어요?')
+  expect(resultPrompt(results({ status: 'completed', review: null, missing_evidence_all: [] }), { pnu: 'x' }).actions[0]).toEqual({ label: '법규 보기', artifact: 'law', params: { pnu: 'x', tab: 'orchestrator' } })
+  const failed = resultPrompt(results({ status: 'failed' }), target)
+  expect(failed.text).toBe('검토가 실패했어요. 어디서 멈췄는지 법규 패널에서 보시겠어요?')
+  expect(failed.actions.map((action) => action.label)).toEqual(['법규 보기', '시스템 보기', '나중에'])
 })
 
 test('the law line carries the four numbers as the UI shows them', () => {

@@ -29,6 +29,22 @@ test('a keyed line posts once; actions are kept only when given', () => {
   expect('actions' in store.post({ kind: 'system', text: 'plain', actions: [] })!).toBe(false)
 })
 
+test('a tone and a non-empty card are kept; dismiss() drops one line and keeps its key taken', () => {
+  const store = createFeedStore()
+  const law = store.post({ kind: 'progress', text: '법규', tone: 'ok', card: { type: 'stats', items: [{ label: '건폐율', value: '59.92%' }] } })!
+  expect(law.tone).toBe('ok')
+  expect(law.card).toEqual({ type: 'stats', items: [{ label: '건폐율', value: '59.92%' }] })
+  expect('card' in store.post({ kind: 'result', text: '결과', card: { type: 'chips', items: [] } })!).toBe(false)
+  const prompt = store.post({ kind: 'prompt', key: 'r1:prompt', text: '법규를 보시겠어요?', actions: [{ label: '나중에' }] })!
+  store.dismiss(prompt.id)
+  expect(store.get().map((entry) => entry.kind)).toEqual(['progress', 'result'])
+  expect(store.post({ kind: 'prompt', key: 'r1:prompt', text: 'again' })).toBeNull()
+  let notified = 0
+  store.subscribe(() => notified++)
+  store.dismiss(prompt.id)
+  expect(notified).toBe(0)
+})
+
 test('the store keeps the newest `limit` lines and clear() empties it and frees keys', () => {
   const store = createFeedStore(3)
   for (let n = 1; n <= 5; n++) store.post({ kind: 'progress', text: `line ${n}` })
