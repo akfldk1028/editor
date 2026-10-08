@@ -192,6 +192,7 @@
 .site-card-run-copy { display: inline-flex; padding: 2px; border: 0; border-radius: var(--radius-s); background: transparent; color: var(--muted); cursor: pointer; }
 .site-card-run-copy:hover { background: var(--border-soft); color: var(--ink); }
 .site-card-run-copy svg { color: inherit; }
+.site-card-run-link { margin-inline-start: 6px; padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
 .site-card-run-status a { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 3px; color: var(--accent); font-size: var(--fs-1); }
 .site-card-run-status .loading-mark { inline-size: 12px; block-size: 12px; }
 

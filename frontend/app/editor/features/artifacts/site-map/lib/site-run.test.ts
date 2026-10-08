@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 
 import type { ProjectBinding } from '../../../agent-dialogue/projects'
 import { RunRequestError } from '../../../agent-dialogue/runs'
-import type { SavedSite } from '../selection'
+import type { SavedSite } from './picks'
 import { bundleNotice, describeFailure, idempotencyKey, isTerminal, resolveProject, siteRunRequest, statusLabel, traceLabel } from './site-run'
 
 const binding = (project_id: string): ProjectBinding =>

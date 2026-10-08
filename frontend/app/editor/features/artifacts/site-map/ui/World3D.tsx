@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { WorldControls } from '../../world/components/WorldControls'
-import { useWorld3D } from '../../world/hooks/use-world-3d'
-import type { LngLat, ParcelSet } from './engine'
-import { boundsCenter, parcelBounds, parcelRings } from './layers/parcelOutline'
+import { WorldControls } from '../../../world/components/WorldControls'
+import { useWorld3D } from '../../../world/hooks/use-world-3d'
+import type { LngLat, ParcelSet } from '../lib/engine'
+import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
 
 /**
  * The 3D view of the same site: the world feature's Cesium engine (read-only

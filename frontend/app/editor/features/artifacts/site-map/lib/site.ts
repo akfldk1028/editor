@@ -1,4 +1,4 @@
-import { isPnu } from '../../land-map/lib/constants'
+import { isPnu } from '../../../land-map/lib/constants'
 
 /** 고산 공공1 — the reference site until a project supplies its own. */
 export const defaultSite = { query: '4115011300106840001', label: '고산 공공1 · 경기도 의정부시 산곡동 684-1' } as const

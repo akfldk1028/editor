@@ -43,7 +43,7 @@ test('an explicit pnu/address param is the only thing that beats the saved selec
 })
 
 test('picks: a click selects that parcel alone, adding toggles in order, clicking the only pick deselects it', async () => {
-  const { nextPicks } = await import('./selection')
+  const { nextPicks } = await import('./picks')
   const a = { pnu: 'a', at: [127, 37] as const }
   const b = { pnu: 'b', at: [127.1, 37] as const }
   const c = { pnu: 'c', at: [127.2, 37] as const }
@@ -60,7 +60,7 @@ test('picks: a click selects that parcel alone, adding toggles in order, clickin
 })
 
 test("the selection scope is the shell's ?project=, else default", async () => {
-  const { selectionScope } = await import('./selection')
+  const { selectionScope } = await import('./picks')
   expect(selectionScope({})).toBe('default')
   expect(selectionScope({ project: 'gosan-1' })).toBe('gosan-1')
   expect(selectionScope({ project: 'a b' })).toBe('default')
@@ -69,7 +69,7 @@ test("the selection scope is the shell's ?project=, else default", async () => {
 
 test('parcel looks, point-in-parcel, lot labels and the hover cache', async () => {
   const { containsPoint, lotLabel, parcelStyle } = await import('./layers/parcelOutline')
-  const { ParcelCache } = await import('./parcelCache')
+  const { ParcelCache } = await import('../model/parcelCache')
   expect(parcelStyle('site')).toEqual({ width: 2.5, dashed: true, fillOpacity: 0 })
   expect(parcelStyle('picked')).toEqual({ width: 2, dashed: true, fillOpacity: 0.15 })
   expect(parcelStyle('saved')).toEqual({ width: 2, dashed: false, fillOpacity: 0.22 })

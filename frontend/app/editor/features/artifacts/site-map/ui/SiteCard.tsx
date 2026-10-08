@@ -1,8 +1,9 @@
 import { AlertTriangle, Check, Plus, X } from 'lucide-react'
 
-import { lotLabel } from './layers/parcelOutline'
-import { SiteRunPanel } from './run/SiteRunPanel'
-import type { SavedSite, SiteBundle } from './selection'
+import type { ShellApi } from '../../../shell/artifact-types'
+import { lotLabel } from '../lib/layers/parcelOutline'
+import type { SavedSite, SiteBundle } from '../lib/picks'
+import { SiteRunPanel } from './SiteRunPanel'
 
 export type CardState =
   | { kind: 'loading'; count: number }
@@ -24,21 +25,23 @@ interface Props {
   onClose(): void
   /** The shell's `?project=`; the saved site's 검토 시작 submits under this binding when it is one. */
   project?: string
+  /** The run panel opens the system artifact through it when the Orchestrator is down. */
+  shell: ShellApi
 }
 
 /** The picked site: its parcels, total area, warnings, and the button that makes it the project's site. */
-export function SiteCard({ state, adding, onAddingChange, onRemove, onSelect, onClose, project }: Props) {
+export function SiteCard({ state, adding, onAddingChange, onRemove, onSelect, onClose, project, shell }: Props) {
   return (
     <section aria-label="선택한 대지" className="site-card">
       <button aria-label="닫기 (Esc)" className="site-card-icon site-card-close" onClick={onClose} title="닫기 (Esc)" type="button"><X size={14} /></button>
       {state.kind === 'loading' && <p className="site-card-note">{state.count > 1 ? `필지 ${state.count}개 정보를 불러오는 중` : '필지 정보를 불러오는 중'}</p>}
       {state.kind === 'error' && <p className="site-card-note" data-kind="error">{state.text}</p>}
-      {state.kind === 'ready' && <Ready {...{ state, adding, onAddingChange, onRemove, onSelect, project }} />}
+      {state.kind === 'ready' && <Ready {...{ state, adding, onAddingChange, onRemove, onSelect, project, shell }} />}
     </section>
   )
 }
 
-function Ready({ state, adding, onAddingChange, onRemove, onSelect, project }: Omit<Props, 'onClose' | 'state'> & { state: Extract<CardState, { kind: 'ready' }> }) {
+function Ready({ state, adding, onAddingChange, onRemove, onSelect, project, shell }: Omit<Props, 'onClose' | 'state'> & { state: Extract<CardState, { kind: 'ready' }> }) {
   const { site, save } = state
   const count = site.parcels.length
   const editable = save !== 'saved' && save !== 'saving'
@@ -76,7 +79,7 @@ function Ready({ state, adding, onAddingChange, onRemove, onSelect, project }: O
       {state.save === 'saved' ? (
         <>
           <p className="site-card-saved"><Check aria-hidden="true" size={14} />선택됨</p>
-          <SiteRunPanel key={state.site.selection_id} project={project} site={state.site} />
+          <SiteRunPanel key={state.site.selection_id} project={project} shell={shell} site={state.site} />
         </>
       ) : (
         <button className="artifact-primary site-card-select" disabled={save === 'saving'} onClick={onSelect} type="button">

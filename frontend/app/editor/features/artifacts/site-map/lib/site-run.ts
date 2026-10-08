@@ -1,7 +1,7 @@
 import type { ProjectBinding } from '../../../agent-dialogue/projects'
-import { RunRequestError, type RunRequest } from '../../../agent-dialogue/runs'
-import { lotLabel } from '../layers/parcelOutline'
-import type { SavedSite } from '../selection'
+import { type RunRequest, RunRequestError } from '../../../agent-dialogue/runs'
+import { lotLabel } from './layers/parcelOutline'
+import type { SavedSite } from './picks'
 
 /** Which project binding a site run is submitted under. */
 export type ProjectChoice =

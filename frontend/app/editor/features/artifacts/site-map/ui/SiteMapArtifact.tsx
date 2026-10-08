@@ -2,16 +2,17 @@
 
 import { Layers, Minus, Plus, Search } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
-import { locateParcel } from '../../land-map/lib/land-api-client'
-import type { ArtifactProps } from '../../shell/artifact-types'
-import { chooseEngine, createMapEngine, type LngLat, type MapEngine, type MapEngineKind } from './engine'
-import { boundsCenter, parcelBounds, parcelRings } from './layers/parcelOutline'
-import { latestSite, selectionScope, type SavedSite } from './selection'
-import { defaultSite, siteFromSelection, siteParam, type Site } from './site'
+import { locateParcel } from '../../../land-map/lib/land-api-client'
+import type { ArtifactProps } from '../../../shell/artifact-types'
+import { latestSite } from '../api/selection'
+import { chooseEngine, createMapEngine, type LngLat, type MapEngine, type MapEngineKind } from '../lib/engine'
+import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
+import { type SavedSite, selectionScope } from '../lib/picks'
+import { defaultSite, type Site, siteFromSelection, siteParam } from '../lib/site'
+import { usePicker } from '../model/usePicker'
 import { SiteCard } from './SiteCard'
-import { usePicker } from './usePicker'
 import './site-map.css'
 
 /** Loaded the first time 3D is chosen; it stays mounted (hidden) after that. */
@@ -220,6 +221,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
           onRemove={picker.remove}
           onSelect={() => void picker.select()}
           project={params.project}
+          shell={shell}
           state={picker.card}
         />
       )}

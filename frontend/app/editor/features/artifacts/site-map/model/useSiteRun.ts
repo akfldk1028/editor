@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { listProjects, type ProjectBinding } from '../../../agent-dialogue/projects'
-import { getRun, getRunContext, submitRun, type RunSummary } from '../../../agent-dialogue/runs'
-import type { SavedSite } from '../selection'
-import { describeFailure, idempotencyKey, isTerminal, resolveProject, siteRunRequest, type ProjectChoice, type RunFailure } from './site-run'
+import { getRun, getRunContext, type RunSummary, submitRun } from '../../../agent-dialogue/runs'
+import type { SavedSite } from '../lib/picks'
+import { describeFailure, idempotencyKey, isTerminal, type ProjectChoice, type RunFailure, resolveProject, siteRunRequest } from '../lib/site-run'
 
 const POLL_MS = 3000
 

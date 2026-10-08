@@ -3,14 +3,17 @@
 import { AlertTriangle, Check, Copy, ExternalLink, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 
-import type { SavedSite } from '../selection'
-import { bundleNotice, isTerminal, statusLabel, traceLabel, type RunFailure } from './site-run'
-import { useSiteRun, type RunPhase } from './useSiteRun'
+import type { ShellApi } from '../../../shell/artifact-types'
+import type { SavedSite } from '../lib/picks'
+import { bundleNotice, isTerminal, type RunFailure, statusLabel, traceLabel } from '../lib/site-run'
+import { type RunPhase, useSiteRun } from '../model/useSiteRun'
 
 interface Props {
   site: SavedSite
   /** The shell's `?project=`, when it names a project binding. */
   project?: string
+  /** 시스템 보기 opens the system artifact (service status) when the Orchestrator is unreachable. */
+  shell: ShellApi
 }
 
 const base = () => process.env.NEXT_PUBLIC_BASE_PATH || ''
@@ -19,7 +22,7 @@ const failureText = (failure: RunFailure) =>
   failure.kind === 'unavailable' ? '오케스트레이터에 연결할 수 없어요 — 켜진 뒤 다시 시도' : failure.text
 
 /** Under the saved site: 검토 시작 sends `{goal: limits, pnu}` to the Orchestrator and follows the run. */
-export function SiteRunPanel({ site, project }: Props) {
+export function SiteRunPanel({ site, project, shell }: Props) {
   const { projects, chosen, setChosen, phase, start } = useSiteRun(site, project)
   const notice = bundleNotice(site)
   const busy = phase.kind === 'submitting'
@@ -55,7 +58,14 @@ export function SiteRunPanel({ site, project }: Props) {
           {busy ? '검토 요청 중' : phase.kind === 'failed' ? <><RotateCcw aria-hidden="true" size={12} />다시 시도</> : '검토 시작 (법규·한계)'}
         </button>
       )}
-      {phase.kind === 'failed' && <p className="site-card-note" data-kind="error" role="alert">{failureText(phase.failure)}</p>}
+      {phase.kind === 'failed' && (
+        <p className="site-card-note" data-kind="error" role="alert">
+          {failureText(phase.failure)}
+          {phase.failure.kind === 'unavailable' && (
+            <button className="site-card-run-link" onClick={() => shell.openArtifact('system')} type="button">시스템 보기</button>
+          )}
+        </p>
+      )}
     </div>
   )
 }

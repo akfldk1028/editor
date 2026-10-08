@@ -7,5 +7,5 @@ export const siteMapArtifact: ArtifactManifest = {
   title: '대지 지도',
   label: '지도',
   icon: MapIcon,
-  load: () => import('./SiteMapArtifact'),
+  load: () => import('./ui/SiteMapArtifact'),
 }

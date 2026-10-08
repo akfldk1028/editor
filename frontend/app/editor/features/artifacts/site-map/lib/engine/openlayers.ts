@@ -1,10 +1,10 @@
 import 'ol/ol.css'
 
 import { defaults as defaultControls } from 'ol/control/defaults'
-import { defaults as defaultInteractions } from 'ol/interaction/defaults'
 import Feature from 'ol/Feature'
 import GeoJSON from 'ol/format/GeoJSON'
 import Point from 'ol/geom/Point'
+import { defaults as defaultInteractions } from 'ol/interaction/defaults'
 import TileLayer from 'ol/layer/Tile'
 import VectorLayer from 'ol/layer/Vector'
 import OlMap from 'ol/Map'
@@ -16,10 +16,10 @@ import VectorSource from 'ol/source/Vector'
 import XYZ from 'ol/source/XYZ'
 import { Circle, Fill, Stroke, Style } from 'ol/style'
 import View from 'ol/View'
-
-import { MAP_CONFIG } from '../../../land-map/lib/constants'
+import { MAP_CONFIG } from '../../../../land-map/lib/constants'
+import { browserKey } from '../../api/mapConfig'
 import { lotChipElement } from '../layers/lotChip'
-import { accentColor, hoverOutline, mergedOutline, parcelOutline, parcelStyle, rgba, type ParcelLook } from '../layers/parcelOutline'
+import { accentColor, hoverOutline, mergedOutline, type ParcelLook, parcelOutline, parcelStyle, rgba } from '../layers/parcelOutline'
 import { searchMarker } from '../layers/searchMarker'
 import { mapCursor } from './cursor'
 import { observeSize, whenSized } from './size'
@@ -30,18 +30,6 @@ const VWORLD_WMS = 'https://api.vworld.kr/req/wms'
 const ZONING_LAYER = 'lt_c_uq111'
 const geojson = new GeoJSON()
 const read = (value: object) => geojson.readFeatures(value, { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' })
-
-/** The browser Vworld key, or null when the backend has none configured. */
-async function browserKey(): Promise<string | null> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/map-config`)
-    if (!response.ok) return null
-    const body = (await response.json()) as { api_key?: string }
-    return body.api_key || null
-  } catch {
-    return null
-  }
-}
 
 /** `fill` is the theme's accent, read when the parcels are drawn. */
 function lookStyle(look: ParcelLook, fill: string) {

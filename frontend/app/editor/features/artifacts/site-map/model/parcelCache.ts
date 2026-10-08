@@ -1,8 +1,6 @@
-import type { LngLat } from './engine/types'
-import { containsPoint } from './layers/parcelOutline'
-
-/** A parcel from `reverse`: identity, address and outline. */
-export interface KnownParcel { pnu: string; address: string; geometry: object }
+import type { LngLat } from '../lib/engine/types'
+import { containsPoint } from '../lib/layers/parcelOutline'
+import type { KnownParcel } from '../lib/picks'
 
 /**
  * The last few parcels seen (hover or click), newest first. A point inside one
