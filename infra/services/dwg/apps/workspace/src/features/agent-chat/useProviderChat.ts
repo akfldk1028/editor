@@ -31,9 +31,8 @@ export function useProviderChat(workspaceStore = browserWorkspaceSessionStore) {
   const [sessions, setSessions] = useState<WorkspaceSession[]>(
     initialSessions
   );
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(
-    initialSessions[0]?.id ?? null
-  );
+  // The conversation opens empty; earlier sessions stay in the 세션 tab (a reopened old chat read as noise).
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const requestController = useRef<AbortController | null>(null);
   const requestGeneration = useRef(0);
 
