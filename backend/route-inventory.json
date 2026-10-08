@@ -693,6 +693,11 @@
   {
    "method": "POST",
    "owner": "fastapi",
+   "path": "/api/v1/platform/host/ensure"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
    "path": "/api/v1/platform/law-analysis"
   },
   {

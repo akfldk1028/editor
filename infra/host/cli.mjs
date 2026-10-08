@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// agent-host: node infra/host/cli.mjs start [ids...] [--with-agents] | stop [ids...] | status | restart <id> | daemon
+// agent-host: node infra/host/cli.mjs start [ids...] [--with-agents] | ensure <ids...> [--json] [--timeout=<s>] | stop [ids...] | status | restart <id> | daemon
+// `ensure` = start + wait until each id answers its health URL (the editor backend calls it with --json).
 // `start` launches a detached daemon (this file, `daemon`) that owns the health loop and
 // survives the shell that started it; `stop` kills it through runtime/host/daemon.json;
 // `status` probes directly and needs no daemon.
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ENSURE_DEFAULTS, waitHealthy } from './ensure.mjs';
 import { selectEntries } from './policy.mjs';
 import { isAlive, killTree, spawnDetached } from './processes.mjs';
 import { byId, services } from './registry.mjs';
@@ -20,7 +22,8 @@ const stamp = () => new Date().toISOString();
 export function parseArgs(argv) {
   const flags = new Set(argv.filter(arg => arg.startsWith('--')));
   const [command = 'status', ...ids] = argv.filter(arg => !arg.startsWith('--'));
-  return { command, ids, withAgents: flags.has('--with-agents') };
+  const timeout = [...flags].map(flag => flag.match(/^--timeout=(\d+)$/)).find(Boolean);
+  return { command, ids, withAgents: flags.has('--with-agents'), json: flags.has('--json'), timeoutMs: timeout ? Number(timeout[1]) * 1_000 : null };
 }
 
 function daemonPid() {
@@ -35,22 +38,41 @@ async function status(ids = []) {
   console.log(`\ndaemon: ${pid ? `pid ${pid}, keeping [${readWanted(paths).join(', ')}]` : 'not running'}  (pid? = listener the host did not start)`);
 }
 
-async function start(ids, withAgents) {
+/** Adds the ids to the daemon's wanted set (starting the daemon when none runs) and returns their entries. */
+function launch(ids, withAgents, log = console.log) {
   ensureDirs(paths);
   const entries = selectEntries(services(), ids, { withAgents });
   const wanted = [...new Set([...readWanted(paths), ...entries.map(entry => entry.id)])];
   writeWanted(paths, wanted);
   let pid = daemonPid();
   if (pid) {
-    console.log(`daemon pid ${pid} already runs; it now keeps [${wanted.join(', ')}]`);
+    log(`daemon pid ${pid} already runs; it now keeps [${wanted.join(', ')}]`);
   } else {
     const args = [SELF, 'daemon', ...(withAgents ? ['--with-agents'] : [])];
     pid = spawnDetached(process.execPath, args, { cwd: paths.runtime, env: process.env, logPath: paths.log('daemon'), errPath: paths.err('daemon') });
-    console.log(`daemon started: pid ${pid}, log ${paths.log('daemon')}`);
+    log(`daemon started: pid ${pid}, log ${paths.log('daemon')}`);
   }
+  return entries;
+}
+
+async function start(ids, withAgents) {
+  const entries = launch(ids, withAgents);
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline && !entries.every(entry => readRecord(paths, entry.id))) await sleep(500);
   await status(entries.map(entry => entry.id));
+}
+
+/** start + wait for health; `--json` prints { up, failed, waitedMs } only (the backend's door reads it). */
+async function ensure(ids, { json = false, timeoutMs = null } = {}) {
+  if (!ids.length) throw new Error('usage: ensure <id...>');
+  const entries = launch(ids, false, json ? () => {} : console.log);
+  const result = await waitHealthy(entries, { timeoutMs: timeoutMs ?? ENSURE_DEFAULTS.timeoutMs });
+  if (json) {
+    console.log(JSON.stringify(result));
+  } else {
+    console.log(`up [${result.up.join(', ')}] after ${result.waitedMs} ms` + (result.failed.length ? `; not up: ${result.failed.map(f => `${f.id} (${f.error})`).join(', ')}` : ''));
+  }
+  if (result.failed.length) process.exitCode = 2;
 }
 
 function stop(ids) {
@@ -100,16 +122,17 @@ async function daemon(withAgents) {
 }
 
 async function main(argv) {
-  const { command, ids, withAgents } = parseArgs(argv);
+  const { command, ids, withAgents, json, timeoutMs } = parseArgs(argv);
   switch (command) {
     case 'status': return status(ids);
     case 'start': return start(ids, withAgents);
+    case 'ensure': return ensure(ids, { json, timeoutMs });
     case 'stop': return stop(ids);
     case 'restart':
       if (ids.length !== 1) throw new Error('usage: restart <id>');
       return restart(ids[0]);
     case 'daemon': return daemon(withAgents);
-    default: throw new Error(`unknown command "${command}"; use start|stop|status|restart`);
+    default: throw new Error(`unknown command "${command}"; use start|ensure|stop|status|restart`);
   }
 }
 
