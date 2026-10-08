@@ -2,6 +2,15 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `8d7229ad` Agent feed relays a run as cards + a question (user: "오케스트라 에이전트가 전해주는 거 시각화하고
+  법규를 보시겠어요? 이런식으로"): `lib/orchestrator-runs/feed` gains `tone` (step dot ok/warn/busy), `card` (`stats` =
+  Law numbers as tiles; `chips` = missing evidence in Korean), kind `prompt` (bubble whose actions are the answers;
+  an action without `artifact` only dismisses) and `dismiss(id)`. `feed-lines`: stepTone, lawCard, evidenceCard,
+  resultPrompt (보류 / 완료 / 실패 wording; 법규 보기 -> law tab `orchestrator` on the site under the run's binding;
+  실패 adds 시스템 보기). `useRunFeed` order: 접수 -> step lines -> law line+tiles -> 결과+chips -> prompt. CSS: feed rows
+  are `.agent-feed > ol > li` (nested chip li must keep flex), feed may take 60% of the column. Verified live 3 runs on
+  고산 684-1; 법규 보기 lands on 오케스트레이터 검토 and removes the prompt.
+
 - 2026-10-08 `7f65ee78` Orchestrator <-> UI: shared `lib/orchestrator-runs/` (api, poll, feed store, Korean labels,
   ConditionsRow) used by site-map and law; law tab 오케스트레이터 검토 (latest limits run per pnu: timeline, Law numbers vs
   own analysis, ordinance receipt, missing evidence + actions, 검토 시작); shell `conversation/AgentFeed.tsx` shows the
