@@ -3,6 +3,12 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `3b38eccb` W3C trace context on runs: `core/tracing.py` (stdlib; JSONL recorder at EDITOR_TRACE_DIR >
+  EDITOR_PLATFORM_DATA_DIR/trace > runtime/trace), `RunService.submit` starts/continues a trace and records one
+  span `invoke_agent orchestrator` (OTel GenAI keys + run_id), adapter sends `traceparent` on every Orchestrator
+  call (no rows for polling GETs), response carries `trace_id`, `GET /platform/runs/{id}/trace`. Retry = new trace.
+  CONTRACT REQUEST to Orchestrator/agents: read traceparent, child spans per A2A call, forward header, echo it,
+  health version+started_at (see global memory this-session-owns-the-orchestrator §5).
 - 2026-10-08 `1ce68ad9` `GET /api/v1/platform/status` (modules/platform/status/: registry.py reads
   infra/config/services.json, probes.py httpx 3 s/20 s cache, service.py merges Orchestrator list_agents when up);
   `/platform/agents` returns structured 503 `{agents:[], orchestrator:{state:'down',error}}` when the Orchestrator
