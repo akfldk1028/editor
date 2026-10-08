@@ -34,6 +34,14 @@ be told to the Orchestrator session.
   catalogs, the owners' serve scripts and editor_api.py agree with it. Findings for the Orchestrator session:
   a2a.ps1 lists 15 agents (not 16); SiteContext's serve-a2a.sh reads SITE_A2A_URL while everyone else says
   SITE_CONTEXT_A2A_URL; Program/KMass/Systems/DomainExpert/Interior read no *_A2A_URL at all (catalog-only).
+- 2026-10-08 (MasterPlan session) rows.py: `row_candidates` received the enclosed ground floor as
+  `occupied_footprint` but cut the road corridor, the ramp's open part, the at-grade landing and the turn bay
+  against the whole footprint, so under a piloti no row scheme ever had an entrance (고산 with the practice
+  building: 0-12 surface stalls, failing generic plan). They now cut against the enclosed floor; without a
+  piloti the enclosed floor IS the footprint (new test asserts identity). Verified: 역삼 geometry hashes
+  unchanged, test_rows_piloti 3/3, rows/aisle/core/joint files 45 passed; the two time-budget tests
+  (bounded_packing <12 s, rows_runtime <15 s) fail on HEAD too on this machine today (2.4 GB free; HEAD vs
+  working copy benchmark 23-24 s vs 25-27 s, same output). Piloti clear height is still only a pending review.
 - 2026-10-07 (MasterPlan session, user-approved result change: "커밋하고 진행해 비교를 해야지") planner:
   compact_basement_search now defaults on, and a capped basement budget keeps one solve for the row-and-aisle
   family. 고산 (district plan incl. 차량출입불허구간, practice programme) 0+50 -> 22+28, one gate, entrance

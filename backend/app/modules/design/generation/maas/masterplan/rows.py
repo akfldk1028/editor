@@ -103,6 +103,12 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
         # normalises the ring without moving the boundary.
         g_site, g_ground, g_fp, g_obst = (g if g.is_valid else g.buffer(0)
                                           for g in (g_site, g_ground, g_fp, g_obst))
+        # The enclosed ground floor. Under a piloti (authored ground footprint smaller than the
+        # footprint) the aisle, its road connector and an at-grade landing may pass beneath the
+        # upper floors; only the enclosed part blocks them. Without one it is the footprint.
+        g_occ = g_fp if occupied_footprint is None else rot(occupied_footprint)
+        if not g_occ.is_valid:
+            g_occ = g_occ.buffer(0)
         if g_ground.is_empty or not g_ground.is_valid:
             continue
         g_roads = [rot(s) for s in road_segs]
@@ -159,7 +165,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                             # 450 m from its road short of the road it was meant to reach.
                             corridor = (box(xe0, sy0 - 1, xe1, y + aisle) if ydir < 0 else
                                         box(xe0, y, xe1, sy1 + 1)).intersection(g_site)
-                            corridor = corridor.difference(g_fp).difference(g_obst)
+                            corridor = corridor.difference(g_occ).difference(g_obst)
                             piece = next((p for p in parts(corridor) if p.distance(aisle_poly) <= EPS), None)
                             if piece is None:
                                 continue
@@ -222,7 +228,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                                     _drops["not_built"] = _drops.get("not_built", 0) + 1
                                     continue
                                 poly, upper, lower, center, spec, radius = built
-                                open_part = poly.difference(g_fp)
+                                open_part = poly.difference(g_occ)
                                 if not g_site_b.covers(poly):
                                     _drops["outside_site"] = _drops.get("outside_site", 0) + 1
                                     continue
@@ -241,7 +247,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                                 # measures. Practice comes off the road, crosses the yard and goes down
                                 # without threading the mass; a landing under the footprint is the drive
                                 # that `drive_obstructions:0` then rejects.
-                                if not g_fp.is_empty and upper.intersection(g_fp).area > EPS:
+                                if not g_occ.is_empty and upper.intersection(g_occ).area > EPS:
                                     _drops["landing_under_building"] = _drops.get("landing_under_building", 0) + 1
                                     continue
                                 if accept_ramp is not None and not accept_ramp(unrot(poly)):
@@ -317,7 +323,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                             turn_bay = box(x0b, y - stall_l, x1b, y + aisle + stall_l).intersection(g_ground)
                             if ramp_geom is not None:
                                 turn_bay = turn_bay.difference(ramp_geom["polygon"])
-                            turn_bay = turn_bay.difference(g_obst).difference(g_fp)
+                            turn_bay = turn_bay.difference(g_obst).difference(g_occ)
                             if not turn_bay.is_empty:
                                 drive = unary_union([drive, turn_bay])
                         if ramp_geom is not None:
