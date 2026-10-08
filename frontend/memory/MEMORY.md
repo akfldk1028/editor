@@ -26,7 +26,7 @@ Who owns what (2026-10-06):
 
 ## Quick pointers (2026-10-08)
 - Shell: `/dwg` = `features/shell` (Shell.tsx, layout/, artifact-host/, conversation/, sidebar/, `artifact-types.ts`, `registry.ts`).
-- Artifacts: `features/artifacts/<id>/{manifest.ts, ui/, model/, api/, lib/}` — site-map (default), cad, system. Rule in 01-shape.md.
+- Artifacts: `features/artifacts/<id>/{manifest.ts, ui/, model/, api/, lib/}` — site-map (default), law, cad, system. Rule in 01-shape.md.
 - Site map: click = whole parcel, Shift = bundle, save → `api/selection.ts`; run panel `ui/SiteRunPanel.tsx` → Orchestrator.
 - Dev server: `bun run dev -- --webpack --hostname 127.0.0.1 --port 3003` (03-run-and-test.md); restart daily.
 - Decisions log: 05-decisions.md (newest first).

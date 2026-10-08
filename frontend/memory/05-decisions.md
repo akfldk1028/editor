@@ -2,6 +2,12 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `9d177a32` artifact `law` (법규·한계): target = ?pnu= else saved site's first parcel; `POST /land/analyze`
+  with 조건(용도·연면적·기준일) from the ⋯ menu; tabs summary/regulations/articles/setbacks; reuses features/land-map
+  LandAnalysisPanel/LawArticlesList/types read-only (debt: fold land-map into this slice, its inline dark palette).
+  Site card gained 법규 보기. Known: /land/analyze is single-PNU (bundle = first parcel); shell.openArtifact does
+  not update ?artifact=; sunlight description renders raw JSON (pre-existing /land bug); site card horizontal scrollbar.
+  고산 684-1 live: 건폐율/용적률 미확정(조례 증거 부족, 법정 상한 59.9/249.7), 대지 2,500 ㎡, 제한 11.
 - 2026-10-08 `9bd8d015` site-map slice in FSD segments: manifest / ui/ / model/ / api/ (only place with /api/v1
   literals: selection.ts, mapConfig.ts) / lib/ (picks.ts types+pure, site-run.ts, engine/, layers/). Run panel
   gets `shell` and shows 시스템 보기 when the Orchestrator is unavailable. Rule for every artifact slice.
