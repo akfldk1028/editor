@@ -169,6 +169,21 @@
   border-radius: var(--radius-s);
   font-weight: 600;
 }
+/* 법규 보기: opens the law artifact on the saved site's first parcel. */
+.site-card-law {
+  min-block-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--ink);
+  background: var(--subtle);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+  font-weight: 600;
+}
+.site-card-law:hover { background: var(--hover); }
 /* 검토 시작 under the saved site: project choice, the one-parcel notice, then the run's status. */
 .site-card-run { display: grid; gap: 8px; padding-block-start: 8px; border-block-start: 1px solid var(--border-soft); }
 .site-card-run .site-card-note { padding-inline-end: 0; }

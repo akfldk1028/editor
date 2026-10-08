@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Plus, X } from 'lucide-react'
+import { AlertTriangle, Check, Plus, Scale, X } from 'lucide-react'
 
 import type { ShellApi } from '../../../shell/artifact-types'
 import { lotLabel } from '../lib/layers/parcelOutline'
@@ -79,6 +79,13 @@ function Ready({ state, adding, onAddingChange, onRemove, onSelect, project, she
       {state.save === 'saved' ? (
         <>
           <p className="site-card-saved"><Check aria-hidden="true" size={14} />선택됨</p>
+          <button
+            className="site-card-law"
+            onClick={() => shell.openArtifact('law', { pnu: site.parcels[0]!.pnu, address: site.parcels[0]!.address, ...(project ? { project } : {}) })}
+            type="button"
+          >
+            <Scale aria-hidden="true" size={12} />법규 보기
+          </button>
           <SiteRunPanel key={state.site.selection_id} project={project} shell={shell} site={state.site} />
         </>
       ) : (

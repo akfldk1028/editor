@@ -1,0 +1,58 @@
+import type { LawAnalysis } from '../api/analyze'
+import { formatArea, formatCap, formatWon, summarize } from '../lib/summary'
+import { Stat } from './Stat'
+
+/** 요약: 용도지역, 건폐율/용적률 상한, 대지면적, 심사 상태, 제한 목록. */
+export function SummaryTab({ analysis }: { analysis: LawAnalysis }) {
+  const summary = summarize(analysis)
+  const bcr = formatCap(summary.bcr)
+  const far = formatCap(summary.far)
+  const landNote = [
+    summary.landCategory ? `지목 ${summary.landCategory}` : null,
+    summary.officialPrice !== null ? `공시지가 ${formatWon(summary.officialPrice)}` : null,
+  ].filter(Boolean).join(' · ')
+
+  return (
+    <div className="law-summary">
+      <section aria-label="용도지역" className="law-card">
+        <h2>용도지역 {summary.zones.length > 1 && <small>{summary.zones.length}개 걸침</small>}</h2>
+        <ul className="law-chips">
+          {summary.zones.map((zone) => <li key={zone}>{zone}</li>)}
+          {summary.zones.length === 0 && <li data-kind="muted">용도지역 —</li>}
+        </ul>
+        {summary.zoneAreas.length > 1 && (
+          <dl className="law-kv">
+            {summary.zoneAreas.map(({ zone, areaM2 }) => (
+              <div key={zone}><dt>{zone}</dt><dd>{formatArea(areaM2)}</dd></div>
+            ))}
+          </dl>
+        )}
+        {summary.overlapArticle && <p className="law-sub">둘 이상의 용도지역: 면적 가중 적용 — {summary.overlapArticle}</p>}
+        {summary.otherZones.length > 0 && <p className="law-sub">그 밖의 지역·지구: {summary.otherZones.join(' · ')}</p>}
+      </section>
+
+      <div className="law-stats">
+        <Stat basis={summary.bcr.article} label="건폐율 상한" note={bcr.note} tone={bcr.note ? 'warn' : undefined} value={bcr.value} />
+        <Stat basis={summary.far.article} label="용적률 상한" note={far.note} tone={far.note ? 'warn' : undefined} value={far.value} />
+        <Stat label="대지면적" note={landNote || null} value={formatArea(summary.areaM2)} />
+      </div>
+
+      <section aria-label="심사 상태" className="law-card">
+        <h2>
+          심사 상태 <span className="law-badge" data-tone={summary.assessment.tone}>{summary.assessment.label}</span>
+          {summary.assessmentDate && <small>기준일 {summary.assessmentDate}</small>}
+        </h2>
+        {summary.assessment.detail.length > 0 && (
+          <ul className="law-list">{summary.assessment.detail.map((line) => <li key={line}>{line}</li>)}</ul>
+        )}
+      </section>
+
+      <section aria-label="제한 목록" className="law-card">
+        <h2>제한 목록 <small>{summary.restrictions.length}</small></h2>
+        {summary.restrictions.length > 0
+          ? <ol className="law-list">{summary.restrictions.map((line) => <li key={line}>{line}</li>)}</ol>
+          : <p className="law-sub">제한 항목이 없어요.</p>}
+      </section>
+    </div>
+  )
+}

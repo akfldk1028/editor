@@ -36,6 +36,8 @@ const CLIENTS: Record<string, Client> = {
   'features/artifacts/site-map/api/mapConfig.ts': {},
   'features/artifacts/site-map/api/selection.ts': {},
   'features/artifacts/system/api/status.ts': {},
+  'features/artifacts/law/api/analyze.ts': {},
+  'features/artifacts/law/api/site.ts': {},
   'features/world/lib/context-masses.ts': {},
   'features/world/hooks/use-world-3d.ts': {},
   'features/world/lib/terrain.ts': {},

@@ -1,0 +1,141 @@
+/*
+ * 법규·한계 artifact. Shell tokens (--panel-raised, --ink, --muted, --warning, --success …) and the
+ * shell's 11/12/14/16 type scale. Under 480px of the artifact's own width the stat row and the
+ * tables stack. `.law-legacy` hosts the /land page's panel, which keeps its own dark palette.
+ */
+.law-artifact {
+  container: law-artifact / inline-size;
+  min-inline-size: 0;
+  min-block-size: 0;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  overflow: auto;
+  padding: 16px;
+  color: var(--ink);
+  background: var(--artifact);
+}
+
+.law-note { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: var(--fs-2); }
+.law-note[data-kind="error"] { color: var(--warning); }
+.law-note[data-kind="notice"] {
+  padding: 8px 10px;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-radius: var(--radius-s);
+}
+
+.law-empty {
+  place-self: center;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-inline-size: 320px;
+  padding: 24px 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: var(--fs-2);
+}
+.law-empty p { margin: 0; color: var(--ink); font-size: var(--fs-4); font-weight: 600; }
+.law-empty .artifact-primary { margin-block-start: 4px; }
+
+.law-summary, .law-setbacks { display: grid; gap: 12px; max-inline-size: 960px; }
+
+.law-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.law-stat {
+  min-inline-size: 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-m);
+}
+.law-stat > span { color: var(--muted); font-size: var(--fs-1); font-weight: 600; }
+.law-stat > b { font-size: var(--fs-4); font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.law-stat[data-tone="warn"] > b { color: var(--warning); }
+.law-stat > small, .law-sub { margin: 0; color: var(--muted); font-size: var(--fs-1); line-height: var(--lh); }
+.law-basis { overflow-wrap: anywhere; }
+
+.law-card {
+  min-inline-size: 0;
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-m);
+}
+.law-card h2 { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-3); font-weight: 600; }
+.law-card h2 small { color: var(--muted); font-size: var(--fs-1); font-weight: 500; }
+
+.law-chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.law-chips li { padding: 3px 8px; background: var(--subtle); border-radius: var(--radius-s); font-size: var(--fs-2); font-weight: 600; }
+.law-chips li[data-kind="muted"] { color: var(--muted); font-weight: 500; }
+
+.law-kv { margin: 0; display: grid; gap: 2px; font-size: var(--fs-2); }
+.law-kv > div { display: flex; justify-content: space-between; gap: 12px; }
+.law-kv dt { min-inline-size: 0; color: var(--muted); }
+.law-kv dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.law-badge { padding: 2px 8px; color: var(--muted); background: var(--subtle); border-radius: 9px; font-size: var(--fs-1); font-weight: 600; }
+.law-badge[data-tone="ok"] { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
+.law-badge[data-tone="warn"] { color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, transparent); }
+
+.law-list { margin: 0; padding-inline-start: 18px; display: grid; gap: 4px; list-style: disc; font-size: var(--fs-2); line-height: var(--lh); }
+ol.law-list { list-style: decimal; }
+.law-list li { display: list-item; overflow-wrap: anywhere; }
+.law-list li::marker { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.law-table { inline-size: 100%; border-collapse: collapse; font-size: var(--fs-2); }
+.law-table th, .law-table td { padding: 6px 0; text-align: start; vertical-align: top; border-block-start: 1px solid var(--border-soft); }
+.law-table tr:first-child > * { border-block-start: 0; }
+.law-table th { inline-size: 38%; padding-inline-end: 12px; color: var(--muted); font-weight: 500; }
+.law-table td > div { min-inline-size: 0; display: grid; gap: 2px; }
+.law-table b { font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.law-table span, .law-table small { color: var(--muted); font-size: var(--fs-1); line-height: var(--lh); overflow-wrap: anywhere; }
+
+/* The /land page's panel and article list keep their own near-black palette in both shell themes. */
+.law-legacy {
+  min-inline-size: 0;
+  padding: 16px;
+  color: #f0f0f5;
+  background: #0d0d12;
+  border-radius: var(--radius-m);
+  color-scheme: dark;
+}
+.law-legacy :focus-visible { outline-color: #818cf8; }
+
+/* 조건 rows in the ⋯ menu (portaled there, so they sit outside .law-artifact). */
+.law-conditions { padding-block-start: 0; border-block-start: 0; }
+.law-conditions-title { margin: 0; padding: 6px 10px 2px; color: var(--muted); font-size: var(--fs-1); font-weight: 600; }
+.law-conditions .menu-field > span { white-space: nowrap; }
+.law-conditions input {
+  min-inline-size: 0;
+  inline-size: 150px;
+  min-block-size: 28px;
+  padding-inline: 8px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+  text-align: end;
+}
+.law-conditions input[type="date"] { text-align: start; }
+.law-conditions input:focus-visible { border-color: var(--accent); outline: none; }
+.law-conditions select { max-inline-size: 150px; min-block-size: 28px; }
+
+@container law-artifact (max-width: 480px) {
+  .law-artifact { padding: 12px; }
+  .law-stats { grid-template-columns: minmax(0, 1fr); }
+  .law-table, .law-table tbody, .law-table tr, .law-table th, .law-table td { display: block; }
+  .law-table th { inline-size: auto; padding-block-end: 0; }
+  .law-table td { padding-block-start: 2px; border-block-start: 0; }
+  .law-legacy { padding: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .law-legacy *, .law-legacy *::before, .law-legacy *::after { transition-duration: 0s !important; }
+}
