@@ -26,3 +26,11 @@ Who owns what (2026-10-06):
 | [07-decisions.md](07-decisions.md) | dated log of decisions and contract changes |
 
 Agent-network rules live outside this repo: `D:\Data\25_ACE\agents\docs\AGENT_MODULE_CONVENTIONS.md` §5.
+
+## Quick pointers (2026-10-08)
+- Ports/URLs: `infra/config/services.json` only (schema `services.schema.json`; `bun run host:check`).
+- Start/keep servers: `bun run host:start|stop|status` (`infra/host`, detached daemon; see 05-run-and-test).
+- Status: `GET /api/v1/platform/status` (`modules/platform/status/`), shell artifact `system`.
+- Runs: site run door `schemas/site_run.py` (`{goal:'limits', pnu}`), tracing `core/tracing.py`, `GET /platform/runs/{id}/trace`.
+- Site selection: `modules/land/selections.py`, `selection_facts.py`, routes `/land/selections[/preview|/outlines|/latest]`.
+- Decisions log: 07-decisions.md (newest first).
