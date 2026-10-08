@@ -2,6 +2,12 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `8aadbfd1` 검토 시작 sends `{goal:'limits', pnu, parcels[all], building_type?, assessment_date}` (conditions row:
+  기준일 default today + 용도 from shared `lib/building-types.ts`, persisted in localStorage); contiguity notice only when
+  the saved site is non-contiguous; `parcels_not_contiguous` surfaces from inside the run (runNotice), not as 409.
+  LIVE: 684-1 and 684-1+684-3 (they touch) -> site_resolve needs_evidence (access/hazards/utilities), law_parcel_limits
+  succeeded (2,499.7 m², BCR 59.92 / FAR 249.67, 5 floors, policy gosan-public1-molit-2026-334), revision_triage
+  needs_user_input -> run `blocked`; a far parcel pair -> `failed parcels_not_contiguous`.
 - 2026-10-08 `9d177a32` artifact `law` (법규·한계): target = ?pnu= else saved site's first parcel; `POST /land/analyze`
   with 조건(용도·연면적·기준일) from the ⋯ menu; tabs summary/regulations/articles/setbacks; reuses features/land-map
   LandAnalysisPanel/LawArticlesList/types read-only (debt: fold land-map into this slice, its inline dark palette).

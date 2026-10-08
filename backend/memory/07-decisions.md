@@ -3,6 +3,9 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `8aadbfd1` site run door also takes `assessment_date` (real YYYY-MM-DD) and `parcels` (1..50, unique,
+  parcels[0]==pnu); 45 tests. Orchestrator boundary now accepts it (their 56563ec). Known: adapter drops the owner's
+  409 detail (`OwnerRejected` -> generic message); Law still reports assessment_date null although the project stores it.
 - 2026-10-08 Infra review at `9bd8d015`: host:check 28/28, infra/dev 26/26, lint-imports KEPT, inventory current,
   backend 67 (status/trace/site-run/selections/doors), frontend tsc 0 + 228; agent doors 24/24 identical to the
   10-07 review fingerprint; agents repos: no launcher/catalog change (their dirty files are other sessions' docs);
