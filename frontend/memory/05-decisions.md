@@ -2,6 +2,14 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `e90216a8` P1 of plan `role-routing-and-agent-entities-20261008`: `lib/agents/<id>/` one folder per party
+  (18: 16 agents + orchestrator + user) — `model/spec.ts` (id, English name, aliases, tools+labels), `ui/mark.tsx` (icon,
+  tint), `lib/lines.ts` where it has turns (orchestrator, site, law, revision; moved from orchestrator-runs/lines).
+  Registry `lib/agents/index.ts` (AGENTS, canonicalAgent, markOf, toolOwner, toolSpecLabel); contract `lib/agents/spec.ts`;
+  helpers `orchestrator-runs/{format,law-target}.ts`; `feed-lines.ts` barrel unchanged for importers. Not an FSD
+  `entities/` layer: the composing hooks (useRunFeed/useAsk/connection) are shared-layer and used by several slices;
+  `lib/agents/import-direction.test.ts` fixes lib↛features and agent folders↛hooks instead. Folders were generated from a
+  table (scratchpad gen_agents.py) — a new agent = one folder + one registry line.
 - 2026-10-08 `a7689389` Modularity review for 16 agents (user: "모듈화도 되어야, 에이전트가 많거든").
   `lib/orchestrator-runs/agents.ts` = the one agent table (id, English name, aliases, tools+labels); labels.ts reads it
   (`toolOwner` by listing, else id prefix); `agentMarks.tsx` icon+tint per canonical id (`--mark` inline; per-agent
