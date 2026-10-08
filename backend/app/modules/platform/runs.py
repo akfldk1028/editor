@@ -2,6 +2,10 @@ from backend.app.core.tracing import JsonlTraceRecorder, Span, continue_or_start
 from backend.app.schemas.platform import ProjectCreate
 from backend.app.schemas.specialist_review import specialist_items
 from .projects import BindingConflict
+from .run_results import parse_run_results, request_pnu
+
+# `latest` fetches at most this many runs whole to find the one for a parcel.
+LATEST_CANDIDATES = 10
 
 
 class RunService:
@@ -57,6 +61,27 @@ class RunService:
         if not run.get('request_id','').startswith(f'editor:{project_id}:'):
             raise LookupError('run not found in project')
         return run
+
+    async def results(self, actor, project_id, run_id):
+        """The run as `get` returns it, read into the UI shape of run_results.parse."""
+        return parse_run_results(await self.get(actor, project_id, run_id))
+
+    async def latest(self, actor, project_id, goal, pnu=None, cap=LATEST_CANDIDATES):
+        """The newest run of `goal` (the owner lists newest first), for `pnu` when given: the list carries no
+        request, so at most `cap` candidates are fetched whole and matched on the parcel they were asked about.
+        Answer = that run (as `get`) plus `results`."""
+        binding = self.binding(actor, project_id)
+        candidates = [run for run in await self.list(actor, project_id) if run['goal'] == goal][:cap]
+        if pnu is None:
+            if not candidates:
+                raise LookupError('no run for goal')
+            run = await self.owner.get_run(candidates[0]['run_id'], binding.owner_project_id, binding.branch_id)
+            return {**run, 'results': parse_run_results(run)}
+        for candidate in candidates:
+            run = await self.owner.get_run(candidate['run_id'], binding.owner_project_id, binding.branch_id)
+            if request_pnu(run) == pnu:
+                return {**run, 'results': parse_run_results(run)}
+        raise LookupError('no run for parcel')
 
     async def review_request(self, actor, project_id, run_id):
         binding = self.binding(actor, project_id)

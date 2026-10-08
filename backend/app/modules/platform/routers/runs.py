@@ -5,6 +5,7 @@ from backend.app.core.tracing import JsonlTraceRecorder
 from backend.app.modules.platform.projects import BindingConflict
 from backend.app.modules.platform.runs import RunService
 from backend.app.schemas.platform import RunCreate
+from backend.app.schemas.site_run import PNU
 
 
 def create_run_router(projects_service, owner, allowed_origin, trace_recorder=None):
@@ -35,9 +36,21 @@ def create_run_router(projects_service, owner, allowed_origin, trace_recorder=No
     async def runs(project_id: str):
         return await respond(service().list('local', project_id))
 
+    @router.get('/projects/{project_id}/runs/latest')
+    async def latest_run(project_id: str, goal: str = 'limits', pnu: str | None = None):
+        """The newest run of `goal`, for `pnu` when given (run_results.parse shape under `results`)."""
+        if pnu is not None and not PNU.fullmatch(pnu):
+            raise HTTPException(422, 'PNU requires 19 digits')
+        return await respond(service().latest('local', project_id, goal, pnu))
+
     @router.get('/runs/{run_id}')
     async def run(run_id: str, project_id: str):
         return await respond(service().get('local', project_id, run_id))
+
+    @router.get('/runs/{run_id}/results')
+    async def run_results(run_id: str, project_id: str):
+        """The run's communications read into one UI shape (modules/platform/run_results/parse.py)."""
+        return await respond(service().results('local', project_id, run_id))
 
     @router.get('/runs/{run_id}/request')
     async def review_request(run_id: str, project_id: str):

@@ -3,6 +3,14 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 (feat: run results) `modules/platform/run_results/parse.py` reads a run's communications into one UI shape
+  (`GET /runs/{id}/results?project_id=`; `GET /projects/{id}/runs/latest?goal=&pnu=` = newest run for a parcel, at most 10
+  runs fetched whole since the owner's list carries no request). Tolerant: a response cut at the Orchestrator's 8000-char
+  cap is closed at its last complete value, so Law's numbers (parcel_area_m2, bcr_pct, far_pct, max_storeys, policy_id)
+  survive but its `ordinance` receipt (sent last, after `policy`/`evidence`) is lost for policy parcels like 684-1 ->
+  `law.ordinance: null` + `notes[]`. Fixtures = the three live 684-1 runs. TELL ORCHESTRATOR/LAW: put `ordinance`
+  before `policy`/`evidence` or raise the cap; Law still ignores the project's assessment_date (finding evidence null);
+  `revision_triage` task state is `failed` while its answer says `needs_evidence` (the UI prefers the answer).
 - 2026-10-08 `8aadbfd1` site run door also takes `assessment_date` (real YYYY-MM-DD) and `parcels` (1..50, unique,
   parcels[0]==pnu); 45 tests. Orchestrator boundary now accepts it (their 56563ec). Known: adapter drops the owner's
   409 detail (`OwnerRejected` -> generic message); Law still reports assessment_date null although the project stores it.

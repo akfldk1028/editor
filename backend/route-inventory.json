@@ -831,6 +831,11 @@
    "path": "/api/v1/platform/projects/{project_id}/runs"
   },
   {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/runs/latest"
+  },
+  {
    "method": "POST",
    "owner": "fastapi",
    "path": "/api/v1/platform/projects/{project_id}/scene-revision"
@@ -844,6 +849,11 @@
    "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/platform/runs/{run_id}/request"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/runs/{run_id}/results"
   },
   {
    "method": "GET",
