@@ -190,6 +190,11 @@
 .site-card-run .site-card-note[data-kind="notice"] { display: flex; align-items: flex-start; gap: 6px; font-size: var(--fs-1); }
 .site-card-run .site-card-note[data-kind="notice"] svg { flex: 0 0 auto; margin-block-start: 2px; }
 .site-card-run-project { display: grid; gap: 4px; color: var(--muted); font-size: var(--fs-1); }
+/* 조건 row: 기준일 and 용도 side by side, the same field look as the project select. */
+.site-card-run-conditions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.site-card-run-conditions label { display: grid; gap: 4px; color: var(--muted); font-size: var(--fs-1); }
+.site-card-run-conditions input,
+.site-card-run-conditions select,
 .site-card-run-project select {
   min-block-size: 28px;
   color: var(--ink);

@@ -13,7 +13,8 @@ export class RunRequestError extends Error {
   constructor(message: string, readonly status: number, readonly detail: string | null) { super(message); }
 }
 /** What the editor door accepts today (schemas/platform.py `RunCreate.supported_request`), minus specialist reviews. */
-export type RunRequest = { goal: 'health' } | { goal: 'limits'; pnu: string; building_type?: string };
+export type RunRequest = { goal: 'health' }
+  | { goal: 'limits'; pnu: string; building_type?: string; assessment_date?: string; parcels?: string[] };
 
 async function request(path: string, options?: RequestInit) {
   const response = await fetch((process.env.NEXT_PUBLIC_BASE_PATH || '') + '/api/v1/platform' + path, options);

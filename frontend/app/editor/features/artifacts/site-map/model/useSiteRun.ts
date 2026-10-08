@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { listProjects, type ProjectBinding } from '../../../agent-dialogue/projects'
 import { getRun, getRunContext, type RunSummary, submitRun } from '../../../agent-dialogue/runs'
 import type { SavedSite } from '../lib/picks'
+import { defaultRunConditions, isValidDate, loadRunConditions, type RunConditions, saveRunConditions } from '../lib/run-conditions'
 import { describeFailure, idempotencyKey, isTerminal, type ProjectChoice, type RunFailure, resolveProject, siteRunRequest } from '../lib/site-run'
 
 const POLL_MS = 3000
@@ -18,16 +19,21 @@ export type RunPhase =
 export type Projects = { kind: 'loading' } | { kind: 'error'; text: string } | ProjectChoice
 
 /**
- * 검토 시작 for a saved site: pick the project binding, submit `{goal: limits, pnu}` through the
- * editor door with a fresh Idempotency-Key per attempt, then poll the run until it ends or the
- * panel unmounts.
+ * 검토 시작 for a saved site: pick the project binding and the 조건 (기준일, 용도), submit
+ * `{goal: limits, pnu, parcels, assessment_date, building_type?}` through the editor door with a
+ * fresh Idempotency-Key per attempt, then poll the run until it ends or the panel unmounts.
  */
 export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
   const [projects, setProjects] = useState<Projects>({ kind: 'loading' })
   const [chosen, setChosen] = useState<ProjectBinding | null>(null)
+  const [conditions, setConditions] = useState<RunConditions>(defaultRunConditions)
   const [phase, setPhase] = useState<RunPhase>({ kind: 'idle' })
   const attempts = useRef(0)
   const active = useRef<AbortController | null>(null)
+  const ready = isValidDate(conditions.assessmentDate)
+
+  // The last used 조건 come from localStorage after mount, so the server and first client render agree.
+  useEffect(() => setConditions(loadRunConditions()), [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -68,20 +74,21 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
   useEffect(() => () => active.current?.abort(), [])
 
   const start = useCallback(async () => {
-    if (!chosen || phase.kind === 'submitting') return
+    if (!chosen || !ready || phase.kind === 'submitting') return
     active.current?.abort()
     const controller = new AbortController()
     active.current = controller
     setPhase({ kind: 'submitting' })
+    saveRunConditions(conditions)
     const key = idempotencyKey(site, ++attempts.current)
     try {
       const context = await getRunContext(chosen.project_id, controller.signal)
-      const run = await submitRun(chosen.project_id, context, key, siteRunRequest(site), controller.signal)
+      const run = await submitRun(chosen.project_id, context, key, siteRunRequest(site, conditions), controller.signal)
       if (!controller.signal.aborted) setPhase({ kind: 'submitted', run, stale: false })
     } catch (error) {
       if (!controller.signal.aborted) setPhase({ kind: 'failed', failure: describeFailure(error) })
     }
-  }, [chosen, phase.kind, site])
+  }, [chosen, conditions, phase.kind, ready, site])
 
-  return { projects, chosen, setChosen, phase, start }
+  return { projects, chosen, setChosen, conditions, setConditions, ready, phase, start }
 }

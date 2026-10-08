@@ -7,11 +7,8 @@ export interface Conditions {
   assessmentDate: string
 }
 
-/** The short list in the select; anything else goes through 직접 입력. */
-export const BUILDING_TYPES: readonly string[] = [
-  '단독주택', '공동주택', '제1종근린생활시설', '제2종근린생활시설', '업무시설', '공공청사',
-  '교육연구시설', '노유자시설', '판매시설', '숙박시설', '의료시설', '공장', '창고시설',
-]
+/** The short list in the select (shared with the site run panel); anything else goes through 직접 입력. */
+export { BUILDING_TYPES } from '@/lib/building-types'
 
 /** Local calendar date, YYYY-MM-DD. */
 export function today(now = new Date()): string {
