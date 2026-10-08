@@ -86,10 +86,10 @@
       "port": 8791,
       "health_url": "{base}/editor/v1/health",
       "card_url": null,
-      "start": { "cwd": "agents/OrchestratorAgent", "cmd": [".venv-orchestrator/Scripts/python.exe", "-m", "orchestrator.editor_api", "--port", "{port}"] },
+      "start": { "cwd": "agents/OrchestratorAgent", "cmd": [".venv-orchestrator/Scripts/python.exe", "-X", "utf8", "-m", "orchestrator.editor_api", "--port", "{port}", "--enable-submissions"] },
       "depends_on": [],
       "version_source": "health:version",
-      "notes": "Orchestrator editor API (orchestrator/editor_api.py, default port in its argparse). The worker (scripts/services/stack.ps1, `-m orchestrator worker`) has no port. Bearer A2A_TOKEN."
+      "notes": "Orchestrator editor API (orchestrator/editor_api.py, default port in its argparse). The worker (scripts/services/stack.ps1, `-m orchestrator worker`) has no port. Bearer A2A_TOKEN. Run submissions need --enable-submissions (runtime/orchestrator/design.sqlite must exist). Whole stack: Docker Desktop, then scripts/services/stack.ps1 -Action start (ops/db + ops compose, dependencies.ps1, mass-export.ps1, a2a.ps1 = 15 agents, worker); dependencies.ps1 still copies from the retired AG-light path and fails non-fatally (2026-10-08)."
     },
     {
       "id": "law",
