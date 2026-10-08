@@ -36,3 +36,7 @@
   `uijeongbu-r39-own-design`, is such a one); the reason text is swallowed by the router. Use a binding the door lists.
 - **`import-linter` lives in `.venv` only.** Running pytest with the system Python skips `test_import_layers`
   (importorskip) — run `.venv/Scripts/python.exe -m pytest …` or the layer contract is not checked.
+- **Composer answers vanish on reload and the conversation forgets the site.** After a full reload the site card still says
+  선택됨 but `site-context` (in-memory) is empty, so the Orchestrator's situation says "no site" and the thread is empty;
+  the feed is in-memory only. Same root as the open "thread empty after reload" (10-08). Re-select the parcel before
+  judging a reply that mentions the site.
