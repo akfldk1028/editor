@@ -2,6 +2,15 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `b894aee4` 법규 요약 = Law Agent's analysis (user: "미확정이 말이 되나 — law agent 호출인데").
+  Law slice `api/analyze.ts` → `POST /platform/law-analysis` (backend asks `law_land_analyze` full+include_law and
+  `law_parcel_limits` over A2A); `useLawAnalysis` posts 법규 요약 bubble → "Law Agent에게 법규 분석 요청 중" → Law Agent
+  turn (`landAnalysisLine`: caps tiles + zones + 제한 N건 + 확인 필요; 법규 보기/관련 법규 보기), once per cache key.
+  `lib/summary.capStat`: the Law Agent's cap with "Law Agent · article · 지구단위 정책 id" as basis, the calculator's
+  미확정 as a note. Why 미확정 existed: the editor calculator (`/land/analyze`) leaves caps null for split zoning +
+  unmatched districts; `law_parcel_limits` applies the district policy (gosan 60/250) area-weighted → 59.92/249.67.
+  Live 683: 20/80 조례 제42·46조 in 10 s. Known: `law_articles` 0 on both paths today (:8011 search empty for the
+  regulation queries) → 조문 tab empty; `/land/analyze` untouched for the legacy /land page.
 - 2026-10-08 `14778a6f` Composer live → Law Agent (user: "lawagent가 있는데 조례 다 볼 수 있잖아", "메시지도
   계속 입력되게"). `POST /api/v1/platform/ask` {text, pnu?, assessment_date?} → backend picks `law_ordinance` (조례 이름+조)
   or `law_search` and returns `AskAnswer` (types.ts). Frontend: proxy allowlist `ask`; `api.askLaw`; `site-context.ts`

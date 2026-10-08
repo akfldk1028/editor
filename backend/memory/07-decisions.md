@@ -3,6 +3,12 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `b894aee4` `POST /api/v1/platform/law-analysis` — the law artifact's analysis from the Law
+  Agent: `modules/platform/ask.analyze_land` gathers `law_land_analyze` (full=True, include_law=True; the `raw` key is
+  the ARR-shaped analysis) and `law_parcel_limits` (caps; parsed with `run_results.law_from_response` into the run
+  contract's `law` shape), one span per hop under one trace; `summary` (zones, unmatched, zone areas, restrictions,
+  assessment status, missing evidence) for the conversation; `limits` null + `limits_error` when only that call fails.
+  Schema `LawAnalysisCreate` strict (pnu 19 digits, building_type ≤64, floor_area_m2 > 0, ISO date). ~10 s live.
 - 2026-10-08 `14778a6f` `POST /api/v1/platform/ask` — a typed question for the Law Agent. `adapters/law_agent.py`
   speaks A2A JSON-RPC with plain httpx (method `SendMessage`; text part `{"tool","args"}`; reply = completed task's status
   message text; `metadata.version` = code that answered; `message/send` is NOT the method name in a2a-sdk 1.0). The editor's
