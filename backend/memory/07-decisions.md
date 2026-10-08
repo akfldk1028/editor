@@ -266,3 +266,12 @@ be told to the Orchestrator session.
 - 2026-10-08 review fix: the terrain tile queue (features/world/lib/terrain.ts) never lets the camera-focus lookup throw
   (a destroyed viewer stopped waiting tiles); use-world-3d returns null focus for a destroyed viewer. Changed by the
   Orchestrator session (editor 92faac61).
+- 2026-10-08 review of plan P1–P4 (routing/goals/parsers): the Law role table holds no single-character keyword
+  ('법' sat inside 방법/법인 and tied every "배치 방법" question with MasterPlan); statutes are named whole (건축법,
+  주차장법, 국토의 계획, 법률) and parking/height phrasings are Law's (주차 대수·주차 몇·높이 몇·높이 상한·최고 높이).
+  Golden set 34 sentences, 34/34, wrong role 0 — add the sentence to `tests/fixtures/routing/golden.json` whenever a
+  live question routes wrongly. Live on 684-1: ask kinds skill/goal/ask all answer; `law-analysis` 28 s
+  (59.92/249.67/5층, policy gosan-public1-molit-2026-334); the limits run parsed Site 5/8 (2 facts readable under the
+  8,000-char cap), Law caps, Revision 4 actions, note `law_response_truncated`. Still the Orchestrator's: the
+  `law_parcel_limits` request it sends carries only `pnu, building_type` — no `assessment_date` — so Law's district
+  finding blocks the run ("Supply an explicit valid assessment date") although the editor sent the date.

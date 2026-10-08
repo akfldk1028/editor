@@ -21,3 +21,18 @@
   use 127.0.0.1 or the host-only adapter 172.27.80.1.
 - **Leftover `__pycache__` dirs after a move.** A directory holding only `__pycache__` makes the old
   dotted path import as an empty namespace package (no ModuleNotFoundError). Delete it after `git mv`.
+- **Host daemon reads `infra/config/services.json` once** (registry.mjs). A registry change (10-08: Orchestrator
+  `--enable-submissions`) is not live until `bun run host:stop` + `host:start <ids>`; the stale daemon spawned the
+  Orchestrator read-only and every submission got `Owner unavailable` (503) from `/projects/{id}/context`.
+- **`bun run host:start` with no ids starts every editor-owned service** (dwg, pascalMcp, …) and the daemon dies on the
+  first spawn error (`spawn bun ENOENT` for pascalMcp: unhandled ChildProcess 'error'), leaving backend/orchestrator
+  unsupervised. Always name ids; `runtime/host/wanted.json` keeps the list and must be trimmed by hand afterwards.
+- **A limits run needs the Orchestrator *worker*** (`agents/OrchestratorAgent/scripts/services/stack.ps1`:
+  `python -X utf8 -m orchestrator --runtime <runtime/orchestrator> worker`, record `runtime/services/orchestrator-worker.json`).
+  The editor door (:8791) alone accepts (202) and the run stays `queued` with no communications forever. The host
+  registry does not start the worker.
+- **A stale project binding gives a bare 409.** `POST /projects/{id}/runs` answers "Request identity or source version
+  conflict" when the binding's owner project/branch is no longer in `GET :8791/editor/v1/projects` (the first binding,
+  `uijeongbu-r39-own-design`, is such a one); the reason text is swallowed by the router. Use a binding the door lists.
+- **`import-linter` lives in `.venv` only.** Running pytest with the system Python skips `test_import_layers`
+  (importorskip) — run `.venv/Scripts/python.exe -m pytest …` or the layer contract is not checked.
