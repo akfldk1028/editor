@@ -18,6 +18,7 @@ from backend.app.modules.platform.routers.status import create_status_router
 def create_platform_router(
     client: OrchestratorClient | None = None, *, project_service=None, public_origin=None,
     design_repository=None, execution_catalog=None, native_design_service=None, status_service=None,
+    trace_recorder=None,
 ) -> APIRouter:
     owner = client or OrchestratorClient(os.environ.get('EDITOR_ORCHESTRATOR_URL'))
     router = APIRouter(prefix='/api/v1/platform', tags=['platform'])
@@ -95,7 +96,7 @@ def create_platform_router(
         except OwnerContractError:
             raise HTTPException(502, 'Project source contract invalid') from None
 
-    router.include_router(create_run_router(projects_service, owner, allowed_origin))
+    router.include_router(create_run_router(projects_service, owner, allowed_origin, trace_recorder))
     router.include_router(create_status_router(owner, status_service))
     router.include_router(create_scene_assets_router())
     router.include_router(create_design_router(projects_service, allowed_origin, design_repository,

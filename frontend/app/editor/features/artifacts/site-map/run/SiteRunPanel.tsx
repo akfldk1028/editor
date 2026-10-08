@@ -1,9 +1,10 @@
 'use client'
 
-import { AlertTriangle, Check, ExternalLink, RotateCcw } from 'lucide-react'
+import { AlertTriangle, Check, Copy, ExternalLink, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
 
 import type { SavedSite } from '../selection'
-import { bundleNotice, isTerminal, statusLabel, type RunFailure } from './site-run'
+import { bundleNotice, isTerminal, statusLabel, traceLabel, type RunFailure } from './site-run'
 import { useSiteRun, type RunPhase } from './useSiteRun'
 
 interface Props {
@@ -68,6 +69,7 @@ function Submitted({ phase, projectId }: { phase: Extract<RunPhase, { kind: 'sub
       <p>
         {open ? <span aria-hidden="true" className="loading-mark" /> : <Check aria-hidden="true" size={14} />}
         <b>검토 요청됨</b> · run <code>{run.run_id}</code>
+        {run.trace_id && <TraceId traceId={run.trace_id} />}
       </p>
       <p>
         상태: <b>{statusLabel(run.status)}</b>
@@ -75,5 +77,27 @@ function Submitted({ phase, projectId }: { phase: Extract<RunPhase, { kind: 'sub
         <a href={href} rel="noopener" target="_blank">실행 보기<ExternalLink aria-hidden="true" size={11} /></a>
       </p>
     </div>
+  )
+}
+
+/** `trace <first 8 hex>` with a button that copies the whole W3C trace id (for log/JSONL lookup). */
+function TraceId({ traceId }: { traceId: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(traceId)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // No clipboard (insecure context): the full id stays in the title for manual copy.
+    }
+  }
+  return (
+    <>
+      · trace <code title={traceId}>{traceLabel(traceId)}</code>
+      <button aria-label={copied ? '추적 ID 복사됨' : '추적 ID 복사'} className="site-card-run-copy" onClick={() => void copy()} type="button">
+        {copied ? <Check aria-hidden="true" size={11} /> : <Copy aria-hidden="true" size={11} />}
+      </button>
+    </>
   )
 }

@@ -37,6 +37,9 @@ export function idempotencyKey(site: SavedSite, attempt: number): string {
   return `site-${site.selection_id.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 100)}-${attempt}`
 }
 
+/** The card shows the first 8 hex of the 32-hex W3C trace id; the copy button carries the whole id. */
+export const traceLabel = (traceId: string) => traceId.slice(0, 8)
+
 /** The run page's statuses; anything else is terminal (RunPage polls on these three too). */
 const OPEN = new Set(['queued', 'running', 'queued_input'])
 export const isTerminal = (status: string) => !OPEN.has(status)

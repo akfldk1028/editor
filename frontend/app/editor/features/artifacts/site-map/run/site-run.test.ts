@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test'
 import type { ProjectBinding } from '../../../agent-dialogue/projects'
 import { RunRequestError } from '../../../agent-dialogue/runs'
 import type { SavedSite } from '../selection'
-import { bundleNotice, describeFailure, idempotencyKey, isTerminal, resolveProject, siteRunRequest, statusLabel } from './site-run'
+import { bundleNotice, describeFailure, idempotencyKey, isTerminal, resolveProject, siteRunRequest, statusLabel, traceLabel } from './site-run'
 
 const binding = (project_id: string): ProjectBinding =>
   ({ project_id, owner_project_id: 'owner-' + project_id, branch_id: 'main', scene_id: 's', scene_revision: 1, scene_project_id: null })
@@ -40,6 +40,10 @@ test('each attempt gets its own header-safe idempotency key', () => {
   expect(idempotencyKey(one, 1)).toBe('site-91dccc4b-e120-4925-82a2-339f3ac0c054-1')
   expect(idempotencyKey(one, 2)).not.toBe(idempotencyKey(one, 1))
   expect(idempotencyKey({ ...one, selection_id: 'a b/c' }, 3)).toMatch(/^[A-Za-z0-9_-]{1,128}$/)
+})
+
+test('the trace label is the first 8 hex of the W3C trace id', () => {
+  expect(traceLabel('4bf92f3577b34da6a3ce929d0e0e4736')).toBe('4bf92f35')
 })
 
 test('statuses: queued/running/queued_input stay open, the rest end, labels are Korean', () => {

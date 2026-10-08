@@ -3,6 +3,7 @@ from urllib.parse import urlencode, quote
 from pydantic import TypeAdapter, ValidationError
 
 from backend.app.core.agent_network import network_headers
+from backend.app.core.tracing import SpanContext
 from backend.app.schemas.platform import AgentSummary
 from backend.app.schemas.communications import RunCommunications
 
@@ -23,6 +24,11 @@ class OrchestratorClient:
     def __init__(self, base_url: str | None, *, transport=None):
         self.base_url = base_url
         self.transport = transport
+
+    @staticmethod
+    def trace_headers(trace: SpanContext | None) -> dict:
+        """Every call carries W3C `traceparent`: the caller's span, or a short-lived trace of its own."""
+        return {'traceparent': (trace or SpanContext.new()).header()}
 
     async def list_agents(self) -> list[AgentSummary]:
         response = await self.get('/editor/v1/agents')
@@ -50,14 +56,15 @@ class OrchestratorClient:
             raise OwnerContractError()
         return value
 
-    async def submit_run(self, body):
+    async def submit_run(self, body, trace=None):
+        """POST the run under `trace` (the editor's `invoke_agent orchestrator` span, see RunService)."""
         if not self.base_url:
             raise OwnerUnavailable()
         try:
             async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False,
                                          headers=network_headers()) as client:
                 response = await client.post(self.base_url.rstrip('/') + '/editor/v1/runs',
-                    json=body, headers={'X-Editor-Client':'local'})
+                    json=body, headers={'X-Editor-Client':'local', **self.trace_headers(trace)})
                 if response.status_code == 409:
                     raise OwnerRejected()
                 response.raise_for_status()
@@ -101,8 +108,8 @@ class OrchestratorClient:
             raise OwnerContractError() from exc
         return {**{key:value[key] for key in (*fields,'receipt_task_ids','pending_input')},**communication.model_dump()}
 
-    async def list_runs(self, project, branch, prefix):
-        response = await self.get('/editor/v1/runs?' + urlencode({'project':project,'branch':branch,'prefix':prefix}))
+    async def list_runs(self, project, branch, prefix, trace=None):
+        response = await self.get('/editor/v1/runs?' + urlencode({'project':project,'branch':branch,'prefix':prefix}), trace=trace)
         values = self.json(response)
         if not isinstance(values,list):
             raise OwnerContractError()
@@ -144,13 +151,14 @@ class OrchestratorClient:
         except (ValueError, KeyError, TypeError) as exc:
             raise OwnerContractError() from exc
 
-    async def get(self, path, *, missing=False):
+    async def get(self, path, *, missing=False, trace=None):
+        """Reads carry `traceparent` too; outside a submission that is a short-lived trace, not recorded."""
         if not self.base_url:
             raise OwnerUnavailable()
         try:
             async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False,
                                          headers=network_headers()) as client:
-                response = await client.get(self.base_url.rstrip('/') + path)
+                response = await client.get(self.base_url.rstrip('/') + path, headers=self.trace_headers(trace))
                 if missing and response.status_code == 404:
                     raise LookupError('run not found')
                 response.raise_for_status()

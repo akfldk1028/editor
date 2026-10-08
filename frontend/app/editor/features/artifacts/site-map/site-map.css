@@ -189,6 +189,9 @@
 .site-card-run-status code { font-size: var(--fs-1); overflow-wrap: anywhere; }
 .site-card-run-status small { color: var(--muted); font-size: var(--fs-1); }
 .site-card-run-status svg { color: var(--success); }
+.site-card-run-copy { display: inline-flex; padding: 2px; border: 0; border-radius: var(--radius-s); background: transparent; color: var(--muted); cursor: pointer; }
+.site-card-run-copy:hover { background: var(--border-soft); color: var(--ink); }
+.site-card-run-copy svg { color: inherit; }
 .site-card-run-status a { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 3px; color: var(--accent); font-size: var(--fs-1); }
 .site-card-run-status .loading-mark { inline-size: 12px; block-size: 12px; }
 

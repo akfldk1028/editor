@@ -1,16 +1,19 @@
 from fastapi import APIRouter, Header, HTTPException, Request
 
 from backend.app.adapters.orchestrator import OwnerUnavailable, OwnerContractError, OwnerRejected
+from backend.app.core.tracing import JsonlTraceRecorder
 from backend.app.modules.platform.projects import BindingConflict
 from backend.app.modules.platform.runs import RunService
 from backend.app.schemas.platform import RunCreate
 
 
-def create_run_router(projects_service, owner, allowed_origin):
+def create_run_router(projects_service, owner, allowed_origin, trace_recorder=None):
     router = APIRouter()
+    # Submissions record their span here; the trace route reads the same recorder.
+    recorder = trace_recorder or JsonlTraceRecorder()
 
     def service():
-        return RunService(projects_service(), owner)
+        return RunService(projects_service(), owner, recorder)
 
     async def respond(operation, *, submission=False):
         try:
@@ -40,12 +43,22 @@ def create_run_router(projects_service, owner, allowed_origin):
     async def review_request(run_id: str, project_id: str):
         return await respond(service().review_request('local', project_id, run_id))
 
+    @router.get('/runs/{run_id}/trace')
+    async def trace(run_id: str, project_id: str):
+        """Spans the editor recorded for this run (today ± 1 day, at most 500 rows)."""
+        try:
+            service().binding('local', project_id)
+        except LookupError:
+            raise HTTPException(404, 'Project or run not found') from None
+        return recorder.spans_for_run(run_id)
+
     @router.post('/projects/{project_id}/runs', status_code=202)
     async def submit(project_id: str, body: RunCreate, request: Request,
         idempotency_key: str = Header(min_length=1,max_length=128,pattern=r'^[A-Za-z0-9_-]+$')):
         origin = request.headers.get('origin')
         if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != allowed_origin):
             raise HTTPException(403, 'Cross-origin execution is not allowed')
-        return await respond(service().submit('local',project_id,idempotency_key,body), submission=True)
+        return await respond(service().submit('local',project_id,idempotency_key,body,
+                                              traceparent=request.headers.get('traceparent')), submission=True)
 
     return router

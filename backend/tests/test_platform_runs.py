@@ -1,5 +1,6 @@
 import asyncio
 import pytest
+from backend.app.core.tracing import JsonlTraceRecorder
 from backend.app.modules.platform.runs import RunService
 from backend.app.modules.platform.projects import ProjectService, BindingConflict
 from backend.app.modules.platform.repository import ProjectRepository
@@ -11,9 +12,9 @@ class Owner:
     async def list_projects(self): return [{'owner_project_id':'p','branch_id':'main'}]
     async def get_scene(self, scene_id): return {'id':scene_id,'projectId':None,'version':1,'ownerId':None}
     async def context(self, project, branch): return {}
-    async def list_runs(self, project, branch, prefix):
+    async def list_runs(self, project, branch, prefix, trace=None):
         return [await self.submit_run(body) for key,body in list(self.requests.items()) if key.startswith(prefix)]
-    async def submit_run(self, body):
+    async def submit_run(self, body, trace=None):
         key = body['request_id']
         if key in self.requests and self.requests[key] != body: raise BindingConflict('changed')
         self.requests[key] = body
@@ -25,7 +26,7 @@ def setup(tmp_path):
     owner = Owner()
     projects = ProjectService(ProjectRepository(tmp_path), owner, owner)
     binding = asyncio.run(projects.create('local', ProjectCreate(owner_project_id='p',branch_id='main',scene_id='s',scene_revision=1)))
-    return owner, projects, binding, RunService(projects, owner)
+    return owner, projects, binding, RunService(projects, owner, JsonlTraceRecorder(tmp_path / 'trace'))
 
 
 def test_submission_binds_project_and_preserves_retry_identity(tmp_path):
@@ -33,6 +34,8 @@ def test_submission_binds_project_and_preserves_retry_identity(tmp_path):
     request = RunCreate(request={'goal':'health'}, scene_revision=1,source_versions={})
     first = asyncio.run(runs.submit('local', binding.project_id,'key',request))
     second = asyncio.run(runs.submit('local', binding.project_id,'key',request))
+    # Each submission is its own trace; the run underneath is the same.
+    assert first.pop('trace_id') != second.pop('trace_id')
     assert first == second
     assert len(owner.requests) == 1
     assert next(iter(owner.requests)).startswith('editor:' + binding.project_id + ':')
@@ -48,7 +51,7 @@ def test_run_api_requires_key_and_rejects_cross_origin(tmp_path):
     from backend.app.modules.platform.routers.platform import create_platform_router
     owner, projects, binding, runs = setup(tmp_path)
     app = FastAPI()
-    app.include_router(create_platform_router(owner,project_service=projects))
+    app.include_router(create_platform_router(owner,project_service=projects,trace_recorder=runs.recorder))
     client=TestClient(app)
     path='/api/v1/platform/projects/'+binding.project_id+'/runs'
     payload={'request':{'goal':'health'},'scene_revision':1,'source_versions':{}}
@@ -57,7 +60,8 @@ def test_run_api_requires_key_and_rejects_cross_origin(tmp_path):
     assert owner.requests=={}
     first=client.post(path,json=payload,headers={'Idempotency-Key':'k'})
     assert first.status_code==202
-    assert client.post(path,json=payload,headers={'Idempotency-Key':'k'}).json()==first.json()
+    second=client.post(path,json=payload,headers={'Idempotency-Key':'k'}).json()
+    assert {**second,'trace_id':None}=={**first.json(),'trace_id':None}
 
 
 def test_owner_adapter_invalid_json_and_missing_run():
@@ -80,7 +84,7 @@ def test_accepted_retry_survives_scene_outage_but_new_request_does_not(tmp_path)
     first = asyncio.run(runs.submit('local',binding.project_id,'key',body))
     async def unavailable(scene_id): raise OwnerUnavailable()
     owner.get_scene = unavailable
-    assert asyncio.run(runs.submit('local',binding.project_id,'key',body)) == first
+    assert {**asyncio.run(runs.submit('local',binding.project_id,'key',body)),'trace_id':None} == {**first,'trace_id':None}
     with pytest.raises(OwnerUnavailable):
         asyncio.run(runs.submit('local',binding.project_id,'new-key',body))
     with pytest.raises(BindingConflict):

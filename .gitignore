@@ -102,4 +102,6 @@ clone/
 /runtime/editor/retained-plan-body.json
 # infra/host supervisor: pid records, wanted set, daemon record.
 /runtime/host/
+# core/tracing.py fallback span log (EDITOR_TRACE_DIR / EDITOR_PLATFORM_DATA_DIR unset).
+/runtime/trace/
 /frontend/app/editor/test-results-product/

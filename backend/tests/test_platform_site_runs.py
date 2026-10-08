@@ -3,7 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend.app.schemas.platform import RunCreate
-from backend.tests.test_platform_specialist_runs import client, specialist
+from backend.tests.test_platform_specialist_runs import client, specialist, without_trace
 
 PNU = '4115011300106840001'
 
@@ -47,7 +47,7 @@ def test_site_run_reaches_owner_verbatim_and_retries_by_key(tmp_path):
     first = api.post(path, json=payload, headers={'Idempotency-Key': 'site-1'})
     assert first.status_code == 202, first.text
     assert first.json()['goal'] == 'limits'
-    assert api.post(path, json=payload, headers={'Idempotency-Key': 'site-1'}).json() == first.json()
+    assert without_trace(api.post(path, json=payload, headers={'Idempotency-Key': 'site-1'}).json()) == without_trace(first.json())
     assert len(owner.requests) == 1
     submitted = next(iter(owner.requests.values()))
     assert submitted['request'] == {'goal': 'limits', 'pnu': PNU}

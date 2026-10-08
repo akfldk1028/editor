@@ -16,14 +16,19 @@ def specialist():
     }]}, 'scene_revision': 1, 'source_versions': {'program': 2}}
 
 
+def without_trace(run):
+    """A retry is the same run under a new W3C trace; compare everything but `trace_id`."""
+    return {key: value for key, value in run.items() if key != 'trace_id'}
+
+
 def client(tmp_path):
-    owner, projects, binding, _ = setup(tmp_path)
+    owner, projects, binding, runs = setup(tmp_path)
     original_submit = owner.submit_run
-    async def submit(body):
+    async def submit(body, trace=None):
         return {**await original_submit(body), 'goal': body['request']['goal']}
     owner.submit_run = submit
     app = FastAPI()
-    app.include_router(create_platform_router(owner, project_service=projects))
+    app.include_router(create_platform_router(owner, project_service=projects, trace_recorder=runs.recorder))
     return TestClient(app), owner, '/api/v1/platform/projects/' + binding.project_id + '/runs'
 
 
@@ -35,7 +40,7 @@ def test_specialist_submission_preserves_exact_owner_payload_and_retry(tmp_path,
     first = api.post(path, json=payload, headers={'Idempotency-Key': 'review'})
     assert first.status_code == 202, first.text
     assert first.json()['goal'] == 'specialist_review'
-    assert api.post(path, json=payload, headers={'Idempotency-Key': 'review'}).json() == first.json()
+    assert without_trace(api.post(path, json=payload, headers={'Idempotency-Key': 'review'}).json()) == without_trace(first.json())
     assert len(owner.requests) == 1
     submitted = next(iter(owner.requests.values()))
     assert submitted['request'] == payload['request']

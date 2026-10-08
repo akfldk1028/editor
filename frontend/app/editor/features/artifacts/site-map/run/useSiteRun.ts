@@ -48,11 +48,12 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
   useEffect(() => {
     if (phase.kind !== 'submitted' || isTerminal(phase.run.status) || !chosen) return
     const controller = new AbortController()
-    const { run_id } = phase.run
+    const { run_id, trace_id } = phase.run
     const timer = window.setTimeout(async () => {
       try {
         const run = await getRun(chosen.project_id, run_id, controller.signal)
-        if (!controller.signal.aborted) setPhase({ kind: 'submitted', run, stale: false })
+        // Only the submission answer carries the trace id; polled runs come from the Orchestrator without it.
+        if (!controller.signal.aborted) setPhase({ kind: 'submitted', run: { ...run, trace_id: run.trace_id ?? trace_id }, stale: false })
       } catch {
         // A missed poll keeps the last known status and tries again next tick.
         if (!controller.signal.aborted) setPhase((current) => current.kind === 'submitted' ? { ...current, stale: true } : current)

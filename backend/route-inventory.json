@@ -848,6 +848,11 @@
   {
    "method": "GET",
    "owner": "fastapi",
+   "path": "/api/v1/platform/runs/{run_id}/trace"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
    "path": "/api/v1/platform/scene-assets/{filename}"
   },
   {
