@@ -3,6 +3,11 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `1ce68ad9` `GET /api/v1/platform/status` (modules/platform/status/: registry.py reads
+  infra/config/services.json, probes.py httpx 3 s/20 s cache, service.py merges Orchestrator list_agents when up);
+  `/platform/agents` returns structured 503 `{agents:[], orchestrator:{state:'down',error}}` when the Orchestrator
+  is unreachable (frontend listAgents maps !ok -> 연결 실패). Shell artifact `features/artifacts/system/` (FSD
+  segments) polls it every 10 s. Live: 22 rows, up = backend/dwg/site-context/scene.
 - 2026-10-08 `1c5e2823` agent-host supervisor `infra/host/` (policy/probe/processes/state/supervise/status/cli):
   detached daemon, adopts live listeners (no duplicate ports), 3 failures -> backoff 5/10/20/60 s restart, logs
   `logs/host/<id>.*`, pids `runtime/host/`. `bun run host:start|stop|status`. backend/dwg/pascalMcp are now

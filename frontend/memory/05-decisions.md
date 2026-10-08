@@ -2,6 +2,9 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `1ce68ad9` artifact `system` (features/artifacts/system/{manifest,api,model,lib,ui}): service/agent
+  status table from /platform/status, Korean down-hints, 다시 확인 = ?refresh=1. First slice written in the FSD
+  segment layout; site-map still to be reorganised (P5). Run panel lacks a 시스템 보기 link (needs shell prop).
 - 2026-10-08 `a978fce0` saved site -> Orchestrator: card shows "검토 시작 (법규·한계)" (site-map/run/: site-run.ts,
   useSiteRun.ts, SiteRunPanel.tsx); project = shell ?project= else the only binding else select; request
   {goal:'limits', pnu: parcels[0].pnu} via POST /platform/projects/{id}/runs (Idempotency-Key site-<sel>-<n>),
