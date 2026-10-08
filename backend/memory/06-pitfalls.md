@@ -40,3 +40,9 @@
   선택됨 but `site-context` (in-memory) is empty, so the Orchestrator's situation says "no site" and the thread is empty;
   the feed is in-memory only. Same root as the open "thread empty after reload" (10-08). Re-select the parcel before
   judging a reply that mentions the site.
+- **All 16 agents start with one host command** (10-08 23:03): `bun run host:start masterplan program elevation mass kmass
+  systems domain-expert interior scene` brought 7 up in 25 s and mass/scene (their `scripts/serve-a2a.sh`: nohup + wait
+  for the card) in ~40 s; the Orchestrator catalog then reports 16 up and the conversation's situation changes by itself.
+  `--with-agents` selects every agent entry. Caveats: the daemon still dies on a spawn ENOENT (name ids, never bare
+  `host:start`), `runtime/host/wanted.json` now lists them all so the daemon restarts any that die, and the three
+  compose-served agents (site/revision/requirement/design-intent per ops compose) must not be double-started by hand.
