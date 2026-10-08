@@ -275,3 +275,18 @@ be told to the Orchestrator session.
   8,000-char cap), Law caps, Revision 4 actions, note `law_response_truncated`. Still the Orchestrator's: the
   `law_parcel_limits` request it sends carries only `pnu, building_type` — no `assessment_date` — so Law's district
   finding blocks the run ("Supply an explicit valid assessment date") although the editor sent the date.
+- 2026-10-08 night (user: "룰 기반이 맞아? 오케스트라 에이전트 LLM이 판단해야지 — 논문·스타 레포 코드 보고 제대로"):
+  **the conversation is routed by the Orchestrator's model, not a keyword table.** `routing/judge.py` is AutoGen
+  Magentic-One's progress-ledger step copied in shape (`autogen_agentchat/teams/_group_chat/_magentic_one/`): team as
+  `name: description` lines, JSON ledger `is_request_satisfied / next_speaker / instruction_or_question`, unknown speaker
+  retried (MAX_JSON_RETRIES) never accepted, model = the workspace's `ClaudeCodeChatCompletionClient` (OAuth, no key).
+  The Orchestrator is a participant: satisfied → `Route.kind='answer'` (its reply in `instruction`); itself
+  unsatisfied → `ask`; a specialist → skill/goal with the instruction it gives. `situation.py` feeds it DATA (site, goal
+  catalog, which agents the Orchestrator catalog says are `available`/`unavailable`) so "뭐 할 수 있어/누가 켜져 있어"
+  is answered from state, never from prose in the prompt. Order: picked role / pattern → ledger → rule table only
+  when `EDITOR_ROUTING_JUDGE=rules` or the model is silent (tests pin `EDITOR_MODEL_AUTH=api_key`, so they run rules;
+  the ledger path is tested with fakes). 16/16 roles (`roles/*.py`), goal catalog 15 rows. Measured: rules 54/54;
+  model v1 (plain decision) 50 right · 4 asked · 0 wrong · 5.5 s; the ledger with the situation 11–28 s per turn
+  (CLI start + long answers) — the Orchestrator's own door should run this ledger over its live A2A cards and own the
+  latency. Live 684-1: greeting / 켜진 에이전트 answered directly; 이격 질문 → limits with an instruction to Site;
+  "매스 쌓아 봐" → explains the missing brief and the agents that are off, asks.
