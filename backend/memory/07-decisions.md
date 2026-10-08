@@ -303,3 +303,10 @@ be told to the Orchestrator session.
   `export MASS_A2A_PORT="${MASS_A2A_PORT:-18331}"` literally. Fixed (shell-style `${NAME}` / `${NAME:-default}` expansion,
   innermost first; `processes.test.mjs`). The daemon loads the parser once — a host code change needs `host:stop` +
   `host:start`. After that `POST /host/ensure {mass, scene}` → both up in 7.1 s.
+- 2026-10-09 activation A0 (design `plans/agent-activation-design-20261009.md`, optimisation review §11): host daemon
+  survives a missing executable (`spawnDetached` handles the async 'error'; the entry just fails), probes every entry
+  in parallel per tick (was sequential: n × 3 s), writes `runtime/host/health.json` each tick (ensure/status trust it
+  for 10 s → `ensure` on up agents = 75 ms, no node-per-probe), appends `runtime/host/events.jsonl` (start/adopt/restart/
+  stop/spawn-error/gave-up/ensure), gives up after `giveUpAfter` (6) restarts (`gave_up` state; ensure fails at once),
+  `restart-daemon` ends only the daemon (killOne — killTree took the services with it, seen live) and `status` says
+  STALE when host code/registry is newer than the daemon's `codeStamp`. Next: A1 leases + idle stop.
