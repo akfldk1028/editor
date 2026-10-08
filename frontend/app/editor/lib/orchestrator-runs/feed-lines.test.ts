@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 
-import { connectionLine, evidenceCard, lawCard, lawLine, resultLine, resultPrompt, selectedLine, stepChanges, stepState, submittedLine } from './feed-lines'
+import { connectionLine, evidenceCard, lawCard, lawLine, requestFailedLine, requestingLine, resultLine, resultPrompt, selectedLine, stepChanges, stepState, submittedLine } from './feed-lines'
+import { FAST_WINDOW_MS, POLL_FAST_MS, POLL_MS, pollInterval } from './poll'
 import type { Communication, RunResults } from './types'
 
 const comm = (tool: string, agent: string, state: string, response_text: string | null): Communication => ({
@@ -36,6 +37,23 @@ test('the connection line counts agents when up and offers 시스템 보기 when
   expect(down.kind).toBe('error')
   expect(down.text).toBe('오케스트레이터에 연결할 수 없어요')
   expect(down.actions).toEqual([{ label: '시스템 보기', artifact: 'system' }])
+})
+
+test('the click answers at once: a busy 요청 중 line with the 조건, and a failure line with 시스템 보기 only when the Orchestrator is off', () => {
+  expect(requestingLine('경기도 의정부시 산곡동 684-1', { assessmentDate: '2026-10-08', buildingType: '업무시설' }))
+    .toEqual({ kind: 'progress', tone: 'busy', text: '검토 요청 중 · 경기도 의정부시 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설' })
+  expect(requestingLine('684-1', { assessmentDate: '2026-10-08', buildingType: ' ' }).text).toBe('검토 요청 중 · 684-1 · 기준일 2026-10-08')
+  expect(requestFailedLine({ kind: 'unavailable' })).toEqual({
+    kind: 'error', text: '검토 요청 실패 — 오케스트레이터에 연결할 수 없어요 — 켜진 뒤 다시 시도', actions: [{ label: '시스템 보기', artifact: 'system' }],
+  })
+  expect(requestFailedLine({ kind: 'rejected', text: '요청이 거절됐어요 (400) — x' })).toEqual({ kind: 'error', text: '검토 요청 실패 — 요청이 거절됐어요 (400) — x' })
+})
+
+test('polling is fast for the first 20 s of a run, then every 3 s', () => {
+  expect(pollInterval(0)).toBe(POLL_FAST_MS)
+  expect(pollInterval(FAST_WINDOW_MS - 1)).toBe(POLL_FAST_MS)
+  expect(pollInterval(FAST_WINDOW_MS)).toBe(POLL_MS)
+  expect([POLL_FAST_MS, POLL_MS]).toEqual([1000, 3000])
 })
 
 test('the receipt line shows 8 hex of the run and the trace', () => {

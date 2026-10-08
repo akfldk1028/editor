@@ -1,6 +1,8 @@
 /** Feed lines from run snapshots and parsed results. Pure: the hooks decide when to post. */
+import type { RunConditions } from './conditions'
 import type { FeedAction, FeedCard, FeedInput, FeedTone } from './feed'
 import { agentForTool, agentLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from './labels'
+import { failureText, type RunFailure } from './submit'
 import type { Communication, OrchestratorConnection, RunResults, RunSummary } from './types'
 
 const fmt = (value: number, digits: number) => value.toLocaleString('ko-KR', { maximumFractionDigits: digits })
@@ -23,6 +25,21 @@ export function connectionLine(connection: OrchestratorConnection): FeedInput {
     kind: 'error',
     text: connection.state === 'invalid' ? '오케스트레이터 응답 형식이 맞지 않아요' : '오케스트레이터에 연결할 수 없어요',
     actions: [{ label: '시스템 보기', artifact: 'system' }],
+  }
+}
+
+/** "검토 요청 중 · 경기도 의정부시 산곡동 684-1 · 기준일 2026-10-08 · 용도 업무시설" — posted the moment 검토 시작 is pressed. */
+export function requestingLine(label: string, conditions: Pick<RunConditions, 'assessmentDate' | 'buildingType'>): FeedInput {
+  const use = conditions.buildingType.trim()
+  return { kind: 'progress', tone: 'busy', text: `검토 요청 중 · ${label} · 기준일 ${conditions.assessmentDate}${use ? ` · 용도 ${use}` : ''}` }
+}
+
+/** "검토 요청 실패 — 오케스트레이터에 연결할 수 없어요", with 시스템 보기 when it is unreachable. */
+export function requestFailedLine(failure: RunFailure): FeedInput {
+  return {
+    kind: 'error',
+    text: `검토 요청 실패 — ${failureText(failure)}`,
+    ...(failure.kind === 'unavailable' ? { actions: [{ label: '시스템 보기', artifact: 'system' }] } : {}),
   }
 }
 

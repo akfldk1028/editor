@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getRunContext, listProjects, submitRun } from '@/lib/orchestrator-runs/api'
 import { defaultRunConditions, isValidDate, loadRunConditions, type RunConditions, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
+import { postFeed } from '@/lib/orchestrator-runs/feed'
+import { requestFailedLine, requestingLine } from '@/lib/orchestrator-runs/feed-lines'
 import { useRunPolling } from '@/lib/orchestrator-runs/poll'
 import { describeFailure, type ProjectChoice, resolveProject, type RunFailure } from '@/lib/orchestrator-runs/submit'
 import type { ProjectBinding, RunSummary } from '@/lib/orchestrator-runs/types'
@@ -71,13 +73,18 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
     active.current = controller
     setState({ kind: 'submitting' })
     saveRunConditions(conditions)
+    // The conversation answers the click at once; the receipt line follows when the Orchestrator accepts.
+    postFeed(requestingLine(site.label, conditions))
     const key = idempotencyKey(site, ++attempts.current)
     try {
       const context = await getRunContext(chosen.project_id, controller.signal)
       const submitted = await submitRun(chosen.project_id, context, key, siteRunRequest(site, conditions), controller.signal)
       if (!controller.signal.aborted) setState({ kind: 'submitted', run: submitted })
     } catch (error) {
-      if (!controller.signal.aborted) setState({ kind: 'failed', failure: describeFailure(error) })
+      if (controller.signal.aborted) return
+      const failure = describeFailure(error)
+      postFeed(requestFailedLine(failure))
+      setState({ kind: 'failed', failure })
     }
   }, [chosen, conditions, state.kind, ready, site])
 

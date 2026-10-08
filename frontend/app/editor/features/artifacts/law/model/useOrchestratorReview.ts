@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getResults, getRunContext, latestRun, listProjects, submitRun } from '@/lib/orchestrator-runs/api'
 import { defaultRunConditions, isValidDate, loadRunConditions, type RunConditions, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
+import { postFeed } from '@/lib/orchestrator-runs/feed'
+import { requestFailedLine, requestingLine } from '@/lib/orchestrator-runs/feed-lines'
 import { isTerminal } from '@/lib/orchestrator-runs/labels'
 import { useRunPolling } from '@/lib/orchestrator-runs/poll'
 import { describeFailure, idempotencyKey, type ProjectChoice, resolveProject, type RunFailure } from '@/lib/orchestrator-runs/submit'
@@ -122,6 +124,7 @@ export function useOrchestratorReview(pnu: string | null, address: string, proje
     setSubmitting(true)
     setFailure(null)
     saveRunConditions(conditions)
+    postFeed(requestingLine(address || pnu, conditions))
     const buildingType = conditions.buildingType.trim()
     try {
       const context = await getRunContext(chosen.project_id, controller.signal)
@@ -135,11 +138,14 @@ export function useOrchestratorReview(pnu: string | null, address: string, proje
       setResults(null)
       setLoad({ kind: 'ready' })
     } catch (error) {
-      if (!controller.signal.aborted) setFailure(describeFailure(error))
+      if (controller.signal.aborted) return
+      const failure = describeFailure(error)
+      postFeed(requestFailedLine(failure))
+      setFailure(failure)
     } finally {
       if (!controller.signal.aborted) setSubmitting(false)
     }
-  }, [chosen, pnu, ready, submitting, conditions])
+  }, [chosen, pnu, ready, submitting, conditions, address])
 
   const reload = useCallback(() => setReloads((count) => count + 1), [])
 
