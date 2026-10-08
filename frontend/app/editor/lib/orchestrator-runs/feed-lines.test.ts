@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 
 import {
-  answerLine, askFailedLine, askLines, connectionLine, evidenceCard, landAnalysisLine, landAnalysisLines, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine,
+  activatingLine, activationFailedLine, answerLine, askFailedLine, askLines, connectionLine, evidenceCard, landAnalysisLine, landAnalysisLines, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine,
   requestingLines, resultLine, resultPrompt, revisionLine, selectedLine, selectedPrompt, siteFactsLine, stepChanges, stepState, submittedLine,
 } from './feed-lines'
 import { FALLBACK } from '@/lib/goals'
@@ -330,4 +330,19 @@ test('the verdict line says 보류 with the short missing-evidence list, or the 
   expect(resultLine(results({ status: 'failed', site: { status: 'failed', code: 'parcels_not_contiguous', facts_known: null, facts_total: null, facts_missing: [] } })))
     .toBe('검토 결과: 실패 — 필지가 서로 붙어 있지 않음')
   expect(resultLine(results({ status: 'completed', review: null, missing_evidence_all: [] }))).toBe('검토 결과: 완료')
+})
+
+test('activation: the Orchestrator says whom it is waking, names what did not come up without submitting, and the handoff button says 켜고 시작', () => {
+  expect(activatingLine(['program', 'mass'])).toEqual({ kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'program' }, text: 'Program Agent · Mass Agent 켜는 중 (병렬 2)' })
+  expect(activatingLine(['law']).text).toBe('Law Agent 켜는 중')
+  expect(activationFailedLine([{ agent: 'mass', error: 'ECONNREFUSED' }], { kind: 'start-review', goal: 'limits' })).toEqual({
+    kind: 'error', agent: 'orchestrator', text: 'Mass Agent (ECONNREFUSED)이(가) 켜지지 않았어요 — 검토를 보내지 않았어요',
+    actions: [{ label: '다시 시도', command: { kind: 'start-review', goal: 'limits' } }, { label: '시스템 보기', artifact: 'system' }] })
+  const open: AskAnswer = { question: '매스 쌓아 봐', agent: 'mass', tool: null, trace_id: null, version: null, answer: null,
+    route: { kind: 'goal', agent: 'mass', skill: null, goal: 'mass', confidence: 0.7, reason: 'r', choices: [] },
+    handoff: { goal: 'mass', label: '매스 생성', owners: ['program', 'masterplan', 'mass', 'revision'], available: true } }
+  const line = answerLine(open, null, ['program', 'mass'])
+  expect(line.actions?.[0]).toEqual({ label: '켜고 시작 (2개)', command: { kind: 'start-review', goal: 'mass' } })
+  expect(line.text).toContain('Program Agent · Mass Agent은(는) 꺼져 있어 먼저 켜요')
+  expect(answerLine(open, null).actions?.[0]?.label).toBe('매스 생성 시작')
 })

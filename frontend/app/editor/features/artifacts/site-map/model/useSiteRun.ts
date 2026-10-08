@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { getRunContext, listProjects, submitRun } from '@/lib/orchestrator-runs/api'
+import { availableGoal, loadCapabilities } from '@/lib/goals'
+import { hostStatus, neededAgents, RUN_LEASE_S } from '@/lib/goals/activation'
+import { ensureAgents, getRunContext, listProjects, submitRun } from '@/lib/orchestrator-runs/api'
 import { defaultRunConditions, isValidDate, loadRunConditions, type RunConditions, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
 import { onCommand } from '@/lib/orchestrator-runs/commands'
 import { dismissFeed, postFeed } from '@/lib/orchestrator-runs/feed'
-import { requestFailedLine, requestingLines } from '@/lib/orchestrator-runs/feed-lines'
+import { activatingLine, activationFailedLine, requestFailedLine, requestingLines } from '@/lib/orchestrator-runs/feed-lines'
 import { useRunPolling } from '@/lib/orchestrator-runs/poll'
 import { describeFailure, type ProjectChoice, resolveProject, type RunFailure } from '@/lib/orchestrator-runs/submit'
 import type { ProjectBinding, RunSummary } from '@/lib/orchestrator-runs/types'
@@ -80,9 +82,26 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
     // The conversation answers the click at once; the receipt line follows when the Orchestrator accepts.
     const [bubble, busy] = requestingLines(site.label, conditions)
     postFeed(bubble!)
-    const pending = postFeed(busy!)
+    let pending = postFeed(busy!)
     const key = idempotencyKey(site, ++attempts.current)
     try {
+      // Activation at the call: owners the host has not got up are woken (parallel, dependency-ordered)
+      // and the request waits for their health; one that never comes up stops the submission (fail closed).
+      const goal = availableGoal(await loadCapabilities(controller.signal), SITE_GOAL)
+      const needed = goal ? neededAgents(goal, await hostStatus(controller.signal)) : []
+      if (needed.length) {
+        if (pending) dismissFeed(pending.id)
+        pending = postFeed(activatingLine(needed))
+        const woken = await ensureAgents(needed, RUN_LEASE_S, controller.signal)
+        if (controller.signal.aborted) return
+        if (woken.failed.length) {
+          postFeed(activationFailedLine(woken.failed, { kind: 'start-review', goal: SITE_GOAL }))
+          setState({ kind: 'failed', failure: { kind: 'rejected', text: `${woken.failed.map((f) => f.agent).join(', ')} 켜기 실패` } })
+          return
+        }
+        if (pending) dismissFeed(pending.id)
+        pending = postFeed(busy!)
+      }
       const context = await getRunContext(chosen.project_id, controller.signal)
       const submitted = await submitRun(chosen.project_id, context, key, siteRunRequest(site, conditions), controller.signal)
       if (!controller.signal.aborted) setState({ kind: 'submitted', run: submitted })

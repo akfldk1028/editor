@@ -4,7 +4,7 @@ from backend.app.modules.platform import host
 from backend.app.schemas.host import HostEnsure, HostTouch
 
 
-def create_host_router(allowed_origin, ensure=host.ensure, touch=host.touch):
+def create_host_router(allowed_origin, ensure=host.ensure, touch=host.touch, status=host.status):
     """`POST /host/ensure` — bring the named agents up and wait for their health (same-origin only: it starts
     processes on this machine). 503 when the host CLI is missing or silent, 422 when it refuses an id."""
     router = APIRouter()
@@ -23,6 +23,11 @@ def create_host_router(allowed_origin, ensure=host.ensure, touch=host.touch):
             raise HTTPException(422, f'host_refused: {exc}') from None
         except host.HostUnavailable as exc:
             raise HTTPException(503, f'host_unavailable: {exc}') from None
+
+    @router.get('/host/status')
+    async def host_status():
+        """Agent states from the host's last tick (cached 5 s): what the conversation reads to know whom to wake."""
+        return await answer(status())
 
     @router.post('/host/ensure')
     async def ensure_agents(body: HostEnsure, request: Request):

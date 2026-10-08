@@ -225,3 +225,23 @@ test('an up entry with idle_timeout_s and no lease is stopped and forgotten afte
     cleanup();
   }
 });
+
+
+test('the snapshot also says whether entries the host does not keep are up (compose containers, foreign processes)', async () => {
+  const { root, paths, entryFor, cleanup } = fixture();
+  const kept = { ...entryFor(1), id: 'kept' };
+  const compose = { ...entryFor(2), id: 'compose', start: null };
+  const dark = { ...entryFor(3), id: 'dark', start: null };
+  const probe = async entry => ({ up: entry.id !== 'dark', status: entry.id === 'dark' ? null : 200, latencyMs: 1, version: entry.id === 'compose' ? '1.2.3' : undefined });
+  const supervisor = new Supervisor([kept, compose, dark], () => ['kept'], { root, paths, policy: FAST, probe, processes: { listenerPid: () => 4242, processStartTime: () => null, isAlive: () => true } });
+  try {
+    await supervisor.tick();
+    const snapshot = JSON.parse(readFileSync(resolve(paths.runtime, 'health.json'), 'utf8')).services;
+    assert.equal(snapshot.kept.state, 'up');
+    assert.equal(snapshot.kept.managed, true);
+    assert.deepEqual(snapshot.compose, { up: true, pid: null, state: 'up', failures: 0, restarts: 0, version: '1.2.3', managed: false });
+    assert.equal(snapshot.dark.state, 'absent');
+  } finally {
+    cleanup();
+  }
+});

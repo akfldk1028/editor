@@ -9,10 +9,14 @@ class RunCommunication(BaseModel):
     tool: str
     agent: str | None
     state: str
-    request_text: str | None=Field(max_length=8000)
-    response_text: str | None=Field(max_length=8000)
+    # The door capped texts at 8,000 until 2026-10-09; it now sends whole answers (Site facts ~30 KB, Law ~31 KB).
+    # The bound here only guards memory; a longer text is the door's `truncated` flag, never a refusal.
+    request_text: str | None=Field(max_length=262_144)
+    response_text: str | None=Field(max_length=262_144)
     transport: Literal['a2a','unknown']
     truncated: bool
+    # Added by the Orchestrator door on 2026-10-09: secret-bearing fields were omitted from the texts (editor_dialogue).
+    redacted: bool = False
 
 
 class RunCommunications(BaseModel):

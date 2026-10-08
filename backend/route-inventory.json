@@ -696,6 +696,11 @@
    "path": "/api/v1/platform/host/ensure"
   },
   {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/host/status"
+  },
+  {
    "method": "POST",
    "owner": "fastapi",
    "path": "/api/v1/platform/host/touch"

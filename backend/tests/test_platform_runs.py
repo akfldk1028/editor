@@ -110,3 +110,17 @@ def test_run_contract_rejects_unsupported_work_and_invalid_versions(changes):
     from pydantic import ValidationError
     with pytest.raises(ValidationError):
         RunCreate(**{'request':{'goal':'health'},'scene_revision':1,'source_versions':{},**changes})
+
+
+def test_run_contract_accepts_the_doors_redacted_flag_on_communications():
+    """2026-10-09: the Orchestrator door marks rows whose texts had secret fields omitted; older doors send no flag."""
+    from backend.app.adapters.orchestrator import OrchestratorClient
+
+    row = {'id': '1', 'task_id': 'site_resolve', 'tool': 'site_resolve', 'agent': 'site_context', 'state': 'running',
+           'request_text': '{}', 'response_text': None, 'transport': 'a2a', 'truncated': False, 'redacted': True}
+    run = {'run_id': 'r', 'owner_project_id': 'p', 'branch_id': 'b', 'request_id': 'editor:x:y', 'goal': 'limits', 'status': 'running',
+           'receipt_task_ids': ['site_resolve'], 'pending_input': False, 'pending_fields': [], 'pending_note': None,
+           'communications': [row], 'communications_available': True, 'communications_truncated': False}
+    parsed = OrchestratorClient.parse_run(run)
+    assert parsed['communications'][0]['redacted'] is True
+    assert OrchestratorClient.parse_run({**run, 'communications': [{k: v for k, v in row.items() if k != 'redacted'}]})['communications'][0]['redacted'] is False

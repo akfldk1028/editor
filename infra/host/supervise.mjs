@@ -63,12 +63,23 @@ export class Supervisor {
   }
 
   /** One look at every wanted entry: probes run in parallel (a tick costs one probe timeout, not n of them),
-   *  decisions apply in start order, then the health snapshot is written for status/ensure to read. */
+   *  decisions apply in start order, then the health snapshot is written for status/ensure to read. Entries the
+   *  host does not keep (compose containers, processes someone else started) are probed too, so the snapshot says
+   *  who is up across the whole registry: 'up' or 'absent', never a decision. */
   async tick(now = Date.now()) {
     const actions = [];
     const entries = this.entries();
-    const observations = await Promise.all(entries.map(entry => this.observe(entry)));
+    const others = this.services.filter(entry => entry.health_url && !entries.some(kept => kept.id === entry.id));
+    const [observations, elsewhere] = await Promise.all([
+      Promise.all(entries.map(entry => this.observe(entry))),
+      Promise.all(others.map(entry => this.probe(entry, this.env))),
+    ]);
     const snapshot = { at: new Date(now).toISOString(), services: {} };
+    others.forEach((entry, index) => {
+      const health = elsewhere[index];
+      snapshot.services[entry.id] = { up: health.up === true, pid: null, state: health.up === true ? 'up' : 'absent',
+        failures: 0, restarts: 0, version: health.version ?? null, managed: false };
+    });
     entries.forEach((entry, index) => {
       if (this.stopped) return;
       const observation = observations[index];
@@ -85,7 +96,7 @@ export class Supervisor {
       const pid = observation.alive ? observation.record.pid : null;
       actions.push({ id: entry.id, action: decision.action, up: observation.up, pid });
       snapshot.services[entry.id] = { up: observation.up, pid, state: describeState(decision.state, observation),
-        failures: decision.state.failures, restarts: decision.state.restarts, version: observation.health.version ?? null };
+        failures: decision.state.failures, restarts: decision.state.restarts, version: observation.health.version ?? null, managed: true };
     });
     const ups = new Set(entries.filter((entry, index) => observations[index].up).map(entry => entry.id));
     const records = Object.fromEntries(entries.map((entry, index) => [entry.id, observations[index].record]));

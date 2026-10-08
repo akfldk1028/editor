@@ -14,8 +14,7 @@ import type {
   RunRequest,
   RunResults,
   RunSummary,
-  RunWithResults,
-} from './types'
+  RunWithResults, EnsureAnswer, HostStatus } from './types'
 
 /** A refused platform call: `status` and the backend `detail` let a caller tell 503 (owner down) from 409/422. */
 export class RunRequestError extends Error {
@@ -46,6 +45,9 @@ async function request(path: string, options?: RequestInit): Promise<unknown> {
   return response.json()
 }
 
+/** Longest request/response text a run row may carry (the backend's contract bound); longer is a contract error. */
+const TEXT_CAP = 262_144
+
 export function parseCommunications(value: Record<string, unknown>): Communications {
   const keys = ['communications', 'communications_available', 'communications_truncated']
   if (keys.every((key) => !(key in value))) return { communications: [], communications_available: false, communications_truncated: false }
@@ -61,7 +63,8 @@ export function parseCommunications(value: Record<string, unknown>): Communicati
         typeof row !== 'object' ||
         !['id', 'task_id', 'tool', 'state'].every((key) => typeof row[key] === 'string') ||
         !(row.agent === null || typeof row.agent === 'string') ||
-        !['request_text', 'response_text'].every((key) => row[key] === null || (typeof row[key] === 'string' && Array.from(row[key]).length <= 8000)) ||
+        // The door capped texts at 8,000 until 2026-10-09; it now sends whole answers (~30 KB). This bound only guards memory.
+        !['request_text', 'response_text'].every((key) => row[key] === null || (typeof row[key] === 'string' && Array.from(row[key]).length <= TEXT_CAP)) ||
         !['a2a', 'unknown'].includes(row.transport) ||
         typeof row.truncated !== 'boolean',
     ) ||
@@ -191,6 +194,16 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
 }
 
 /** A typed question for the Law Agent (`POST /platform/ask`); the backend picks the tool and shapes the answer. */
+/** The host's last tick, cached 5 s server-side: the conversation reads it to know whom to wake. */
+export async function getHostStatus(signal?: AbortSignal): Promise<HostStatus> {
+  return (await request('/host/status', { signal })) as HostStatus
+}
+
+/** Brings agents up (parallel, dependency-ordered by the host) and waits for their health; `lease_s` = how long they stay "in use". */
+export async function ensureAgents(agents: string[], lease_s: number, signal?: AbortSignal, timeout_s = 90): Promise<EnsureAnswer> {
+  return (await request('/host/ensure', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agents, lease_s, timeout_s }) })) as EnsureAnswer
+}
+
 export async function askLaw(body: { text: string; pnu?: string; address?: string; assessment_date?: string; role?: string }, signal?: AbortSignal): Promise<AskAnswer> {
   return (await request('/ask', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })) as AskAnswer
 }

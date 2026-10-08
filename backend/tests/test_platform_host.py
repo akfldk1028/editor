@@ -75,3 +75,34 @@ def test_route_is_same_origin_and_maps_errors():
     assert client.post('/api/v1/platform/host/ensure', json={'agents': ['nobody']}, headers={'Origin': ORIGIN}).status_code == 422
     assert client.post('/api/v1/platform/host/ensure', json={'agents': ['law']}, headers={'Origin': ORIGIN}).status_code == 503
     assert client.post('/api/v1/platform/host/ensure', json={'agents': ['law'], 'timeout_s': 1}, headers={'Origin': ORIGIN}).status_code == 422
+
+
+def test_status_reads_the_snapshot_in_agent_ids_and_caches_it():
+    calls = []
+
+    async def runner(args, timeout_s):
+        calls.append(args)
+        return 0, ('{"daemon":{"pid":7,"wanted":["backend"],"stale":false},"snapshotAt":"2026-10-09T00:00:00Z","services":['
+                   '{"id":"backend","kind":"editor","up":true,"state":"up","leaseUntil":null,"idleInS":null},'
+                   '{"id":"site-context","kind":"agent","up":true,"state":"up","leaseUntil":"L","idleInS":600},'
+                   '{"id":"mass","kind":"agent","up":null,"state":"absent","leaseUntil":null,"idleInS":null}]}\n'), ''
+
+    clock = [100.0]
+    cache = {'at': 0.0, 'value': None}
+    first = asyncio.run(host.status(runner=runner, now=lambda: clock[0], cache=cache))
+    assert calls == [['status', '--json', '--snapshot']]
+    assert first == {'at': '2026-10-09T00:00:00Z', 'daemon': {'pid': 7, 'stale': False},
+                     'agents': {'site_context': {'state': 'up', 'up': True, 'lease_until': 'L', 'idle_in_s': 600},
+                                'mass': {'state': 'absent', 'up': None, 'lease_until': None, 'idle_in_s': None}}}
+    clock[0] = 103.0
+    assert asyncio.run(host.status(runner=runner, now=lambda: clock[0], cache=cache)) is first and len(calls) == 1
+    clock[0] = 106.0
+    asyncio.run(host.status(runner=runner, now=lambda: clock[0], cache=cache))
+    assert len(calls) == 2
+
+    async def fake_status():
+        return {'at': 'x', 'daemon': {'pid': 1, 'stale': False}, 'agents': {}}
+
+    app = FastAPI()
+    app.include_router(create_host_router(ORIGIN, status=fake_status), prefix='/api/v1/platform')
+    assert TestClient(app).get('/api/v1/platform/host/status').json()['agents'] == {}

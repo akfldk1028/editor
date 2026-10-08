@@ -246,6 +246,22 @@ export interface LandAnalysisAnswer {
 }
 
 /** One goal the product can ask the Orchestrator for (`GET /platform/capabilities`). */
+/** `GET /platform/host/status`: every agent's state from the host's last tick (agent ids). */
+export interface HostStatus {
+  at: string | null
+  daemon: { pid: number | null; stale: boolean }
+  agents: Record<string, { state: 'up' | 'down' | 'starting' | 'restarting' | 'gave_up' | 'absent'; up: boolean | null; lease_until: string | null; idle_in_s: number | null }>
+}
+
+/** `POST /platform/host/ensure`: who came up, who did not, how long it took. */
+export interface EnsureAnswer {
+  requested: string[]
+  up: string[]
+  failed: { agent: string; error: string }[]
+  waited_s: number
+  lease_until: string | null
+}
+
 export interface Goal {
   id: string
   label: string

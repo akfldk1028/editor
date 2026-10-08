@@ -112,10 +112,10 @@ function evidenceNote(evidence: LawAnswerBody['legal_evidence']): string | null 
  * The Law Agent's answer as its turn: statute passages (`law_search`) or an ordinance article
  * (`law_ordinance`) as link cards, with 관련 법규 보기 when the conversation has a site.
  */
-export function answerLine(answer: AskAnswer, target: LawTarget | null): FeedInput {
+export function answerLine(answer: AskAnswer, target: LawTarget | null, needed: readonly string[] = []): FeedInput {
   if (answer.route.kind === 'ask') return askRolePrompt(answer)
   if (answer.route.kind === 'answer') return orchestratorReplyLine(answer)
-  if (answer.route.kind === 'goal' || !answer.answer) return handoffLine(answer)
+  if (answer.route.kind === 'goal' || !answer.answer) return handoffLine(answer, needed)
   const actions: FeedAction[] = target ? [{ label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }] : []
   const note = evidenceNote(answer.answer.legal_evidence)
   if (answer.answer.kind === 'ordinance') {

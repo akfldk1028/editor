@@ -70,6 +70,23 @@ export function requestingLines(label: string, conditions: Pick<RunConditions, '
   ]
 }
 
+/**
+ * The Orchestrator waking the agents a goal needs before it asks them (drawn Orchestrator ⟶ the first of
+ * them; the text names all): "Program Agent · Mass Agent 켜는 중 (병렬 2)".
+ */
+export function activatingLine(agents: readonly string[]): FeedInput {
+  const names = agents.map(agentLabel)
+  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: ORCHESTRATOR, to: agents[0] ?? ORCHESTRATOR },
+    text: `${names.join(' · ')} 켜는 중${agents.length > 1 ? ` (병렬 ${agents.length})` : ''}` }
+}
+
+/** Some of them did not come up: nothing is submitted (fail closed); the user may retry or look at the system. */
+export function activationFailedLine(failed: readonly { agent: string; error: string }[], retry: FeedAction['command']): FeedInput {
+  const text = failed.map((item) => `${agentLabel(item.agent)} (${item.error})`).join(', ')
+  return { kind: 'error', agent: ORCHESTRATOR, text: `${text}이(가) 켜지지 않았어요 — 검토를 보내지 않았어요`,
+    actions: [...(retry ? [{ label: '다시 시도', command: retry }] : []), { label: '시스템 보기', artifact: 'system' }] }
+}
+
 /** "검토 요청 실패 — Orchestrator Agent에 연결할 수 없어요", with 시스템 보기 when it is unreachable. */
 export function requestFailedLine(failure: RunFailure): FeedInput {
   return {
@@ -198,18 +215,20 @@ export function resultPrompt(results: RunResults, target: LawTarget): { text: st
  * A question that is another agent's business: the Orchestrator says whose and, when the catalog
  * goal is open, offers to start it; when it is not, says so (fail closed, no guess).
  */
-export function handoffLine(answer: AskAnswer): FeedInput {
+export function handoffLine(answer: AskAnswer, needed: readonly string[] = []): FeedInput {
   const { route, handoff } = answer
   const who = agentLabel(route.agent ?? ORCHESTRATOR)
   // The Orchestrator's own words to that agent (its ledger), shown as the instruction it would give.
   const said = route.instruction ? ` · ${who}에게: "${route.instruction}"` : ''
   if (!handoff) return { kind: 'error', agent: ORCHESTRATOR, text: `${who}의 일인데 아직 넘길 목표가 없어요` }
   if (handoff.available) {
+    // The button says what will happen: owners the host has not got up are woken first ("켜고 시작").
+    const label = needed.length ? `켜고 시작 (${needed.length}개)` : `${handoff.label} 시작`
     return {
       kind: 'prompt',
       agent: ORCHESTRATOR,
-      text: `이건 ${who}의 일이에요${said} — ${handoff.label}을(를) 시작할까요?`,
-      actions: [{ label: `${handoff.label} 시작`, command: { kind: 'start-review', goal: handoff.goal } }, { label: '나중에' }],
+      text: `이건 ${who}의 일이에요${said} — ${handoff.label}을(를) 시작할까요?${needed.length ? ` (${needed.map(agentLabel).join(' · ')}은(는) 꺼져 있어 먼저 켜요)` : ''}`,
+      actions: [{ label, command: { kind: 'start-review', goal: handoff.goal } }, { label: '나중에' }],
     }
   }
   const owners = handoff.owners.map(agentLabel).join(' → ')

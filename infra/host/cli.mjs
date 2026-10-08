@@ -43,7 +43,7 @@ export function parseArgs(argv) {
   const [command = 'status', ...ids] = argv.filter(arg => !arg.startsWith('--'));
   const timeout = [...flags].map(flag => flag.match(/^--timeout=(\d+)$/)).find(Boolean);
   const lease = [...flags].map(flag => flag.match(/^--lease=(\d+)$/)).find(Boolean);
-  return { command, ids, withAgents: flags.has('--with-agents'), json: flags.has('--json'),
+  return { command, ids, withAgents: flags.has('--with-agents'), json: flags.has('--json'), snapshot: flags.has('--snapshot'),
            timeoutMs: timeout ? Number(timeout[1]) * 1_000 : null, leaseS: lease ? Number(lease[1]) : DEFAULT_LEASE_S };
 }
 
@@ -52,8 +52,19 @@ function daemonPid() {
   return pid && isAlive(pid) ? pid : null;
 }
 
-async function status(ids = [], { json = false } = {}) {
-  const rows = await statusRows(ids.length ? ids.map(byId) : services(), paths);
+/** `--snapshot`: no probes; each row comes from the daemon's last tick (entries it does not keep read as absent). */
+function snapshotRows(entries) {
+  const snapshot = readHealth(paths);
+  return entries.map(entry => {
+    const seen = snapshot?.services?.[entry.id];
+    return { id: entry.id, kind: entry.kind, port: entry.port, up: seen ? seen.up : null, version: seen?.version ?? null,
+             pid: seen?.pid ?? null, startedAt: readRecord(paths, entry.id)?.startedAt ?? null, managed: Boolean(seen), error: null };
+  });
+}
+
+async function status(ids = [], { json = false, snapshot: fromSnapshot = false } = {}) {
+  const entries = ids.length ? ids.map(byId) : services();
+  const rows = fromSnapshot ? snapshotRows(entries) : await statusRows(entries, paths);
   const pid = daemonPid();
   const daemonRecord = readJson(paths.daemon);
   const stale = Boolean(pid && daemonRecord?.codeStamp && codeStamp() > daemonRecord.codeStamp);
@@ -63,7 +74,7 @@ async function status(ids = [], { json = false } = {}) {
       services: rows.map(row => {
         const entry = byId(row.id);
         const lease = readLeases(paths)[row.id] ?? null;
-        return { ...row, state: snapshot?.services?.[row.id]?.state ?? (row.up ? 'up' : 'down'), leaseUntil: lease?.until ?? null,
+        return { ...row, state: snapshot?.services?.[row.id]?.state ?? (row.up === null ? 'absent' : row.up ? 'up' : 'down'), leaseUntil: lease?.until ?? null,
                  idleInS: row.up ? idleIn(entry, lease, readRecord(paths, row.id), Date.now(), DEFAULTS) : null, idleTimeoutS: entry.idle_timeout_s ?? null };
       }) }));
     return;
@@ -192,9 +203,9 @@ async function daemon(withAgents) {
 }
 
 async function main(argv) {
-  const { command, ids, withAgents, json, timeoutMs, leaseS } = parseArgs(argv);
+  const { command, ids, withAgents, json, snapshot, timeoutMs, leaseS } = parseArgs(argv);
   switch (command) {
-    case 'status': return status(ids, { json });
+    case 'status': return status(ids, { json, snapshot });
     case 'start': return start(ids, withAgents);
     case 'ensure': return ensure(ids, { json, timeoutMs, leaseS });
     case 'touch': return touch(ids, { json, leaseS });

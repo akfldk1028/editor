@@ -12,6 +12,7 @@ import asyncio
 import json
 import os
 import shutil
+import time
 
 from backend.app.core.tracing import EDITOR_ROOT
 
@@ -60,6 +61,28 @@ def _json_line(out: str, code: int, err: str) -> dict:
         return json.loads(line)
     except ValueError as exc:
         raise HostUnavailable(f'host CLI answer out of contract: {exc}') from None
+
+
+STATUS_CACHE_S = 5.0
+_status_cache: dict = {'at': 0.0, 'value': None}
+
+
+async def status(*, runner=_run, now=time.monotonic, cache=_status_cache) -> dict:
+    """Every agent's state from the daemon's last tick (no probes): {at, daemon: {pid, stale}, agents: {agent: {state, up,
+    lease_until, idle_in_s}}} in agent ids; the same answer is served for STATUS_CACHE_S so a conversation turn costs
+    one CLI call at most."""
+    if cache['value'] is not None and now() - cache['at'] < STATUS_CACHE_S:
+        return cache['value']
+    code, out, err = await runner(['status', '--json', '--snapshot'], 20)
+    result = _json_line(out, code, err)
+    try:
+        agents = {agent_id(row['id']): {'state': row['state'], 'up': row['up'], 'lease_until': row.get('leaseUntil'),
+                                        'idle_in_s': row.get('idleInS')} for row in result['services'] if row.get('kind') in ('agent', 'orchestrator')}
+        value = {'at': result.get('snapshotAt'), 'daemon': {'pid': result['daemon'].get('pid'), 'stale': bool(result['daemon'].get('stale'))}, 'agents': agents}
+    except (KeyError, TypeError) as exc:
+        raise HostUnavailable(f'host CLI answer out of contract: {exc}') from None
+    cache['at'], cache['value'] = now(), value
+    return value
 
 
 async def touch(agents: list[str], *, lease_s: int = DEFAULT_LEASE_S, runner=_run) -> dict:

@@ -6,7 +6,7 @@ export {
   answerLine, askFailedLine, askLines, landAnalysisLine, landAnalysisLines, lawBasisLine, lawCard, lawLine, limitsCard,
 } from '@/lib/agents/law/lib/lines'
 export {
-  askRolePrompt, connectionLine, evidenceCard, handoffLine, relayLine, requestFailedLine, requestingLines, resultLine, resultPrompt, type SelectedSite, selectedLine, selectedPrompt,
+  askRolePrompt, connectionLine, evidenceCard, activatingLine, activationFailedLine, handoffLine, relayLine, requestFailedLine, requestingLines, resultLine, resultPrompt, type SelectedSite, selectedLine, selectedPrompt,
   type StepChange, stepChanges, stepState, stepTone, submittedLine,
 } from '@/lib/agents/orchestrator/lib/lines'
 export { revisionLine } from '@/lib/agents/revision/lib/lines'

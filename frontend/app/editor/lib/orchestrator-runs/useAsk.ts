@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { hostStatus, prewarm } from '@/lib/goals/activation'
+import { availableGoal, loadCapabilities } from '@/lib/goals'
+
 import { askLaw, RunRequestError } from './api'
 import { onCommand } from './commands'
 import { dismissFeed, postFeed } from './feed'
@@ -35,7 +38,15 @@ export function useAsk() {
     try {
       const answer = await askLaw({ text, ...(site ? { pnu: site.pnu, ...(site.address ? { address: site.address } : {}) } : {}), ...(role ? { role } : {}) }, controller.signal)
       if (controller.signal.aborted) return
-      postFeed(answerLine(answer, site ? { pnu: site.pnu, address: site.address } : null))
+      // A handoff to an open goal: say which owners are off, and wake them now with a short lease (the
+      // user may press 시작 in a moment; the host's start takes 7–40 s, the lease expires if they do not).
+      let needed: string[] = []
+      if (answer.route.kind === 'goal' && answer.handoff?.available) {
+        const goal = availableGoal(await loadCapabilities(controller.signal), answer.handoff.goal)
+        if (goal) needed = prewarm(goal, await hostStatus(controller.signal))
+      }
+      if (controller.signal.aborted) return
+      postFeed(answerLine(answer, site ? { pnu: site.pnu, address: site.address } : null, needed))
     } catch (error) {
       if (controller.signal.aborted) return
       const status = error instanceof RunRequestError ? error.status : null
