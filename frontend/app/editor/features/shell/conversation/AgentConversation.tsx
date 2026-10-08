@@ -94,7 +94,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
           autoComplete="off"
           maxLength={500}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="법규를 물어보세요 — 예: 자연녹지지역 건폐율, 의정부시 도시계획 조례 제42조"
+          placeholder="무엇이든 물어보세요 — 예: 뭐 할 수 있어?, 자연녹지지역 건폐율, 매스 쌓아 봐"
           type="text"
           value={draft}
         />

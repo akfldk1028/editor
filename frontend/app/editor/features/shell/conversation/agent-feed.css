@@ -30,7 +30,8 @@
   padding: 3px 0;
 }
 .agent-feed time { color: var(--muted); font-size: var(--fs-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.agent-feed p { margin: 0; color: var(--ink); font-size: var(--fs-2); line-height: var(--lh); overflow-wrap: anywhere; }
+/* pre-line: the Orchestrator's own replies come with line breaks and bullets; one-line turns are unaffected. */
+.agent-feed p { margin: 0; color: var(--ink); font-size: var(--fs-2); line-height: var(--lh); overflow-wrap: anywhere; white-space: pre-line; }
 .agent-feed li[data-kind="progress"] p { color: var(--muted); }
 .agent-feed li[data-kind="result"] p { font-weight: 600; }
 .agent-feed li[data-kind="error"] p { color: var(--warning); }

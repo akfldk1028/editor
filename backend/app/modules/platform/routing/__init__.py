@@ -102,5 +102,5 @@ async def decide(text: str, *, assessment_date: str | None = None, role: str | N
                      decided_by='llm', instruction=instruction)
     if speaker in _BY_AGENT:
         return _default_route(speaker, text, context, LEDGER_CONFIDENCE, ledger.next_speaker.reason, 'llm', instruction)
-    return Route('ask', None, None, None, {}, ASK_CONFIDENCE, instruction or '어느 에이전트의 일인지 분명하지 않아요', _CHOICES,
-                 decided_by='llm', instruction=ledger.next_speaker.reason)
+    # The Orchestrator asks: its question is the reason the user reads; no agent was told anything.
+    return Route('ask', None, None, None, {}, ASK_CONFIDENCE, instruction or '어느 에이전트의 일인지 분명하지 않아요', _CHOICES, decided_by='llm')
