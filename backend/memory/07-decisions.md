@@ -316,3 +316,12 @@ be told to the Orchestrator session.
   `POST /host/ensure {lease_s}` and `POST /host/touch`. Live: scene auto-stopped 19 min after an unleased start; touch
   extends. Pitfall: the daemon restart adopts running processes with their real start time, so an agent started before
   A1 can be idle-stopped on the very first tick — intended, but surprising the first time.
+- 2026-10-09 activation A2: the conversation wakes a goal's missing owners before submitting (`lib/goals/activation.ts`,
+  `useSiteRun`, `useAsk` pre-warm 300 s, "켜고 시작 (n개)"), `GET /platform/host/status` (snapshot, 5 s cache), host snapshot
+  probes the whole registry (compose agents read as up). **Door contract changed by the Orchestrator session (10-09):**
+  texts no longer capped at 8,000 (Site ~30 KB, Law ~31 KB), `redacted: bool` per row, new steps `site_district_plan`
+  and `law_review_district_plan`, `assessment_date` forwarded to Law, health carries `worker`. Editor schemas
+  (`schemas/communications.py`, frontend `parseCommunications`) now bound texts at 262,144 and accept `redacted`;
+  the 8,000 assumption elsewhere is only comments/notes. Pitfall: **Next dev compiles `/api/scenes/[id]` lazily** —
+  the first submission after a reload/HMR hits the backend's 8 s owner timeout (503 external_outcome_unknown);
+  `curl :3003/api/scenes/<id>` once (or 다시 시도) and it passes. Live: run d8af521b full conversation in the browser.
