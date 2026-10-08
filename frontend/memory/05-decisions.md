@@ -2,6 +2,11 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `7f65ee78` Orchestrator <-> UI: shared `lib/orchestrator-runs/` (api, poll, feed store, Korean labels,
+  ConditionsRow) used by site-map and law; law tab 오케스트레이터 검토 (latest limits run per pnu: timeline, Law numbers vs
+  own analysis, ordinance receipt, missing evidence + actions, 검토 시작); shell `conversation/AgentFeed.tsx` shows the
+  run feed in the chat (대지 선택 -> 연결 확인 -> 접수 -> step lines -> 결과 + 법규 결과 보기). agent-dialogue/runs.ts
+  now re-exports the shared lib. Known: shell params persist across artifacts (?project= changes selection scope).
 - 2026-10-08 (feat: orchestrator review) shared `lib/orchestrator-runs/` (api, types, labels, conditions, submit, poll,
   feed, feed-lines, useRunFeed, connection, ui/ConditionsRow) — the one platform-run door; `agent-dialogue/{runs,projects,
   communications}.ts` re-export from it; site-map's site-run/run-conditions re-export the shared parts. Law artifact tab

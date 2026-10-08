@@ -3,6 +3,10 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `928f9f51` `modules/platform/run_results/` parses a run's communications into a stable UI contract
+  (steps, site, law, review, missing_evidence_all; tolerant of the owner's 8,000-char response_text cut) —
+  `GET /platform/runs/{id}/results`, `GET /platform/projects/{id}/runs/latest?goal&pnu` (fetches <=10 newest runs
+  to match pnu; the owner list carries no request). Fixtures from live runs in tests/fixtures/run_results/.
 - 2026-10-08 (feat: run results) `modules/platform/run_results/parse.py` reads a run's communications into one UI shape
   (`GET /runs/{id}/results?project_id=`; `GET /projects/{id}/runs/latest?goal=&pnu=` = newest run for a parcel, at most 10
   runs fetched whole since the owner's list carries no request). Tolerant: a response cut at the Orchestrator's 8000-char
