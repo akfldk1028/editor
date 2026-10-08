@@ -9,9 +9,14 @@ Contract (every key always present):
   run_id, status, goal, pending_input, truncated
   request: {pnu, parcels[], building_type, assessment_date} | null
   steps:   [{task_id, agent, tool, state, summary, truncated}]           (communication order)
-  site:    {status, code, facts_known, facts_total, facts_missing[]} | null
-  law:     {status, site_area_m2, bcr_pct, far_pct, max_floors, policy_id, parcel_label, building_type,
-            ordinance: {articles[], edition_id, effective_date, assessment_date} | null,
+  site:    {status, code, facts_known, facts_total, facts_missing[],
+            facts: [{key, confidence, source, as_of, summary}]} | null       (the readable `state_patch` facts)
+  law:     {status, site_area_m2, bcr_pct, far_pct, max_floors, ground_capacity_m2, far_capacity_m2, zones[],
+            national_bcr_ceiling_pct, national_far_ceiling_pct, articles: {bcr, far, height},
+            height: {status, limit_m}, policy_id, parcel_label, building_type,
+            ordinance: {articles[], edition_id, effective_date, assessment_date,
+                        sources: [{name, ordinance_id, edition_id, effective_date, url}], limitations[]} | null,
+            evidence: {floor_height_m, datum_measured, frontage_grade, legal_floor_section_count},
             sources: [{title, date}], findings: [{finding, recommended_action, missing_evidence[]}],
             truncated} | null
   review:  {status, code, missing_evidence[], actions: [{finding, raised_by, category,
@@ -132,6 +137,36 @@ def _step(row, response):
             'state': _str(row.get('state')) or 'unknown', 'summary': summary, 'truncated': row.get('truncated') is True}
 
 
+def _fact_summary(key, value):
+    """One short line per site fact the Site Agent stores (`sitecontextagent/facts.py` SITE_KEYS)."""
+    value = _dict(value)
+    if key == 'site.boundary':
+        area = _num(value.get('area_m2'))
+        return f'면적 {area:,.2f}㎡' if area is not None else None
+    if key == 'site.roads':
+        roads = [_dict(f).get('properties') for f in value.get('centrelines') or [] if isinstance(f, dict)]
+        widths = _unique(f'{_num(_dict(p).get("width_m")):g}m' for p in roads if _num(_dict(p).get('width_m')) is not None)
+        return f'접도 {len(roads)}건' + (f' · 폭 {", ".join(widths)}' if widths else '') if roads else None
+    if key == 'site.north':
+        bearing = _num(value.get('true_north_deg')) if _num(value.get('true_north_deg')) is not None else _num(value.get('bearing_deg'))
+        return f'진북 {bearing:g}°' if bearing is not None else None
+    if key == 'site.terrain':
+        levels = [_num(v) for v in (value.get('min_m'), value.get('max_m')) if _num(v) is not None]
+        return f'표고 {levels[0]:g}~{levels[1]:g} m' if len(levels) == 2 else None
+    return None
+
+
+def _site_facts(response):
+    """The facts readable in `state_patch` (a cut response keeps the first ones): key, confidence, provenance, summary."""
+    facts = []
+    for key, fact in _dict(response.get('state_patch')).items():
+        if not isinstance(key, str) or not key.startswith('site.') or not isinstance(fact, dict):
+            continue
+        facts.append({'key': key, 'confidence': _str(fact.get('confidence')), 'source': _str(fact.get('source')),
+                      'as_of': _str(fact.get('as_of')), 'summary': _fact_summary(key, fact.get('value'))})
+    return facts
+
+
 def _site(row, response, rationale):
     if row is None:
         return None
@@ -141,18 +176,22 @@ def _site(row, response, rationale):
     missing += _strings(response.get('missing')) + _strings(response.get('missing_facts'))
     return {'status': _str(response.get('status')) or _str(row.get('state')) or 'unknown', 'code': _str(response.get('code')),
             'facts_known': int(match.group(1)) if match else None, 'facts_total': int(match.group(2)) if match else None,
-            'facts_missing': _unique(missing)}
+            'facts_missing': _unique(missing), 'facts': _site_facts(response)}
 
 
 def _ordinance(response):
     receipt = response.get('ordinance')
     if not isinstance(receipt, dict):
         return None
-    sources = [_dict(s) for s in _dict(receipt.get('municipal_coverage')).get('sources') or [] if isinstance(s, dict)]
+    coverage = _dict(receipt.get('municipal_coverage'))
+    sources = [_dict(s) for s in coverage.get('sources') or [] if isinstance(s, dict)]
     first = sources[0] if sources else {}
     return {'articles': [a for a in (receipt.get('bcr_article'), receipt.get('far_article'), receipt.get('height_article')) if _str(a)],
             'edition_id': _str(first.get('edition_id')) or _str(first.get('edition')) or _str(first.get('name')),
-            'effective_date': _str(first.get('effective_date')), 'assessment_date': _str(receipt.get('assessment_date'))}
+            'effective_date': _str(first.get('effective_date')), 'assessment_date': _str(receipt.get('assessment_date')),
+            'sources': [{'name': _str(s.get('name')), 'ordinance_id': _str(s.get('ordinance_id')), 'edition_id': _str(s.get('edition_id')),
+                         'effective_date': _str(s.get('effective_date')), 'url': _str(s.get('url'))} for s in sources],
+            'limitations': _strings(coverage.get('limitations'))}
 
 
 def _law(row, response, rationale, notes):
@@ -166,11 +205,23 @@ def _law(row, response, rationale, notes):
                  'missing_evidence': _strings(_dict(item['evidence']).get('missing_evidence')),
                  'assessment_date': _str(_dict(item['evidence']).get('assessment_date'))}
                 for item in rationale if item['raised_by'] == 'law']
+    receipt = _dict(response.get('ordinance'))
+    evidence = _dict(response.get('evidence'))
     return {'status': _str(row.get('state')) or 'unknown',
             'site_area_m2': _num(response.get('parcel_area_m2')), 'bcr_pct': _num(response.get('bcr_pct')),
             'far_pct': _num(response.get('far_pct')), 'max_floors': _int(response.get('max_storeys')) or _int(policy.get('max_storeys')),
+            'ground_capacity_m2': _num(response.get('ground_capacity_m2')), 'far_capacity_m2': _num(response.get('far_capacity_m2')),
+            'zones': _strings(response.get('zones')),
+            'national_bcr_ceiling_pct': _num(receipt.get('national_bcr_ceiling_pct')),
+            'national_far_ceiling_pct': _num(receipt.get('national_far_ceiling_pct')),
+            'articles': {'bcr': _str(receipt.get('bcr_article')), 'far': _str(receipt.get('far_article')), 'height': _str(receipt.get('height_article'))},
+            'height': {'status': _str(receipt.get('height_status')), 'limit_m': _num(receipt.get('height_limit_m'))},
             'policy_id': _str(policy.get('policy_id')), 'parcel_label': _str(policy.get('parcel_label')),
             'building_type': _str(response.get('building_type')), 'ordinance': ordinance,
+            'evidence': {'floor_height_m': _num(evidence.get('floor_height_m')),
+                         'datum_measured': evidence.get('datum_measured') if isinstance(evidence.get('datum_measured'), bool) else None,
+                         'frontage_grade': _str(_dict(evidence.get('authoring_frontage')).get('evidence_grade')),
+                         'legal_floor_section_count': _int(evidence.get('legal_floor_section_count'))},
             'sources': [{'title': _str(_dict(s).get('title')), 'date': _str(_dict(s).get('date'))}
                         for s in policy.get('sources') or [] if isinstance(s, dict)],
             'findings': findings, 'truncated': row.get('truncated') is True}

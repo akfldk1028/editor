@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 
 import type { FeedEntry } from './feed'
-import { leadOf, threadOf } from './thread'
+import { conversationTitle, leadOf, threadOf } from './thread'
 
 let n = 0
 const entry = (kind: FeedEntry['kind'], text: string, agent?: string, run_id?: string): FeedEntry => ({
@@ -32,6 +32,22 @@ test('user and system lines stay single; each agent speaks in its own turn; a pr
   const verdict = turns[8]
   if (verdict.kind !== 'agent') throw new Error('expected an agent turn')
   expect(verdict).toEqual({ kind: 'agent', id: result.id, at: result.at, agent: 'orchestrator', run_id: 'r1', steps: [result], error: false })
+})
+
+test('the header title is nothing while empty, then the site and where the review stands', () => {
+  expect(conversationTitle([])).toBeNull()
+  const selected = entry('user', '대지 선택: 경기도 의정부시 산곡동 684-1 (1필지, 2,500㎡)')
+  expect(conversationTitle([selected])).toEqual({ title: '경기도 의정부시 산곡동 684-1', subtitle: null })
+  const started = entry('user', '검토 시작 · 경기도 의정부시 산곡동 684-1 · 기준일 2026-10-08')
+  expect(conversationTitle([selected, started])).toEqual({ title: '경기도 의정부시 산곡동 684-1', subtitle: '법규·한계 검토 중' })
+  const held = entry('result', '검토 결과: 보류 — 근거 보충 필요: 기준일', 'orchestrator', 'r1')
+  expect(conversationTitle([selected, started, held])).toEqual({ title: '경기도 의정부시 산곡동 684-1', subtitle: '법규·한계 검토 · 보류' })
+  const failed = entry('error', '검토 결과: 실패 — 필지가 서로 붙어 있지 않음', 'orchestrator', 'r1')
+  expect(conversationTitle([selected, started, failed])?.subtitle).toBe('법규·한계 검토 · 실패')
+  // A new site resets the stage; a thread without a site keeps a neutral title.
+  const other = entry('user', '대지 선택: 산곡동 683 (1필지)')
+  expect(conversationTitle([selected, started, held, other])).toEqual({ title: '산곡동 683', subtitle: null })
+  expect(conversationTitle([entry('system', '오케스트레이터 연결됨', 'orchestrator')])).toEqual({ title: '에이전트 대화', subtitle: null })
 })
 
 test('a line without an agent is the Orchestrator; a second run starts a new turn; an error marks and leads it', () => {

@@ -3,10 +3,11 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
-import { clearFeed, dismissFeed, type FeedCard, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
+import { clearFeed, dismissFeed, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
 
 import type { ShellApi } from '../artifact-types'
 import { act } from './act'
+import { FeedCard } from './FeedCard'
 import './agent-feed.css'
 
 const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -53,7 +54,7 @@ function Line({ entry, shell }: { entry: FeedEntry; shell: ShellApi }) {
         {entry.tone && <span aria-hidden="true" className="agent-feed-dot" />}
         {entry.text}
       </p>
-      {entry.card && <Card card={entry.card} />}
+      {entry.card && <FeedCard card={entry.card} />}
       {entry.actions?.map((action) => (
         <button className="agent-feed-action" key={action.label} onClick={() => act(action, shell)} type="button">
           {action.label}
@@ -91,24 +92,3 @@ function Prompt({ entry, shell }: { entry: FeedEntry; shell: ShellApi }) {
   )
 }
 
-function Card({ card }: { card: FeedCard }) {
-  if (card.type === 'stats') {
-    return (
-      <dl className="agent-feed-stats">
-        {card.items.map((item) => (
-          <div key={item.label}>
-            <dt>{item.label}</dt>
-            <dd>{item.value}</dd>
-          </div>
-        ))}
-      </dl>
-    )
-  }
-  return (
-    <ul className="agent-feed-chips">
-      {card.items.map((item) => (
-        <li key={item}>{item}</li>
-      ))}
-    </ul>
-  )
-}

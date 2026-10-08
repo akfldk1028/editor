@@ -38,6 +38,35 @@ export function threadOf(entries: readonly FeedEntry[]): Turn[] {
   return turns
 }
 
+/**
+ * The header's compressed title once the conversation has content (ChatGPT-style): the site the
+ * conversation is about and where it stands — "경기도 의정부시 산곡동 684-1" / "법규·한계 검토 · 보류".
+ * Null while the thread is empty, so the header shows nothing.
+ */
+export function conversationTitle(entries: readonly FeedEntry[]): { title: string; subtitle: string | null } | null {
+  if (entries.length === 0) return null
+  let site: string | null = null
+  let stage: string | null = null
+  for (const entry of entries) {
+    if (entry.kind === 'user') {
+      const picked = entry.text.match(/^대지 선택: (.+?) \(/)
+      if (picked) {
+        site = picked[1]!
+        stage = null
+        continue
+      }
+      if (entry.text.startsWith('검토 시작')) stage = '법규·한계 검토 중'
+      continue
+    }
+    if (entry.kind === 'result' || entry.kind === 'error') {
+      const verdict = entry.text.match(/^검토 결과: ([^—:]+)/)
+      if (verdict) stage = `법규·한계 검토 · ${verdict[1]!.trim()}`
+    }
+  }
+  if (!site) return { title: '에이전트 대화', subtitle: stage }
+  return { title: site, subtitle: stage }
+}
+
 /** The agent turn's lead line: its result line when it has one, else the latest step. */
 export function leadOf(turn: Extract<Turn, { kind: 'agent' }>): FeedEntry {
   return turn.steps.find((step) => step.kind === 'result' || step.kind === 'error') ?? turn.steps[turn.steps.length - 1]!

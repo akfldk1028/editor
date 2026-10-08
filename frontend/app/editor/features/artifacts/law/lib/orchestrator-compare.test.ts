@@ -6,8 +6,10 @@ import { compareLaw, differingRows } from './orchestrator-compare'
 import type { Summary } from './summary'
 
 const law: RunLaw = {
-  status: 'succeeded', site_area_m2: 2499.691, bcr_pct: 59.92, far_pct: 249.67, max_floors: 5, policy_id: 'gosan-public1-molit-2026-334',
-  parcel_label: null, building_type: '업무시설', ordinance: null, sources: [], findings: [], truncated: true,
+  status: 'succeeded', site_area_m2: 2499.691, bcr_pct: 59.92, far_pct: 249.67, max_floors: 5, ground_capacity_m2: null, far_capacity_m2: null, zones: [],
+  national_bcr_ceiling_pct: null, national_far_ceiling_pct: null, articles: { bcr: null, far: null, height: null }, height: { status: null, limit_m: null },
+  policy_id: 'gosan-public1-molit-2026-334', parcel_label: null, building_type: '업무시설', ordinance: null,
+  evidence: { floor_height_m: null, datum_measured: null, frontage_grade: null, legal_floor_section_count: null }, sources: [], findings: [], truncated: true,
 }
 
 const editor = (over: Partial<Summary> = {}): Summary => ({

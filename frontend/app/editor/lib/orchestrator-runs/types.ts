@@ -64,12 +64,34 @@ export interface RunStep {
   truncated: boolean
 }
 
+/** One of the Site Agent's eight site facts (`sitecontextagent/facts.py` SITE_KEYS) as read from its `state_patch`. */
+export interface SiteFact {
+  /** `site.boundary`, `site.roads`, `site.access`, `site.north`, `site.terrain`, `site.utilities`, `site.hazards`, `site.context`. */
+  key: string
+  /** measured · derived · estimated · unknown */
+  confidence: string | null
+  source: string | null
+  as_of: string | null
+  /** "면적 1,006.65㎡", "접도 5건 · 폭 15m, 20m" … */
+  summary: string | null
+}
+
 export interface RunSite {
   status: string
   code: string | null
   facts_known: number | null
   facts_total: number | null
   facts_missing: string[]
+  /** The facts readable in the answer (a cut answer keeps the first ones). */
+  facts: SiteFact[]
+}
+
+export interface OrdinanceSource {
+  name: string | null
+  ordinance_id: string | null
+  edition_id: string | null
+  effective_date: string | null
+  url: string | null
 }
 
 export interface OrdinanceReceipt {
@@ -77,6 +99,8 @@ export interface OrdinanceReceipt {
   edition_id: string | null
   effective_date: string | null
   assessment_date: string | null
+  sources: OrdinanceSource[]
+  limitations: string[]
 }
 
 export interface RunLaw {
@@ -85,11 +109,20 @@ export interface RunLaw {
   bcr_pct: number | null
   far_pct: number | null
   max_floors: number | null
+  /** 건폐율 × 대지면적 and 용적률 × 대지면적, as Law computed them. */
+  ground_capacity_m2: number | null
+  far_capacity_m2: number | null
+  zones: string[]
+  national_bcr_ceiling_pct: number | null
+  national_far_ceiling_pct: number | null
+  articles: { bcr: string | null; far: string | null; height: string | null }
+  height: { status: string | null; limit_m: number | null }
   policy_id: string | null
   parcel_label: string | null
   building_type: string | null
   /** Null when Law sent none or the 8000-character communication cap cut it off (see `notes`). */
   ordinance: OrdinanceReceipt | null
+  evidence: { floor_height_m: number | null; datum_measured: boolean | null; frontage_grade: string | null; legal_floor_section_count: number | null }
   sources: { title: string | null; date: string | null }[]
   findings: { finding: string | null; recommended_action: string | null; missing_evidence: string[]; assessment_date: string | null }[]
   truncated: boolean

@@ -1,6 +1,9 @@
 import { expect, test } from 'bun:test'
 
-import { connectionLine, evidenceCard, lawCard, lawLine, requestFailedLine, requestingLines, resultLine, resultPrompt, selectedLine, selectedPrompt, stepChanges, stepState, submittedLine } from './feed-lines'
+import {
+  connectionLine, evidenceCard, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine, requestingLines, resultLine, resultPrompt, revisionLine, selectedLine,
+  selectedPrompt, siteFactsLine, stepChanges, stepState, submittedLine,
+} from './feed-lines'
 import { FAST_WINDOW_MS, POLL_FAST_MS, POLL_MS, pollInterval } from './poll'
 import type { Communication, RunResults } from './types'
 
@@ -13,12 +16,19 @@ const law = comm('law_parcel_limits', 'law', 'succeeded', '{"pnu": "411501130010
 const review = comm('revision_triage', 'revision', 'failed', '{"status": "needs_evidence", "code": "needs_user_input", "rationale": []}')
 const apart = comm('site_resolve', 'site_context', 'failed', '{"status": "failed", "code": "parcels_not_contiguous", "pnu": "x"}')
 
+const siteFacts = [
+  { key: 'site.boundary', confidence: 'measured', source: 'Vworld 연속지적도', as_of: '2026-10-08', summary: '면적 2,499.69㎡' },
+  { key: 'site.roads', confidence: 'measured', source: 'NGII', as_of: '2026-10-08', summary: '접도 5건 · 폭 15m, 20m' },
+]
+const noEvidence = { floor_height_m: null, datum_measured: null, frontage_grade: null, legal_floor_section_count: null }
+
 const results = (over: Partial<RunResults> = {}): RunResults => ({
   run_id: 'r', status: 'blocked', goal: 'limits', pending_input: false, truncated: true,
   request: { pnu: '4115011300106840001', parcels: ['4115011300106840001'], building_type: '업무시설', assessment_date: null },
-  steps: [], site: { status: 'partial', code: null, facts_known: 5, facts_total: 8, facts_missing: ['SITE-ACCESS', 'SITE-HAZARDS', 'SITE-UTILITIES'] },
-  law: { status: 'succeeded', site_area_m2: 2499.691, bcr_pct: 59.92, far_pct: 249.67, max_floors: 5, policy_id: 'gosan-public1-molit-2026-334',
-    parcel_label: null, building_type: '업무시설', ordinance: null, sources: [], findings: [], truncated: true },
+  steps: [], site: { status: 'partial', code: null, facts_known: 5, facts_total: 8, facts_missing: ['SITE-ACCESS', 'SITE-HAZARDS', 'SITE-UTILITIES'], facts: siteFacts },
+  law: { status: 'succeeded', site_area_m2: 2499.691, bcr_pct: 59.92, far_pct: 249.67, max_floors: 5, ground_capacity_m2: null, far_capacity_m2: null, zones: [],
+    national_bcr_ceiling_pct: null, national_far_ceiling_pct: null, articles: { bcr: null, far: null, height: null }, height: { status: null, limit_m: null },
+    policy_id: 'gosan-public1-molit-2026-334', parcel_label: null, building_type: '업무시설', ordinance: null, evidence: noEvidence, sources: [], findings: [], truncated: true },
   review: { status: 'needs_evidence', code: 'needs_user_input', missing_evidence: ['law.district_review.x: Supply an explicit valid assessment date'], actions: [] },
   missing_evidence_all: ['SITE-ACCESS', 'SITE-HAZARDS', 'SITE-UTILITIES', 'assessment_date_required', 'district_effective_sources_unverified',
     'law.district_review.x: Supply an explicit valid assessment date'],
@@ -92,28 +102,114 @@ test("a step's state prefers the tool's own status word, also inside a cut respo
 test('step lines appear once per state change, in Korean, with facts or the failure code and a tone', () => {
   const first = stepChanges(null, { communications: [site, law] })
   expect(first).toEqual([
-    { key: 'site_resolve:needs_evidence', text: '대지 사실 확인: 근거 부족 (5/8 사실)', tone: 'warn', agent: 'site_context' },
-    { key: 'law_parcel_limits:succeeded', text: '법규 한계: 성공', tone: 'ok', agent: 'law' },
+    { key: 'site_resolve:needs_evidence', tool: 'site_resolve', text: '대지 사실 확인: 근거 부족 (5/8 사실)', tone: 'warn', agent: 'site_context' },
+    { key: 'law_parcel_limits:succeeded', tool: 'law_parcel_limits', text: '법규 한계: 성공', tone: 'ok', agent: 'law' },
   ])
   expect(stepChanges({ communications: [site, law] }, { communications: [site, law] })).toEqual([])
   expect(stepChanges({ communications: [site, law] }, { communications: [site, law, review] })).toEqual([
-    { key: 'revision_triage:needs_evidence', text: '재검토 판정: 근거 부족', tone: 'warn', agent: 'revision' },
+    { key: 'revision_triage:needs_evidence', tool: 'revision_triage', text: '재검토 판정: 근거 부족', tone: 'warn', agent: 'revision' },
   ])
   expect(stepChanges(null, { communications: [apart] })).toEqual([
-    { key: 'site_resolve:failed', text: '대지 사실 확인: 실패 — 필지가 서로 붙어 있지 않음', tone: 'warn', agent: 'site_context' },
+    { key: 'site_resolve:failed', tool: 'site_resolve', text: '대지 사실 확인: 실패 — 필지가 서로 붙어 있지 않음', tone: 'warn', agent: 'site_context' },
   ])
   const running = comm('law_parcel_limits', 'law', 'running', null)
-  expect(stepChanges({ communications: [running] }, { communications: [law] })).toEqual([{ key: 'law_parcel_limits:succeeded', text: '법규 한계: 성공', tone: 'ok', agent: 'law' }])
+  expect(stepChanges({ communications: [running] }, { communications: [law] })).toEqual([{ key: 'law_parcel_limits:succeeded', tool: 'law_parcel_limits', text: '법규 한계: 성공', tone: 'ok', agent: 'law' }])
   // A step still running has no agent on its record yet: the tool's owner names it.
-  expect(stepChanges(null, { communications: [{ ...running, agent: null }] })).toEqual([{ key: 'law_parcel_limits:running', text: '법규 한계: 진행 중', tone: 'busy', agent: 'law' }])
+  const started = stepChanges(null, { communications: [{ ...running, agent: null }] })
+  expect(started).toEqual([{ key: 'law_parcel_limits:running', tool: 'law_parcel_limits', text: '법규 한계: 진행 중', tone: 'busy', agent: 'law' }])
+  // While it runs, the Orchestrator says whom it is asking.
+  expect(relayLine(started[0]!)).toEqual({ kind: 'progress', agent: 'orchestrator', tone: 'busy', text: 'Law Agent에게 법규 한계 요청 중' })
 })
 
-test("the law card carries Law's numbers as stat tiles, only the ones it sent", () => {
+test("Law's legal basis: the ordinance source with its law.go.kr link, the articles, limitations and Law's premises; the truncation is named", () => {
+  const target = { pnu: '4115011300106830000', address: '산곡동 683', project: 'p1' }
+  const related = { label: '관련 법규 보기', artifact: 'law', params: { pnu: target.pnu, tab: 'articles', address: '산곡동 683', project: 'p1' } }
+  const receipt = {
+    articles: ['의정부시 도시계획 조례 제42조', '의정부시 도시계획 조례 제46조', '건축법 제60조, 국토계획법 시행령 제80조'], edition_id: '2072835', effective_date: '20250925', assessment_date: '2026-10-08',
+    sources: [{ name: '의정부시 도시계획 조례', ordinance_id: '2149163', edition_id: '2072835', effective_date: '20250925', url: 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835' }],
+    limitations: ['snapshot_does_not_certify_amendment_completeness'],
+  }
+  const evidence = { floor_height_m: 3.8, datum_measured: false, frontage_grade: 'inferred_not_road_verified', legal_floor_section_count: 13 }
+  const withReceipt = lawBasisLine(results({ law: { ...results().law!, ordinance: receipt, evidence, sources: [{ title: '건축법', date: '2025-01-01' }], truncated: false } }), target)
+  expect(withReceipt).toEqual({
+    kind: 'progress', agent: 'law', tone: 'ok',
+    text: '법적 근거 6건 (기준일 2026-10-08) · 전제: 층고 3.8 m 가정, 지반고 미측정, 접도 방향 추정 (도로 미검증)',
+    card: { type: 'links', items: [
+      { label: '의정부시 도시계획 조례', href: 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835', note: '판본 2072835 · 시행 2025-09-25' },
+      { label: '의정부시 도시계획 조례 제42조' }, { label: '의정부시 도시계획 조례 제46조' }, { label: '건축법 제60조, 국토계획법 시행령 제80조' },
+      { label: '건축법', note: '2025-01-01' },
+      { label: '스냅샷은 개정 완전성을 보증하지 않음', note: '유의' },
+    ] },
+    actions: [related],
+  })
+  const cut = lawBasisLine(results(), target)
+  expect(cut).toEqual({ kind: 'progress', agent: 'law', tone: 'warn', text: '조례 영수증이 전달되지 않았어요 — Law 응답이 8,000자에서 잘렸어요', actions: [related] })
+  expect(lawBasisLine(results({ law: { ...results().law!, truncated: false } }), target)).toBeNull()
+  expect(lawBasisLine(results({ law: null }), target)).toBeNull()
+})
+
+test("the law card carries Law's numbers as stat tiles with their article and ceiling, the capacities and the height rule", () => {
   expect(lawCard(results())).toEqual({ type: 'stats', items: [
     { label: '대지면적', value: '2,499.7㎡' }, { label: '건폐율', value: '59.92%' }, { label: '용적률', value: '249.67%' }, { label: '최고 층수', value: '5층' },
   ] })
-  expect(lawCard(results({ law: { ...results().law!, site_area_m2: null, max_floors: null } }))).toEqual({ type: 'stats', items: [{ label: '건폐율', value: '59.92%' }, { label: '용적률', value: '249.67%' }] })
+  const whole = results({ law: { ...results().law!, site_area_m2: 1006.531, bcr_pct: 20, far_pct: 80, max_floors: null, ground_capacity_m2: 201.306, far_capacity_m2: 805.225,
+    zones: ['자연녹지지역'], national_bcr_ceiling_pct: 20, national_far_ceiling_pct: 100,
+    articles: { bcr: '의정부시 도시계획 조례 제42조', far: '의정부시 도시계획 조례 제46조', height: '건축법 제60조, 국토계획법 시행령 제80조' }, height: { status: 'no_height_overlay', limit_m: null } } })
+  expect(lawLine(whole)).toBe('법규 한계 (자연녹지지역): 건폐 20% · 용적 80%')
+  expect(lawCard(whole)).toEqual({ type: 'stats', items: [
+    { label: '대지면적', value: '1,006.5㎡' },
+    { label: '건폐율', value: '20%', hint: '의정부시 도시계획 조례 제42조 · 국가 상한 20%' },
+    { label: '용적률', value: '80%', hint: '의정부시 도시계획 조례 제46조 · 국가 상한 100%' },
+    { label: '건축면적 상한', value: '201.3㎡', hint: '건폐율 × 대지면적' },
+    { label: '연면적 상한', value: '805.2㎡', hint: '용적률 × 대지면적' },
+    { label: '높이 제한', value: '높이 지구 없음', hint: '건축법 제60조, 국토계획법 시행령 제80조' },
+  ] })
+  expect(lawCard(results({ law: { ...results().law!, site_area_m2: null, max_floors: null } }))).toEqual({ type: 'stats', items: [
+    { label: '건폐율', value: '59.92%' }, { label: '용적률', value: '249.67%' }, { label: '높이 제한', value: '—' },
+  ] })
   expect(lawCard(results({ law: null }))).toBeNull()
+})
+
+test("the Site Agent's answer is its eight facts: established with provenance, missing as its own finding, unread when cut", () => {
+  const line = siteFactsLine(results())!
+  expect(line.kind).toBe('progress')
+  expect(line.agent).toBe('site_context')
+  expect(line.tone).toBe('warn')
+  expect(line.text).toBe('대지 사실 5/8 확인 — 미제공: 출입구·접근, 설비 인입, 재해 위험')
+  expect(line.card).toEqual({ type: 'checks', items: [
+    { label: '대지 경계', state: 'ok', note: '면적 2,499.69㎡ · 공식 자료 · 2026-10-08', critical: true },
+    { label: '접도 도로', state: 'ok', note: '접도 5건 · 폭 15m, 20m · 공식 자료 · 2026-10-08', critical: true },
+    { label: '출입구·접근', state: 'missing', note: '미제공', critical: false },
+    { label: '정북·진북', state: 'unread', note: '응답이 잘려 읽지 못함', critical: true },
+    { label: '지형·표고', state: 'unread', note: '응답이 잘려 읽지 못함', critical: false },
+    { label: '설비 인입', state: 'missing', note: '미제공', critical: false },
+    { label: '재해 위험', state: 'missing', note: '미제공', critical: false },
+    { label: '주변 맥락', state: 'unread', note: '응답이 잘려 읽지 못함', critical: false },
+  ] })
+  // A fact the Site Agent stored as `unknown` is missing even without a finding; a failed site step names its code.
+  const unknown = { key: 'site.north', confidence: 'unknown', source: null, as_of: null, summary: null }
+  expect((siteFactsLine(results({ site: { ...results().site!, facts: [...siteFacts, unknown] } }))!.card as { items: { label: string; state: string }[] }).items[3]).toEqual({ label: '정북·진북', state: 'missing', note: '미제공', critical: true })
+  expect(siteFactsLine(results({ site: { status: 'failed', code: 'parcels_not_contiguous', facts_known: null, facts_total: null, facts_missing: [], facts: [] } })))
+    .toEqual({ kind: 'error', agent: 'site_context', text: '대지 사실 확인 실패 — 필지가 서로 붙어 있지 않음' })
+  expect(siteFactsLine(results({ site: null }))).toBeNull()
+})
+
+test("the Revision Agent's triage lists every finding: what, who raised it, its category, the action and its owner", () => {
+  const actions = [
+    { finding: 'SITE-ACCESS', raised_by: 'site_context', category: 'site_fact_missing', recommended_action: 're-run: site_context', recommended_agents: ['site_context'], evidence: null },
+    { finding: 'law.district_review.0333', raised_by: 'law', category: 'district_assessment_input',
+      recommended_action: 'Supply an explicit valid assessment date; Law cannot choose a date or legal edition on the user behalf.', recommended_agents: ['user'], evidence: null },
+  ]
+  const line = revisionLine(results({ review: { ...results().review!, actions } }))!
+  expect(line.agent).toBe('revision')
+  expect(line.tone).toBe('warn')
+  expect(line.text).toBe('재검토 판정: 사용자 입력 필요 — 제기 2건')
+  expect(line.card).toEqual({ type: 'findings', items: [
+    { title: '대지 접근(출입구·접도)', by: 'Site Agent', category: '대지 사실 누락', action: 'Site Agent 재실행', owners: 'Site Agent' },
+    { title: '지구단위계획 검토 (법규)', by: 'Law Agent', category: '지구단위 검토 입력 필요', action: '기준일을 명시해 주세요 — 법규 에이전트는 날짜·법령 판본을 대신 고르지 않아요', owners: '사용자' },
+  ] })
+  expect(revisionLine(results({ review: { status: 'succeeded', code: null, missing_evidence: [], actions: [] } }))).toEqual({ kind: 'progress', agent: 'revision', tone: 'ok', text: '재검토 판정: 성공' })
+  expect(revisionLine(results({ review: null }))).toBeNull()
 })
 
 test('the evidence card lists the missing-evidence codes in Korean, each once, without finding sentences', () => {
@@ -128,18 +224,19 @@ test('the prompt asks 법규를 보시겠어요 with 법규 보기 opening the l
   expect(held.text).toBe('법규 한계는 나왔지만 근거가 더 필요해요. 법규를 보시겠어요?')
   expect(held.actions).toEqual([
     { label: '법규 보기', artifact: 'law', params: { pnu: '4115011300106840001', tab: 'orchestrator', address: '산곡동 684-1', project: 'p1' } },
+    { label: '관련 법규 보기', artifact: 'law', params: { pnu: '4115011300106840001', tab: 'articles', address: '산곡동 684-1', project: 'p1' } },
     { label: '나중에' },
   ])
   expect(resultPrompt(results({ law: null }), target).text).toBe('근거가 부족해 법규 한계를 확정하지 못했어요. 법규를 보시겠어요?')
   expect(resultPrompt(results({ status: 'completed', review: null, missing_evidence_all: [] }), { pnu: 'x' }).text).toBe('법규 검토가 끝났어요. 법규를 보시겠어요?')
-  expect(resultPrompt(results({ status: 'completed', review: null, missing_evidence_all: [] }), { pnu: 'x' }).actions[0]).toEqual({ label: '법규 보기', artifact: 'law', params: { pnu: 'x', tab: 'orchestrator' } })
+  expect(resultPrompt(results({ status: 'completed', review: null, missing_evidence_all: [] }), { pnu: 'x' }).actions.map((action) => action.label)).toEqual(['법규 보기', '관련 법규 보기', '나중에'])
   const failed = resultPrompt(results({ status: 'failed' }), target)
   expect(failed.text).toBe('검토가 실패했어요. 어디서 멈췄는지 법규 패널에서 보시겠어요?')
   expect(failed.actions.map((action) => action.label)).toEqual(['법규 보기', '시스템 보기', '나중에'])
 })
 
-test('the law line carries the four numbers as the UI shows them', () => {
-  expect(lawLine(results())).toBe('법규 한계: 대지 2,499.7㎡ · 건폐 59.92% · 용적 249.67% · 5층')
+test('the law line carries the caps and floors as the UI shows them (the area lives in the tiles)', () => {
+  expect(lawLine(results())).toBe('법규 한계: 건폐 59.92% · 용적 249.67% · 5층')
   expect(lawLine(results({ law: null }))).toBeNull()
   expect(lawLine(results({ law: { ...results().law!, site_area_m2: null, max_floors: null } }))).toBe('법규 한계: 건폐 59.92% · 용적 249.67%')
 })

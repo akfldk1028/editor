@@ -17,10 +17,8 @@
   scroll-behavior: smooth;
 }
 
-/* Header identity block (the shell's top row). */
-.agent-heading { min-inline-size: 0; display: flex; align-items: center; gap: 10px; }
-.agent-heading > .agent-turn-mark { inline-size: 28px; block-size: 28px; border-radius: 8px; }
-.agent-heading > div { min-inline-size: 0; display: flex; flex-direction: column; }
+/* Header title (the shell's top row): empty until the conversation has content, then site + stage. */
+.agent-heading { min-inline-size: 0; display: flex; flex-direction: column; justify-content: center; }
 .agent-heading strong { overflow: hidden; font-size: var(--fs-3); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .agent-heading span { overflow: hidden; color: var(--muted); font-size: var(--fs-1); text-overflow: ellipsis; white-space: nowrap; }
 
@@ -86,13 +84,7 @@
 /* A step folded under a later one is over: its "진행 중" dot rests. */
 .agent-steps [data-tone="busy"] > p > .agent-dot { background: var(--muted); border: 0; animation: none; }
 
-/* Law's numbers and the missing evidence. */
-.agent-stats { margin: 8px 0 4px; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
-.agent-stats > div { padding: 8px 12px; background: var(--subtle); border-radius: var(--radius-m); }
-.agent-stats dt { color: var(--muted); font-size: var(--fs-1); }
-.agent-stats dd { margin: 0; color: var(--ink); font-size: var(--fs-4); font-weight: 600; font-variant-numeric: tabular-nums; }
-.agent-chips { margin: 8px 0 4px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-.agent-chips li { padding: 3px 9px; color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); border-radius: 10px; font-size: var(--fs-1); font-weight: 600; }
+/* Cards under a line: feed-card.css. */
 
 /* Links inside a turn and the answers under a question. */
 .agent-turn-link { min-block-size: 26px; padding-inline: 8px; color: var(--accent); background: transparent; border: 0; border-radius: var(--radius-s); font-size: var(--fs-2); font-weight: 600; }

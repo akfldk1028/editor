@@ -92,9 +92,37 @@ def test_ordinance_receipt_is_read_when_the_law_answer_is_whole(single):
         'municipal_coverage': {'sources': [{'name': '의정부시 도시계획 조례', 'effective_date': '20250101'}]}}})
     results = parse_run_results(single)
     assert results['law']['ordinance'] == {'articles': ['의정부시 도시계획 조례 제55조', '의정부시 도시계획 조례 제56조'],
-        'edition_id': '의정부시 도시계획 조례', 'effective_date': '20250101', 'assessment_date': '2026-10-08'}
+        'edition_id': '의정부시 도시계획 조례', 'effective_date': '20250101', 'assessment_date': '2026-10-08',
+        'sources': [{'name': '의정부시 도시계획 조례', 'ordinance_id': None, 'edition_id': None, 'effective_date': '20250101', 'url': None}],
+        'limitations': []}
     assert results['request']['assessment_date'] == '2026-10-08'
     assert results['notes'] == []
+
+
+def test_whole_law_answer_reads_capacities_ceilings_articles_sources_and_site_facts():
+    """산곡동 683 (2026-10-08): Law's answer fits the cap, so the receipt and its law.go.kr source are whole."""
+    results = parse_run_results(fixture('limits-single-683'))
+    law = results['law']
+    assert (law['site_area_m2'], law['bcr_pct'], law['far_pct'], law['max_floors']) == (1006.531, 20.0, 80.0, None)
+    assert (law['ground_capacity_m2'], law['far_capacity_m2']) == (201.306, 805.225)
+    assert law['zones'] == ['자연녹지지역']
+    assert (law['national_bcr_ceiling_pct'], law['national_far_ceiling_pct']) == (20.0, 100.0)
+    assert law['articles'] == {'bcr': '의정부시 도시계획 조례 제42조', 'far': '의정부시 도시계획 조례 제46조', 'height': '건축법 제60조, 국토계획법 시행령 제80조'}
+    assert law['height'] == {'status': 'no_height_overlay', 'limit_m': None}
+    assert law['ordinance']['sources'] == [{'name': '의정부시 도시계획 조례', 'ordinance_id': '2149163', 'edition_id': '2072835',
+        'effective_date': '20250925', 'url': 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835'}]
+    assert law['ordinance']['limitations'] == ['snapshot_does_not_certify_amendment_completeness', 'parcel_plan_conditions_and_transitional_rules_require_review']
+    assert law['evidence'] == {'floor_height_m': 3.8, 'datum_measured': False, 'frontage_grade': 'inferred_not_road_verified', 'legal_floor_section_count': 13}
+    assert law['truncated'] is False and results['notes'] == []
+    site = results['site']
+    assert (site['facts_known'], site['facts_total'], site['facts_missing']) == (5, 8, ['SITE-ACCESS', 'SITE-HAZARDS', 'SITE-UTILITIES'])
+    # The Site answer is cut at 8000 chars: the first facts are readable, with their provenance and a one-line summary.
+    keys = [fact['key'] for fact in site['facts']]
+    assert keys[:2] == ['site.boundary', 'site.roads'] and all(key.startswith('site.') for key in keys)
+    boundary = site['facts'][0]
+    assert (boundary['confidence'], boundary['as_of'], boundary['summary']) == ('measured', '2026-10-08', '면적 1,006.65㎡')
+    assert boundary['source'].startswith('Vworld')
+    assert site['facts'][1]['summary'].startswith('접도 ') and '폭 ' in site['facts'][1]['summary']
 
 
 @pytest.mark.parametrize('run', [None, 'text', {}, {'communications': 'no'}, {'communications': [{'tool': 7, 'response_text': 3}]},

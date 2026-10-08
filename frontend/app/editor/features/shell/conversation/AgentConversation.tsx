@@ -3,26 +3,30 @@
 import { Send, SquarePen, Workflow } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
-import { clearFeed, dismissFeed, type FeedCard, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
+import { clearFeed, dismissFeed, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
-import { leadOf, threadOf, type Turn } from '@/lib/orchestrator-runs/thread'
+import { conversationTitle, leadOf, threadOf, type Turn } from '@/lib/orchestrator-runs/thread'
 
 import type { ShellApi } from '../artifact-types'
 import { act } from './act'
 import { AgentMark } from './agentMarks'
+import { FeedCard } from './FeedCard'
 import './agent-conversation.css'
 
 const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
 
-/** The conversation's identity block for the shell's header row. */
+/**
+ * The header row: nothing while the conversation is empty (like a fresh ChatGPT chat); once it has
+ * content, the site it is about and where the review stands, compressed to one block.
+ */
 export function AgentConversationHeading() {
+  const entries = useFeed()
+  const title = conversationTitle(entries)
+  if (!title) return <div className="agent-heading" />
   return (
     <div className="agent-heading">
-      <AgentMark agent="orchestrator" size={14} />
-      <div>
-        <strong>Orchestrator Agent</strong>
-        <span>Site · Law · Revision 에이전트와 대화</span>
-      </div>
+      <strong>{title.title}</strong>
+      {title.subtitle && <span>{title.subtitle}</span>}
     </div>
   )
 }
@@ -156,23 +160,10 @@ function Step({ entry, lead = false, shell }: { entry: FeedEntry; lead?: boolean
         {entry.tone && <span aria-hidden="true" className="agent-dot" />}
         {entry.text}
       </p>
-      {entry.card && <Card card={entry.card} />}
+      {entry.card && <FeedCard card={entry.card} />}
       {entry.actions?.map((action) => (
         <button className="agent-turn-link" key={action.label} onClick={() => act(action, shell)} type="button">{action.label}</button>
       ))}
     </Tag>
   )
-}
-
-function Card({ card }: { card: FeedCard }) {
-  if (card.type === 'stats') {
-    return (
-      <dl className="agent-stats">
-        {card.items.map((item) => (
-          <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>
-        ))}
-      </dl>
-    )
-  }
-  return <ul className="agent-chips">{card.items.map((item) => <li key={item}>{item}</li>)}</ul>
 }

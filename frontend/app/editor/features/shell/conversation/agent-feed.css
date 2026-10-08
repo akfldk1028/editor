@@ -68,21 +68,8 @@
   animation: shell-spin .8s linear infinite;
 }
 
-/* Law's numbers: stat tiles in a row under the line. */
-.agent-feed-stats {
-  grid-column: 2;
-  margin: 4px 0 2px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 6px;
-}
-.agent-feed-stats > div { padding: 6px 10px; background: var(--subtle); border-radius: var(--radius-s); }
-.agent-feed-stats dt { color: var(--muted); font-size: var(--fs-1); }
-.agent-feed-stats dd { margin: 0; color: var(--ink); font-size: var(--fs-3); font-weight: 600; font-variant-numeric: tabular-nums; }
-
-/* Missing evidence: chips under the verdict. */
-.agent-feed-chips { grid-column: 2; margin: 4px 0 2px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
-.agent-feed-chips li { padding: 2px 8px; color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); border-radius: 9px; font-size: var(--fs-1); font-weight: 600; }
+/* Cards (feed-card.css) sit in the text column of a row. */
+.agent-feed > ol > li > :is(.agent-stats, .agent-chips, .agent-checks, .agent-findings, .agent-links) { grid-column: 2; }
 
 /* The network's question: a reply-style bubble with its answers as buttons. */
 .agent-feed li[data-kind="prompt"] { padding-block: 6px 4px; }

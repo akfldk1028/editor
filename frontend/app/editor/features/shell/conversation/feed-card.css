@@ -1,0 +1,43 @@
+/*
+ * Cards under a feed line (FeedCard.tsx), one shape per kind of agent answer. Shell tokens,
+ * 11/12/14/16 scale, colours from the palette only (success / warning / muted).
+ */
+
+/* Law's numbers: value, and where it comes from. */
+.agent-stats { margin: 8px 0 4px; display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px; }
+.agent-stats > div { min-inline-size: 0; display: grid; gap: 2px; padding: 8px 12px; background: var(--subtle); border-radius: var(--radius-m); }
+.agent-stats dt { color: var(--muted); font-size: var(--fs-1); }
+.agent-stats dd { margin: 0; color: var(--ink); font-size: var(--fs-4); font-weight: 600; font-variant-numeric: tabular-nums; }
+.agent-stats small { color: var(--muted); font-size: var(--fs-1); line-height: 1.35; overflow-wrap: anywhere; }
+
+/* Codes as chips (missing evidence). */
+.agent-chips { margin: 8px 0 4px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.agent-chips li { padding: 3px 9px; color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); border-radius: 10px; font-size: var(--fs-1); font-weight: 600; }
+
+/* Site's eight facts: established / missing / unread, the siting-critical ones marked. */
+.agent-checks { margin: 8px 0 4px; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 12px; }
+.agent-checks li { min-inline-size: 0; display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: baseline; column-gap: 7px; font-size: var(--fs-2); }
+.agent-checks b { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.agent-checks li[data-critical="true"] b::after { content: " *"; color: var(--muted); font-weight: 500; }
+.agent-checks small { color: var(--muted); font-size: var(--fs-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-check-mark { display: inline-grid; place-items: center; inline-size: 16px; block-size: 16px; border-radius: 50%; }
+.agent-checks li[data-state="ok"] .agent-check-mark { color: var(--success); background: color-mix(in srgb, var(--success) 16%, transparent); }
+.agent-checks li[data-state="missing"] .agent-check-mark { color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, transparent); }
+.agent-checks li[data-state="missing"] b { color: var(--warning); }
+.agent-checks li[data-state="unread"] .agent-check-mark { color: var(--muted); background: var(--subtle); }
+.agent-checks li[data-state="unread"] b { color: var(--muted); font-weight: 500; }
+
+/* Revision's findings: what, who raised it, its category, the recommended action and its owner. */
+.agent-findings { margin: 8px 0 4px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.agent-findings li { display: grid; gap: 2px; padding: 8px 12px; background: var(--subtle); border-inline-start: 3px solid var(--warning); border-radius: var(--radius-s); }
+.agent-findings b { color: var(--ink); font-size: var(--fs-2); font-weight: 600; }
+.agent-findings small { color: var(--muted); font-size: var(--fs-1); }
+.agent-findings p { margin: 0; color: var(--ink); font-size: var(--fs-2); line-height: 1.5; }
+
+/* The ordinance sources and articles, with the law.go.kr link when Law gave one. */
+.agent-links { margin: 8px 0 4px; padding: 0; list-style: none; display: grid; gap: 3px; }
+.agent-links li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: var(--fs-2); }
+.agent-links a { display: inline-flex; align-items: center; gap: 3px; color: var(--accent); font-weight: 600; text-decoration: none; }
+.agent-links a:hover { text-decoration: underline; }
+.agent-links span { color: var(--ink); }
+.agent-links small { color: var(--muted); font-size: var(--fs-1); }

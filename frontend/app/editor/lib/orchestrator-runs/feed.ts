@@ -31,10 +31,17 @@ export interface FeedAction {
   /** Neither: the button only dismisses the prompt. */
 }
 
-/** Structured content under a line: Law's numbers as stat tiles, or missing evidence as chips. */
+/**
+ * Structured content under a line, shaped after what each agent returns: Law's numbers as stat
+ * tiles (with the article or ceiling as a hint), Site's eight facts as a checklist, Revision's
+ * findings, the ordinance sources as links, codes as chips.
+ */
 export type FeedCard =
-  | { type: 'stats'; items: { label: string; value: string }[] }
+  | { type: 'stats'; items: { label: string; value: string; hint?: string }[] }
   | { type: 'chips'; items: string[] }
+  | { type: 'checks'; items: { label: string; state: 'ok' | 'missing' | 'unread'; note?: string; critical?: boolean }[] }
+  | { type: 'findings'; items: { title: string; by: string; category: string; action: string; owners: string }[] }
+  | { type: 'links'; items: { label: string; href?: string; note?: string }[] }
 
 export interface FeedEntry {
   id: number
