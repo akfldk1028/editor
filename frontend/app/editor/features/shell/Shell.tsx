@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 
 import { ArtifactHost } from './artifact-host/ArtifactHost'
 import type { ShellApi } from './artifact-types'
+import { AgentFeed } from './conversation/AgentFeed'
 import { ConversationSlot } from './conversation/ConversationSlot'
 import { layout } from './layout/layoutModes'
 import { useElementInlineSize } from './layout/useElementInlineSize'
@@ -168,7 +169,10 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
           theme={workspace.preferences.theme}
           topActionsRef={controls.topActionsRef}
         >
-          <div className="shell-conversation" data-modal-background>{conversation.body}</div>
+          <div className="shell-conversation" data-modal-background>
+            <AgentFeed shell={shell} />
+            {conversation.body}
+          </div>
         </ConversationSlot>
 
         {artifactMounted && (

@@ -5,7 +5,7 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
   const { path } = await context.params;
   const route = path.join('/');
   const id = '[A-Za-z0-9_-]{1,200}';
-  if (!isPlatformDesignOperation('GET', route) && !new RegExp(`^(agents|status|projects|projects/${id}|projects/${id}/(runs|context|design/selection/mass)|runs/${id}(/request)?|scene-assets/[a-f0-9]{64}\\.glb)$`).test(route)) {
+  if (!isPlatformDesignOperation('GET', route) && !new RegExp(`^(agents|status|projects|projects/${id}|projects/${id}/(runs|runs/latest|context|design/selection/mass)|runs/${id}(/request|/results)?|scene-assets/[a-f0-9]{64}\\.glb)$`).test(route)) {
     return Response.json({ detail: 'Unknown platform operation' }, { status: 404 });
   }
   return backendRequest(request, `/api/v1/platform/${route}`);

@@ -41,3 +41,17 @@ test('cross-origin submission and unknown write paths never reach the backend', 
   expect((await post!(new Request('http://editor.test/api/v1/platform/agents', { method: 'POST' }), context('agents'))).status).toBe(404);
   expect(fetchSpy).not.toHaveBeenCalled();
 });
+
+test('run results and the newest run per parcel are read-only platform paths the proxy forwards', async () => {
+  process.env.EDITOR_BACKEND_URL = 'http://backend.test';
+  fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ status: 'blocked' }));
+  for (const path of ['runs/8c7f6fb7602f4202ba9537bb94d833b9/results', 'projects/p1/runs/latest']) {
+    const response = await route.GET(new Request(`http://editor.test/api/v1/platform/${path}?project_id=p1`), context(path));
+    expect(response.status).toBe(200);
+  }
+  expect(fetchSpy.mock.calls.map((call) => String(call[0]))).toEqual([
+    'http://backend.test/api/v1/platform/runs/8c7f6fb7602f4202ba9537bb94d833b9/results?project_id=p1',
+    'http://backend.test/api/v1/platform/projects/p1/runs/latest?project_id=p1',
+  ]);
+  expect((await route.GET(new Request('http://editor.test/api/v1/platform/runs/r1/other'), context('runs/r1/other'))).status).toBe(404);
+});

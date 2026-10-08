@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { listProjects, type ProjectBinding } from '../../../agent-dialogue/projects'
-import { getRun, getRunContext, type RunSummary, submitRun } from '../../../agent-dialogue/runs'
-import type { SavedSite } from '../lib/picks'
-import { defaultRunConditions, isValidDate, loadRunConditions, type RunConditions, saveRunConditions } from '../lib/run-conditions'
-import { describeFailure, idempotencyKey, isTerminal, type ProjectChoice, type RunFailure, resolveProject, siteRunRequest } from '../lib/site-run'
+import { getRunContext, listProjects, submitRun } from '@/lib/orchestrator-runs/api'
+import { defaultRunConditions, isValidDate, loadRunConditions, type RunConditions, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
+import { useRunPolling } from '@/lib/orchestrator-runs/poll'
+import { describeFailure, type ProjectChoice, resolveProject, type RunFailure } from '@/lib/orchestrator-runs/submit'
+import type { ProjectBinding, RunSummary } from '@/lib/orchestrator-runs/types'
+import { useRunFeed } from '@/lib/orchestrator-runs/useRunFeed'
 
-const POLL_MS = 3000
+import type { SavedSite } from '../lib/picks'
+import { idempotencyKey, siteRunRequest } from '../lib/site-run'
 
 export type RunPhase =
   | { kind: 'idle' }
@@ -21,14 +23,17 @@ export type Projects = { kind: 'loading' } | { kind: 'error'; text: string } | P
 /**
  * 검토 시작 for a saved site: pick the project binding and the 조건 (기준일, 용도), submit
  * `{goal: limits, pnu, parcels, assessment_date, building_type?}` through the editor door with a
- * fresh Idempotency-Key per attempt, then poll the run until it ends or the panel unmounts.
+ * fresh Idempotency-Key per attempt, then follow the run (shared poller) until it ends or the panel
+ * unmounts; every step reaches the conversation feed once.
  */
 export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
   const [projects, setProjects] = useState<Projects>({ kind: 'loading' })
   const [chosen, setChosen] = useState<ProjectBinding | null>(null)
   const [conditions, setConditions] = useState<RunConditions>(defaultRunConditions)
-  const [phase, setPhase] = useState<RunPhase>({ kind: 'idle' })
-  const attempts = useRef(0)
+  const [state, setState] = useState<Exclude<RunPhase, { kind: 'submitted' }> | { kind: 'submitted'; run: RunSummary }>({ kind: 'idle' })
+  // Attempts count from a per-mount nonce: after a reload the same selection must not reuse a key whose
+  // run already moved the source versions (the Orchestrator answers 409 to a replay with a changed body).
+  const attempts = useRef(Math.floor(Date.now() / 1000) % 1_000_000)
   const active = useRef<AbortController | null>(null)
   const ready = isValidDate(conditions.assessmentDate)
 
@@ -50,45 +55,32 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
     return () => controller.abort()
   }, [projectParam])
 
-  // Polling: one timer chain per submitted run; it stops at a terminal status or when the panel unmounts.
-  useEffect(() => {
-    if (phase.kind !== 'submitted' || isTerminal(phase.run.status) || !chosen) return
-    const controller = new AbortController()
-    const { run_id, trace_id } = phase.run
-    const timer = window.setTimeout(async () => {
-      try {
-        const run = await getRun(chosen.project_id, run_id, controller.signal)
-        // Only the submission answer carries the trace id; polled runs come from the Orchestrator without it.
-        if (!controller.signal.aborted) setPhase({ kind: 'submitted', run: { ...run, trace_id: run.trace_id ?? trace_id }, stale: false })
-      } catch {
-        // A missed poll keeps the last known status and tries again next tick.
-        if (!controller.signal.aborted) setPhase((current) => current.kind === 'submitted' ? { ...current, stale: true } : current)
-      }
-    }, POLL_MS)
-    return () => {
-      window.clearTimeout(timer)
-      controller.abort()
-    }
-  }, [phase, chosen])
+  const run = state.kind === 'submitted' ? state.run : null
+  const onRun = useCallback((next: RunSummary) => setState({ kind: 'submitted', run: next }), [])
+  const { stale } = useRunPolling(chosen?.project_id ?? null, run, onRun)
+  const first = site.parcels[0]!
+  // 법규 결과 보기 opens the law artifact under the binding this run went to, so it finds the same run.
+  useRunFeed(run, { projectId: chosen?.project_id ?? null, pnu: first.pnu, address: first.address || site.label, project: projectParam ?? chosen?.project_id })
 
   useEffect(() => () => active.current?.abort(), [])
 
   const start = useCallback(async () => {
-    if (!chosen || !ready || phase.kind === 'submitting') return
+    if (!chosen || !ready || state.kind === 'submitting') return
     active.current?.abort()
     const controller = new AbortController()
     active.current = controller
-    setPhase({ kind: 'submitting' })
+    setState({ kind: 'submitting' })
     saveRunConditions(conditions)
     const key = idempotencyKey(site, ++attempts.current)
     try {
       const context = await getRunContext(chosen.project_id, controller.signal)
-      const run = await submitRun(chosen.project_id, context, key, siteRunRequest(site, conditions), controller.signal)
-      if (!controller.signal.aborted) setPhase({ kind: 'submitted', run, stale: false })
+      const submitted = await submitRun(chosen.project_id, context, key, siteRunRequest(site, conditions), controller.signal)
+      if (!controller.signal.aborted) setState({ kind: 'submitted', run: submitted })
     } catch (error) {
-      if (!controller.signal.aborted) setPhase({ kind: 'failed', failure: describeFailure(error) })
+      if (!controller.signal.aborted) setState({ kind: 'failed', failure: describeFailure(error) })
     }
-  }, [chosen, conditions, phase.kind, ready, site])
+  }, [chosen, conditions, state.kind, ready, site])
 
+  const phase: RunPhase = state.kind === 'submitted' ? { kind: 'submitted', run: state.run, stale } : state
   return { projects, chosen, setChosen, conditions, setConditions, ready, phase, start }
 }

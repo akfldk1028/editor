@@ -2,6 +2,17 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 (feat: orchestrator review) shared `lib/orchestrator-runs/` (api, types, labels, conditions, submit, poll,
+  feed, feed-lines, useRunFeed, connection, ui/ConditionsRow) — the one platform-run door; `agent-dialogue/{runs,projects,
+  communications}.ts` re-export from it; site-map's site-run/run-conditions re-export the shared parts. Law artifact tab
+  `orchestrator` (오케스트레이터 검토: latest `limits` run per pnu, 대지→법규→검토 조정 timeline, Law vs 요약 numbers with
+  ≠ marks, 부족한 근거 with actions, 검토 시작; `shell.openArtifact('law', {tab})` lands on it). Shell: `AgentFeed` above the
+  conversation body renders `lib/orchestrator-runs/feed` (대지 선택 → /platform/status?refresh=1 connectivity line → run
+  receipt → one line per step state change → Law numbers → verdict + 법규 결과 보기). Site card run panel: 법규 결과 보기 after
+  a terminal run. Idempotency attempts start from a per-mount nonce (a reload replaying key -1 got 409 because the run had
+  moved the source versions). Known: shell params persist across artifacts (opening law with `project` changes the site
+  map's selection scope when you go back); dev CSS HMR drops a stylesheet after a CSS edit until a full reload.
+
 - 2026-10-08 `8aadbfd1` 검토 시작 sends `{goal:'limits', pnu, parcels[all], building_type?, assessment_date}` (conditions row:
   기준일 default today + 용도 from shared `lib/building-types.ts`, persisted in localStorage); contiguity notice only when
   the saved site is non-contiguous; `parcels_not_contiguous` surfaces from inside the run (runNotice), not as 409.

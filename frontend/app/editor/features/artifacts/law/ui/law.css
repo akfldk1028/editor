@@ -127,8 +127,72 @@ ol.law-list { list-style: decimal; }
 .law-conditions input:focus-visible { border-color: var(--accent); outline: none; }
 .law-conditions select { max-inline-size: 150px; min-block-size: 28px; }
 
+/* 오케스트레이터 검토 tab: run head, step timeline, Law vs editor table, missing evidence. */
+.law-orch { display: grid; gap: 12px; max-inline-size: 960px; }
+.law-orch-project { display: grid; gap: 4px; color: var(--muted); font-size: var(--fs-1); }
+.law-orch-project select { min-block-size: 28px; color: var(--ink); background: var(--subtle); border: 1px solid var(--border-soft); border-radius: var(--radius-s); font-size: var(--fs-2); }
+.law-orch-start { display: grid; gap: 8px; inline-size: 100%; max-inline-size: 420px; text-align: start; }
+.law-orch-start .artifact-primary { justify-self: start; }
+.law-orch-head h2 .loading-mark, .law-orch-head h2 svg { flex: 0 0 auto; color: var(--success); }
+.law-orch-ids { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.law-orch-ids code { font-size: var(--fs-1); }
+.law-orch-ids a { display: inline-flex; align-items: center; gap: 3px; color: var(--accent); }
+.law-orch-warn { color: var(--warning); }
+.law-orch .law-kv > div { display: grid; grid-template-columns: 84px minmax(0, 1fr); }
+.law-orch .law-kv dd { white-space: normal; overflow-wrap: anywhere; }
+.law-link { min-block-size: 24px; display: inline-flex; align-items: center; gap: 3px; margin-inline-start: 6px; padding: 0 2px; border: 0; background: transparent; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+
+.law-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.law-steps li {
+  min-inline-size: 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border-inline-start: 3px solid var(--border);
+  background: var(--subtle);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  font-size: var(--fs-2);
+}
+.law-steps li[data-state="succeeded"] { border-inline-start-color: var(--success); }
+.law-steps li[data-state="needs_evidence"], .law-steps li[data-state="partial"] { border-inline-start-color: var(--warning); }
+.law-steps li[data-state="failed"] { border-inline-start-color: var(--warning); }
+.law-steps li[data-state="running"] { border-inline-start-color: var(--accent); }
+.law-steps b { font-weight: 600; }
+.law-steps span { color: var(--muted); }
+.law-steps em { font-style: normal; font-weight: 600; white-space: nowrap; }
+.law-steps li[data-state="succeeded"] em { color: var(--success); }
+.law-steps li[data-state="needs_evidence"] em, .law-steps li[data-state="failed"] em, .law-steps li[data-state="partial"] em { color: var(--warning); }
+.law-steps small { grid-column: 2 / -1; color: var(--muted); font-size: var(--fs-1); line-height: var(--lh); overflow-wrap: anywhere; }
+
+.law-compare th[scope="col"] { inline-size: auto; color: var(--muted); font-size: var(--fs-1); font-weight: 600; }
+.law-compare th[scope="row"] { inline-size: 28%; }
+.law-compare td { font-variant-numeric: tabular-nums; }
+.law-compare tr[data-differs="true"] td:last-child b { color: var(--warning); }
+.law-diff { margin-inline-start: 6px; padding: 0 5px; color: var(--warning); background: color-mix(in srgb, var(--warning) 14%, transparent); border-radius: 6px; font-size: var(--fs-1); font-weight: 700; }
+.law-same { margin-inline-start: 6px; color: var(--success); font-size: var(--fs-1); font-weight: 700; }
+.law-sources summary { color: var(--muted); font-size: var(--fs-2); cursor: pointer; }
+.law-sources .law-list { margin-block-start: 6px; }
+
+.law-actions { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; counter-reset: action; }
+.law-actions > li { min-inline-size: 0; display: grid; gap: 2px; padding: 8px 10px; background: var(--subtle); border-radius: var(--radius-s); font-size: var(--fs-2); }
+.law-actions b { font-weight: 600; overflow-wrap: anywhere; }
+.law-actions small { color: var(--muted); font-size: var(--fs-1); }
+.law-actions p { margin: 0; line-height: var(--lh); overflow-wrap: anywhere; }
+.law-actions .law-chips { margin-block-start: 4px; }
+.law-actions .law-chips li { font-weight: 500; }
+
 @container law-artifact (max-width: 480px) {
   .law-artifact { padding: 12px; }
+  .law-steps li { grid-template-columns: minmax(0, 1fr) auto; }
+  .law-steps b { grid-area: 1 / 1; }
+  .law-steps em { grid-area: 1 / 2; }
+  .law-steps span, .law-steps small { grid-column: 1 / -1; }
+  .law-compare thead { display: none; }
+  .law-compare td::before { display: block; color: var(--muted); font-size: var(--fs-1); }
+  .law-compare td:nth-child(2)::before { content: "오케스트레이터 (Law)"; }
+  .law-compare td:nth-child(3)::before { content: "에디터 분석"; }
   .law-stats { grid-template-columns: minmax(0, 1fr); }
   .law-table, .law-table tbody, .law-table tr, .law-table th, .law-table td { display: block; }
   .law-table th { inline-size: auto; padding-block-end: 0; }

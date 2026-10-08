@@ -2,7 +2,7 @@
 
 import { MotionConfig } from 'framer-motion'
 import { Map as MapIcon, RotateCcw, Scale } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import LandAnalysisPanel from '../../../land-map/components/LandAnalysisPanel'
 import { LawArticlesList } from '../../../land-map/components/LawArticlesList'
@@ -11,9 +11,11 @@ import { ArtifactChrome } from '../../../shell/artifact-host/ArtifactChrome'
 import type { ArtifactProps, ShellApi } from '../../../shell/artifact-types'
 import type { LawAnalysis } from '../api/analyze'
 import { type Conditions, defaultConditions, describeConditions } from '../lib/conditions'
-import { countArticles, countRegulations } from '../lib/summary'
+import { countArticles, countRegulations, summarize } from '../lib/summary'
+import { lawArtifact } from '../manifest'
 import { useLawAnalysis } from '../model/useLawAnalysis'
 import { ConditionsMenu } from './ConditionsMenu'
+import { OrchestratorTab } from './OrchestratorTab'
 import { SetbacksTab } from './SetbacksTab'
 import { SummaryTab } from './SummaryTab'
 import './law.css'
@@ -25,6 +27,13 @@ export default function LawArtifact({ tab = 'summary', params, shell }: Artifact
   const analysis = phase.kind === 'ready' ? phase.analysis : null
   const title = target.kind === 'site' ? target.address || `PNU ${target.pnu}` : '법규·한계'
   const subtitle = target.kind === 'site' ? describeConditions(conditions) : null
+  const orchestrator = tab === 'orchestrator'
+
+  // `shell.openArtifact('law', {tab})` lands on that tab; each open (new params object) applies it once.
+  useEffect(() => {
+    const wanted = params.tab
+    if (wanted && lawArtifact.tabs?.some((candidate) => candidate.id === wanted)) shell.setTab(wanted)
+  }, [params, shell])
 
   return (
     <>
@@ -45,11 +54,15 @@ export default function LawArtifact({ tab = 'summary', params, shell }: Artifact
         {target.kind === 'site' && (
           <>
             {target.notice && <p className="law-note" data-kind="notice" role="status">{target.notice}</p>}
-            {phase.kind === 'loading' && (
+            {phase.kind === 'loading' && !orchestrator && (
               <p className="law-note"><span aria-hidden="true" className="loading-mark" /> 법규를 분석하는 중 — 조례·조문 조회에 수십 초가 걸릴 수 있어요</p>
             )}
-            {phase.kind === 'error' && <p className="law-note" data-kind="error" role="alert">{phase.text}</p>}
-            {analysis && <Body address={target.address} analysis={analysis} tab={tab} />}
+            {phase.kind === 'error' && !orchestrator && <p className="law-note" data-kind="error" role="alert">{phase.text}</p>}
+            {orchestrator ? (
+              <OrchestratorTab address={target.address} editor={analysis ? summarize(analysis) : null} key={target.pnu} pnu={target.pnu} project={params.project} shell={shell} />
+            ) : (
+              analysis && <Body address={target.address} analysis={analysis} tab={tab} />
+            )}
           </>
         )}
       </div>

@@ -1,0 +1,69 @@
+import { expect, test } from 'bun:test'
+
+import { actionLabel, agentLabel, evidenceLabel, isTerminal, shortEvidence, stateLabel, statusLabel, toolLabel, traceLabel, verdictLabel } from './labels'
+
+test('statuses: queued/running/queued_input stay open, the rest end, labels are Korean', () => {
+  expect(isTerminal('queued')).toBe(false)
+  expect(isTerminal('running')).toBe(false)
+  expect(isTerminal('queued_input')).toBe(false)
+  expect(isTerminal('completed')).toBe(true)
+  expect(isTerminal('failed')).toBe(true)
+  expect(isTerminal('blocked')).toBe(true)
+  expect(statusLabel('queued')).toBe('대기')
+  expect(statusLabel('running')).toBe('진행 중')
+  expect(statusLabel('completed')).toBe('완료')
+  expect(statusLabel('blocked')).toBe('보류 — 근거 보충 필요')
+  expect(statusLabel('failed')).toBe('실패')
+  expect(statusLabel('odd')).toBe('odd')
+  expect(traceLabel('4bf92f3577b34da6a3ce929d0e0e4736')).toBe('4bf92f35')
+})
+
+test('agents, tools and step states read in Korean; unknown names stay as they are', () => {
+  expect(agentLabel('site_context')).toBe('대지')
+  expect(agentLabel('law')).toBe('법규')
+  expect(agentLabel('revision')).toBe('검토 조정')
+  expect(agentLabel('masterplan')).toBe('배치')
+  expect(agentLabel('user')).toBe('사용자')
+  expect(agentLabel('new_agent')).toBe('new_agent')
+  expect(agentLabel(null)).toBe('—')
+  expect(toolLabel('site_resolve')).toBe('대지 사실 확인')
+  expect(toolLabel('law_parcel_limits')).toBe('법규 한계')
+  expect(toolLabel('law_health')).toBe('법규 상태 확인')
+  expect(toolLabel('other_tool')).toBe('other_tool')
+  expect(stateLabel('succeeded')).toBe('성공')
+  expect(stateLabel('needs_evidence')).toBe('근거 부족')
+  expect(stateLabel('partial')).toBe('근거 부족')
+  expect(stateLabel('failed')).toBe('실패')
+  expect(stateLabel('running')).toBe('진행 중')
+  expect(stateLabel(undefined)).toBe('—')
+})
+
+test('missing-evidence codes and recommended actions read in Korean', () => {
+  expect(evidenceLabel('SITE-ACCESS')).toBe('대지 접근(출입구·접도)')
+  expect(evidenceLabel('assessment_date_required')).toBe('기준일 지정')
+  expect(evidenceLabel('unresolved_zoning:자연녹지지역')).toBe('미인식 용도지역: 자연녹지지역')
+  expect(evidenceLabel('law.district_review.0333: Supply an explicit valid assessment date; Law cannot choose'))
+    .toBe('기준일을 명시해 주세요 — 법규 에이전트는 날짜·법령 판본을 대신 고르지 않아요')
+  expect(evidenceLabel('something_new')).toBe('something_new')
+  expect(evidenceLabel('law.district_review.0333cbe75e022ebef2be')).toBe('지구단위계획 검토 (법규)')
+  expect(toolLabel('revision_triage')).toBe('재검토 판정')
+  expect(actionLabel('re-run: site_context')).toBe('대지 에이전트 재실행')
+  expect(actionLabel('Supply an explicit valid assessment date; Law cannot choose a date or legal edition on the user behalf.'))
+    .toBe('기준일을 명시해 주세요 — 법규 에이전트는 날짜·법령 판본을 대신 고르지 않아요')
+  expect(actionLabel('do something else')).toBe('do something else')
+  expect(actionLabel(null)).toBe('—')
+})
+
+test('the short list groups site facts and leads with the date', () => {
+  expect(shortEvidence(['SITE-ACCESS', 'SITE-HAZARDS', 'SITE-UTILITIES', 'assessment_date_required', 'district_applicability_unverified', 'law.x: sentence']))
+    .toBe('기준일, 대지 접근·재해·설비')
+  expect(shortEvidence(['SITE-ACCESS'])).toBe('대지 접근')
+  expect(shortEvidence([])).toBe('')
+})
+
+test('the verdict is 보류 for blocked runs and user-input codes', () => {
+  expect(verdictLabel('blocked', null)).toBe('보류 — 근거 보충 필요')
+  expect(verdictLabel('completed', 'needs_user_input')).toBe('보류 — 근거 보충 필요')
+  expect(verdictLabel('completed', null)).toBe('완료')
+  expect(verdictLabel('failed', null)).toBe('실패')
+})

@@ -4,6 +4,8 @@ import { Layers, Minus, Plus, Search } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
+import { announceSiteSelected } from '@/lib/orchestrator-runs/connection'
+
 import { locateParcel } from '../../../land-map/lib/land-api-client'
 import type { ArtifactProps } from '../../../shell/artifact-types'
 import { latestSite } from '../api/selection'
@@ -55,7 +57,11 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   const [view, setView] = useState<View>(() => initialView3d(params))
   const [opened3d, setOpened3d] = useState(view === '3d')
   const { setTitle } = shell
-  const onSaved = useCallback((saved: SavedSite) => setSite(siteFromSelection({ pnu: saved.parcels[0]!.pnu, address: saved.label })), [])
+  // A saved site reaches the conversation feed (which site, is the Orchestrator reachable) and becomes the map's site.
+  const onSaved = useCallback((saved: SavedSite) => {
+    setSite(siteFromSelection({ pnu: saved.parcels[0]!.pnu, address: saved.label }))
+    void announceSiteSelected(saved)
+  }, [])
   const picker = usePicker(engineRef, onSaved, scope)
   const { showSearched } = picker
   // The engine is built once per mount; it reaches the latest handlers through this ref, so

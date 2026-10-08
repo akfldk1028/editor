@@ -1,0 +1,18 @@
+/* 조건 row (기준일 · 용도) of a run; shell tokens, two equal columns, stacks under 260px of its container. */
+.run-conditions { container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.run-conditions label { min-inline-size: 0; display: grid; gap: 4px; color: var(--muted); font-size: var(--fs-1); }
+.run-conditions input,
+.run-conditions select {
+  min-inline-size: 0;
+  min-block-size: 28px;
+  padding-inline: 6px;
+  color: var(--ink);
+  background: var(--subtle);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-s);
+  font-size: var(--fs-2);
+}
+.run-conditions input:focus-visible, .run-conditions select:focus-visible { border-color: var(--accent); outline: none; }
+@container (max-width: 260px) {
+  .run-conditions { grid-template-columns: minmax(0, 1fr); }
+}
