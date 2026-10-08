@@ -241,3 +241,6 @@ be told to the Orchestrator session.
   nearest answered ancestor instead of flat 0 (that cut 60-100 m cliffs). Measured on 고산 /world (drawn ground under every
   corner): 615 masses, none on flat 0 after ~60 s, 1 with a 3.5 m gap (an apartment over a 24 m terrace edge). Backend 18449 (gone, no log) and the hung dev server 3003 (`write EPIPE`) were restarted
   with the documented commands. Changed by the Orchestrator session.
+- 2026-10-08 review fix: the terrain tile queue (features/world/lib/terrain.ts) never lets the camera-focus lookup throw
+  (a destroyed viewer stopped waiting tiles); use-world-3d returns null focus for a destroyed viewer. Changed by the
+  Orchestrator session (editor 92faac61).
