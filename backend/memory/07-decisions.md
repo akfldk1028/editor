@@ -3,6 +3,11 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-08 `1c5e2823` agent-host supervisor `infra/host/` (policy/probe/processes/state/supervise/status/cli):
+  detached daemon, adopts live listeners (no duplicate ports), 3 failures -> backoff 5/10/20/60 s restart, logs
+  `logs/host/<id>.*`, pids `runtime/host/`. `bun run host:start|stop|status`. backend/dwg/pascalMcp are now
+  `lifecycle: persistent`; product.mjs reuses host-run services. Measured: backend kill -> health 200 in 13.8 s.
+  Daemon pid 11520 guards `backend` only (dwg not yet, RAM). Agents start only with `--with-agents` (their owners').
 - 2026-10-08 `a978fce0` run door also accepts a site run: `schemas/site_run.py` — exactly {goal, pnu[, building_type]},
   goal in {limits}, pnu 19 digits (regex restated there: schemas sit below modules in the layer contract, so
   modules.land.pnu cannot be imported). RunService/adapter unchanged; Orchestrator REQUEST_KEYS has no `parcels`.
