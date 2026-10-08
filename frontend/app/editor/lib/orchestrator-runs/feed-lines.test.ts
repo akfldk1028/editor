@@ -94,10 +94,12 @@ test('polling is fast for the first 20 s of a run, then every 3 s', () => {
 })
 
 test("a typed question: the user's bubble and the Orchestrator asking the Law Agent; the answer is the Law Agent's turn with links", () => {
-  expect(askLines('자연녹지지역 건폐율')).toEqual([{ kind: 'user', text: '자연녹지지역 건폐율' }, { kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'law' }, text: 'Law Agent에게 묻는 중' }])
+  expect(askLines('자연녹지지역 건폐율')).toEqual([{ kind: 'user', text: '자연녹지지역 건폐율' }, { kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'user', to: 'orchestrator' }, text: 'Orchestrator Agent가 담당을 고르는 중' }])
+  expect(askLines('자연녹지지역 건폐율', 'law')[1]).toEqual({ kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'law' }, text: 'Law Agent에게 묻는 중' })
   const evidence = { assessment_date: '2026-10-08', currency_status: 'needs_evidence', coverage_status: 'needs_evidence', reason: 'r' }
+  const skill = (agent: string, skill: string) => ({ kind: 'skill' as const, agent, skill, goal: null, confidence: 0.7, reason: 'r', choices: [] })
   const search: AskAnswer = {
-    question: '자연녹지지역 건폐율', tool: 'law_search', agent: 'law', trace_id: 't', version: 'v',
+    question: '자연녹지지역 건폐율', tool: 'law_search', agent: 'law', trace_id: 't', version: 'v', route: skill('law', 'law_search'), handoff: null,
     answer: { kind: 'search', total: 5, degraded: false, legal_evidence: evidence, items: [
       { id: 'a', law: '국토의 계획 및 이용에 관한 법률', kind: '시행령', article: '제84조', text: '제1항에도 불구하고 …' },
       { id: 'b', law: '건축법', kind: '법률', article: '제55조', text: null },
@@ -114,7 +116,7 @@ test("a typed question: the user's bubble and the Orchestrator asking the Law Ag
   expect(answerLine({ ...search, answer: { ...search.answer, items: [], total: 0 } }, null)).toEqual({ kind: 'progress', agent: 'law', tone: 'warn', text: "'자연녹지지역 건폐율' 관련 조문을 찾지 못했어요", actions: [] })
 
   const ordinance: AskAnswer = {
-    question: '의정부시 도시계획 조례 제42조', tool: 'law_ordinance', agent: 'law', trace_id: 't', version: null,
+    question: '의정부시 도시계획 조례 제42조', tool: 'law_ordinance', agent: 'law', trace_id: 't', version: null, route: skill('law', 'law_ordinance'), handoff: null,
     answer: { kind: 'ordinance', legal_evidence: evidence,
       ordinance: { name: '의정부시 도시계획 조례', ordinance_id: '2149163', edition_id: '2072835', effective_date: '2025-09-25', url: 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835' },
       matches: [{ article: '제42조', title: '용도지역안에서의 건폐율', text: '제42조(용도지역안에서의 건폐율) …' }] },
@@ -125,6 +127,17 @@ test("a typed question: the user's bubble and the Orchestrator asking the Law Ag
     { label: '의정부시 도시계획 조례 — law.go.kr', href: 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq=2072835', note: '판본 2072835 · 시행 2025-09-25' },
     { label: '제42조 용도지역안에서의 건폐율', note: '제42조(용도지역안에서의 건폐율) …' },
   ] })
+  // A goal handoff: open → offer to start it; closed → say so. Unsure → the roles as choices that re-ask with that role.
+  const handoff = (available: boolean): AskAnswer => ({ question: '매스 쌓아 봐', agent: 'mass', tool: null, trace_id: null, version: null, answer: null,
+    route: { kind: 'goal', agent: 'mass', skill: null, goal: 'mass', confidence: 0.7, reason: 'r', choices: [] },
+    handoff: { goal: 'mass', label: '매스 생성', owners: ['program', 'masterplan', 'mass', 'revision'], available } })
+  expect(answerLine(handoff(true), null)).toEqual({ kind: 'prompt', agent: 'orchestrator', text: '이건 Mass Agent의 일이에요 — 매스 생성을(를) 시작할까요?',
+    actions: [{ label: '매스 생성 시작', command: { kind: 'start-review', goal: 'mass' } }, { label: '나중에' }] })
+  expect(answerLine(handoff(false), null).text).toBe('이건 Mass Agent의 일이에요 (매스 생성: Program Agent → MasterPlan Agent → Mass Agent → Revision Agent) — 이 목표는 아직 열리지 않았어요')
+  const unsure: AskAnswer = { question: '뭐 할 수 있어?', agent: null, tool: null, trace_id: null, version: null, answer: null, handoff: null,
+    route: { kind: 'ask', agent: null, skill: null, goal: null, confidence: 0.3, reason: '어느 에이전트의 일인지 분명하지 않아요', choices: [{ agent: 'law', label: '법령·조례 검색 (Law Agent)' }, { agent: 'mass', label: '매스 생성 (Mass Agent)' }] } }
+  expect(answerLine(unsure, null)).toEqual({ kind: 'prompt', agent: 'orchestrator', text: '어느 에이전트의 일인지 분명하지 않아요. 누구에게 물을까요?',
+    actions: [{ label: '법령·조례 검색 (Law Agent)', command: { kind: 'ask', text: '뭐 할 수 있어?', role: 'law' } }, { label: '매스 생성 (Mass Agent)', command: { kind: 'ask', text: '뭐 할 수 있어?', role: 'mass' } }, { label: '나중에' }] })
   expect(askFailedLine(503, null)).toEqual({ kind: 'error', agent: 'orchestrator', text: 'Law Agent에 연결할 수 없어요 — 켜진 뒤 다시 물어보세요', actions: [{ label: '시스템 보기', artifact: 'system' }] })
   expect(askFailedLine(502, 'law_agent_error: law_search: TASK_STATE_FAILED')).toEqual({ kind: 'error', agent: 'orchestrator', text: 'Law Agent가 답하지 못했어요 — law_agent_error: law_search: TASK_STATE_FAILED' })
 })

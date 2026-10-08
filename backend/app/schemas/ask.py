@@ -44,6 +44,8 @@ class AskCreate(BaseModel):
     text: str = Field(min_length=1, max_length=500)
     pnu: str | None = None
     assessment_date: str | None = None
+    # The agent the user picked when the router asked (a choice button); the router then skips its guess.
+    role: str | None = Field(default=None, min_length=1, max_length=40, pattern=r'^[a-z_]+$')
 
     @field_validator('text')
     @classmethod

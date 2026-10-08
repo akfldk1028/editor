@@ -1,11 +1,12 @@
 """A question typed in the conversation, answered by the Law Agent.
 
-`routing.route` picks the agent and skill for the text (one rule table; `plan` keeps the old name);
+`routing.route` picks the agent and skill — or a goal, or a question — for the text (role rule tables);
 `normalize` turns the tool's own JSON into one UI shape without restating any legal value; `ask_law`
 records the hop as a span (`invoke_agent law`, OTel GenAI names) so the conversation can show the trace.
 
 Answer contract (every key present):
-  question, tool, agent: 'law', trace_id, version, route: {agent, skill, confidence, reason},
+  question, route: {kind, agent, skill, goal, confidence, reason, choices[]}, agent, tool, trace_id, version,
+  handoff: {goal, label, owners[], available} | null,
   answer: {kind: 'search', items: [{id, law, kind, article, text}], total, degraded, legal_evidence}
         | {kind: 'ordinance', ordinance: {name, ordinance_id, edition_id, effective_date, url},
            matches: [{article, title, text}], legal_evidence}
@@ -16,17 +17,12 @@ import re
 
 from backend.app.adapters import law_agent
 from backend.app.core.tracing import Span, continue_or_start
+from backend.app.modules.platform.goals import goal
 from backend.app.modules.platform.routing import route
 from backend.app.modules.platform.run_results import law_from_response
 
 EXCERPT = 400
 LAW_GO_KR = 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq='
-
-
-def plan(text: str, assessment_date: str | None = None) -> tuple[str, dict]:
-    """Which Law Agent tool answers this text, with its arguments (the routing table decides)."""
-    chosen = route(text, assessment_date=assessment_date)
-    return chosen.skill, chosen.args
 
 
 def _str(value):
@@ -126,9 +122,19 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
 
 
 async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None, recorder, traceparent: str | None = None,
-                  agent=law_agent.ask) -> dict:
-    """One question → one Law Agent tool call → the answer; the hop is one recorded span."""
-    chosen = route(question, assessment_date=assessment_date)
+                  role: str | None = None, agent=law_agent.ask) -> dict:
+    """One question → one route: a Law skill called now (one recorded span), a goal handed off to the
+    catalog (no agent call; the conversation offers to start it), or a question back to the user with the
+    roles as choices. Every answer carries the same keys; `route.kind` says which part is filled."""
+    chosen = route(question, assessment_date=assessment_date, role=role)
+    base = {'question': question, 'route': chosen.to_dict(), 'agent': chosen.agent, 'tool': chosen.skill, 'trace_id': None,
+            'version': None, 'answer': None, 'handoff': None}
+    if chosen.kind == 'ask':
+        return base
+    if chosen.kind == 'goal':
+        catalog = goal(chosen.goal) or {}
+        return {**base, 'handoff': {'goal': chosen.goal, 'label': catalog.get('label') or chosen.goal,
+                                    'owners': catalog.get('owners') or [], 'available': catalog.get('available') is True}}
     tool, args = chosen.skill, chosen.args
     span = Span.start(recorder, continue_or_start(traceparent), agent=chosen.agent, conversation_id=f'editor:ask:{pnu or "-"}')
     trace = {'caller': 'editor', 'trace_id': span.context.trace_id, 'span_id': span.context.span_id, 'hop': 1, 'tool': tool}
@@ -138,5 +144,4 @@ async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None
         span.end('error', error_type=type(exc).__name__)
         raise
     span.end('ok')
-    return {'question': question, 'tool': tool, 'agent': chosen.agent, 'trace_id': span.context.trace_id, 'version': raw.get('version'),
-            'route': chosen.to_dict(), 'answer': normalize(tool, raw.get('payload') or {})}
+    return {**base, 'trace_id': span.context.trace_id, 'version': raw.get('version'), 'answer': normalize(tool, raw.get('payload') or {})}

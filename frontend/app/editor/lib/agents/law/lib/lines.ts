@@ -3,8 +3,8 @@
  * its land analysis, and its answers to typed questions (statute passages, ordinance articles). Pure.
  */
 import type { FeedAction, FeedCard, FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
-import { evidenceLabel, frontageLabel, heightLabel, limitationLabel } from '@/lib/orchestrator-runs/labels'
-import type { AskAnswer, LandAnalysisAnswer, RunLaw, RunResults } from '@/lib/orchestrator-runs/types'
+import { agentLabel, evidenceLabel, frontageLabel, heightLabel, limitationLabel } from '@/lib/orchestrator-runs/labels'
+import type { AskAnswer, LandAnalysisAnswer, LawAnswerBody, RunLaw, RunResults } from '@/lib/orchestrator-runs/types'
 import { excerpt, fmt, isoDate } from '@/lib/orchestrator-runs/format'
 import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
 
@@ -83,16 +83,51 @@ export function lawBasisLine(results: RunResults, target: LawTarget): FeedInput 
   return null
 }
 
-/** The moment a question is sent: the user's bubble and the request drawn (Orchestrator Agent ⟶ Law Agent). */
-export function askLines(text: string): FeedInput[] {
+/**
+ * The moment a question is sent: the user's bubble and the request drawn — to the role the user
+ * picked, else to the Orchestrator Agent, which decides whose question it is.
+ */
+export function askLines(text: string, role: string | null = null): FeedInput[] {
+  const to = role ?? ORCHESTRATOR
   return [
     { kind: 'user', text },
-    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: ORCHESTRATOR, to: LAW }, text: 'Law Agent에게 묻는 중' },
+    { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: role ? ORCHESTRATOR : 'user', to },
+      text: role ? `${agentLabel(role)}에게 묻는 중` : 'Orchestrator Agent가 담당을 고르는 중' },
   ]
 }
 
+/**
+ * A question that is another agent's business: the Orchestrator says whose and, when the catalog
+ * goal is open, offers to start it; when it is not, says so (fail closed, no guess).
+ */
+export function handoffLine(answer: AskAnswer): FeedInput {
+  const { route, handoff } = answer
+  const who = agentLabel(route.agent ?? ORCHESTRATOR)
+  if (!handoff) return { kind: 'error', agent: ORCHESTRATOR, text: `${who}의 일인데 아직 넘길 목표가 없어요` }
+  if (handoff.available) {
+    return {
+      kind: 'prompt',
+      agent: ORCHESTRATOR,
+      text: `이건 ${who}의 일이에요 — ${handoff.label}을(를) 시작할까요?`,
+      actions: [{ label: `${handoff.label} 시작`, command: { kind: 'start-review', goal: handoff.goal } }, { label: '나중에' }],
+    }
+  }
+  const owners = handoff.owners.map(agentLabel).join(' → ')
+  return { kind: 'progress', agent: ORCHESTRATOR, tone: 'warn', text: `이건 ${who}의 일이에요 (${handoff.label}${owners ? `: ${owners}` : ''}) — 이 목표는 아직 열리지 않았어요` }
+}
+
+/** The router could not tell whose question it is: the Orchestrator asks, the roles are the answers. */
+export function askRolePrompt(answer: AskAnswer): FeedInput {
+  return {
+    kind: 'prompt',
+    agent: ORCHESTRATOR,
+    text: `${answer.route.reason}. 누구에게 물을까요?`,
+    actions: [...answer.route.choices.map((choice) => ({ label: choice.label, command: { kind: 'ask' as const, text: answer.question, role: choice.agent } })), { label: '나중에' }],
+  }
+}
+
 /** Legal-evidence status words of the Law Agent's search/ordinance answers. */
-function evidenceNote(evidence: AskAnswer['answer']['legal_evidence']): string | null {
+function evidenceNote(evidence: LawAnswerBody['legal_evidence']): string | null {
   if (!evidence) return null
   const parts = [
     evidence.assessment_date ? `기준일 ${evidence.assessment_date}` : null,
@@ -106,6 +141,8 @@ function evidenceNote(evidence: AskAnswer['answer']['legal_evidence']): string |
  * (`law_ordinance`) as link cards, with 관련 법규 보기 when the conversation has a site.
  */
 export function answerLine(answer: AskAnswer, target: LawTarget | null): FeedInput {
+  if (answer.route.kind === 'ask') return askRolePrompt(answer)
+  if (answer.route.kind === 'goal' || !answer.answer) return handoffLine(answer)
   const actions: FeedAction[] = target ? [{ label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }] : []
   const note = evidenceNote(answer.answer.legal_evidence)
   if (answer.answer.kind === 'ordinance') {

@@ -9,8 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.app.adapters import law_agent
-from backend.app.modules.platform.ask import analyze_land, ask_law, normalize, plan
-from backend.app.modules.platform.routing import RULES, route
+from backend.app.modules.platform.ask import analyze_land, ask_law, normalize
 from backend.app.modules.platform.routers.ask import create_ask_router
 from backend.app.schemas.ask import AskCreate
 
@@ -30,21 +29,6 @@ ORDINANCE = {'ordinance': {'name': '의정부시 도시계획 조례', 'id': '21
              'matches': [{'article': '제42조', 'title': '용도지역안에서의 건폐율', 'content': '제42조(용도지역안에서의 건폐율) ' + '16. 자연녹지지역 : 20퍼센트 이하' * 30}],
              'source': 'law.go.kr lawService.do target=ordin MST=2072835',
              'legal_evidence': {'assessment_date': '2026-10-08', 'currency_status': 'needs_evidence', 'coverage_status': 'needs_evidence', 'reason': 'r'}}
-
-
-def test_plan_routes_an_ordinance_article_to_law_ordinance_and_everything_else_to_law_search():
-    assert plan('의정부시 도시계획 조례 제42조', '2026-10-08') == ('law_ordinance', {'name': '의정부시 도시계획 조례', 'article': '제42조', 'limit': 3, 'assessment_date': '2026-10-08'})
-    assert plan('서울특별시 도시계획 조례 45조의3 보여줘') == ('law_ordinance', {'name': '서울특별시 도시계획 조례', 'article': '제45조의3', 'limit': 3})
-    assert plan(' 자연녹지지역 건폐율 ') == ('law_search', {'query': '자연녹지지역 건폐율', 'limit': 8})
-    assert plan('조례가 뭐야')[0] == 'law_search'
-    assert plan('국토의 계획 및 이용에 관한 법률(시행령)::제6장::제84조::8') == ('law_article', {'full_id': '국토의 계획 및 이용에 관한 법률(시행령)::제6장::제84조::8'})
-
-
-def test_route_explains_itself_and_ends_with_a_default():
-    chosen = route('의정부시 도시계획 조례 제42조')
-    assert (chosen.agent, chosen.skill, chosen.confidence) == ('law', 'law_ordinance', 0.95) and '조례' in chosen.reason
-    assert route('아무 말').to_dict() == {'agent': 'law', 'skill': 'law_search', 'confidence': 0.6, 'reason': '법령 본문 검색 (기본)'}
-    assert RULES[-1].build('x', {}) is not None
 
 
 def test_normalize_keeps_the_tools_values_and_shapes_them_for_the_ui():
@@ -123,9 +107,10 @@ def test_ask_law_records_one_law_span_and_answers_in_the_contract_shape():
                          traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01', agent=agent))
     assert calls[0][0] == 'law_search' and calls[0][1]['query'] == '자연녹지지역 건폐율'
     assert calls[0][2]['caller'] == 'editor' and calls[0][2]['trace_id'] == '4bf92f3577b34da6a3ce929d0e0e4736'
-    assert set(answer) == {'question', 'tool', 'agent', 'trace_id', 'version', 'route', 'answer'}
+    assert set(answer) == {'question', 'route', 'agent', 'tool', 'trace_id', 'version', 'answer', 'handoff'}
+    assert answer['handoff'] is None
     assert answer['agent'] == 'law' and answer['trace_id'] == '4bf92f3577b34da6a3ce929d0e0e4736' and answer['answer']['kind'] == 'search'
-    assert answer['route'] == {'agent': 'law', 'skill': 'law_search', 'confidence': 0.6, 'reason': '법령 본문 검색 (기본)'}
+    assert answer['route'] == {'kind': 'skill', 'agent': 'law', 'skill': 'law_search', 'goal': None, 'confidence': 0.7, 'reason': '법령·조례 검색 (Law Agent)의 말이 2개 보여요', 'choices': []}
     row = recorder.rows[0]
     assert (row['name'], row['gen_ai.agent.name'], row['gen_ai.conversation.id'], row['status']) == ('invoke_agent law', 'law', 'editor:ask:4115011300106830000', 'ok')
 
@@ -157,8 +142,9 @@ def test_route_maps_an_unreachable_agent_to_503_and_a_refusal_to_502():
     async def refused(tool, args, *, trace=None):
         raise law_agent.LawAgentError('law_search: TASK_STATE_FAILED')
 
-    assert app_with(down).post('/api/v1/platform/ask', json={'text': 'x'}, headers={'Origin': ORIGIN}).status_code == 503
-    response = app_with(refused).post('/api/v1/platform/ask', json={'text': 'x'}, headers={'Origin': ORIGIN})
+    # A text the router sends to the Law Agent (keyword 건폐율); an unroutable text never reaches the agent.
+    assert app_with(down).post('/api/v1/platform/ask', json={'text': '건폐율'}, headers={'Origin': ORIGIN}).status_code == 503
+    response = app_with(refused).post('/api/v1/platform/ask', json={'text': '건폐율'}, headers={'Origin': ORIGIN})
     assert response.status_code == 502 and 'TASK_STATE_FAILED' in response.json()['detail']
 
 
@@ -238,3 +224,28 @@ def test_ask_schema_is_strict():
     assert AskCreate(text=' 건폐율 ').text == '건폐율'
     with pytest.raises(ValueError):
         AskCreate(text='x', pnu=4115011300106830000)
+
+
+def test_ask_law_hands_off_another_roles_question_and_asks_when_unsure_without_calling_any_agent():
+    calls = []
+
+    async def agent(tool, args, *, trace=None):
+        calls.append(tool)
+        return {'tool': tool, 'payload': SEARCH, 'task_id': 't', 'version': 'v'}
+
+    mass = run(ask_law('매스 쌓아 봐', pnu=None, assessment_date=None, recorder=Recorder(), agent=agent))
+    assert mass['route']['kind'] == 'goal' and mass['agent'] == 'mass' and mass['answer'] is None and mass['trace_id'] is None
+    assert mass['handoff'] == {'goal': 'mass', 'label': '매스 생성', 'owners': ['program', 'masterplan', 'mass', 'revision'], 'available': False}
+    unsure = run(ask_law('뭐 할 수 있어?', pnu=None, assessment_date=None, recorder=Recorder(), agent=agent))
+    assert unsure['route']['kind'] == 'ask' and unsure['agent'] is None and unsure['handoff'] is None
+    assert [c['agent'] for c in unsure['route']['choices']][:2] == ['law', 'site_context']
+    picked = run(ask_law('뭐 할 수 있어?', pnu=None, assessment_date=None, recorder=Recorder(), role='law', agent=agent))
+    assert picked['route']['kind'] == 'skill' and picked['answer']['kind'] == 'search'
+    assert calls == ['law_search']
+
+
+def test_route_accepts_a_picked_role_and_rejects_a_malformed_one():
+    client = app_with(lambda tool, args, trace=None: None)
+    assert client.post('/api/v1/platform/ask', json={'text': '뭐 할 수 있어?', 'role': 'Mass Agent'}, headers={'Origin': ORIGIN}).status_code == 422
+    response = client.post('/api/v1/platform/ask', json={'text': '뭐 할 수 있어?'}, headers={'Origin': ORIGIN})
+    assert response.status_code == 200 and response.json()['route']['kind'] == 'ask'

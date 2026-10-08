@@ -30,7 +30,7 @@ def create_ask_router(allowed_origin, trace_recorder=None, agent=None):
     async def ask(body: AskCreate, request: Request):
         same_origin(request)
         return await answer(ask_law(body.text, pnu=body.pnu, assessment_date=body.assessment_date, recorder=recorder,
-                                    traceparent=request.headers.get('traceparent'), **kwargs))
+                                    traceparent=request.headers.get('traceparent'), role=body.role, **kwargs))
 
     @router.post('/law-analysis')
     async def law_analysis(body: LawAnalysisCreate, request: Request):

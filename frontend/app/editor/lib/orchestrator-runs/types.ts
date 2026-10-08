@@ -183,23 +183,38 @@ export interface LegalEvidence {
   reason: string | null
 }
 
-/** `POST /platform/ask` — the Law Agent's answer to a typed question, in the backend's one shape. */
+/** How the backend's router decided: a skill called now, a goal handed off, or a question back to the user. */
+export interface AskRoute {
+  kind: 'skill' | 'goal' | 'ask'
+  agent: string | null
+  skill: string | null
+  goal: string | null
+  confidence: number
+  reason: string
+  choices: { agent: string; label: string }[]
+}
+
+export type LawAnswerBody =
+  | { kind: 'search'; items: LawSearchItem[]; total: number; degraded: boolean; legal_evidence: LegalEvidence | null }
+  | {
+      kind: 'ordinance'
+      ordinance: { name: string | null; ordinance_id: string | null; edition_id: string | null; effective_date: string | null; url: string | null }
+      matches: { article: string | null; title: string | null; text: string | null }[]
+      legal_evidence: LegalEvidence | null
+    }
+
+/** `POST /platform/ask` — one of three shapes by `route.kind`, every key always present. */
 export interface AskAnswer {
   question: string
-  tool: string
-  agent: 'law'
-  trace_id: string
+  route: AskRoute
+  /** `skill`: the agent and tool that answered, and its answer. */
+  agent: string | null
+  tool: string | null
+  trace_id: string | null
   version: string | null
-  /** How the backend's router chose (agent, skill, confidence, why) — shown so a wrong route is visible. */
-  route?: { agent: string; skill: string; confidence: number; reason: string }
-  answer:
-    | { kind: 'search'; items: LawSearchItem[]; total: number; degraded: boolean; legal_evidence: LegalEvidence | null }
-    | {
-        kind: 'ordinance'
-        ordinance: { name: string | null; ordinance_id: string | null; edition_id: string | null; effective_date: string | null; url: string | null }
-        matches: { article: string | null; title: string | null; text: string | null }[]
-        legal_evidence: LegalEvidence | null
-      }
+  answer: LawAnswerBody | null
+  /** `goal`: the catalog goal this question belongs to (its owners, whether the door takes it). */
+  handoff: { goal: string; label: string; owners: string[]; available: boolean } | null
 }
 
 /** What the conversation says about a Law Agent land analysis (`POST /platform/law-analysis`); the artifact shows the rest. */
