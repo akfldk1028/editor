@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { connectionLine, evidenceCard, lawCard, lawLine, requestFailedLine, requestingLines, resultLine, resultPrompt, selectedLine, stepChanges, stepState, submittedLine } from './feed-lines'
+import { connectionLine, evidenceCard, lawCard, lawLine, requestFailedLine, requestingLines, resultLine, resultPrompt, selectedLine, selectedPrompt, stepChanges, stepState, submittedLine } from './feed-lines'
 import { FAST_WINDOW_MS, POLL_FAST_MS, POLL_MS, pollInterval } from './poll'
 import type { Communication, RunResults } from './types'
 
@@ -26,9 +26,26 @@ const results = (over: Partial<RunResults> = {}): RunResults => ({
   ...over,
 })
 
+const p1 = { pnu: '4115011300106840001', address: '경기도 의정부시 산곡동 684-1' }
+const p2 = { pnu: '4115011300106840003' }
+
 test('the selection line names the site, its parcel count and area', () => {
-  expect(selectedLine({ label: '경기도 의정부시 산곡동 684-1', parcels: [1], total_area_m2: 2499.98 })).toBe('대지 선택: 경기도 의정부시 산곡동 684-1 (1필지, 2,499.98㎡)')
-  expect(selectedLine({ label: '산곡동 684-1 외 1', parcels: [1, 2], total_area_m2: null })).toBe('대지 선택: 산곡동 684-1 외 1 (2필지)')
+  expect(selectedLine({ label: '경기도 의정부시 산곡동 684-1', parcels: [p1], total_area_m2: 2499.98 })).toBe('대지 선택: 경기도 의정부시 산곡동 684-1 (1필지, 2,499.98㎡)')
+  expect(selectedLine({ label: '산곡동 684-1 외 1', parcels: [p1, p2], total_area_m2: null })).toBe('대지 선택: 산곡동 684-1 외 1 (2필지)')
+})
+
+test('after the selection the Orchestrator asks what to do; the user chooses — review is a command, the rest open artifacts', () => {
+  const prompt = selectedPrompt({ label: '산곡동 684-1', parcels: [p1], total_area_m2: 2500 })
+  expect(prompt.kind).toBe('prompt')
+  expect(prompt.agent).toBe('orchestrator')
+  expect(prompt.text).toBe('산곡동 684-1 대지가 준비됐어요. 무엇을 할까요?')
+  expect(prompt.actions).toEqual([
+    { label: '법규·한계 검토 시작', command: { kind: 'start-review', goal: 'limits' } },
+    { label: '대지 정보 보기', artifact: 'site-map' },
+    { label: '법규 요약 보기', artifact: 'law', params: { pnu: p1.pnu, address: p1.address, tab: 'summary' } },
+  ])
+  // A parcel without an address falls back to the site label.
+  expect(selectedPrompt({ label: '684-3', parcels: [p2], total_area_m2: null }).actions?.[2]?.params).toEqual({ pnu: p2.pnu, address: '684-3', tab: 'summary' })
 })
 
 test('the connection line counts agents when up and offers 시스템 보기 when not', () => {

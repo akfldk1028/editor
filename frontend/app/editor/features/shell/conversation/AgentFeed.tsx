@@ -3,9 +3,10 @@
 import { X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
-import { clearFeed, dismissFeed, type FeedAction, type FeedCard, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
+import { clearFeed, dismissFeed, type FeedCard, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
 
 import type { ShellApi } from '../artifact-types'
+import { act } from './act'
 import './agent-feed.css'
 
 const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -110,8 +111,4 @@ function Card({ card }: { card: FeedCard }) {
       ))}
     </ul>
   )
-}
-
-function act(action: FeedAction, shell: ShellApi) {
-  if (action.artifact) shell.openArtifact(action.artifact, action.params)
 }

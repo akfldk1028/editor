@@ -9,7 +9,7 @@ const fmt = (value: number, digits: number) => value.toLocaleString('ko-KR', { m
 
 export interface SelectedSite {
   label: string
-  parcels: readonly unknown[]
+  parcels: readonly { pnu: string; address?: string }[]
   total_area_m2: number | null
 }
 
@@ -20,6 +20,25 @@ export function selectedLine(site: SelectedSite): string {
 }
 
 const ORCHESTRATOR = 'orchestrator'
+
+/**
+ * Once the site is saved and the Orchestrator answers: it asks what to do, and the user chooses —
+ * 법규·한계 검토 시작 (a command the site card carries out), 대지 정보 보기, 법규 요약 보기.
+ */
+export function selectedPrompt(site: SelectedSite): FeedInput {
+  const first = site.parcels[0]!
+  const target = { pnu: first.pnu, ...(first.address || site.label ? { address: first.address || site.label } : {}) }
+  return {
+    kind: 'prompt',
+    agent: ORCHESTRATOR,
+    text: `${site.label} 대지가 준비됐어요. 무엇을 할까요?`,
+    actions: [
+      { label: '법규·한계 검토 시작', command: { kind: 'start-review', goal: 'limits' } },
+      { label: '대지 정보 보기', artifact: 'site-map' },
+      { label: '법규 요약 보기', artifact: 'law', params: { ...target, tab: 'summary' } },
+    ],
+  }
+}
 
 export function connectionLine(connection: OrchestratorConnection): FeedInput {
   if (connection.state === 'up') return { kind: 'system', agent: ORCHESTRATOR, text: `오케스트레이터 연결됨 · 에이전트 ${connection.agentsUp}/${connection.agentsTotal}` }

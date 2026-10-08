@@ -3,11 +3,13 @@
 import { Send, SquarePen, Workflow } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
-import { clearFeed, dismissFeed, type FeedAction, type FeedCard, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
+import { clearFeed, dismissFeed, type FeedCard, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 import { leadOf, threadOf, type Turn } from '@/lib/orchestrator-runs/thread'
 
 import type { ShellApi } from '../artifact-types'
+import { act } from './act'
+import { AgentMark } from './agentMarks'
 import './agent-conversation.css'
 
 const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -16,10 +18,10 @@ const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2
 export function AgentConversationHeading() {
   return (
     <div className="agent-heading">
-      <span aria-hidden="true" className="agent-heading-mark"><Workflow size={14} /></span>
+      <AgentMark agent="orchestrator" size={14} />
       <div>
-        <strong>에이전트 대화</strong>
-        <span>오케스트레이터 · 대지 · 법규 · 검토 조정</span>
+        <strong>Orchestrator Agent</strong>
+        <span>Site · Law · Revision 에이전트와 대화</span>
       </div>
     </div>
   )
@@ -59,8 +61,8 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
         {turns.length === 0 ? (
           <div className="agent-thread-empty">
             <Workflow aria-hidden="true" size={28} />
-            <strong>대지를 선택하면 여기서 답해요</strong>
-            <span>지도에서 필지를 고르고 <b>이 대지로 선택</b> → <b>검토 시작</b>을 누르면 대지·법규·검토 조정 에이전트가 차례로 이 대화에 답해요.</span>
+            <strong>대지를 선택하면 Orchestrator Agent가 묻습니다</strong>
+            <span>지도에서 필지를 고르고 <b>이 대지로 선택</b>을 누르면, 무엇을 할지 여기서 고를 수 있어요 — 법규·한계 검토, 대지 정보, 법규 요약.</span>
           </div>
         ) : (
           turns.map((turn) => <TurnView key={turnKey(turn)} shell={shell} turn={turn} />)
@@ -135,13 +137,12 @@ function TurnView({ turn, shell }: { turn: Turn; shell: ShellApi }) {
   )
 }
 
-/** Speaker row: the agent's initial as its mark, its Korean name, the time. */
+/** Speaker row: the agent's own mark, its network name, the time. */
 function Who({ agent, at }: { agent: string; at: number }) {
-  const label = agentLabel(agent)
   return (
     <header className="agent-turn-who">
-      <span aria-hidden="true" className="agent-turn-mark">{agent === 'orchestrator' ? 'O' : label.slice(0, 1)}</span>
-      <b>{label}</b>
+      <AgentMark agent={agent} />
+      <b>{agentLabel(agent)}</b>
       <time dateTime={new Date(at).toISOString()}>{time(at)}</time>
     </header>
   )
@@ -174,8 +175,4 @@ function Card({ card }: { card: FeedCard }) {
     )
   }
   return <ul className="agent-chips">{card.items.map((item) => <li key={item}>{item}</li>)}</ul>
-}
-
-function act(action: FeedAction, shell: ShellApi) {
-  if (action.artifact) shell.openArtifact(action.artifact, action.params)
 }

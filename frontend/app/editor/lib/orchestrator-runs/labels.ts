@@ -33,26 +33,27 @@ export function statusLabel(status: string): string {
 /** The card shows the first 8 hex of the 32-hex W3C trace id (and of a run id); the copy button carries the whole id. */
 export const traceLabel = (id: string) => id.slice(0, 8)
 
+/** Agents go by their network names in English (user, 2026-10-08); what they say stays Korean. */
 const AGENTS: Record<string, string> = {
-  site_context: '대지',
-  'site-context': '대지',
-  law: '법규',
-  revision: '검토 조정',
-  masterplan: '배치',
-  mass: '매스',
-  kmass: 'K매스',
-  program: '프로그램',
-  requirement: '요구사항',
-  design_intent: '설계 의도',
-  'design-intent': '설계 의도',
-  elevation: '지반·표고',
-  plan: '평면',
-  systems: '설비',
-  domain_expert: '전문 검토',
-  'domain-expert': '전문 검토',
-  interior: '인테리어',
-  scene: '장면',
-  orchestrator: '오케스트레이터',
+  site_context: 'Site Agent',
+  'site-context': 'Site Agent',
+  law: 'Law Agent',
+  revision: 'Revision Agent',
+  masterplan: 'MasterPlan Agent',
+  mass: 'Mass Agent',
+  kmass: 'KMass Agent',
+  program: 'Program Agent',
+  requirement: 'Requirement Agent',
+  design_intent: 'DesignIntent Agent',
+  'design-intent': 'DesignIntent Agent',
+  elevation: 'Elevation Agent',
+  plan: 'Plan Agent',
+  systems: 'Systems Agent',
+  domain_expert: 'DomainExpert Agent',
+  'domain-expert': 'DomainExpert Agent',
+  interior: 'Interior Agent',
+  scene: 'Scene Agent',
+  orchestrator: 'Orchestrator Agent',
   user: '사용자',
 }
 
@@ -147,7 +148,7 @@ export function shortEvidence(codes: readonly string[]): string {
 }
 
 const ACTIONS: [RegExp, string][] = [
-  [/^re-run:\s*(\S+)/i, '$1 에이전트 재실행'],
+  [/^re-run:\s*(\S+)/i, '$1 재실행'],
   [/Supply an explicit valid assessment date/i, '기준일을 명시해 주세요 — 법규 에이전트는 날짜·법령 판본을 대신 고르지 않아요'],
 ]
 

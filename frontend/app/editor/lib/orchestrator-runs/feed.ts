@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from 'react'
 
+import type { Command } from './commands'
+
 /**
  * The agent feed: short lines about what the Orchestrator network did for the selected site, shown
  * in the conversation column by the shell. Slices only `post`; the shell renders. Kept in memory for
@@ -21,9 +23,12 @@ export type FeedTone = 'ok' | 'warn' | 'busy'
 
 export interface FeedAction {
   label: string
-  /** Opened through `shell.openArtifact(artifact, params)`; omitted: the button only dismisses the prompt. */
+  /** Opened through `shell.openArtifact(artifact, params)`. */
   artifact?: string
   params?: Record<string, string>
+  /** Sent through `commands.sendCommand`; the owning slice carries it out. */
+  command?: Command
+  /** Neither: the button only dismisses the prompt. */
 }
 
 /** Structured content under a line: Law's numbers as stat tiles, or missing evidence as chips. */

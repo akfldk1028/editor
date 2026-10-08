@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { getRunContext, listProjects, submitRun } from '@/lib/orchestrator-runs/api'
 import { defaultRunConditions, isValidDate, loadRunConditions, type RunConditions, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
+import { onCommand } from '@/lib/orchestrator-runs/commands'
 import { dismissFeed, postFeed } from '@/lib/orchestrator-runs/feed'
 import { requestFailedLine, requestingLines } from '@/lib/orchestrator-runs/feed-lines'
 import { useRunPolling } from '@/lib/orchestrator-runs/poll'
@@ -92,6 +93,21 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
       if (pending) dismissFeed(pending.id)
     }
   }, [chosen, conditions, state.kind, ready, site])
+
+  // The conversation's 법규·한계 검토 시작 answer lands here; what the card cannot do yet, it says so.
+  useEffect(() => onCommand((command) => {
+    if (command.kind !== 'start-review') return
+    if (chosen && ready) {
+      void start()
+      return
+    }
+    postFeed({
+      kind: 'error',
+      agent: 'orchestrator',
+      text: !chosen ? '검토를 보낼 프로젝트를 대지 카드에서 먼저 골라 주세요' : '기준일이 올바르지 않아요 — 대지 카드의 조건을 확인해 주세요',
+      actions: [{ label: '대지 카드 열기', artifact: 'site-map' }, { label: '법규·한계 검토 시작', command }],
+    })
+  }), [chosen, ready, start])
 
   const phase: RunPhase = state.kind === 'submitted' ? { kind: 'submitted', run: state.run, stale } : state
   return { projects, chosen, setChosen, conditions, setConditions, ready, phase, start }
