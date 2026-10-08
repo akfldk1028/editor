@@ -33,3 +33,6 @@ For other servers: `--host` / env as in `agents/docs/AGENT_MODULE_CONVENTIONS.md
 The editor checkout is on branch `docs/editor-platform-plan-20261004` (Codex also edits it).
 Stage only your files; never sweep other sessions' changes. `git rev-parse --show-toplevel`
 before committing (repos overlap under D:\Data\25_ACE).
+- **Start servers detached (2026-10-08):** a backend/frontend started as a Claude background command is killed
+  when the machine runs low on memory. Use PowerShell `Start-Process ... -WindowStyle Hidden -RedirectStandardOutput
+  logs/backend-18449.log -RedirectStandardError logs/backend-18449.err -PassThru` from the editor root instead.
