@@ -17,8 +17,10 @@ export function hostPaths(root = EDITOR_ROOT) {
     wanted: resolve(runtime, 'wanted.json'),
     // The daemon's last tick: {at, services: {id: {up, pid, state, failures, restarts}}}; readers trust it for a few seconds.
     health: resolve(runtime, 'health.json'),
-    // One JSON line per lifecycle event (start, adopt, restart, stop, spawn-error, gave-up, ensure).
+    // One JSON line per lifecycle event (start, adopt, restart, stop, spawn-error, gave-up, ensure, idle-stop).
     events: resolve(runtime, 'events.jsonl'),
+    // {id: {until: ISO}}: "someone is using it until then" (ensure/touch); idle stops wait for the lease to end.
+    leases: resolve(runtime, 'leases.json'),
     record: id => resolve(runtime, `${id}.json`),
     log: id => resolve(logs, `${id}.log`),
     err: id => resolve(logs, `${id}.err`),
@@ -56,6 +58,21 @@ export function writeRecord(paths, id, record) {
   writeJson(paths.record(id), record);
 }
 
+export function readLeases(paths) {
+  return readJson(paths.leases) ?? {};
+}
+
+/** Extends (never shortens) the lease of each id to now + seconds. */
+export function extendLeases(paths, ids, seconds, now = Date.now()) {
+  const leases = readLeases(paths);
+  const until = new Date(now + seconds * 1000).toISOString();
+  for (const id of ids) {
+    if (!leases[id] || Date.parse(leases[id].until) < now + seconds * 1000) leases[id] = { until };
+  }
+  writeJson(paths.leases, leases);
+  return until;
+}
+
 export function readHealth(paths) {
   return readJson(paths.health);
 }
@@ -80,6 +97,6 @@ export function writeWanted(paths, ids) {
 export function recordedIds(paths) {
   if (!existsSync(paths.runtime)) return [];
   return readdirSync(paths.runtime)
-    .filter(name => name.endsWith('.json') && !['daemon.json', 'wanted.json', 'health.json'].includes(name))
+    .filter(name => name.endsWith('.json') && !['daemon.json', 'wanted.json', 'health.json', 'leases.json'].includes(name))
     .map(name => name.slice(0, -'.json'.length));
 }

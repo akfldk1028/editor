@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// agent-host: node infra/host/cli.mjs start [ids...] [--with-agents] | ensure <ids...> [--json] [--timeout=<s>] | stop [ids...] | status [--json] | restart <id> | restart-daemon | daemon
+// agent-host: node infra/host/cli.mjs start [ids...] [--with-agents] | ensure <ids...> [--json] [--timeout=<s>] [--lease=<s>] | touch <ids...> [--lease=<s>] | stop [ids...] | status [--json] | restart <id> | restart-daemon | daemon
 // `ensure` = start + wait until each id answers its health URL (the editor backend calls it with --json).
 // `start` launches a detached daemon (this file, `daemon`) that owns the health loop and
 // survives the shell that started it; `stop` kills it through runtime/host/daemon.json;
@@ -11,7 +11,8 @@ import { ENSURE_DEFAULTS, waitHealthy } from './ensure.mjs';
 import { selectEntries } from './policy.mjs';
 import { isAlive, killOne, killTree, spawnDetached } from './processes.mjs';
 import { byId, services } from './registry.mjs';
-import { appendEvent, ensureDirs, hostPaths, readHealth, readJson, readRecord, readWanted, recordedIds, remove, writeJson, writeWanted } from './state.mjs';
+import { appendEvent, ensureDirs, extendLeases, hostPaths, readHealth, readJson, readLeases, readRecord, readWanted, recordedIds, remove, writeJson, writeWanted } from './state.mjs';
+import { DEFAULTS, idleIn } from './policy.mjs';
 import { formatTable, statusRows } from './status.mjs';
 import { Supervisor } from './supervise.mjs';
 
@@ -19,6 +20,7 @@ const SELF = fileURLToPath(import.meta.url);
 const paths = hostPaths();
 const HOST_DIR = resolve(SELF, '..');
 const SNAPSHOT_FRESH_MS = 10_000;
+const DEFAULT_LEASE_S = 1_800;
 
 /** The newest mtime of the host code and the registry: the daemon records it, status compares (stale = restart-daemon). */
 function codeStamp() {
@@ -40,7 +42,9 @@ export function parseArgs(argv) {
   const flags = new Set(argv.filter(arg => arg.startsWith('--')));
   const [command = 'status', ...ids] = argv.filter(arg => !arg.startsWith('--'));
   const timeout = [...flags].map(flag => flag.match(/^--timeout=(\d+)$/)).find(Boolean);
-  return { command, ids, withAgents: flags.has('--with-agents'), json: flags.has('--json'), timeoutMs: timeout ? Number(timeout[1]) * 1_000 : null };
+  const lease = [...flags].map(flag => flag.match(/^--lease=(\d+)$/)).find(Boolean);
+  return { command, ids, withAgents: flags.has('--with-agents'), json: flags.has('--json'),
+           timeoutMs: timeout ? Number(timeout[1]) * 1_000 : null, leaseS: lease ? Number(lease[1]) : DEFAULT_LEASE_S };
 }
 
 function daemonPid() {
@@ -56,7 +60,12 @@ async function status(ids = [], { json = false } = {}) {
   const snapshot = readHealth(paths);
   if (json) {
     console.log(JSON.stringify({ daemon: { pid, wanted: readWanted(paths), stale }, snapshotAt: snapshot?.at ?? null,
-      services: rows.map(row => ({ ...row, state: snapshot?.services?.[row.id]?.state ?? (row.up ? 'up' : 'down') })) }));
+      services: rows.map(row => {
+        const entry = byId(row.id);
+        const lease = readLeases(paths)[row.id] ?? null;
+        return { ...row, state: snapshot?.services?.[row.id]?.state ?? (row.up ? 'up' : 'down'), leaseUntil: lease?.until ?? null,
+                 idleInS: row.up ? idleIn(entry, lease, readRecord(paths, row.id), Date.now(), DEFAULTS) : null, idleTimeoutS: entry.idle_timeout_s ?? null };
+      }) }));
     return;
   }
   console.log(formatTable(rows));
@@ -90,15 +99,16 @@ async function start(ids, withAgents) {
 
 /** start + wait for health; `--json` prints { up, failed, waitedMs } only (the backend's door reads it).
  *  Entries the daemon saw up within 10 s are not probed again; one the daemon gave up on fails at once. */
-async function ensure(ids, { json = false, timeoutMs = null } = {}) {
+async function ensure(ids, { json = false, timeoutMs = null, leaseS = DEFAULT_LEASE_S } = {}) {
   if (!ids.length) throw new Error('usage: ensure <id...>');
   const entries = launch(ids, false, json ? () => {} : console.log);
+  const leaseUntil = extendLeases(paths, ids, leaseS);
   const already = freshUp(ids);
   const gaveUp = new Set(ids.filter(id => readHealth(paths)?.services?.[id]?.state === 'gave_up'));
   const pending = entries.filter(entry => !already.has(entry.id) && !gaveUp.has(entry.id));
   const waited = await waitHealthy(pending, { timeoutMs: timeoutMs ?? ENSURE_DEFAULTS.timeoutMs });
   const result = { up: ids.filter(id => already.has(id) || waited.up.includes(id)),
-                   failed: [...waited.failed, ...[...gaveUp].map(id => ({ id, error: 'gave up: restart it by hand' }))], waitedMs: waited.waitedMs };
+                   failed: [...waited.failed, ...[...gaveUp].map(id => ({ id, error: 'gave up: restart it by hand' }))], waitedMs: waited.waitedMs, leaseUntil };
   appendEvent(paths, { kind: 'ensure', ids, up: result.up, failed: result.failed.map(f => f.id), waitedMs: result.waitedMs });
   if (json) {
     console.log(JSON.stringify(result));
@@ -142,6 +152,15 @@ async function restart(id) {
   await status([id]);
 }
 
+/** Extends the lease of running ids (a run's hop, a conversation turn): idle stop waits for it. */
+function touch(ids, { json = false, leaseS = DEFAULT_LEASE_S } = {}) {
+  if (!ids.length) throw new Error('usage: touch <id...>');
+  ids.forEach(byId);
+  const leaseUntil = extendLeases(paths, ids, leaseS);
+  if (json) console.log(JSON.stringify({ ids, leaseUntil }));
+  else console.log(`lease of [${ids.join(', ')}] until ${leaseUntil}`);
+}
+
 /** Stops only the daemon (services keep running and are adopted back) and starts a fresh one on the current code. */
 async function restartDaemon() {
   const previous = readJson(paths.daemon);
@@ -160,7 +179,10 @@ async function restartDaemon() {
 async function daemon(withAgents) {
   ensureDirs(paths);
   writeJson(paths.daemon, { pid: process.pid, startedAt: stamp(), withAgents, codeStamp: codeStamp() });
-  const supervisor = new Supervisor(services(), () => readWanted(paths), { withAgents, log: line => console.log(`${stamp()} ${line}`) });
+  const supervisor = new Supervisor(services(), () => readWanted(paths), {
+    withAgents, log: line => console.log(`${stamp()} ${line}`),
+    forget: ids => writeWanted(paths, readWanted(paths).filter(id => !ids.includes(id))),
+  });
   const halt = () => { supervisor.halt(); remove(paths.daemon); process.exit(0); };
   process.on('SIGINT', halt);
   process.on('SIGTERM', halt);
@@ -170,18 +192,19 @@ async function daemon(withAgents) {
 }
 
 async function main(argv) {
-  const { command, ids, withAgents, json, timeoutMs } = parseArgs(argv);
+  const { command, ids, withAgents, json, timeoutMs, leaseS } = parseArgs(argv);
   switch (command) {
     case 'status': return status(ids, { json });
     case 'start': return start(ids, withAgents);
-    case 'ensure': return ensure(ids, { json, timeoutMs });
+    case 'ensure': return ensure(ids, { json, timeoutMs, leaseS });
+    case 'touch': return touch(ids, { json, leaseS });
     case 'restart-daemon': return restartDaemon();
     case 'stop': return stop(ids);
     case 'restart':
       if (ids.length !== 1) throw new Error('usage: restart <id>');
       return restart(ids[0]);
     case 'daemon': return daemon(withAgents);
-    default: throw new Error(`unknown command "${command}"; use start|ensure|stop|status|restart|restart-daemon`);
+    default: throw new Error(`unknown command "${command}"; use start|ensure|touch|stop|status|restart|restart-daemon`);
   }
 }
 

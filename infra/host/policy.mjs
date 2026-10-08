@@ -10,6 +10,9 @@ export const DEFAULTS = Object.freeze({
   // After this many consecutive restarts without a healthy stretch the host gives up (state.gaveUp): no more
   // launches until someone `restart`s it, and `ensure` reports the entry failed at once instead of waiting.
   giveUpAfter: 6,
+  // Idle stop (entries with idle_timeout_s): never within minUpMs of a start, at most maxIdleStopsPerTick per tick.
+  minUpMs: 600_000,
+  maxIdleStopsPerTick: 2,
 });
 
 /** Entries the host keeps alive by default: persistent editor-owned services; the Orchestrator
@@ -55,6 +58,34 @@ export function startOrder(entries) {
 
 export function initialState() {
   return { failures: 0, restarts: 0, healthySince: null, dueAt: null, startedAt: null, gaveUp: false };
+}
+
+/**
+ * Entries to stop for idleness this tick: up, with an idle_timeout_s, past minUpMs since their start, and
+ * idle_timeout_s past the end of their lease (or past their start when nothing ever leased them).
+ * `ups` = ids up now, `leases` = {id: {until}}, `records` = {id: {startedAt}}. Oldest-idle first, capped.
+ */
+export function idleStops(entries, { ups, leases, records }, now, options = DEFAULTS) {
+  const due = [];
+  for (const entry of entries) {
+    if (entry.idle_timeout_s == null || !ups.has(entry.id)) continue;
+    const startedAt = Date.parse(records[entry.id]?.startedAt ?? '') || null;
+    if (startedAt !== null && now - startedAt < options.minUpMs) continue;
+    const leaseEnd = Date.parse(leases[entry.id]?.until ?? '') || null;
+    const idleSince = leaseEnd ?? startedAt;
+    if (idleSince === null || now < idleSince) continue;
+    if (now - idleSince >= entry.idle_timeout_s * 1000) due.push({ id: entry.id, idleSince });
+  }
+  return due.sort((a, b) => a.idleSince - b.idleSince).slice(0, options.maxIdleStopsPerTick).map(item => item.id);
+}
+
+/** Seconds until an up entry is stopped for idleness, or null when it never is. */
+export function idleIn(entry, lease, record, now, options = DEFAULTS) {
+  if (entry.idle_timeout_s == null) return null;
+  const startedAt = Date.parse(record?.startedAt ?? '') || now;
+  const leaseEnd = Date.parse(lease?.until ?? '') || null;
+  const stopAt = Math.max((leaseEnd ?? startedAt) + entry.idle_timeout_s * 1000, startedAt + options.minUpMs);
+  return Math.max(0, Math.round((stopAt - now) / 1000));
 }
 
 /** The one-word state a reader (status, ensure, the system artifact) shows for an entry. */

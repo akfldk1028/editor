@@ -198,3 +198,30 @@ test('a tick probes every entry in parallel: two slow probes cost one probe time
     cleanup();
   }
 });
+
+
+test('an up entry with idle_timeout_s and no lease is stopped and forgotten after the timeout, with an idle-stop event', async () => {
+  const { root, paths, entryFor, cleanup } = fixture();
+  const port = await freePort();
+  const entry = { ...entryFor(port), idle_timeout_s: 60 };
+  const forgotten = [];
+  const log = [];
+  const policy = { ...FAST, minUpMs: 0 };
+  const supervisor = new Supervisor([entry], () => (forgotten.includes('fake') ? [] : ['fake']), { root, paths, policy, log: line => log.push(line), forget: ids => forgotten.push(...ids) });
+  try {
+    await supervisor.tick();
+    const first = await waitFor(() => health(port), 5_000);
+    // A tick 61 s "later": the lease never existed, so idle since start -> stopped and forgotten.
+    const actions = await supervisor.tick(Date.now() + 61_000);
+    assert.equal(actions[0].up, true);
+    assert.deepEqual(forgotten, ['fake']);
+    assert.ok(log.some(line => line.startsWith('[idle-stop] fake')), log.join('\n'));
+    await waitFor(async () => !(await health(port)), 3_000);
+    assert.ok(!isAlive(first.pid));
+    const snapshot = JSON.parse(readFileSync(resolve(paths.runtime, 'health.json'), 'utf8'));
+    assert.equal(snapshot.services.fake.state, 'down');
+  } finally {
+    supervisor.halt();
+    cleanup();
+  }
+});

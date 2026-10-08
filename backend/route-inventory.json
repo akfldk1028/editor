@@ -698,6 +698,11 @@
   {
    "method": "POST",
    "owner": "fastapi",
+   "path": "/api/v1/platform/host/touch"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
    "path": "/api/v1/platform/law-analysis"
   },
   {

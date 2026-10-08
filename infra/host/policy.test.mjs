@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { DEFAULTS, backoffMs, decide, defaultSet, describeState, initialState, nextTickMs, selectEntries, startOrder } from './policy.mjs';
+import { DEFAULTS, backoffMs, decide, defaultSet, describeState, idleIn, idleStops, initialState, nextTickMs, selectEntries, startOrder } from './policy.mjs';
 import { services } from './registry.mjs';
 
 const T0 = 1_000_000;
@@ -138,4 +138,26 @@ test('after giveUpAfter restarts without health the policy gives up once and the
   assert.equal(describeState({ ...initialState(), dueAt: 5 }, { up: false, alive: false }), 'restarting');
   assert.equal(describeState({ ...initialState(), startedAt: 1 }, { up: false, alive: true }), 'starting');
   assert.equal(describeState(initialState(), { up: false, alive: false }), 'down');
+});
+
+
+test('idleStops names up entries whose lease ended idle_timeout_s ago, never within minUpMs of their start, oldest first and capped', () => {
+  const options = { ...DEFAULTS, minUpMs: 1_000, maxIdleStopsPerTick: 2 };
+  const t0 = Date.parse('2026-10-09T00:00:00Z');
+  const entries = [
+    { id: 'a', idle_timeout_s: 60 }, { id: 'b', idle_timeout_s: 60 }, { id: 'c', idle_timeout_s: 60 },
+    { id: 'd', idle_timeout_s: 60 }, { id: 'keep', idle_timeout_s: null }, { id: 'young', idle_timeout_s: 60 },
+  ];
+  const iso = ms => new Date(ms).toISOString();
+  const records = { a: { startedAt: iso(t0) }, b: { startedAt: iso(t0) }, c: { startedAt: iso(t0) }, d: { startedAt: iso(t0) }, keep: { startedAt: iso(t0) }, young: { startedAt: iso(t0 + 100_000) } };
+  const leases = { a: { until: iso(t0 + 10_000) }, b: { until: iso(t0 + 50_000) }, c: { until: iso(t0 + 200_000) } };
+  const ups = new Set(['a', 'b', 'c', 'd', 'keep', 'young']);
+  // d never leased: idle since start. At t0+100s: a (lease ended 90 s ago), d (100 s) are due; b 50 s ago no; c lease live; young too new.
+  assert.deepEqual(idleStops(entries, { ups, leases, records }, t0 + 100_000, options), ['d', 'a']);
+  // Cap: at t0+120s a, b, d are due; oldest two.
+  assert.deepEqual(idleStops(entries, { ups, leases, records }, t0 + 120_000, options), ['d', 'a']);
+  assert.deepEqual(idleStops(entries, { ups, leases, records }, t0 + 120_000, { ...options, maxIdleStopsPerTick: 5 }), ['d', 'a', 'b']);
+  assert.deepEqual(idleStops(entries, { ups: new Set(['keep']), leases, records }, t0 + 999_000, options), []);
+  assert.equal(idleIn(entries[0], leases.a, records.a, t0, options), 70);
+  assert.equal(idleIn(entries[4], null, records.keep, t0, options), null);
 });

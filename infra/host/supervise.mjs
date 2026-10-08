@@ -1,11 +1,11 @@
 // The supervisor: adopts or launches registry entries detached, watches their health and
 // restarts them under policy.mjs. All I/O lives here; decisions come from policy.mjs.
 import { resolve } from 'node:path';
-import { DEFAULTS, decide, describeState, initialState, nextTickMs, selectEntries, startOrder } from './policy.mjs';
+import { DEFAULTS, decide, describeState, idleStops, initialState, nextTickMs, selectEntries, startOrder } from './policy.mjs';
 import { probe as probeEntry } from './probe.mjs';
 import * as os from './processes.mjs';
 import { startCommand } from './registry.mjs';
-import { ACE_ROOT, appendEvent, ensureDirs, hostPaths, readRecord, remove, writeHealth, writeRecord } from './state.mjs';
+import { ACE_ROOT, appendEvent, ensureDirs, hostPaths, readLeases, readRecord, remove, writeHealth, writeRecord } from './state.mjs';
 
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 
@@ -26,6 +26,8 @@ export class Supervisor {
     this.os = { ...os, ...(options.processes ?? {}) };
     this.log = options.log ?? (() => {});
     this.withAgents = options.withAgents ?? false;
+    // forget(ids): take idle-stopped ids out of the wanted set (the CLI wires this to wanted.json).
+    this.forget = options.forget ?? (() => {});
     this.states = new Map();
     this.stopped = false;
     ensureDirs(this.paths);
@@ -85,6 +87,16 @@ export class Supervisor {
       snapshot.services[entry.id] = { up: observation.up, pid, state: describeState(decision.state, observation),
         failures: decision.state.failures, restarts: decision.state.restarts, version: observation.health.version ?? null };
     });
+    const ups = new Set(entries.filter((entry, index) => observations[index].up).map(entry => entry.id));
+    const records = Object.fromEntries(entries.map((entry, index) => [entry.id, observations[index].record]));
+    const idle = this.stopped ? [] : idleStops(entries, { ups, leases: readLeases(this.paths), records }, now, this.policy);
+    for (const id of idle) {
+      const entry = entries.find(candidate => candidate.id === id);
+      this.event('idle-stop', id, { pid: records[id]?.pid ?? null, idle_timeout_s: entry.idle_timeout_s }, `[idle-stop] ${id}: no lease for ${entry.idle_timeout_s} s`);
+      this.stop(entry);
+      snapshot.services[id] = { ...snapshot.services[id], up: false, pid: null, state: 'down' };
+    }
+    if (idle.length) this.forget(idle);
     writeHealth(this.paths, snapshot);
     return actions;
   }

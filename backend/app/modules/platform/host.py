@@ -17,6 +17,7 @@ from backend.app.core.tracing import EDITOR_ROOT
 
 CLI = EDITOR_ROOT / 'infra' / 'host' / 'cli.mjs'
 DEFAULT_TIMEOUT_S = 90
+DEFAULT_LEASE_S = 1800   # "in use until": the host stops an agent idle_timeout_s after its last lease ended
 
 
 class HostUnavailable(Exception):
@@ -49,21 +50,36 @@ async def _run(args: list[str], timeout_s: float) -> tuple[int, str, str]:
     return process.returncode, out.decode('utf-8', 'replace'), err.decode('utf-8', 'replace')
 
 
-async def ensure(agents: list[str], *, timeout_s: int = DEFAULT_TIMEOUT_S, runner=_run) -> dict:
-    """Brings the agents up (parallel, dependency-ordered by the host) and waits for their health.
-    Answer: {requested[], up[], failed: [{agent, error}], waited_s} in agent ids."""
-    ids = [host_id(agent) for agent in agents]
-    code, out, err = await runner(['ensure', *ids, '--json', f'--timeout={int(timeout_s)}'], timeout_s + 15)
+def _json_line(out: str, code: int, err: str) -> dict:
     line = next((row for row in reversed(out.splitlines()) if row.startswith('{')), None)
     if line is None:
         if code != 0 and err.strip():
             raise HostRefused(err.strip().splitlines()[-1])
         raise HostUnavailable('host CLI returned no JSON')
     try:
-        result = json.loads(line)
+        return json.loads(line)
+    except ValueError as exc:
+        raise HostUnavailable(f'host CLI answer out of contract: {exc}') from None
+
+
+async def touch(agents: list[str], *, lease_s: int = DEFAULT_LEASE_S, runner=_run) -> dict:
+    """Extends the agents' leases (a run's hop, a conversation turn) so the idle stop waits. {agents[], lease_until}."""
+    ids = [host_id(agent) for agent in agents]
+    code, out, err = await runner(['touch', *ids, '--json', f'--lease={int(lease_s)}'], 20)
+    result = _json_line(out, code, err)
+    return {'agents': list(agents), 'lease_until': result.get('leaseUntil')}
+
+
+async def ensure(agents: list[str], *, timeout_s: int = DEFAULT_TIMEOUT_S, lease_s: int = DEFAULT_LEASE_S, runner=_run) -> dict:
+    """Brings the agents up (parallel, dependency-ordered by the host), leases them for `lease_s` and waits for their
+    health. Answer: {requested[], up[], failed: [{agent, error}], waited_s, lease_until} in agent ids."""
+    ids = [host_id(agent) for agent in agents]
+    code, out, err = await runner(['ensure', *ids, '--json', f'--timeout={int(timeout_s)}', f'--lease={int(lease_s)}'], timeout_s + 15)
+    result = _json_line(out, code, err)
+    try:
         up = [agent_id(i) for i in result['up']]
         failed = [{'agent': agent_id(f['id']), 'error': str(f.get('error') or 'no answer')} for f in result['failed']]
         waited = round(int(result['waitedMs']) / 1000, 1)
     except (ValueError, KeyError, TypeError) as exc:
         raise HostUnavailable(f'host CLI answer out of contract: {exc}') from None
-    return {'requested': list(agents), 'up': up, 'failed': failed, 'waited_s': waited}
+    return {'requested': list(agents), 'up': up, 'failed': failed, 'waited_s': waited, 'lease_until': result.get('leaseUntil')}

@@ -94,6 +94,8 @@
     {
       "id": "law",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/Lawagent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -110,6 +112,8 @@
     {
       "id": "masterplan",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/MasterPlanagent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -126,6 +130,8 @@
     {
       "id": "program",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/ProgramAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -142,6 +148,8 @@
     {
       "id": "revision",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/RevisionAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -158,6 +166,8 @@
     {
       "id": "site-context",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/SiteContextAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -174,6 +184,8 @@
     {
       "id": "requirement",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/RequirementAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -190,6 +202,8 @@
     {
       "id": "design-intent",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/DesignIntentAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -206,6 +220,8 @@
     {
       "id": "elevation",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/ElevationAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -222,6 +238,8 @@
     {
       "id": "mass",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/MassAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -238,6 +256,8 @@
     {
       "id": "kmass",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/KMassAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -254,6 +274,8 @@
     {
       "id": "systems",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/SystemsAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -270,6 +292,8 @@
     {
       "id": "domain-expert",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/DomainExpertAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -286,6 +310,8 @@
     {
       "id": "interior",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/InteriorDesignAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -302,6 +328,8 @@
     {
       "id": "plan",
       "kind": "agent",
+      "idle_timeout_s": 1800,
+      "memory_mb": 90,
       "owner_repo": "agents/planm",
       "lifecycle": "persistent",
       "management": "agent-host",
@@ -318,6 +346,8 @@
     {
       "id": "scene",
       "kind": "agent",
+      "idle_timeout_s": 900,
+      "memory_mb": 90,
       "owner_repo": "agents/SceneAgent",
       "lifecycle": "persistent",
       "management": "agent-host",
