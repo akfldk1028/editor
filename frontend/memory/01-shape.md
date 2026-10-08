@@ -35,6 +35,10 @@ take siblings there. Upstream Pascal (`frontend/components`, `frontend/elements`
 `/dwg` = the product shell (`features/shell`): sidebar | conversation | artifact panel. Every feature is an
 artifact module in `features/artifacts/<id>/` registered in `features/shell/registry.ts` (default `site-map`,
 then `cad`). See 05-decisions 2026-10-07.
+The centre column (2026-10-08) is the **agent conversation** (`features/shell/conversation/AgentConversation.tsx`,
+multi-agent chat: user bubbles, receipts, one turn per speaking agent, the Orchestrator moderates and asks) built from
+`lib/orchestrator-runs/feed` via `lib/orchestrator-runs/thread.ts`. A manifest with `conversation: 'page'` (cad) shows
+the page's own conversation instead, with the `AgentFeed` strip above it.
 
 ## Artifact slice layout (2026-10-08, FSD)
 `features/artifacts/<id>/` = `manifest.ts` + `ui/` (components + css) + `model/` (hooks, state) + `api/` (backend

@@ -2,6 +2,15 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-08 `978965ec` Centre column = agent conversation, multi-agent (user: "대지 고르면 오케스트라에서 LAW로 뜨는
+  대화창에 그게 떠야 해, ChatGPT나 Claude처럼" + "멀티에이전트니까 설계 잘해야"). Feed entries carry `agent`
+  (`site_context` / `law` / `revision` / `orchestrator`; kind `user` for the user's own lines). `thread.ts` folds
+  consecutive lines of the same agent in the same run into one turn; `AgentConversation.tsx` renders user bubbles
+  (right), receipts (centred), agent turns (mark = label initial, Orchestrator mark = accent; steps folded under the
+  lead line, folded 진행 중 dots rest), Law tiles, evidence chips, the Orchestrator's question with answer buttons, a
+  disabled composer ("다음 단계에서 연결"). Shell picks it unless `manifest.conversation === 'page'` (cad). The busy
+  '전달하는 중' line is dismissed in both start paths' `finally`. 275 tests. Open: after a reload the thread is empty
+  while the card shows 선택됨 (selection is announced only on save); composer input not wired.
 - 2026-10-08 `1186aad0` 검토 시작 answers at once + fast polling. Measured through the editor door with 1 s polls
   (scratchpad time_run.py): context 0.35 s, submit 0.83 s, 대지 +3.9 s, 법규 +6.3 s (Law itself ~2.4 s), 검토 조정 +7.5,
   end +8.7 s — "법규 검색이 느리다" was the UI's 3 s cadence + silence until the POST answered. Now `requestingLine`
