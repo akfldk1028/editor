@@ -1,21 +1,38 @@
 #!/usr/bin/env node
-// agent-host: node infra/host/cli.mjs start [ids...] [--with-agents] | ensure <ids...> [--json] [--timeout=<s>] | stop [ids...] | status | restart <id> | daemon
+// agent-host: node infra/host/cli.mjs start [ids...] [--with-agents] | ensure <ids...> [--json] [--timeout=<s>] | stop [ids...] | status [--json] | restart <id> | restart-daemon | daemon
 // `ensure` = start + wait until each id answers its health URL (the editor backend calls it with --json).
 // `start` launches a detached daemon (this file, `daemon`) that owns the health loop and
 // survives the shell that started it; `stop` kills it through runtime/host/daemon.json;
 // `status` probes directly and needs no daemon.
+import { readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENSURE_DEFAULTS, waitHealthy } from './ensure.mjs';
 import { selectEntries } from './policy.mjs';
-import { isAlive, killTree, spawnDetached } from './processes.mjs';
+import { isAlive, killOne, killTree, spawnDetached } from './processes.mjs';
 import { byId, services } from './registry.mjs';
-import { ensureDirs, hostPaths, readJson, readRecord, readWanted, recordedIds, remove, writeJson, writeWanted } from './state.mjs';
+import { appendEvent, ensureDirs, hostPaths, readHealth, readJson, readRecord, readWanted, recordedIds, remove, writeJson, writeWanted } from './state.mjs';
 import { formatTable, statusRows } from './status.mjs';
 import { Supervisor } from './supervise.mjs';
 
 const SELF = fileURLToPath(import.meta.url);
 const paths = hostPaths();
+const HOST_DIR = resolve(SELF, '..');
+const SNAPSHOT_FRESH_MS = 10_000;
+
+/** The newest mtime of the host code and the registry: the daemon records it, status compares (stale = restart-daemon). */
+function codeStamp() {
+  const files = [...readdirSync(HOST_DIR).filter(name => name.endsWith('.mjs') && !name.endsWith('.test.mjs')).map(name => resolve(HOST_DIR, name)),
+                 resolve(HOST_DIR, '../config/services.json')];
+  return Math.max(...files.map(file => statSync(file).mtimeMs));
+}
+
+/** Entries the daemon's last tick (<= 10 s old) already saw up: ensure and status need not probe them. */
+function freshUp(ids) {
+  const snapshot = readHealth(paths);
+  if (!snapshot || Date.now() - Date.parse(snapshot.at) > SNAPSHOT_FRESH_MS) return new Set();
+  return new Set(ids.filter(id => snapshot.services?.[id]?.up === true));
+}
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 const stamp = () => new Date().toISOString();
 
@@ -31,11 +48,20 @@ function daemonPid() {
   return pid && isAlive(pid) ? pid : null;
 }
 
-async function status(ids = []) {
+async function status(ids = [], { json = false } = {}) {
   const rows = await statusRows(ids.length ? ids.map(byId) : services(), paths);
-  console.log(formatTable(rows));
   const pid = daemonPid();
-  console.log(`\ndaemon: ${pid ? `pid ${pid}, keeping [${readWanted(paths).join(', ')}]` : 'not running'}  (pid? = listener the host did not start)`);
+  const daemonRecord = readJson(paths.daemon);
+  const stale = Boolean(pid && daemonRecord?.codeStamp && codeStamp() > daemonRecord.codeStamp);
+  const snapshot = readHealth(paths);
+  if (json) {
+    console.log(JSON.stringify({ daemon: { pid, wanted: readWanted(paths), stale }, snapshotAt: snapshot?.at ?? null,
+      services: rows.map(row => ({ ...row, state: snapshot?.services?.[row.id]?.state ?? (row.up ? 'up' : 'down') })) }));
+    return;
+  }
+  console.log(formatTable(rows));
+  const staleNote = stale ? ' -- STALE: host code or registry changed, run restart-daemon' : '';
+  console.log(`\ndaemon: ${pid ? `pid ${pid}, keeping [${readWanted(paths).join(', ')}]${staleNote}` : 'not running'}  (pid? = listener the host did not start)`);
 }
 
 /** Adds the ids to the daemon's wanted set (starting the daemon when none runs) and returns their entries. */
@@ -62,11 +88,18 @@ async function start(ids, withAgents) {
   await status(entries.map(entry => entry.id));
 }
 
-/** start + wait for health; `--json` prints { up, failed, waitedMs } only (the backend's door reads it). */
+/** start + wait for health; `--json` prints { up, failed, waitedMs } only (the backend's door reads it).
+ *  Entries the daemon saw up within 10 s are not probed again; one the daemon gave up on fails at once. */
 async function ensure(ids, { json = false, timeoutMs = null } = {}) {
   if (!ids.length) throw new Error('usage: ensure <id...>');
   const entries = launch(ids, false, json ? () => {} : console.log);
-  const result = await waitHealthy(entries, { timeoutMs: timeoutMs ?? ENSURE_DEFAULTS.timeoutMs });
+  const already = freshUp(ids);
+  const gaveUp = new Set(ids.filter(id => readHealth(paths)?.services?.[id]?.state === 'gave_up'));
+  const pending = entries.filter(entry => !already.has(entry.id) && !gaveUp.has(entry.id));
+  const waited = await waitHealthy(pending, { timeoutMs: timeoutMs ?? ENSURE_DEFAULTS.timeoutMs });
+  const result = { up: ids.filter(id => already.has(id) || waited.up.includes(id)),
+                   failed: [...waited.failed, ...[...gaveUp].map(id => ({ id, error: 'gave up: restart it by hand' }))], waitedMs: waited.waitedMs };
+  appendEvent(paths, { kind: 'ensure', ids, up: result.up, failed: result.failed.map(f => f.id), waitedMs: result.waitedMs });
   if (json) {
     console.log(JSON.stringify(result));
   } else {
@@ -109,9 +142,24 @@ async function restart(id) {
   await status([id]);
 }
 
+/** Stops only the daemon (services keep running and are adopted back) and starts a fresh one on the current code. */
+async function restartDaemon() {
+  const previous = readJson(paths.daemon);
+  const pid = daemonPid();
+  if (pid) {
+    killOne(pid);
+    remove(paths.daemon);
+    console.log(`daemon pid ${pid} stopped (services left running)`);
+  }
+  const withAgents = Boolean(previous?.withAgents);
+  const fresh = spawnDetached(process.execPath, [SELF, 'daemon', ...(withAgents ? ['--with-agents'] : [])],
+    { cwd: paths.runtime, env: process.env, logPath: paths.log('daemon'), errPath: paths.err('daemon') });
+  console.log(`daemon started: pid ${fresh}, keeping [${readWanted(paths).join(', ')}]`);
+}
+
 async function daemon(withAgents) {
   ensureDirs(paths);
-  writeJson(paths.daemon, { pid: process.pid, startedAt: stamp(), withAgents });
+  writeJson(paths.daemon, { pid: process.pid, startedAt: stamp(), withAgents, codeStamp: codeStamp() });
   const supervisor = new Supervisor(services(), () => readWanted(paths), { withAgents, log: line => console.log(`${stamp()} ${line}`) });
   const halt = () => { supervisor.halt(); remove(paths.daemon); process.exit(0); };
   process.on('SIGINT', halt);
@@ -124,15 +172,16 @@ async function daemon(withAgents) {
 async function main(argv) {
   const { command, ids, withAgents, json, timeoutMs } = parseArgs(argv);
   switch (command) {
-    case 'status': return status(ids);
+    case 'status': return status(ids, { json });
     case 'start': return start(ids, withAgents);
     case 'ensure': return ensure(ids, { json, timeoutMs });
+    case 'restart-daemon': return restartDaemon();
     case 'stop': return stop(ids);
     case 'restart':
       if (ids.length !== 1) throw new Error('usage: restart <id>');
       return restart(ids[0]);
     case 'daemon': return daemon(withAgents);
-    default: throw new Error(`unknown command "${command}"; use start|ensure|stop|status|restart`);
+    default: throw new Error(`unknown command "${command}"; use start|ensure|stop|status|restart|restart-daemon`);
   }
 }
 

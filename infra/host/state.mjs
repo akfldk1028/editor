@@ -1,6 +1,6 @@
 // Files the host keeps between runs under runtime/host (pid records, the wanted set, the
 // daemon's own record) and where service output lands (logs/host). Both are gitignored.
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +15,10 @@ export function hostPaths(root = EDITOR_ROOT) {
     logs,
     daemon: resolve(runtime, 'daemon.json'),
     wanted: resolve(runtime, 'wanted.json'),
+    // The daemon's last tick: {at, services: {id: {up, pid, state, failures, restarts}}}; readers trust it for a few seconds.
+    health: resolve(runtime, 'health.json'),
+    // One JSON line per lifecycle event (start, adopt, restart, stop, spawn-error, gave-up, ensure).
+    events: resolve(runtime, 'events.jsonl'),
     record: id => resolve(runtime, `${id}.json`),
     log: id => resolve(logs, `${id}.log`),
     err: id => resolve(logs, `${id}.err`),
@@ -52,6 +56,18 @@ export function writeRecord(paths, id, record) {
   writeJson(paths.record(id), record);
 }
 
+export function readHealth(paths) {
+  return readJson(paths.health);
+}
+
+export function writeHealth(paths, snapshot) {
+  writeJson(paths.health, snapshot);
+}
+
+export function appendEvent(paths, event) {
+  appendFileSync(paths.events, JSON.stringify({ at: new Date().toISOString(), ...event }) + '\n');
+}
+
 export function readWanted(paths) {
   return readJson(paths.wanted)?.ids ?? [];
 }
@@ -64,6 +80,6 @@ export function writeWanted(paths, ids) {
 export function recordedIds(paths) {
   if (!existsSync(paths.runtime)) return [];
   return readdirSync(paths.runtime)
-    .filter(name => name.endsWith('.json') && !['daemon.json', 'wanted.json'].includes(name))
+    .filter(name => name.endsWith('.json') && !['daemon.json', 'wanted.json', 'health.json'].includes(name))
     .map(name => name.slice(0, -'.json'.length));
 }

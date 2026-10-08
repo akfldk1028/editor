@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { DEFAULTS, backoffMs, decide, defaultSet, initialState, nextTickMs, selectEntries, startOrder } from './policy.mjs';
+import { DEFAULTS, backoffMs, decide, defaultSet, describeState, initialState, nextTickMs, selectEntries, startOrder } from './policy.mjs';
 import { services } from './registry.mjs';
 
 const T0 = 1_000_000;
@@ -120,4 +120,22 @@ test('the loop wakes early for a pending restart and otherwise sleeps the interv
   assert.equal(nextTickMs([initialState()], T0), DEFAULTS.intervalMs);
   assert.equal(nextTickMs([{ ...initialState(), dueAt: T0 + 3_000 }, initialState()], T0), 3_000);
   assert.equal(nextTickMs([{ ...initialState(), dueAt: T0 - 1 }], T0), 0);
+});
+
+test('after giveUpAfter restarts without health the policy gives up once and then stays quiet until health returns', () => {
+  const options = { ...DEFAULTS, failureThreshold: 1, giveUpAfter: 2, backoffMs: [0] };
+  let state = { ...initialState(), restarts: 2, startedAt: 0 };
+  const dead = { up: false, known: true, alive: false };
+  let next = decide(state, dead, 100_000, options);
+  assert.equal(next.action, 'give-up');
+  assert.equal(next.state.gaveUp, true);
+  next = decide(next.state, dead, 200_000, options);
+  assert.equal(next.action, 'none', 'no more launches after giving up');
+  next = decide(next.state, { up: true, known: true, alive: true }, 300_000, options);
+  assert.equal(next.state.gaveUp, false, 'health (someone restarted it by hand) clears the flag');
+  assert.equal(describeState(next.state, { up: true }), 'up');
+  assert.equal(describeState({ ...initialState(), gaveUp: true }, { up: false, alive: false }), 'gave_up');
+  assert.equal(describeState({ ...initialState(), dueAt: 5 }, { up: false, alive: false }), 'restarting');
+  assert.equal(describeState({ ...initialState(), startedAt: 1 }, { up: false, alive: true }), 'starting');
+  assert.equal(describeState(initialState(), { up: false, alive: false }), 'down');
 });

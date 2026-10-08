@@ -61,6 +61,16 @@ export function killTree(pid) {
   try { process.kill(pid, 'SIGTERM'); } catch { /* already gone */ }
 }
 
+/** Ends one process and nothing it spawned: the daemon's own restart leaves its detached services running. */
+export function killOne(pid) {
+  if (!isAlive(pid)) return;
+  if (win32) {
+    spawnSync('taskkill', ['/PID', String(pid), '/F'], { stdio: 'ignore', windowsHide: true });
+    return;
+  }
+  try { process.kill(pid, 'SIGTERM'); } catch { /* already gone */ }
+}
+
 /**
  * KEY=value lines (quotes stripped, `export ` and comments ignored); missing file -> {}. A value may
  * reference earlier keys or the process env the shell way — `${NAME}` / `${NAME:-default}` — because
@@ -108,7 +118,7 @@ export function resolveCommand(command, cwd, env = process.env) {
  * stdout/stderr appended to the given files. Returns the child's pid. Node refuses to run .cmd
  * launchers without a shell, so those go through one (taskkill /T still reaches the tree).
  */
-export function spawnDetached(command, args, { cwd, env, logPath, errPath }) {
+export function spawnDetached(command, args, { cwd, env, logPath, errPath, onError = null }) {
   const out = openSync(logPath, 'a');
   const err = openSync(errPath, 'a');
   const resolved = isAbsolute(command) ? command : resolveCommand(command, cwd, env);
@@ -117,6 +127,9 @@ export function spawnDetached(command, args, { cwd, env, logPath, errPath }) {
     const child = spawn(resolved, shell ? args.map(quoteForShell) : args, {
       cwd, env, shell, detached: true, windowsHide: true, stdio: ['ignore', out, err],
     });
+    // A missing executable arrives as an asynchronous 'error' event; unhandled, it killed the whole daemon
+    // (2026-10-08: `spawn bun ENOENT` for one entry took every supervised service's keeper down).
+    child.on('error', error => { if (onError) onError(error); });
     child.unref();
     return child.pid ?? null;
   } finally {

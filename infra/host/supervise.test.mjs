@@ -155,3 +155,46 @@ test('a service nobody wants any more drops out of the loop without being killed
     cleanup();
   }
 });
+
+test('a missing executable does not kill the loop: the tick survives, the spawn error is in the ledger, and the health snapshot is written', async () => {
+  const { root, paths, entryFor, cleanup } = fixture();
+  const port = await freePort();
+  const entry = { ...entryFor(port), id: 'ghost', start: { cwd: 'svc', cmd: ['no-such-executable-xyz', '--port', '{port}'], env_file: null } };
+  const log = [];
+  const supervisor = new Supervisor([entry], () => ['ghost'], { root, paths, policy: FAST, log: line => log.push(line) });
+  try {
+    const first = await supervisor.tick();
+    assert.equal(first[0].action, 'start');
+    await sleep(300);
+    const second = await supervisor.tick();
+    assert.ok(['none', 'wait', 'restart'].includes(second[0].action), JSON.stringify(second));
+    assert.ok(log.some(line => line.startsWith('[spawn-error] ghost: ENOENT')), log.join('\n'));
+    const events = readFileSync(paths.events, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    assert.ok(events.some(event => event.kind === 'spawn-error' && event.id === 'ghost' && event.error === 'ENOENT'));
+    const snapshot = JSON.parse(readFileSync(resolve(paths.runtime, 'health.json'), 'utf8'));
+    assert.equal(snapshot.services.ghost.up, false);
+    assert.ok(['down', 'starting', 'restarting'].includes(snapshot.services.ghost.state));
+  } finally {
+    supervisor.halt();
+    const record = readRecord(paths, 'ghost');
+    if (record?.pid) killTree(record.pid);
+    rmSync(root, { recursive: true, force: true });
+    cleanup();
+  }
+});
+
+test('a tick probes every entry in parallel: two slow probes cost one probe time, not two', async () => {
+  const { root, paths, entryFor, cleanup } = fixture();
+  const entries = [{ ...entryFor(1), id: 'a' }, { ...entryFor(2), id: 'b' }];
+  const probe = async () => { await sleep(300); return { up: true, status: 200, latencyMs: 300 }; };
+  const supervisor = new Supervisor(entries, () => ['a', 'b'], { root, paths, policy: FAST, probe, processes: { listenerPid: () => 4242, processStartTime: () => null, isAlive: () => true } });
+  try {
+    const started = Date.now();
+    const actions = await supervisor.tick();
+    const took = Date.now() - started;
+    assert.deepEqual(actions.map(action => [action.id, action.action, action.up]), [['a', 'none', true], ['b', 'none', true]]);
+    assert.ok(took < 550, `tick took ${took} ms`);
+  } finally {
+    cleanup();
+  }
+});

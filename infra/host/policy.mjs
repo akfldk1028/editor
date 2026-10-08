@@ -7,6 +7,9 @@ export const DEFAULTS = Object.freeze({
   backoffMs: Object.freeze([5_000, 10_000, 20_000, 60_000]),
   healthyResetMs: 60_000,
   startupGraceMs: 60_000,
+  // After this many consecutive restarts without a healthy stretch the host gives up (state.gaveUp): no more
+  // launches until someone `restart`s it, and `ensure` reports the entry failed at once instead of waiting.
+  giveUpAfter: 6,
 });
 
 /** Entries the host keeps alive by default: persistent editor-owned services; the Orchestrator
@@ -51,7 +54,16 @@ export function startOrder(entries) {
 }
 
 export function initialState() {
-  return { failures: 0, restarts: 0, healthySince: null, dueAt: null, startedAt: null };
+  return { failures: 0, restarts: 0, healthySince: null, dueAt: null, startedAt: null, gaveUp: false };
+}
+
+/** The one-word state a reader (status, ensure, the system artifact) shows for an entry. */
+export function describeState(state, observation) {
+  if (observation.up) return 'up';
+  if (state.gaveUp) return 'gave_up';
+  if (state.dueAt !== null) return 'restarting';
+  if (state.startedAt !== null && observation.alive) return 'starting';
+  return 'down';
 }
 
 export function backoffMs(restarts, options = DEFAULTS) {
@@ -75,8 +87,9 @@ export function decide(state, observation, now, options = DEFAULTS) {
   if (observation.up) {
     const healthySince = state.healthySince ?? now;
     const restarts = now - healthySince >= options.healthyResetMs ? 0 : state.restarts;
-    return { state: { ...state, failures: 0, restarts, healthySince, dueAt: null }, action: 'none' };
+    return { state: { ...state, failures: 0, restarts, healthySince, dueAt: null, gaveUp: false }, action: 'none' };
   }
+  if (state.gaveUp) return { state, action: 'none' };
   if (!observation.known && state.restarts === 0) {
     return { state: { ...state, failures: 0, healthySince: null, dueAt: null, startedAt: now }, action: 'start' };
   }
@@ -87,9 +100,12 @@ export function decide(state, observation, now, options = DEFAULTS) {
   if (failures < options.failureThreshold) {
     return { state: { ...state, failures, healthySince: null }, action: 'none' };
   }
+  if (state.restarts >= (options.giveUpAfter ?? Infinity)) {
+    return { state: { ...state, failures, healthySince: null, dueAt: null, gaveUp: true }, action: 'give-up' };
+  }
   const dueAt = state.dueAt ?? now + backoffMs(state.restarts, options);
   if (now < dueAt) return { state: { ...state, failures, healthySince: null, dueAt }, action: 'wait' };
-  return { state: { failures: 0, restarts: state.restarts + 1, healthySince: null, dueAt: null, startedAt: now }, action: 'restart' };
+  return { state: { failures: 0, restarts: state.restarts + 1, healthySince: null, dueAt: null, startedAt: now, gaveUp: false }, action: 'restart' };
 }
 
 /** Milliseconds until the loop should look again: sooner when a restart is pending. */

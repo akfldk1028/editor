@@ -1,11 +1,11 @@
 // The supervisor: adopts or launches registry entries detached, watches their health and
 // restarts them under policy.mjs. All I/O lives here; decisions come from policy.mjs.
 import { resolve } from 'node:path';
-import { DEFAULTS, decide, initialState, nextTickMs, selectEntries, startOrder } from './policy.mjs';
+import { DEFAULTS, decide, describeState, initialState, nextTickMs, selectEntries, startOrder } from './policy.mjs';
 import { probe as probeEntry } from './probe.mjs';
 import * as os from './processes.mjs';
 import { startCommand } from './registry.mjs';
-import { ACE_ROOT, ensureDirs, hostPaths, readRecord, remove, writeRecord } from './state.mjs';
+import { ACE_ROOT, appendEvent, ensureDirs, hostPaths, readRecord, remove, writeHealth, writeRecord } from './state.mjs';
 
 const sleep = ms => new Promise(done => setTimeout(done, ms));
 
@@ -50,7 +50,7 @@ export class Supervisor {
     if (!pid) return { record: existing, alive: false };
     const adopted = { pid, startedAt: this.os.processStartTime(pid) ?? new Date().toISOString(), cmd: null, adopted: true };
     writeRecord(this.paths, entry.id, adopted);
-    this.log(`[adopt] ${entry.id}: pid ${pid} already listens on ${entry.port}`);
+    this.event('adopt', entry.id, { pid, port: entry.port }, `[adopt] ${entry.id}: pid ${pid} already listens on ${entry.port}`);
     return { record: adopted, alive: true };
   }
 
@@ -60,20 +60,39 @@ export class Supervisor {
     return { record, health, known: record !== null, alive, up: health.up === true };
   }
 
+  /** One look at every wanted entry: probes run in parallel (a tick costs one probe timeout, not n of them),
+   *  decisions apply in start order, then the health snapshot is written for status/ensure to read. */
   async tick(now = Date.now()) {
     const actions = [];
-    for (const entry of this.entries()) {
-      if (this.stopped) break;
-      const observation = await this.observe(entry);
+    const entries = this.entries();
+    const observations = await Promise.all(entries.map(entry => this.observe(entry)));
+    const snapshot = { at: new Date(now).toISOString(), services: {} };
+    entries.forEach((entry, index) => {
+      if (this.stopped) return;
+      const observation = observations[index];
       const state = this.states.get(entry.id) ?? initialState();
       const decision = decide(state, observation, now, this.policy);
       this.states.set(entry.id, decision.state);
       if (decision.action === 'start') this.start(entry);
       if (decision.action === 'restart') this.restart(entry, observation.record);
       if (decision.action === 'wait') this.log(`[wait] ${entry.id}: restart due in ${Math.max(0, decision.state.dueAt - now)} ms`);
-      actions.push({ id: entry.id, action: decision.action, up: observation.up, pid: observation.alive ? observation.record.pid : null });
-    }
+      if (decision.action === 'give-up') {
+        this.event('gave-up', entry.id, { restarts: decision.state.restarts, error: observation.health.error ?? null },
+          `[gave-up] ${entry.id}: ${decision.state.restarts} restarts without health; restart ${entry.id} by hand to try again`);
+      }
+      const pid = observation.alive ? observation.record.pid : null;
+      actions.push({ id: entry.id, action: decision.action, up: observation.up, pid });
+      snapshot.services[entry.id] = { up: observation.up, pid, state: describeState(decision.state, observation),
+        failures: decision.state.failures, restarts: decision.state.restarts, version: observation.health.version ?? null };
+    });
+    writeHealth(this.paths, snapshot);
     return actions;
+  }
+
+  /** A lifecycle event: one JSON line in events.jsonl plus the human log line. */
+  event(kind, id, detail = {}, line = null) {
+    try { appendEvent(this.paths, { kind, id, ...detail }); } catch { /* the ledger never stops the loop */ }
+    if (line) this.log(line);
   }
 
   start(entry) {
@@ -82,10 +101,11 @@ export class Supervisor {
     const fileEnv = entry.start.env_file ? this.os.readEnvFile(resolve(cwd, entry.start.env_file)) : {};
     const pid = this.os.spawnDetached(cmd[0], cmd.slice(1), {
       cwd, env: { ...this.env, ...fileEnv }, logPath: this.paths.log(entry.id), errPath: this.paths.err(entry.id),
+      onError: error => this.event('spawn-error', entry.id, { error: error?.code ?? String(error) }, `[spawn-error] ${entry.id}: ${error?.code ?? error}`),
     });
     const record = { pid, startedAt: new Date().toISOString(), cmd, adopted: false };
     writeRecord(this.paths, entry.id, record);
-    this.log(`[start] ${entry.id}: pid ${pid} <- ${cmd.join(' ')}`);
+    this.event('start', entry.id, { pid, cmd }, `[start] ${entry.id}: pid ${pid} <- ${cmd.join(' ')}`);
     return record;
   }
 
@@ -93,7 +113,7 @@ export class Supervisor {
     const alive = record && this.os.isAlive(record.pid);
     if (alive) this.os.killTree(record.pid);
     remove(this.paths.record(entry.id));
-    this.log(`[restart] ${entry.id}: ${alive ? `killed pid ${record.pid}` : `pid ${record?.pid ?? '-'} was gone`}`);
+    this.event('restart', entry.id, { pid: record?.pid ?? null, alive }, `[restart] ${entry.id}: ${alive ? `killed pid ${record.pid}` : `pid ${record?.pid ?? '-'} was gone`}`);
     return this.start(entry);
   }
 
@@ -102,7 +122,7 @@ export class Supervisor {
     if (record) this.os.killTree(record.pid);
     remove(this.paths.record(entry.id));
     this.states.delete(entry.id);
-    this.log(`[stop] ${entry.id}: pid ${record?.pid ?? '-'}`);
+    this.event('stop', entry.id, { pid: record?.pid ?? null }, `[stop] ${entry.id}: pid ${record?.pid ?? '-'}`);
     return record;
   }
 
