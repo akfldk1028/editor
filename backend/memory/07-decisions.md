@@ -87,6 +87,9 @@ be told to the Orchestrator session.
   catalogs, the owners' serve scripts and editor_api.py agree with it. Findings for the Orchestrator session:
   a2a.ps1 lists 15 agents (not 16); SiteContext's serve-a2a.sh reads SITE_A2A_URL while everyone else says
   SITE_CONTEXT_A2A_URL; Program/KMass/Systems/DomainExpert/Interior read no *_A2A_URL at all (catalog-only).
+- 2026-10-09 (MasterPlan session) rows performance handed to Codex: docs/handoff/codex-rows-performance-20261009.md.
+  Profile: 85 % of row_candidates is per-stall shapely box() (220k calls, 29.6 s) and the shapely decorator's
+  inspect.signature (644k calls, 21.9 s). Constraint: outputs byte-identical (golden WKT, parcel hashes), then speed.
 - 2026-10-08 (MasterPlan session) rows.py: `row_candidates` received the enclosed ground floor as
   `occupied_footprint` but cut the road corridor, the ramp's open part, the at-grade landing and the turn bay
   against the whole footprint, so under a piloti no row scheme ever had an entrance (고산 with the practice
