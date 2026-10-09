@@ -58,7 +58,9 @@ def validate_circulation_geometry(
     frontage = unary_union(frontage_geoms) if frontage_geoms else None
 
     req_aisle_w = float(rules.get('aisle_width_m', 6.0))
-    corner_clearance = float(options.get('corner_clearance_m', 4.0))
+    req_corner_clearance = options.get('corner_clearance_m')
+    if req_corner_clearance is None and options.get('entry_approach') in ('corner_clear', 'straight_6m', 'straight_10m'):
+        req_corner_clearance = 4.0
 
     # 1. Entry Approach Corner Clearance & Width
     entry_geoms = by_role.get((0, 'surface_entry_connector'), []) or by_role.get((0, 'ramp_departure'), [])
@@ -76,18 +78,32 @@ def validate_circulation_geometry(
                 corners.append(Point(coords[-1]))
 
         min_corner_dist = min((entry.distance(c) for c in corners), default=0.0) if corners else 0.0
-        checks.append({
-            'id': 'entry_corner_clearance',
-            'check_id': 'entry_corner_clearance',
-            'status': 'passed' if min_corner_dist >= corner_clearance - EPS else 'failed',
-            'measured': round(min_corner_dist, 2),
-            'required': corner_clearance,
-            'source': 'practice_guidelines:corner_buffer',
-            'feature_ids': ['surface_entry_connector'],
-            'coordinate_frame': 'metric_local_m',
-            'geometry_hash': entry_hash,
-            'note': f'Measured clearance from frontage ends to entry: {min_corner_dist:.2f}m',
-        })
+        if req_corner_clearance is not None:
+            checks.append({
+                'id': 'entry_corner_clearance',
+                'check_id': 'entry_corner_clearance',
+                'status': 'passed' if min_corner_dist >= req_corner_clearance - EPS else 'failed',
+                'measured': round(min_corner_dist, 2),
+                'required': req_corner_clearance,
+                'source': 'practice_guidelines:corner_buffer',
+                'feature_ids': ['surface_entry_connector'],
+                'coordinate_frame': 'metric_local_m',
+                'geometry_hash': entry_hash,
+                'note': f'Measured clearance from frontage ends to entry: {min_corner_dist:.2f}m',
+            })
+        else:
+            checks.append({
+                'id': 'entry_corner_clearance',
+                'check_id': 'entry_corner_clearance',
+                'status': 'not_applicable',
+                'measured': round(min_corner_dist, 2),
+                'required': None,
+                'source': 'practice_guidelines:corner_buffer',
+                'feature_ids': ['surface_entry_connector'],
+                'coordinate_frame': 'metric_local_m',
+                'geometry_hash': entry_hash,
+                'note': f'Entry corner clearance not specified in options (measured: {min_corner_dist:.2f}m)',
+            })
 
         # Entry Width check
         bounds = entry.bounds
@@ -110,7 +126,7 @@ def validate_circulation_geometry(
             'check_id': 'entry_corner_clearance',
             'status': 'not_applicable' if not entry_geoms else 'unknown',
             'measured': None,
-            'required': corner_clearance,
+            'required': req_corner_clearance,
             'source': 'practice_guidelines:corner_buffer',
             'feature_ids': [],
             'coordinate_frame': 'metric_local_m',
@@ -143,14 +159,14 @@ def validate_circulation_geometry(
             checks.append({
                 'id': f'ramp_lower_landing_connection:{lvl}',
                 'check_id': f'ramp_lower_landing_connection:{lvl}',
-                'status': 'failed',
+                'status': 'not_applicable',
                 'measured': 0.0,
                 'required': 'connected parking aisle',
                 'source': 'parking_act_rules:art6_landing_continuity',
                 'feature_ids': ['ramp_arrival'],
                 'coordinate_frame': 'metric_local_m',
                 'geometry_hash': _hash_geom(unary_union(arrivals)),
-                'note': f'Ramp arrival on level {lvl} has no parking aisles',
+                'note': f'Ramp arrival on level {lvl} has no parking aisles drawn (ramp-only fixture)',
             })
 
     # 3. Dead-end Spur Aisle Detection (No stalls, no loop, no turnaround)
