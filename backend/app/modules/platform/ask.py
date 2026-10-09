@@ -104,7 +104,7 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
     dated = {'assessment_date': assessment_date} if assessment_date else {}
     land_args = {'input': pnu, 'input_type': 'pnu', 'full': True, 'include_law': True, 'building_type': building_type or '',
                  'floor_area_m2': floor_area_m2, **dated}
-    limits_args = {'pnu': pnu, **({'building_type': building_type} if building_type else {})}
+    limits_args = {'pnu': pnu, **({'building_type': building_type} if building_type else {}), **dated}
 
     async def hop(tool, args):
         span = Span.start(recorder, parent, agent='law', conversation_id=f'editor:law-analysis:{pnu}')

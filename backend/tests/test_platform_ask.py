@@ -177,7 +177,7 @@ def test_analyze_land_asks_both_law_tools_and_answers_the_analysis_with_its_limi
     tools = {tool: args for tool, args, _ in calls}
     assert tools['law_land_analyze'] == {'input': '4115011300106840001', 'input_type': 'pnu', 'full': True, 'include_law': True, 'building_type': '업무시설',
                                         'floor_area_m2': None, 'assessment_date': '2026-10-08'}
-    assert tools['law_parcel_limits'] == {'pnu': '4115011300106840001', 'building_type': '업무시설'}
+    assert tools['law_parcel_limits'] == {'pnu': '4115011300106840001', 'building_type': '업무시설', 'assessment_date': '2026-10-08'}
     assert {trace['tool'] for _, _, trace in calls} == {'law_land_analyze', 'law_parcel_limits'}
     assert len({trace['trace_id'] for _, _, trace in calls}) == 1
     assert answer['analysis'] is LAND['raw'] or answer['analysis'] == LAND['raw']

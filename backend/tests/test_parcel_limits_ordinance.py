@@ -32,7 +32,7 @@ def test_parcel_limits_carries_the_receipt(monkeypatch):
     from backend.app.modules.design.generation.maas.massv2 import legal, parcel_policy
     site = SimpleNamespace(parcel_area_m2=1000.0, ground_capacity_m2=600.0, far_capacity_m2=2500.0,
                            max_storeys=None, regulation=REGULATION, evidence=lambda: {'schema_version': 'x'})
-    monkeypatch.setattr(legal, 'load_legal_site', lambda pnu, building_type=None: site)
+    monkeypatch.setattr(legal, 'load_legal_site', lambda pnu, building_type=None, assessment_date=None: site)
     monkeypatch.setattr(parcel_policy, 'policy_for', lambda pnu: {})
     request = RequestFactory().post('/law/agent/parcel-limits/', data=json.dumps({'pnu': '4115011300106840001'}),
                                     content_type='application/json')
@@ -50,3 +50,24 @@ def test_a_street_block_ceiling_without_a_number_is_needs_evidence_not_resolved(
     assert valued['height_status'] == 'valued' and valued['height_overlays'][0]['values'] == {'max_height_m': 20}
     assert _height_evidence(['일반상업지역'])['height_status'] == 'no_height_overlay'
     assert _height_evidence(['최저고도지구'])['height_status'] == 'valued'   # a floor is not a missing ceiling
+
+
+def test_parcel_limits_passes_the_callers_assessment_date_and_refuses_a_bad_one(monkeypatch):
+    from backend.app.modules.design.generation.maas.massv2 import legal, parcel_policy
+    seen = []
+    site = SimpleNamespace(parcel_area_m2=1000.0, ground_capacity_m2=600.0, far_capacity_m2=2000.0,
+                           max_storeys=None, regulation=REGULATION, evidence=lambda: {})
+
+    def load(pnu, building_type=None, assessment_date=None):
+        seen.append(assessment_date)
+        return site
+    monkeypatch.setattr(legal, 'load_legal_site', load)
+    monkeypatch.setattr(parcel_policy, 'policy_for', lambda pnu: {})
+
+    def post(body):
+        return law.parcel_limits(RequestFactory().post('/law/agent/parcel-limits/', data=json.dumps(body), content_type='application/json'))
+    assert post({'pnu': '4115011200109610003', 'assessment_date': '2026-10-09'}).status_code == 200
+    assert post({'pnu': '4115011200109610003'}).status_code == 200
+    assert seen == ['2026-10-09', None]
+    assert post({'pnu': '4115011200109610003', 'assessment_date': '2026-02-30'}).status_code == 400
+    assert post({'pnu': '4115011200109610003', 'assessment_date': 20261009}).status_code == 400

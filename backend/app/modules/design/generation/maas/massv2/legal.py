@@ -175,7 +175,7 @@ class LegalSite:
         }
 
 
-def load_legal_site(pnu: str, *, building_type: str | None = None) -> LegalSite:
+def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_date: str | None = None) -> LegalSite:
     """Resolve one parcel into the limits the form language generates against."""
 
     building_type = default_building_type(pnu, building_type)
@@ -258,6 +258,8 @@ def load_legal_site(pnu: str, *, building_type: str | None = None) -> LegalSite:
         sigungu_code=pnu[:5],
         zone_areas=areas,
         use_llm_extraction=False,
+        # The caller's 기준일 (the law screen's), else the calculator's default (the server's date).
+        **({'assessment_date': assessment_date} if assessment_date else {}),
     )
     try:
         constraints = regulations_to_constraints(regulation)

@@ -15,8 +15,9 @@ Kept out of views.py on purpose: this is the agent seam, not the frontend API. F
     POST /law/agent/parking-design-rules/  {required_spaces, ...options}   -> design.maas.masterplan.rules.parking_design_rules
     POST /law/agent/parking-count/         {zone_names, sigungu_code?, building_type?, floor_area_m2?, program_uses?,
                                             assessment_date?}              -> land.reference.services.regulation_calculator.calculate_all
-    POST /law/agent/parcel-limits/         {pnu, building_type?}           -> massv2 legal.load_legal_site + parcel_policy.policy_for
+    POST /law/agent/parcel-limits/         {pnu, building_type?, assessment_date?} -> massv2 legal.load_legal_site + parcel_policy.policy_for
 """
+from datetime import date
 import json
 import os
 import re
@@ -190,10 +191,18 @@ def parcel_limits(request):
     if not re.fullmatch(r"[0-9]{19}", pnu):
         return _bad("PNU must contain exactly 19 ASCII digits")
     building_type = str(body.get("building_type") or "업무시설")
+    assessment_date = body.get("assessment_date")
+    if assessment_date is not None:
+        try:
+            if not isinstance(assessment_date, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", assessment_date):
+                raise ValueError
+            date.fromisoformat(assessment_date)
+        except ValueError:
+            return _bad("assessment_date must be YYYY-MM-DD")
     try:
         from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site
         from backend.app.modules.design.generation.maas.massv2.parcel_policy import policy_for
-        site = load_legal_site(pnu, building_type=building_type)
+        site = load_legal_site(pnu, building_type=building_type, assessment_date=assessment_date)
     except Exception as exc:
         return _failed(exc)
     parcel_area = float(site.parcel_area_m2)
