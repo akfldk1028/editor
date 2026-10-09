@@ -165,16 +165,9 @@ def solve_basement_level(slab, ramp, obstacles, rooms, rules, required, accessib
         return None
     results=[]
     def rank(p, zone):
-        construction=union_or_empty([p['drive'],ramp['polygon'],obstacles,
-            zone['zone'] if zone else Polygon(),*[s['polygon'] for s in p['stalls']]]).convex_hull.intersection(slab)
-        # The loop wins here when it costs NO cars: `provided` is capped at what was asked for, so a
-        # loop and a comb that both meet the demand tie, and the loop term below breaks that tie. A
-        # loop that carries fewer cars than the comb loses - what it would cost is then a measured
-        # fact about this plate, reported by the planner rather than bought with a typed constant.
-        loop=closed_aisle_loop(p['drive'],rules.get('aisle_width_m')) is not None
         return (min(p['accessible'],accessible),min(p['provided'],required),
             min(sum(s['type']=='expanded' for s in p['stalls']),expanded_needed or 0),
-            loop,-construction.area,-p['drive'].area)
+            p.get('score', 0),-p['drive'].area)
     for zone in zones:
         blocked=union_or_empty([obstacles,ramp['polygon'].difference(landings),
                                 zone['zone'] if zone else Polygon()])

@@ -125,13 +125,14 @@ def select_joint_layout(request, solve):
             status='failed' if result['status']=='needs_revision' else 'needs_evidence')
         layouts.append(result)
     def rank(r):
+        from .planner_rank import drive_burden
         metrics=r['metrics']
         surface=sum(v['provided_spaces'] for v in r['levels'] if v['level']==0)
         return (r['validation']['geometry_status']=='passed',
                 min(metrics['provided_accessible_stalls'],metrics['required_accessible_stalls'] or 0),
                 min(metrics['provided_parking_stalls'],metrics['planned_parking_stalls'] or 0),
                 -abs(surface-opts['target_surface_stalls']),
-                -metrics['excavation_m2'])
+                -drive_burden(r['features'], metrics['provided_parking_stalls']))
     chosen=max(layouts,key=rank)
     chosen['joint_search']={'screened_placements':len(shortlist),'complete_layouts':len(layouts),
         'selected_index':layouts.index(chosen),'target_footprint_m2':target,

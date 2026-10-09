@@ -11,7 +11,7 @@ def axis(geometry):
 
 def review_placement(request, result):
     features = result.get('metric_features') or result.get('features', [])
-    failures = []
+    failures, review_findings = [], []
     m = result.get('metrics', {})
     target = max(m.get('planned_parking_stalls') or 0, m.get('required_parking_stalls') or 0)
     stalls = [f for f in features if f['properties']['layer']=='parking_stall']
@@ -20,7 +20,7 @@ def review_placement(request, result):
         for level in {f['properties'].get('level',0) for f in stalls}:
             level_stalls=[f for f in stalls if f['properties'].get('level',0)==level]
             if any(len(bank)==1 for bank in banks(level_stalls)):
-                failures.append('isolated_single_bay')
+                review_findings.append('isolated_single_bay')
     if len(stalls) < target:
         failures.append('parking_target')
     surface_target = request.get('options', {}).get('target_surface_stalls')
@@ -52,9 +52,9 @@ def review_placement(request, result):
                 continue
             delta = abs(axis(g)-reference)
             if min(delta, 90-delta) > 1:
-                failures.append('inconsistent_module_axis')
+                review_findings.append('inconsistent_module_axis')
     return {'schema_version':'masterplan.placement-quality.v1',
-            'policy_version':2,
+            'policy_version':3, 'review_findings':sorted(set(review_findings)),
             'eligible':not failures, 'failures':sorted(set(failures)),
             **({'status':'needs_evidence'} if 'buildable_boundary_unconfirmed' in failures else {}),
             'scope':'shortlist composition and independently checked capacity; not Mass/Plan or permit approval'}

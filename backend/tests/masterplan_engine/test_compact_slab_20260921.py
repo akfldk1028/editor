@@ -78,20 +78,26 @@ def test_planner_keeps_original_and_validates_compact_alternative(monkeypatch):
     data = request(2, "basement")
     data["law"]["required_accessible_spaces"] = 0
     data["options"].update(target_surface_stalls=0, max_basement_levels=1)
+    evaluated = []
+    validate = planner.validate_plan
+    def capture(req, candidate):
+        evaluated.append(candidate)
+        return validate(req, candidate)
+    monkeypatch.setattr(planner, 'validate_plan', capture)
     result = planner.plan_site(data)
     compact = [c for c in result["alternatives"] if c.get("compact_slab")]
     original = [c for c in result["alternatives"] if not c.get("compact_slab")]
     assert compact and original
-    assert result["provenance"]["compact_slab"]["saved_area_m2"] > 0
-    assert result["metrics"]["original_excavation_m2"] > result["metrics"]["excavation_m2"]
-    assert "wall_clearance_not_declared" in result["blocking"]
-    assert result["status"] != "resolved"
-    compact_check = next(c for c in result["validation"]["checks"]
+    subject = next(c for c in evaluated if c.get('compact_slab'))
+    assert subject['compact_slab']['saved_area_m2'] > 0
+    assert 'wall_clearance_not_declared' in subject['compact_slab']['pending_reviews']
+    # Construction savings preserve an alternative, not an automatic MasterPlan winner.
+    compact_check = next(c for c in subject["validation"]["checks"]
                          if c["id"] == "compact_slab_preserves_programme:-1")
     assert compact_check["status"] == "passed"
     import copy
     from backend.app.modules.design.generation.maas.masterplan.validation import validate_plan
-    tampered = copy.deepcopy(result)
+    tampered = copy.deepcopy(subject)
     slab = next(f for f in tampered["features"] if f["properties"].get("compact_candidate"))
     slab["geometry"] = mapping(box(0, 0, 1, 1))
     assert next(c for c in validate_plan(data, tampered)["checks"]

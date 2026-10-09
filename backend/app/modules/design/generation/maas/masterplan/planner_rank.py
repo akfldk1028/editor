@@ -12,6 +12,27 @@ from backend.app.modules.design.generation.maas.masterplan.feedback import build
 from backend.app.modules.design.generation.maas.masterplan.planner_metrics import excavation_cost_units, level_efficiency, module_ideal_m2
 
 
+def drive_burden(features, provided):
+    drives = {}
+    for feature in features:
+        props = feature.get('properties') or {}
+        if props.get('layer') in ('parking_aisle', 'vehicular_access'):
+            drives.setdefault(props.get('level', 0), []).append(shape(feature['geometry']))
+    return sum(union_or_empty(geoms).area for geoms in drives.values()) / max(provided, 1)
+
+
+def planning_rank(candidate, *, placement_stage, accessible, planned, surface_target):
+    """Feasibility first; construction metrics never choose a planning alternative."""
+    return (candidate.get('placement_quality', {}).get('eligible', False) if placement_stage else True,
+            candidate['validation']['geometry_status'] == 'passed',
+            min(candidate['accessible'], accessible), min(candidate['provided'], planned or 0),
+            -abs(sum(v['provided_spaces'] for v in candidate['levels'] if v['level'] == 0)
+                 - surface_target) if surface_target is not None else 0,
+            -drive_burden(candidate['features'], candidate['provided']),
+            candidate.get('ramp_orientation') in ('parallel_to_edge', 'off_aisle'),
+            -len(candidate['levels']))
+
+
 def _rank_and_record(request, candidates, *, rules, options, law, evidence, site, footprint, strategy, planned, required, accessible, target_stalls, surface_target, max_surface, bcr, maxlevels, angle, explicit_angle, placement_stage, search_budget, missing, failures):
     """The tail of `planner._plan_site_fixed`, after every candidate carries its validation."""
     def excavation(c):
@@ -24,46 +45,9 @@ def _rank_and_record(request, candidates, *, rules, options, law, evidence, site
         """The least efficient level of a candidate, as a multiple of the module ideal (0 if none)."""
         eff = level_efficiency(c["features"], rules)
         return max((v["over_module_ideal"] or 0) for v in eff.values()) if eff else 0.0
-    def loop_levels(c):
-        """How many below-grade levels of this candidate close an aisle loop."""
-        from backend.app.modules.design.generation.maas.masterplan.circulation import closed_aisle_loop
-        drives={}
-        for f in c["features"]:
-            pr=f["properties"]
-            if pr.get("layer") in ("parking_aisle","vehicular_access") and (pr.get("level") or 0)<0:
-                drives.setdefault(pr["level"],[]).append(shape(f["geometry"]))
-        return sum(1 for geoms in drives.values()
-                   if closed_aisle_loop(union_or_empty(geoms).buffer(0),rules.get("aisle_width_m")) is not None)
     def rank(c):
-        # valid and meeting the counts first; then the objective score (row-and-aisle candidates
-        # carry one, the generic packer scores 0), then LESS EXCAVATION for the same stalls, then
-        # the older ramp preference, then fewer levels
-        return (c.get('placement_quality',{}).get('eligible',False) if placement_stage else True,
-                c["validation"]["geometry_status"]=="passed",
-                min(c["accessible"],accessible),min(c["provided"],planned or 0),
-                -abs(sum(v["provided_spaces"] for v in c["levels"] if v["level"]==0)-surface_target)
-                    if surface_target is not None else 0,
-                # DIGGING LESS BEATS DIGGING EFFICIENTLY. `worst_efficiency` reads the WORST level, so a
-                # small basement - the one that only takes what the yard could not - always looks bad
-                # beside a single large plate, and ranking it first made the engine bury everything:
-                # on 고산 at 40 cars it chose 0 surface + 40 below, excavating 2,500 m2, over a yard
-                # that carries 23 cars on its own. Practice does the opposite and digs for the
-                # remainder only (ALT1: 23 at grade, 17 below). Excavation is the cost that separates
-                # them, so it is ranked first among schemes that already meet the count, and
-                # efficiency now breaks ties instead of setting the strategy.
-                # WHAT A BASEMENT COSTS IS FLOOR AREA, NOT FOOTPRINT. `excavation_m2` is the plan area
-                # of the dig, so ranking on it alone rewards going DEEPER: on the 40-stall fixture the
-                # engine took three levels digging 1,122 m2 over two digging 1,540, which is 3,366 m2
-                # of slab at 9.9 m depth against 3,080 at 6.6 m - dearer on both counts while reading
-                # cheaper. Plan area times the number of levels is the honest figure, bucketed to
-                # 10 m2 because a contractor prices tens of square metres and not tenths.
-                -excavation_cost_units(excavation(c), sum(1 for v in c["levels"] if v["level"]<0)),
-                -worst_efficiency(c),          # a level that carries a few cars is still wasted excavation
-                # CIRCULATION IS DECIDED BY COMPARISON: Sitting after excavation and efficiency,
-                # a loop wins whenever it costs none of them, before raw aisle-length score tiebreaker.
-                loop_levels(c),
-                c.get("score",0.0),
-                c.get("ramp_orientation") in ("parallel_to_edge","off_aisle"),-len(c["levels"]))
+        return planning_rank(c, placement_stage=placement_stage, accessible=accessible,
+                             planned=planned, surface_target=surface_target)
     if os.environ.get("MASTERPLAN_EXPLAIN_RANK"):
         # Why THIS candidate: the losing ones are otherwise invisible, and "the objective chose it"
         # is not an answer anybody can check.
@@ -89,13 +73,6 @@ def _rank_and_record(request, candidates, *, rules, options, law, evidence, site
             for k in ("plate_area_m2","plate_area_per_stall_m2"):
                 if k in stats:
                     entry[k]=stats[k]
-    for level,stats in sorted(chosen_efficiency.items()):
-        if (stats["over_module_ideal"] or 0) > 2.0:
-            per=stats.get("plate_area_per_stall_m2") or stats["area_per_stall_m2"]
-            basis="excavated slab net of programme" if stats["over_module_ideal_basis"]=="excavated_plate" else "drawn parking area"
-            missing.append(f"level {level} carries {stats['stalls']} stalls at {per} m2 each ({basis}, "
-                           f"{stats['over_module_ideal']}x the module ideal): practice would not build a level this "
-                           f"thin - revisit the plate proportion or the required count")
     if search_budget.truncated:
         missing.append("basement search truncated by explicit candidate budget; not exhaustive infeasibility")
     validation=chosen["validation"]

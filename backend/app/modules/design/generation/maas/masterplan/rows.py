@@ -40,13 +40,8 @@ from backend.app.modules.design.generation.maas.masterplan.rows_tiling import _f
 # plate stays whole and the ramp uses the yard - the practice arrangement (Alt1: ramp along the building's
 # west face). w_far: the ramp leaves the aisle at the end away from the entrance, so entering cars pass the
 # surface rows first. w_under kept for reference, off by default.
-# THERE IS NO `w_loop`, ON PURPOSE. A loop's worth is not a constant: on a generous plate it costs
-# nothing and on a tight one it costs a whole basement level, and which of those is true is a fact
-# about the parcel, not a number to type here. Pricing it at four cars was wrong on both counts - it
-# was invented, and on 고산 the measured price was twelve. The loop is therefore measured (`terms`
-# carries `closed_aisle_loop` and `loop_length_m`) and decided by comparison: `basement_layout.rank`
-# takes it when it costs no cars, and `planner.rank` takes it when it costs no level and no
-# excavation. When it costs more, the plan says what it would have cost.
+# Loop geometry is measured and retained as an alternative; only an explicit
+# weight or requested ring family prefers it. No automatic topology bonus.
 WEIGHTS = {"w_aisle": 0.08, "w_access": 0.05, "w_edge": 3.0, "w_under": 0.0, "w_beside": 4.0, "w_far": 3.0, "w_open": 0.0, "w_cluster": 0.02}
 
 
@@ -397,7 +392,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                             score = (len(cand_stalls) - W["w_aisle"] * aisle_span - W["w_access"] * terms["accessible_mean_distance_m"]
                                      + (W["w_edge"] if parallel else 0.0)
                                      + W.get("w_cluster", 0.02) * adj_pairs
-                                     + (W.get("w_loop", 1.5) if terms["closed_aisle_loop"] else 0.0)
+                                     + (W.get("w_loop", 0.0) if terms["closed_aisle_loop"] else 0.0)
                                      - W.get("w_dead_end", 0.25) * max(0, dead_end - 6)
                                      + ((W["w_under"] * terms["ramp_under_plate_share"] + W["w_beside"] * (1.0 if terms["ramp_beside_plate"] else 0.0)
                                          + W["w_far"] * terms["ramp_far_from_entrance"]) if ramp_geom else 0.0))

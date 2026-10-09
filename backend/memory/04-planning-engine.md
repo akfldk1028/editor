@@ -13,8 +13,11 @@ Tests: `backend/tests/masterplan_engine/` — **209 passed** (2026-10-06, editor
   `vehicle_prohibited`, line geometry): no ground ramp body, ramp connector or surface entrance may
   come within 0.05 m (`planner._off_prohibited`, `rows.row_candidates(prohibited=)`). Basement
   drives run under the line and are not checked.
-- **Digging less wins** among valid schemes (rank: validity → counts → surface target →
-  excavation cost units → efficiency → loops → score).
+- **2026-10-09 planning correction:** construction cost/plate efficiency and automatic loop preference
+  no longer select MasterPlan alternatives. Validity, confirmed counts and declared surface targets
+  precede a common all-level drive-area-per-stall search proxy. Construction metrics remain recorded for the construction agent.
+  Row scores are search heuristics, not architectural quality approval; Claude/Jev and review evidence
+  compare realised alternatives. Shared service has not been restarted for this correction.
 
 ## Row search (`rows.py`)
 - Practice-scale parcels (ground < 10,000 m²) keep the full 0.5 m offset sweep, so results do
