@@ -332,3 +332,11 @@ be told to the Orchestrator session.
   and the keyword tables (used only when the model is off). Versions: AutoGen 0.7.5 client interface (Microsoft Agent
   Framework 1.0, 2026-04, keeps the same Magentic ledger pattern), A2A 1.0 cards, LangGraph 1.2.7 supervisor = same
   shape. Observed: mass/scene idle-stopped on schedule (lease 15:37Z + 1800 s) — the activation policy works unattended.
+- 2026-10-09 infra I1 (user: "인프라 제대로 되어 있냐 → 해결해 제대로"): the two gaps closed. (1) The six compose-served agents
+  (law, site-context, revision, plan, requirement, design-intent = ace-*-1) are `management: external` with
+  `compose: {project, service}`; the host activates them with `docker compose up -d` only, never spawns their `start`
+  (kept as the a2a.ps1 mirror for the derivation test), never adopts/kills Docker's listener, never idle-stops them.
+  (2) No worker entry needed: the Orchestrator door (`--enable-submissions`) runs worker.standby itself (health
+  `worker: running`); the hand-started worker was stopped and run be3f7c6b executed in 14 s. Also: Neo4j (no health
+  URL) is up when its port listens. Caveat seen: the machine clock jumped ~8.5 h forward on 10-09 00:xx (events/leases
+  are wall-clock ISO), which expired leases early — harmless here, but a clock step can idle-stop agents at once.
