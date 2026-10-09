@@ -303,6 +303,12 @@ def validate_plan(request, result):
               maneuver_status="needs_evidence",
               note="measured dead-end exposure only; end-bay access and recovery maneuvers require an actual path check")
 
+    # Independent circulation geometry validation (approach, landing connection, spur pruning, swept path)
+    from backend.app.modules.design.generation.maas.masterplan.validation_circulation import validate_circulation_geometry
+    circ_report = validate_circulation_geometry(features, rules, request.get('options'))
+    for cc in circ_report.get('checks', []):
+        checks.append(cc)
+
     # Optional collision evidence never closes steering/trajectory feasibility.
     from backend.app.modules.design.generation.maas.masterplan.swept_path import layout_maneuver_result
     maneuver = layout_maneuver_result(request, features)
