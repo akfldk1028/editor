@@ -263,6 +263,13 @@ def test_a_question_about_a_review_item_goes_to_the_law_agent_about_exactly_that
         {'instrument': '건축법 시행령', 'kind': 'decree', 'article': '제86조', 'clause': None}]}
     route = clause_route('10m 넘으면?', statute, None)
     assert route.skill == 'law_search' and route.args['query'] == '건축법 제61조 건축법 시행령 제86조 10m 넘으면?'
+    exact = {**statute, 'refs': [{**statute['refs'][0], 'hang_id': '건축법::제5장::제61조::1'}, {**statute['refs'][1], 'hang_id': '건축법(시행령)::제6장::제86조::1'}]}
+    route = clause_route('10m 넘으면?', exact, '2026-10-09')
+    assert (route.skill, route.args) == ('law_article', {'full_id': '건축법(시행령)::제6장::제86조', 'assessment_date': '2026-10-09'}), 'the decree by its exact id'
+    normalized = normalize('law_article', {'articles': [{'jo_id': '건축법(시행령)::제6장::제86조', 'title': '일조 등의 확보를 위한 건축물의 높이 제한',
+        'hangs': [{'content': '정북 방향 이격', 'hang_id': '건축법(시행령)::제6장::제86조::1'}]}]})
+    assert normalized['items'] == [{'id': '건축법(시행령)::제6장::제86조::1', 'law': '건축법', 'kind': '시행령',
+                                    'article': '제86조(일조 등의 확보를 위한 건축물의 높이 제한)', 'text': '정북 방향 이격'}]
 
     calls = []
 
@@ -278,3 +285,10 @@ def test_a_question_about_a_review_item_goes_to_the_law_agent_about_exactly_that
     settle_caps(review, {'bcr_pct': 60.0, 'far_pct': None, 'articles': {'bcr': '의정부시 도시계획 조례 제42조'}, 'policy_id': None})
     assert review['items'][0] == {'id': 'bcr-cap', 'status': 'applies', 'value': '60%', 'basis': 'Law Agent 한도 산정: 의정부시 도시계획 조례 제42조'}
     assert review['items'][1]['status'] == 'needs_check'
+    # A district plan not in hand may set its own cap: the value is shown, the status stays needs_check.
+    pending = {'items': [{'id': 'bcr-cap', 'status': 'needs_check', 'value': None, 'basis': 'x'},
+                         {'id': 'district-지구단위계획구역', 'group': 'district', 'title': '지구단위계획구역', 'status': 'needs_source'}]}
+    settle_caps(pending, {'bcr_pct': 60.0, 'articles': {}, 'policy_id': None})
+    assert pending['items'][0]['status'] == 'needs_check' and pending['items'][0]['value'] == '60%' and '지구단위계획구역 확보 전' in pending['items'][0]['basis']
+    ordinance = {'item_id': 'x', 'title': 't', 'refs': [{'instrument': '의정부시 도시계획 조례', 'kind': 'ordinance', 'article': '제42조', 'clause': None, 'edition_id': '2072835'}]}
+    assert clause_route('q', ordinance, None).args['edition_id'] == '2072835'

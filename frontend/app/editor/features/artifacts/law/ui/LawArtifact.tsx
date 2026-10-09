@@ -6,28 +6,27 @@ import { useEffect, useState } from 'react'
 
 import LandAnalysisPanel from '../../../land-map/components/LandAnalysisPanel'
 import { LawArticlesList } from '../../../land-map/components/LawArticlesList'
-import type { LandAnalysisResult } from '../../../land-map/lib/types'
+import type { LandAnalysisResult, LawArticleItem } from '../../../land-map/lib/types'
+import { sendCommand } from '@/lib/orchestrator-runs/commands'
 import { ArtifactChrome } from '../../../shell/artifact-host/ArtifactChrome'
-import type { RunLaw } from '@/lib/orchestrator-runs/types'
 
 import type { ArtifactProps, ShellApi } from '../../../shell/artifact-types'
 import type { LawAnalysis } from '../api/analyze'
 import { type Conditions, defaultConditions, describeConditions } from '../lib/conditions'
-import { countArticles, countRegulations, summarize } from '../lib/summary'
+import { summarize } from '../lib/summary'
 import { lawArtifact } from '../manifest'
 import { useLawAnalysis } from '../model/useLawAnalysis'
 import { ConditionsMenu } from './ConditionsMenu'
 import { OrchestratorTab } from './OrchestratorTab'
 import { SetbacksTab } from './SetbacksTab'
-import { SummaryTab } from './SummaryTab'
+import { ReviewTab } from './ReviewTab'
 import './law.css'
 
 /** 법규·한계: the selected site's regulations from `POST /land/analyze`, by tab. */
-export default function LawArtifact({ tab = 'summary', params, shell }: ArtifactProps) {
+export default function LawArtifact({ tab = 'review', params, shell }: ArtifactProps) {
   const [conditions, setConditions] = useState<Conditions>(defaultConditions)
   const { target, phase, rerun } = useLawAnalysis(params, conditions)
   const analysis = phase.kind === 'ready' ? phase.analysis : null
-  const limits = phase.kind === 'ready' ? phase.limits : null
   const title = target.kind === 'site' ? target.address || `PNU ${target.pnu}` : '법규·한계'
   const subtitle = target.kind === 'site' ? describeConditions(conditions) : null
   const orchestrator = tab === 'orchestrator'
@@ -46,7 +45,6 @@ export default function LawArtifact({ tab = 'summary', params, shell }: Artifact
             <RotateCcw aria-hidden="true" size={12} /><span>다시 분석</span>
           </button>
         }
-        counts={analysis ? { regulations: countRegulations(analysis), articles: countArticles(analysis) } : undefined}
         menu={<ConditionsMenu onChange={setConditions} value={conditions} />}
         title={<><strong title={title}>{title}</strong>{subtitle && <span>{subtitle}</span>}</>}
       />
@@ -64,7 +62,7 @@ export default function LawArtifact({ tab = 'summary', params, shell }: Artifact
             {orchestrator ? (
               <OrchestratorTab address={target.address} editor={analysis ? summarize(analysis) : null} key={target.pnu} pnu={target.pnu} project={params.project} shell={shell} />
             ) : (
-              analysis && <Body address={target.address} analysis={analysis} limits={limits} tab={tab} />
+              analysis && <Body address={target.address} analysis={analysis} site={{ pnu: target.pnu, address: target.address, assessmentDate: conditions.assessmentDate }} tab={tab} />
             )}
           </>
         )}
@@ -73,7 +71,7 @@ export default function LawArtifact({ tab = 'summary', params, shell }: Artifact
   )
 }
 
-function Body({ tab, analysis, limits, address }: { tab: string; analysis: LawAnalysis; limits: RunLaw | null; address: string }) {
+function Body({ tab, analysis, site, address }: { tab: string; analysis: LawAnalysis; site: { pnu: string; address?: string; assessmentDate: string }; address: string }) {
   switch (tab) {
     case 'regulations':
       // The /land page's panel, unchanged (its own dark palette, see .law-legacy). `zone_info` caps may be
@@ -88,19 +86,32 @@ function Body({ tab, analysis, limits, address }: { tab: string; analysis: LawAn
     case 'articles':
       return analysis.law_articles?.articles?.length ? (
         <section aria-label="조문" className="law-legacy">
-          <LawArticlesList lawArticles={analysis.law_articles} />
+          <LawArticlesList fullText lawArticles={analysis.law_articles} onSelectArticle={(article) => askAboutArticle(article, site)} />
         </section>
       ) : (
-        <p className="law-note">
-          관련 조문이 없어요
-          {analysis.law_articles?.errors?.length ? ` — ${analysis.law_articles.errors.join(' / ')}` : ' — 법 검색이 결과를 돌려주지 않았어요.'}
+        <p className="law-note" data-kind="notice">
+          조문 검색 결과를 받지 못했어요 — 법규가 없다는 뜻이 아니에요
+          {analysis.law_articles?.errors?.length ? ` (${analysis.law_articles.errors.join(' / ')})` : ' (검색이 결과를 돌려주지 않음)'}. 검토 조항 탭에서 조항별 근거를 확인하세요.
         </p>
       )
     case 'setbacks':
       return <SetbacksTab analysis={analysis} />
     default:
-      return <SummaryTab analysis={analysis} limits={limits} />
+      return <ReviewTab analysis={analysis} site={site} />
   }
+}
+
+/** A searched article clicked in the 조문 tab: the conversation asks the Law Agent about exactly it (its graph id). */
+function askAboutArticle(article: LawArticleItem, site: { pnu: string; address?: string; assessmentDate: string }) {
+  const law = article.law_name || '법령'
+  const kind = article.law_type === '시행령' ? 'decree' : article.law_type === '시행규칙' ? 'rule' : 'act'
+  const instrument = kind === 'act' ? law : `${law} ${article.law_type}`
+  const label = [instrument, article.article].filter(Boolean).join(' ')
+  sendCommand({
+    kind: 'ask', text: '이 대지에서 이 조문은 어떻게 적용되나요?', role: 'law', site,
+    clause: { item_id: `article-${article.hang_id}`, title: label, refs: [{ instrument, kind, article: article.article ?? null, clause: null, ...(article.hang_id ? { hang_id: article.hang_id } : {}) }],
+      reason: '조문 탭에서 고른 조문', status: 'needs_check', basis: '검색으로 찾은 조문 — 적용 여부는 Law Agent 답으로 확인' },
+  })
 }
 
 function Empty({ shell }: { shell: ShellApi }) {

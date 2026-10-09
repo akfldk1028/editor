@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import re
 
-EXCERPT = 700
+# Whole articles are shown; this only guards against a runaway answer.
+EXCERPT = 6000
 
 
 def _norm(name: str | None) -> str:

@@ -6,7 +6,7 @@ import { hostStatus, prewarm } from '@/lib/goals/activation'
 import { availableGoal, loadCapabilities } from '@/lib/goals'
 
 import { askLaw, RunRequestError } from './api'
-import { onCommand } from './commands'
+import { type AskClause, type Command, onCommand } from './commands'
 import { dismissFeed, postFeed } from './feed'
 import { answerLine, askFailedLine, askLines } from './feed-lines'
 import { conversationSite } from './site-context'
@@ -24,19 +24,22 @@ export function useAsk() {
 
   useEffect(() => () => active.current?.abort(), [])
 
-  const send = useCallback(async (raw: string, role: string | null = null) => {
+  const send = useCallback(async (raw: string, role: string | null = null, about: Pick<Extract<Command, { kind: 'ask' }>, 'clause' | 'site'> = {}) => {
     const text = raw.trim()
     if (!text) return
     active.current?.abort()
     const controller = new AbortController()
     active.current = controller
     setBusy(true)
-    const [bubble, asking] = askLines(text, role)
+    const [bubble, asking] = askLines(text, role, about.clause?.title ?? null)
     postFeed(bubble!)
     const pending = postFeed(asking!)
-    const site = conversationSite()
+    // A question from the law artifact names its own site and date; otherwise the conversation's site.
+    const site = about.site ? { pnu: about.site.pnu, address: about.site.address ?? '' } : conversationSite()
+    const clause: AskClause | undefined = about.clause
     try {
-      const answer = await askLaw({ text, ...(site ? { pnu: site.pnu, ...(site.address ? { address: site.address } : {}) } : {}), ...(role ? { role } : {}) }, controller.signal)
+      const answer = await askLaw({ text, ...(site ? { pnu: site.pnu, ...(site.address ? { address: site.address } : {}) } : {}), ...(role ? { role } : {}),
+        ...(clause ? { clause } : {}), ...(about.site?.assessmentDate ? { assessment_date: about.site.assessmentDate } : {}) }, controller.signal)
       if (controller.signal.aborted) return
       // A handoff to an open goal: say which owners are off, and wake them now with a short lease (the
       // user may press 시작 in a moment; the host's start takes 7–40 s, the lease expires if they do not).
@@ -59,7 +62,7 @@ export function useAsk() {
   }, [])
 
   useEffect(() => onCommand((command) => {
-    if (command.kind === 'ask') void send(command.text, command.role)
+    if (command.kind === 'ask') void send(command.text, command.role, { clause: command.clause, site: command.site })
   }), [send])
 
   return { send, busy }

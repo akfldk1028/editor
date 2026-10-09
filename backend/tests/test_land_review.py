@@ -42,7 +42,10 @@ def test_review_groups_reasons_statuses_and_gaps_for_one_lot():
     assert [g['id'] for g in review['groups']] == ['use', 'bcr_far', 'height_sunlight', 'road_setback', 'parking_landscape', 'district']
     assert by_id['sunlight']['status'] == 'applies' and by_id['sunlight']['group'] == 'height_sunlight'
     assert by_id['landscaping']['status'] == 'applies' and '279.9㎡' in by_id['landscaping']['reason']
-    assert by_id['bcr-cap']['status'] == 'needs_check' and '60% 이내' in by_id['bcr-cap']['reason']
+    assert by_id['bcr-cap']['status'] == 'needs_check' and '60% 이내' in by_id['bcr-cap']['reason'] and '의정부시 도시계획 조례' in by_id['bcr-cap']['reason']
+    other = analysis()
+    other['assessment']['municipal_coverage']['sources'] = []
+    assert '관할 지방자치단체 조례' in {i['id']: i for i in build(other)['items']}['bcr-cap']['reason'], 'no city is assumed'
     ordinance = next(r for r in by_id['bcr-cap']['refs'] if r['kind'] == 'ordinance')
     assert (ordinance['edition_id'], ordinance['effective_date'], ordinance['url']) == ('2072835', '20250925', 'https://law.go.kr/x')
     assert by_id['district-공공주택지구']['status'] == 'needs_source'

@@ -88,11 +88,11 @@ export function lawBasisLine(results: RunResults, target: LawTarget): FeedInput 
  * The moment a question is sent: the user's bubble and the request drawn — to the role the user
  * picked, else to the Orchestrator Agent, which decides whose question it is.
  */
-export function askLines(text: string, role: string | null = null): FeedInput[] {
+export function askLines(text: string, role: string | null = null, clause: string | null = null): FeedInput[] {
   const to = role ?? ORCHESTRATOR
   return [
-    // A role picked from the choices: the bubble shows the pick, not the question again.
-    { kind: 'user', text: role ? `${agentLabel(role)}에게: ${text}` : text },
+    // A question about one provision says which; a role picked from the choices shows the pick.
+    { kind: 'user', text: clause ? `「${clause}」 — ${text}` : role ? `${agentLabel(role)}에게: ${text}` : text },
     { kind: 'progress', agent: ORCHESTRATOR, tone: 'busy', relay: { from: role ? ORCHESTRATOR : 'user', to },
       text: role ? `${agentLabel(role)}에게 묻는 중` : 'Orchestrator Agent가 담당을 고르는 중' },
   ]
@@ -174,7 +174,7 @@ export function landAnalysisLine(answer: LandAnalysisAnswer, target: LawTarget):
     tone,
     text,
     ...(limits ? { card: limitsCard(limits) ?? undefined } : {}),
-    actions: [{ label: '법규 보기', artifact: 'law', params: lawParams(target, 'summary') }, { label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }],
+    actions: [{ label: '검토 조항 보기', artifact: 'law', params: lawParams(target, 'review') }, { label: '조문 보기', artifact: 'law', params: lawParams(target, 'articles') }],
   }
 }
 

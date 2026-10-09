@@ -3,6 +3,7 @@
  * `lib/api-surface.test.ts`), one place for every slice. `features/agent-dialogue/{runs,projects,
  * communications}.ts` re-export from here for their older callers.
  */
+import type { AskClause } from './commands'
 import type {
   AskAnswer,
   Capabilities,
@@ -204,7 +205,7 @@ export async function ensureAgents(agents: string[], lease_s: number, signal?: A
   return (await request('/host/ensure', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agents, lease_s, timeout_s }) })) as EnsureAnswer
 }
 
-export async function askLaw(body: { text: string; pnu?: string; address?: string; assessment_date?: string; role?: string }, signal?: AbortSignal): Promise<AskAnswer> {
+export async function askLaw(body: { text: string; pnu?: string; address?: string; assessment_date?: string; role?: string; clause?: AskClause }, signal?: AbortSignal): Promise<AskAnswer> {
   return (await request('/ask', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })) as AskAnswer
 }
 

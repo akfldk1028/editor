@@ -45,6 +45,10 @@ class ClauseRef(BaseModel):
     kind: str = Field(pattern=r'^(act|decree|rule|ordinance)$')
     article: str | None = Field(default=None, max_length=40)
     clause: str | None = Field(default=None, max_length=40)
+    # The statute graph id of the article when the review found its text (exact lookup, no search drift).
+    hang_id: str | None = Field(default=None, max_length=200)
+    # The ordinance edition (law.go.kr ordinSeq) the review used, so the answer is about that edition.
+    edition_id: str | None = Field(default=None, max_length=40)
 
 
 class ClauseContext(BaseModel):

@@ -55,10 +55,10 @@ test('after the selection the Orchestrator asks what to do; the user chooses —
   expect(prompt.actions).toEqual([
     { label: '법규·한계 검토 시작', command: { kind: 'start-review', goal: 'limits' } },
     { label: '대지 정보 보기', artifact: 'site-map' },
-    { label: '법규 요약 보기', artifact: 'law', params: { pnu: p1.pnu, address: p1.address, tab: 'summary' } },
+    { label: '검토 조항 보기', artifact: 'law', params: { pnu: p1.pnu, address: p1.address, tab: 'review' } },
   ])
   // A parcel without an address falls back to the site label.
-  expect(selectedPrompt({ label: '684-3', parcels: [p2], total_area_m2: null }, FALLBACK).actions?.[2]?.params).toEqual({ pnu: p2.pnu, address: '684-3', tab: 'summary' })
+  expect(selectedPrompt({ label: '684-3', parcels: [p2], total_area_m2: null }, FALLBACK).actions?.[2]?.params).toEqual({ pnu: p2.pnu, address: '684-3', tab: 'review' })
   // The choices are derived from the catalog: an opened goal becomes a button, an unopened one does not, 법규 요약 only when the conversation can ask Law.
   const wider = { ...FALLBACK, goals: [...FALLBACK.goals, { id: 'mass', label: '매스 생성', owners: ['mass'], inputs: [], optional: [], available: true, offer: true },
     { id: 'elevation', label: '입면 설계', owners: ['elevation'], inputs: [], optional: [], available: false, offer: true }], conversation: { ask: true, law_analysis: false } }
@@ -164,7 +164,7 @@ test("a land analysis: the user's 법규 요약 bubble, the Orchestrator asking,
   expect(line.tone).toBe('warn')
   expect(line.text).toBe('법규 요약 (제2종일반주거지역 · 자연녹지지역): 건폐 59.92% · 용적 249.67% · 5층 · 지구단위 정책 gosan-public1-molit-2026-334 · 제한 3건 · 확인 필요: 설계 적용성·허가 검토 미완료, 미인식 용도지역: 공공청사')
   expect((line.card as { items: { label: string; value: string }[] }).items[1]).toEqual({ label: '건폐율', value: '59.92%', hint: '의정부시 도시계획 조례 제42조' })
-  expect(line.actions?.map((action) => `${action.label}→${action.params?.tab}`)).toEqual(['법규 보기→summary', '관련 법규 보기→articles'])
+  expect(line.actions?.map((action) => `${action.label}→${action.params?.tab}`)).toEqual(['검토 조항 보기→review', '조문 보기→articles'])
   const noLimits = landAnalysisLine({ ...answer, limits: null, limits_error: 'LawAgentError: x' }, target)
   expect(noLimits.text).toContain('상한 미확정 (law_parcel_limits 실패)')
   expect(noLimits.card).toBeUndefined()

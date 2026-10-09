@@ -7,7 +7,19 @@
  * `start-review`: `goal` is a catalog id (`lib/goals`); the owning slice refuses one the door does not take.
  * `ask`: send a question again to the role the user picked when the router asked.
  */
-export type Command = { kind: 'start-review'; goal: string } | { kind: 'ask'; text: string; role: string }
+export type Command =
+  | { kind: 'start-review'; goal: string }
+  | { kind: 'ask'; text: string; role: string; clause?: AskClause; site?: { pnu: string; address?: string; assessmentDate?: string } }
+
+/** The review item a question is about (law artifact → 이 조항 질문하기); the backend asks the Law Agent about exactly it. */
+export interface AskClause {
+  item_id: string
+  title: string
+  refs: { instrument: string; kind: string; article: string | null; clause: string | null; hang_id?: string; edition_id?: string }[]
+  reason: string
+  status: string
+  basis: string
+}
 
 type Listener = (command: Command) => void
 

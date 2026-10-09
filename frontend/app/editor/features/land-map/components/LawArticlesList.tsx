@@ -6,12 +6,14 @@ import type { LawArticlesResult, LawArticleItem } from '../lib/types';
 interface LawArticlesListProps {
   lawArticles: LawArticlesResult | null | undefined;
   onSelectArticle?: (article: LawArticleItem) => void;
+  /** Show each article's whole text (the law artifact); the /land panel keeps its 160-character preview. */
+  fullText?: boolean;
 }
 
 const MAX_PREVIEW = 5;
 const MAX_TEXT_LEN = 160;
 
-export const LawArticlesList = React.memo(function LawArticlesList({ lawArticles, onSelectArticle }: LawArticlesListProps) {
+export const LawArticlesList = React.memo(function LawArticlesList({ lawArticles, onSelectArticle, fullText = false }: LawArticlesListProps) {
   const [open, setOpen] = useState(false);
 
   if (!lawArticles?.articles?.length) return null;
@@ -60,7 +62,7 @@ export const LawArticlesList = React.memo(function LawArticlesList({ lawArticles
         {preview.map((a, i) => {
           const typeColor = COLOR.lawType[a.law_type || ''] || COLOR.textDim;
           const pct = Math.round((a.similarity || 0) * 100);
-          const text = a.content.length > MAX_TEXT_LEN
+          const text = fullText || a.content.length <= MAX_TEXT_LEN ? a.content : a.content.length > MAX_TEXT_LEN
             ? a.content.slice(0, MAX_TEXT_LEN) + '...'
             : a.content;
 

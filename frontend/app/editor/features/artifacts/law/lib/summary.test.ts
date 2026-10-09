@@ -1,27 +1,7 @@
 import { expect, test } from 'bun:test'
 
-import { capStat, restrictionsWith } from './summary'
-
-test("a cap stat is the Law Agent's number with its article and policy — no product computation beside it; without it the lookup's 미확정 shows", () => {
-  const unsettled = { limit: null, ceiling: 59.9225, status: 'needs_evidence', article: '의정부시 도시계획 조례 제42조; 국토의 계획 및 이용에 관한 법률 제84조' }
-  expect(capStat(unsettled, 59.92, '의정부시 도시계획 조례 제42조', 'gosan-public1-molit-2026-334')).toEqual({
-    value: '59.9%', note: null, basis: 'Law Agent · 의정부시 도시계획 조례 제42조 · 지구단위 정책 gosan-public1-molit-2026-334', warn: false,
-  })
-  expect(capStat({ limit: 60, ceiling: 60, status: 'complete', article: '제42조' }, 60, null, null)).toEqual({ value: '60%', note: null, basis: 'Law Agent · 제42조', warn: false })
-  expect(capStat(unsettled, null, null, null)).toEqual({ value: '미확정', note: '법정 상한 59.9% 이하 · 조례 증거 확인 필요', basis: unsettled.article, warn: true })
-})
-
-test("the restriction list leads with the Law Agent's caps instead of the lookup's 상한 미확정 line", () => {
-  const lines = ['건폐율·용적률: 적용 조례·판본·용도지역 증거 부족 — 상한 미확정', '일조사선: 정북방향 H/2 이격']
-  expect(restrictionsWith(lines, 59.92, 249.67, 'gosan-public1-molit-2026-334')).toEqual([
-    '건폐율·용적률: 59.9% / 249.7% (Law Agent · 지구단위 정책 gosan-public1-molit-2026-334)', '일조사선: 정북방향 H/2 이격',
-  ])
-  expect(restrictionsWith(lines, 20, 80, null)[0]).toBe('건폐율·용적률: 20% / 80% (Law Agent)')
-  expect(restrictionsWith(lines, null, 80, null)).toBe(lines)
-})
-
 import { fixture } from './summary.fixture'
-import { assessmentBadge, capOf, countArticles, countRegulations, formatCap, lotLabel, settledBadge, summarize } from './summary'
+import { assessmentBadge, capOf, countArticles, countRegulations, formatCap, lotLabel, summarize } from './summary'
 
 test('the summary carries zones, split areas largest first, land facts and the restrictions', () => {
   const summary = summarize(fixture)
@@ -69,17 +49,4 @@ test('lot labels come from the address tail, else from the PNU', () => {
   expect(lotLabel('경기도 의정부시 산곡동 684-1', '4115011300106840001')).toBe('684-1')
   expect(lotLabel('', '4115011300106840001')).toBe('684-1')
   expect(lotLabel('', '4115011300206840000')).toBe('산684')
-})
-
-test('with both caps set by the Law Agent the badge says the caps are settled and the permit checks wait for a design', () => {
-  const badge = assessmentBadge(fixture.assessment)
-  const settled = settledBadge(badge, fixture.assessment, true)
-  expect(settled.label).toBe('상한 확정 · 허가 검토는 설계 후')
-  expect(settled.tone).toBe('ok')
-  expect(settled.detail[0]).toContain('설계안이 있어야')
-  expect(settled.detail).toContain('의정부시 도시계획 조례 (시행 2025-09-25)')
-  expect(settled.detail.at(-1)).toContain('공공청사')
-  expect(settledBadge(badge, fixture.assessment, false)).toBe(badge)
-  const snapshotMissing = { ...fixture.assessment!, missing_evidence: ['missing_ordinance_snapshot'] }
-  expect(settledBadge(assessmentBadge(snapshotMissing), snapshotMissing, true).label).toBe('증거 부족')
 })

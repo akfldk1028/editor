@@ -27,31 +27,6 @@ export function formatCap(cap: Cap): { value: string; note: string | null } {
   return { value: '미확정', note: `${ceiling}조례 증거 확인 필요` }
 }
 
-/** What a cap stat shows: value, the note under it, the basis line, and whether it is a warning. */
-export interface CapStat { value: string; note: string | null; basis: string; warn: boolean }
-
-/**
- * The Law Agent's cap (`law_parcel_limits`: district policy or ordinance, area-weighted over split
- * zoning) is the answer; the product computes nothing itself. Only when the Law Agent sent no number
- * does the regulation lookup's own verdict show (미확정 with the statutory ceiling as context).
- */
-export function capStat(cap: Cap, agentPct: number | null, agentArticle: string | null, policyId: string | null): CapStat {
-  if (agentPct === null) {
-    const own = formatCap(cap)
-    return { value: own.value, note: own.note, basis: cap.article, warn: own.note !== null }
-  }
-  const basis = ['Law Agent', agentArticle ?? (cap.article || null), policyId ? `지구단위 정책 ${policyId}` : null].filter((part): part is string => Boolean(part)).join(' · ')
-  return { value: `${pct(agentPct)}%`, note: null, basis, warn: false }
-}
-
-/** The 제한 목록 with the lookup's "상한 미확정" line replaced by the Law Agent's caps when it set them. */
-export function restrictionsWith(restrictions: string[], bcrPct: number | null, farPct: number | null, policyId: string | null): string[] {
-  if (bcrPct === null || farPct === null) return restrictions
-  const settled = `건폐율·용적률: ${pct(bcrPct)}% / ${pct(farPct)}% (Law Agent${policyId ? ` · 지구단위 정책 ${policyId}` : ''})`
-  const rest = restrictions.filter((line) => !line.startsWith('건폐율·용적률:'))
-  return [settled, ...rest]
-}
-
 export type Tone = 'ok' | 'warn' | 'muted'
 export interface AssessmentBadge { label: string; tone: Tone; detail: string[] }
 
@@ -88,28 +63,6 @@ export function assessmentBadge(assessment: Assessment | undefined): AssessmentB
     tone: assessment.permit_compliance_verified ? 'ok' : 'warn',
     detail,
   }
-}
-
-const DESIGN_STAGE = new Set(['complete_design_applicability_and_permit_checks'])
-
-/**
- * The badge once the Law Agent has set both caps: Law's `needs_evidence` then means "the permit-level checks
- * need a design, and these designations are unrecognised" — not that the caps are in doubt. The label says so
- * ("상한 확정 · 허가 검토는 설계 후"), the design-stage line is reworded, unrecognised zonings are kept as
- * things to confirm. Anything else missing (an ordinance snapshot, say) keeps the warning badge.
- */
-export function settledBadge(badge: AssessmentBadge, assessment: Assessment | undefined, settled: boolean): AssessmentBadge {
-  if (!settled || !assessment || assessment.permit_compliance_verified) return badge
-  const missing = [...new Set([...(assessment.missing_evidence ?? []), ...(assessment.municipal_coverage?.missing_evidence ?? [])])]
-  const other = missing.filter((code) => !DESIGN_STAGE.has(code) && !code.startsWith('unresolved_zoning:'))
-  if (other.length) return badge
-  const unresolved = missing.filter((code) => code.startsWith('unresolved_zoning:')).map((code) => code.split(':', 2)[1])
-  const detail = [
-    '건폐율·용적률은 조례로 확정 — 허가 적합성은 설계안이 있어야 검증돼요 (지금은 규제 조회·상한 산정 범위)',
-    ...(assessment.municipal_coverage?.sources ?? []).map((source) => `${source.name}${source.effective_date ? ` (시행 ${formatYmd(source.effective_date)})` : ''}`),
-    ...(unresolved.length ? [`담당 확인 필요한 지역·지구: ${unresolved.join(', ')} (Law Agent가 상한표에 없는 지정)`] : []),
-  ]
-  return { label: '상한 확정 · 허가 검토는 설계 후', tone: 'ok', detail }
 }
 
 export interface ZoneArea { zone: string; areaM2: number }

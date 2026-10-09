@@ -43,7 +43,7 @@ export function selectedPrompt(site: SelectedSite, capabilities: Capabilities): 
     actions: [
       ...starts,
       { label: '대지 정보 보기', artifact: 'site-map' },
-      ...(capabilities.conversation.law_analysis ? [{ label: '법규 요약 보기', artifact: 'law', params: { ...target, tab: 'summary' } }] : []),
+      ...(capabilities.conversation.law_analysis ? [{ label: '검토 조항 보기', artifact: 'law', params: { ...target, tab: 'review' } }] : []),
     ],
   }
 }

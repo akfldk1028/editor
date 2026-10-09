@@ -42,8 +42,19 @@ def _iso(value):
 
 def normalize(tool: str, payload: dict) -> dict:
     if tool == 'law_article':
-        # One article: the agent's dict as it is, under the search shape so the UI reads it the same way.
-        payload = {'results': [payload] if payload else [], 'stats': {'total': 1 if payload else 0}, 'legal_evidence': payload.get('legal_evidence')}
+        # Whole articles with their 항 (law_article): one row per 항, under the search shape so the UI reads it the same way.
+        rows = []
+        for article in payload.get('articles') or []:
+            if not isinstance(article, dict):
+                continue
+            head = str(article.get('jo_id') or '').split('::')[0]
+            law, _, kind = head.partition('(')
+            number = next((p for p in str(article.get('jo_id') or '').split('::') if re.fullmatch(r'제\d+조(의\d+)?', p)), None)
+            label = f"{number}({article.get('title')})" if number and article.get('title') else number
+            for hang in article.get('hangs') or [{'content': article.get('content'), 'hang_id': article.get('jo_id')}]:
+                rows.append({'hang_id': hang.get('hang_id'), 'law_name': law or None, 'law_type': kind.rstrip(')') or '법률',
+                             'article': label, 'content': hang.get('content')})
+        payload = {'results': rows, 'stats': {'total': len(rows)}, 'legal_evidence': payload.get('legal_evidence')}
         tool = 'law_search'
     if tool == 'law_ordinance':
         ordinance = payload.get('ordinance') if isinstance(payload.get('ordinance'), dict) else {}
@@ -135,8 +146,23 @@ def settle_caps(review, caps) -> None:
             continue
         article = (caps.get('articles') or {}).get(key)
         policy = caps.get('policy_id')
-        item.update({'status': 'applies', 'value': f'{value:g}%',
-                     'basis': 'Law Agent 한도 산정: ' + ' · '.join(p for p in (article, f'지구단위 정책 {policy}' if policy else None) if p)})
+        source = 'Law Agent 한도 산정: ' + ' · '.join(p for p in (article, f'지구단위 정책 {policy}' if policy else None) if p)
+        # 지구단위계획·공공주택 지구계획 can set their own caps; while they are not in hand the ordinance cap is not final.
+        pending = [i['title'] for i in review.get('items') or [] if i.get('group') == 'district' and i.get('status') == 'needs_source']
+        if pending and not policy:
+            item.update({'status': 'needs_check', 'value': f'{value:g}%',
+                         'basis': f"{source} — {'·'.join(pending)} 확보 전이라 이 계획이 따로 정한 상한이 있으면 그 값이 우선해요"})
+        else:
+            item.update({'status': 'applies', 'value': f'{value:g}%', 'basis': source})
+
+
+def article_id(hang_id: str) -> str:
+    """'건축법(시행령)::제6장::제86조::1' → '건축법(시행령)::제6장::제86조' (law_article reads whole articles)."""
+    parts = hang_id.split('::')
+    for index, part in enumerate(parts):
+        if re.fullmatch(r'제\d+조(의\d+)?', part):
+            return '::'.join(parts[: index + 1])
+    return hang_id
 
 
 def clause_route(question: str, clause: dict, assessment_date: str | None):
@@ -149,9 +175,15 @@ def clause_route(question: str, clause: dict, assessment_date: str | None):
     ordinance = next((r for r in refs if r.get('kind') == 'ordinance' and r.get('article')), None)
     statutes = [r for r in refs if r.get('kind') != 'ordinance' and r.get('article') and not str(r['article']).startswith('별표')]
     reason = f"선택한 조항({clause.get('title')})을 Law Agent에 물어요"
-    if ordinance and not statutes:
-        return Route('skill', 'law', 'law_ordinance', None, {'name': ordinance['instrument'], 'article': ordinance['article'], 'limit': 3, **dated},
+    # The binding text first: an ordinance article (law.go.kr), else the decree's, else the act's — by its exact id.
+    if ordinance:
+        edition = {'edition_id': ordinance['edition_id']} if ordinance.get('edition_id') else {}
+        return Route('skill', 'law', 'law_ordinance', None, {'name': ordinance['instrument'], 'article': ordinance['article'], 'limit': 3, **dated, **edition},
                      0.95, reason, decided_by='user', instruction=question)
+    exact = sorted((r for r in statutes if r.get('hang_id')), key=lambda r: {'decree': 0, 'rule': 1, 'act': 2}.get(r.get('kind'), 3))
+    if exact:
+        full_id = article_id(exact[0]['hang_id'])
+        return Route('skill', 'law', 'law_article', None, {'full_id': full_id, **dated}, 0.95, reason, decided_by='user', instruction=question)
     named = ' '.join(f"{r['instrument']} {r['article']}" for r in statutes[:3]) or clause.get('title')
     return Route('skill', 'law', 'law_search', None, {'query': f'{named} {question}'.strip(), 'limit': SEARCH_LIMIT, **dated},
                  0.95, reason, decided_by='user', instruction=question)

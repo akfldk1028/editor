@@ -76,6 +76,8 @@ def build(analysis: dict, *, assessment_date: str | None = None) -> dict:
     zone_text = ' · '.join(zones) or '용도지역 미확인'
     coverage = (analysis.get('assessment') or {}).get('municipal_coverage') or {}
     source = (coverage.get('sources') or [None])[0]
+    # The lot's own ordinance as the calculators named it; never a city written here.
+    jurisdiction = (source or {}).get('name') or '관할 지방자치단체 조례'
     items: list[dict] = []
 
     use = (analysis.get('assessment') or {}).get('use_permission') or ext.get('building_use_restriction') or {}
@@ -88,7 +90,7 @@ def build(analysis: dict, *, assessment_date: str | None = None) -> dict:
         ceiling = entry.get('national_ceiling_pct')
         limit = entry.get('limit_pct')
         items.append(_item(f'{key}-cap', 'bcr_far', f'{title} 상한', f"{national_article}, {entry.get('article') or ''}",
-            f"{zone_text}의 {title} 상한은 법이 정한 범위({ceiling:g}% 이내)에서 의정부시 조례가 정해요" if isinstance(ceiling, (int, float)) else f'{zone_text}의 {title} 상한은 조례가 정해요',
+            f"{zone_text}의 {title} 상한은 법이 정한 범위({ceiling:g}% 이내)에서 {jurisdiction}로 정해요" if isinstance(ceiling, (int, float)) else f'{zone_text}의 {title} 상한은 {jurisdiction}로 정해요',
             'applies' if isinstance(limit, (int, float)) else 'needs_check',
             f'조례 상한 {limit:g}%' if isinstance(limit, (int, float)) else '조례 수치는 Law Agent 한도 산정(law_parcel_limits)으로 확정해요',
             value=f'{limit:g}%' if isinstance(limit, (int, float)) else None, source=source))

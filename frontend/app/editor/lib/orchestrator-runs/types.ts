@@ -220,6 +220,8 @@ export interface AskAnswer {
   answer: LawAnswerBody | null
   /** `goal`: the catalog goal this question belongs to (its owners, whether the door takes it). */
   handoff: { goal: string; label: string; owners: string[]; available: boolean } | null
+  /** The review item the question was about (law artifact), echoed with the lot and date it was asked for. */
+  clause?: { item_id: string; title: string; pnu: string | null; assessment_date: string | null } | null
 }
 
 /** What the conversation says about a Law Agent land analysis (`POST /platform/law-analysis`); the artifact shows the rest. */
