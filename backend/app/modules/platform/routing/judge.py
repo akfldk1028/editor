@@ -19,6 +19,7 @@ from typing import Awaitable, Callable
 from pydantic import BaseModel
 
 from backend.app.core.model_auth import model_auth_mode
+from backend.app.modules.platform.routing import cards
 from backend.app.modules.platform.routing.roles import DESCRIPTIONS, ROLES
 
 ENV = 'EDITOR_ROUTING_JUDGE'          # llm | rules; unset = llm when the Claude CLI login is available
@@ -100,15 +101,17 @@ def participants() -> list[str]:
     return [role.agent for role in ROLES] + [ORCHESTRATOR]
 
 
-def team_description() -> str:
-    """`name: description` per participant, whitespace collapsed — as Magentic-One builds `_team_description`."""
-    lines = [f'{role.agent}: {DESCRIPTIONS.get(role.agent, role.label)}' for role in ROLES]
-    lines.append(f'{ORCHESTRATOR}: {ORCHESTRATOR_DESCRIPTION}')
-    return '\n'.join(re.sub(r'\s+', ' ', line).strip() for line in lines)
+def team_description(live: dict[str, dict | None] | None = None) -> str:
+    """`name: description` per participant, whitespace collapsed — as Magentic-One builds `_team_description`.
+    `live` = the agents' A2A cards (cards.roster); an agent without one is described by its role line."""
+    live = live or {}
+    lines = [cards.describe(role.agent, live.get(role.agent), DESCRIPTIONS.get(role.agent, role.label)) for role in ROLES]
+    lines.append(re.sub(r'\s+', ' ', f'{ORCHESTRATOR}: {ORCHESTRATOR_DESCRIPTION}').strip())
+    return '\n'.join(lines)
 
 
-def progress_ledger_prompt(task: str, situation: str = '') -> str:
-    return PROGRESS_LEDGER_PROMPT.format(task=task, situation=situation.strip() or '(nothing beyond the team)', team=team_description(),
+def progress_ledger_prompt(task: str, situation: str = '', live: dict[str, dict | None] | None = None) -> str:
+    return PROGRESS_LEDGER_PROMPT.format(task=task, situation=situation.strip() or '(nothing beyond the team)', team=team_description(live),
                                          names=', '.join(participants()), orchestrator=ORCHESTRATOR)
 
 
@@ -119,9 +122,10 @@ def enabled(env=os.environ) -> bool:
     return model_auth_mode(env) == 'oauth'
 
 
-async def judge(text: str, situation: str = '', *, client=None) -> Ledger | None:
-    """The ledger for one question in a situation (site, goals, which agents are up: data, not prose written here);
-    None when the model is unavailable or never named a participant (rules then decide)."""
+async def judge(text: str, situation: str = '', *, client=None, roster=cards.roster) -> Ledger | None:
+    """The ledger for one question in a situation (site, goals, which agents are up: data, not prose written here),
+    the team described by the agents' live A2A cards; None when the model is unavailable or never named a
+    participant (rules then decide)."""
     try:
         from autogen_core.models import UserMessage
 
@@ -130,10 +134,14 @@ async def judge(text: str, situation: str = '', *, client=None) -> Ledger | None
         model = client or ClaudeCodeChatCompletionClient(timeout_s=TIMEOUT_S)
     except Exception:
         return None
+    try:
+        live = await roster([role.agent for role in ROLES])
+    except Exception:
+        live = None
     names = set(participants())
     for _ in range(MAX_JSON_RETRIES + 1):
         try:
-            result = await model.create([UserMessage(content=progress_ledger_prompt(text, situation), source=ORCHESTRATOR)], json_output=Ledger)
+            result = await model.create([UserMessage(content=progress_ledger_prompt(text, situation, live), source=ORCHESTRATOR)], json_output=Ledger)
             ledger = Ledger.model_validate_json(result.content if isinstance(result.content, str) else '{}')
         except Exception:
             return None

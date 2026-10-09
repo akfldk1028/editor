@@ -108,11 +108,47 @@ def test_judge_refuses_a_speaker_outside_the_team_and_retries_then_gives_up():
             return type('R', (), {'content': self.answers.pop(0)})()
 
     sat = '"is_request_satisfied": {"reason": "r", "answer": false}, '
+    async def no_cards(agents):
+        return {}
+
     bad = '{' + sat + '"next_speaker": {"reason": "r", "answer": "nobody"}, "instruction_or_question": {"reason": "r", "answer": "x"}}'
     good = '{' + sat + '"next_speaker": {"reason": "r", "answer": "scene"}, "instruction_or_question": {"reason": "r", "answer": "주변 3D를 보여 주세요"}}'
     client = Client([bad, good])
-    ledger = asyncio.run(judging.judge('주변을 3D로', client=client))
+    ledger = asyncio.run(judging.judge('주변을 3D로', client=client, roster=no_cards))
     assert ledger.next_speaker.answer == 'scene' and client.calls == 2
     client = Client([bad] * (judging.MAX_JSON_RETRIES + 1))
-    assert asyncio.run(judging.judge('x', client=client)) is None and client.calls == judging.MAX_JSON_RETRIES + 1
-    assert asyncio.run(judging.judge('x', client=Client(['not json']))) is None
+    assert asyncio.run(judging.judge('x', client=client, roster=no_cards)) is None and client.calls == judging.MAX_JSON_RETRIES + 1
+    assert asyncio.run(judging.judge('x', client=Client(['not json']), roster=no_cards)) is None
+
+
+def test_team_is_described_by_the_agents_live_cards_and_falls_back_to_the_role_line():
+    import asyncio
+
+    from backend.app.modules.platform.routing import cards
+    from backend.app.modules.platform.routing.judge import team_description
+    from backend.app.modules.platform.status.registry import Registry
+
+    law_card = {'name': 'LawAgent', 'description': 'Korean building-law agent:   a parcel\'s zoning, the 42 regulations.',
+                'skills': [{'id': f'law_{i}', 'name': f'skill {i}', 'description': f'does {i}'} for i in range(14)]}
+    fetched = []
+
+    async def fetch(url):
+        fetched.append(url)
+        return cards._card(law_card) if ':8301/' in url else None
+
+    clock = [0.0]
+    cache = {}
+    live = asyncio.run(cards.roster(['law', 'mass', 'nobody'], fetch=fetch, now=lambda: clock[0], cache=cache, registry=Registry()))
+    assert live['law']['name'] == 'LawAgent' and live['mass'] is None and live['nobody'] is None
+    assert [u for u in fetched if ':8301/' in u] == ['http://127.0.0.1:8301/.well-known/agent-card.json']
+    text = team_description(live)
+    law_line = next(line for line in text.splitlines() if line.startswith('law: '))
+    assert law_line.startswith("law: Korean building-law agent: a parcel's zoning, the 42 regulations. Skills: law_0: does 0; ")
+    assert law_line.endswith('law_11: does 11 (+2 more)')
+    mass_line = next(line for line in text.splitlines() if line.startswith('mass: '))
+    assert 'volumes' in mass_line and 'Skills:' not in mass_line, mass_line
+    # Cached for a minute: the second roster call does not fetch again.
+    before = len(fetched)
+    asyncio.run(cards.roster(['law'], fetch=fetch, now=lambda: clock[0] + 30, cache=cache, registry=Registry()))
+    assert len(fetched) == before
+    assert cards.card_url('law') == 'http://127.0.0.1:8301/.well-known/agent-card.json' and cards.card_url('nobody') is None
