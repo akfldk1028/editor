@@ -3,6 +3,8 @@
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 
+- 2026-10-09 Codex `dc561d44`: rows geometry batching, same-process mean 17.7846 → 4.7454 s (mine 5.0323/4.4584); 3 golden outputs + full WKB/metadata + Yeoksam x2/Gosan hashes identical, 1,000 differential rows exact, engine 208 passed/0 failed across 37 files incl. both runtime budgets; details in `docs/handoff/codex-rows-performance-20261009.md` §6. No push.
+
 - 2026-10-08 P4 `b0eb964a`: `run_results/` = `common.py` (loads_tolerant + coercions) · `agents/{site,law,review}.py`
   (`TOOL`, `AGENT`, `parse`; law also `law_from_response`) · `agents/__init__.py` `PARSERS` · `parse.py` composes.
   Contract and fixture results unchanged (78 tests). A new agent's step = one module in `agents/` + its row in parse.py.

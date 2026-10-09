@@ -76,9 +76,19 @@ python -X utf8 -m pytest backend/tests/masterplan_engine -q -p no:cacheprovider
 - 테스트 파일 외에 새 파일을 만들지 않는다(골든 스크립트는 fixtures/ 아래 하나만).
 
 ## 6. 결과 (Codex가 채움)
-- 전/후 벤치(s):
-- 골든 동일 여부:
-- 필지 해시 동일 여부(역삼 2, 고산 1):
-- 테스트: n passed / n failed(어느 것, 왜):
-- 커밋 해시:
-- 못 한 것·남은 것:
+- 기준: 수정 전 HEAD `624f1861`, Python 3.13 / Shapely 2.1.0. 기존 브랜치 유지, 다른 세션 변경 제외. 작업 중 다른 세션이 `99cc989d`에 골든 스크립트를 함께 커밋한 것을 확인(엔진 변경은 포함되지 않음); 재검증 기준은 최신 HEAD가 아니라 `624f1861`.
+- 전/후 벤치(s): 동일 프로세스 head/mine/mine/head = **18.0961 / 5.0323 / 4.4584 / 17.4730**. 평균 17.7846 → 4.7454 s (약 3.75배). 두 측정 모두 5 s 이하는 아님(첫 회 0.0323 s 초과); 머신 부하에 따른 편차 포함.
+- 골든 동일 여부: **3케이스 바이트 동일**, 88,901 bytes, SHA-256 `63d1770764243fac151ee965365c495a09d7cb7a6bd496101d67d2dfb18a9a64`. 코드 수정 전에 저장. 추가로 HEAD의 rows/rows_tiling 양쪽을 별도 모듈로 로드해 모든 반환 필드·딕셔너리 순서·기하 WKB까지 동일 확인(반올림 전 값 포함).
+- 필지 해시 동일 여부(역삼 2, 고산 1): **3/3 동일**.
+  - 역삼 bench: `91c150f4732ebe35dca88627cb0a047e6ec1d72d3ac19c414e182f573d0b0e3e`
+  - 역삼 generality: `678251f6a60f1bfb2c90e2c96e3da9f1c649f38c4cb8dafb421311ea38d8e844`
+  - 고산: `f07daf61d32f1a2f13e7a608628c2756b75db53c3186897c99f72015dbeb1c9c` (재실행 30.5 s)
+  - 역삼 2건의 `parking_count` 실패는 기준 결과에도 존재. 고산 geometry_status=passed.
+- 테스트: **208 passed / 0 failed, 37개 파일 순차 실행**. 기존 runtime 테스트의 15 s timeout을 수정 전 재현했고, 수정 후 4.82 s 통과. bounded_packing 파일 8 passed (파일 전체 13.29 s, 개별 <12 s 제한 통과). 긴 통합 파일도 완료: basement_program_and_curved_ramp 6 passed / 299.64 s, masterplan_engine 16 passed / 854.54 s. 초기 진행 메시지의 수기 합산 217은 오기이며, 최종 JSON 집계 208이 정확함.
+- 추가 차등 검사: seed=20261009, **1,000개 입력 전부 동일**. 장애물 유무/회전, 양쪽 행, 장애인·확장형 전환/실패/일반형 대체, 비정수 폭과 좌표를 섞고 각 주차면의 WKB·front WKB·키 순서·type·width·length를 기준 함수와 비교. 최종 엔진 SHA-256 `e7bafdecc9af3a85872cb732d787f918b12fef68f187e5309de5b2492a32f7ea`로 필지 검증 이후 코드 불변도 확인.
+- 변경: 최대 64개 주차면/진입 사각형을 생성·검사하는 행 내부 캐시. 실제 x는 기존 +=w / +=0.5 / 장애물 bounds 이동 그대로, 캐시는 정확히 같은 x만 재사용. 고립 주차면 경계 조회와 타일 주차면 교차 검사도 벡터화. 탐색·동점 처리·점수·쿼터 불변.
+- 독립 코드 리뷰: 구체적인 오류 지적 없음. 성능 테스트는 병렬 실행하지 않음.
+- 판단 기록: §5의 수정 범위는 실행 코드에 적용하고, 명시적으로 요구한 골든 스크립트·이 인계서·결정 기록은 포함. agents 소스는 수정하지 않고 §4.2의 지정된 runs 출력만 생성. 별도 작업트리/계획 파일 대신 기존 브랜치와 이 §6을 기록으로 사용(인계서 우선).
+- 증거: `%TEMP%/rows_before.json`, `rows_after.json`, `rows_benchmark.json`, `rows_engine_tests.log`, `rows_engine_tests.json`, `rows_differential.json`; 필지 출력은 지정한 `runs/siting-eval/codex-perf-20261009/*.layout.json`. eval_siting의 summary.json은 마지막 고산 실행 요약이며, 역삼 결과는 개별 파일에 남음.
+- 커밋 해시: **`dc561d44`** (엔진 최적화 두 파일). 골든 스크립트는 위에 기록한 다른 세션의 `99cc989d`에 이미 포함되어 있어 중복 커밋하지 않음. 이 결과 및 memory 기록은 후속 문서 커밋.
+- 못 한 것·남은 것: 요구된 검증과 구현 커밋 완료. 엄격한 매회 ≤5 s는 보장하지 못함(실측 5.0323 / 4.4584 s). 16필지 AI 루프 비교는 인계서대로 Claude의 독립 재검증 후 재개할 다음 작업. push 하지 않음.
