@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import math
 
-from shapely import from_wkb, prepare
-from shapely.geometry import box
+from shapely import area, bounds, box, covers, from_wkb, intersection, intersects, prepare
 from shapely.ops import unary_union
 
 from backend.app.modules.design.generation.maas.masterplan.geometry import EPS, parts
@@ -46,9 +45,32 @@ def _fill_row(host, drive, y0, y1, xs, xe, stall_w, stall_l, acc_w, acc_l, want_
         blocked_index = from_wkb(blocked.wkb)  # an exact copy, so preparing it leaves `blocked` untouched
         prepare(blocked_index)
 
-    def clear(stall):
-        return (not blocked_live or not blocked_index.intersects(stall)
-                or stall.intersection(blocked).area <= EPS)
+    batches = {}
+    last_placed = True
+
+    def attempt(x, w, l):
+        key = (w, l)
+        batch = batches.get(key)
+        if batch is None or x not in batch:
+            starts, ends = [], []
+            next_x = x
+            for _ in range(64):
+                if next_x + w > xe + EPS or next_x + stall_w > xe + EPS:
+                    break
+                starts.append(next_x)
+                ends.append(next_x + w)
+                # Multiplication/arange would round differently from the greedy scan.
+                next_x += w if last_placed else 0.5
+            polygons = (box(starts, y0 - l, ends, y0) if side < 0
+                        else box(starts, y1, ends, y1 + l))
+            fronts = box(starts, y0, ends, y1)
+            valid = covers(host_b, polygons) & covers(drive_b, fronts)
+            if blocked_live:
+                hits = valid & intersects(blocked_index, polygons)
+                valid[hits] &= area(intersection(polygons[hits], blocked)) <= EPS
+            batch = dict(zip(starts, zip(polygons, fronts, valid)))
+            batches[key] = batch
+        return batch[x]
 
     while x + stall_w <= xe + EPS:
         acc = n_acc < want_acc
@@ -65,10 +87,9 @@ def _fill_row(host, drive, y0, y1, xs, xe, stall_w, stall_l, acc_w, acc_l, want_
         for kind, w, l in attempts:
             if x + w > xe + EPS:
                 continue
-            stall = box(x, y0 - l, x + w, y0) if side < 0 else box(x, y1, x + w, y1 + l)
-            manoeuvre = box(x, y0, x + w, y1)
+            stall, manoeuvre, valid = attempt(x, w, l)
             attempted = stall
-            if host_b.covers(stall) and drive_b.covers(manoeuvre) and clear(stall):
+            if valid:
                 stalls.append({"polygon": stall, "front": manoeuvre, "type": kind, "width_m": w, "length_m": l})
                 if kind == "accessible":
                     n_acc += 1
@@ -77,6 +98,8 @@ def _fill_row(host, drive, y0, y1, xs, xe, stall_w, stall_l, acc_w, acc_l, want_
                 x += w
                 placed = True
                 break
+        # Predict the next run or failed-position sweep; exact-x lookups keep jumps unchanged.
+        last_placed = placed
         if not placed:
             inter = (attempted.intersection(blocked)
                      if attempted is not None and blocked is not None and not blocked.is_empty else None)
@@ -89,9 +112,10 @@ def _fill_row(host, drive, y0, y1, xs, xe, stall_w, stall_l, acc_w, acc_l, want_
     if stalls and len(stalls) > 1:
         runs = []
         curr_run = [stalls[0]]
-        for s in stalls[1:]:
-            prev_end = curr_run[-1]["polygon"].bounds[2]
-            this_start = s["polygon"].bounds[0]
+        row_bounds = bounds([s["polygon"] for s in stalls])
+        for i, s in enumerate(stalls[1:], 1):
+            prev_end = float(row_bounds[i - 1, 2])
+            this_start = float(row_bounds[i, 0])
             if abs(this_start - prev_end) <= 0.05:
                 curr_run.append(s)
             else:
@@ -274,7 +298,8 @@ def _tile_bands_at(g_ground, blocked, y, aisle, stall_w, stall_l, acc_w, acc_l, 
                                 blocked, side, expanded=expanded_dims, want_expanded=want_expanded,
                                 n_expanded_start=sum(s["type"] == "expanded" for s in stalls),)
     # a stall the tiling put under another band's aisle or under the cross aisle is not a stall
-    stalls = [st for st in stalls if st["polygon"].intersection(drive).area <= EPS]
+    keep = area(intersection([st["polygon"] for st in stalls], drive)) <= EPS
+    stalls = [st for st, valid in zip(stalls, keep) if valid]
     if not stalls:
         return None
 

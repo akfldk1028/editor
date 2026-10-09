@@ -23,8 +23,8 @@ from __future__ import annotations
 import math
 
 from shapely.affinity import rotate
-from shapely import STRtree, from_wkb, prepare
-from shapely.geometry import LineString, Point, Polygon, box
+from shapely import STRtree, box, from_wkb, prepare
+from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import substring, unary_union
 
 from backend.app.modules.design.generation.maas.masterplan.geometry import EPS, parts
