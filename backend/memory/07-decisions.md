@@ -378,5 +378,10 @@ be told to the Orchestrator session.
   once ("Docker engine is not running"). Reported cause: with `locate()` always alive:false, `compose up -d` re-ran
   every 10 s tick for 4 services while Docker Desktop was off (console windows flashing). Host tests 41. Separate,
   still open: the `editor` entry's `bun run dev --filter editor` spawn fails ENOENT under the daemon (Node cannot
-  run the `bun` shim without a shell); it backs off and gives up as designed, so start the Next dev by hand
-  (frontend/memory/03-run-and-test.md).
+  run the `bun` shim without a shell) — closed the same day: `resolveCommand` asks `where.exe` for any bare command
+  on Windows and runs a .cmd/.bat hit through a shell (bun, bunx added to the shim list as the fallback); the
+  `editor` entry now starts through turbo with `--webpack --hostname 127.0.0.1 --port {port}` (Turbopack cannot
+  resolve the dwg workspace's ./x.js imports; runtime.mjs carries the same args so registry test (f) holds), and the
+  local env file's `EDITOR_PUBLIC_URL`/`EDITOR_SCENE_URL` name 3002 so the host-run editor passes the same-origin
+  doors. Live: `host:start editor` -> pid 25900 on 3002, /dwg 200, ordinances + body doors 200 via 3002, host +
+  dev tests 68. The manual 3003 Next instance is retired.

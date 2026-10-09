@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { readEnvFile } from './processes.mjs';
+import { readEnvFile, resolveCommand } from './processes.mjs';
 
 test('readEnvFile expands ${NAME:-default} and ${NAME} the way `source` would, from earlier keys and the given env', () => {
   const dir = mkdtempSync(join(tmpdir(), 'host-env-'));
@@ -26,4 +26,10 @@ test('readEnvFile expands ${NAME:-default} and ${NAME} the way `source` would, f
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('resolveCommand finds the Windows launcher of a bare command: a .cmd shim (npm, npm-installed bun) or an .exe', { skip: process.platform !== 'win32' && 'Windows only' }, () => {
+  assert.match(resolveCommand('npm', process.cwd()), /\.cmd$/i);
+  assert.match(resolveCommand('bun', process.cwd()), /\.(cmd|exe)$/i, 'bun resolves even though Node cannot spawn its npm shim bare');
+  assert.equal(resolveCommand('no-such-executable-xyz', process.cwd()), 'no-such-executable-xyz');
 });

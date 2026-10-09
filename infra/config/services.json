@@ -26,10 +26,10 @@
       "port": 3002,
       "health_url": "{base}/api/health",
       "card_url": null,
-      "start": { "cwd": "editor", "cmd": ["bun", "run", "dev", "--filter", "editor"] },
+      "start": { "cwd": "editor", "cmd": ["bun", "run", "dev", "--filter", "editor", "--", "--webpack", "--hostname", "127.0.0.1", "--port", "{port}"] },
       "depends_on": [],
       "version_source": "git:editor",
-      "notes": "Next app frontend/app/editor. Mounted under /editor behind the PLAN frontend in product mode; the public app itself in native mode. The frontend session also starts a manual instance on 3003 (frontend/memory/03-run-and-test.md); that is not a registered service."
+      "notes": "Next app frontend/app/editor, started through turbo (workspace packages first) with `--webpack` (Next 16 defaults to Turbopack, which cannot resolve the dwg workspace's ./x.js -> x.tsx imports; frontend/memory/04-pitfalls.md). Mounted under /editor behind the PLAN frontend in product mode (infra/dev/runtime.mjs, same command); the public app itself in native mode. EDITOR_PUBLIC_URL in the backend's env file must name this port, or the browser's POST doors answer 403."
     },
     {
       "id": "frontend",
@@ -78,6 +78,8 @@
     },
     {
       "id": "orchestrator",
+      "capabilities": ["design-conversation/v1"],
+      "required_for_capabilities": ["design-conversation/v1"],
       "kind": "orchestrator",
       "owner_repo": "agents/OrchestratorAgent",
       "lifecycle": "persistent",
@@ -130,6 +132,7 @@
     },
     {
       "id": "program",
+      "capabilities": ["design-conversation/v1"],
       "kind": "agent",
       "idle_timeout_s": 1800,
       "memory_mb": 90,
@@ -186,6 +189,7 @@
     },
     {
       "id": "requirement",
+      "capabilities": ["design-conversation/v1"],
       "kind": "agent",
       "idle_timeout_s": null,
       "memory_mb": 90,
@@ -205,6 +209,7 @@
     },
     {
       "id": "design-intent",
+      "capabilities": ["design-conversation/v1"],
       "kind": "agent",
       "idle_timeout_s": null,
       "memory_mb": 90,

@@ -115,8 +115,20 @@ export function resolveCommand(command, cwd, env = process.env) {
     const venv = resolve(cwd, '.venv', win32 ? 'Scripts/python.exe' : 'bin/python');
     if (existsSync(venv)) return venv;
   }
-  if (win32 && ['npm', 'npx', 'yarn', 'pnpm'].includes(command)) return `${command}.cmd`;
+  if (win32 && !/[\/]/.test(command)) {
+    // A bare name: what `where` finds. A .cmd/.bat shim (npm, npm-installed bun) needs a shell; an .exe does not.
+    // 2026-10-09: `spawn bun ENOENT` kept the editor entry restarting — Node never finds bun.cmd without this.
+    const found = onPath(command);
+    if (found) return found;
+    if (['npm', 'npx', 'yarn', 'pnpm', 'bun', 'bunx'].includes(command)) return `${command}.cmd`;
+  }
   return command;
+}
+
+/** Windows: the first .exe/.cmd/.bat `where` lists for the command, or null when PATH has none. */
+export function onPath(command) {
+  const out = spawnSync('where.exe', [command], { encoding: 'utf8', windowsHide: true }).stdout ?? '';
+  return out.split(/\r?\n/).map(line => line.trim()).find(line => /\.(exe|cmd|bat)$/i.test(line)) ?? null;
 }
 
 /**
