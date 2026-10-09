@@ -15,6 +15,14 @@ def test_ai_can_request_strict_ring_and_mixed_parking_without_moving_site():
     assert request['options'] == {} and request['rules'] == {}
 
 
+@pytest.mark.parametrize('circulation', ['auto', 'comb', 'ring'])
+def test_circulation_is_an_alternative_choice(circulation):
+    request = {'site': mapping(box(0, 0, 40, 40)), 'options': {}, 'rules': {}}
+    result = apply_placement_moves(request, {'circulation': circulation, 'parking_mix': 'perpendicular'})['request']
+    assert result['options']['basement_parking_field'] == circulation
+    assert result['options']['parking_mix'] == 'perpendicular'
+
+
 @pytest.mark.parametrize('angle', [0, 31])
 def test_parallel_infill_uses_shallow_strip_without_narrowing_drive(angle):
     from backend.app.modules.design.generation.maas.masterplan.parallel_parking import infill

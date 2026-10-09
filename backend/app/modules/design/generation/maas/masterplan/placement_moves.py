@@ -16,8 +16,8 @@ MOVES = {'building_side': {'keep', 'center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W
          'piloti': {'keep', 'piloti'}, 'surface_share': {'keep', *SHARES},
          'ramp': {'keep', 'any', 'straight', 'curved'}}
 MOVES['pedestrian_route'] = {'keep', 'front_start', 'front_middle', 'front_end'}
-MOVES['circulation'] = {'keep', 'ring'}
-MOVES['parking_mix'] = {'keep', 'parallel_infill'}
+MOVES['circulation'] = {'keep', 'auto', 'comb', 'ring'}
+MOVES['parking_mix'] = {'keep', 'perpendicular', 'parallel_infill'}
 
 
 def _number(value, name, *, count=False):
@@ -129,7 +129,7 @@ def apply_placement_moves(request, moves):
     if 'ramp' in applied:
         options['ramp_shape'] = applied['ramp']
     if 'circulation' in applied:
-        options['basement_parking_field'] = 'ring'
+        options['basement_parking_field'] = applied['circulation']
         unresolved.append('closed aisle geometry does not certify steering or swept paths')
     if 'parking_mix' in applied:
         options['parking_mix'] = applied['parking_mix']
