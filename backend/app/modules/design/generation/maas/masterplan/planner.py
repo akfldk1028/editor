@@ -430,6 +430,9 @@ def _plan_site_fixed(request):
                 # `share_under_footprint` measures); at grade only its flat UPPER LANDING is a
                 # conflict, because a car stands on it before it starts down.
                 blocked=union_or_empty([obstacles])
+                requested_turn=options.get('ramp_turn_deg')
+                if requested_turn is not None:
+                    requested_turn=number(requested_turn,'ramp turn',minimum=1,maximum=180)
                 def accept_ramp(ramp):
                     if not ramp_reservation_conflicts(ramp,pedestrian)['passed']:
                         return False
@@ -437,6 +440,10 @@ def _plan_site_fixed(request):
                         # rows.py hands the band polygon alone and applies its own at-grade landing
                         # rule before it ever gets here; only the dict form carries the landings.
                         return True
+                    if requested_turn is not None:
+                        from .ramp_intent import matches_turn
+                        if not matches_turn(ramp,requested_turn):
+                            return False
                     upper=ramp.get("upper_landing")
                     if upper is not None and not ground_footprint.is_empty:
                         if upper.intersection(ground_footprint).area>EPS:
@@ -463,7 +470,8 @@ def _plan_site_fixed(request):
                 ramps=ramp_candidates(ramp_host,frontage,blocked,rules,height,accept=accept_ramp) if shape_opt!="curved" else []
                 # practice turns the ramp where a straight run will not fit beside the plate
                 if shape_opt!="straight":
-                    ramps+=curved_ramp_candidates(ramp_host,frontage,blocked,rules,height,accept=accept_ramp)
+                    ramps+=curved_ramp_candidates(ramp_host,frontage,blocked,rules,height,accept=accept_ramp,
+                        **({'turns':(requested_turn,)} if requested_turn is not None else {}))
                 ramps=_off_prohibited(ramps,prohibited)
                 if not ramps:
                     spec_len=(ramp_profile(rules,height) or {}).get("length_m")
