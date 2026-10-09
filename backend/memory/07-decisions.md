@@ -16,6 +16,12 @@
   always null) — agent door `/law/agent/ordinance-candidates` response otherwise unchanged. Live: 고산동 961-3 1.3 s /
   35 ordinances (8 searches), 역삼동 823-26 1.5 s / 29, 2024-06-01 past date 2.8 s / 38 searches, body 0.3 s (92 조문·
   17 별표). Tests `test_ordinance_discovery_service.py` (21) + `test_ordinance_body.py` (3); inventory regenerated.
+  Review fixes (second commit, same day): body cache keeps only records with 자치법규기본정보 (an error body was pinned
+  for the TTL); edition ties compare the serial numerically; the snapshot's issuer spelling widens the match
+  (`snapshot_issuer`, `issuers_of`) instead of replacing the derived issuer; a level with no current record of its own
+  is noted from the data (제주시 같은 행정시); "past date" uses the server's local day; frontend: 60 s timeout + 다시 조회,
+  heading count only after verification, excluded list says how many are not shown, history-only ordinance gets a
+  notice in the reader; unused `OrdinancePanel.tsx` removed.
 - 2026-10-09 Source-bound pedestrian placement: apply_placement_moves now accepts pedestrian_route (keep/front_start/front_middle/front_end) plus explicit positive pedestrian_width_m. Requires source-attributed pedestrian_frontage and fixed ground building zone; never substitutes vehicle frontage. New pedestrian_route_design is realized before parking, preserves source reservations, and serializes corridor/centerline/proposed facade entrance. Independent validation rejects missing features and conflicts; doors, slopes, accessibility and complete arrival network remain pending. Consumer support for Law-reviewed pedestrian_approach/reserved-area geometry is in MasterPlan synthesis. 45 focused engine tests passed. Actual Site/Law Gosan receipt has 72 reviewed clauses but no confirmed pedestrian approach geometry; no completed real-parcel route claimed. No new route URL, shared-service restart or external message.
 
 Write one dated line per decision; link the commit. Contract changes to agent doors must also

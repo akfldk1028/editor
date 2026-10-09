@@ -109,7 +109,7 @@ def _attach_refs(name: str, refs: list[dict], listed: list[tuple[str, str]], inn
 class _Discovery:
     def __init__(self, levels, topics, when, fetch_json, page_limit):
         self.levels, self.topics, self.when, self.fetch_json, self.page_limit = levels, topics, when, fetch_json, page_limit
-        self.issuers = {_norm(level['issuer']): level for level in levels}
+        self.issuers = {_norm(issuer): level for level in levels for issuer in jurisdiction.issuers_of(level)}
         self.queries: list[dict] = []
         self.seen: set[str] = set()
         self.editions: dict[str, list[dict]] = {}
@@ -157,7 +157,8 @@ class _Discovery:
         editions = self.editions[key]
         on_date = [e for e in editions if e['effective_date'] and e['effective_date'] <= self.when]
         future = sorted((e for e in editions if e['effective_date'] and e['effective_date'] > self.when), key=lambda e: e['effective_date'])
-        pick = max(on_date, key=lambda e: (e['effective_date'], e['promulgated'] or '', e['edition_id'])) if on_date else None
+        serial = lambda e: int(e['edition_id']) if e['edition_id'].isdigit() else 0  # noqa: E731
+        pick = max(on_date, key=lambda e: (e['effective_date'], e['promulgated'] or '', serial(e))) if on_date else None
         return pick, future
 
     def entry(self, key: str, *, in_force: str) -> dict | None:
@@ -174,7 +175,8 @@ def discover_for_parcel(pnu: str, assessment_date: str, *, address: str | None, 
                         fetch_json, page_limit: int = 20, now=None, today: date | None = None) -> dict:
     when = date.fromisoformat(assessment_date)
     clock = now or (lambda: datetime.now(timezone.utc))
-    today = today or clock().date()
+    # "Past" is judged on the server's local calendar day, the one the editor's date picker also uses.
+    today = today or datetime.now().date()
     place = jurisdiction.resolve(pnu, address)
     base = {'pnu': pnu, 'assessment_date': assessment_date, 'retrieved_at': clock().isoformat(),
             'source': f'{search.SOURCE} (nw=1 현행, nw=2 연혁)', 'jurisdiction': place, 'topics': [],
@@ -216,6 +218,11 @@ def discover_for_parcel(pnu: str, assessment_date: str, *, address: str | None, 
                 entry = run.entry(key, in_force='unknown')
                 if entry is not None:
                     historical.append(entry)
+    # A level that issued nothing in the current list (a 행정시 such as 제주시, or a unit that legislates nothing on these
+    # topics) is said so, from the data, instead of being presented as a legislating government.
+    for level in levels:
+        if not any(run.level_of.get(key) == level['level'] for key in current):
+            place['notes'].append(f"{level['name']} 명의의 현행 자치법규를 찾지 못했어요 — 자치법규를 내지 않는 단위(행정시 등)이거나 이 주제의 조례가 없어요")
     innermost = levels[-1]['level']
     listed = [(o['name'], o['level']) for o in ordinances]
     for ordinance in [*ordinances, *historical]:

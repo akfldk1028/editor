@@ -53,8 +53,8 @@ def _snapshot(code: str) -> dict | None:
 
 def cross_check(levels: list[dict], pnu: str) -> list[dict]:
     """Each level gets its PNU code and a `check`: `ordinance_snapshot_match` (the Law domain's snapshot for that
-    code names the same government; its law.go.kr issuer string then replaces the derived one), `address_only`
-    (no snapshot to compare with) or `conflict` (the snapshot names another government)."""
+    code names the same government; its law.go.kr issuer string is kept beside the derived one as `snapshot_issuer`),
+    `address_only` (no snapshot to compare with) or `conflict` (the snapshot names another government)."""
     sido_code, si_code, sigungu_code = pnu[:2], pnu[:4] + '0', pnu[:5]
     for level in levels:
         code = sido_code if level['level'] == 'sido' else sigungu_code
@@ -75,8 +75,13 @@ def cross_check(levels: list[dict], pnu: str) -> list[dict]:
         level['check'] = 'ordinance_snapshot_match'
         level['source'] += f'; ordinance_overrides/{code}.json'
         if isinstance(issuer, str) and issuer.strip():
-            level['issuer'] = issuer.strip()
+            level['snapshot_issuer'] = issuer.strip()
     return levels
+
+
+def issuers_of(level: dict) -> list[str]:
+    """The issuer strings a record may carry for this level: the derived one and, when present, the snapshot's."""
+    return [value for value in (level.get('issuer'), level.get('snapshot_issuer')) if isinstance(value, str) and value.strip()]
 
 
 def resolve(pnu: str, address: str | None) -> dict:

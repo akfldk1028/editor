@@ -80,13 +80,14 @@ def ordinance_body(name: str, edition_id: str, assessment_date: str, *, fetch_se
             payload = fetch_service(edition_id)
         except Exception as exc:
             return {'error': 'external_failure', 'reason': _safe(f'{type(exc).__name__}: {exc}'), 'edition_id': edition_id}
-        if isinstance(payload, dict):
-            with _lock:
-                _cache[edition_id] = (time.time(), payload)
     law = payload.get('LawService') if isinstance(payload, dict) and isinstance(payload.get('LawService'), dict) else payload
     info = law.get('자치법규기본정보') if isinstance(law, dict) and isinstance(law.get('자치법규기본정보'), dict) else None
     if info is None:
+        # Error bodies (rate limit, maintenance, bad serial) are dicts too; never keep one for the TTL.
         return {'error': 'invalid_record', 'reason': 'no 자치법규기본정보 in the official record', 'edition_id': edition_id}
+    if not cached:
+        with _lock:
+            _cache[edition_id] = (time.time(), payload)
     effective = _iso(info.get('시행일자'))
     checks = {'name': _norm(info.get('자치법규명')) == _norm(name), 'edition': _norm(info.get('자치법규일련번호')) == _norm(edition_id),
               'date': effective is not None and effective <= when.isoformat()}

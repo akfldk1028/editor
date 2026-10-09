@@ -12,7 +12,7 @@ export type ReviewSelection =
 
 const matchesSelection = (selected: ReviewSelection, ordinance: DiscoveredOrdinance) => selected.kind === 'ordinance' && selected.editionId === ordinance.edition_id
 
-export function ReviewNavigation({ review, ordinances, selected, onSelect }: { review: Review; ordinances: OrdinanceState; selected: ReviewSelection; onSelect(value: ReviewSelection): void }) {
+export function ReviewNavigation({ review, ordinances, selected, onSelect, onRetry }: { review: Review; ordinances: OrdinanceState; selected: ReviewSelection; onSelect(value: ReviewSelection): void; onRetry(): void }) {
   const [query, setQuery] = useState('')
   const matches = (value: string) => value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
   const seen = new Set<string>()
@@ -31,9 +31,9 @@ export function ReviewNavigation({ review, ordinances, selected, onSelect }: { r
     <nav className="law-reader-nav" aria-label="조항 목차">
       <input aria-label="조항·법령 검색" placeholder="조항·법령 이름 찾기" type="search" value={query} onChange={event => setQuery(event.target.value)} />
       <section aria-label="관할 조례">
-        <h2>관할 조례 <span>{found ? found.ordinances.length : cited.length}</span></h2>
+        <h2>관할 조례 {found && <span>{found.ordinances.length}</span>}</h2>
         {ordinances.kind === 'loading' && <p className="law-reader-muted" role="status">법제처에서 관할 조례를 찾는 중…</p>}
-        {ordinances.kind === 'error' && <p className="law-reader-muted" role="alert">{ordinances.text}</p>}
+        {ordinances.kind === 'error' && <p className="law-reader-muted" role="alert">{ordinances.text} <button type="button" className="law-reader-retry" onClick={onRetry}>다시 조회</button></p>}
         {found && <p className="law-reader-jurisdiction">{jurisdictionLine(found)}<br />{searchSummary(found)}{found.search.complete ? '' : ' — 목록이 완전하지 않을 수 있어요'}</p>}
         {found && found.jurisdiction.notes.map(note => <p className="law-reader-jurisdiction" key={note}>{note}</p>)}
         {found && found.jurisdiction.status === 'resolved' && !found.ordinances.length && <p className="law-reader-muted">관할 지자체의 조례를 찾지 못했어요. 조례가 없다는 뜻은 아니에요.</p>}
@@ -63,6 +63,7 @@ export function ReviewNavigation({ review, ordinances, selected, onSelect }: { r
         {found && (found.excluded_total ?? found.excluded.length) > 0 && <details className="law-reader-excluded">
           <summary>제외 {found.excluded_total ?? found.excluded.length}건 — 다른 지자체 이름 일치·기준일 뒤 시행</summary>
           <ul>{found.excluded.map(row => <li key={`${row.issuer}|${row.name}`}>{row.name} <span>{row.issuer} · {row.reason === 'jurisdiction_mismatch' ? '관할 아님' : `시행 ${row.first_effective_date ?? '예정'}`}</span></li>)}</ul>
+          {(found.excluded_total ?? 0) > found.excluded.length && <p>… 외 {(found.excluded_total ?? 0) - found.excluded.length}건은 표시하지 않았어요</p>}
         </details>}
         {!found && cited.length > 0 && <div className="law-reader-level">
           <h3>검토가 인용한 조례 <span>{cited.length}</span></h3>

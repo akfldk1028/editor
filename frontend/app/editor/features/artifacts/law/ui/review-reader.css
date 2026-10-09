@@ -60,3 +60,6 @@
 .law-reader-excluded li { line-height: 1.6; overflow-wrap: anywhere; }
 .law-reader-excluded li span { opacity: .75; }
 .law-reader-excluded button { font-size: 11px; }
+.law-reader-excluded p { margin: 6px 0 0; }
+.law-reader-retry { margin-left: 6px; border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font: inherit; font-size: 11px; color: var(--ink); background: var(--artifact); cursor: pointer; }
+.law-reader-paper > .law-source-notice { margin: 0 14px; }

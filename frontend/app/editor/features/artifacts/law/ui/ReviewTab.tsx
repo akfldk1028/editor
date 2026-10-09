@@ -24,7 +24,8 @@ function ReviewReader({ review, site }: { review: Review; site: ReferenceSite })
   const [contextOpen, setContextOpen] = useState(false)
   const [selection, setSelection] = useState<ReviewSelection | null>(null)
   const [fontSize, setFontSize] = useState(13)
-  const ordinances = useOrdinances(review, site)
+  const [refresh, setRefresh] = useState(0)
+  const ordinances = useOrdinances(review, site, refresh)
   useEffect(() => {
     const element = root.current
     if (!element) return
@@ -47,7 +48,7 @@ function ReviewReader({ review, site }: { review: Review; site: ReferenceSite })
     {!item ? <p className="law-note">검토 목록이 비어 있습니다. 법규가 없다는 뜻은 아닙니다.</p> : <div className="law-reader-layout">
       <details className="law-reader-disclosure" open={wide || navigationOpen} onToggle={event => { if (!wide) setNavigationOpen(event.currentTarget.open) }}>
         <summary>관할 조례 · 조항 목차 <span>{item.title}</span></summary>
-        <ReviewNavigation review={review} ordinances={ordinances} selected={current} onSelect={select} />
+        <ReviewNavigation review={review} ordinances={ordinances} selected={current} onSelect={select} onRetry={() => setRefresh(value => value + 1)} />
       </details>
       <section className="law-reader-paper" aria-label="조문 원문">
         <header className="law-reader-toolbar"><strong>{item.title}</strong><div className="law-reader-font"><span>글자</span><button aria-label="원문 글자 작게" disabled={fontSize <= 12} onClick={() => setFontSize(value => value - 1)} type="button">−</button><output aria-label="원문 글자 크기">{fontSize}</output><button aria-label="원문 글자 크게" disabled={fontSize >= 22} onClick={() => setFontSize(value => value + 1)} type="button">+</button></div></header>
@@ -59,6 +60,7 @@ function ReviewReader({ review, site }: { review: Review; site: ReferenceSite })
         ) : (
           <nav className="law-reader-refnav" aria-label="근거 법령 선택">{item.refs.map((ref, index) => <button type="button" key={JSON.stringify([ref.instrument, ref.article, ref.clause])} title={ref.instrument} aria-pressed={index === refIndex} onClick={() => setSelection({ kind: 'item', itemId: item.id, refIndex: index })}>{KIND_LABEL[ref.kind]} · {ref.article || (ref.kind === 'ordinance' ? '전체 조례' : '조문 확인 필요')}</button>)}</nav>
         )}
+        {chosen?.status.in_force === 'unknown' && <p className="law-source-notice" role="note">연혁 목록에만 있는 조례예요. 현행 목록에 없고 폐지 시점도 목록으로는 알 수 없어서, 기준일 {site.assessmentDate}에 효력이 있었는지는 확인되지 않았어요.</p>}
         {reference ? <SourceArticle key={JSON.stringify([reference, site])} reference={reference} site={site} /> : <p className="law-reader-muted">근거 조문 자료 확보 필요</p>}
       </section>
       {chosen ? <div /> : <details className="law-reader-disclosure" open={wide || contextOpen} onToggle={event => { if (!wide) setContextOpen(event.currentTarget.open) }}>

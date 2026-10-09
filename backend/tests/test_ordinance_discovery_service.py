@@ -63,7 +63,8 @@ def test_snapshot_cross_check_confirms_or_fails_closed(tmp_path):
     assert resolved['status'] == 'resolved'
     sido, sigungu = resolved['levels']
     assert (sido['code'], sido['check']) == ('99', 'address_only')
-    assert (sigungu['code'], sigungu['check'], sigungu['issuer']) == ('99990', 'ordinance_snapshot_match', '갑도 을시청')
+    assert (sigungu['code'], sigungu['check'], sigungu['issuer'], sigungu['snapshot_issuer']) == ('99990', 'ordinance_snapshot_match', '갑도 을시', '갑도 을시청')
+    assert jurisdiction.issuers_of(sigungu) == ['갑도 을시', '갑도 을시청'] and jurisdiction.issuers_of(sido) == ['갑도']
     (tmp_path / '99990.json').write_text(json.dumps({'sigungu_name': '병시', 'ordinance': {}}), encoding='utf-8')
     conflict = jurisdiction.resolve(PNU, '갑도 을시 정동 1-2')
     assert conflict['status'] == 'conflict' and '병시' in conflict['reason']
@@ -174,6 +175,30 @@ def test_candidates_are_kept_only_for_the_parcels_governments_and_the_edition_in
     assert '을시 지하도상가 조례' not in names and out['search']['other_results'] == 1
     assert out['search']['complete'] is True and out['search']['errors'] == [] and out['historical'] == []
     assert out['ordinances'][0]['level'] == 'sigungu' and out['ordinances'][-1]['level'] == 'sido'
+
+
+def test_a_snapshot_issuer_spelling_widens_the_match_instead_of_replacing_it(tmp_path):
+    (tmp_path / '99990.json').write_text(json.dumps({'sigungu_name': '을시', 'ordinance': {'issuer': '갑도 을시청'}}), encoding='utf-8')
+    results = fixture_results()
+    results[('을시 건축 조례', 1)].append(row('을시 경관 조례', '갑도 을시청', '3100', '20200101', oid='K'))
+    out, _ = discover(results=results)
+    names = {o['name'] for o in out['ordinances']}
+    assert '을시 도시계획 조례' in names and '을시 경관 조례' not in names  # 경관 is no topic here; the issuer alone does not list it
+    out, _ = discover(results=results, topics=['경관'])
+    assert '을시 경관 조례' in {o['name'] for o in out['ordinances']}
+
+
+def test_a_level_without_any_current_record_is_noted_from_the_data():
+    results = {('을시 건축 조례', 1): [row('을시 건축 조례', '갑도 을시', '1', '20240101', oid='B')]}
+    out, _ = discover(refs=[], results=results)
+    assert any(note.startswith('갑도 명의의 현행 자치법규를 찾지 못했어요') for note in out['jurisdiction']['notes'])
+    assert not any(note.startswith('을시 명의의') for note in out['jurisdiction']['notes'])
+
+
+def test_edition_ties_prefer_the_higher_serial_numerically():
+    results = {('을시 건축 조례', 1): [row('을시 건축 조례', '갑도 을시', '999999', '20240101', oid='B'), row('을시 건축 조례', '갑도 을시', '1000000', '20240101', oid='B')]}
+    out, _ = discover(refs=[], results=results)
+    assert next(o for o in out['ordinances'] if o['name'] == '을시 건축 조례')['edition_id'] == '1000000'
 
 
 def test_an_earlier_assessment_date_selects_the_historical_edition_and_lists_history_only_ordinances_apart():

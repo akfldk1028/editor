@@ -57,3 +57,10 @@ def test_failures_are_reported_without_the_credential_and_records_are_cached():
     body.ordinance_body('을시 주차장 설치 및 관리 조례', '4000', '2026-10-09', fetch_service=fetch)
     body.ordinance_body('을시 주차장 설치 및 관리 조례', '4000', '2026-10-09', fetch_service=fetch)
     assert calls == ['4000']
+
+
+def test_an_error_body_is_not_kept_for_the_cache_ttl():
+    answers = [{'LawService': {'에러': '일일 요청 한도 초과'}}, RECORD]
+    fetch = lambda mst: answers.pop(0)  # noqa: E731
+    assert body.ordinance_body('을시 주차장 설치 및 관리 조례', '4000', '2026-10-09', fetch_service=fetch)['error'] == 'invalid_record'
+    assert body.ordinance_body('을시 주차장 설치 및 관리 조례', '4000', '2026-10-09', fetch_service=fetch)['status']['identity'] == 'body_verified'
