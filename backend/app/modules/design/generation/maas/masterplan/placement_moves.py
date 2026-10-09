@@ -19,6 +19,8 @@ MOVES['pedestrian_route'] = {'keep', 'front_start', 'front_middle', 'front_end'}
 MOVES['circulation'] = {'keep', 'auto', 'comb', 'ring'}
 MOVES['parking_mix'] = {'keep', 'perpendicular', 'parallel_infill'}
 MOVES['building_proportion'] = {'keep', 'compact', 'along_axis', 'cross_axis'}
+MOVES['basement_module'] = {'keep', 'auto', 'module16', 'module27', 'module32'}
+MOVES['module_axis'] = {'keep', 'along_axis', 'cross_axis', 'both'}
 
 
 def _number(value, name, *, count=False):
@@ -132,6 +134,11 @@ def apply_placement_moves(request, moves):
             options['max_surface_stalls'] = proposed
     if 'ramp' in applied:
         options['ramp_shape'] = applied['ramp']
+    for key in ('basement_module', 'module_axis'):
+        if key in applied:
+            options[key] = applied[key]
+    if 'basement_module' in applied:
+        unresolved.append('whole basement modules: dimensions follow supplied rules; steering paths and building doors remain unverified')
     if 'circulation' in applied:
         options['basement_parking_field'] = applied['circulation']
         unresolved.append('closed aisle geometry does not certify steering or swept paths')

@@ -37,7 +37,7 @@ def test_expanded_shortfall_still_tries_other_packer(monkeypatch):
     assert calls and result['parking']['stalls'][0]['type']=='expanded'
 
 
-def test_programme_choice_minimizes_actual_combined_construction_extent(monkeypatch):
+def test_programme_choice_does_not_rank_construction_extent(monkeypatch):
     import backend.app.modules.design.generation.maas.masterplan.basement_layout as module
     far={'zone':box(50,30,55,35),'rooms':[]}
     near={'zone':box(5,25,10,30),'rooms':[]}
@@ -48,4 +48,5 @@ def test_programme_choice_minimizes_actual_combined_construction_extent(monkeypa
     result=solve_basement_level(box(0,0,60,40),
         {'polygon':box(0,0,4,30),'lower_landing':box(0,26,4,30)},box(25,20,30,25),
         [{'area_m2':25}],{'aisle_width_m':6},1,0)
-    assert result['zone'] is near
+    # Equal parking plans retain input order; construction cost belongs elsewhere.
+    assert result['zone'] is far

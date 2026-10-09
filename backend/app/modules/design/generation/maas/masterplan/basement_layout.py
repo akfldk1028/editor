@@ -151,7 +151,9 @@ def slab_envelopes(seed, envelope, mandatory, target_area, module_depth, *, aisl
 def solve_basement_level(slab, ramp, obstacles, rooms, rules, required, accessible,
                          *, angle=0, expanded_needed=None, turn_radius_m=None,
                          turn_lane_m=None, field='auto', departure_landing=None, require_full_width=False,
-                         orthogonal_layout=False):
+                         orthogonal_layout=False, module_family=None, module_axis='both'):
+    if module_axis not in ('both', 'along_axis', 'cross_axis'):
+        raise ValueError('unsupported module axis')
     landing=ramp['lower_landing']
     landings=union_or_empty([landing,departure_landing] if departure_landing is not None else [landing])
     keep_clear=union_or_empty([obstacles,ramp['polygon']])
@@ -174,11 +176,19 @@ def solve_basement_level(slab, ramp, obstacles, rooms, rules, required, accessib
         free=slab.difference(blocked)
         # the landing is the packer's road-equivalent; take its largest piece if it was clipped apart
         landing_edge=max(parts(landing),key=lambda g:g.area,default=landing)
-        plans=row_candidates(slab,free,Polygon(),obstacles,LineString(landing_edge.exterior.coords),
-            None,rules,required,accessible,expanded_needed=expanded_needed,
-            turn_radius_m=turn_radius_m,turn_lane_m=turn_lane_m,field=field,
-            allowed_angles=[angle, angle+90] if orthogonal_layout else None,
-            preserve_banks=orthogonal_layout)
+        if module_family is not None:
+            from .parking_modules import module_candidates
+            module_angles=([angle,angle+90] if module_axis=='both' else
+                           [angle+90] if module_axis=='cross_axis' else [angle])
+            plans=module_candidates(free,[landing]+([departure_landing] if departure_landing is not None else []),
+                rules,required,accessible,family=module_family,angles=module_angles,
+                field=field,expanded_needed=expanded_needed)
+        else:
+            plans=row_candidates(slab,free,Polygon(),obstacles,LineString(landing_edge.exterior.coords),
+                None,rules,required,accessible,expanded_needed=expanded_needed,
+                turn_radius_m=turn_radius_m,turn_lane_m=turn_lane_m,field=field,
+                allowed_angles=[angle, angle+90] if orthogonal_layout else None,
+                preserve_banks=orthogonal_layout)
         def clean(plan):
             # UNION THE VALID FORMS, NOT THE RAW ONES. GEOS raises "unable to assign free hole to a
             # shell" when an operand carries a hole its shell no longer contains, which the packer
@@ -221,7 +231,7 @@ def solve_basement_level(slab, ramp, obstacles, rooms, rules, required, accessib
                     'accessible':sum(s['type']=='accessible' for s in stalls),
                     'search_count':plan.get('search_count',1)}
         plans=[p for p in (clean(p) for p in plans) if p is not None]
-        if field=='ring' and not plans:
+        if (field=='ring' or module_family is not None) and not plans:
             continue
         if not plans and departure_landing is not None:
             empty=clean({'stalls':[],'drive':Polygon(),'provided':0,'accessible':0})
@@ -232,13 +242,14 @@ def solve_basement_level(slab, ramp, obstacles, rooms, rules, required, accessib
         best=max(plans,key=lambda p:rank(p,zone)) if plans else {
             'stalls':[],'drive':landing,'provided':0,'accessible':0,'search_count':0}
         best={**best,'generation':{'requested_field':field,
-            'selected_engine':'row_candidates' if plans else 'empty_landing',
-            'selected_pattern':best.get('pattern'),'fallback_used':False}}
+            'selected_engine':('parking_modules' if module_family is not None else 'row_candidates') if plans else 'empty_landing',
+            'selected_pattern':best.get('pattern'),'fallback_used':False,
+            **({'module_layout':best['module_layout']} if best.get('module_layout') else {})}}
         results.append({'zone':zone,'parking':best,'free':free})
     # Spend expensive spine-search effort on a bounded beam after comparing
     # programme/row alternatives; avoid multiplying full searches at every edge.
     results.sort(key=lambda item:rank(item['parking'],item['zone']),reverse=True)
-    for item in (results[:2] if field!='ring' else []):
+    for item in (results[:2] if field!='ring' and module_family is None else []):
         best,zone=item['parking'],item['zone']
         if (best['provided']<required or best['accessible']<accessible
                 or sum(s['type']=='expanded' for s in best['stalls'])<(expanded_needed or 0)):

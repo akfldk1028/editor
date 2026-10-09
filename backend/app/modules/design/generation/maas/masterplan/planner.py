@@ -220,6 +220,8 @@ def _plan_site_fixed(request):
         """
         kwargs['require_full_width'] = common_axis or bool(options.get('core_vehicle_clearance_m'))
         kwargs['orthogonal_layout'] = common_axis
+        kwargs['module_family'] = options.get('basement_module')
+        kwargs['module_axis'] = options.get('module_axis', 'both')
         out=search_budget.run(solve_basement_level,*args,field=field,**kwargs)
         if out is not None or field!='ring' or strict_field:
             return out
