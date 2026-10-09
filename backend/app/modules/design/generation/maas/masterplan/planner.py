@@ -122,7 +122,12 @@ def _plan_site_fixed(request):
             kwargs.update(allowed_angles=[angle, angle+90], require_full_width=True, preserve_banks=True)
         return pack_level(*args, **kwargs)
     evidence=request.get("evidence") or {}
-    rules=request.get("rules") or {}
+    rules=dict(request.get("rules") or {})
+    mix = options.get('parking_mix', 'perpendicular')
+    if mix not in ('perpendicular', 'parallel_infill'):
+        raise ValueError('unsupported parking mix')
+    if mix == 'parallel_infill':
+        rules['parking_mix'] = mix
     missing=list(law.get("blocking") or [])
     source_reviews=request.get('mass_source_pending_reviews') or []
     if not isinstance(source_reviews,list) or not all(isinstance(item,str) for item in source_reviews):

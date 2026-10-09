@@ -184,11 +184,21 @@ def validate_plan(request, result):
             accessible += int(is_accessible)
             rw = rules.get("accessible_width_m" if is_accessible else "stall_width_m")
             rl = rules.get("accessible_length_m" if is_accessible else "stall_length_m")
+            parallel = p.get('type') == 'standard_parallel'
+            if parallel:
+                from .parallel_parking import WIDTH_M, LENGTH_M
+                rw, rl = WIDTH_M, LENGTH_M
+                if 'parallel_parking_maneuver_and_applicability_review' not in pending:
+                    pending.append('parallel_parking_maneuver_and_applicability_review')
             if rw is not None and rl is not None:
                 check(f"stall_dimensions:{sid}",width+TOL>=rw and length+TOL>=rl,
                       measured_width_m=width,measured_length_m=length)
             frontage = g.boundary.intersection(drive.buffer(TOL)).length
-            check(f"stall_aisle_frontage:{sid}",frontage+TOL>=width,contact_m=frontage)
+            if parallel:
+                coords = list(rect.exterior.coords)
+                long_edges = [LineString([a,b]) for a,b in zip(coords,coords[1:]) if math.dist(a,b)+TOL>=length]
+                frontage = max(edge.intersection(drive.buffer(TOL)).length for edge in long_edges)
+            check(f"stall_aisle_frontage:{sid}",frontage+TOL>=(length if parallel else width),contact_m=frontage)
         # Drive aisles must be one component, except at ground where a surface
         # lot and a ramp departure may each meet the road on their own: there
         # every component must touch the road. Tiny coordinate noise is not a road.
@@ -251,13 +261,15 @@ def validate_plan(request, result):
         check("entrance_width",ok if not ground_drive.is_empty else True,openings_m=[round(o,2) for o in openings],required_m=need)
     # 확장형 share for lots the rules flag (제11조④ -> 제6조①14): counted over all perpendicular stalls.
     if rules.get("expanded_min_share") and count:
-        all_stalls = [g for (lvl,layer),items in grouped.items() if layer=="parking_stall" for g,p in items]
+        all_stalls = [g for (lvl,layer),items in grouped.items() if layer=="parking_stall" for g,p in items
+                      if p.get('type') != 'standard_parallel']
         wide = 0
         for g in all_stalls:
             r = g.minimum_rotated_rectangle; e = [math.dist(a,b) for a,b in zip(r.exterior.coords,list(r.exterior.coords)[1:])]
             if min(e)+TOL >= float(rules.get("expanded_width_m") or 0) and max(e)+TOL >= float(rules.get("expanded_length_m") or 0):
                 wide += 1
-        check("expanded_stall_share",wide >= math.ceil(float(rules["expanded_min_share"])*count)-TOL,expanded=wide,required=math.ceil(float(rules["expanded_min_share"])*count),total=count)
+        basis = len(all_stalls)
+        check("expanded_stall_share",wide >= math.ceil(float(rules["expanded_min_share"])*basis)-TOL,expanded=wide,required=math.ceil(float(rules["expanded_min_share"])*basis),total=count,basis_nonparallel=basis)
     _check_basement_programme(check, grouped, request, placement_stage, source_obstacles)
     max_spaces = law.get("max_spaces")
     if max_spaces is not None:

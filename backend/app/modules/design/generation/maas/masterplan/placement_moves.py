@@ -16,6 +16,8 @@ MOVES = {'building_side': {'keep', 'center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W
          'piloti': {'keep', 'piloti'}, 'surface_share': {'keep', *SHARES},
          'ramp': {'keep', 'any', 'straight', 'curved'}}
 MOVES['pedestrian_route'] = {'keep', 'front_start', 'front_middle', 'front_end'}
+MOVES['circulation'] = {'keep', 'ring'}
+MOVES['parking_mix'] = {'keep', 'parallel_infill'}
 
 
 def _number(value, name, *, count=False):
@@ -126,6 +128,12 @@ def apply_placement_moves(request, moves):
             options['max_surface_stalls'] = proposed
     if 'ramp' in applied:
         options['ramp_shape'] = applied['ramp']
+    if 'circulation' in applied:
+        options['basement_parking_field'] = 'ring'
+        unresolved.append('closed aisle geometry does not certify steering or swept paths')
+    if 'parking_mix' in applied:
+        options['parking_mix'] = applied['parking_mix']
+        unresolved.append('parallel infill: general bay dimensions; manoeuvres and project applicability require review')
     if 'pedestrian_route' in applied:
         from .pedestrian_routes import realize_route
         if request.get('pedestrian_route_design') is not None:

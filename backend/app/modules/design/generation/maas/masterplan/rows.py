@@ -504,6 +504,18 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
             out.append(loop)
     for r in out:
         r["search_count"] = search_count
+    if rules.get('parking_mix') == 'parallel_infill' and ground_stalls:
+        from .parallel_parking import infill
+        for r in out:
+            host = ground
+            if obstacles is not None:
+                host = host.difference(obstacles)
+            if r.get('ramp'):
+                host = host.difference(r['ramp']['polygon'])
+            r['stalls'] = infill(host, r['drive'], r['stalls'], required or len(r['stalls']), aisle_width=aisle)
+            r['provided'] = len(r['stalls'])
+            r['terms']['stalls'] = r['provided']
+            r['terms']['parallel_stalls'] = sum(s['type'] == 'standard_parallel' for s in r['stalls'])
     return out
 
 
