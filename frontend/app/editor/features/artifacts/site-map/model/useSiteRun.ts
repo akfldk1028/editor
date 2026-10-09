@@ -63,6 +63,15 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
     return () => controller.abort()
   }, [projectParam])
 
+  // Warm the scene route the backend checks on submission (`/api/scenes/{id}`): the dev server compiles it lazily
+  // (8-9 s on the first hit), so touching it while the user fills the conditions keeps the first click fast.
+  useEffect(() => {
+    if (!chosen) return
+    const controller = new AbortController()
+    void fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/scenes/${encodeURIComponent(chosen.scene_id)}`, { signal: controller.signal }).catch(() => undefined)
+    return () => controller.abort()
+  }, [chosen])
+
   const run = state.kind === 'submitted' ? state.run : null
   const onRun = useCallback((next: RunSummary) => setState({ kind: 'submitted', run: next }), [])
   const { stale } = useRunPolling(chosen?.project_id ?? null, run, onRun)

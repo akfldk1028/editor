@@ -12,11 +12,16 @@ class PlatformScenes:
     def __init__(self, base_url: str | None, *, transport=None):
         self.base_url, self.transport = base_url, transport
 
+    # The scene server is the editor's own Next app on this machine. Its dev server compiles `/api/scenes/[id]` on the
+    # first hit after a (re)build (8-9 s, seen 2026-10-09), which the old 8 s limit turned into a 503 on the first
+    # submission; a same-machine call may wait that out.
+    TIMEOUT_S = 30
+
     async def get_scene(self, scene_id):
         if not self.base_url:
             raise OwnerUnavailable()
         try:
-            async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False) as client:
+            async with httpx.AsyncClient(timeout=self.TIMEOUT_S, transport=self.transport, follow_redirects=False) as client:
                 response = await client.get(self.base_url.rstrip('/') + '/api/scenes/' + quote(scene_id, safe=''))
                 if response.status_code == 404:
                     raise SceneNotFound()
