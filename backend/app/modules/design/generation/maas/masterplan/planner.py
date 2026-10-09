@@ -444,6 +444,15 @@ def _plan_site_fixed(request):
                         from .ramp_intent import matches_turn
                         if not matches_turn(ramp,requested_turn):
                             return False
+                    entry_app = options.get("entry_approach")
+                    if entry_app in ("corner_clear", "straight_6m", "straight_10m"):
+                        corner_clearance = 6.0 if entry_app == "straight_6m" else (10.0 if entry_app == "straight_10m" else 3.0)
+                        if isinstance(frontage, LineString) and len(frontage.coords) >= 2:
+                            p0, p1 = Point(frontage.coords[0]), Point(frontage.coords[-1])
+                            upper = ramp.get("upper_landing")
+                            if upper is not None:
+                                if upper.distance(p0) < corner_clearance or upper.distance(p1) < corner_clearance:
+                                    return False
                     upper=ramp.get("upper_landing")
                     if upper is not None and not ground_footprint.is_empty:
                         if upper.intersection(ground_footprint).area>EPS:

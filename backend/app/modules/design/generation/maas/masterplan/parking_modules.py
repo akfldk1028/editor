@@ -170,6 +170,10 @@ def module_candidates(host, anchors, rules, required, accessible, *, family, ang
             stalls=chosen
         if ring and closed_aisle_loop(drive,aisle) is None:
             continue
+        from .circulation_network import prune_useless_aisle_branches
+        clean_drive, prune_info = prune_useless_aisle_branches(drive, stalls, arrival, aisle)
+        if full_width_stall_access(clean_drive, [s['polygon'] for s in stalls], arrival, aisle):
+            drive = clean_drive
         if not full_width_stall_access(drive,[s['polygon'] for s in stalls],arrival,aisle):
             continue
         if rules.get('parking_mix')=='parallel_infill':
@@ -179,6 +183,7 @@ def module_candidates(host, anchors, rules, required, accessible, *, family, ang
         receipt={'family':name,'recipe':recipe,'depth_m':round(actual_depth,6),
                  'parking_rows':recipe.count('P'),'angle_deg':angle,
                  'circulation':'ring' if ring else 'comb','full_width_connected':True,
+                 'pruned_spurs':prune_info.get('pruned_spurs_count', 0),
                  'swept_path_status':'unverified'}
         results.append({'stalls':[{**s,'polygon':unrot(s['polygon']),'front':unrot(s['front'])} for s in stalls],
             'drive':unrot(drive),'entrance':anchors[0],'provided':len(stalls),

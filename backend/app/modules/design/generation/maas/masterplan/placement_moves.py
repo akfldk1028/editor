@@ -21,6 +21,7 @@ MOVES['parking_mix'] = {'keep', 'perpendicular', 'parallel_infill'}
 MOVES['building_proportion'] = {'keep', 'compact', 'along_axis', 'cross_axis'}
 MOVES['basement_module'] = {'keep', 'auto', 'module16', 'module27', 'module32'}
 MOVES['module_axis'] = {'keep', 'along_axis', 'cross_axis', 'both'}
+MOVES['entry_approach'] = {'keep', 'straight_6m', 'straight_10m', 'corner_clear'}
 
 
 def _number(value, name, *, count=False):
@@ -150,6 +151,9 @@ def apply_placement_moves(request, moves):
         options['parking_mix'] = applied['parking_mix']
         if applied['parking_mix'] == 'parallel_infill':
             unresolved.append('parallel infill: general bay dimensions; manoeuvres and project applicability require review')
+    if 'entry_approach' in applied:
+        options['entry_approach'] = applied['entry_approach']
+        unresolved.append('entry approach: straight corridor planned before branching; maneuver and road junction require review')
     if 'pedestrian_route' in applied:
         from .pedestrian_routes import realize_route
         if request.get('pedestrian_route_design') is not None:
