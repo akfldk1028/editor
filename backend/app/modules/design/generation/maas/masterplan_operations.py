@@ -5,6 +5,7 @@ import json
 
 SCHEMA = 'arr.masterplan.operations.v1'
 OPERATIONS = {
+    'apply_placement_moves': ({'request', 'moves'}, set()),
     'bind_delivered_mass': ({'request', 'source_handle'}, set()),
     'bind_delivered_request': ({'request', 'source_handle'}, set()),
     'plan_site': ({'request'}, set()),
@@ -40,6 +41,9 @@ def dispatch(operation, arguments):
     required, optional = OPERATIONS[operation]
     if not isinstance(arguments, dict) or not required <= arguments.keys() or arguments.keys() - required - optional:
         raise ValueError('operation arguments do not match the owner interface')
+    if operation == 'apply_placement_moves':
+        from backend.app.modules.design.generation.maas.masterplan.placement_moves import apply_placement_moves
+        return apply_placement_moves(**arguments)
     if operation == 'bind_delivered_request':
         from backend.app.modules.design.generation.maas.masterplan.delivered_source import bind_delivered_request
         return bind_delivered_request(**arguments)
