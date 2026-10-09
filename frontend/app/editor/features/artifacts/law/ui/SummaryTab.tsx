@@ -1,7 +1,7 @@
 import type { RunLaw } from '@/lib/orchestrator-runs/types'
 
 import type { LawAnalysis } from '../api/analyze'
-import { capStat, formatArea, formatWon, restrictionsWith, summarize } from '../lib/summary'
+import { capStat, formatArea, formatWon, restrictionsWith, settledBadge, summarize } from '../lib/summary'
 import { Stat } from './Stat'
 
 /** 요약: 용도지역, 건폐율/용적률 상한 (the Law Agent's when it set them), 대지면적, 심사 상태, 제한 목록. */
@@ -9,6 +9,8 @@ export function SummaryTab({ analysis, limits }: { analysis: LawAnalysis; limits
   const summary = summarize(analysis)
   const bcr = capStat(summary.bcr, limits?.bcr_pct ?? null, limits?.articles.bcr ?? null, limits?.policy_id ?? null)
   const far = capStat(summary.far, limits?.far_pct ?? null, limits?.articles.far ?? null, limits?.policy_id ?? null)
+  // Both caps set by the Law Agent: "증거 부족" would misread as doubt about them; the badge says what is really left.
+  const assessment = settledBadge(summary.assessment, analysis.assessment, limits?.bcr_pct != null && limits?.far_pct != null)
   const restrictions = restrictionsWith(summary.restrictions, limits?.bcr_pct ?? null, limits?.far_pct ?? null, limits?.policy_id ?? null)
   const landNote = [
     summary.landCategory ? `지목 ${summary.landCategory}` : null,
@@ -45,11 +47,11 @@ export function SummaryTab({ analysis, limits }: { analysis: LawAnalysis; limits
 
       <section aria-label="심사 상태" className="law-card">
         <h2>
-          심사 상태 <span className="law-badge" data-tone={summary.assessment.tone}>{summary.assessment.label}</span>
+          심사 상태 <span className="law-badge" data-tone={assessment.tone}>{assessment.label}</span>
           {summary.assessmentDate && <small>기준일 {summary.assessmentDate}</small>}
         </h2>
-        {summary.assessment.detail.length > 0 && (
-          <ul className="law-list">{summary.assessment.detail.map((line) => <li key={line}>{line}</li>)}</ul>
+        {assessment.detail.length > 0 && (
+          <ul className="law-list">{assessment.detail.map((line) => <li key={line}>{line}</li>)}</ul>
         )}
       </section>
 
