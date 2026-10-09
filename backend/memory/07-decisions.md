@@ -326,3 +326,9 @@ be told to the Orchestrator session.
   and the first submission after a reload/HMR hit the backend's 8 s scene-check timeout (503). Now
   `PlatformScenes.TIMEOUT_S = 30` and the site card warms the route when a project is chosen — first click: scene
   9 ms, POST runs 202 in 810 ms. Live: run d8af521b full conversation in the browser.
+- 2026-10-09 01:15 (user: "하드코딩 아니지 라우터? 최신으로 한 거고?"): the routing judge's team roster is now the agents'
+  **live A2A cards** (`routing/cards.py`: registry `card_url` → description + skill ids, 60 s cache; role docstring only
+  as fallback for a down agent). What remains written in the editor: the ledger prompt itself, the role fallback lines,
+  and the keyword tables (used only when the model is off). Versions: AutoGen 0.7.5 client interface (Microsoft Agent
+  Framework 1.0, 2026-04, keeps the same Magentic ledger pattern), A2A 1.0 cards, LangGraph 1.2.7 supervisor = same
+  shape. Observed: mass/scene idle-stopped on schedule (lease 15:37Z + 1800 s) — the activation policy works unattended.
