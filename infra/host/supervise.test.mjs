@@ -271,3 +271,67 @@ test('an external entry is probed but never adopted or killed; without a health 
     cleanup();
   }
 });
+
+
+test('while the Docker engine is off, a down compose entry is neither launched nor counted; the engine is asked once per recheck window', async () => {
+  const { root, paths, entryFor, cleanup } = fixture();
+  const external = { ...entryFor(1), id: 'law', management: 'external', compose: { project: 'svc', service: 'law' } };
+  let spawns = 0;
+  let asks = 0;
+  const log = [];
+  const supervisor = new Supervisor([external], () => ['law'], {
+    root, paths, policy: { ...FAST, dockerRecheckMs: 1_000 }, log: line => log.push(line),
+    probe: async () => ({ up: false, status: null, error: 'refused' }),
+    processes: { dockerEngineUp: () => { asks++; return false; }, spawnDetached: () => { spawns++; return 1; }, listenerPid: () => null },
+  });
+  try {
+    const t0 = 1_000_000;
+    assert.deepEqual(await supervisor.tick(t0), [{ id: 'law', action: 'docker-down', up: false, pid: null }]);
+    assert.deepEqual(await supervisor.tick(t0 + 500), [{ id: 'law', action: 'docker-down', up: false, pid: null }]);
+    assert.equal(spawns, 0, 'compose up never runs while the engine is off');
+    assert.equal(asks, 1, 'the engine is asked once per recheck window');
+    assert.equal(log.filter(line => line.startsWith('[docker-down]')).length, 1, 'logged once, not every tick');
+    await supervisor.tick(t0 + 1_100);
+    assert.equal(asks, 2);
+    const snapshot = JSON.parse(readFileSync(resolve(paths.runtime, 'health.json'), 'utf8')).services;
+    assert.equal(snapshot.law.state, 'docker_down');
+    assert.equal(snapshot.law.restarts, 0);
+  } finally {
+    cleanup();
+  }
+});
+
+
+test('a compose entry that never answers is relaunched under backoff and finally given up, like a managed one', async () => {
+  const { root, paths, entryFor, cleanup } = fixture();
+  const external = { ...entryFor(1), id: 'law', management: 'external', compose: { project: 'svc', service: 'law' } };
+  let spawns = 0;
+  const log = [];
+  const policy = { ...FAST, failureThreshold: 1, backoffMs: [100], startupGraceMs: 1_000, giveUpAfter: 1 };
+  const supervisor = new Supervisor([external], () => ['law'], {
+    root, paths, policy, log: line => log.push(line),
+    probe: async () => ({ up: false, status: null, error: 'refused' }),
+    processes: { dockerEngineUp: () => true, spawnDetached: () => { spawns++; return 1; }, listenerPid: () => null },
+  });
+  try {
+    const t0 = 1_000_000;
+    const action = async at => (await supervisor.tick(at))[0].action;
+    assert.equal(await action(t0), 'start');
+    assert.equal(spawns, 1);
+    assert.equal(await action(t0 + 500), 'none', 'still inside the startup grace');
+    assert.equal(await action(t0 + 1_100), 'wait', 'unanswered after the grace: a restart is scheduled with backoff');
+    assert.equal(spawns, 1, 'no relaunch before the backoff is due');
+    assert.equal(await action(t0 + 1_300), 'restart');
+    assert.equal(spawns, 2);
+    assert.equal(await action(t0 + 1_400), 'none');
+    assert.equal(await action(t0 + 2_500), 'give-up');
+    assert.equal(await action(t0 + 2_600), 'none');
+    assert.equal(spawns, 2, 'nothing launched after giving up');
+    assert.ok(log.some(line => line.startsWith('[gave-up] law')), log.join('\n'));
+    const snapshot = JSON.parse(readFileSync(resolve(paths.runtime, 'health.json'), 'utf8')).services;
+    assert.equal(snapshot.law.state, 'gave_up');
+    assert.equal(readRecord(paths, 'law'), null, 'still no pid record for an external entry');
+  } finally {
+    cleanup();
+  }
+});

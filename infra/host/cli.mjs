@@ -115,11 +115,14 @@ async function ensure(ids, { json = false, timeoutMs = null, leaseS = DEFAULT_LE
   const entries = launch(ids, false, json ? () => {} : console.log);
   const leaseUntil = extendLeases(paths, ids, leaseS);
   const already = freshUp(ids);
-  const gaveUp = new Set(ids.filter(id => readHealth(paths)?.services?.[id]?.state === 'gave_up'));
-  const pending = entries.filter(entry => !already.has(entry.id) && !gaveUp.has(entry.id));
+  const states = readHealth(paths)?.services ?? {};
+  const gaveUp = new Set(ids.filter(id => states[id]?.state === 'gave_up'));
+  const dockerDown = new Set(ids.filter(id => states[id]?.state === 'docker_down'));
+  const pending = entries.filter(entry => !already.has(entry.id) && !gaveUp.has(entry.id) && !dockerDown.has(entry.id));
   const waited = await waitHealthy(pending, { timeoutMs: timeoutMs ?? ENSURE_DEFAULTS.timeoutMs });
   const result = { up: ids.filter(id => already.has(id) || waited.up.includes(id)),
-                   failed: [...waited.failed, ...[...gaveUp].map(id => ({ id, error: 'gave up: restart it by hand' }))], waitedMs: waited.waitedMs, leaseUntil };
+                   failed: [...waited.failed, ...[...gaveUp].map(id => ({ id, error: 'gave up: restart it by hand' })),
+                            ...[...dockerDown].map(id => ({ id, error: 'Docker engine is not running' }))], waitedMs: waited.waitedMs, leaseUntil };
   appendEvent(paths, { kind: 'ensure', ids, up: result.up, failed: result.failed.map(f => f.id), waitedMs: result.waitedMs });
   if (json) {
     console.log(JSON.stringify(result));

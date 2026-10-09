@@ -371,3 +371,12 @@ be told to the Orchestrator session.
   `worker: running`); the hand-started worker was stopped and run be3f7c6b executed in 14 s. Also: Neo4j (no health
   URL) is up when its port listens. Caveat seen: the machine clock jumped ~8.5 h forward on 10-09 00:xx (events/leases
   are wall-clock ISO), which expired leases early — harmless here, but a clock step can idle-stop agents at once.
+- 2026-10-09 host: external (compose) entries now fall under the same failure/backoff/give-up policy as managed ones
+  (an asked-for compose entry counts as launched+alive until it answers; `gave_up` after `giveUpAfter`), and a down
+  compose entry is not launched at all while `docker info` fails — snapshot state `docker_down`, one `[docker-down]`
+  /`[docker-up]` event per change, the engine asked again every `dockerRecheckMs` (60 s); `ensure` fails such ids at
+  once ("Docker engine is not running"). Reported cause: with `locate()` always alive:false, `compose up -d` re-ran
+  every 10 s tick for 4 services while Docker Desktop was off (console windows flashing). Host tests 41. Separate,
+  still open: the `editor` entry's `bun run dev --filter editor` spawn fails ENOENT under the daemon (Node cannot
+  run the `bun` shim without a shell); it backs off and gives up as designed, so start the Next dev by hand
+  (frontend/memory/03-run-and-test.md).

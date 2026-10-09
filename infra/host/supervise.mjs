@@ -29,6 +29,7 @@ export class Supervisor {
     // forget(ids): take idle-stopped ids out of the wanted set (the CLI wires this to wanted.json).
     this.forget = options.forget ?? (() => {});
     this.states = new Map();
+    this.docker = { at: null, up: null };
     this.stopped = false;
     ensureDirs(this.paths);
   }
@@ -47,8 +48,13 @@ export class Supervisor {
    *  A dead record is kept (restart() clears it) so the policy sees the crash, not a blank slate. */
   locate(entry) {
     // An external entry (docker compose) is someone else's process: the host neither adopts nor kills it, and
-    // its `start` (compose up -d) is idempotent, so no pid record is ever written for it.
-    if (entry.management === 'external') return { record: null, alive: false };
+    // its `start` (compose up -d) is idempotent, so no pid record is ever written for it. Once asked for, it
+    // counts as a launched, live process for the policy, so failures, backoff and give-up apply to it too
+    // (2026-10-09: with alive:false forever, `compose up` ran again every tick while Docker Desktop was off).
+    if (entry.management === 'external') {
+      const launched = (this.states.get(entry.id)?.startedAt ?? null) !== null;
+      return { record: null, alive: launched, launched };
+    }
     const existing = readRecord(this.paths, entry.id);
     if (existing && this.os.isAlive(existing.pid)) return { record: existing, alive: true };
     const pid = entry.port === null ? null : this.os.listenerPid(entry.port);
@@ -67,9 +73,21 @@ export class Supervisor {
   }
 
   async observe(entry) {
-    const { record, alive } = this.locate(entry);
+    const { record, alive, launched = false } = this.locate(entry);
     const health = await this.liveness(entry);
-    return { record, health, known: record !== null, alive, up: health.up };
+    return { record, health, known: record !== null || launched, alive, up: health.up };
+  }
+
+  /** One `docker info` answer per dockerRecheckMs; a change is logged once, not every tick. */
+  dockerAvailable(now) {
+    if (this.docker.at === null || now - this.docker.at >= this.policy.dockerRecheckMs) {
+      const up = this.os.dockerEngineUp();
+      if (up !== this.docker.up) {
+        this.event(up ? 'docker-up' : 'docker-down', null, {}, up ? '[docker-up] engine answers; compose entries may start' : '[docker-down] Docker engine is not running; compose entries are not started until it is');
+      }
+      this.docker = { at: now, up };
+    }
+    return this.docker.up;
   }
 
   /** One look at every wanted entry: probes run in parallel (a tick costs one probe timeout, not n of them),
@@ -90,10 +108,19 @@ export class Supervisor {
       snapshot.services[entry.id] = { up: health.up === true, pid: null, state: health.up === true ? 'up' : 'absent',
         failures: 0, restarts: 0, version: health.version ?? null, managed: false };
     });
+    // Compose entries that are down need the Docker engine; while it is off they are left alone (no launch, no
+    // failure counted), asked about again only every dockerRecheckMs.
+    const needsDocker = entries.some((entry, index) => entry.compose && !observations[index].up);
+    const dockerUp = needsDocker ? this.dockerAvailable(now) : true;
     entries.forEach((entry, index) => {
       if (this.stopped) return;
       const observation = observations[index];
       const state = this.states.get(entry.id) ?? initialState();
+      if (entry.compose && !observation.up && !dockerUp) {
+        actions.push({ id: entry.id, action: 'docker-down', up: false, pid: null });
+        snapshot.services[entry.id] = { up: false, pid: null, state: 'docker_down', failures: state.failures, restarts: state.restarts, version: null, managed: true };
+        return;
+      }
       const decision = decide(state, observation, now, this.policy);
       this.states.set(entry.id, decision.state);
       if (decision.action === 'start') this.start(entry);
@@ -103,7 +130,7 @@ export class Supervisor {
         this.event('gave-up', entry.id, { restarts: decision.state.restarts, error: observation.health.error ?? null },
           `[gave-up] ${entry.id}: ${decision.state.restarts} restarts without health; restart ${entry.id} by hand to try again`);
       }
-      const pid = observation.alive ? observation.record.pid : null;
+      const pid = observation.alive ? observation.record?.pid ?? null : null;
       actions.push({ id: entry.id, action: decision.action, up: observation.up, pid });
       snapshot.services[entry.id] = { up: observation.up, pid, state: describeState(decision.state, observation),
         failures: decision.state.failures, restarts: decision.state.restarts, version: observation.health.version ?? null, managed: true };

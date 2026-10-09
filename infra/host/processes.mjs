@@ -102,6 +102,12 @@ function expand(value, lookup) {
   return current;
 }
 
+/** Whether the Docker engine answers (`docker info`); false when the CLI is missing or Docker Desktop is off. */
+export function dockerEngineUp() {
+  const result = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], { encoding: 'utf8', windowsHide: true, timeout: 10_000 });
+  return result.status === 0;
+}
+
 /** `python` means the editor's own interpreter when its venv exists (the native dev runner does the same). */
 export function resolveCommand(command, cwd, env = process.env) {
   if (command === 'python') {

@@ -10,6 +10,9 @@ export const DEFAULTS = Object.freeze({
   // After this many consecutive restarts without a healthy stretch the host gives up (state.gaveUp): no more
   // launches until someone `restart`s it, and `ensure` reports the entry failed at once instead of waiting.
   giveUpAfter: 6,
+  // How long one `docker info` answer stands: while the engine is off, compose entries are neither launched nor
+  // counted as failing, and the engine is asked again only this often (each ask is a process on Windows).
+  dockerRecheckMs: 60_000,
   // Idle stop (entries with idle_timeout_s): never within minUpMs of a start, at most maxIdleStopsPerTick per tick.
   minUpMs: 600_000,
   maxIdleStopsPerTick: 2,
