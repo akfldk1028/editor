@@ -123,6 +123,10 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
             datum = result['setback_lines'].get('datum_result')
             if datum and datum.get('elevation_source') == 'failed':
                 errors.append('Datum elevation unavailable')
+        # The review list (provisions, why, status, article texts, gaps) — what the Law Agent answers per lot.
+        from .review import build_review
+        result['review'] = await build_review(result, law_client,
+            assessment_date=(result.get('program') or {}).get('assessment_date'))
     if errors:
         result['errors'] = list(dict.fromkeys(errors))
     return await run_in_threadpool(save_result, body, result, started, repository)

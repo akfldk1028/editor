@@ -16,10 +16,16 @@
     "description": "군사시설 보호구역 — 건축 허가 필요"
   },
   "상대보호구역": {
-    "category": "military",
-    "constraint": "permit",
-    "article": "군사기지 및 군사시설 보호법 §13",
-    "description": "군사시설 상대보호구역 — 건축 행위 허가 필요"
+    "category": "education",
+    "constraint": "use",
+    "article": "교육환경 보호에 관한 법률 §8, §9",
+    "description": "교육환경보호구역(상대보호구역) — 학교 경계 200m 안 금지행위·시설 확인 필요 (군사시설 보호구역은 '제한·통제보호구역'으로 고시)"
+  },
+  "공공주택지구": {
+    "category": "housing_district",
+    "constraint": "plan",
+    "article": "공공주택 특별법 §6, §17",
+    "description": "공공주택지구 — 지구계획(토지이용·건축 기준) 확인 필요"
   },
   "역사문화환경보존지역": {
     "category": "heritage",

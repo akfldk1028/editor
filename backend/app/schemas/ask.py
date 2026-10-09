@@ -39,6 +39,25 @@ class LawAnalysisCreate(BaseModel):
         return value
 
 
+class ClauseRef(BaseModel):
+    model_config = ConfigDict(strict=True, extra='forbid')
+    instrument: str = Field(min_length=1, max_length=120)
+    kind: str = Field(pattern=r'^(act|decree|rule|ordinance)$')
+    article: str | None = Field(default=None, max_length=40)
+    clause: str | None = Field(default=None, max_length=40)
+
+
+class ClauseContext(BaseModel):
+    """The review item a question is about (law artifact → 이 조항 질문하기): Law Agent answers about exactly it."""
+    model_config = ConfigDict(strict=True, extra='forbid')
+    item_id: str = Field(min_length=1, max_length=120)
+    title: str = Field(min_length=1, max_length=120)
+    refs: list[ClauseRef] = Field(min_length=1, max_length=12)
+    reason: str | None = Field(default=None, max_length=400)
+    status: str | None = Field(default=None, max_length=20)
+    basis: str | None = Field(default=None, max_length=400)
+
+
 class AskCreate(BaseModel):
     model_config = ConfigDict(strict=True, extra='forbid')
     text: str = Field(min_length=1, max_length=500)
@@ -48,6 +67,8 @@ class AskCreate(BaseModel):
     assessment_date: str | None = None
     # The agent the user picked when the router asked (a choice button); the router then skips its guess.
     role: str | None = Field(default=None, min_length=1, max_length=40, pattern=r'^[a-z_]+$')
+    # The review item the question is about (law artifact); the Law Agent is asked about it directly.
+    clause: ClauseContext | None = None
 
     @field_validator('text')
     @classmethod

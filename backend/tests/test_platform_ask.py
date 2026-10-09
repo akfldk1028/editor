@@ -107,7 +107,7 @@ def test_ask_law_records_one_law_span_and_answers_in_the_contract_shape():
                          traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01', agent=agent))
     assert calls[0][0] == 'law_search' and calls[0][1]['query'] == '자연녹지지역 건폐율'
     assert calls[0][2]['caller'] == 'editor' and calls[0][2]['trace_id'] == '4bf92f3577b34da6a3ce929d0e0e4736'
-    assert set(answer) == {'question', 'route', 'agent', 'tool', 'trace_id', 'version', 'answer', 'handoff'}
+    assert set(answer) == {'question', 'route', 'agent', 'tool', 'trace_id', 'version', 'answer', 'handoff', 'clause'} and answer['clause'] is None
     assert answer['handoff'] is None
     assert answer['agent'] == 'law' and answer['trace_id'] == '4bf92f3577b34da6a3ce929d0e0e4736' and answer['answer']['kind'] == 'search'
     assert answer['route'] == {'kind': 'skill', 'agent': 'law', 'skill': 'law_search', 'goal': None, 'confidence': 0.7, 'reason': '법령·조례 검색 (Law Agent)의 말이 2개 보여요', 'choices': [], 'decided_by': 'rules', 'instruction': None}
@@ -249,3 +249,32 @@ def test_route_accepts_a_picked_role_and_rejects_a_malformed_one():
     assert client.post('/api/v1/platform/ask', json={'text': '뭐 할 수 있어?', 'role': 'Mass Agent'}, headers={'Origin': ORIGIN}).status_code == 422
     response = client.post('/api/v1/platform/ask', json={'text': '뭐 할 수 있어?'}, headers={'Origin': ORIGIN})
     assert response.status_code == 200 and response.json()['route']['kind'] == 'ask'
+
+
+def test_a_question_about_a_review_item_goes_to_the_law_agent_about_exactly_that_provision():
+    from backend.app.modules.platform.ask import clause_route, settle_caps
+
+    ordinance = {'item_id': 'landscaping', 'title': '대지의 조경', 'refs': [{'instrument': '의정부시 건축 조례', 'kind': 'ordinance', 'article': '제29조', 'clause': None}]}
+    route = clause_route('연면적 900㎡면 몇 %?', ordinance, '2026-10-09')
+    assert (route.kind, route.agent, route.skill, route.decided_by) == ('skill', 'law', 'law_ordinance', 'user')
+    assert route.args == {'name': '의정부시 건축 조례', 'article': '제29조', 'limit': 3, 'assessment_date': '2026-10-09'}
+    statute = {'item_id': 'sunlight', 'title': '일조 등의 확보를 위한 높이 제한', 'refs': [
+        {'instrument': '건축법', 'kind': 'act', 'article': '제61조', 'clause': '제1항'},
+        {'instrument': '건축법 시행령', 'kind': 'decree', 'article': '제86조', 'clause': None}]}
+    route = clause_route('10m 넘으면?', statute, None)
+    assert route.skill == 'law_search' and route.args['query'] == '건축법 제61조 건축법 시행령 제86조 10m 넘으면?'
+
+    calls = []
+
+    async def agent(tool, args, *, trace=None):
+        calls.append((tool, args))
+        return {'tool': tool, 'payload': {'results': [], 'stats': {'total': 0}}, 'task_id': 't', 'version': None}
+
+    answer = run(ask_law('10m 넘으면?', pnu='4115011200109610003', assessment_date='2026-10-09', recorder=Recorder(), agent=agent, clause=statute))
+    assert calls[0][0] == 'law_search'
+    assert answer['clause'] == {'item_id': 'sunlight', 'title': '일조 등의 확보를 위한 높이 제한', 'pnu': '4115011200109610003', 'assessment_date': '2026-10-09'}
+
+    review = {'items': [{'id': 'bcr-cap', 'status': 'needs_check', 'value': None, 'basis': 'x'}, {'id': 'far-cap', 'status': 'needs_check', 'value': None, 'basis': 'x'}]}
+    settle_caps(review, {'bcr_pct': 60.0, 'far_pct': None, 'articles': {'bcr': '의정부시 도시계획 조례 제42조'}, 'policy_id': None})
+    assert review['items'][0] == {'id': 'bcr-cap', 'status': 'applies', 'value': '60%', 'basis': 'Law Agent 한도 산정: 의정부시 도시계획 조례 제42조'}
+    assert review['items'][1]['status'] == 'needs_check'

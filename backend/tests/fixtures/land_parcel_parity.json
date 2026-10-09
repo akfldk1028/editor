@@ -758,7 +758,7 @@
         }
       ],
       "geometry_failure": false,
-      "response_sha256": "dc886594cd431366034ecec2e8af9590d18e3d6abca98afa016a14c087b88361",
+      "response_sha256": "8579068d13f7559095927f18e73928c4c49da3a22df8c86986f201abf4cbc905",
       "has_setbacks": true
     },
     {
@@ -1010,7 +1010,7 @@
         }
       ],
       "geometry_failure": true,
-      "response_sha256": "fea4c40ba7b9c00b849b687beae86c65b804f174b977c34a5b7fb570fd926725",
+      "response_sha256": "109dd6513082723adb70f993e85ba802fa7ac59f0726fec55db1ce92fc43a4e5",
       "has_setbacks": true
     },
     {
@@ -1262,5 +1262,6 @@
       "response_sha256": "9f65853f8fadbb87cc623d1ee94632ef6e77749ac332ac3c4c6e4e5d054a1721",
       "has_setbacks": false
     }
-  ]
+  ],
+  "rerecorded": "2026-10-09 re-recorded after intended fixes: 공공주택지구 overlay added, 상대보호구역 = 교육환경보호구역 (not military), 복수 용도지역 counts 용도지역 only."
 }

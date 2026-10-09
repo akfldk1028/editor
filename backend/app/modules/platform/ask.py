@@ -115,21 +115,59 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
     if isinstance(limits, BaseException):
         limits_error = f'{type(limits).__name__}: {limits}'
         limits = None
+    caps = law_from_response(limits['payload']) if limits else None
+    settle_caps(analysis.get('review'), caps)
     return {'pnu': pnu, 'agent': 'law', 'trace_id': parent.trace_id, 'version': land.get('version'),
             'analysis': analysis, 'findings': [f for f in payload.get('findings') or [] if isinstance(f, dict)],
-            'limits': law_from_response(limits['payload']) if limits else None, 'limits_error': limits_error,
+            'limits': caps, 'limits_error': limits_error,
             'summary': _summary(analysis)}
 
 
+def settle_caps(review, caps) -> None:
+    """The Law Agent's two answers meet here: when `law_parcel_limits` set a cap, the review's cap item reads it
+    (status applies, value, basis naming the policy/article) instead of 'needs_check'. No value is computed."""
+    if not isinstance(review, dict) or not caps:
+        return
+    for item in review.get('items') or []:
+        key = {'bcr-cap': 'bcr', 'far-cap': 'far'}.get(item.get('id'))
+        value = caps.get(f'{key}_pct') if key else None
+        if not isinstance(value, (int, float)):
+            continue
+        article = (caps.get('articles') or {}).get(key)
+        policy = caps.get('policy_id')
+        item.update({'status': 'applies', 'value': f'{value:g}%',
+                     'basis': 'Law Agent 한도 산정: ' + ' · '.join(p for p in (article, f'지구단위 정책 {policy}' if policy else None) if p)})
+
+
+def clause_route(question: str, clause: dict, assessment_date: str | None):
+    """A question about one review item goes to the Law Agent at once (the user chose the provision): its ordinance
+    article through `law_ordinance` (law.go.kr text), else a statute search narrowed to the item's articles."""
+    from backend.app.modules.platform.routing.roles.law import SEARCH_LIMIT
+    from backend.app.modules.platform.routing.rules import Route
+    dated = {'assessment_date': assessment_date} if assessment_date else {}
+    refs = clause.get('refs') or []
+    ordinance = next((r for r in refs if r.get('kind') == 'ordinance' and r.get('article')), None)
+    statutes = [r for r in refs if r.get('kind') != 'ordinance' and r.get('article') and not str(r['article']).startswith('별표')]
+    reason = f"선택한 조항({clause.get('title')})을 Law Agent에 물어요"
+    if ordinance and not statutes:
+        return Route('skill', 'law', 'law_ordinance', None, {'name': ordinance['instrument'], 'article': ordinance['article'], 'limit': 3, **dated},
+                     0.95, reason, decided_by='user', instruction=question)
+    named = ' '.join(f"{r['instrument']} {r['article']}" for r in statutes[:3]) or clause.get('title')
+    return Route('skill', 'law', 'law_search', None, {'query': f'{named} {question}'.strip(), 'limit': SEARCH_LIMIT, **dated},
+                 0.95, reason, decided_by='user', instruction=question)
+
+
 async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None, recorder, traceparent: str | None = None,
-                  role: str | None = None, agent=law_agent.ask, judge=None, situation: str = '') -> dict:
+                  role: str | None = None, agent=law_agent.ask, judge=None, situation: str = '', clause: dict | None = None) -> dict:
     """One question → one route (the Orchestrator's judgment, `routing.decide`): a Law skill called now (one
     recorded span), a goal handed off to the catalog (no agent call; the conversation offers to start it), or a
     question back to the user with the roles as choices. Every answer carries the same keys; `route.kind` says
     which part is filled and `route.decided_by` who decided (pattern · llm · rules · user)."""
-    chosen = await decide(question, assessment_date=assessment_date, role=role, judge=judge, situation=situation)
+    chosen = clause_route(question, clause, assessment_date) if clause else \
+        await decide(question, assessment_date=assessment_date, role=role, judge=judge, situation=situation)
     base = {'question': question, 'route': chosen.to_dict(), 'agent': chosen.agent, 'tool': chosen.skill, 'trace_id': None,
-            'version': None, 'answer': None, 'handoff': None}
+            'version': None, 'answer': None, 'handoff': None,
+            'clause': {'item_id': clause.get('item_id'), 'title': clause.get('title'), 'pnu': pnu, 'assessment_date': assessment_date} if clause else None}
     if chosen.kind in ('ask', 'answer'):
         # The Orchestrator speaks itself: a question back (choices in the route) or its own reply (route.instruction).
         return base

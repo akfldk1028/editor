@@ -53,6 +53,9 @@ def test_full_parcel_response_matches_original_calculation(case):
             return deepcopy(case['cadastral_features'])
 
     value = asyncio.run(analyze_land(case['body'], Addresses(), Attributes(), Geometry()))
+    # `review` (2026-10-09) is additive: the per-lot provision list, tested in test_land_review.py.
+    review = value.pop('review', None)
+    assert review is None or {item['group'] for item in review['items']} <= {'use', 'bcr_far', 'height_sunlight', 'road_setback', 'parking_landscape', 'district'}
     assert digest(value) == case['response_sha256']
     assert bool(value.get('setback_lines')) == case['has_setbacks']
     assert value['storage']['saved'] is False

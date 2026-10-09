@@ -3,6 +3,7 @@ Response formatters for land regulation analysis.
 
 Extracted from views.py — pure functions, no Django imports.
 """
+from backend.app.modules.regulations import zoning_limits
 
 
 def format_regulations(reg: dict, reg_ext: dict | None = None) -> dict:
@@ -155,9 +156,11 @@ def build_restrictions(reg: dict, zone_names: list[str],
         if dl.get("applies"):
             restrictions.append("채광 인동간격: 공동주택 높이 기준 이격 (건축법 §61②)")
 
-    if len(zone_names) > 1:
+    # Only 용도지역 count: 지구·구역 (과밀억제권역, 지구단위계획구역 …) overlap a lot without splitting it.
+    use_zones = [name for name in zone_names if zoning_limits.lookup(name) is not None]
+    if len(use_zones) > 1:
         restrictions.append(
-            f"복수 용도지역 ({len(zone_names)}개) — 면적 분할과 규제별 적용 조문 확인 필요 (국토계획법 제84조·건축법 제54조)"
+            f"복수 용도지역 ({len(use_zones)}개: {', '.join(use_zones)}) — 면적 분할과 규제별 적용 조문 확인 필요 (국토계획법 제84조·건축법 제54조)"
         )
 
     cat = reg.get("zone_category", "")

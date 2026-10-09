@@ -120,6 +120,12 @@ class LawSearchClient:
                 raise ValueError('Invalid law article')
             json.dumps(raw, allow_nan=False)
             score = raw.get('score', 0) if fallback else raw.get('similarity', 1.0)
+            # The :8011 service sends similarity as a numeric string ('0.8455…'); read it as the number it is.
+            if isinstance(score, str):
+                try:
+                    score = float(score)
+                except ValueError:
+                    raise ValueError('Invalid law similarity') from None
             if type(score) not in (int, float) or not math.isfinite(score):
                 raise ValueError('Invalid law similarity')
             article = deepcopy(raw)

@@ -162,7 +162,7 @@
         "?2???????",
         "??????"
       ],
-      "response_sha256": "daf5b469538506c606738be8fd83f2acc9ca5d117192a9049e880e32604c4ae6"
+      "response_sha256": "ba19b8cb0ad650e864901938c39c02463354eff810e3be7ffe7216ff6e82fe54"
     },
     {
       "name": "23",
@@ -170,7 +170,8 @@
         "?2???????",
         "????????"
       ],
-      "response_sha256": "fc3d697c98b865fdc643b69cb3151d471bf3540005df64c02dc2f315ced53966"
+      "response_sha256": "8f62eee01bcd36da475e6df0a3cf4d250e5fc5b3f9a7512059d795a6736e02d4"
     }
-  ]
+  ],
+  "rerecorded": "2026-10-09 re-recorded after intended fixes: 공공주택지구 overlay added, 상대보호구역 = 교육환경보호구역 (not military), 복수 용도지역 counts 용도지역 only."
 }

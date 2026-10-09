@@ -9,7 +9,7 @@
   },
   "data_sha256": {
     "zoning_limits_extended.json": "027210efc6ee737be988bc10855fa120e27e1768d875a993aac19accf2b84d3f",
-    "overlay_zones.json": "7dae3e9c276d321efb748b9e973c4a2c11f5fd37bacf2a85f513cc5791cf7bb3",
+    "overlay_zones.json": "07225832236452c511c24c8ce993a4a53ddc90a5364f9f0adf948cb27707dc5d",
     "parking_national.json": "659488f6cc75d0acc0f171400cfdca2af3a30f3ec7ff45f34cd37015ccfcc25d",
     "accessible_parking_applicability.json": "eb35c4570d6025d28a669a2e87a9adc9e9b53998f157ed4126c91f45da53578b",
     "ordinance_overrides/11.json": "f50410e815269111d28d13a91dbc440b89054bf7c9e3a45a7be2b82d0c77e669",
@@ -517,5 +517,6 @@
       },
       "response_sha256": "86fb4040012a383bfb5c41daa2705556222cff99d04afb1aac4c1ff62b834dd3"
     }
-  ]
+  ],
+  "rerecorded": "2026-10-09 re-recorded after intended fixes: 공공주택지구 overlay added, 상대보호구역 = 교육환경보호구역 (not military), 복수 용도지역 counts 용도지역 only."
 }
