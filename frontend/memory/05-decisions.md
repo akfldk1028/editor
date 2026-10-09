@@ -219,3 +219,9 @@ One dated line per decision with its commit.
   `/map`, `/design` moved; design client URLs lost their trailing slashes, the land
   proxy became `app/api/v1/land/[...path]` (streams SSE), and `lib/api-surface.test.ts` +
   backend `route-inventory.json` guard against dead calls.
+- 2026-10-09 (user spec "요약이 아니라 관련 법규 다 보여주는 것"): the law screen is **검토 조항** (default tab), built
+  from `analysis.review` (backend `modules/land/review/`, returned by Law Agent law_land_analyze): 6 groups, items with
+  refs/reason/status (applies·conditional·needs_check·needs_source)/basis, gaps. The screen never re-judges a status
+  (settledBadge/capStat removed). 이 조항 질문하기 → `ask` command with `clause` + site + 기준일 → backend routes to
+  law_ordinance (ordinance article, edition_id) or law_article by exact graph id. Empty search ≠ "no law". Summary tab
+  removed for now (user: "요약은 나중"). Commits 99cc989d (backend), 97b8ee6c (screen).
