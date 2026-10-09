@@ -21,3 +21,8 @@
 - **Map selection UX (user, 2026-10-07):** a click selects the whole parcel polygon (fill + outline); never draw
   points/markers/ripples at the click location — it looks wrong. Progress = cursor only; the only overlay on the
   map besides parcels is one info card. A site can be several parcels (합필): Shift+click adds/removes.
+- **Naver 지적편집도 is the default cadastral layer (user, 2026-10-09) — do not replace it.** In re-platted districts
+  (고산 공공주택지구, 961-3) Naver's lines differ from the Vworld 연속지적도 the parcel outline comes from, so the outline
+  looks rotated/shifted against Naver's lines; the Vworld polygon is the registry one (278.4 m2 vs official 279.9).
+  A Vworld GroundOverlay replacement was tried and reverted (e15c3115 → f64830f1). If alignment is revisited, add it as
+  an optional toggle, never as the default.
