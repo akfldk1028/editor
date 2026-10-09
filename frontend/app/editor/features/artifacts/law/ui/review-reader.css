@@ -1,0 +1,62 @@
+.law-reader { display: grid; gap: 14px; width: 100%; min-width: 0; margin-inline: auto; max-width: 1440px; }
+.law-reader-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; border-bottom: 1px solid var(--border-soft); padding-bottom: 12px; }
+.law-reader-head h1 { margin: 0; font-size: 16px; font-weight: 650; }
+.law-reader-head p { margin: 0; color: var(--muted); font-size: 11px; }
+.law-reader-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; align-items: start; }
+.law-reader-layout > * { min-width: 0; }
+.law-reader-disclosure { border: 1px solid var(--border-soft); border-radius: 6px; background: var(--panel-raised); }
+.law-reader-disclosure > summary { cursor: pointer; padding: 10px 12px; font-size: 12px; font-weight: 600; }
+.law-reader-disclosure > summary span { color: var(--muted); font-size: 11px; font-weight: 400; margin-left: 8px; }
+.law-reader-nav { padding: 8px; max-height: 320px; overflow: auto; }
+.law-reader-nav input { width: 100%; padding: 7px 9px; font: inherit; font-size: 12px; color: var(--ink); background: var(--artifact); border: 1px solid var(--border); border-radius: 4px; }
+.law-reader-nav section { margin-top: 16px; }
+.law-reader-nav h2 { margin: 0 8px 6px; font-size: 11px; color: var(--muted); font-weight: 600; }
+.law-reader-nav h2 span { float: right; font-variant-numeric: tabular-nums; }
+.law-reader-nav button { display: block; width: 100%; text-align: start; border: 0; border-radius: 4px; padding: 8px; color: var(--ink); background: transparent; font: inherit; font-size: 12px; line-height: 1.6; cursor: pointer; }
+.law-reader-nav button:hover { background: var(--subtle); }
+.law-reader-nav button[aria-current] { background: var(--accent-soft); box-shadow: inset 2px 0 var(--accent); }
+.law-reader-nav small { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
+.law-reader-paper { background: var(--panel-raised); border: 1px solid var(--border-soft); border-radius: 6px; }
+.law-reader-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border-soft); font-size: 12px; }
+.law-reader-font { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.law-reader-font button { width: 27px; height: 27px; border: 1px solid var(--border); border-radius: 4px; color: var(--ink); background: var(--artifact); cursor: pointer; }
+.law-reader-font button:disabled { opacity: .4; cursor: default; }
+.law-reader-refnav { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px; }
+.law-reader-refnav button { border: 1px solid var(--border-soft); border-radius: 4px; padding: 4px 8px; font-size: 11px; color: var(--muted); background: transparent; cursor: pointer; }
+.law-reader-refnav button[aria-pressed="true"] { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+.law-reader-paper .law-source { border: 0; background: transparent; padding: 8px 20px 24px; width: 100%; max-inline-size: calc(40em + 40px); max-inline-size: calc(40ic + 40px); margin-inline: auto; font-size: var(--law-reader-size,13px); }
+.law-reader-paper .law-source-text { font-family: inherit; font-size: inherit; line-height: 1.85; text-align: start; }
+.law-reader-paper .law-source-heading h3 { font-size: 14px; line-height: 1.6; }
+.law-reader-paper .law-source-text p { padding: 0; text-indent: 0; margin: 0 0 9px; }
+.law-reader-paper .law-source-text p[data-unit="paragraph"] { padding-left: 1.5em; text-indent: -1.5em; }
+.law-reader-paper .law-source-text p[data-unit="item"] { margin-left: 1.5em; padding-left: 1.8em; text-indent: -1.8em; }
+.law-reader-paper .law-source-text p[data-unit="subitem"] { margin-left: 3.3em; padding-left: 1.6em; text-indent: -1.6em; }
+.law-reader-context { padding: 12px; }
+.law-reader-context section { border-bottom: 1px solid var(--border-soft); margin-bottom: 15px; padding-bottom: 15px; }
+.law-reader-context h2 { font-size: 12px; margin: 0 0 9px; }
+.law-reader-context p { font-size: 12px; line-height: 1.8; color: var(--muted); margin: 8px 0 0; overflow-wrap: anywhere; }
+.law-reader-context .law-status { display: inline-block; white-space: normal; }
+.law-reader-value { display: block; font-size: 23px; font-weight: 600; margin-top: 8px; }
+.law-reader-context label { font-size: 12px; }
+.law-reader-context textarea { display: block; width: 100%; resize: vertical; margin: 8px 0; padding: 8px; font: inherit; font-size: 12px; color: var(--ink); background: var(--artifact); border: 1px solid var(--border); border-radius: 4px; }
+.law-reader-context .artifact-primary { width: 100%; justify-content: center; }
+.law-reader-muted { padding: 8px; color: var(--muted); font-size: 12px; }
+.law-reader-gaps { font-size: 12px; color: var(--muted); border-top: 1px solid var(--border-soft); padding-top: 12px; }
+.law-reader-gaps summary { cursor: pointer; }
+.law-reader button:focus-visible, .law-reader summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.law-reader[data-wide="true"] .law-reader-layout { grid-template-columns: 190px minmax(0,1fr) 200px; gap: 16px; }
+.law-reader[data-wide="true"] .law-reader-disclosure { border: 0; background: transparent; }
+.law-reader[data-wide="true"] .law-reader-disclosure > summary { display: none; }
+.law-reader[data-wide="true"] .law-reader-nav { max-height: 70vh; padding: 0; }
+.law-reader[data-wide="true"] .law-reader-context { padding: 0; }
+.law-reader-jurisdiction { margin: 0 8px 8px; font-size: 11px; line-height: 1.6; color: var(--muted); }
+.law-reader-level { margin-top: 10px; }
+.law-reader-level h3 { margin: 0 8px 4px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.law-reader-level h3 span { float: right; font-variant-numeric: tabular-nums; }
+.law-reader-nav button[data-relevance="exact"] { font-weight: 600; }
+.law-reader-excluded { margin: 10px 8px 0; font-size: 11px; color: var(--muted); }
+.law-reader-excluded summary { cursor: pointer; line-height: 1.6; }
+.law-reader-excluded ul { margin: 6px 0 0; padding-left: 16px; }
+.law-reader-excluded li { line-height: 1.6; overflow-wrap: anywhere; }
+.law-reader-excluded li span { opacity: .75; }
+.law-reader-excluded button { font-size: 11px; }

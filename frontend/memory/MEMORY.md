@@ -23,6 +23,7 @@ Who owns what (2026-10-06):
 | [03-run-and-test.md](03-run-and-test.md) | starting, ports, tests, type checks |
 | [04-pitfalls.md](04-pitfalls.md) | before debugging something odd |
 | [05-decisions.md](05-decisions.md) | dated log of decisions |
+| [2026-10-09-national-ordinance-followup.md](2026-10-09-national-ordinance-followup.md) | Claude handoff: nationwide local ordinance retrieval, remaining contract and coverage work |
 
 ## Quick pointers (2026-10-08)
 - Shell: `/dwg` = `features/shell` (Shell.tsx, layout/, artifact-host/, conversation/, sidebar/, `artifact-types.ts`, `registry.ts`).

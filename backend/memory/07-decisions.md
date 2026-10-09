@@ -1,5 +1,21 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-09 (Claude) Nationwide ordinance discovery, `modules/law/ordinances/`: `jurisdiction.py` (registry address by PNU
+  from Vworld `addr` → 시·도 + 시·군·자치구 levels, a 일반구 only noted; each level cross-checked with the PNU code's
+  `ordinance_overrides/<code>.json` snapshot, a conflict fails the whole lookup closed), `search.py` (law.go.kr lawSearch
+  target=ordin, every page walked, nw=1 현행 / nw=2 연혁, `complete` truthful, OC stripped, 10-min cache), `service.py`
+  (pass 1 current set per level × topic — topics = cited ordinance names minus government words + the statutory
+  delegations 도시계획·건축·주차장; pass 2 exact-name history only for an edition starting after the date; pass 3 topic
+  history only for a past date → `historical` apart with in_force unknown; 지자체기관명 ≠ level issuer → `excluded`
+  jurisdiction_mismatch; generic '건축조례' attaches to the one ordinance it can mean, innermost first), `body.py`
+  (lawService MST, accepted only as the same name/edition/in force: all 조문 with headings, 별표 title+kind+file link,
+  부칙). Doors in the conversation router (same-origin): `POST /platform/ordinances` {pnu, assessment_date, refs[], topics[]}
+  → {jurisdiction, topics, search{queries,complete,errors}, ordinances[], historical[], excluded[], coverage_complete:false};
+  `POST /platform/ordinances/body` {name, edition_id, assessment_date}. Env `LAW_OC` in `.superpowers/sdd/editor-law.env`
+  (law.go.kr user id, same as fetch_ordinance_caps default). Fix: `ordinance_discovery.agency` now reads 지자체기관명 (was
+  always null) — agent door `/law/agent/ordinance-candidates` response otherwise unchanged. Live: 고산동 961-3 1.3 s /
+  35 ordinances (8 searches), 역삼동 823-26 1.5 s / 29, 2024-06-01 past date 2.8 s / 38 searches, body 0.3 s (92 조문·
+  17 별표). Tests `test_ordinance_discovery_service.py` (21) + `test_ordinance_body.py` (3); inventory regenerated.
 - 2026-10-09 Source-bound pedestrian placement: apply_placement_moves now accepts pedestrian_route (keep/front_start/front_middle/front_end) plus explicit positive pedestrian_width_m. Requires source-attributed pedestrian_frontage and fixed ground building zone; never substitutes vehicle frontage. New pedestrian_route_design is realized before parking, preserves source reservations, and serializes corridor/centerline/proposed facade entrance. Independent validation rejects missing features and conflicts; doors, slopes, accessibility and complete arrival network remain pending. Consumer support for Law-reviewed pedestrian_approach/reserved-area geometry is in MasterPlan synthesis. 45 focused engine tests passed. Actual Site/Law Gosan receipt has 72 reviewed clauses but no confirmed pedestrian approach geometry; no completed real-parcel route claimed. No new route URL, shared-service restart or external message.
 
 Write one dated line per decision; link the commit. Contract changes to agent doors must also

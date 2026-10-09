@@ -63,7 +63,8 @@ def discover_ordinances(query, assessment_date, api_oc, *, max_pages=5, fetch_js
                     seen.add(mst)
                     candidates.append({"name": row.get("자치법규명"), "edition_id": mst,
                         "ordinance_id": row.get("자치법규ID"), "effective_date": effective_date.isoformat(),
-                        "agency": row.get("지자체명") or row.get("소관부처명"),
+                        # The official record names the issuing government as 지자체기관명 (e.g. "경기도 의정부시").
+                        "agency": row.get("지자체기관명") or row.get("지자체명") or row.get("소관부처명"),
                         "source_url": "https://www.law.go.kr/자치법규/" + urllib.parse.quote(str(row.get("자치법규명", "")), safe=""),
                         "official_record": public_record(row), "status": "candidate_not_body_verified"})
                 total = search.get("totalCnt")

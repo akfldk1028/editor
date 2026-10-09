@@ -291,4 +291,4 @@ def test_a_question_about_a_review_item_goes_to_the_law_agent_about_exactly_that
     settle_caps(pending, {'bcr_pct': 60.0, 'articles': {}, 'policy_id': None})
     assert pending['items'][0]['status'] == 'needs_check' and pending['items'][0]['value'] == '60%' and '지구단위계획구역 확보 전' in pending['items'][0]['basis']
     ordinance = {'item_id': 'x', 'title': 't', 'refs': [{'instrument': '의정부시 도시계획 조례', 'kind': 'ordinance', 'article': '제42조', 'clause': None, 'edition_id': '2072835'}]}
-    assert clause_route('q', ordinance, None).args['edition_id'] == '2072835'
+    assert 'edition_id' not in clause_route('q', ordinance, None).args

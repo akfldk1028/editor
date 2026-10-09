@@ -24,6 +24,8 @@ Who owns what (2026-10-06):
 | [05-run-and-test.md](05-run-and-test.md) | starting the server, venv, which tests, guards |
 | [06-pitfalls.md](06-pitfalls.md) | before debugging something odd — known traps |
 | [07-decisions.md](07-decisions.md) | dated log of decisions and contract changes |
+| [08-design-conversation.md](08-design-conversation.md) | persistent Requirement/DesignIntent/Program chat, owner contracts and explicit reconfirmation |
+| [../frontend/memory/2026-10-09-national-ordinance-followup.md](../frontend/memory/2026-10-09-national-ordinance-followup.md) | Claude handoff: nationwide ordinance completeness, current MCP limits, and next end-to-end implementation |
 
 Agent-network rules live outside this repo: `D:\Data\25_ACE\agents\docs\AGENT_MODULE_CONVENTIONS.md` §5.
 

@@ -711,6 +711,16 @@
    "path": "/api/v1/platform/law-analysis"
   },
   {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/ordinances"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/ordinances/body"
+  },
+  {
    "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/platform/projects"
@@ -729,6 +739,16 @@
    "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/platform/projects/{project_id}/context"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/conversation"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/conversation"
   },
   {
    "method": "GET",

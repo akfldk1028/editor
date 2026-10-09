@@ -40,7 +40,8 @@ def _iso(value):
     return f'{value[:4]}-{value[4:6]}-{value[6:]}' if re.fullmatch(r'\d{8}', value) else (value or None)
 
 
-def normalize(tool: str, payload: dict) -> dict:
+def normalize(tool: str, payload: dict, *, full_text: bool = False) -> dict:
+    text_limit = None if full_text else EXCERPT
     if tool == 'law_article':
         # Whole articles with their 항 (law_article): one row per 항, under the search shape so the UI reads it the same way.
         rows = []
@@ -63,7 +64,7 @@ def normalize(tool: str, payload: dict) -> dict:
             'kind': 'ordinance',
             'ordinance': {'name': _str(ordinance.get('name')), 'ordinance_id': _str(ordinance.get('id')), 'edition_id': edition,
                           'effective_date': _iso(ordinance.get('effective')), 'url': LAW_GO_KR + edition if edition else None},
-            'matches': [{'article': _str(m.get('article')), 'title': _str(m.get('title')), 'text': (_str(m.get('content')) or '')[:EXCERPT] or None}
+            'matches': [{'article': _str(m.get('article')), 'title': _str(m.get('title')), 'text': (_str(m.get('content')) or '')[:text_limit] or None}
                         for m in payload.get('matches') or [] if isinstance(m, dict)],
             'legal_evidence': _legal_evidence(payload.get('legal_evidence')),
         }
@@ -73,7 +74,7 @@ def normalize(tool: str, payload: dict) -> dict:
         if not isinstance(row, dict):
             continue
         items.append({'id': _str(row.get('hang_id')), 'law': _str(row.get('law_name')), 'kind': _str(row.get('law_type')),
-                      'article': _str(row.get('article')), 'text': (_str(row.get('content')) or '')[:EXCERPT] or None})
+                      'article': _str(row.get('article')), 'text': (_str(row.get('content')) or '')[:text_limit] or None})
     return {'kind': 'search', 'items': items,
             'total': stats.get('total') if isinstance(stats.get('total'), int) else len(items),
             'degraded': stats.get('degraded') is True,
@@ -127,6 +128,8 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
         limits_error = f'{type(limits).__name__}: {limits}'
         limits = None
     caps = law_from_response(limits['payload']) if limits else None
+    from backend.app.modules.platform.law_sources import bind_ordinance_sources
+    bind_ordinance_sources(analysis.get('review'), caps)
     settle_caps(analysis.get('review'), caps)
     return {'pnu': pnu, 'agent': 'law', 'trace_id': parent.trace_id, 'version': land.get('version'),
             'analysis': analysis, 'findings': [f for f in payload.get('findings') or [] if isinstance(f, dict)],
@@ -172,13 +175,12 @@ def clause_route(question: str, clause: dict, assessment_date: str | None):
     from backend.app.modules.platform.routing.rules import Route
     dated = {'assessment_date': assessment_date} if assessment_date else {}
     refs = clause.get('refs') or []
-    ordinance = next((r for r in refs if r.get('kind') == 'ordinance' and r.get('article')), None)
+    ordinance = next((r for r in refs if r.get('kind') == 'ordinance' and r.get('instrument')), None)
     statutes = [r for r in refs if r.get('kind') != 'ordinance' and r.get('article') and not str(r['article']).startswith('별표')]
     reason = f"선택한 조항({clause.get('title')})을 Law Agent에 물어요"
     # The binding text first: an ordinance article (law.go.kr), else the decree's, else the act's — by its exact id.
     if ordinance:
-        edition = {'edition_id': ordinance['edition_id']} if ordinance.get('edition_id') else {}
-        return Route('skill', 'law', 'law_ordinance', None, {'name': ordinance['instrument'], 'article': ordinance['article'], 'limit': 3, **dated, **edition},
+        return Route('skill', 'law', 'law_ordinance', None, {'name': ordinance['instrument'], 'article': ordinance.get('article') or '', 'limit': 3, **dated},
                      0.95, reason, decided_by='user', instruction=question)
     exact = sorted((r for r in statutes if r.get('hang_id')), key=lambda r: {'decree': 0, 'rule': 1, 'act': 2}.get(r.get('kind'), 3))
     if exact:
@@ -218,4 +220,4 @@ async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None
         span.end('error', error_type=type(exc).__name__)
         raise
     span.end('ok')
-    return {**base, 'trace_id': span.context.trace_id, 'version': raw.get('version'), 'answer': normalize(tool, raw.get('payload') or {})}
+    return {**base, 'trace_id': span.context.trace_id, 'version': raw.get('version'), 'answer': normalize(tool, raw.get('payload') or {}, full_text=bool(clause))}

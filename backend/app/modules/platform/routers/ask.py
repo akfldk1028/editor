@@ -2,9 +2,10 @@ from fastapi import APIRouter, HTTPException, Request
 
 from backend.app.adapters.law_agent import LawAgentError, LawAgentUnavailable
 from backend.app.core.tracing import JsonlTraceRecorder
+from backend.app.modules.law.ordinances import service as ordinances
 from backend.app.modules.platform.ask import analyze_land, ask_law
 from backend.app.modules.platform.situation import describe
-from backend.app.schemas.ask import AskCreate, LawAnalysisCreate
+from backend.app.schemas.ask import AskCreate, LawAnalysisCreate, OrdinanceBodyCreate, OrdinanceDiscoveryCreate
 
 
 def create_ask_router(allowed_origin, trace_recorder=None, agent=None, owner=None):
@@ -51,5 +52,20 @@ def create_ask_router(allowed_origin, trace_recorder=None, agent=None, owner=Non
         return await answer(analyze_land(body.pnu, building_type=body.building_type, floor_area_m2=body.floor_area_m2,
                                          assessment_date=body.assessment_date, recorder=recorder,
                                          traceparent=request.headers.get('traceparent'), **kwargs))
+
+    @router.post('/ordinances')
+    async def ordinance_discovery(body: OrdinanceDiscoveryCreate, request: Request):
+        """The ordinances that can bind the parcel on the date: official records (law.go.kr), the parcel's own
+        jurisdictions (registry address by PNU), the edition in force on the date, every search page walked.
+        Candidates to read with their official URL — not applicability, not a body."""
+        same_origin(request)
+        return await ordinances.discover(body.pnu, body.assessment_date, refs=[ref.model_dump() for ref in body.refs], topics=body.topics)
+
+    @router.post('/ordinances/body')
+    async def ordinance_body(body: OrdinanceBodyCreate, request: Request):
+        """The whole text of one discovered edition (articles, annexes, supplementary provisions) from the official
+        record, accepted only when it is that name, that edition, in force on the date. A `error` key says why not."""
+        same_origin(request)
+        return await ordinances.body(body.name, body.edition_id, body.assessment_date)
 
     return router

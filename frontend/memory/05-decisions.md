@@ -2,6 +2,20 @@
 
 One dated line per decision with its commit.
 
+- 2026-10-09 (Claude) 관할 조례 = the backend's discovered list, not only what the review cites. Law slice
+  `api/ordinances.ts` (`POST /platform/ordinances`, `/ordinances/body`), `lib/ordinances.ts` (cited refs, found → ReviewRef,
+  labels, search/jurisdiction lines), `model/useOrdinances.ts` (per parcel+date+cited refs, cached 20). `ReviewNavigation`
+  groups by 시·군·구 / 시·도 with "조례 · 시행 … · 검토 근거|관련 주제 · 검토 n건", `<details>` for 제외 (other governments,
+  not yet effective) and 연혁에만 있는 조례 (past dates); the review's own ordinance refs stay as fallback while loading or
+  on error. Selecting a found ordinance opens `SourceArticle` on the verified edition: article buttons from the review's
+  refs (text via Law Agent `law_ordinance`, ~4 s), "조례 전체 · 공식 원문" = the whole text (every article, 별표 links,
+  부칙) through `/ordinances/body` (~0.3 s, no agent round trip; `reference.ts` short-circuits name-only refs with an
+  edition). Third pane: question form and provenance block removed — user: "채팅이나 이런건 전부 두번째 패널에서";
+  for a found ordinance the pane is empty, for review items it keeps 관련 내용 · 판단 근거. Proxy regex + api-surface
+  updated; `ReviewSelection` is now a union (item | ordinance). Browser-verified on 고산동 961-3 (경기도·의정부시, 35) and
+  역삼동 823-26 (서울특별시·강남구, 29). Not done: topic match is broad (녹색건축물·제설 조례 also listed under 관련 주제),
+  design-use topics are not sent from the UI, list statuses do not update after a body is read.
+
 - 2026-10-08 P4 `b0eb964a`: each answering agent folder exports `detail` (its detailed turn for its step); registry
   `detailFor(tool)` (tool owner's detail); `useRunFeed` reads it — no per-tool table left. Orchestrator prompts
   (`handoffLine`, `askRolePrompt`) live in `lib/agents/orchestrator/lib/lines.ts`. Live (산곡동 313): Site/Law/Revision

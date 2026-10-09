@@ -26,6 +26,7 @@ const inventory = JSON.parse(readFileSync(resolve(app, '../../../backend/route-i
 /** `defines` are literals that only build a base other calls extend; they are not requests. */
 interface Client { tokens?: Record<string, string>; helpers?: { fn: string; prefix: string }[]; defines?: string[] }
 const CLIENTS: Record<string, Client> = {
+  'lib/design-conversation/client.ts': {},
   'features/design/lib/api-client.ts': { tokens: { '${BASE}': '/api/v1/design', '${AG_LIGHT_BASE}': '/api/v1/design/collaboration' },
     defines: ['/api/v1/design', '/api/v1/design/collaboration'] },
   'features/land/api.ts': { helpers: [{ fn: 'landFetch', prefix: '/api/v1/land' }] },
@@ -37,6 +38,7 @@ const CLIENTS: Record<string, Client> = {
   'features/artifacts/site-map/api/selection.ts': {},
   'features/artifacts/system/api/status.ts': {},
   'features/artifacts/law/api/analyze.ts': {},
+  'features/artifacts/law/api/ordinances.ts': {},
   'features/artifacts/law/api/site.ts': {},
   'features/world/lib/context-masses.ts': {},
   'features/world/hooks/use-world-3d.ts': {},

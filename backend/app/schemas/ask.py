@@ -39,6 +39,65 @@ class LawAnalysisCreate(BaseModel):
         return value
 
 
+class OrdinanceRef(BaseModel):
+    """An ordinance the review already cites (instrument as the calculators wrote it), so discovery can attach it."""
+    model_config = ConfigDict(strict=True, extra='forbid')
+    instrument: str = Field(min_length=1, max_length=120)
+    item_id: str | None = Field(default=None, max_length=120)
+    title: str | None = Field(default=None, max_length=120)
+    article: str | None = Field(default=None, max_length=40)
+    status: str | None = Field(default=None, max_length=20)
+
+
+class OrdinanceDiscoveryCreate(BaseModel):
+    """What the law artifact sends to list the ordinances that can bind one parcel on one date."""
+    model_config = ConfigDict(strict=True, extra='forbid')
+    pnu: str
+    assessment_date: str
+    refs: list[OrdinanceRef] = Field(default_factory=list, max_length=60)
+    # Extra topic words (e.g. from the intended use); each becomes "<government> <topic> 조례" searches.
+    topics: list[str] = Field(default_factory=list, max_length=12)
+
+    @field_validator('pnu')
+    @classmethod
+    def nineteen_digits(cls, value):
+        if not PNU.fullmatch(value):
+            raise ValueError('PNU requires 19 digits')
+        return value
+
+    @field_validator('assessment_date')
+    @classmethod
+    def real_date(cls, value):
+        if not ISO_DATE.fullmatch(value):
+            raise ValueError('assessment_date must be YYYY-MM-DD')
+        date.fromisoformat(value)
+        return value
+
+    @field_validator('topics')
+    @classmethod
+    def short_words(cls, value):
+        cleaned = [topic.strip() for topic in value]
+        if any(not topic or len(topic) > 40 for topic in cleaned):
+            raise ValueError('topics must be 1 to 40 characters')
+        return cleaned
+
+
+class OrdinanceBodyCreate(BaseModel):
+    """One discovered edition whose whole text the reader opens (name and edition as discovery returned them)."""
+    model_config = ConfigDict(strict=True, extra='forbid')
+    name: str = Field(min_length=1, max_length=120)
+    edition_id: str = Field(min_length=1, max_length=20, pattern=r'^[0-9]+$')
+    assessment_date: str
+
+    @field_validator('assessment_date')
+    @classmethod
+    def real_date(cls, value):
+        if not ISO_DATE.fullmatch(value):
+            raise ValueError('assessment_date must be YYYY-MM-DD')
+        date.fromisoformat(value)
+        return value
+
+
 class ClauseRef(BaseModel):
     model_config = ConfigDict(strict=True, extra='forbid')
     instrument: str = Field(min_length=1, max_length=120)
