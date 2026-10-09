@@ -297,6 +297,8 @@ def _plan_site_fixed(request):
     # subtracting only the core polygon leaves a pinched aisle touching its wall.
     obstacles=union_or_empty([core_obstacle(request),*columns])
     base=[feature("site_boundary",site,area_m2=site.area),feature("buildable_boundary",buildable)]
+    from .pedestrian_routes import route_features
+    base.extend(route_features(pedestrian['route']))
     if not pedestrian['reserved'].is_empty:
         base.append(feature('pedestrian_reserved_area',pedestrian['reserved']))
     if not pedestrian['crossing'].is_empty:

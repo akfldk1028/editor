@@ -15,6 +15,7 @@ SHARES = {'all_basement': 0, 'mostly_basement': .25, 'half': .5,
 MOVES = {'building_side': {'keep', 'center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'},
          'piloti': {'keep', 'piloti'}, 'surface_share': {'keep', *SHARES},
          'ramp': {'keep', 'any', 'straight', 'curved'}}
+MOVES['pedestrian_route'] = {'keep', 'front_start', 'front_middle', 'front_end'}
 
 
 def _number(value, name, *, count=False):
@@ -59,6 +60,10 @@ def apply_placement_moves(request, moves):
     if not isinstance(request, dict) or not isinstance(moves, dict):
         raise ValueError('placement moves require request and moves objects')
     for key, value in moves.items():
+        if key == 'pedestrian_width_m':
+            if _number(value, key) <= 0 or moves.get('pedestrian_route', 'keep') == 'keep':
+                raise ValueError('pedestrian width requires a positive width and route proposal')
+            continue
         if key not in MOVES or not isinstance(value, str) or value not in MOVES[key]:
             raise ValueError(f'unsupported placement move: {key}')
     result = copy.deepcopy(request)
@@ -121,4 +126,13 @@ def apply_placement_moves(request, moves):
             options['max_surface_stalls'] = proposed
     if 'ramp' in applied:
         options['ramp_shape'] = applied['ramp']
+    if 'pedestrian_route' in applied:
+        from .pedestrian_routes import realize_route
+        if request.get('pedestrian_route_design') is not None:
+            raise ValueError('placement moves cannot replace an authored pedestrian route')
+        result['pedestrian_route_design'] = {'approach': applied['pedestrian_route'],
+                                            'width_m': moves.get('pedestrian_width_m')}
+        realize_route(result)
+        unresolved.extend(['preliminary facade entrance: door and internal connection require Mass/Plan acceptance',
+                           'pedestrian width is a design proposal, not a verified legal minimum'])
     return {'request': result, 'applied': applied, 'unresolved': unresolved}

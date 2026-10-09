@@ -1,5 +1,7 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-09 Source-bound pedestrian placement: apply_placement_moves now accepts pedestrian_route (keep/front_start/front_middle/front_end) plus explicit positive pedestrian_width_m. Requires source-attributed pedestrian_frontage and fixed ground building zone; never substitutes vehicle frontage. New pedestrian_route_design is realized before parking, preserves source reservations, and serializes corridor/centerline/proposed facade entrance. Independent validation rejects missing features and conflicts; doors, slopes, accessibility and complete arrival network remain pending. Consumer support for Law-reviewed pedestrian_approach/reserved-area geometry is in MasterPlan synthesis. 45 focused engine tests passed. Actual Site/Law Gosan receipt has 72 reviewed clauses but no confirmed pedestrian approach geometry; no completed real-parcel route claimed. No new route URL, shared-service restart or external message.
+
 Write one dated line per decision; link the commit. Contract changes to agent doors must also
 be told to the Orchestrator session.
 

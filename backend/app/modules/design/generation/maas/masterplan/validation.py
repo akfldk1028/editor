@@ -35,6 +35,8 @@ def validate_plan(request, result):
     features = result.get("features",[])
     core_clearance = core_clearance_requirement(request)
     pedestrian=pedestrian_reservation(request)
+    from .pedestrian_routes import check_route_features
+    check_route_features(check, request, features)
     pending.extend(pedestrian['pending_reviews'])
     source_obstacles = [shape(x) for x in request.get("columns",[])]
     if request.get("core"):

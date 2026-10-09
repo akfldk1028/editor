@@ -6,10 +6,15 @@ from backend.app.modules.design.generation.maas.masterplan.geometry import EPS, 
 
 
 def pedestrian_reservation(request):
+    from .pedestrian_routes import realize_route, PENDING
     site=polygon(request['site'],'site')
     pieces=[]
     pending=['pedestrian_route_design_review']
     evidence=request.get('evidence') or {}
+    route=realize_route(request)
+    if route is not None:
+        pieces.append(route['corridor'])
+        pending.extend(PENDING)
     if request.get('pedestrian_reserved_area') is not None:
         pieces.append(polygon(request['pedestrian_reserved_area'],'pedestrian reserved area'))
         source=evidence.get('pedestrian_reserved_area')
@@ -36,8 +41,11 @@ def pedestrian_reservation(request):
         if not evidence.get('pedestrian_vehicle_crossing_area'):
             raise ValueError('pedestrian vehicle crossing requires explicit source evidence')
         pending.append('pedestrian_vehicle_crossing_safety_review')
-    return {'reserved':reserved,'vehicle_blocked':reserved.difference(crossing),
-            'crossing':crossing,'pending_reviews':pending}
+    vehicle_blocked=reserved.difference(crossing)
+    if route is not None:
+        vehicle_blocked=vehicle_blocked.union(route['corridor'])
+    return {'reserved':reserved,'vehicle_blocked':vehicle_blocked,
+            'crossing':crossing,'pending_reviews':pending,'route':route}
 
 
 def exclude_reserved_stalls(plan, reserved):
