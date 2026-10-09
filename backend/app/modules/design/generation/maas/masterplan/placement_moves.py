@@ -18,6 +18,7 @@ MOVES = {'building_side': {'keep', 'center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W
 MOVES['pedestrian_route'] = {'keep', 'front_start', 'front_middle', 'front_end'}
 MOVES['circulation'] = {'keep', 'auto', 'comb', 'ring'}
 MOVES['parking_mix'] = {'keep', 'perpendicular', 'parallel_infill'}
+MOVES['building_proportion'] = {'keep', 'compact', 'along_axis', 'cross_axis'}
 
 
 def _number(value, name, *, count=False):
@@ -76,7 +77,7 @@ def apply_placement_moves(request, moves):
     options = result.setdefault('options', {})
     if not isinstance(options, dict):
         raise ValueError('request options must be an object')
-    if 'building_side' in applied or 'piloti' in applied:
+    if any(k in applied for k in ('building_side', 'building_proportion', 'piloti')):
         if any(request.get(key) for key in ('footprint', 'ground_footprint', 'core', 'columns')):
             raise ValueError('placement moves cannot modify authored footprint, ground footprint, core or columns')
         target = _number(options.get('target_footprint_m2'), 'target_footprint_m2')
@@ -92,8 +93,11 @@ def apply_placement_moves(request, moves):
         front = shape(request['front_frontage']) if request.get('front_frontage') else None
         wanted = applied.get('building_side')
         chosen = ground = None
+        proportion = applied.get('building_proportion')
+        ratio = {'compact': 1., 'along_axis': 2., 'cross_axis': .5}.get(proportion)
         for candidate in footprint_candidates(buildable, target, front, module,
-                                               angle_deg=layout_axis_angle(request)):
+                                               angle_deg=layout_axis_angle(request),
+                                               **({'aspect_ratio': ratio, 'limit': 512} if ratio else {})):
             if wanted is not None and _side(site, candidate) != wanted:
                 continue
             if not math.isclose(candidate.area, target, rel_tol=1e-9, abs_tol=1e-6):
@@ -133,7 +137,8 @@ def apply_placement_moves(request, moves):
         unresolved.append('closed aisle geometry does not certify steering or swept paths')
     if 'parking_mix' in applied:
         options['parking_mix'] = applied['parking_mix']
-        unresolved.append('parallel infill: general bay dimensions; manoeuvres and project applicability require review')
+        if applied['parking_mix'] == 'parallel_infill':
+            unresolved.append('parallel infill: general bay dimensions; manoeuvres and project applicability require review')
     if 'pedestrian_route' in applied:
         from .pedestrian_routes import realize_route
         if request.get('pedestrian_route_design') is not None:

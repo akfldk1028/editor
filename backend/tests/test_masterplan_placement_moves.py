@@ -140,3 +140,42 @@ def test_piloti_refuses_to_erase_the_entire_ground():
     response = call(req, {'piloti': 'piloti'})
     assert response['status'] == 'failed'
     assert 'candidate' in response['reason']
+
+
+def test_equal_area_proportions_offer_distinct_central_envelopes():
+    geometries = {}
+    for proportion in ('compact', 'along_axis', 'cross_axis'):
+        response = call(request(), {'building_side': 'center', 'building_proportion': proportion})
+        assert response['status'] == 'succeeded', response
+        fp = shape(response['result']['request']['footprint'])
+        assert fp.area == pytest.approx(1600)
+        assert fp.centroid.distance(box(0, 0, 100, 100).centroid) < 5
+        geometries[proportion] = fp
+    def ratio(p):
+        x0,y0,x1,y1 = p.bounds
+        return (x1-x0)/(y1-y0)
+    assert ratio(geometries['compact']) == pytest.approx(1)
+    assert ratio(geometries['along_axis']) > 1.5
+    assert ratio(geometries['cross_axis']) < 1/1.5
+
+
+def test_proportion_cannot_replace_authored_mass():
+    req = request()
+    req['footprint'] = mapping(box(0, 0, 40, 40))
+    assert call(req, {'building_proportion': 'compact'})['status'] == 'failed'
+
+
+def test_perpendicular_move_does_not_report_parallel_assumption():
+    result = call(request(), {'parking_mix': 'perpendicular'})['result']
+    assert not any('parallel infill' in note for note in result['unresolved'])
+
+
+def test_proportions_follow_explicit_layout_axis_not_frontage_label():
+    from shapely.affinity import rotate
+    from backend.app.modules.design.generation.maas.masterplan.joint import footprint_candidates
+    candidates = footprint_candidates(box(0, 0, 100, 100), 1600,
+        LineString([(0, 0), (100, 0)]), 16, angle_deg=90, aspect_ratio=2)
+    assert candidates
+    fp = rotate(candidates[0], -90, origin=(0, 0))
+    x0,y0,x1,y1 = fp.bounds
+    assert (x1-x0)/(y1-y0) == pytest.approx(2)

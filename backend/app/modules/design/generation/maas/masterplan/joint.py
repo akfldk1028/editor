@@ -14,7 +14,7 @@ from backend.app.modules.design.generation.maas.masterplan.pedestrian import ped
 from backend.app.modules.design.generation.maas.masterplan.layout_axis import layout_axis_angle
 
 
-def footprint_candidates(buildable, target, front, module_depth, limit=32, *, angle_deg=None):
+def footprint_candidates(buildable, target, front, module_depth, limit=32, *, angle_deg=None, aspect_ratio=None):
     if target <= 0 or target > buildable.area + EPS:
         return []
     if front is not None and front.geom_type == 'LineString':
@@ -31,6 +31,9 @@ def footprint_candidates(buildable, target, front, module_depth, limit=32, *, an
         # Wide bars, compact plates and module-proportioned plates compete.
         widths = [width, width*.85, width*.7, math.sqrt(target),
                   target/module_depth, target/(2*module_depth)] if module_depth else [width, math.sqrt(target)]
+        if aspect_ratio is not None:
+            # An explicit design family, never a score or parcel-specific preferred mass.
+            widths = [math.sqrt(target * aspect_ratio)]
         front_high = edge is None or edge.centroid.y >= component.centroid.y
         for w in widths:
             if w <= 0 or w > width+EPS:
