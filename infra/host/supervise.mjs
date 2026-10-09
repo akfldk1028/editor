@@ -46,6 +46,9 @@ export class Supervisor {
   /** The pid record and whether it lives; a foreign listener on the entry's port is adopted first.
    *  A dead record is kept (restart() clears it) so the policy sees the crash, not a blank slate. */
   locate(entry) {
+    // An external entry (docker compose) is someone else's process: the host neither adopts nor kills it, and
+    // its `start` (compose up -d) is idempotent, so no pid record is ever written for it.
+    if (entry.management === 'external') return { record: null, alive: false };
     const existing = readRecord(this.paths, entry.id);
     if (existing && this.os.isAlive(existing.pid)) return { record: existing, alive: true };
     const pid = entry.port === null ? null : this.os.listenerPid(entry.port);
@@ -56,10 +59,17 @@ export class Supervisor {
     return { record: adopted, alive: true };
   }
 
+  /** The health probe, with a listener on the port as the liveness signal when there is no health URL (Neo4j's bolt). */
+  async liveness(entry) {
+    const health = await this.probe(entry, this.env);
+    const up = health.up === true || (health.up === null && entry.port !== null && this.os.listenerPid(entry.port) !== null);
+    return { ...health, up };
+  }
+
   async observe(entry) {
     const { record, alive } = this.locate(entry);
-    const health = await this.probe(entry, this.env);
-    return { record, health, known: record !== null, alive, up: health.up === true };
+    const health = await this.liveness(entry);
+    return { record, health, known: record !== null, alive, up: health.up };
   }
 
   /** One look at every wanted entry: probes run in parallel (a tick costs one probe timeout, not n of them),
@@ -69,10 +79,10 @@ export class Supervisor {
   async tick(now = Date.now()) {
     const actions = [];
     const entries = this.entries();
-    const others = this.services.filter(entry => entry.health_url && !entries.some(kept => kept.id === entry.id));
+    const others = this.services.filter(entry => (entry.health_url || entry.port !== null) && !entries.some(kept => kept.id === entry.id));
     const [observations, elsewhere] = await Promise.all([
       Promise.all(entries.map(entry => this.observe(entry))),
-      Promise.all(others.map(entry => this.probe(entry, this.env))),
+      Promise.all(others.map(entry => this.liveness(entry))),
     ]);
     const snapshot = { at: new Date(now).toISOString(), services: {} };
     others.forEach((entry, index) => {
@@ -119,14 +129,20 @@ export class Supervisor {
   }
 
   start(entry) {
-    const cmd = startCommand(entry);
-    const cwd = resolve(this.root, entry.start.cwd);
-    const fileEnv = entry.start.env_file ? this.os.readEnvFile(resolve(cwd, entry.start.env_file)) : {};
+    const compose = entry.compose ?? null;
+    const cmd = compose ? ['docker', 'compose', 'up', '-d', compose.service] : startCommand(entry);
+    const cwd = resolve(this.root, compose ? compose.project : entry.start.cwd);
+    const fileEnv = !compose && entry.start.env_file ? this.os.readEnvFile(resolve(cwd, entry.start.env_file)) : {};
     const pid = this.os.spawnDetached(cmd[0], cmd.slice(1), {
       cwd, env: { ...this.env, ...fileEnv }, logPath: this.paths.log(entry.id), errPath: this.paths.err(entry.id),
       onError: error => this.event('spawn-error', entry.id, { error: error?.code ?? String(error) }, `[spawn-error] ${entry.id}: ${error?.code ?? error}`),
     });
     const record = { pid, startedAt: new Date().toISOString(), cmd, adopted: false };
+    if (entry.management === 'external') {
+      // The launcher (compose) exits at once; the service lives elsewhere. Remember only that we asked.
+      this.event('start', entry.id, { pid, cmd }, `[start] ${entry.id}: ${cmd.join(' ')} (external, launcher pid ${pid})`);
+      return record;
+    }
     writeRecord(this.paths, entry.id, record);
     this.event('start', entry.id, { pid, cmd }, `[start] ${entry.id}: pid ${pid} <- ${cmd.join(' ')}`);
     return record;
@@ -141,7 +157,7 @@ export class Supervisor {
   }
 
   stop(entry) {
-    const record = readRecord(this.paths, entry.id);
+    const record = entry.management === 'external' ? null : readRecord(this.paths, entry.id);
     if (record) this.os.killTree(record.pid);
     remove(this.paths.record(entry.id));
     this.states.delete(entry.id);

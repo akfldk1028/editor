@@ -89,16 +89,17 @@
       "start": { "cwd": "agents/OrchestratorAgent", "cmd": [".venv-orchestrator/Scripts/python.exe", "-X", "utf8", "-m", "orchestrator.editor_api", "--port", "{port}", "--enable-submissions"] },
       "depends_on": [],
       "version_source": "health:version",
-      "notes": "Orchestrator editor API (orchestrator/editor_api.py, default port in its argparse). The worker (scripts/services/stack.ps1, `-m orchestrator worker`) has no port. Bearer A2A_TOKEN. Run submissions need --enable-submissions (runtime/orchestrator/design.sqlite must exist). Whole stack: Docker Desktop, then scripts/services/stack.ps1 -Action start (ops/db + ops compose, dependencies.ps1, mass-export.ps1, a2a.ps1 = 15 agents, worker); dependencies.ps1 still copies from the retired AG-light path and fails non-fatally (2026-10-08)."
+      "notes": "Orchestrator editor API (orchestrator/editor_api.py, default port in its argparse). Since 2026-10-09 the door carries its own worker thread (`--enable-submissions` starts worker.standby; health says worker: running), so no separate worker entry or hand-started `-m orchestrator worker` is needed — a second worker only waits for worker.lock. The old stack.ps1 worker has no port. Bearer A2A_TOKEN. Run submissions need --enable-submissions (runtime/orchestrator/design.sqlite must exist). Whole stack: Docker Desktop, then scripts/services/stack.ps1 -Action start (ops/db + ops compose, dependencies.ps1, mass-export.ps1, a2a.ps1 = 15 agents, worker); dependencies.ps1 still copies from the retired AG-light path and fails non-fatally (2026-10-08)."
     },
     {
       "id": "law",
       "kind": "agent",
-      "idle_timeout_s": 1800,
+      "idle_timeout_s": null,
       "memory_mb": 90,
       "owner_repo": "agents/Lawagent",
       "lifecycle": "persistent",
-      "management": "agent-host",
+      "management": "external",
+      "compose": { "project": "ops", "service": "law" },
       "host_env": "LAW_A2A_URL",
       "port": 8301,
       "health_url": "{base}/health",
@@ -107,7 +108,7 @@
       "launcher": { "directory": "Lawagent", "catalog": "law_agent.json", "name": "LawAgent", "skill": "law_health" },
       "depends_on": ["neo4j"],
       "version_source": "card:version",
-      "notes": "Port is LAW_A2A_PORT in config/lawagent.env (the serve script sources it)."
+      "notes": "Served by the ops compose service `law` (ace-law-1, 2026-10-09): the host activates it with `docker compose up -d` (idempotent), never spawns `start` (that mirrors a2a.ps1, which also skips it while a card answers), never adopts or kills it, no idle stop. Port is LAW_A2A_PORT in config/lawagent.env (the serve script sources it)."
     },
     {
       "id": "masterplan",
@@ -148,11 +149,12 @@
     {
       "id": "revision",
       "kind": "agent",
-      "idle_timeout_s": 1800,
+      "idle_timeout_s": null,
       "memory_mb": 90,
       "owner_repo": "agents/RevisionAgent",
       "lifecycle": "persistent",
-      "management": "agent-host",
+      "management": "external",
+      "compose": { "project": "ops", "service": "revision" },
       "host_env": "REVISION_A2A_URL",
       "port": 18303,
       "health_url": "{base}/health",
@@ -161,16 +163,17 @@
       "launcher": { "directory": "RevisionAgent", "catalog": "revision_agent.json", "name": "RevisionAgent", "skill": "revision_triage" },
       "depends_on": [],
       "version_source": "card:version",
-      "notes": ""
+      "notes": "Served by the ops compose service `revision` (ace-revision-1, 2026-10-09): the host activates it with `docker compose up -d` (idempotent), never spawns `start` (that mirrors a2a.ps1, which also skips it while a card answers), never adopts or kills it, no idle stop. "
     },
     {
       "id": "site-context",
       "kind": "agent",
-      "idle_timeout_s": 1800,
+      "idle_timeout_s": null,
       "memory_mb": 90,
       "owner_repo": "agents/SiteContextAgent",
       "lifecycle": "persistent",
-      "management": "agent-host",
+      "management": "external",
+      "compose": { "project": "ops", "service": "site" },
       "host_env": "SITE_CONTEXT_A2A_URL",
       "port": 8304,
       "health_url": "{base}/health",
@@ -179,16 +182,17 @@
       "launcher": { "directory": "SiteContextAgent", "catalog": "site_context_agent.json", "name": "SiteContextAgent", "skill": "site_resolve" },
       "depends_on": [],
       "version_source": "card:version",
-      "notes": "Convention and 16 call sites use SITE_CONTEXT_A2A_URL; its own serve-a2a.sh reads SITE_A2A_PORT/SITE_A2A_URL (naming drift, owner's file)."
+      "notes": "Served by the ops compose service `site` (ace-site-1, 2026-10-09): the host activates it with `docker compose up -d` (idempotent), never spawns `start` (that mirrors a2a.ps1, which also skips it while a card answers), never adopts or kills it, no idle stop. Convention and 16 call sites use SITE_CONTEXT_A2A_URL; its own serve-a2a.sh reads SITE_A2A_PORT/SITE_A2A_URL (naming drift, owner's file)."
     },
     {
       "id": "requirement",
       "kind": "agent",
-      "idle_timeout_s": 1800,
+      "idle_timeout_s": null,
       "memory_mb": 90,
       "owner_repo": "agents/RequirementAgent",
       "lifecycle": "persistent",
-      "management": "agent-host",
+      "management": "external",
+      "compose": { "project": "ops", "service": "requirement" },
       "host_env": "REQUIREMENT_A2A_URL",
       "port": 8305,
       "health_url": "{base}/health",
@@ -197,16 +201,17 @@
       "launcher": { "directory": "RequirementAgent", "catalog": "requirement_agent.json", "name": "RequirementAgent", "skill": "requirement_structure" },
       "depends_on": [],
       "version_source": "card:version",
-      "notes": ""
+      "notes": "Served by the ops compose service `requirement` (ace-requirement-1, 2026-10-09): the host activates it with `docker compose up -d` (idempotent), never spawns `start` (that mirrors a2a.ps1, which also skips it while a card answers), never adopts or kills it, no idle stop. "
     },
     {
       "id": "design-intent",
       "kind": "agent",
-      "idle_timeout_s": 1800,
+      "idle_timeout_s": null,
       "memory_mb": 90,
       "owner_repo": "agents/DesignIntentAgent",
       "lifecycle": "persistent",
-      "management": "agent-host",
+      "management": "external",
+      "compose": { "project": "ops", "service": "design-intent" },
       "host_env": "INTENT_A2A_URL",
       "port": 8306,
       "health_url": "{base}/health",
@@ -215,7 +220,7 @@
       "launcher": { "directory": "DesignIntentAgent", "catalog": "design_intent_agent.json", "name": "DesignIntentAgent", "skill": "intent_declare" },
       "depends_on": [],
       "version_source": "card:version",
-      "notes": ""
+      "notes": "Served by the ops compose service `design-intent` (ace-design-intent-1, 2026-10-09): the host activates it with `docker compose up -d` (idempotent), never spawns `start` (that mirrors a2a.ps1, which also skips it while a card answers), never adopts or kills it, no idle stop. "
     },
     {
       "id": "elevation",
@@ -328,11 +333,12 @@
     {
       "id": "plan",
       "kind": "agent",
-      "idle_timeout_s": 1800,
+      "idle_timeout_s": null,
       "memory_mb": 90,
       "owner_repo": "agents/planm",
       "lifecycle": "persistent",
-      "management": "agent-host",
+      "management": "external",
+      "compose": { "project": "ops", "service": "plan" },
       "host_env": "PLANM_AGENT_URL",
       "port": 8309,
       "health_url": "{base}/health",
@@ -341,7 +347,7 @@
       "launcher": { "directory": "planm", "catalog": "plan_agent.json", "name": "PlanAgent", "skill": "plan_health" },
       "depends_on": [],
       "version_source": "health:version",
-      "notes": "The editor reads PLANM_AGENT_URL (conventions §5); the agents network calls the same address PLAN_A2A_URL (config/planagent.env). /health carries agent, tools and version."
+      "notes": "Served by the ops compose service `plan` (ace-plan-1, 2026-10-09): the host activates it with `docker compose up -d` (idempotent), never spawns `start` (that mirrors a2a.ps1, which also skips it while a card answers), never adopts or kills it, no idle stop. The editor reads PLANM_AGENT_URL (conventions §5); the agents network calls the same address PLAN_A2A_URL (config/planagent.env). /health carries agent, tools and version."
     },
     {
       "id": "scene",

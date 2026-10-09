@@ -232,8 +232,9 @@ test('the snapshot also says whether entries the host does not keep are up (comp
   const kept = { ...entryFor(1), id: 'kept' };
   const compose = { ...entryFor(2), id: 'compose', start: null };
   const dark = { ...entryFor(3), id: 'dark', start: null };
-  const probe = async entry => ({ up: entry.id !== 'dark', status: entry.id === 'dark' ? null : 200, latencyMs: 1, version: entry.id === 'compose' ? '1.2.3' : undefined });
-  const supervisor = new Supervisor([kept, compose, dark], () => ['kept'], { root, paths, policy: FAST, probe, processes: { listenerPid: () => 4242, processStartTime: () => null, isAlive: () => true } });
+  const bolt = { ...entryFor(4), id: 'bolt', start: null, health_url: null };
+  const probe = async entry => (entry.health_url === null ? { up: null, error: 'no health URL' } : { up: entry.id !== 'dark', status: entry.id === 'dark' ? null : 200, latencyMs: 1, version: entry.id === 'compose' ? '1.2.3' : undefined });
+  const supervisor = new Supervisor([kept, compose, dark, bolt], () => ['kept'], { root, paths, policy: FAST, probe, processes: { listenerPid: () => 4242, processStartTime: () => null, isAlive: () => true } });
   try {
     await supervisor.tick();
     const snapshot = JSON.parse(readFileSync(resolve(paths.runtime, 'health.json'), 'utf8')).services;
@@ -241,6 +242,31 @@ test('the snapshot also says whether entries the host does not keep are up (comp
     assert.equal(snapshot.kept.managed, true);
     assert.deepEqual(snapshot.compose, { up: true, pid: null, state: 'up', failures: 0, restarts: 0, version: '1.2.3', managed: false });
     assert.equal(snapshot.dark.state, 'absent');
+    assert.equal(snapshot.bolt.state, 'up', 'a listener on the port is liveness when there is no health URL');
+  } finally {
+    cleanup();
+  }
+});
+
+
+test('an external entry is probed but never adopted or killed; without a health URL a port listener counts as up', async () => {
+  const { root, paths, entryFor, cleanup } = fixture();
+  const external = { ...entryFor(1), id: 'law', management: 'external', compose: { project: 'svc', service: 'law' }, start: { cwd: 'svc', cmd: ['bash', 'scripts/serve-a2a.sh'] } };
+  const bolt = { ...entryFor(2), id: 'neo4j', management: 'external', health_url: null, start: { cwd: 'svc', cmd: ['docker', 'compose', 'up', '-d', 'neo4j'] } };
+  const kills = [];
+  const supervisor = new Supervisor([external, bolt], () => ['law', 'neo4j'], {
+    root, paths, policy: FAST,
+    probe: async entry => (entry.health_url === null ? { up: null, error: 'no health URL' } : { up: true, status: 200 }),
+    processes: { listenerPid: port => (port === 2 ? 777 : 4242), processStartTime: () => null, isAlive: () => true, killTree: pid => kills.push(pid) },
+  });
+  try {
+    const actions = await supervisor.tick();
+    assert.deepEqual(actions.map(a => [a.id, a.action, a.up, a.pid]), [['law', 'none', true, null], ['neo4j', 'none', true, null]]);
+    assert.equal(readRecord(paths, 'law'), null, 'no pid record for an external entry');
+    supervisor.stop(external);
+    assert.deepEqual(kills, [], 'nothing of docker is killed');
+    const snapshot = JSON.parse(readFileSync(resolve(paths.runtime, 'health.json'), 'utf8')).services;
+    assert.equal(snapshot.neo4j.state, 'up');
   } finally {
     cleanup();
   }

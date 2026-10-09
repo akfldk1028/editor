@@ -33,6 +33,13 @@
             "pattern": "^[A-Z][A-Z0-9_]*$"
           },
           "port": { "type": ["integer", "null"], "minimum": 1, "maximum": 65535 },
+          "compose": {
+            "description": "How the host activates an external entry that a docker compose project serves: `docker compose up -d <service>` in <project> (relative to D:/Data/25_ACE). The host never spawns `start` for such an entry.",
+            "type": "object",
+            "required": ["project", "service"],
+            "additionalProperties": false,
+            "properties": { "project": { "type": "string" }, "service": { "type": "string" } }
+          },
           "idle_timeout_s": {
             "description": "On-demand entries only: the host stops the process this long after its last lease ended (never before min_up). Absent/null = never stopped for idleness.",
             "type": ["integer", "null"],

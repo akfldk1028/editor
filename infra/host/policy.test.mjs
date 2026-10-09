@@ -161,3 +161,11 @@ test('idleStops names up entries whose lease ended idle_timeout_s ago, never wit
   assert.equal(idleIn(entries[0], leases.a, records.a, t0, options), 70);
   assert.equal(idleIn(entries[4], null, records.keep, t0, options), null);
 });
+
+
+test('an external (docker compose) entry is never idle-stopped even with a timeout set', () => {
+  const t0 = Date.parse('2026-10-09T00:00:00Z');
+  const entries = [{ id: 'law', idle_timeout_s: 60, management: 'external' }, { id: 'mass', idle_timeout_s: 60, management: 'agent-host' }];
+  const records = { law: { startedAt: new Date(t0).toISOString() }, mass: { startedAt: new Date(t0).toISOString() } };
+  assert.deepEqual(idleStops(entries, { ups: new Set(['law', 'mass']), leases: {}, records }, t0 + 10_000_000, { ...DEFAULTS, minUpMs: 0 }), ['mass']);
+});

@@ -68,7 +68,7 @@ export function initialState() {
 export function idleStops(entries, { ups, leases, records }, now, options = DEFAULTS) {
   const due = [];
   for (const entry of entries) {
-    if (entry.idle_timeout_s == null || !ups.has(entry.id)) continue;
+    if (entry.idle_timeout_s == null || entry.management === 'external' || !ups.has(entry.id)) continue;
     const startedAt = Date.parse(records[entry.id]?.startedAt ?? '') || null;
     if (startedAt !== null && now - startedAt < options.minUpMs) continue;
     const leaseEnd = Date.parse(leases[entry.id]?.until ?? '') || null;
