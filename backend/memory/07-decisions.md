@@ -322,6 +322,7 @@ be told to the Orchestrator session.
   texts no longer capped at 8,000 (Site ~30 KB, Law ~31 KB), `redacted: bool` per row, new steps `site_district_plan`
   and `law_review_district_plan`, `assessment_date` forwarded to Law, health carries `worker`. Editor schemas
   (`schemas/communications.py`, frontend `parseCommunications`) now bound texts at 262,144 and accept `redacted`;
-  the 8,000 assumption elsewhere is only comments/notes. Pitfall: **Next dev compiles `/api/scenes/[id]` lazily** —
-  the first submission after a reload/HMR hits the backend's 8 s owner timeout (503 external_outcome_unknown);
-  `curl :3003/api/scenes/<id>` once (or 다시 시도) and it passes. Live: run d8af521b full conversation in the browser.
+  the 8,000 assumption elsewhere is only comments/notes. Pitfall (fixed 10-09 01:05): Next dev compiles `/api/scenes/[id]` lazily (6-9 s)
+  and the first submission after a reload/HMR hit the backend's 8 s scene-check timeout (503). Now
+  `PlatformScenes.TIMEOUT_S = 30` and the site card warms the route when a project is chosen — first click: scene
+  9 ms, POST runs 202 in 810 ms. Live: run d8af521b full conversation in the browser.
