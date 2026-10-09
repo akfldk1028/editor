@@ -1,5 +1,3 @@
-import { MAP_CONFIG } from '../../../../land-map/lib/constants'
-import { cadastralImageUrl } from '../layers/cadastralTiles'
 import { accentColor, hoverOutline, mergedOutline, parcelBounds, parcelOutline, parcelRings, parcelStyle } from '../layers/parcelOutline'
 import { lotChipHtml } from '../layers/lotChip'
 import { searchMarker, searchMarkerHtml } from '../layers/searchMarker'
@@ -22,8 +20,6 @@ interface NaverMap {
   fitBounds(bounds: unknown, margin?: { top: number; right: number; bottom: number; left: number }): void
   setSize(size: unknown): void
   destroy(): void
-  getBounds(): { getSW(): NaverLatLng; getNE(): NaverLatLng }
-  getZoom(): number
 }
 interface NaverMaps {
   Map: new (element: HTMLElement, options: Record<string, unknown>) => NaverMap
@@ -32,8 +28,7 @@ interface NaverMaps {
   Point: new (x: number, y: number) => unknown
   Size: new (width: number, height: number) => unknown
   Position: { BOTTOM_LEFT: number; BOTTOM_RIGHT: number }
-  /** One image laid over a lon/lat box (the view's cadastral lines). */
-  GroundOverlay: new (url: string, bounds: unknown, options?: Record<string, unknown>) => NaverOverlay
+  CadastralLayer: new () => NaverOverlay
   Polygon: new (options: Record<string, unknown>) => NaverPolygon
   Marker: new (options: Record<string, unknown>) => NaverMarker
   Event: {
@@ -78,8 +73,6 @@ export function createNaverEngine(keyId: string): MapEngine {
   let maps: NaverMaps | null = null
   let map: NaverMap | null = null
   let cadastral: NaverOverlay | null = null
-  let cadastralOn = false
-  let idleListener: unknown = null
   let container: HTMLElement | null = null
   // Overlays are pooled: a redraw updates existing polygons/markers and only adds or hides the difference.
   const parcels: NaverPolygon[] = []
@@ -94,21 +87,6 @@ export function createNaverEngine(keyId: string): MapEngine {
   let dragListeners: unknown[] = []
   let hoverListeners: unknown[] = []
   const latLng = ([lng, lat]: LngLat) => new maps!.LatLng(lat, lng)
-
-  /** The view's cadastral lines as one image, replaced whenever the map comes to rest (or hidden below its zoom). */
-  function drawCadastral() {
-    cadastral?.setMap(null)
-    cadastral = null
-    if (!map || !maps || !cadastralOn || map.getZoom() < MAP_CONFIG.cadastralMinZoom) return
-    const bounds = map.getBounds()
-    const sw = bounds.getSW()
-    const ne = bounds.getNE()
-    const element = container ?? null
-    const width = element?.clientWidth || 1024
-    const height = element?.clientHeight || 768
-    const url = cadastralImageUrl(sw.lng(), sw.lat(), ne.lng(), ne.lat(), width, height)
-    cadastral = new maps.GroundOverlay(url, new maps.LatLngBounds(sw, ne), { opacity: 1, clickable: false, map })
-  }
   const clear = (overlays: NaverOverlay[]) => { for (const overlay of overlays) overlay.setMap(null) }
   function syncPolygons(pool: NaverPolygon[], geometries: readonly object[], options: Record<string, unknown>) {
     const rings = geometries.flatMap((geometry) => parcelRings(geometry))
@@ -152,11 +130,8 @@ export function createNaverEngine(keyId: string): MapEngine {
       // setSize pins the map element's own px size, so the size is read from (and watched on) its parent.
       container = element.parentElement ?? element
       stopObserving = observeSize(container, () => this.resize())
-      // The cadastral lines come from the same registry as the parcel outlines (Vworld 연속지적도 via the backend
-      // WMS proxy), not from Naver's 지적편집도, so a lot and its outline always agree (see layers/cadastralTiles).
-      cadastralOn = layers.cadastral
-      idleListener = maps.Event.addListener(instance, 'idle', () => drawCadastral())
-      drawCadastral()
+      cadastral = new maps.CadastralLayer()
+      if (layers.cadastral) cadastral.setMap(instance)
       // Authentication failures are reported asynchronously through a global callback.
       await new Promise<void>((resolve, reject) => {
         onAuthFailure = () => reject(new Error('네이버 지도 인증에 실패했습니다 (키 또는 등록 URL).'))
@@ -232,8 +207,7 @@ export function createNaverEngine(keyId: string): MapEngine {
     },
 
     setLayers(layers: MapLayers) {
-      cadastralOn = layers.cadastral
-      drawCadastral()
+      cadastral?.setMap(layers.cadastral ? map : null)
     },
 
     zoomBy(delta: number) {
@@ -288,10 +262,7 @@ export function createNaverEngine(keyId: string): MapEngine {
       stopObserving?.()
       clear([...parcels, ...merged, ...hover, ...labels])
       marker?.setMap(null)
-      if (idleListener) maps?.Event.removeListener(idleListener)
-      idleListener = null
       cadastral?.setMap(null)
-      cadastral = null
       map?.destroy()
       map = null
     },
