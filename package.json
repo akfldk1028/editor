@@ -35,6 +35,8 @@
     "host:start": "node infra/host/cli.mjs start",
     "host:stop": "node infra/host/cli.mjs stop",
     "host:status": "node infra/host/cli.mjs status",
+    "host:install": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/host/task.ps1 install",
+    "host:uninstall": "powershell -NoProfile -ExecutionPolicy Bypass -File infra/host/task.ps1 uninstall",
     "plan:test:browser": "playwright test -c infra/e2e/visual-review.config.cjs",
     "plan:test:frontend": "playwright test -c infra/e2e/frontend.config.cjs",
     "plan:test:product": "playwright test -c infra/e2e/product.config.cjs",

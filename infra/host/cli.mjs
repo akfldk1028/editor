@@ -1,9 +1,11 @@
 #!/usr/bin/env node
-// agent-host: node infra/host/cli.mjs start [ids...] [--with-agents] | ensure <ids...> [--json] [--timeout=<s>] [--lease=<s>] | touch <ids...> [--lease=<s>] | stop [ids...] | status [--json] | restart <id> | restart-daemon | daemon
+// agent-host: node infra/host/cli.mjs start [ids...] [--with-agents] | ensure <ids...> [--json] [--timeout=<s>] [--lease=<s>] | touch <ids...> [--lease=<s>] | stop [ids...] | status [--json] | restart <id> | restart-daemon | revive | daemon
 // `ensure` = start + wait until each id answers its health URL (the editor backend calls it with --json).
 // `start` launches a detached daemon (this file, `daemon`) that owns the health loop and
 // survives the shell that started it; `stop` kills it through runtime/host/daemon.json;
 // `status` probes directly and needs no daemon.
+// `revive` starts a daemon only when none runs and leaves the wanted set alone: the Task Scheduler task
+// `ace-host` (infra/host/task.ps1) calls it at logon and every 5 minutes, so a killed daemon comes back.
 import { readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -94,11 +96,28 @@ function launch(ids, withAgents, log = console.log) {
   if (pid) {
     log(`daemon pid ${pid} already runs; it now keeps [${wanted.join(', ')}]`);
   } else {
-    const args = [SELF, 'daemon', ...(withAgents ? ['--with-agents'] : [])];
-    pid = spawnDetached(process.execPath, args, { cwd: paths.runtime, env: process.env, logPath: paths.log('daemon'), errPath: paths.err('daemon') });
+    pid = spawnDaemon(withAgents);
     log(`daemon started: pid ${pid}, log ${paths.log('daemon')}`);
   }
   return entries;
+}
+
+function spawnDaemon(withAgents) {
+  return spawnDetached(process.execPath, [SELF, 'daemon', ...(withAgents ? ['--with-agents'] : [])],
+    { cwd: paths.runtime, env: process.env, logPath: paths.log('daemon'), errPath: paths.err('daemon') });
+}
+
+/** A daemon when none runs, nothing otherwise; the wanted set stays as `start`/`stop` left it (the watchdog task calls this). */
+function revive() {
+  ensureDirs(paths);
+  const running = daemonPid();
+  if (running) {
+    console.log(`daemon pid ${running} runs, keeping [${readWanted(paths).join(', ')}]`);
+    return;
+  }
+  const pid = spawnDaemon(Boolean(readJson(paths.daemon)?.withAgents));
+  appendEvent(paths, { kind: 'revive', pid, wanted: readWanted(paths) });
+  console.log(`daemon started: pid ${pid}, keeping [${readWanted(paths).join(', ')}]`);
 }
 
 async function start(ids, withAgents) {
@@ -184,9 +203,7 @@ async function restartDaemon() {
     remove(paths.daemon);
     console.log(`daemon pid ${pid} stopped (services left running)`);
   }
-  const withAgents = Boolean(previous?.withAgents);
-  const fresh = spawnDetached(process.execPath, [SELF, 'daemon', ...(withAgents ? ['--with-agents'] : [])],
-    { cwd: paths.runtime, env: process.env, logPath: paths.log('daemon'), errPath: paths.err('daemon') });
+  const fresh = spawnDaemon(Boolean(previous?.withAgents));
   console.log(`daemon started: pid ${fresh}, keeping [${readWanted(paths).join(', ')}]`);
 }
 
@@ -213,12 +230,13 @@ async function main(argv) {
     case 'ensure': return ensure(ids, { json, timeoutMs, leaseS });
     case 'touch': return touch(ids, { json, leaseS });
     case 'restart-daemon': return restartDaemon();
+    case 'revive': return revive();
     case 'stop': return stop(ids);
     case 'restart':
       if (ids.length !== 1) throw new Error('usage: restart <id>');
       return restart(ids[0]);
     case 'daemon': return daemon(withAgents);
-    default: throw new Error(`unknown command "${command}"; use start|ensure|touch|stop|status|restart|restart-daemon`);
+    default: throw new Error(`unknown command "${command}"; use start|ensure|touch|stop|status|restart|restart-daemon|revive`);
   }
 }
 
