@@ -385,3 +385,16 @@ be told to the Orchestrator session.
   local env file's `EDITOR_PUBLIC_URL`/`EDITOR_SCENE_URL` name 3002 so the host-run editor passes the same-origin
   doors. Live: `host:start editor` -> pid 25900 on 3002, /dwg 200, ordinances + body doors 200 via 3002, host +
   dev tests 68. The manual 3003 Next instance is retired.
+- 2026-10-10 host (review "확인해"): the host-run editor's `logs/host/editor.{log,err}` stayed empty while the server
+  ran. Measured cause: a .cmd shim run through cmd.exe under `detached` (DETACHED_PROCESS, no console) loses every
+  child's output — each child console app gets a fresh console whose handles replace the inherited log files
+  (`cmd /c bun --version` detached -> 0 bytes; bun.exe spawned directly -> fine; non-detached would land in libuv's
+  kill-on-close job and die with the daemon). Fix: `shimTarget` reads an npm-made shim and the host spawns the
+  program it names (node + the last .js it references, or the .exe — bun installed through npm) with no shell;
+  other .cmd/.bat files still go through one (output lost, documented). Processes tests 4 (shim parse + live
+  `npm --version` landing in a log). Also seen: `docker compose up -d` launched the host's way opens no window
+  detectable at 300 ms polling (Docker off), and no host-run service owns a window; the 10 s compose relaunch is
+  gone (daemon log: one `[docker-down]`, zero compose starts). Unexplained: at 08:01Z backend+orchestrator (python)
+  and at ~08:13Z the daemon, editor, dwg and everything node died together, image-wise, while the machine carried
+  286 node.exe / 282 cmd.exe (8 copies of every MCP server) — looks like a manual cull, not the host (its detached
+  children sit in no job object, measured with IsProcessInJob). Restarted with `host:start`; host + dev tests 70.

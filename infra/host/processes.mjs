@@ -2,7 +2,7 @@
 // detached child whose output goes to files, kill a process tree. Node built-ins only.
 import { spawn, spawnSync } from 'node:child_process';
 import { closeSync, existsSync, openSync, readFileSync } from 'node:fs';
-import { isAbsolute, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 
 const win32 = process.platform === 'win32';
 
@@ -132,17 +132,39 @@ export function onPath(command) {
 }
 
 /**
+ * The program an npm-made .cmd shim runs, as [exe, ...args], so the host can launch it without cmd.exe; null when
+ * the file is not such a shim. A shim run by a console-less (detached) cmd.exe loses its children's output: each
+ * child gets a fresh console whose handles replace the inherited log files (2026-10-10: the host-run editor's
+ * logs/host/editor.{log,err} stayed empty while the server ran). The shim names its target relative to its own
+ * directory: a .js for node (npm, npx) or an .exe (bun installed through npm).
+ */
+export function shimTarget(shimPath) {
+  let text;
+  try { text = readFileSync(shimPath, 'utf8'); } catch { return null; }
+  const targets = [...text.matchAll(/%~?dp0%?\\?([^"%\r\n]+?\.(?:exe|js|cjs|mjs))"/gi)].map(match => resolve(dirname(shimPath), match[1]));
+  // Node's own npm.cmd names npm-prefix.js (to find a globally upgraded npm) before npm-cli.js, the one it runs:
+  // the last script wins. The bundled npm runs here even when a global upgrade exists; the host does not need the newest.
+  const script = targets.filter(target => /\.[cm]?js$/i.test(target) && existsSync(target)).at(-1);
+  if (script) return [process.execPath, script];
+  const exe = targets.find(target => /\.exe$/i.test(target) && !/[\\/]node\.exe$/i.test(target) && existsSync(target));
+  return exe ? [exe] : null;
+}
+
+/**
  * Start `[command, ...args]` detached from this process: its own process group, no console,
  * stdout/stderr appended to the given files. Returns the child's pid. Node refuses to run .cmd
- * launchers without a shell, so those go through one (taskkill /T still reaches the tree).
+ * launchers without a shell and a detached shell drops its children's output, so an npm shim is
+ * unwrapped (shimTarget) and only other .cmd/.bat files go through one (taskkill /T still reaches the tree).
  */
 export function spawnDetached(command, args, { cwd, env, logPath, errPath, onError = null }) {
   const out = openSync(logPath, 'a');
   const err = openSync(errPath, 'a');
   const resolved = isAbsolute(command) ? command : resolveCommand(command, cwd, env);
-  const shell = win32 && /\.(cmd|bat)$/i.test(resolved);
+  const shim = win32 && /\.(cmd|bat)$/i.test(resolved) ? shimTarget(resolved) : null;
+  const shell = win32 && !shim && /\.(cmd|bat)$/i.test(resolved);
+  const [file, argv] = shim ? [shim[0], [...shim.slice(1), ...args]] : [resolved, shell ? args.map(quoteForShell) : args];
   try {
-    const child = spawn(resolved, shell ? args.map(quoteForShell) : args, {
+    const child = spawn(file, argv, {
       cwd, env, shell, detached: true, windowsHide: true, stdio: ['ignore', out, err],
     });
     // A missing executable arrives as an asynchronous 'error' event; unhandled, it killed the whole daemon
