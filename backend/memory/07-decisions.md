@@ -403,3 +403,11 @@ be told to the Orchestrator session.
   and at ~08:13Z the daemon, editor, dwg and everything node died together, image-wise, while the machine carried
   286 node.exe / 282 cmd.exe (8 copies of every MCP server) — looks like a manual cull, not the host (its detached
   children sit in no job object, measured with IsProcessInJob). Restarted with `host:start`; host + dev tests 70.
+- 2026-10-10 host watchdog (user: "근본적인거 해결한거임?" → research → "나머지 해결하고"): nobody kept the daemon alive, so
+  `cli.mjs revive` (a daemon only when none runs; the wanted set untouched — `start` would re-add the default set
+  and resurrect stopped services) plus a Task Scheduler task `ace-host` (`bun run host:install`, infra/host/task.ps1:
+  logon + every 5 min, current user, no admin; S4U and schtasks are denied here). Measured: an interactive task that
+  starts node.exe directly opens a Windows Terminal window every tick, hence wscript hidden.vbs in front. Live test:
+  daemon killed, task fired, new daemon adopted the running services in 3 s, no window. Same day the Claude Code MCP
+  set was cut (user scope 28 → 8, claude-flow trio un-approved) because 7 sessions × ~50 server processes = 293 node /
+  10 GB; the editor project's own servers (ACE, pascal) now sit at "pending approval", which is fine — both unused.
