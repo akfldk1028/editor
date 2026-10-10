@@ -7,7 +7,7 @@ import os
 
 from backend.app.modules.design.generation.maas.masterplan.search_budget import BasementSearchBudget
 
-from shapely.geometry import LineString, Polygon, mapping, shape
+from shapely.geometry import LineString, Point, Polygon, mapping, shape
 from shapely.affinity import translate
 
 from backend.app.modules.design.generation.maas.masterplan.geometry import EPS, digest, feature, footprint_inside, number, parts, polygon, union_or_empty

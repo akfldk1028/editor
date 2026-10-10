@@ -1,5 +1,10 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-10 (MasterPlan session, circulation integration E) planner.py: `accept_ramp` used `Point` without importing it,
+  so every AI proposal carrying `entry_approach` died with NameError (A's 6 tests never reach that branch; pyflakes now
+  clean across the package). Finding for A: `circulation_network.plan_entry_approach`/`connect_landing_to_aisle` are
+  not called anywhere - `entry_approach` only filters ramp landings near frontage corners, it generates no straight
+  approach or fork; only `prune_useless_aisle_branches` is wired (parking_modules.py:173). A/B/modules/moves: 49 passed.
 - 2026-10-09 (Claude) Nationwide ordinance discovery, `modules/law/ordinances/`: `jurisdiction.py` (registry address by PNU
   from Vworld `addr` → 시·도 + 시·군·자치구 levels, a 일반구 only noted; each level cross-checked with the PNU code's
   `ordinance_overrides/<code>.json` snapshot, a conflict fails the whole lookup closed), `search.py` (law.go.kr lawSearch
