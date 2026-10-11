@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { dismissFeed, postFeed } from '@/lib/orchestrator-runs/feed'
+import { dismissFeed, projectFeed } from '@/lib/orchestrator-runs/feed'
 import { askFailedLine, landAnalysisLine, landAnalysisLines } from '@/lib/orchestrator-runs/feed-lines'
+import { currentConversation } from '@/lib/design-conversation/session'
 import type { RunLaw } from '@/lib/orchestrator-runs/types'
 
 import { AnalyzeError, analyzeSite, type LawAgentAnalysis, type LawAnalysis } from '../api/analyze'
@@ -32,17 +33,18 @@ const CACHE_MAX = 20
  * turn); results are kept in a small in-hook cache so switching 조건 back and forth neither refetches
  * nor re-posts. `rerun()` bypasses the cache.
  */
-export function useLawAnalysis(params: Readonly<Record<string, string>>, conditions: Conditions) {
+export function useLawAnalysis(params: Readonly<Record<string, string>>, conditions: Conditions, enabled = true) {
   const [target, setTarget] = useState<Target>({ kind: 'resolving' })
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' })
   const cache = useRef(new Map<string, LawAgentAnalysis>())
   const active = useRef<AbortController | null>(null)
   const scope = selectionScope(params)
-  const { pnu: pnuParam, address: addressParam } = params
+  const { pnu: pnuParam, address: addressParam, parcelCount } = params
 
   useEffect(() => {
     if (pnuParam) {
-      setTarget({ kind: 'site', pnu: pnuParam, address: addressParam ?? '', notice: null })
+      const notice = Number(parcelCount) > 1 ? `묶음은 첫 필지(${lotLabel(addressParam ?? '', pnuParam)}) 기준 — 합필 지원 준비 중` : null
+      setTarget({ kind: 'site', pnu: pnuParam, address: addressParam ?? '', notice })
       return
     }
     const controller = new AbortController()
@@ -59,7 +61,7 @@ export function useLawAnalysis(params: Readonly<Record<string, string>>, conditi
         if (!controller.signal.aborted) setTarget({ kind: 'error', text: error instanceof Error ? error.message : '선택한 대지를 불러오지 못했습니다.' })
       })
     return () => controller.abort()
-  }, [pnuParam, addressParam, scope])
+  }, [pnuParam, addressParam, parcelCount, scope])
 
   const pnu = target.kind === 'site' ? target.pnu : null
   const address = target.kind === 'site' ? target.address : ''
@@ -67,6 +69,7 @@ export function useLawAnalysis(params: Readonly<Record<string, string>>, conditi
 
   /** One request at a time: a new load (or unmount) aborts the one in flight. */
   const load = useCallback((targetPnu: string, targetAddress: string, targetKey: string, options: Conditions) => {
+    const postFeed = projectFeed(currentConversation().projectId)
     active.current?.abort()
     const controller = new AbortController()
     active.current = controller
@@ -94,6 +97,11 @@ export function useLawAnalysis(params: Readonly<Record<string, string>>, conditi
   }, [])
 
   useEffect(() => {
+    if (!enabled) {
+      active.current?.abort()
+      setPhase((current) => current.kind === 'loading' ? { kind: 'idle' } : current)
+      return
+    }
     if (!pnu || !key) {
       setPhase({ kind: 'idle' })
       return
@@ -101,15 +109,15 @@ export function useLawAnalysis(params: Readonly<Record<string, string>>, conditi
     const cached = cache.current.get(key)
     if (cached) setPhase({ kind: 'ready', analysis: cached.analysis, limits: cached.limits, answer: cached })
     else load(pnu, address, key, conditions)
-  }, [pnu, address, key, conditions, load])
+  }, [enabled, pnu, address, key, conditions, load])
 
   useEffect(() => () => active.current?.abort(), [])
 
   const rerun = useCallback(() => {
-    if (!pnu || !key) return
+    if (!enabled || !pnu || !key) return
     cache.current.delete(key)
     load(pnu, address, key, conditions)
-  }, [pnu, address, key, conditions, load])
+  }, [enabled, pnu, address, key, conditions, load])
 
   return { target, phase, rerun }
 }

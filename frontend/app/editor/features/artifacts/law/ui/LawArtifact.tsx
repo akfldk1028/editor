@@ -2,12 +2,13 @@
 
 import { MotionConfig } from 'framer-motion'
 import { Map as MapIcon, RotateCcw, Scale } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import LandAnalysisPanel from '../../../land-map/components/LandAnalysisPanel'
 import { LawArticlesList } from '../../../land-map/components/LawArticlesList'
 import type { LandAnalysisResult, LawArticleItem } from '../../../land-map/lib/types'
 import { sendCommand } from '@/lib/orchestrator-runs/commands'
+import { isValidDate } from '@/lib/orchestrator-runs/conditions'
 import { ArtifactChrome } from '../../../shell/artifact-host/ArtifactChrome'
 
 import type { ArtifactProps, ShellApi } from '../../../shell/artifact-types'
@@ -24,15 +25,25 @@ import './law.css'
 
 /** 법규·한계: the selected site's regulations from `POST /land/analyze`, by tab. */
 export default function LawArtifact({ tab = 'review', params, shell }: ArtifactProps) {
-  const [conditions, setConditions] = useState<Conditions>(defaultConditions)
-  const { target, phase, rerun } = useLawAnalysis(params, conditions)
+  const [editedConditions, setEditedConditions] = useState<{ params: typeof params; value: Conditions } | null>(null)
+  const [initialConditions] = useState<Conditions>(defaultConditions)
+  const conditions = useMemo(() => editedConditions?.params === params ? editedConditions.value : {
+    ...initialConditions,
+    ...(params.assessmentDate && isValidDate(params.assessmentDate) ? { assessmentDate: params.assessmentDate } : {}),
+    ...(params.buildingType !== undefined ? { buildingType: params.buildingType } : {}),
+  }, [editedConditions, params, initialConditions])
+  const setConditions = (value: Conditions) => setEditedConditions({ params, value })
+  const [appliedParams, setAppliedParams] = useState<typeof params | null>(null)
+  const effectiveTab = appliedParams === params ? tab : params.tab ?? tab
+  const orchestrator = effectiveTab === 'orchestrator'
+  const { target, phase, rerun } = useLawAnalysis(params, conditions, !orchestrator)
   const analysis = phase.kind === 'ready' ? phase.analysis : null
   const title = target.kind === 'site' ? target.address || `PNU ${target.pnu}` : '법규·한계'
   const subtitle = target.kind === 'site' ? describeConditions(conditions) : null
-  const orchestrator = tab === 'orchestrator'
 
   // `shell.openArtifact('law', {tab})` lands on that tab; each open (new params object) applies it once.
   useEffect(() => {
+    setAppliedParams(params)
     const wanted = params.tab
     if (wanted && lawArtifact.tabs?.some((candidate) => candidate.id === wanted)) shell.setTab(wanted)
   }, [params, shell])
@@ -41,11 +52,11 @@ export default function LawArtifact({ tab = 'review', params, shell }: ArtifactP
     <>
       <ArtifactChrome
         actions={
-          <button className="artifact-primary" disabled={target.kind !== 'site' || phase.kind === 'loading'} onClick={rerun} type="button">
-            <RotateCcw aria-hidden="true" size={12} /><span>다시 분석</span>
+          !orchestrator && <button className="artifact-primary" disabled={target.kind !== 'site' || phase.kind === 'loading'} onClick={rerun} type="button">
+            <RotateCcw aria-hidden="true" size={12} /><span>{phase.kind === 'loading' ? '새로고침 중' : '새로고침'}</span>
           </button>
         }
-        menu={<ConditionsMenu onChange={setConditions} value={conditions} />}
+        menu={orchestrator ? undefined : <ConditionsMenu onChange={setConditions} value={conditions} />}
         title={<><strong title={title}>{title}</strong>{subtitle && <span>{subtitle}</span>}</>}
       />
       <div aria-busy={phase.kind === 'loading'} className="law-artifact" data-tab={tab}>
@@ -62,7 +73,7 @@ export default function LawArtifact({ tab = 'review', params, shell }: ArtifactP
             {orchestrator ? (
               <OrchestratorTab address={target.address} editor={analysis ? summarize(analysis) : null} key={target.pnu} pnu={target.pnu} project={params.project} shell={shell} />
             ) : (
-              analysis && <Body address={target.address} analysis={analysis} site={{ pnu: target.pnu, address: target.address, assessmentDate: conditions.assessmentDate }} tab={tab} />
+              analysis && <Body address={target.address} analysis={analysis} site={{ pnu: target.pnu, address: target.address, assessmentDate: conditions.assessmentDate }} tab={effectiveTab} />
             )}
           </>
         )}

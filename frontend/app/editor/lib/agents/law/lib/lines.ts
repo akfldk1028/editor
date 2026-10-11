@@ -174,9 +174,9 @@ export function landAnalysisLine(answer: LandAnalysisAnswer, target: LawTarget):
     kind: 'progress',
     agent: LAW,
     tone,
-    text,
+    text: `${text}\n\n이 대지에 어떤 용도의 건물과 공간을 계획하시나요? 원하는 용도·공간·설계 방향을 이야기해 주세요.`,
     ...(limits ? { card: limitsCard(limits) ?? undefined } : {}),
-    actions: [{ label: '검토 조항 보기', artifact: 'law', params: lawParams(target, 'review') }, { label: '조문 보기', artifact: 'law', params: lawParams(target, 'articles') }],
+    actions: [{ label: '검토 조항 보기', artifact: 'law', params: lawParams(target, 'review') }, { label: '설계 방향 이야기하기', command: { kind: 'compose', draft: '이 대지에서 계획하는 용도와 원하는 공간은 ' } }],
   }
 }
 

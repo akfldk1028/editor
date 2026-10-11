@@ -1,4 +1,5 @@
 import { sendCommand } from '@/lib/orchestrator-runs/commands'
+import { conversationSite } from '@/lib/orchestrator-runs/site-context'
 import type { FeedAction } from '@/lib/orchestrator-runs/feed'
 
 import type { ShellApi } from '../artifact-types'
@@ -9,6 +10,11 @@ import type { ShellApi } from '../artifact-types'
  * the waiting command is taken on mount.
  */
 export function act(action: FeedAction, shell: ShellApi): void {
+  if (action.command?.kind === 'start-review' && action.command.goal === 'limits') {
+    const site = conversationSite()
+    shell.openArtifact('law', { ...(site ?? {}), ...action.params, tab: 'review' })
+    return
+  }
   if (action.command && !sendCommand(action.command)) {
     shell.openArtifact('site-map')
     return

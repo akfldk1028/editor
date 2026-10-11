@@ -31,19 +31,21 @@ export function selectedLine(site: SelectedSite): string {
  * and the catalog offers — then 대지 정보 보기 and, when the conversation can ask Law, 법규 요약 보기.
  */
 export function selectedPrompt(site: SelectedSite, capabilities: Capabilities): FeedInput {
-  const first = site.parcels[0]!
-  const target = { pnu: first.pnu, ...(first.address || site.label ? { address: first.address || site.label } : {}) }
   const starts: FeedAction[] = capabilities.goals
     .filter((goal) => goal.available && goal.offer)
-    .map((goal) => ({ label: `${goal.label} 시작`, command: { kind: 'start-review', goal: goal.id } }))
+    .map((goal): FeedAction => goal.id === 'limits'
+      ? { label: '법규 검토', artifact: 'law', params: {
+          tab: 'review',
+          ...(site.parcels[0] ? { pnu: site.parcels[0].pnu, address: site.parcels[0].address || site.label, parcelCount: String(site.parcels.length) } : {}),
+        } }
+      : { label: goal.label, command: { kind: 'start-review', goal: goal.id } })
   return {
     kind: 'prompt',
     agent: ORCHESTRATOR,
     text: `${site.label} — 무엇을 할까요?`,
     actions: [
+      { label: '설계 시작하기', command: { kind: 'compose', draft: '이 대지에서 설계를 시작하고 싶어요.' } },
       ...starts,
-      { label: '대지 정보 보기', artifact: 'site-map' },
-      ...(capabilities.conversation.law_analysis ? [{ label: '검토 조항 보기', artifact: 'law', params: { ...target, tab: 'review' } }] : []),
     ],
   }
 }
@@ -195,7 +197,7 @@ export function resultLine(results: RunResults): string {
  * After a failure it offers 시스템 보기 as well.
  */
 export function resultPrompt(results: RunResults, target: LawTarget): { text: string; actions: FeedAction[] } {
-  const law: FeedAction = { label: '법규 보기', artifact: 'law', params: lawParams(target, 'orchestrator') }
+  const law: FeedAction = { label: '법규 검토 결과 보기', artifact: 'law', params: lawParams(target, 'orchestrator') }
   const related: FeedAction = { label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }
   const later: FeedAction = { label: '나중에' }
   if (results.status === 'failed') {

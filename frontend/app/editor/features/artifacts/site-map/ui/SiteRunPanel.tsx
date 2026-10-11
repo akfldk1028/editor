@@ -1,128 +1,36 @@
-'use client'
+﻿'use client'
 
-import { AlertTriangle, Check, Copy, ExternalLink, RotateCcw, Scale } from 'lucide-react'
-import { useState } from 'react'
-
-import { failureText } from '@/lib/orchestrator-runs/submit'
+import { useEffect, useState } from 'react'
+import { defaultRunConditions, isValidDate, loadRunConditions, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
 import { ConditionsRow } from '@/lib/orchestrator-runs/ui/ConditionsRow'
-
 import type { ShellApi } from '../../../shell/artifact-types'
 import type { SavedSite } from '../lib/picks'
-import { bundleNotice, isTerminal, runNotice, statusLabel, traceLabel } from '../lib/site-run'
-import { type RunPhase, useSiteRun } from '../model/useSiteRun'
 
 interface Props {
   site: SavedSite
-  /** The shell's `?project=`, when it names a project binding. */
   project?: string
-  /** 시스템 보기 opens the system artifact (service status) when the Orchestrator is unreachable. */
   shell: ShellApi
 }
 
-const base = () => process.env.NEXT_PUBLIC_BASE_PATH || ''
-
-/**
- * Under the saved site: 조건 (기준일, 용도), then 검토 시작 sends `{goal: limits, pnu, parcels,
- * assessment_date, building_type?}` to the Orchestrator and follows the run.
- */
-export function SiteRunPanel({ site, project, shell }: Props) {
-  const { projects, chosen, setChosen, conditions, setConditions, ready, phase, start } = useSiteRun(site, project)
-  const notice = bundleNotice(site)
-  const busy = phase.kind === 'submitting'
-  const locked = busy || phase.kind === 'submitted'
-  const first = site.parcels[0]!
-  const binding = project ?? chosen?.project_id
-  const openLaw = () => shell.openArtifact('law', { pnu: first.pnu, address: first.address || site.label, tab: 'orchestrator', ...(binding ? { project: binding } : {}) })
-
-  return (
-    <div aria-label="법규·한계 검토" className="site-card-run" role="group">
-      {projects.kind === 'loading' && <p className="site-card-note">프로젝트를 확인하는 중</p>}
-      {projects.kind === 'error' && <p className="site-card-note" data-kind="error">{projects.text}</p>}
-      {projects.kind === 'none' && <p className="site-card-note" data-kind="error">{projects.reason}</p>}
-      {projects.kind === 'choose' && (
-        <label className="site-card-run-project">
-          <span>검토를 보낼 프로젝트</span>
-          <select
-            disabled={locked}
-            onChange={(event) => setChosen(projects.projects.find((binding) => binding.project_id === event.target.value) ?? null)}
-            value={chosen?.project_id ?? ''}
-          >
-            <option value="">선택하세요</option>
-            {projects.projects.map((binding) => (
-              <option key={binding.project_id} value={binding.project_id}>{binding.owner_project_id} · {binding.branch_id}</option>
-            ))}
-          </select>
-        </label>
-      )}
-      {chosen && phase.kind !== 'submitted' && <ConditionsRow disabled={locked} onChange={setConditions} value={conditions} />}
-      {notice && chosen && phase.kind !== 'submitted' && (
-        <p className="site-card-note" data-kind="notice"><AlertTriangle aria-hidden="true" size={12} />{notice}</p>
-      )}
-
-      {phase.kind === 'submitted' ? (
-        <Submitted onOpenLaw={openLaw} phase={phase} projectId={chosen?.project_id ?? ''} />
-      ) : (
-        <button className="artifact-primary site-card-select" disabled={!chosen || !ready || busy} onClick={() => void start()} type="button">
-          {busy ? '검토 요청 중' : phase.kind === 'failed' ? <><RotateCcw aria-hidden="true" size={12} />다시 시도</> : '검토 시작 (법규·한계)'}
-        </button>
-      )}
-      {phase.kind === 'failed' && (
-        <p className="site-card-note" data-kind="error" role="alert">
-          {failureText(phase.failure)}
-          {phase.failure.kind === 'unavailable' && (
-            <button className="site-card-run-link" onClick={() => shell.openArtifact('system')} type="button">시스템 보기</button>
-          )}
-        </p>
-      )}
-    </div>
-  )
-}
-
-function Submitted({ phase, projectId, onOpenLaw }: { phase: Extract<RunPhase, { kind: 'submitted' }>; projectId: string; onOpenLaw(): void }) {
-  const { run, stale } = phase
-  const open = !isTerminal(run.status)
-  const notice = runNotice(run)
-  const href = `${base()}/runs/${encodeURIComponent(run.run_id)}?project_id=${encodeURIComponent(projectId)}`
-  return (
-    <div className="site-card-run-status" role="status">
-      <p>
-        {open ? <span aria-hidden="true" className="loading-mark" /> : <Check aria-hidden="true" size={14} />}
-        <b>검토 요청됨</b> · run <code>{run.run_id}</code>
-        {run.trace_id && <TraceId traceId={run.trace_id} />}
-      </p>
-      <p>
-        상태: <b>{statusLabel(run.status)}</b>
-        {stale && <small> · 상태 확인 지연</small>}
-        <a href={href} rel="noopener" target="_blank">실행 보기<ExternalLink aria-hidden="true" size={11} /></a>
-      </p>
-      {notice && <p className="site-card-note" data-kind="error" role="alert">{notice}</p>}
-      {!open && (
-        <button className="site-card-law" onClick={onOpenLaw} type="button">
-          <Scale aria-hidden="true" size={12} />법규 결과 보기
-        </button>
-      )}
-    </div>
-  )
-}
-
-/** `trace <first 8 hex>` with a button that copies the whole W3C trace id (for log/JSONL lookup). */
-function TraceId({ traceId }: { traceId: string }) {
-  const [copied, setCopied] = useState(false)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(traceId)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // No clipboard (insecure context): the full id stays in the title for manual copy.
-    }
+export function SiteRunPanel({ site, shell }: Props) {
+  const [conditions, setConditions] = useState(defaultRunConditions)
+  useEffect(() => setConditions(loadRunConditions()), [])
+  const first = site.parcels[0]
+  const start = () => {
+    if (!first || !isValidDate(conditions.assessmentDate)) return
+    saveRunConditions(conditions)
+    shell.openArtifact('law', {
+      pnu: first.pnu, address: first.address || site.label, tab: 'review',
+      parcelCount: String(site.parcels.length),
+      assessmentDate: conditions.assessmentDate, buildingType: conditions.buildingType,
+    })
   }
   return (
-    <>
-      · trace <code title={traceId}>{traceLabel(traceId)}</code>
-      <button aria-label={copied ? '추적 ID 복사됨' : '추적 ID 복사'} className="site-card-run-copy" onClick={() => void copy()} type="button">
-        {copied ? <Check aria-hidden="true" size={11} /> : <Copy aria-hidden="true" size={11} />}
+    <div aria-label="법규 검토" className="site-card-run" role="group">
+      <ConditionsRow onChange={setConditions} value={conditions} />
+      <button className="artifact-primary site-card-select" disabled={!first || !isValidDate(conditions.assessmentDate)} onClick={start} type="button">
+        법규 검토
       </button>
-    </>
+    </div>
   )
 }

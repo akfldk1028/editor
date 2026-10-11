@@ -205,7 +205,7 @@ ol.law-list { list-style: decimal; }
 }
 
 /* 검토 조항 (review list): groups of provisions, each opening to its texts and an ask box. */
-.law-review { display: grid; gap: 14px; }
+.law-review { display: grid; gap: 14px; max-inline-size: 860px; width: 100%; margin-inline: auto; }
 .law-review-head { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-2); color: var(--muted); }
 .law-review-head strong { color: var(--ink); font-size: var(--fs-3); }
 .law-status { padding: 2px 8px; border-radius: 9px; font-size: var(--fs-1); font-weight: 600; white-space: nowrap; color: var(--muted); background: var(--subtle); }
@@ -216,17 +216,17 @@ ol.law-list { list-style: decimal; }
 .law-review-group h2 { margin: 0 0 6px; display: flex; align-items: center; gap: 6px; font-size: var(--fs-3); font-weight: 600; }
 .law-review-group h2 small { color: var(--muted); font-size: var(--fs-1); font-weight: 500; }
 .law-review-group > ul:not(.law-list) { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
-.law-review-item { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-raised); }
+.law-review-item { border-block-end: 1px solid var(--border-soft); background: transparent; }
 .law-review-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto 14px; grid-template-areas: "title status chev" "why why why"; gap: 4px 10px; align-items: center; padding: 10px 12px; text-align: start; background: none; border: 0; cursor: pointer; color: inherit; }
 .law-review-title { grid-area: title; display: grid; gap: 2px; min-width: 0; }
-.law-review-title b { font-size: var(--fs-2); font-weight: 600; }
+.law-review-title b { font-size: 13px; font-weight: 600; line-height: 1.5; }
 .law-review-title small { color: var(--muted); font-size: var(--fs-1); overflow-wrap: anywhere; }
-.law-review-why { grid-area: why; color: var(--muted); font-size: var(--fs-1); line-height: var(--lh); }
+.law-review-why { grid-area: why; color: var(--muted); font-size: 12px; line-height: 1.6; padding-block-start: 2px; }
 .law-review-row .law-status { grid-area: status; }
 .law-review-chevron { grid-area: chev; color: var(--muted); transition: transform 0.15s; }
 .law-review-item[data-open] .law-review-chevron { transform: rotate(180deg); }
-.law-review-detail { display: grid; gap: 10px; padding: 0 12px 12px; }
-.law-review-basis { margin: 0; font-size: var(--fs-1); line-height: var(--lh); }
+.law-review-detail { display: grid; gap: 12px; padding: 10px 12px; border-block-start: 1px solid var(--border-soft); }
+.law-review-basis { margin: 0; padding: 8px 10px; border-inline-start: 2px solid var(--border); background: var(--subtle); font-size: 12px; line-height: 1.7; }
 .law-review-basis span { margin-inline-end: 6px; color: var(--muted); font-weight: 600; }
 .law-review-refs { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .law-review-ref { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--fs-1); }
@@ -237,3 +237,38 @@ ol.law-list { list-style: decimal; }
 .law-review-gap { margin: 4px 0 0; color: var(--warning); font-size: var(--fs-1); }
 .law-review-ask { display: flex; gap: 6px; }
 .law-review-ask input { flex: 1; min-width: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font-size: var(--fs-2); }
+
+.law-review-intro h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: -.02em; }
+.law-ordinances { padding: 0; background: transparent; border-block-start: 1px solid var(--border); border-block-end: 1px solid var(--border); }
+.law-ordinances > header { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.law-ordinances h2 { margin: 12px 0; font-size: 14px; font-weight: 650; }
+.law-ordinances h2 small { color: var(--muted); font-size: 11px; margin-inline-start: 8px; font-weight: 400; }
+.law-ordinances > p { margin: 12px 0 18px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.law-ordinance-entry { border-block-start: 1px solid var(--border-soft); }
+.law-ordinance-entry summary { padding: 9px 4px; cursor: pointer; color: var(--ink); font-size: 12px; line-height: 1.6; font-weight: 600; }
+.law-ordinance-entry summary small { display: block; margin-inline-start: 18px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.law-ordinance-entry > .law-source { margin-block-end: 12px; }
+.law-source { min-width: 0; padding: 12px 16px; border-inline-start: 2px solid var(--border-soft); background: var(--panel-raised); }
+.law-source-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.law-source-heading h3 { margin: 0; font-size: 13px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; }
+.law-source-heading a { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 12px; text-decoration: underline; }
+.law-source-kind { display: inline-block; padding: 3px 8px; background: var(--subtle); border-radius: 5px; color: var(--ink); font-size: 11px; font-weight: 650; white-space: nowrap; }
+.law-source-kind[data-kind="ordinance"] { background: var(--accent-soft); color: var(--accent); }
+.law-source-meta { display: flex; flex-wrap: wrap; gap: 3px 10px; margin: 5px 0 10px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.law-source-caption { margin: 10px 0 6px; color: var(--muted); font-size: 11px; font-weight: 400; }
+.law-source-text { white-space: pre-wrap; overflow-wrap: anywhere; word-break: keep-all; color: var(--ink); font-family: "Noto Serif KR", "Batang", "바탕", serif; font-size: 13px; line-height: 1.75; }
+.law-source-text p { margin: 0 0 5px; padding-inline-start: 1.4em; text-indent: -1.4em; }
+.law-source-text p:last-child { margin-block-end: 0; }
+.law-source-notice { margin: 12px 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.law-source-notice p { margin: 0 0 6px; }
+.law-source-notice button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; color: var(--ink); background: var(--panel-raised); cursor: pointer; }
+.law-review-group h2 { margin-block-end: 6px; font-size: 14px; }
+.law-review-row { padding: 10px 4px; }
+.law-review-row:hover { background: var(--subtle); }
+.law-review-row:focus-visible, .law-ordinance-entry summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@container law-artifact (max-width: 520px) {
+  .law-review-row { grid-template-columns: minmax(0, 1fr) 14px; grid-template-areas: "title chev" "status status" "why why"; gap: 8px; }
+  .law-review-row .law-status { justify-self: start; white-space: normal; }
+  .law-review-ask { flex-direction: column; }
+  .law-source, .law-review-detail { padding: 10px; }
+}

@@ -5,6 +5,8 @@
  * read-only; to be folded in later); the fields the `/land` page never read are typed here.
  */
 import type { LandAnalysisAnswer } from '@/lib/orchestrator-runs/types'
+import { ensureAgents } from '@/lib/orchestrator-runs/api'
+import { RUN_LEASE_S } from '@/lib/goals/activation'
 
 import type { LandAnalysisResult, ZoneInfo } from '../../../land-map/lib/types'
 
@@ -62,6 +64,14 @@ export class AnalyzeError extends Error {
 const base = () => process.env.NEXT_PUBLIC_BASE_PATH || ''
 
 export async function analyzeSite(pnu: string, options: AnalyzeOptions, signal?: AbortSignal): Promise<LawAgentAnalysis> {
+  try {
+    const ready = await ensureAgents(['law'], RUN_LEASE_S, signal)
+    signal?.throwIfAborted()
+    if (ready.failed.length || !ready.up.includes('law')) throw new Error('law_not_ready')
+  } catch {
+    signal?.throwIfAborted()
+    throw new AnalyzeError('Law Agent를 시작하지 못했어요. 잠시 후 다시 분석해 주세요.', 503)
+  }
   const body: Record<string, unknown> = { pnu }
   if (options.buildingType) body.building_type = options.buildingType
   if (options.floorAreaM2 != null && options.floorAreaM2 > 0) body.floor_area_m2 = options.floorAreaM2
