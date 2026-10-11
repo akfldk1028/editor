@@ -353,6 +353,8 @@ test('an address the backend located becomes the Site Agent line that opens the 
   const found = siteLocatedLine({ ...base, answer: { kind: 'site', query: '의정부시 산곡동 684-1', pnu: '4115011300106840001', address: '경기도 의정부시 산곡동 684-1', coordinates: { x: 127.1, y: 37.7 }, error: null } })
   expect(found).toEqual({ kind: 'progress', agent: 'site_context', tone: 'ok', text: '지도에서 찾았어요 — 경기도 의정부시 산곡동 684-1 · 이 필지를 대지로 선택해요',
     actions: [{ label: '지도 보기', artifact: 'site-map', params: { pnu: '4115011300106840001', pick: '1' } }] })
+  // The general answer line hands a site answer to the Site Agent's line (every answer kind has a turn).
+  expect(answerLine({ ...base, answer: { kind: 'site', query: 'q', pnu: '4115011300106840001', address: null, coordinates: null, error: null } }, null)).toMatchObject({ agent: 'site_context', tone: 'ok' })
   const missing = siteLocatedLine({ ...base, answer: { kind: 'site', query: '없는동 1', pnu: null, address: null, coordinates: null, error: 'Address lookup returned no usable result' } })
   expect(missing).toMatchObject({ agent: 'site_context', tone: 'warn', actions: [{ label: '지도 열기', artifact: 'site-map' }] })
   // Geocoded without a PNU: the map resolves the address itself (reverse lookup at the point).

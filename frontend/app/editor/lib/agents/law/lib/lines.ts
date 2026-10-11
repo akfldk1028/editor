@@ -4,10 +4,11 @@
  */
 import type { FeedAction, FeedCard, FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
 import { agentLabel, evidenceLabel, frontageLabel, heightLabel, limitationLabel } from '@/lib/orchestrator-runs/labels'
-import type { AskAnswer, LandAnalysisAnswer, LawAnswerBody, RunLaw, RunResults } from '@/lib/orchestrator-runs/types'
+import type { AskAnswer, LandAnalysisAnswer, LegalEvidence, RunLaw, RunResults } from '@/lib/orchestrator-runs/types'
 import { excerpt, fmt, isoDate } from '@/lib/orchestrator-runs/format'
 import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
 import { askRolePrompt, handoffLine, orchestratorReplyLine } from '@/lib/agents/orchestrator/lib/lines'
+import { siteLocatedLine } from '@/lib/agents/site/lib/lines'
 
 const ORCHESTRATOR = 'orchestrator'
 
@@ -99,7 +100,7 @@ export function askLines(text: string, role: string | null = null, clause: strin
 }
 
 /** Legal-evidence status words of the Law Agent's search/ordinance answers. */
-function evidenceNote(evidence: LawAnswerBody['legal_evidence']): string | null {
+function evidenceNote(evidence: LegalEvidence | null): string | null {
   if (!evidence) return null
   const parts = [
     evidence.assessment_date ? `기준일 ${evidence.assessment_date}` : null,
@@ -116,6 +117,7 @@ export function answerLine(answer: AskAnswer, target: LawTarget | null, needed: 
   if (answer.route.kind === 'ask') return askRolePrompt(answer)
   if (answer.route.kind === 'answer') return orchestratorReplyLine(answer)
   if (answer.route.kind === 'goal' || !answer.answer) return handoffLine(answer, needed)
+  if (answer.answer.kind === 'site') return siteLocatedLine(answer)
   const actions: FeedAction[] = target ? [{ label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }] : []
   const note = evidenceNote(answer.answer.legal_evidence)
   if (answer.answer.kind === 'ordinance') {
