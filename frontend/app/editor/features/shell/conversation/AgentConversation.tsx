@@ -3,7 +3,13 @@
 import { Send, SquarePen, Workflow } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import { clearFeed, dismissFeed, type FeedEntry, useFeed } from '@/lib/orchestrator-runs/feed'
+import { dismissFeed, type FeedEntry, useFeed, feedForProject } from '@/lib/orchestrator-runs/feed'
+import { newConversation, useConversationSelection } from '@/lib/design-conversation/session'
+import { useConversation } from '@/lib/design-conversation/useConversation'
+import { conversationErrorText } from '@/lib/design-conversation/errors'
+import { designConversationContext } from '@/lib/design-conversation/context'
+import { loadRunConditions } from '@/lib/orchestrator-runs/conditions'
+import { onCommand } from '@/lib/orchestrator-runs/commands'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 import { conversationTitle, leadOf, threadOf, type Turn } from '@/lib/orchestrator-runs/thread'
 import { useAsk } from '@/lib/orchestrator-runs/useAsk'
@@ -12,6 +18,8 @@ import type { ShellApi } from '../artifact-types'
 import { act } from './act'
 import { AgentMark } from './agentMarks'
 import { FeedCard } from './FeedCard'
+import { ConversationArtifacts } from './ConversationArtifacts'
+import { ConversationProject, useConversationProject } from './ConversationProject'
 import './agent-conversation.css'
 
 const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -21,7 +29,8 @@ const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2
  * content, the site it is about and where the review stands, compressed to one block.
  */
 export function AgentConversationHeading() {
-  const entries = useFeed()
+  const selection = useConversationSelection()
+  const entries = feedForProject(useFeed(), selection.projectId, selection.conversationId)
   const title = conversationTitle(entries)
   if (!title) return <div className="agent-heading" />
   return (
@@ -32,10 +41,10 @@ export function AgentConversationHeading() {
   )
 }
 
-/** Header controls: start the conversation over (the feed is this session's memory). */
 export function AgentConversationActions() {
+  const { projectId } = useConversationSelection()
   return (
-    <button aria-label="새 대화" className="icon-button" onClick={clearFeed} title="새 대화" type="button">
+    <button aria-label="새 대화" className="icon-button" disabled={!projectId} onClick={newConversation} title="새 대화 · 이전 대화는 저장됩니다" type="button">
       <SquarePen size={17} />
     </button>
   )
@@ -50,17 +59,43 @@ export function AgentConversationActions() {
  * `lib/orchestrator-runs/feed`; artifact slices post them.
  */
 export function AgentConversation({ shell }: { shell: ShellApi }) {
-  const entries = useFeed()
+  const selection = useConversationSelection()
+  const entries = feedForProject(useFeed(), selection.projectId, selection.conversationId)
   const turns = threadOf(entries)
   const endRef = useRef<HTMLDivElement>(null)
-  const count = entries.length
-  const { send, busy } = useAsk(shell.openArtifact)
-  const [draft, setDraft] = useState('')
+  const composerRef = useRef<HTMLInputElement>(null)
+  useAsk(shell.openArtifact)
+  const project = useConversationProject()
+  const conversation = useConversation(project.projectId, project.conversationId)
+  const messages = conversation.snapshot?.messages ?? []
+  const count = entries.length + messages.length + conversation.pending.length
+  const timeline = [
+    ...turns.map((turn) => ({ at: turn.kind === 'agent' ? turn.at : turn.entry.at, key: `feed-${turnKey(turn)}`, node: <TurnView shell={shell} turn={turn} /> })),
+    ...messages.map((message) => ({ at: Date.parse(message.at), key: `saved-${message.id}`, node: message.role === 'user' ? (
+      <div className="agent-turn-user"><p>{message.text}</p><time dateTime={message.at}>{time(Date.parse(message.at))}</time></div>
+    ) : (
+      <article className="agent-turn conversation-message"><Who agent={message.agent ?? 'orchestrator'} at={Date.parse(message.at)} /><p>{message.text}</p></article>
+    ) })),
+    ...conversation.pending.map((pending) => ({ at: Date.parse(pending.at), key: `pending-${pending.body.message_id}`, node: <div className="agent-turn-user">
+      <p>{pending.body.text}</p>
+      {pending.error ? <div role="alert">{pending.error}<button className="agent-turn-link" type="button" onClick={() => conversation.retry?.(pending.body.message_id)}>다시 전송</button><button className="agent-turn-link" type="button" onClick={() => conversation.discard?.(pending.body.message_id)}>실패한 메시지 삭제</button></div> : <span role="status">{pending.delivery === 'waiting' ? '전송 대기 · 앞선 작업이 끝나면 이어서 보낼게요' : pending.delivery === 'sent' ? '접수를 확인하는 중…' : '보내는 중…'}</span>}
+    </div> })),
+  ].sort((a, b) => a.at - b.at)
+  const draftKey = JSON.stringify([project.projectId, project.conversationId])
+  const [draftValue, setDraftValue] = useState({ key: '', text: '' })
+  const draft = draftValue.key === draftKey ? draftValue.text : ''
+  const setDraft = (text: string) => setDraftValue({ key: draftKey, text })
+  useEffect(() => onCommand((command) => {
+    if (command.kind !== 'compose') return
+    setDraftValue((current) => current.key === draftKey && current.text.trim() ? current : { key: draftKey, text: command.draft })
+    if (composerRef.current?.disabled) document.querySelector<HTMLSelectElement>('.conversation-project select')?.focus()
+    else composerRef.current?.focus()
+  }), [draftKey])
   const submit = () => {
     const text = draft.trim()
-    if (!text || busy) return
+    if (!text || !project.projectId || !conversation.send || conversation.loading) return
+    conversation.send(text, { assessment_date: loadRunConditions().assessmentDate, ...designConversationContext(project.projectId) })
     setDraft('')
-    void send(text)
   }
 
   // The newest turn stays in view; only the thread scrolls.
@@ -71,15 +106,20 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   return (
     <section aria-label="에이전트 대화" className="agent-conversation">
       <div aria-live="polite" className="agent-thread">
-        {turns.length === 0 ? (
+        <ConversationProject {...project} />
+        {turns.length === 0 && messages.length === 0 && !conversation.pending.length ? (
           <div className="agent-thread-empty">
             <Workflow aria-hidden="true" size={28} />
             <strong>무엇을 도와드릴까요?</strong>
-            <span>지도에서 대지를 고르면 시작돼요.</span>
+            <span>프로젝트를 고르고 원하는 공간이나 바꾸고 싶은 점을 이야기해 주세요.</span>
           </div>
         ) : (
-          turns.map((turn) => <TurnView key={turnKey(turn)} shell={shell} turn={turn} />)
+          timeline.map((item) => <div key={item.key}>{item.node}</div>)
         )}
+        {conversation.loading && <p className="agent-turn-system" role="status">저장된 대화를 불러오는 중…</p>}
+        {conversation.snapshot?.status === 'working' && <p className="agent-turn-system" role="status"><span aria-hidden="true" className="loading-mark" />에이전트가 대화를 이어가고 있어요. 추가 메시지는 차례로 보낼게요.</p>}
+        {(conversation.error || conversation.snapshot?.error) && <div className="agent-turn-system" role="alert">{conversation.error || conversationErrorText(conversation.snapshot?.error)}<button className="agent-turn-link" onClick={() => void conversation.refresh?.()} title="저장된 대화 상태를 다시 불러옵니다" type="button">상태 새로고침</button></div>}
+        <ConversationArtifacts artifacts={conversation.snapshot?.artifacts ?? []} onConfirm={conversation.confirm} disabled={conversation.loading || conversation.snapshot?.status === 'working' || conversation.pending.length > 0} />
         <div ref={endRef} />
       </div>
       <form
@@ -90,16 +130,18 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
         }}
       >
         <input
+          ref={composerRef}
           aria-label="메시지"
           autoComplete="off"
-          maxLength={500}
+          maxLength={8000}
+          disabled={!project.projectId || conversation.loading}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="무엇이든 물어보세요 — 예: 뭐 할 수 있어?, 자연녹지지역 건폐율, 매스 쌓아 봐"
+          placeholder="원하는 공간, 조건, 바꾸고 싶은 점을 이야기해 주세요"
           type="text"
           value={draft}
         />
-        <button aria-label="보내기" className="agent-composer-send" disabled={busy || !draft.trim()} type="submit">
-          {busy ? <span aria-hidden="true" className="loading-mark" /> : <Send size={15} />}
+        <button aria-label="보내기" className="agent-composer-send" disabled={!project.projectId || conversation.loading || !draft.trim()} type="submit">
+          <Send size={15} />
         </button>
       </form>
     </section>

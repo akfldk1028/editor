@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { currentConversation } from '@/lib/design-conversation/session'
 import { hostStatus, prewarm } from '@/lib/goals/activation'
 import { availableGoal, loadCapabilities } from '@/lib/goals'
 
 import { askLaw, RunRequestError } from './api'
 import { type AskClause, type Command, onCommand } from './commands'
-import { dismissFeed, postFeed } from './feed'
+import { dismissFeed, projectFeed } from './feed'
 import { answerLine, askFailedLine, askLines, siteLocateParams, siteLocatedLine } from './feed-lines'
 import { conversationSite } from './site-context'
 
@@ -27,6 +28,7 @@ export function useAsk(open?: (artifact: string, params?: Record<string, string>
   useEffect(() => () => active.current?.abort(), [])
 
   const send = useCallback(async (raw: string, role: string | null = null, about: Pick<Extract<Command, { kind: 'ask' }>, 'clause' | 'site'> = {}) => {
+    const postFeed = projectFeed(currentConversation().projectId)
     const text = raw.trim()
     if (!text) return
     active.current?.abort()

@@ -12,7 +12,7 @@ it does, this module reads it instead of restating it.
 from backend.app.schemas.site_run import SITE_GOALS
 
 GOALS = (
-    {'id': 'limits', 'label': '법규·한계 검토', 'owners': ['site_context', 'law', 'revision'],
+    {'id': 'limits', 'label': '대지·법규 검토', 'owners': ['site_context', 'law', 'revision'],
      'inputs': ['pnu', 'assessment_date'], 'optional': ['building_type', 'parcels'], 'offer': True},
     {'id': 'health', 'label': '에이전트 상태 확인', 'owners': [], 'inputs': [], 'optional': [], 'offer': False},
     {'id': 'specialist_review', 'label': '전문 검토', 'owners': ['domain_expert'], 'inputs': ['review'], 'optional': [], 'offer': False},

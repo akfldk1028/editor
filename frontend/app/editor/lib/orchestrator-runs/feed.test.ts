@@ -1,6 +1,9 @@
 import { expect, test } from 'bun:test'
 
-import { createFeedStore } from './feed'
+import { createFeedStore, feed, feedForProject, projectFeed } from './feed'
+import { currentConversation, newConversation, selectConversationProject } from '@/lib/design-conversation/session'
+import { scopedValue } from '@/lib/design-conversation/useScopedState'
+
 
 test('posting appends in order, stamps a time, and notifies subscribers once per post', () => {
   const store = createFeedStore()
@@ -61,4 +64,40 @@ test('get() returns the same array until something is posted (useSyncExternalSto
   expect(store.get()).toBe(before)
   store.post({ kind: 'system', text: 'x' })
   expect(store.get()).not.toBe(before)
+})
+
+
+test('late run results retain their original project and cannot show actions in another project', () => {
+  feed.clear()
+  selectConversationProject('a')
+  const postA = projectFeed('a')
+  selectConversationProject('b')
+  postA({ kind: 'result', text: 'A result', actions: [{ label: 'open A', artifact: 'law' }] })
+  projectFeed('b')({ kind: 'result', text: 'B result' })
+  expect(feedForProject(feed.get(), 'b').map((row) => row.text)).toEqual(['B result'])
+  expect(feedForProject(feed.get(), 'a')[0]?.actions?.[0]?.label).toBe('open A')
+  selectConversationProject(null)
+  feed.clear()
+})
+
+test('project and parcel transitions hide the prior run before effects can poll it', () => {
+  const run = { run_id: 'a-run' }
+  const stored = { scope: JSON.stringify(['a', 'site-1']), value: run }
+  expect(scopedValue(stored, JSON.stringify(['b', 'site-1']), null)).toBeNull()
+  expect(scopedValue(stored, JSON.stringify(['a', 'site-2']), null)).toBeNull()
+  expect(scopedValue(stored, JSON.stringify(['a', 'site-1']), null)).toBe(run)
+})
+
+test('a new conversation hides earlier feed actions and late replies in the same project', () => {
+  feed.clear()
+  selectConversationProject('same-project')
+  const originalId = currentConversation().conversationId
+  const originalPost = projectFeed('same-project')
+  originalPost({ kind: 'prompt', text: 'original prompt' })
+  newConversation()
+  originalPost({ kind: 'result', text: 'late original result' })
+  expect(feedForProject(feed.get(), 'same-project', currentConversation().conversationId)).toEqual([])
+  expect(feedForProject(feed.get(), 'same-project', originalId)).toHaveLength(2)
+  selectConversationProject(null)
+  feed.clear()
 })

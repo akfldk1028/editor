@@ -1,9 +1,13 @@
 import { loadCapabilities } from '@/lib/goals'
 
-import { getOrchestratorConnection } from './api'
-import { postFeed } from './feed'
+import { getOrchestratorConnection, listProjects } from './api'
+import { currentConversation, selectConversationProject } from '@/lib/design-conversation/session'
+import { rememberConversationSite } from '@/lib/design-conversation/context'
+import { loadRunConditions } from './conditions'
+import { projectFeed } from './feed'
 import { connectionLine, type SelectedSite, selectedLine, selectedPrompt } from './feed-lines'
 import { setConversationSite } from './site-context'
+import { resolveProject } from './submit'
 
 /**
  * After 이 대지로 선택 saved: the user's bubble says which site, the Orchestrator answers whether it is
@@ -12,7 +16,24 @@ import { setConversationSite } from './site-context'
  * unreachable backend reads as "down".
  */
 export async function announceSiteSelected(site: SelectedSite, signal?: AbortSignal): Promise<void> {
+  let projectId = currentConversation().projectId
+  if (!projectId) {
+    try {
+      const choice = resolveProject(await listProjects(signal), undefined)
+      if (signal?.aborted) return
+      if (choice.kind === 'resolved') {
+        const selected = currentConversation().projectId
+        if (selected && selected !== choice.project.project_id) return
+        selectConversationProject(choice.project.project_id)
+        projectId = choice.project.project_id
+      }
+    } catch {
+      if (signal?.aborted) return
+    }
+  }
+  const postFeed = projectFeed(projectId)
   const first = site.parcels[0]
+  if (projectId && first) rememberConversationSite(projectId, { pnu: first.pnu, address: first.address || site.label }, loadRunConditions().assessmentDate)
   setConversationSite(first ? { pnu: first.pnu, address: first.address || site.label } : null)
   postFeed({ kind: 'user', text: selectedLine(site) })
   let up = false

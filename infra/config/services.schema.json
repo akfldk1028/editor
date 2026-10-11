@@ -17,6 +17,16 @@
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9-]*$" },
           "kind": { "enum": ["agent", "orchestrator", "editor", "infra"] },
+          "capabilities": {
+            "description": "Versioned product capabilities that activate this service; execution contracts still come from live owner cards.",
+            "type": "array",
+            "items": { "type": "string", "pattern": "^.+$" }
+          },
+          "required_for_capabilities": {
+            "description": "Advertised capabilities whose activation requires this service to be ready. Other providers are attempted but optional; live owner contracts determine available actions.",
+            "type": "array",
+            "items": { "type": "string", "pattern": "^.+$" }
+          },
           "owner_repo": {
             "description": "Repository that owns the process, as a path relative to D:/Data/25_ACE.",
             "type": "string",

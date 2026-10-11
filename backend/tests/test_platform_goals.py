@@ -11,7 +11,7 @@ def test_catalog_marks_what_the_door_takes_and_what_the_conversation_offers():
     body = capabilities()
     by_id = {g['id']: g for g in body['goals']}
     assert set(by_id) == {g['id'] for g in GOALS} and len(by_id) == len(GOALS)
-    assert by_id['limits'] == {'id': 'limits', 'label': '법규·한계 검토', 'owners': ['site_context', 'law', 'revision'],
+    assert by_id['limits'] == {'id': 'limits', 'label': '대지·법규 검토', 'owners': ['site_context', 'law', 'revision'],
                                'inputs': ['pnu', 'assessment_date'], 'optional': ['building_type', 'parcels'], 'offer': True, 'available': True}
     assert by_id['health']['available'] is True and by_id['health']['offer'] is False
     assert by_id['mass']['available'] is False and by_id['mass']['offer'] is True
@@ -46,7 +46,7 @@ def test_situation_reads_site_goals_and_the_catalogs_agent_states_as_data():
     text = describe(pnu='4115011300106840001', address='산곡동 684-1', assessment_date='2026-10-08',
                     agents=[agent('law', 'available'), agent('mass', 'unavailable'), agent('orchestrator', 'local'), agent('construction', 'not_declared')])
     assert text.startswith('- selected site: 산곡동 684-1 PNU 4115011300106840001\n- assessment date: 2026-10-08\n')
-    assert '- goal limits (법규·한계 검토): available now; owners site_context -> law -> revision; needs pnu, assessment_date' in text
+    assert '- goal limits (대지·법규 검토): available now; owners site_context -> law -> revision; needs pnu, assessment_date' in text
     assert '- goal mass (매스 생성): not open to the editor yet' in text
     assert text.endswith('- agents up: law, orchestrator\n- agents down: mass') and 'construction' not in text
     assert describe(pnu=None).startswith('- selected site: none yet') and describe(pnu=None).endswith('(the Orchestrator catalog did not answer)')

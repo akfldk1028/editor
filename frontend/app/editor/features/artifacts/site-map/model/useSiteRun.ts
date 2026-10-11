@@ -1,17 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectBinding } from '@/lib/design-conversation/useProjectBinding'
+import { useScopedState } from '@/lib/design-conversation/useScopedState'
+import { rememberConversationSite } from '@/lib/design-conversation/context'
 
 import { availableGoal, loadCapabilities } from '@/lib/goals'
 import { hostStatus, neededAgents, RUN_LEASE_S } from '@/lib/goals/activation'
-import { ensureAgents, getRunContext, listProjects, submitRun } from '@/lib/orchestrator-runs/api'
+import { ensureAgents, getRunContext, submitRun } from '@/lib/orchestrator-runs/api'
 import { defaultRunConditions, isValidDate, loadRunConditions, type RunConditions, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
 import { onCommand } from '@/lib/orchestrator-runs/commands'
-import { dismissFeed, postFeed } from '@/lib/orchestrator-runs/feed'
+import { dismissFeed, postFeed, projectFeed } from '@/lib/orchestrator-runs/feed'
 import { activatingLine, activationFailedLine, requestFailedLine, requestingLines } from '@/lib/orchestrator-runs/feed-lines'
 import { useRunPolling } from '@/lib/orchestrator-runs/poll'
-import { describeFailure, type ProjectChoice, resolveProject, type RunFailure } from '@/lib/orchestrator-runs/submit'
-import type { ProjectBinding, RunSummary } from '@/lib/orchestrator-runs/types'
+import { describeFailure, type ProjectChoice, type RunFailure } from '@/lib/orchestrator-runs/submit'
+import type { RunSummary } from '@/lib/orchestrator-runs/types'
 import { useRunFeed } from '@/lib/orchestrator-runs/useRunFeed'
 
 import type { SavedSite } from '../lib/picks'
@@ -35,10 +38,10 @@ const SITE_GOAL = 'limits'
  * unmounts; every step reaches the conversation feed once.
  */
 export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
-  const [projects, setProjects] = useState<Projects>({ kind: 'loading' })
-  const [chosen, setChosen] = useState<ProjectBinding | null>(null)
+  const { projects, chosen, setChosen, conversationId } = useProjectBinding(projectParam)
+  const scope = JSON.stringify([chosen?.project_id, conversationId, site.parcels.map((parcel) => parcel.pnu)])
   const [conditions, setConditions] = useState<RunConditions>(defaultRunConditions)
-  const [state, setState] = useState<Exclude<RunPhase, { kind: 'submitted' }> | { kind: 'submitted'; run: RunSummary }>({ kind: 'idle' })
+  const [state, setState] = useScopedState<Exclude<RunPhase, { kind: 'submitted' }> | { kind: 'submitted'; run: RunSummary }>(scope, { kind: 'idle' })
   // Attempts count from a per-mount nonce: after a reload the same selection must not reuse a key whose
   // run already moved the source versions (the Orchestrator answers 409 to a replay with a changed body).
   const attempts = useRef(Math.floor(Date.now() / 1000) % 1_000_000)
@@ -47,21 +50,6 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
 
   // The last used 조건 come from localStorage after mount, so the server and first client render agree.
   useEffect(() => setConditions(loadRunConditions()), [])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    listProjects(controller.signal)
-      .then((bindings) => {
-        if (controller.signal.aborted) return
-        const choice = resolveProject(bindings, projectParam)
-        setProjects(choice)
-        setChosen(choice.kind === 'resolved' ? choice.project : null)
-      })
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) setProjects({ kind: 'error', text: error instanceof Error ? error.message : '프로젝트 목록을 불러오지 못했어요.' })
-      })
-    return () => controller.abort()
-  }, [projectParam])
 
   // Warm the scene route the backend checks on submission (`/api/scenes/{id}`): the dev server compiles it lazily
   // (8-9 s on the first hit), so touching it while the user fills the conditions keeps the first click fast.
@@ -73,16 +61,24 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
   }, [chosen])
 
   const run = state.kind === 'submitted' ? state.run : null
-  const onRun = useCallback((next: RunSummary) => setState({ kind: 'submitted', run: next }), [])
+  const onRun = useCallback((next: RunSummary) => setState({ kind: 'submitted', run: next }), [setState])
   const { stale } = useRunPolling(chosen?.project_id ?? null, run, onRun)
   const first = site.parcels[0]!
+  const siteOwner = useRef<{ pnu: string; projectId: string } | null>(null)
+  useEffect(() => {
+    if (!chosen) return
+    if (!siteOwner.current || siteOwner.current.pnu !== first.pnu) siteOwner.current = { pnu: first.pnu, projectId: chosen.project_id }
+    if (siteOwner.current.projectId === chosen.project_id) rememberConversationSite(chosen.project_id, { pnu: first.pnu, address: first.address || site.label }, conditions.assessmentDate)
+  }, [chosen, first.pnu, first.address, site.label, conditions.assessmentDate])
   // 법규 결과 보기 opens the law artifact under the binding this run went to, so it finds the same run.
-  useRunFeed(run, { projectId: chosen?.project_id ?? null, pnu: first.pnu, address: first.address || site.label, project: projectParam ?? chosen?.project_id })
+  useRunFeed(run, { projectId: chosen?.project_id ?? null, conversationId, pnu: first.pnu, address: first.address || site.label, project: chosen?.project_id })
 
-  useEffect(() => () => active.current?.abort(), [])
+  useEffect(() => () => active.current?.abort(), [scope])
 
   const start = useCallback(async () => {
     if (!chosen || !ready || state.kind === 'submitting') return
+    const postFeed = projectFeed(chosen.project_id)
+    rememberConversationSite(chosen.project_id, { pnu: site.parcels[0]!.pnu, address: site.parcels[0]!.address || site.label }, conditions.assessmentDate)
     active.current?.abort()
     const controller = new AbortController()
     active.current = controller
@@ -123,7 +119,7 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
       // The busy line gives way to the receipt or the failure line.
       if (pending) dismissFeed(pending.id)
     }
-  }, [chosen, conditions, state.kind, ready, site])
+  }, [chosen, conditions, state.kind, ready, site, setState])
 
   // The conversation's 법규·한계 검토 시작 answer lands here; what the card cannot do yet, it says so.
   useEffect(() => onCommand((command) => {

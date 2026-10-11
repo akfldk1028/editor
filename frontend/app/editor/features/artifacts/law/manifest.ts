@@ -14,7 +14,7 @@ export const lawArtifact: ArtifactManifest = {
   icon: Scale,
   tabs: [
     { id: 'review', label: '검토 조항', icon: FileText },
-    { id: 'orchestrator', label: '오케스트레이터 검토', icon: Workflow },
+    { id: 'orchestrator', label: '검토 결과', icon: Workflow },
     { id: 'regulations', label: '규제', icon: ListChecks },
     { id: 'articles', label: '조문', icon: BookOpen },
     { id: 'setbacks', label: '이격선', icon: Ruler },

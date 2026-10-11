@@ -1,17 +1,19 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { rememberConversationLawRun } from '@/lib/design-conversation/context'
 
 import { getResults } from './api'
 import { detailFor } from '@/lib/agents'
 
-import { dismissFeed, postFeed } from './feed'
+import { dismissFeed, projectFeed } from './feed'
 import { evidenceCard, lawBasisLine, relayLine, resultLine, resultPrompt, stepChanges, stepState, submittedLine } from './feed-lines'
 import { isTerminal } from './labels'
 import type { RunSummary } from './types'
 
 export interface RunFeedContext {
   projectId: string | null
+  conversationId: string
   /** The site the run is about; the result line's 법규 결과 보기 opens the law artifact on it. */
   pnu: string
   address?: string
@@ -41,23 +43,29 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
   const relays = useRef(new Map<string, number>())
   /** Each tool's short step line, dismissed when the agent's detailed answer replaces it. */
   const briefs = useRef(new Map<string, number>())
-  const { projectId, pnu, address, project } = context
+  const { projectId, conversationId, pnu, address, project } = context
 
   useEffect(
     () => () => {
       for (const controller of inFlight.current) controller.abort()
+      for (const id of relays.current.values()) dismissFeed(id)
+      inFlight.current.clear()
+      relays.current.clear()
+      briefs.current.clear()
+      previous.current = null
     },
-    [],
+    [projectId, conversationId, pnu],
   )
 
   useEffect(() => {
+    const postFeed = projectFeed(projectId, conversationId)
     if (!run) {
       previous.current = null
       return
     }
     const prev = previous.current?.run_id === run.run_id ? previous.current : null
     previous.current = run
-    const key = (name: string) => `${run.run_id}:${name}`
+    const key = (name: string) => `${projectId}:${conversationId}:${run.run_id}:${name}`
     if (!prev) postFeed({ kind: 'system', key: key('submitted'), run_id: run.run_id, agent: 'orchestrator', text: submittedLine(run) })
     for (const change of stepChanges(prev, run)) {
       const relay = relays.current.get(change.tool)
@@ -99,6 +107,7 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
       .finally(() => inFlight.current.delete(controller))
       .then((results) => {
         if (controller.signal.aborted) return
+        if (lawDone) rememberConversationLawRun(projectId, pnu, run.run_id, results)
         const detail = (tool: string, name: string) => {
           const line = detailFor(tool)?.(results)
           if (line && postFeed({ ...line, key: key(name), run_id: run.run_id })) replace(tool)
@@ -122,5 +131,5 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
         for (const name of wanted) fetched.current.delete(key(name))
         if (ended) postFeed({ kind: 'error', key: key('result-error'), run_id: run.run_id, agent: 'orchestrator', text: '검토 결과를 읽지 못했어요 — 법규 패널에서 다시 확인해 주세요' })
       })
-  }, [run, projectId, pnu, address, project])
+  }, [run, projectId, conversationId, pnu, address, project])
 }

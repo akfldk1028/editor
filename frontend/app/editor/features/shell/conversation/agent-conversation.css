@@ -9,6 +9,27 @@
   grid-template-rows: minmax(0, 1fr) auto;
   background: var(--panel);
 }
+.conversation-project { display: grid; gap: 6px; margin-block-end: 16px; font-size: var(--fs-2); color: var(--muted); }
+.conversation-project label { display: flex; align-items: center; gap: 8px; }
+.conversation-project select { min-inline-size: 0; max-inline-size: 100%; min-block-size: 32px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--panel); color: var(--ink); }
+.conversation-project p { margin: 0; }
+.conversation-message p, .agent-turn-user p { white-space: pre-wrap; }
+.conversation-artifacts { display: grid; gap: 8px; margin-block: 16px; }
+.conversation-artifact { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-m); overflow-wrap: anywhere; font-size: var(--fs-2); }
+.conversation-artifact summary { cursor: pointer; }
+.conversation-artifact summary span { margin-inline-start: 10px; color: var(--muted); }
+.conversation-artifact summary .conversation-artifact-status { display: inline-block; padding: 2px 7px; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); background: var(--subtle); }
+.conversation-artifact-status[data-tone="attention"] { border-color: var(--warning); }
+.conversation-artifact summary .conversation-artifact-status[data-tone="attention"] { color: var(--warning); }
+.conversation-artifact summary .conversation-artifact-status[data-tone="confirmed"] { color: var(--success); }
+.conversation-intent-label { margin-block: 14px 6px; color: var(--ink); font-weight: 600; }
+.conversation-review-evidence { margin-block: 12px; color: var(--muted); }
+.conversation-artifact dl { margin-block: 10px; }
+.conversation-artifact dl > div { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(0, 3fr); gap: 10px; padding-block: 5px; border-block-end: 1px solid var(--border-soft); }
+.conversation-artifact dt { color: var(--muted); }
+.conversation-artifact dd { margin: 0; white-space: pre-wrap; }
+.conversation-artifact ul { padding-inline-start: 18px; }
+.conversation-artifact pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .agent-thread {
   min-block-size: 0;
   overflow: auto;

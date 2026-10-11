@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from 'react'
 
+import { currentConversation } from '@/lib/design-conversation/session'
+
 import type { Command } from './commands'
 
 /**
@@ -55,6 +57,8 @@ export interface FeedEntry {
   text: string
   /** Epoch ms. */
   at: number
+  project_id?: string | null
+  conversation_id?: string
   run_id?: string
   /** The speaker; absent on a `user` line. */
   agent?: FeedAgent
@@ -68,6 +72,8 @@ export interface FeedInput {
   kind: FeedKind
   text: string
   at?: number
+  project_id?: string | null
+  conversation_id?: string
   run_id?: string
   agent?: FeedAgent
   tone?: FeedTone
@@ -105,6 +111,8 @@ export function createFeedStore(limit = 200): FeedStore {
       }
       const entry: FeedEntry = {
         id: nextId++,
+        ...(input.project_id !== undefined ? { project_id: input.project_id } : {}),
+        ...(input.conversation_id ? { conversation_id: input.conversation_id } : {}),
         kind: input.kind,
         text: input.text,
         at: input.at ?? Date.now(),
@@ -142,7 +150,9 @@ export function createFeedStore(limit = 200): FeedStore {
 /** The one feed of this browser session. */
 export const feed = createFeedStore()
 
-export const postFeed = (input: FeedInput) => feed.post(input)
+export const postFeed = (input: FeedInput) => feed.post({ project_id: currentConversation().projectId, conversation_id: currentConversation().conversationId, ...input })
+export const feedForProject = (entries: readonly FeedEntry[], projectId: string | null, conversationId?: string) => entries.filter((entry) => entry.project_id === projectId && (!conversationId || entry.conversation_id === conversationId))
+export const projectFeed = (projectId: string | null, conversationId = currentConversation().conversationId) => (input: FeedInput) => postFeed({ ...input, project_id: projectId, conversation_id: conversationId })
 export const dismissFeed = (id: number) => feed.dismiss(id)
 export const clearFeed = () => feed.clear()
 

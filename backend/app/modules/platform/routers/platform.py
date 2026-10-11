@@ -10,6 +10,7 @@ from backend.app.adapters.platform_scenes import PlatformScenes
 from backend.app.modules.platform.repository import ProjectRepository
 from backend.app.modules.platform.projects import ProjectService, BindingConflict, BindingNotFound
 from backend.app.modules.platform.routers.ask import create_ask_router
+from backend.app.modules.platform.routers.conversation import create_conversation_router
 from backend.app.modules.platform.routers.host import create_host_router
 from backend.app.modules.platform.routers.runs import create_run_router
 from backend.app.modules.design.routers.projects import create_design_router
@@ -20,7 +21,7 @@ from backend.app.modules.platform.routers.status import create_status_router
 def create_platform_router(
     client: OrchestratorClient | None = None, *, project_service=None, public_origin=None,
     design_repository=None, execution_catalog=None, native_design_service=None, status_service=None,
-    trace_recorder=None,
+    trace_recorder=None, conversation_activation=None,
 ) -> APIRouter:
     owner = client or OrchestratorClient(os.environ.get('EDITOR_ORCHESTRATOR_URL'))
     router = APIRouter(prefix='/api/v1/platform', tags=['platform'])
@@ -99,6 +100,7 @@ def create_platform_router(
             raise HTTPException(502, 'Project source contract invalid') from None
 
     router.include_router(create_run_router(projects_service, owner, allowed_origin, trace_recorder))
+    router.include_router(create_conversation_router(projects_service, owner, allowed_origin, conversation_activation))
     router.include_router(create_ask_router(allowed_origin, trace_recorder, owner=owner))
     router.include_router(create_host_router(allowed_origin))
     router.include_router(create_status_router(owner, status_service))

@@ -9,7 +9,7 @@ import type { Capabilities, Goal } from '@/lib/orchestrator-runs/types'
 
 /** What the editor door has taken since 2026-10-08; used when the catalog cannot be fetched. */
 export const FALLBACK: Capabilities = {
-  goals: [{ id: 'limits', label: '법규·한계 검토', owners: ['site_context', 'law', 'revision'], inputs: ['pnu', 'assessment_date'], optional: ['building_type', 'parcels'], available: true, offer: true }],
+  goals: [{ id: 'limits', label: '대지·법규 검토', owners: ['site_context', 'law', 'revision'], inputs: ['pnu', 'assessment_date'], optional: ['building_type', 'parcels'], available: true, offer: true }],
   conversation: { ask: true, law_analysis: true },
   source: 'fallback',
 }

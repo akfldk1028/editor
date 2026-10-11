@@ -8,6 +8,7 @@
  * `ask`: send a question again to the role the user picked when the router asked.
  */
 export type Command =
+  | { kind: 'compose'; draft: string }
   | { kind: 'start-review'; goal: string }
   | { kind: 'ask'; text: string; role: string; clause?: AskClause; site?: { pnu: string; address?: string; assessmentDate?: string } }
 
