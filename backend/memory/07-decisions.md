@@ -411,3 +411,13 @@ be told to the Orchestrator session.
   daemon killed, task fired, new daemon adopted the running services in 3 s, no window. Same day the Claude Code MCP
   set was cut (user scope 28 → 8, claude-flow trio un-approved) because 7 sessions × ~50 server processes = 293 node /
   10 GB; the editor project's own servers (ACE, pascal) now sit at "pending approval", which is fine — both unused.
+- 2026-10-11 address → map (user: "주소 치면 지도 찾아줄 수 있는 거 아님?" → "구현해"): a message that is one address or a
+  PNU is claimed by the Site role's deterministic pattern (`routing/roles/site.py`, no place names listed) and answered
+  by `ask.locate_site` through the editor's own address door (Vworld geocoding, the map search's) — `answer.kind='site'`
+  {query, pnu, address, coordinates, error}, no agent, no span. The conversation (`useAsk(open)`) posts the Site Agent
+  line and opens `site-map` with `pnu|address` + `pick=1`; the map locates, picks and saves the parcel (the card's 선택
+  pressed for the user) and takes a new site while mounted (the shell re-opens it with new params). Live: 산곡동 684-1
+  → PNU + point; 테헤란로 152 → point only (the map reverse-geocodes); bogus → error line. Commit 08b9433f, routing
+  tests 22, feed-line tests 28. Caveat: the other session's uncommitted conversation rewiring sends typed messages to
+  the Orchestrator's door (`routers/conversation.py`), not `/ask`; that path has to run the same `site_locate` claim
+  (or the Orchestrator must) for a typed address to reach the map there.
