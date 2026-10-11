@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 
 import {
   activatingLine, activationFailedLine, answerLine, askFailedLine, askLines, connectionLine, evidenceCard, landAnalysisLine, landAnalysisLines, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine,
+  siteLocateParams, siteLocatedLine,
   requestingLines, resultLine, resultPrompt, revisionLine, selectedLine, selectedPrompt, siteFactsLine, stepChanges, stepState, submittedLine,
 } from './feed-lines'
 import { FALLBACK } from '@/lib/goals'
@@ -345,4 +346,15 @@ test('activation: the Orchestrator says whom it is waking, names what did not co
   expect(line.actions?.[0]).toEqual({ label: '켜고 시작 (2개)', command: { kind: 'start-review', goal: 'mass' } })
   expect(line.text).toContain('Program Agent · Mass Agent은(는) 꺼져 있어 먼저 켜요')
   expect(answerLine(open, null).actions?.[0]?.label).toBe('매스 생성 시작')
+})
+test('an address the backend located becomes the Site Agent line that opens the map on that parcel and selects it', () => {
+  const route = { kind: 'skill', agent: 'site_context', skill: 'site_locate', goal: null, confidence: 0.95, reason: '주소를 적었어요', choices: [], decided_by: 'pattern', instruction: null } as const
+  const base: AskAnswer = { question: '의정부시 산곡동 684-1', route, agent: 'site_context', tool: 'site_locate', trace_id: null, version: null, handoff: null, answer: null }
+  const found = siteLocatedLine({ ...base, answer: { kind: 'site', query: '의정부시 산곡동 684-1', pnu: '4115011300106840001', address: '경기도 의정부시 산곡동 684-1', coordinates: { x: 127.1, y: 37.7 }, error: null } })
+  expect(found).toEqual({ kind: 'progress', agent: 'site_context', tone: 'ok', text: '지도에서 찾았어요 — 경기도 의정부시 산곡동 684-1 · 이 필지를 대지로 선택해요',
+    actions: [{ label: '지도 보기', artifact: 'site-map', params: { pnu: '4115011300106840001', pick: '1' } }] })
+  const missing = siteLocatedLine({ ...base, answer: { kind: 'site', query: '없는동 1', pnu: null, address: null, coordinates: null, error: 'Address lookup returned no usable result' } })
+  expect(missing).toMatchObject({ agent: 'site_context', tone: 'warn', actions: [{ label: '지도 열기', artifact: 'site-map' }] })
+  // Geocoded without a PNU: the map resolves the address itself (reverse lookup at the point).
+  expect(siteLocateParams({ kind: 'site', query: '테헤란로 152', pnu: null, address: null, coordinates: { x: 1, y: 2 }, error: null })).toEqual({ address: '테헤란로 152', pick: '1' })
 })

@@ -54,7 +54,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   const turns = threadOf(entries)
   const endRef = useRef<HTMLDivElement>(null)
   const count = entries.length
-  const { send, busy } = useAsk()
+  const { send, busy } = useAsk(shell.openArtifact)
   const [draft, setDraft] = useState('')
   const submit = () => {
     const text = draft.trim()

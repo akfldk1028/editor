@@ -292,3 +292,29 @@ def test_a_question_about_a_review_item_goes_to_the_law_agent_about_exactly_that
     assert pending['items'][0]['status'] == 'needs_check' and pending['items'][0]['value'] == '60%' and '지구단위계획구역 확보 전' in pending['items'][0]['basis']
     ordinance = {'item_id': 'x', 'title': 't', 'refs': [{'instrument': '의정부시 도시계획 조례', 'kind': 'ordinance', 'article': '제42조', 'clause': None, 'edition_id': '2072835'}]}
     assert 'edition_id' not in clause_route('q', ordinance, None).args
+
+
+def test_an_address_is_located_through_the_editors_own_geocoder_without_any_agent_call():
+    from backend.app.modules.platform.ask import locate_site
+    calls = []
+
+    class Addresses:
+        async def resolve_address(self, address):
+            calls.append(address)
+            if address.startswith('없는'):
+                return {'success': False, 'address': address, 'pnu': None, 'error': 'Address lookup returned no usable result'}
+            return {'success': True, 'address': address, 'pnu': '4115011300106840001', 'coordinates': {'x': 127.108, 'y': 37.730}, 'geocoded_address': '경기도 의정부시 산곡동 684-1'}
+
+    async def agent(tool, args, *, trace=None):
+        raise AssertionError('no agent should be asked')
+
+    recorder = Recorder()
+    found = run(ask_law('의정부시 산곡동 684-1', pnu=None, assessment_date=None, recorder=recorder, agent=agent, addresses=Addresses()))
+    assert found['route']['kind'] == 'skill' and found['agent'] == 'site_context' and found['tool'] == 'site_locate' and found['trace_id'] is None
+    assert found['answer'] == {'kind': 'site', 'query': '의정부시 산곡동 684-1', 'pnu': '4115011300106840001', 'address': '경기도 의정부시 산곡동 684-1',
+                               'coordinates': {'x': 127.108, 'y': 37.730}, 'error': None}
+    assert calls == ['의정부시 산곡동 684-1'] and recorder.rows == []
+    missing = run(ask_law('없는시 없는동 1', pnu=None, assessment_date=None, recorder=recorder, agent=agent, addresses=Addresses()))
+    assert missing['answer']['pnu'] is None and missing['answer']['error'] == 'Address lookup returned no usable result'
+    by_pnu = run(locate_site('4115011300106840001', addresses=Addresses()))
+    assert by_pnu['pnu'] == '4115011300106840001' and calls == ['의정부시 산곡동 684-1', '없는시 없는동 1']

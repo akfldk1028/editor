@@ -10,5 +10,5 @@ export {
   type StepChange, stepChanges, stepState, stepTone, submittedLine,
 } from '@/lib/agents/orchestrator/lib/lines'
 export { revisionLine } from '@/lib/agents/revision/lib/lines'
-export { siteFactsLine } from '@/lib/agents/site/lib/lines'
+export { siteFactsLine, siteLocateParams, siteLocatedLine } from '@/lib/agents/site/lib/lines'
 export type { LawTarget } from './law-target'

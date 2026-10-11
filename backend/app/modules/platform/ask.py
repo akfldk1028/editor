@@ -10,6 +10,7 @@ Answer contract (every key present):
   answer: {kind: 'search', items: [{id, law, kind, article, text}], total, degraded, legal_evidence}
         | {kind: 'ordinance', ordinance: {name, ordinance_id, edition_id, effective_date, url},
            matches: [{article, title, text}], legal_evidence}
+        | {kind: 'site', query, pnu, address, coordinates: {x, y} | null, error}   (a typed address: the parcel it names)
   legal_evidence: {assessment_date, currency_status, coverage_status, reason} | null
 """
 import asyncio
@@ -23,10 +24,36 @@ from backend.app.modules.platform.run_results import law_from_response
 
 EXCERPT = 400
 LAW_GO_KR = 'https://www.law.go.kr/LSW/ordinInfoP.do?ordinSeq='
+PNU = re.compile(r'^\d{19}$')
+_land = None
 
 
 def _str(value):
     return value if isinstance(value, str) and value else None
+
+
+def _addresses():
+    """The editor's own address door (Vworld geocoding, the one the map's search box uses), built once."""
+    global _land
+    if _land is None:
+        from backend.app.modules.land.services import LandServices
+        _land = LandServices.from_environment()
+    return _land.addresses
+
+
+async def locate_site(query: str, *, addresses=None) -> dict:
+    """`site_locate`: the parcel a typed address or PNU names — identity and point only; the map draws and selects
+    it. `error` says why nothing was found (the conversation then asks the user to pick on the map)."""
+    query = query.strip()
+    body = {'kind': 'site', 'query': query, 'pnu': None, 'address': None, 'coordinates': None, 'error': None}
+    if PNU.match(query):
+        return {**body, 'pnu': query}
+    found = await (addresses or _addresses()).resolve_address(query)
+    if not isinstance(found, dict) or found.get('success') is not True:
+        return {**body, 'error': _str((found or {}).get('error') if isinstance(found, dict) else None) or '주소에 해당하는 필지를 찾지 못했어요'}
+    point = found.get('coordinates') if isinstance(found.get('coordinates'), dict) else None
+    return {**body, 'pnu': _str(found.get('pnu')), 'address': _str(found.get('geocoded_address')) or query,
+            'coordinates': {'x': point['x'], 'y': point['y']} if point and isinstance(point.get('x'), (int, float)) and isinstance(point.get('y'), (int, float)) else None}
 
 
 def _legal_evidence(value):
@@ -192,10 +219,12 @@ def clause_route(question: str, clause: dict, assessment_date: str | None):
 
 
 async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None, recorder, traceparent: str | None = None,
-                  role: str | None = None, agent=law_agent.ask, judge=None, situation: str = '', clause: dict | None = None) -> dict:
+                  role: str | None = None, agent=law_agent.ask, judge=None, situation: str = '', clause: dict | None = None,
+                  addresses=None) -> dict:
     """One question → one route (the Orchestrator's judgment, `routing.decide`): a Law skill called now (one
     recorded span), a goal handed off to the catalog (no agent call; the conversation offers to start it), or a
-    question back to the user with the roles as choices. Every answer carries the same keys; `route.kind` says
+    question back to the user with the roles as choices. A message that is an address goes to `locate_site`
+    (the editor's own geocoder, no agent, no span). Every answer carries the same keys; `route.kind` says
     which part is filled and `route.decided_by` who decided (pattern · llm · rules · user)."""
     chosen = clause_route(question, clause, assessment_date) if clause else \
         await decide(question, assessment_date=assessment_date, role=role, judge=judge, situation=situation)
@@ -205,6 +234,8 @@ async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None
     if chosen.kind in ('ask', 'answer'):
         # The Orchestrator speaks itself: a question back (choices in the route) or its own reply (route.instruction).
         return base
+    if chosen.skill == 'site_locate':
+        return {**base, 'answer': await locate_site(chosen.args['query'], addresses=addresses)}
     if chosen.kind == 'goal':
         catalog = goal(chosen.goal) or {}
         return {**base, 'handoff': {'goal': chosen.goal, 'label': catalog.get('label') or chosen.goal,

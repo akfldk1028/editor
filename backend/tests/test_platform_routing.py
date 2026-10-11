@@ -152,3 +152,12 @@ def test_team_is_described_by_the_agents_live_cards_and_falls_back_to_the_role_l
     asyncio.run(cards.roster(['law'], fetch=fetch, now=lambda: clock[0] + 30, cache=cache, registry=Registry()))
     assert len(fetched) == before
     assert cards.card_url('law') == 'http://127.0.0.1:8301/.well-known/agent-card.json' and cards.card_url('nobody') is None
+
+
+def test_a_message_that_is_an_address_or_a_pnu_is_claimed_for_the_map_and_a_question_with_a_number_is_not():
+    for text in ('경기도 의정부시 산곡동 684-1', '서울 강남구 역삼동 737', '역삼동 산 12번지', '서울특별시 강남구 테헤란로 152', '4115011300106840001'):
+        chosen = route(text)
+        assert (chosen.kind, chosen.agent, chosen.skill, chosen.confidence, chosen.decided_by) == ('skill', 'site_context', 'site_locate', 0.95, 'pattern'), text
+        assert chosen.args == {'query': text}
+    for text in ('자연녹지지역 건폐율 20', '용적률 300', '의정부시 도시계획 조례 제42조', '산곡동 684-1 법규 검토해줘'):
+        assert route(text).skill != 'site_locate', text

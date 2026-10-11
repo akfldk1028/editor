@@ -1,7 +1,27 @@
-/** What the Site Agent says: its eight site facts (`sitecontextagent/facts.py` SITE_KEYS). Pure. */
+/** What the Site Agent says: its eight site facts (`sitecontextagent/facts.py` SITE_KEYS), and where a typed address is. Pure. */
 import type { FeedInput } from '@/lib/orchestrator-runs/feed'
 import { confidenceLabel, evidenceLabel, SITE_FACTS } from '@/lib/orchestrator-runs/labels'
-import type { RunResults } from '@/lib/orchestrator-runs/types'
+import type { AskAnswer, RunResults, SiteLocateBody } from '@/lib/orchestrator-runs/types'
+
+const SITE = 'site_context'
+
+/** The site-map params that open the located parcel and select it (`pick`); null when nothing was found. */
+export function siteLocateParams(body: SiteLocateBody): Record<string, string> | null {
+  if (body.pnu) return { pnu: body.pnu, pick: '1' }
+  if (body.coordinates) return { address: body.query, pick: '1' }
+  return null
+}
+
+/** A message that was an address: found → the map opens on that parcel (the action repeats it); not found → pick on the map. */
+export function siteLocatedLine(answer: AskAnswer): FeedInput {
+  const body = answer.answer
+  if (body?.kind !== 'site') throw new Error('siteLocatedLine takes a site_locate answer')
+  const params = siteLocateParams(body)
+  if (!params) {
+    return { kind: 'progress', agent: SITE, tone: 'warn', text: `'${body.query}' 주소를 찾지 못했어요 — 지도에서 필지를 직접 찍어 주세요`, actions: [{ label: '지도 열기', artifact: 'site-map' }] }
+  }
+  return { kind: 'progress', agent: SITE, tone: 'ok', text: `지도에서 찾았어요 — ${body.address ?? body.pnu} · 이 필지를 대지로 선택해요`, actions: [{ label: '지도 보기', artifact: 'site-map', params }] }
+}
 
 /**
  * The Site Agent's answer as its eight facts: each one established (with its confidence, date and a

@@ -8,7 +8,7 @@ import { availableGoal, loadCapabilities } from '@/lib/goals'
 import { askLaw, RunRequestError } from './api'
 import { type AskClause, type Command, onCommand } from './commands'
 import { dismissFeed, postFeed } from './feed'
-import { answerLine, askFailedLine, askLines } from './feed-lines'
+import { answerLine, askFailedLine, askLines, siteLocateParams, siteLocatedLine } from './feed-lines'
 import { conversationSite } from './site-context'
 
 /**
@@ -17,8 +17,10 @@ import { conversationSite } from './site-context'
  * that line: the Law Agent's turn, a handoff to a catalog goal, or the roles as choices. One question
  * at a time; the site the conversation is about rides along so 관련 법규 보기 can open its 조문.
  * A role choice comes back as an `ask` command and is sent again with that role.
+ * A message that was an address comes back located: the map opens on that parcel through `open`
+ * (the shell's openArtifact) and selects it, so the conversation's site follows without a click.
  */
-export function useAsk() {
+export function useAsk(open?: (artifact: string, params?: Record<string, string>) => void) {
   const [busy, setBusy] = useState(false)
   const active = useRef<AbortController | null>(null)
 
@@ -41,6 +43,12 @@ export function useAsk() {
       const answer = await askLaw({ text, ...(site ? { pnu: site.pnu, ...(site.address ? { address: site.address } : {}) } : {}), ...(role ? { role } : {}),
         ...(clause ? { clause } : {}), ...(about.site?.assessmentDate ? { assessment_date: about.site.assessmentDate } : {}) }, controller.signal)
       if (controller.signal.aborted) return
+      if (answer.answer?.kind === 'site') {
+        postFeed(siteLocatedLine(answer))
+        const params = siteLocateParams(answer.answer)
+        if (params) open?.('site-map', params)
+        return
+      }
       // A handoff to an open goal: say which owners are off, and wake them now with a short lease (the
       // user may press 시작 in a moment; the host's start takes 7–40 s, the lease expires if they do not).
       let needed: string[] = []
@@ -59,7 +67,7 @@ export function useAsk() {
       if (pending) dismissFeed(pending.id)
       if (!controller.signal.aborted) setBusy(false)
     }
-  }, [])
+  }, [open])
 
   useEffect(() => onCommand((command) => {
     if (command.kind === 'ask') void send(command.text, command.role, { clause: command.clause, site: command.site })

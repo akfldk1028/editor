@@ -44,8 +44,10 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const engineRef = useRef<MapEngine | null>(null)
   const searchAbort = useRef<AbortController | null>(null)
-  // `?pnu=` / `?address=` wins; otherwise the last saved site, else the default.
+  // `?pnu=` / `?address=` wins; otherwise the last saved site, else the default. `?pick=1` also selects it
+  // (the conversation located a typed address: the parcel becomes the site without a click).
   const [requestedSite] = useState(() => siteParam(params))
+  const [requestedPick] = useState(() => params.pick === '1')
   /** Saved sites are kept per project (`?project=`), else under `default`. */
   const scope = selectionScope(params)
   const [engineKind, setEngineKind] = useState<MapEngineKind | null>(null)
@@ -66,22 +68,25 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   const { showSearched } = picker
   // The engine is built once per mount; it reaches the latest handlers through this ref, so
   // picking (which changes state) never rebuilds the map or moves the view.
-  const latest = useRef({ picker, locate: (_target: Site, _withMarker: boolean): Promise<void> => Promise.resolve() })
+  const latest = useRef({ picker, open: (_target: Site, _pick: boolean): Promise<void> => Promise.resolve() })
+  /** A pick made for the conversation: saved as soon as the parcel's facts arrive (the card's 선택, pressed for the user). */
+  const autoSelect = useRef(false)
 
   useEffect(() => {
     setTitle('대지 지도', site.label || undefined)
   }, [setTitle, site.label])
 
-  const locate = useCallback(async (target: Site, withMarker: boolean) => {
+  /** Shows the site's parcel (searched look, fitted) and answers where it is; null when it was not found. */
+  const locate = useCallback(async (target: Site, withMarker: boolean): Promise<LngLat | null> => {
     const engine = engineRef.current
-    if (!engine) return
+    if (!engine) return null
     searchAbort.current?.abort()
     const controller = new AbortController()
     searchAbort.current = controller
     setStatus({ kind: 'busy', text: '필지를 찾는 중' })
     try {
       const parcel = await locateParcel(target.query, controller.signal)
-      if (controller.signal.aborted || engineRef.current !== engine) return
+      if (controller.signal.aborted || engineRef.current !== engine) return null
       showSearched(parcel.geometry)
       const bounds = parcelBounds(parcelRings(parcel.geometry))
       const position: LngLat | null = parcel.coordinates
@@ -90,12 +95,37 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       engine.setMarker(withMarker ? position : null)
       setSite(target)
       setStatus({ kind: 'idle' })
+      return position
     } catch (error) {
-      if (controller.signal.aborted) return
+      if (controller.signal.aborted) return null
       setStatus({ kind: 'error', text: error instanceof Error ? error.message : '필지를 찾지 못했습니다.' })
+      return null
     }
   }, [showSearched])
-  useEffect(() => { latest.current = { picker, locate } })
+
+  /** A site named from outside (`?pnu=`/`?address=`, the conversation's located address): shown, and with `pick` picked and saved. */
+  const open = useCallback(async (target: Site, pick: boolean) => {
+    const position = await locate(target, !pick)
+    if (!pick || !position || !engineRef.current) return
+    autoSelect.current = true
+    picker.handleClick({ at: position, pixel: [0, 0], shift: false })
+  }, [locate, picker])
+  useEffect(() => { latest.current = { picker, open } })
+
+  useEffect(() => {
+    if (!autoSelect.current || !picker.card || picker.card.kind === 'loading') return
+    autoSelect.current = false
+    if (picker.card.kind === 'ready' && picker.card.save === 'idle') void picker.select()
+  }, [picker])
+
+  // The shell re-opens the mounted map with a new site (the conversation located an address): the first params are the mount's.
+  const seenParams = useRef(params)
+  useEffect(() => {
+    if (seenParams.current === params) return
+    seenParams.current = params
+    const target = siteParam(params)
+    if (target && engineRef.current) void latest.current.open(target, params.pick === '1')
+  }, [params])
 
   // One engine per mount; a refused Naver key falls back to the temporary engine.
   useEffect(() => {
@@ -124,9 +154,9 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       setEngineKind(kind)
       engine.onClick((event) => latest.current.picker.handleClick(event))
       engine.onHover((at) => latest.current.picker.handleHover(at))
-      // The opening view, once: `?pnu=`/`?address=`, else the saved site, else the default.
-      if (requestedSite) return latest.current.locate(requestedSite, false)
-      if (!(await openSaved())) await latest.current.locate({ ...defaultSite }, false)
+      // The opening view, once: `?pnu=`/`?address=` (selected too with `?pick=1`), else the saved site, else the default.
+      if (requestedSite) return latest.current.open(requestedSite, requestedPick)
+      if (!(await openSaved())) await latest.current.open({ ...defaultSite }, false)
     }
 
     /** The last saved site, when there is one; false opens the default instead. */
@@ -155,7 +185,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       engine?.destroy()
       engineRef.current = null
     }
-  }, [params.engine, requestedSite, scope])
+  }, [params.engine, requestedPick, requestedSite, scope])
 
   /** Both views stay mounted; the switch only shows one. The URL changes by replaceState, never by navigation. */
   function switchView(next: View) {

@@ -207,6 +207,17 @@ export type LawAnswerBody =
       matches: { article: string | null; title: string | null; text: string | null }[]
       legal_evidence: LegalEvidence | null
     }
+  | SiteLocateBody
+
+/** A typed address or PNU, located by the editor's own geocoder (`site_locate`): the parcel for the map to open and select. */
+export interface SiteLocateBody {
+  kind: 'site'
+  query: string
+  pnu: string | null
+  address: string | null
+  coordinates: { x: number; y: number } | null
+  error: string | null
+}
 
 /** `POST /platform/ask` — one of three shapes by `route.kind`, every key always present. */
 export interface AskAnswer {
