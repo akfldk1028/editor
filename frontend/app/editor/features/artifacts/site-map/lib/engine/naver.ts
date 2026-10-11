@@ -1,5 +1,7 @@
 import { accentColor, hoverOutline, mergedOutline, parcelBounds, parcelOutline, parcelRings, parcelStyle } from '../layers/parcelOutline'
 import { lotChipHtml } from '../layers/lotChip'
+import { createDisplaySelection } from '../layers/displaySelection'
+import { resolveDisplayHit, type DisplayHit } from '../layers/displayHit'
 import { searchMarker, searchMarkerHtml } from '../layers/searchMarker'
 import { mapCursor } from './cursor'
 import { observeSize, whenSized } from './size'
@@ -12,6 +14,11 @@ interface NaverMarker extends NaverOverlay { setPosition(position: NaverLatLng):
 interface NaverPolygon extends NaverOverlay { setPaths(paths: NaverLatLng[][]): void; setOptions(options: Record<string, unknown>): void }
 interface NaverPointerEvent { coord: NaverLatLng; offset?: { x: number; y: number }; pointerEvent?: MouseEvent; originalEvent?: MouseEvent }
 interface NaverMap {
+  getElement(): HTMLElement
+  getProjection(): {
+    fromCoordToOffset(point: NaverLatLng): { x: number; y: number }
+    fromOffsetToCoord(point: unknown): NaverLatLng
+  }
   setCenter(center: NaverLatLng): void
   setZoom(zoom: number, effect?: boolean): void
   getZoom(): number
@@ -74,6 +81,12 @@ export function createNaverEngine(keyId: string): MapEngine {
   let map: NaverMap | null = null
   let cadastral: NaverOverlay | null = null
   let container: HTMLElement | null = null
+  let cadastralVisible = true
+  const displaySelection = createDisplaySelection()
+  const drawings = new Map<NaverPolygon[], { geometries: readonly object[]; options: Record<string, unknown> }>()
+  const hitRegions = new Map<NaverPolygon[], DisplayHit[]>()
+  let displayListeners: unknown[] = []
+  let displayFrame = 0
   // Overlays are pooled: a redraw updates existing polygons/markers and only adds or hides the difference.
   const parcels: NaverPolygon[] = []
   const merged: NaverPolygon[] = []
@@ -89,9 +102,17 @@ export function createNaverEngine(keyId: string): MapEngine {
   const latLng = ([lng, lat]: LngLat) => new maps!.LatLng(lat, lng)
   const clear = (overlays: NaverOverlay[]) => { for (const overlay of overlays) overlay.setMap(null) }
   function syncPolygons(pool: NaverPolygon[], geometries: readonly object[], options: Record<string, unknown>) {
+    drawings.set(pool, { geometries, options })
     const rings = geometries.flatMap((geometry) => parcelRings(geometry))
+    const hits: DisplayHit[] = []
     rings.forEach((ring, index) => {
-      const paths = [ring.map(latLng)]
+      const projection = map!.getProjection()
+      const displayed = cadastralVisible ? displaySelection.ring(ring, map!.getZoom(), {
+        toPixel: point => { const p = projection.fromCoordToOffset(latLng(point)); return [p.x, p.y] },
+        toCoordinate: point => { const p = projection.fromOffsetToCoord(new maps!.Point(...point)); return [p.lng(), p.lat()] },
+      }) : ring
+      const paths = [displayed.map(latLng)]
+      if (pool !== merged) hits.push({ source: ring, displayed })
       const existing = pool[index]
       if (existing) {
         existing.setOptions(options)
@@ -102,6 +123,16 @@ export function createNaverEngine(keyId: string): MapEngine {
       }
     })
     for (const unused of pool.slice(rings.length)) unused.setMap(null)
+    hitRegions.set(pool, hits)
+  }
+  const lookupPoint = (at: LngLat) => resolveDisplayHit(at, [...(hitRegions.get(parcels) ?? []), ...(hitRegions.get(hover) ?? [])])
+  function refreshDisplay() {
+    cancelAnimationFrame(displayFrame)
+    displayFrame = requestAnimationFrame(() => {
+      if (!map || !maps) return
+      if (cadastralVisible) displaySelection.capture(map.getElement(), map.getZoom())
+      for (const [pool, drawing] of drawings) syncPolygons(pool, drawing.geometries, drawing.options)
+    })
   }
 
   return {
@@ -123,6 +154,9 @@ export function createNaverEngine(keyId: string): MapEngine {
         logoControlOptions: { position: maps.Position.BOTTOM_RIGHT },
       })
       map = instance
+      cadastralVisible = layers.cadastral
+      displayListeners = ['idle', 'tilesloaded'].map(name => maps!.Event.addListener(instance, name, refreshDisplay))
+      displayListeners.push(maps.Event.addListener(instance, 'bounds_changed', () => displaySelection.invalidate()))
       // Parcels are picked by clicking: a pointer over the map, grabbing while dragging.
       cursor = mapCursor(element)
       dragListeners = [maps.Event.addListener(instance, 'dragstart', () => cursor?.dragging(true)),
@@ -207,7 +241,10 @@ export function createNaverEngine(keyId: string): MapEngine {
     },
 
     setLayers(layers: MapLayers) {
+      displaySelection.clear()
+      cadastralVisible = layers.cadastral
       cadastral?.setMap(layers.cadastral ? map : null)
+      refreshDisplay()
     },
 
     zoomBy(delta: number) {
@@ -236,7 +273,7 @@ export function createNaverEngine(keyId: string): MapEngine {
       if (!maps || !map) return
       if (clickListener) maps.Event.removeListener(clickListener)
       clickListener = handler ? maps.Event.addListener(map, 'click', (event) => handler({
-        at: [event.coord.lng(), event.coord.lat()],
+        at: lookupPoint([event.coord.lng(), event.coord.lat()]),
         pixel: [event.offset?.x ?? 0, event.offset?.y ?? 0],
         shift: Boolean((event.pointerEvent ?? event.originalEvent)?.shiftKey),
       })) : null
@@ -246,13 +283,19 @@ export function createNaverEngine(keyId: string): MapEngine {
       if (!maps || !map) return
       for (const listener of hoverListeners) maps.Event.removeListener(listener)
       hoverListeners = handler ? [
-        maps.Event.addListener(map, 'mousemove', (event) => handler([event.coord.lng(), event.coord.lat()])),
+        maps.Event.addListener(map, 'mousemove', (event) => handler(lookupPoint([event.coord.lng(), event.coord.lat()]))),
         maps.Event.addListener(map, 'mouseout', () => handler(null)),
         maps.Event.addListener(map, 'dragstart', () => handler(null)),
       ] : []
     },
 
     destroy() {
+      cancelAnimationFrame(displayFrame)
+      for (const listener of displayListeners) maps?.Event.removeListener(listener)
+      displayListeners = []
+      displaySelection.clear()
+      drawings.clear()
+      hitRegions.clear()
       if (onAuthFailure) authListeners.delete(onAuthFailure)
       if (clickListener) maps?.Event.removeListener(clickListener)
       for (const listener of [...hoverListeners, ...dragListeners]) maps?.Event.removeListener(listener)
