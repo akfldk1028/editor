@@ -44,25 +44,30 @@ def score_relationships(features, checks):
         components = len(union.geoms) if hasattr(union, 'geoms') else 1
         cohesion.append({'id': f'single_drive_component:{level}',
                          'status': 'passed' if components == 1 else 'failed', 'components': components})
-    ramp_items, joints = [], []
+    ramp_items, joints, kerbs = [], [], []
     for p in ramps:
         rid = f"{p.get('from_level')}:{p.get('to_level')}"
         names = ['ramp_containment', 'ramp_profile_length', 'ramp_width', 'ramp_grade',
                  'ramp_departure_profile_endpoint', 'ramp_arrival_profile_endpoint']
         if str(p.get('layout_type', '')).startswith('curved'):
-            names.extend(['ramp_curve_radius', 'ramp_grade_kerbs'])
+            names.append('ramp_curve_radius')
+            kerbs.append(evidence(f'ramp_grade_kerbs:{rid}'))
         ramp_items.extend(evidence(f'{name}:{rid}') for name in names)
         joints.append(evidence(f"ramp_to_aisle_connection:{p.get('to_level')}"))
     stall_items = [evidence('stall_aisle_frontage:' + str(p['stall_id'])) if 'stall_id' in p
                    else {'id': f'stall_without_id:{i}', 'status': 'unknown'} for i, p in enumerate(stalls)]
     pedestrian = [evidence('pedestrian_arrival_to_facade_connection')]
-    return {'schema_version': 'masterplan.relationship-scores.v1', 'overall_score': None,
+    return {'schema_version': 'masterplan.relationship-scores.v2', 'overall_score': None,
+            'purpose': 'validation_coverage_diagnostics_not_design_quality',
             'formula': '100 * passed / evaluated; coverage = evaluated / expected; unknown excluded, never passed',
             'groups': {
                 'drive_continuity': _group(cohesion, 'Single polygon component per floor; diagnostic for shared-drive intent, not a universal preference or steering proof'),
                 'drive_width': _group([evidence('entry_approach_width'),
-                    *[evidence(f'placement_full_width_drive:{level}') for level in sorted(drive)]],
-                    'Entry width and full-width floor route certificates; absent floor certificate remains unknown'),
+                    *[evidence(f'placement_full_width_drive:{level}') for level in sorted(drive) if level < 0]],
+                    'Entry width and basement full-width routes; ground full-width routes reported separately'),
+                'ground_drive_width': _group([evidence('placement_full_width_drive:0')] if 0 in drive else [],
+                    'Ground full-width route certificate is not implemented; remains unverified'),
+                'ramp_kerb_grade': _group(kerbs, 'Kerb grade measurements do not certify applicability or compliance'),
                 'stall_frontage': _group(stall_items, 'Validator boundary contact length with aisle; not confirmed front-edge orientation or bay entry/exit maneuver'),
                 'ramp_geometry': _group(ramp_items, 'Independent containment, width, radius and centreline grade checks against supplied rules'),
                 'ramp_connections': _group(joints, 'Lower landing contact with aisle; not trajectory continuity'),

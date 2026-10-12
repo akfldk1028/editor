@@ -698,3 +698,5 @@ be told to the Orchestrator session.
   `GET /platform/agents/{agent}/tasks/{task_id}`, 404 when the agent no longer holds it) and falls back to the
   ListTasks prefix match only for older records. Lesson: a strict owner contract must take new optional keys the
   day the owner adds them, or the whole run view goes dark.
+
+- 2026-10-12 MasterPlan relationship measurement review: validation now returns relationship_measurements (v1) using already-parsed geometry: terminal landing/aisle continuous contact width and building/front-road facing length, physical contact and distance. These are observations, not quality or legal verdicts. relationship_scores v2 separates unsupported ground full-width and undecided kerb-grade requirements into explicit unknown groups; existing supported groups retain strict coverage. See test_relationship_measurements.py; no solver geometry changes.

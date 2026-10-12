@@ -331,8 +331,10 @@ def validate_plan(request, result):
         status = 'needs_evidence'
     from .planning_scores import score_relationships
     from .siting_relations import measure_siting
+    from .relationship_measurements import measure_relationships
     return {"schema_version":"masterplan.validation.v1","geometry_status":status,
             "relationship_scores": score_relationships(features, checks),
+            "relationship_measurements": measure_relationships(grouped, request),
             "siting_evidence": measure_siting(request, features, occupied),
             "checks":checks,"pending_reviews":pending,
             "scope":"serialized geometry and design modules; not a permit approval",
