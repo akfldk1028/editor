@@ -105,3 +105,4 @@ clone/
 # core/tracing.py fallback span log (EDITOR_TRACE_DIR / EDITOR_PLATFORM_DATA_DIR unset).
 /runtime/trace/
 /frontend/app/editor/test-results-product/
+/backend/runtime/masterplan-placement/

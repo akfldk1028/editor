@@ -5,7 +5,7 @@ import json
 
 SCHEMA = 'arr.masterplan.operations.v1'
 OPERATIONS = {
-    'apply_placement_moves': ({'request', 'moves'}, set()),
+    'apply_placement_moves': ({'request', 'moves'}, {'parent_ref'}),
     'bind_delivered_mass': ({'request', 'source_handle'}, set()),
     'bind_delivered_request': ({'request', 'source_handle'}, set()),
     'plan_site': ({'request'}, set()),
@@ -52,7 +52,26 @@ def dispatch(operation, arguments):
         return bind_delivered_mass(**arguments)
     if operation == 'plan_site':
         from backend.app.modules.design.generation.maas.masterplan.planner import plan_site
-        return plan_site(arguments['request'])
+        from backend.app.modules.design.generation.maas.masterplan.placement_state import resolve_request, publish, preservation_checks, change_report, retain_generated_review
+        logical_request = arguments['request']
+        result = plan_site(resolve_request(logical_request))
+        checks = preservation_checks(logical_request, result)
+        if any(c['status'] == 'failed' for c in checks):
+            result['status'] = 'needs_revision'
+            result.setdefault('validation', {})['geometry_status'] = 'failed'
+        result.setdefault('validation', {}).setdefault('checks', []).extend(checks)
+        result['placement_delta'] = change_report(logical_request, result)
+        retain_generated_review(logical_request, result)
+        if logical_request.get('placement_state') and not any(logical_request.get(k) for k in ('footprint', 'ground_footprint', 'core', 'columns')):
+            for feature in result.get('features') or []:
+                if feature['properties'].get('layer') == 'building_ground_footprint':
+                    feature['properties']['source'] = 'owner generated parent occupancy'
+        result['placement_snapshot'] = publish(logical_request, result)
+        if 'handoff' in result:
+            result['handoff'].update(input_hash=digest(logical_request),
+                                     geometry_hash=digest(result.get('features') or []),
+                                     metric_geometry_hash=digest(result.get('features') or []))
+        return result
     if operation == 'propose_core_repairs':
         from backend.app.modules.design.generation.maas.masterplan.core_repair import propose_core_repairs
         return propose_core_repairs(**arguments)
@@ -64,7 +83,15 @@ def dispatch(operation, arguments):
         return review_placement(**arguments)
     if operation == 'validate_plan':
         from backend.app.modules.design.generation.maas.masterplan.validation import validate_plan
-        return validate_plan(arguments['request'], arguments['result'])
+        from backend.app.modules.design.generation.maas.masterplan.placement_state import resolve_request, preservation_checks, retain_generated_review
+        logical_request, result = arguments['request'], arguments['result']
+        checked = validate_plan(resolve_request(logical_request), result)
+        checks = preservation_checks(logical_request, result)
+        checked.setdefault('checks', []).extend(checks)
+        if any(c['status'] == 'failed' for c in checks):
+            checked['geometry_status'] = 'failed'
+        retain_generated_review(logical_request, {'validation': checked})
+        return checked
     if operation == 'bind_program':
         from backend.app.modules.design.generation.maas.masterplan.program_source import bind_program
         return bind_program(arguments['context'], pnu=arguments['pnu'], design=arguments['design'])

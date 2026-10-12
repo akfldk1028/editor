@@ -22,6 +22,8 @@ MOVES['building_proportion'] = {'keep', 'compact', 'along_axis', 'cross_axis'}
 MOVES['basement_module'] = {'keep', 'auto', 'module16', 'module27', 'module32'}
 MOVES['module_axis'] = {'keep', 'along_axis', 'cross_axis', 'both'}
 MOVES['entry_approach'] = {'keep', 'straight_6m', 'straight_10m', 'corner_clear'}
+from .placement_state import PILOTI_IDS
+MOVES['piloti_choice'] = {'keep', *PILOTI_IDS}
 
 
 def _number(value, name, *, count=False):
@@ -62,7 +64,10 @@ def _piloti_ground(site, footprint, depth):
     return ground
 
 
-def apply_placement_moves(request, moves):
+def apply_placement_moves(request, moves, parent_ref=None):
+    if parent_ref is not None:
+        from .placement_state import apply_revision
+        return apply_revision(request, moves, parent_ref)
     if not isinstance(request, dict) or not isinstance(moves, dict):
         raise ValueError('placement moves require request and moves objects')
     for key, value in moves.items():
@@ -77,6 +82,12 @@ def apply_placement_moves(request, moves):
     unresolved = []
     if not applied:
         return {'request': result, 'applied': {}, 'unresolved': []}
+    if 'piloti_choice' in applied:
+        raise ValueError('piloti face/depth choice requires an owner parent reference')
+    if 'piloti' in applied and not any(k in applied for k in ('building_side', 'building_proportion')):
+        if any(request.get(key) for key in ('footprint', 'ground_footprint', 'core', 'columns')):
+            raise ValueError('placement moves cannot modify authored footprint, ground footprint, core or columns')
+        raise ValueError('piloti-only revision requires an owner parent reference')
     options = result.setdefault('options', {})
     if not isinstance(options, dict):
         raise ValueError('request options must be an object')
@@ -153,7 +164,7 @@ def apply_placement_moves(request, moves):
             unresolved.append('parallel infill: general bay dimensions; manoeuvres and project applicability require review')
     if 'entry_approach' in applied:
         options['entry_approach'] = applied['entry_approach']
-        unresolved.append('entry approach: straight corridor planned before branching; maneuver and road junction require review')
+        unresolved.append('entry approach filters ramp landings near frontage ends; it does not generate a straight corridor or branch point')
     if 'pedestrian_route' in applied:
         from .pedestrian_routes import realize_route
         if request.get('pedestrian_route_design') is not None:

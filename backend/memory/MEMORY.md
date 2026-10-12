@@ -21,6 +21,7 @@ Who owns what (2026-10-06):
 | [02-agent-doors.md](02-agent-doors.md) | touching any route an agent calls, tokens, hrefs, bundles |
 | [03-workspace-and-models.md](03-workspace-and-models.md) | AutoGen workspace, model keys vs local OAuth, /law deep analysis |
 | [04-planning-engine.md](04-planning-engine.md) | MasterPlan engine (`maas/masterplan`), parking rows, ramps, tests |
+| [2026-10-12-placement-parent.md](2026-10-12-placement-parent.md) | generated-parent revision handles, piloti choices, reference parking count contract |
 | [05-run-and-test.md](05-run-and-test.md) | starting the server, venv, which tests, guards |
 | [06-pitfalls.md](06-pitfalls.md) | before debugging something odd — known traps |
 | [07-decisions.md](07-decisions.md) | dated log of decisions and contract changes |

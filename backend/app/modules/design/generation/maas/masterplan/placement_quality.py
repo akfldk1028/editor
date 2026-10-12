@@ -1,6 +1,7 @@
 """Composition gates for a placement shortlist, separate from permit approval."""
 import math
 from shapely.geometry import shape
+from .parking_targets import target_mode, target_observation
 
 
 def axis(geometry):
@@ -21,7 +22,9 @@ def review_placement(request, result):
             level_stalls=[f for f in stalls if f['properties'].get('level',0)==level]
             if any(len(bank)==1 for bank in banks(level_stalls)):
                 review_findings.append('isolated_single_bay')
-    if len(stalls) < target:
+    required_target = max(m.get('required_parking_stalls') or 0,
+                          (m.get('planned_parking_stalls') or 0) if target_mode(request) == 'required' else 0)
+    if len(stalls) < required_target:
         failures.append('parking_target')
     surface_target = request.get('options', {}).get('target_surface_stalls')
     if surface_target is not None and sum(f['properties'].get('level',0)==0 for f in stalls) != surface_target:
@@ -54,7 +57,8 @@ def review_placement(request, result):
             if min(delta, 90-delta) > 1:
                 review_findings.append('inconsistent_module_axis')
     return {'schema_version':'masterplan.placement-quality.v1',
-            'policy_version':3, 'review_findings':sorted(set(review_findings)),
+            'policy_version':4, 'review_findings':sorted(set(review_findings)),
+            'parking_target': target_observation(request, m.get('planned_parking_stalls'), len(stalls)),
             'eligible':not failures, 'failures':sorted(set(failures)),
             **({'status':'needs_evidence'} if 'buildable_boundary_unconfirmed' in failures else {}),
             'scope':'shortlist composition and independently checked capacity; not Mass/Plan or permit approval'}

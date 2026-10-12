@@ -137,7 +137,7 @@ def test_piloti_refuses_to_erase_the_entire_ground():
     req = request()
     req['site'] = req['buildable'] = mapping(box(0, 0, 10, 10))
     req['options']['target_footprint_m2'] = 100
-    response = call(req, {'piloti': 'piloti'})
+    response = call(req, {'building_side': 'center', 'piloti': 'piloti'})
     assert response['status'] == 'failed'
     assert 'candidate' in response['reason']
 

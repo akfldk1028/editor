@@ -26,6 +26,7 @@ from backend.app.modules.design.generation.maas.masterplan.planner_metrics impor
     SERVED_LAYERS, excavation_cost_units, level_efficiency, module_ideal_m2, parking_entrance_feature,
     program_features)
 from backend.app.modules.design.generation.maas.masterplan.planner_rank import _rank_and_record
+from backend.app.modules.design.generation.maas.masterplan.parking_targets import target_mode
 
 
 
@@ -157,7 +158,7 @@ def _plan_site_fixed(request):
     target_stalls=options.get("target_parking_stalls")
     if target_stalls is not None:
         number(target_stalls,"target parking stalls",maximum=1000)
-        if required is not None and target_stalls<required:
+        if required is not None and target_stalls<required and target_mode(request) == 'required':
             failures.append("target_parking_stalls is below the law's required count")
             target_stalls=None
     planned=int(max(required or 0,target_stalls or 0)) if (required is not None or target_stalls is not None) else None

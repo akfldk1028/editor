@@ -1,5 +1,7 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-12 MasterPlan contract notice for Orchestrator: existing planning operations now issue persistent `placement_snapshot` and accept `parent_ref` for generated-parent revisions; no new URL. Placement parking count is a reference unless explicitly required, separate from Law evidence. Source binding, authored protection, generated Mass acceptance and independent preservation checks remain. Details: [placement parent contract](2026-10-12-placement-parent.md); agent design checkpoint `cb0aa90`. Shared services are not restarted by this work.
+
 - 2026-10-11/12 (MasterPlan session) Placement-stage engine measured against practice ALT1 on 고산 (same parti already:
   entrance 0.8 m, rows 0°, ramp departure 6 m off; gaps were 22 vs 30 surface, a whole-parcel B1 plate, and a 20-bay level
   on a 28-bay corridor). Four changes, all result-changing by design: (1) joint.py `piloti_ground_variants` - in the

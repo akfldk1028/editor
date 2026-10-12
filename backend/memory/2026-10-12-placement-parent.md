@@ -1,0 +1,9 @@
+# Placement parent contract (2026-10-12)
+
+- The existing planning operations door accepts `apply_placement_moves` with an optional owner-issued `parent_ref`. Production MasterPlan revisions require it. `plan_site` publishes `placement_snapshot`; no new route.
+- Owner snapshots persist under `backend/runtime/masterplan-placement`, configurable via `EDITOR_PLACEMENT_SNAPSHOT_ROOT`. Content hashes and run identity pin origin request and geometry; missing/tampered/changed-input references are refused. Restart/worker boundaries do not rely on an in-memory cache.
+- Authored request geometry stays immutable. A separate request `placement_state` handle binds generated geometry at plan/independent validate boundaries. Non-mass revisions preserve actual upper/ground; requested piloti changes only ground. Generated Mass/architect acceptance remains pending.
+- `piloti=piloti` retains existing piloti by default. `piloti_choice` uses parent-issued edge/rule-depth IDs; omitted/keep is not a request to move the building. A replacement building must first be realized before selecting its face ID.
+- Placement `target_parking_stalls` is a search reference by default, not a fixed design or legal count. Explicit `parking_target_mode=required` retains a required design gate; non-placement defaults remain required. Existing Law count validation is separate and legal evidence may remain pending. Count remains a search guide; removal of count dominance from candidate generation is not part of this change.
+- MasterPlan feedback exposes realized geometry, existing piloti, changes and count role to actual Claude/Jev. Tests and diagnostic evidence are under the agent `runs/siting-parent-repair-20261012` and `docs/superpowers/plans/2026-10-12-parent-placement-repair.md`.
+- Shared services are not restarted by this work. No push or external message.

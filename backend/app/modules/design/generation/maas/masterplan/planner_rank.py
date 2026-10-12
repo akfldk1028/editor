@@ -10,6 +10,7 @@ from shapely.geometry import shape
 from backend.app.modules.design.generation.maas.masterplan.geometry import digest, union_or_empty
 from backend.app.modules.design.generation.maas.masterplan.feedback import build_mass_feedback
 from backend.app.modules.design.generation.maas.masterplan.planner_metrics import excavation_cost_units, level_efficiency, module_ideal_m2
+from .parking_targets import target_mode, target_observation
 
 
 def drive_burden(features, provided):
@@ -82,8 +83,11 @@ def _rank_and_record(request, candidates, *, rules, options, law, evidence, site
         missing.append("basement search truncated by explicit candidate budget; not exhaustive infeasibility")
     validation=chosen["validation"]
     if target_stalls is not None and chosen["provided"] < target_stalls:
-        failures.append(f"parking shortfall: {chosen['provided']} of design target {target_stalls} stalls placed "
-                        f"(Law minimum {required}); review mass, parking strategy and capacity")
+        if target_mode(request) == 'required':
+            failures.append(f"parking shortfall: {chosen['provided']} of design target {target_stalls} stalls placed "
+                            f"(Law minimum {required}); review mass, parking strategy and capacity")
+        else:
+            missing.append(f"parking reference {target_stalls}, actual {chosen['provided']}; not a fixed design promise; Law count reviewed separately")
     if surface_target is not None:
         actual_surface=sum(v["provided_spaces"] for v in chosen["levels"] if v["level"]==0)
         if actual_surface != surface_target:
@@ -143,6 +147,7 @@ def _rank_and_record(request, candidates, *, rules, options, law, evidence, site
                    "coverage_ratio_pct":footprint.area/site.area*100,"bcr_limit_pct":bcr,
                    "required_parking_stalls":required,"planned_parking_stalls":planned,"max_surface_stalls":max_surface,
                    "provided_parking_stalls":chosen["provided"],
+                   "parking_target": target_observation(request, target_stalls, chosen['provided']),
                    "required_accessible_stalls":law.get("required_accessible_spaces"),
                    "provided_accessible_stalls":chosen["accessible"],"parking_strategy":chosen["strategy"],
                    "excavation_m2":round(excavation(chosen),2),
