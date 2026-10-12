@@ -681,6 +681,11 @@
    "path": "/api/v1/platform/agents/{agent}/tasks"
   },
   {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/agents/{agent}/tasks/{task_id}"
+  },
+  {
    "method": "POST",
    "owner": "fastapi",
    "path": "/api/v1/platform/ask"

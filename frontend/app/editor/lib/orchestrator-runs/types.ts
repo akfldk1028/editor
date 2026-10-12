@@ -14,6 +14,10 @@ export interface Communication {
   response_text: string | null
   transport: 'a2a' | 'unknown'
   truncated: boolean
+  /** The A2A task and context the call ran as (door, 2026-10-12); absent on older records. */
+  a2a_task_id?: string | null
+  a2a_context_id?: string | null
+  redacted?: boolean
 }
 
 export interface Communications {

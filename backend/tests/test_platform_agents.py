@@ -108,3 +108,43 @@ def test_an_agents_own_task_records_are_read_with_the_official_list_tasks_call()
     gone = FastAPI()
     gone.include_router(create_platform_router(OrchestratorClient(None), tasks=down))
     assert TestClient(gone).get('/api/v1/platform/agents/site_context/tasks').status_code == 503
+
+
+def test_one_task_is_read_by_its_a2a_id_and_a_missing_one_is_404():
+    import asyncio
+
+    from backend.app.adapters import a2a_tasks
+
+    def handler(request):
+        body = json.loads(request.content)
+        assert body['method'] == 'GetTask'
+        if body['params']['id'] == 'gone':
+            return httpx.Response(200, json={'jsonrpc': '2.0', 'id': 'x', 'error': {'code': -32001, 'message': 'Task not found'}})
+        return httpx.Response(200, json={'jsonrpc': '2.0', 'id': 'x', 'result': {'task': {
+            'id': body['params']['id'], 'contextId': 'ctx', 'status': {'state': 'TASK_STATE_COMPLETED', 'timestamp': None,
+            'message': {'role': 'ROLE_AGENT', 'parts': [{'text': '{"status": "ok"}'}], 'metadata': {'tool': 'law_search'}}},
+            'history': [{'role': 'ROLE_USER', 'parts': [{'text': '{"tool": "law_search"}'}]}]}}})
+    env = {'LAW_A2A_URL': 'http://law'}
+    record = asyncio.run(a2a_tasks.get_task('law', 'abc', transport=httpx.MockTransport(handler), env=env))
+    assert record['id'] == 'abc' and record['tool'] == 'law_search' and record['response_text'] == '{"status": "ok"}'
+    import pytest as _pytest
+    with _pytest.raises(a2a_tasks.AgentTaskNotFound):
+        asyncio.run(a2a_tasks.get_task('law', 'gone', transport=httpx.MockTransport(handler), env=env))
+
+    async def task(agent, task_id):
+        if task_id == 'gone':
+            raise a2a_tasks.AgentTaskNotFound('gone')
+        return record
+    app = FastAPI()
+    app.include_router(create_platform_router(OrchestratorClient(None), task=task))
+    assert TestClient(app).get('/api/v1/platform/agents/law/tasks/abc').json() == {'agent': 'law', 'task': record}
+    assert TestClient(app).get('/api/v1/platform/agents/law/tasks/gone').status_code == 404
+    assert TestClient(app).get('/api/v1/platform/agents/law/tasks/bad%20id').status_code == 400
+
+
+def test_the_door_may_name_the_a2a_task_of_a_communication():
+    from backend.app.schemas.communications import RunCommunication
+    row = RunCommunication.model_validate({'id': '1', 'task_id': 'site_resolve', 'tool': 'site_resolve', 'agent': 'site_context', 'state': 'failed',
+                                           'request_text': '{}', 'response_text': '{}', 'transport': 'a2a', 'truncated': True, 'redacted': False,
+                                           'a2a_task_id': 'c639', 'a2a_context_id': 'run1'})
+    assert (row.a2a_task_id, row.a2a_context_id) == ('c639', 'run1')

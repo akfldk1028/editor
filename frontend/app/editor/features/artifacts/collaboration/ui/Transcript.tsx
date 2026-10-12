@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 
-import { agentTaskReader } from '../api/tasks'
+import { agentTaskReader, readAgentTask } from '../api/tasks'
 import { describeMessage } from '../lib/describe'
 import { fullRecordFor } from '../lib/tasks'
 import type { CollaborationMessage, Transcript as TranscriptRecord } from '../lib/transcript'
@@ -30,7 +30,8 @@ export function Transcript({ transcript, selected, onSelect, names = {} }: Props
   const complete = async (message: CollaborationMessage) => {
     setFull((current) => ({ ...current, [message.id]: { kind: 'loading' } }))
     try {
-      const task = fullRecordFor(message, await readTasks(message.from))
+      // The recorded A2A task id is the exact key; without one, the agent's list is matched by the recorded text.
+      const task = message.a2a_task_id ? await readAgentTask(message.from, message.a2a_task_id) : fullRecordFor(message, await readTasks(message.from))
       setFull((current) => ({ ...current, [message.id]: task ? { kind: 'found', message: { ...message, text: task.response_text, truncated: false } } : { kind: 'missing' } }))
     } catch (error) {
       setFull((current) => ({ ...current, [message.id]: { kind: 'error', text: error instanceof Error ? error.message : '에이전트에 닿지 못했어요' } }))

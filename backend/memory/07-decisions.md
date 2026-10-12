@@ -691,3 +691,10 @@ be told to the Orchestrator session.
   and the order "Orchestrator → Site → Revision → Law". The standing person line gives way to recorded person messages
   (they shared an edge id). Still only what the editor door sees: the Orchestrator conversation engine's own calls
   to Requirement/DesignIntent appear as their replies, not as request edges, until the door exposes turn calls.
+- 2026-10-12 (night, A2A task ids) the Orchestrator door (other session, after tonight's request) now records
+  `a2a_task_id`, `a2a_context_id` and `redacted` on every communication; the editor's strict contract rejected the new
+  keys ("Invalid owner run contract", 502 on every run read) until `schemas/communications.py` admitted them. With the
+  id in hand the 협업 record completes a cut reply by the official `GetTask` (`adapters/a2a_tasks.get_task`,
+  `GET /platform/agents/{agent}/tasks/{task_id}`, 404 when the agent no longer holds it) and falls back to the
+  ListTasks prefix match only for older records. Lesson: a strict owner contract must take new optional keys the
+  day the owner adds them, or the whole run view goes dark.

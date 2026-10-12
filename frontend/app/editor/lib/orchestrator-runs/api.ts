@@ -212,6 +212,19 @@ export async function listAgentTasks(agent: string, signal?: AbortSignal): Promi
   return tasks as AgentTask[]
 }
 
+/** One task by its A2A id from the agent's own record (official GetTask); null when the agent no longer holds it. */
+export async function getAgentTask(agent: string, taskId: string, signal?: AbortSignal): Promise<AgentTask | null> {
+  try {
+    const data = (await request(`/agents/${encodeURIComponent(agent)}/tasks/${encodeURIComponent(taskId)}`, { signal })) as { task?: unknown }
+    const task = data?.task as AgentTask | undefined
+    if (!task || typeof task !== 'object' || typeof task.id !== 'string' || typeof task.response_text !== 'string') throw new Error('에이전트 작업 응답 형식이 올바르지 않습니다.')
+    return task
+  } catch (error) {
+    if (error instanceof RunRequestError && error.status === 404) return null
+    throw error
+  }
+}
+
 /** The Orchestrator's agent catalog: every agent it knows, with its skills and whether it answered the last probe. */
 export async function listAgents(signal?: AbortSignal): Promise<AgentSummary[]> {
   const data = await request('/agents', { signal })

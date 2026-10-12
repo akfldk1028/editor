@@ -15,6 +15,8 @@ export interface CollaborationMessage {
   transport: Communication['transport']
   truncated: boolean
   text: string
+  /** The A2A task this call ran as, when the record carries it: the key to the agent's own full copy. */
+  a2a_task_id?: string | null
 }
 
 export interface Transcript {
@@ -43,7 +45,7 @@ export function toTranscript(run: Communications): Transcript {
       messages.push({
         id: `${row.id}:${direction}`, step: messages.length + 1, direction,
         from: direction === 'request' ? ORCHESTRATOR : peer, to: direction === 'request' ? peer : ORCHESTRATOR,
-        tool: row.tool, state: row.state, transport: row.transport, truncated: row.truncated, text,
+        tool: row.tool, state: row.state, transport: row.transport, truncated: row.truncated, text, a2a_task_id: row.a2a_task_id ?? null,
       })
     }
   }

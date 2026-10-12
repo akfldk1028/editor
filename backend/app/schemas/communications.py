@@ -17,6 +17,9 @@ class RunCommunication(BaseModel):
     truncated: bool
     # Added by the Orchestrator door on 2026-10-09: secret-bearing fields were omitted from the texts (editor_dialogue).
     redacted: bool = False
+    # Added by the door on 2026-10-12: the A2A task and context the call ran as, so a view can GetTask the agent's own record.
+    a2a_task_id: str | None = None
+    a2a_context_id: str | None = None
 
 
 class RunCommunications(BaseModel):

@@ -26,6 +26,10 @@ class AgentTasksUnavailable(Exception):
     """The agent is not registered, not reachable, or did not answer the A2A call."""
 
 
+class AgentTaskNotFound(Exception):
+    """The agent answered but holds no such task (it restarted since, or the id is another's)."""
+
+
 def rpc_url(agent: str, *, registry: Registry = _registry, env=os.environ) -> str | None:
     entry = next((e for e in registry.entries() if e.get('id') == host_id(agent) and e.get('kind') == 'agent'), None)
     base = base_url(entry, env) if entry else None
@@ -55,14 +59,11 @@ def task_record(task: dict) -> dict:
     }
 
 
-async def list_tasks(agent: str, *, page_size: int = 20, history_length: int = 2, registry: Registry = _registry,
-                     transport: httpx.AsyncBaseTransport | None = None, env=os.environ) -> list[dict]:
-    """The agent's tasks, newest first as the agent lists them; raises AgentTasksUnavailable when it cannot answer."""
+async def _rpc(agent: str, method: str, params: dict, *, registry: Registry, transport, env) -> dict:
     url = rpc_url(agent, registry=registry, env=env)
     if not url:
         raise AgentTasksUnavailable(f'{agent} is not a registered agent')
-    body = {'jsonrpc': '2.0', 'id': uuid4().hex, 'method': 'ListTasks',
-            'params': {'pageSize': max(1, min(page_size, MAX_PAGE)), 'historyLength': max(0, history_length)}}
+    body = {'jsonrpc': '2.0', 'id': uuid4().hex, 'method': method, 'params': params}
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(TIMEOUT_S, connect=3), transport=transport,
                                      headers={**network_headers(env), 'Content-Type': 'application/json'}, follow_redirects=False) as client:
@@ -70,7 +71,33 @@ async def list_tasks(agent: str, *, page_size: int = 20, history_length: int = 2
         reply = response.json()
     except (httpx.HTTPError, ValueError) as error:
         raise AgentTasksUnavailable(f'{agent} unreachable: {type(error).__name__}') from None
-    if not isinstance(reply, dict) or isinstance(reply.get('error'), dict):
+    if not isinstance(reply, dict):
+        raise AgentTasksUnavailable(f'{agent} did not answer JSON-RPC')
+    return reply
+
+
+async def list_tasks(agent: str, *, page_size: int = 20, history_length: int = 2, registry: Registry = _registry,
+                     transport: httpx.AsyncBaseTransport | None = None, env=os.environ) -> list[dict]:
+    """The agent's tasks, newest first as the agent lists them; raises AgentTasksUnavailable when it cannot answer."""
+    reply = await _rpc(agent, 'ListTasks', {'pageSize': max(1, min(page_size, MAX_PAGE)), 'historyLength': max(0, history_length)},
+                       registry=registry, transport=transport, env=env)
+    if isinstance(reply.get('error'), dict):
         raise AgentTasksUnavailable(f'{agent} refused ListTasks')
     tasks = _dict(reply.get('result')).get('tasks')
     return [task_record(task) for task in tasks or [] if isinstance(task, dict)]
+
+
+async def get_task(agent: str, task_id: str, *, history_length: int = 2, registry: Registry = _registry,
+                   transport: httpx.AsyncBaseTransport | None = None, env=os.environ) -> dict:
+    """One task by its A2A id (the id the Orchestrator recorded for the call); AgentTaskNotFound when the agent no longer holds it."""
+    reply = await _rpc(agent, 'GetTask', {'id': task_id, 'historyLength': max(0, history_length)}, registry=registry, transport=transport, env=env)
+    error = reply.get('error')
+    if isinstance(error, dict):
+        if error.get('code') == -32001 or 'not found' in str(error.get('message', '')).lower():
+            raise AgentTaskNotFound(f'{agent} holds no task {task_id}')
+        raise AgentTasksUnavailable(f'{agent} refused GetTask')
+    result = _dict(reply.get('result'))
+    task = result.get('task') if isinstance(result.get('task'), dict) else result
+    if not isinstance(task, dict) or not task.get('id'):
+        raise AgentTaskNotFound(f'{agent} holds no task {task_id}')
+    return task_record(task)

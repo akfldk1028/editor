@@ -1,5 +1,8 @@
-import { listAgentTasks } from '@/lib/orchestrator-runs/api'
+import { getAgentTask, listAgentTasks } from '@/lib/orchestrator-runs/api'
 import type { AgentTask } from '@/lib/orchestrator-runs/types'
+
+/** One task by its A2A id (official GetTask through the editor door); null when the agent no longer holds it. */
+export const readAgentTask = (agent: string, taskId: string, signal?: AbortSignal): Promise<AgentTask | null> => getAgentTask(agent, taskId, signal)
 
 /** The agent's own task records (official A2A ListTasks through the editor door), read once per agent and kept for the panel's life. */
 export function agentTaskReader() {

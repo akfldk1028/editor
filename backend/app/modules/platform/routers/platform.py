@@ -25,11 +25,12 @@ from backend.app.modules.platform.routers.status import create_status_router
 def create_platform_router(
     client: OrchestratorClient | None = None, *, project_service=None, public_origin=None,
     design_repository=None, execution_catalog=None, native_design_service=None, status_service=None,
-    trace_recorder=None, conversation_activation=None, roster=None, tasks=None,
+    trace_recorder=None, conversation_activation=None, roster=None, tasks=None, task=None,
 ) -> APIRouter:
     # The agents' own words: their live A2A cards (test seam `roster`); their own task records (test seam `tasks`).
     roster = roster or cards.roster
     tasks = tasks or a2a_tasks.list_tasks
+    task = task or a2a_tasks.get_task
     owner = client or OrchestratorClient(os.environ.get('EDITOR_ORCHESTRATOR_URL'))
     router = APIRouter(prefix='/api/v1/platform', tags=['platform'])
     allowed_origin = public_origin or os.environ.get('EDITOR_PUBLIC_URL', 'http://127.0.0.1:5173')
@@ -59,6 +60,18 @@ def create_platform_router(
             raise HTTPException(400, 'invalid agent id')
         try:
             return {'agent': agent, 'tasks': await tasks(agent)}
+        except a2a_tasks.AgentTasksUnavailable as exc:
+            raise HTTPException(503, str(exc)) from None
+
+    @router.get('/agents/{agent}/tasks/{task_id}')
+    async def agent_task(agent: str, task_id: str):
+        """One task by its A2A id (official GetTask): the request the agent got and its full, uncut reply."""
+        if not re.fullmatch(r'[a-z][a-z0-9_-]{0,40}', agent) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', task_id):
+            raise HTTPException(400, 'invalid agent or task id')
+        try:
+            return {'agent': agent, 'task': await task(agent, task_id)}
+        except a2a_tasks.AgentTaskNotFound as exc:
+            raise HTTPException(404, str(exc)) from None
         except a2a_tasks.AgentTasksUnavailable as exc:
             raise HTTPException(503, str(exc)) from None
 
