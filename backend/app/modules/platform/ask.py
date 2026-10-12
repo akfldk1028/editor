@@ -19,7 +19,7 @@ import re
 from backend.app.adapters import law_agent
 from backend.app.core.tracing import Span, continue_or_start
 from backend.app.modules.platform.goals import goal
-from backend.app.modules.platform.routing import decide
+from backend.app.modules.platform.routing import cards, decide
 from backend.app.modules.platform.run_results import law_from_response
 
 EXCERPT = 400
@@ -221,20 +221,28 @@ def clause_route(question: str, clause: dict, assessment_date: str | None):
 
 async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None, recorder, traceparent: str | None = None,
                   role: str | None = None, agent=law_agent.ask, judge=None, situation: str = '', clause: dict | None = None,
-                  addresses=None) -> dict:
+                  addresses=None, roster=cards.roster, extras=None) -> dict:
     """One question → one route (the Orchestrator's judgment, `routing.decide`): a Law skill called now (one
     recorded span), a goal handed off to the catalog (no agent call; the conversation offers to start it), or a
     question back to the user with the roles as choices. A message that is an address goes to `locate_site`
     (the editor's own geocoder, no agent, no span). Every answer carries the same keys; `route.kind` says
     which part is filled and `route.decided_by` who decided (pattern · llm · rules · user)."""
     chosen = clause_route(question, clause, assessment_date) if clause else \
-        await decide(question, assessment_date=assessment_date, role=role, judge=judge, situation=situation)
+        await decide(question, assessment_date=assessment_date, role=role, judge=judge, situation=situation, extras=extras)
     base = {'question': question, 'route': chosen.to_dict(), 'agent': chosen.agent, 'tool': chosen.skill, 'trace_id': None,
-            'version': None, 'answer': None, 'handoff': None,
+            'version': None, 'answer': None, 'handoff': None, 'delegate': None,
             'clause': {'item_id': clause.get('item_id'), 'title': clause.get('title'), 'pnu': pnu, 'assessment_date': assessment_date} if clause else None}
     if chosen.kind in ('ask', 'answer'):
         # The Orchestrator speaks itself: a question back (choices in the route) or its own reply (route.instruction).
         return base
+    if chosen.kind == 'agent':
+        # A registered agent without a role module: hand the question to it in its own words (its A2A card) —
+        # the skill call itself is the Orchestrator conversation's job, so no agent is called here.
+        card = (await roster([chosen.agent])).get(chosen.agent)
+        return {**base, 'delegate': {'agent': chosen.agent, 'label': (card or {}).get('name') or chosen.agent,
+                                     'description': (card or {}).get('description'), 'instruction': chosen.instruction,
+                                     'skills': [{'id': s['id'], 'name': s.get('name') or s['id']} for s in (card or {}).get('skills') or []][:12],
+                                     'available': card is not None}}
     if chosen.skill == 'site_locate':
         return {**base, 'answer': await locate_site(chosen.args['query'], addresses=addresses)}
     if chosen.kind == 'goal':

@@ -192,8 +192,9 @@ export interface LegalEvidence {
 
 /** How the backend's router decided: a skill called now, a goal handed off, or a question back to the user. */
 export interface AskRoute {
-  /** 'answer': the Orchestrator replied itself; its words are `instruction`. */
-  kind: 'skill' | 'goal' | 'ask' | 'answer'
+  /** 'answer': the Orchestrator replied itself; its words are `instruction`. 'agent': a registered agent without a
+   * role module owns the question; `delegate` carries its card and the Orchestrator's instruction. */
+  kind: 'skill' | 'goal' | 'ask' | 'answer' | 'agent'
   agent: string | null
   skill: string | null
   goal: string | null
@@ -238,6 +239,8 @@ export interface AskAnswer {
   answer: LawAnswerBody | null
   /** `goal`: the catalog goal this question belongs to (its owners, whether the door takes it). */
   handoff: { goal: string; label: string; owners: string[]; available: boolean } | null
+  /** `agent`: the registered agent the question belongs to, in its own card's words; `available` = its card answered. */
+  delegate?: { agent: string; label: string; description: string | null; instruction: string | null; skills: { id: string; name: string }[]; available: boolean } | null
   /** The review item the question was about (law artifact), echoed with the lot and date it was asked for. */
   clause?: { item_id: string; title: string; pnu: string | null; assessment_date: string | null } | null
 }

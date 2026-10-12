@@ -79,14 +79,24 @@ def route(text: str, *, assessment_date: str | None = None, role: str | None = N
     return Route('ask', None, None, None, {}, ASK_CONFIDENCE, reason, _CHOICES)
 
 
+def _delegate(agent: str, text: str, confidence: float, reason: str, decided_by: str, instruction: str | None = None) -> Route:
+    """A registered agent without a role module: the question is its, with the Orchestrator's instruction; no skill is
+    chosen here (a skill needs its own arguments — the Orchestrator's conversation does that), so the door hands it over."""
+    return Route('agent', agent, None, None, {'text': text}, confidence, reason, decided_by=decided_by, instruction=instruction)
+
+
 async def decide(text: str, *, assessment_date: str | None = None, role: str | None = None, judge: judging.Judge | None = None,
-                 enabled: bool | None = None, situation: str = '') -> Route:
+                 enabled: bool | None = None, situation: str = '', extras: list[str] | None = None) -> Route:
     """The product path: a picked role or a pattern decides at once; otherwise the Orchestrator's ledger (the
     model names the next speaker and what to tell it; naming itself means asking the user) — and the rule table
-    only when the model is off (`EDITOR_ROUTING_JUDGE=rules`) or never named a participant."""
+    only when the model is off (`EDITOR_ROUTING_JUDGE=rules`) or never named a participant. `extras` = registered
+    agents without a role module (default: the registry's); the model may name them and the user may pick them."""
     context = {'assessment_date': assessment_date}
+    extra = judging.extras() if extras is None else extras
     if role and role in _BY_AGENT:
         return route(text, assessment_date=assessment_date, role=role)
+    if role and role in extra:
+        return _delegate(role, text, 0.9, f'{role}로 직접 골랐어요', 'user')
     claimed = _claimed(text, context)
     if claimed:
         return claimed
@@ -102,5 +112,8 @@ async def decide(text: str, *, assessment_date: str | None = None, role: str | N
                      decided_by='llm', instruction=instruction)
     if speaker in _BY_AGENT:
         return _default_route(speaker, text, context, LEDGER_CONFIDENCE, ledger.next_speaker.reason, 'llm', instruction)
+    if speaker in extra:
+        return _delegate(speaker, text, LEDGER_CONFIDENCE, ledger.next_speaker.reason, 'llm', instruction)
     # The Orchestrator asks: its question is the reason the user reads; no agent was told anything.
-    return Route('ask', None, None, None, {}, ASK_CONFIDENCE, instruction or '어느 에이전트의 일인지 분명하지 않아요', _CHOICES, decided_by='llm')
+    choices = (*_CHOICES, *(Choice(agent, agent) for agent in extra))
+    return Route('ask', None, None, None, {}, ASK_CONFIDENCE, instruction or '어느 에이전트의 일인지 분명하지 않아요', choices, decided_by='llm')

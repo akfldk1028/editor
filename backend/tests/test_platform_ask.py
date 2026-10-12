@@ -107,7 +107,7 @@ def test_ask_law_records_one_law_span_and_answers_in_the_contract_shape():
                          traceparent='00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01', agent=agent))
     assert calls[0][0] == 'law_search' and calls[0][1]['query'] == '자연녹지지역 건폐율'
     assert calls[0][2]['caller'] == 'editor' and calls[0][2]['trace_id'] == '4bf92f3577b34da6a3ce929d0e0e4736'
-    assert set(answer) == {'question', 'route', 'agent', 'tool', 'trace_id', 'version', 'answer', 'handoff', 'clause'} and answer['clause'] is None
+    assert set(answer) == {'question', 'route', 'agent', 'tool', 'trace_id', 'version', 'answer', 'handoff', 'delegate', 'clause'} and answer['clause'] is None
     assert answer['handoff'] is None
     assert answer['agent'] == 'law' and answer['trace_id'] == '4bf92f3577b34da6a3ce929d0e0e4736' and answer['answer']['kind'] == 'search'
     assert answer['route'] == {'kind': 'skill', 'agent': 'law', 'skill': 'law_search', 'goal': None, 'confidence': 0.7, 'reason': '법령·조례 검색 (Law Agent)의 말이 2개 보여요', 'choices': [], 'decided_by': 'rules', 'instruction': None}
@@ -318,3 +318,32 @@ def test_an_address_is_located_through_the_editors_own_geocoder_without_any_agen
     assert missing['answer']['pnu'] is None and missing['answer']['error'] == 'Address lookup returned no usable result'
     by_pnu = run(locate_site('4115011300106840001', addresses=Addresses()))
     assert by_pnu['pnu'] == '4115011300106840001' and calls == ['의정부시 산곡동 684-1', '없는시 없는동 1']
+
+
+def test_ask_hands_a_question_to_a_registered_agent_in_its_own_card_words_without_calling_it(monkeypatch):
+    import asyncio
+
+    monkeypatch.setenv('EDITOR_ROUTING_JUDGE', 'llm')
+
+    from backend.app.core.tracing import JsonlTraceRecorder
+    from backend.app.modules.platform.ask import ask_law
+    from backend.app.modules.platform.routing.judge import Ledger
+
+    async def judge(text, situation=''):
+        return Ledger.model_validate({'is_request_satisfied': {'reason': 'r', 'answer': False},
+                                      'next_speaker': {'reason': '구조 질문이에요', 'answer': 'structure'},
+                                      'instruction_or_question': {'reason': 'r', 'answer': '이 매스의 골조 안을 내 주세요'}})
+
+    async def roster(agents):
+        assert agents == ['structure']
+        return {'structure': {'name': 'StructureAgent', 'description': 'Frames and walls for a mass.',
+                              'skills': [{'id': 'structure_frame', 'name': 'frame', 'description': ''}, {'id': 'structure_health', 'name': 'health', 'description': ''}]}}
+
+    async def never(tool, args, trace=None):
+        raise AssertionError('no agent is called for a delegation')
+    answer = asyncio.run(ask_law('기둥 간격 어떻게?', pnu=None, assessment_date=None, recorder=JsonlTraceRecorder(), agent=never, judge=judge,
+                                 roster=roster, extras=['structure']))
+    assert answer['route']['kind'] == 'agent' and answer['agent'] == 'structure' and answer['answer'] is None and answer['handoff'] is None
+    assert answer['delegate'] == {'agent': 'structure', 'label': 'StructureAgent', 'description': 'Frames and walls for a mass.',
+                                  'instruction': '이 매스의 골조 안을 내 주세요', 'skills': [{'id': 'structure_frame', 'name': 'frame'}, {'id': 'structure_health', 'name': 'health'}],
+                                  'available': True}

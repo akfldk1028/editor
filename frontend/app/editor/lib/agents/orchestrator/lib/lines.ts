@@ -246,6 +246,26 @@ export function handoffLine(answer: AskAnswer, needed: readonly string[] = []): 
   return { kind: 'progress', agent: ORCHESTRATOR, tone: 'warn', text: `이건 ${who}의 일이에요${said} (${handoff.label}${owners ? `: ${owners}` : ''}) — 이 목표는 아직 열리지 않았어요` }
 }
 
+/**
+ * A question that belongs to a registered agent without a role module: the Orchestrator names it in the agent's
+ * own card words, says what it would tell it, and offers to send the question on through the conversation
+ * (where the Orchestrator's conversation calls the agent's skill) — no guessed skill call here.
+ */
+export function delegateLine(answer: AskAnswer): FeedInput {
+  const { route, delegate, question } = answer
+  const who = delegate?.label ?? agentLabel(route.agent ?? ORCHESTRATOR)
+  if (!delegate) return { kind: 'error', agent: ORCHESTRATOR, text: `${who}의 일인데 그 에이전트를 찾지 못했어요` }
+  const said = delegate.instruction ? ` · ${who}에게: "${delegate.instruction}"` : ''
+  const skills = delegate.skills.map((skill) => skill.name)
+  return {
+    kind: 'prompt',
+    agent: ORCHESTRATOR,
+    text: `이건 ${who}의 일이에요${said}${delegate.description ? ` — ${delegate.description}` : ''}${delegate.available ? '' : ' (지금은 응답하지 않아요)'}`,
+    ...(skills.length ? { card: { type: 'chips', items: skills } } : {}),
+    actions: [{ label: '대화로 보내기', command: { kind: 'compose', draft: question } }, { label: '나중에' }],
+  }
+}
+
 /** The Orchestrator answered the user itself (its ledger found the request satisfied): its words as its turn. */
 export function orchestratorReplyLine(answer: AskAnswer): FeedInput {
   return { kind: 'progress', agent: ORCHESTRATOR, tone: 'ok', text: answer.route.instruction ?? answer.route.reason }

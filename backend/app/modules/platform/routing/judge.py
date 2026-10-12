@@ -97,22 +97,33 @@ Please output an answer in pure JSON format according to the following schema. T
 """
 
 
-def participants() -> list[str]:
-    return [role.agent for role in ROLES] + [ORCHESTRATOR]
+_ROLE_AGENTS = tuple(role.agent for role in ROLES)
+EXTRA_FALLBACK = 'registered in the network with an A2A card; described by that card when it answers'
 
 
-def team_description(live: dict[str, dict | None] | None = None) -> str:
+def extras(registered=cards.registered) -> list[str]:
+    """Agents the registry lists (with a card) that have no role module — the team grows with the registry, not with code here."""
+    return [agent for agent in registered() if agent not in _ROLE_AGENTS]
+
+
+def participants(extra: list[str] | None = None) -> list[str]:
+    return [*_ROLE_AGENTS, *(extras() if extra is None else extra), ORCHESTRATOR]
+
+
+def team_description(live: dict[str, dict | None] | None = None, extra: list[str] | None = None) -> str:
     """`name: description` per participant, whitespace collapsed — as Magentic-One builds `_team_description`.
-    `live` = the agents' A2A cards (cards.roster); an agent without one is described by its role line."""
+    `live` = the agents' A2A cards (cards.roster); a role agent without one is described by its role line, a
+    registered agent without a role by its card alone."""
     live = live or {}
     lines = [cards.describe(role.agent, live.get(role.agent), DESCRIPTIONS.get(role.agent, role.label)) for role in ROLES]
+    lines += [cards.describe(agent, live.get(agent), EXTRA_FALLBACK) for agent in (extras() if extra is None else extra)]
     lines.append(re.sub(r'\s+', ' ', f'{ORCHESTRATOR}: {ORCHESTRATOR_DESCRIPTION}').strip())
     return '\n'.join(lines)
 
 
-def progress_ledger_prompt(task: str, situation: str = '', live: dict[str, dict | None] | None = None) -> str:
-    return PROGRESS_LEDGER_PROMPT.format(task=task, situation=situation.strip() or '(nothing beyond the team)', team=team_description(live),
-                                         names=', '.join(participants()), orchestrator=ORCHESTRATOR)
+def progress_ledger_prompt(task: str, situation: str = '', live: dict[str, dict | None] | None = None, extra: list[str] | None = None) -> str:
+    return PROGRESS_LEDGER_PROMPT.format(task=task, situation=situation.strip() or '(nothing beyond the team)', team=team_description(live, extra),
+                                         names=', '.join(participants(extra)), orchestrator=ORCHESTRATOR)
 
 
 def enabled(env=os.environ) -> bool:
@@ -134,14 +145,15 @@ async def judge(text: str, situation: str = '', *, client=None, roster=cards.ros
         model = client or ClaudeCodeChatCompletionClient(timeout_s=TIMEOUT_S)
     except Exception:
         return None
+    extra = extras()
     try:
-        live = await roster([role.agent for role in ROLES])
+        live = await roster([*_ROLE_AGENTS, *extra])
     except Exception:
         live = None
-    names = set(participants())
+    names = set(participants(extra))
     for _ in range(MAX_JSON_RETRIES + 1):
         try:
-            result = await model.create([UserMessage(content=progress_ledger_prompt(text, situation, live), source=ORCHESTRATOR)], json_output=Ledger)
+            result = await model.create([UserMessage(content=progress_ledger_prompt(text, situation, live, extra), source=ORCHESTRATOR)], json_output=Ledger)
             ledger = Ledger.model_validate_json(result.content if isinstance(result.content, str) else '{}')
         except Exception:
             return None

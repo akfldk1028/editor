@@ -161,3 +161,41 @@ def test_a_message_that_is_an_address_or_a_pnu_is_claimed_for_the_map_and_a_ques
         assert chosen.args == {'query': text}
     for text in ('자연녹지지역 건폐율 20', '용적률 300', '의정부시 도시계획 조례 제42조', '산곡동 684-1 법규 검토해줘'):
         assert route(text).skill != 'site_locate', text
+
+
+def test_a_registered_agent_without_a_role_module_is_a_participant_the_model_may_name_and_the_user_may_pick():
+    """The team grows with the registry: an agent with an A2A card but no roles/<agent>.py is described by its card,
+    may be named by the ledger or picked as a role, and the door hands the question to it (kind 'agent')."""
+    import asyncio
+
+    from backend.app.modules.platform.routing import decide
+    from backend.app.modules.platform.routing.judge import Ledger, participants, team_description
+
+    extra = ['structure']
+    assert participants(extra)[-2:] == ['structure', 'orchestrator']
+    lines = team_description({'structure': {'name': 'StructureAgent', 'description': 'Frames and walls for a mass.',
+                                            'skills': [{'id': 'structure_frame', 'name': 'frame', 'description': 'Propose a frame.'}]}}, extra).splitlines()
+    assert 'structure: Frames and walls for a mass. Skills: structure_frame: Propose a frame.' in lines
+    assert any(line.startswith('structure: ') and 'registered in the network' in line for line in team_description(None, extra).splitlines())
+
+    def ledger(speaker, instruction):
+        async def _judge(text, situation=''):
+            return Ledger.model_validate({'is_request_satisfied': {'reason': 'r', 'answer': False},
+                                          'next_speaker': {'reason': '구조 질문이에요', 'answer': speaker},
+                                          'instruction_or_question': {'reason': 'r', 'answer': instruction}})
+        return _judge
+
+    named = asyncio.run(decide('이 매스에 기둥 간격 어떻게 잡아?', judge=ledger('structure', '이 매스의 골조 안을 내 주세요'), enabled=True, extras=extra))
+    assert (named.kind, named.agent, named.skill, named.decided_by, named.confidence) == ('agent', 'structure', None, 'llm', 0.85)
+    assert (named.reason, named.instruction, named.args) == ('구조 질문이에요', '이 매스의 골조 안을 내 주세요', {'text': '이 매스에 기둥 간격 어떻게 잡아?'})
+
+    async def silent(text, situation=''):
+        return None
+    picked = asyncio.run(decide('기둥 간격', role='structure', judge=silent, enabled=True, extras=extra))
+    assert (picked.kind, picked.agent, picked.decided_by) == ('agent', 'structure', 'user')
+    # Without the registry entry the same role is unknown and rules decide as before.
+    unknown = asyncio.run(decide('기둥 간격', role='structure', judge=silent, enabled=True, extras=[]))
+    assert unknown.kind != 'agent'
+    # When the model asks, the registered agent is among the choices.
+    asked = asyncio.run(decide('뭐부터?', judge=ledger('orchestrator', '어느 쪽부터 할까요?'), enabled=True, extras=extra))
+    assert asked.kind == 'ask' and asked.choices[-1].agent == 'structure'

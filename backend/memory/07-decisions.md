@@ -631,3 +631,13 @@ be told to the Orchestrator session.
   협업 canvas/panel show the card's description and skill names, folder labels first when a folder exists. Still a
   hand list: the ask door's roles (`routing/roles/*.py`, also what the judge's team roster iterates) — asking an
   agent that has a card but no role file is the Orchestrator conversation's job (tool catalog), not another role file.
+- 2026-10-12 (night, ask any registered agent) the team the Orchestrator's judge sees is the registry, not a code list.
+  The user: "빨리 제대로 구현해, 검토하고". `routing/judge.extras()` = registry agents with a card that have no
+  `roles/<agent>.py`; they join `participants()` and the team description (their card's words, a plain fallback line
+  when the card is down), the ledger may name them and the user may pick them as a role. `routing.decide` then returns
+  kind `agent` (no skill is guessed: our A2A servers take `{tool,args}` only and a skill's arguments need the
+  Orchestrator conversation's tool catalog), and the ask door answers with `delegate` {agent, label, description,
+  instruction, skills, available} from the live card without calling anyone; the conversation shows "이건 X의 일이에요 ·
+  X에게: …" with the card's skills as chips and 대화로 보내기. Review note: every registry agent has a role module tonight,
+  so `extras()` is empty live and the path is proven by tests (`test_platform_routing`, `test_platform_ask`) — the next
+  registered agent (e.g. structure) will be on the team the moment its services.json row carries a card_url.

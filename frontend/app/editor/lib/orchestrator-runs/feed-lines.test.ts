@@ -376,3 +376,15 @@ test('an address the backend located becomes the Site Agent line that opens the 
   // Geocoded without a PNU: the map resolves the address itself (reverse lookup at the point).
   expect(siteLocateParams({ kind: 'site', query: '테헤란로 152', pnu: null, address: null, coordinates: { x: 1, y: 2 }, error: null })).toEqual({ address: '테헤란로 152', pick: '1' })
 })
+
+test('a question that belongs to a registered agent without a role module is named in the agent\'s card words and offered to the conversation', () => {
+  const delegated: AskAnswer = { question: '기둥 간격 어떻게?', agent: 'structure', tool: null, trace_id: null, version: null, answer: null, handoff: null,
+    route: { kind: 'agent', agent: 'structure', skill: null, goal: null, confidence: 0.85, reason: '구조 질문이에요', choices: [], decided_by: 'llm', instruction: '이 매스의 골조 안을 내 주세요' },
+    delegate: { agent: 'structure', label: 'StructureAgent', description: 'Frames and walls for a mass.', instruction: '이 매스의 골조 안을 내 주세요', skills: [{ id: 'structure_frame', name: 'frame' }], available: true } }
+  expect(answerLine(delegated, null)).toEqual({ kind: 'prompt', agent: 'orchestrator',
+    text: '이건 StructureAgent의 일이에요 · StructureAgent에게: "이 매스의 골조 안을 내 주세요" — Frames and walls for a mass.',
+    card: { type: 'chips', items: ['frame'] },
+    actions: [{ label: '대화로 보내기', command: { kind: 'compose', draft: '기둥 간격 어떻게?' } }, { label: '나중에' }] })
+  expect(answerLine({ ...delegated, delegate: { ...delegated.delegate!, available: false, description: null, instruction: null, skills: [] } }, null).text)
+    .toBe('이건 StructureAgent의 일이에요 (지금은 응답하지 않아요)')
+})
