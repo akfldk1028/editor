@@ -78,14 +78,14 @@ class Ledger:
 
     def begin(self, *, from_agent: str, to_agent: str, tool: str | None, conversation_id: str | None, run_id: str | None = None,
               project: str | None = None, branch: str | None = None, input_text: str | None = None, trace: SpanContext | None = None,
-              parent_span_id: str | None = None, source: str = 'editor') -> HopRecord:
+              parent_span_id: str | None = None, source: str = 'editor', attrs: dict | None = None) -> HopRecord:
         """A call the editor is about to make, recorded as running; `finish` records how it ended on the same span."""
         context = trace or SpanContext.new()
         record = HopRecord(
             trace_id=context.trace_id, span_id=context.span_id, parent_span_id=parent_span_id, ts_start=now_iso(), operation='invoke_agent',
             from_agent=from_agent, to_agent=to_agent, tool=tool, status='UNSET', state='working', conversation_id=conversation_id, run_id=run_id,
             project=project, branch=branch, hop=1, source=source,  # type: ignore[arg-type]
-            input_messages=[text_message('user', input_text)] if self.capture and input_text else None, attrs={})
+            input_messages=[text_message('user', input_text)] if self.capture and input_text else None, attrs=dict(attrs or {}))
         self.record(record)
         return record
 
@@ -98,6 +98,12 @@ class Ledger:
             'elapsed_ms': int((ended - started).total_seconds() * 1000), 'task_id': task_id or record.task_id,
             'output_messages': [text_message('assistant', output_text)] if self.capture and output_text else None})
         return self.record(done)
+
+    def open_calls(self, *, conversation_id: str, tool: str) -> list[HopRecord]:
+        """This conversation's calls of `tool` that have not ended yet, as records `finish` can close."""
+        rows = self.store.query(conversation_id=conversation_id, limit=500)
+        return [HopRecord.model_validate({key: value for key, value in row.items() if key in HopRecord.model_fields})
+                for row in rows if row.get('tool') == tool and not row.get('ts_end')]
 
     # --- reading ---------------------------------------------------------------------------------------------
     def rows(self, *, conversation_id: str | None = None, run_id: str | None = None, trace_id: str | None = None, project: str | None = None,

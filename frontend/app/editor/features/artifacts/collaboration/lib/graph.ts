@@ -48,6 +48,9 @@ export interface GraphEdge {
   running?: boolean
   /** The vertical flow: which way the line leaves and enters (`down` between stacked cards, `left`/`right` along the side lanes). */
   lane?: 'down' | 'left' | 'right'
+  /** The wide flow: the exact handles the line leaves and enters by. */
+  sourceHandle?: string
+  targetHandle?: string
 }
 
 export interface GraphOptions {
@@ -74,6 +77,10 @@ export const CARD_WIDTH = 230
 export const CARD_HEIGHT = 64
 const V_GAP = 26
 const V_IDLE_COLUMNS = 2
+/** The wide flow: room for one card (up to three lines), between an agent's rows, and between columns. */
+export const SLOT = 100
+const ROW_GAP = 28
+const COL_GAP = 56
 
 const tools = (entry: CatalogLike | undefined) => Object.values(entry?.tools ?? {}).join(' · ')
 const GIST_CHARS = 110
@@ -179,7 +186,80 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
   // The person's standing line to the hub is drawn only until the person has actually said something on the record.
   if (!groups.has(`${USER}→${ORCHESTRATOR}`)) edges.unshift({ id: `person:${USER}→${ORCHESTRATOR}`, source: USER, target: ORCHESTRATOR, kind: 'user', label: '', said: '', known: true, count: 0 })
   if (options.orientation === 'vertical') return vertical(user, hub, spoken, waiting, edges)
-  return { nodes: [user, hub, ...spoken, ...waiting], edges }
+  return fanned(user, hub, spoken, waiting, edges)
+}
+
+/** What was said on one line, as a card of its own at (x, y). */
+function saidCard(edge: GraphEdge, x: number, y: number): GraphNode {
+  return {
+    id: `said:${edge.id}`, label: '', sub: '', kind: 'said', order: null, selected: false, idle: false, live: null, position: { x, y },
+    said: { text: edge.said, full: edge.full ?? edge.said, caption: edge.caption ?? edge.label, kind: edge.kind as 'request' | 'response', running: !!edge.running, known: edge.known },
+  }
+}
+
+/**
+ * The flow for a wide canvas, fanned out from the Orchestrator: the person, with their question above and the reply below,
+ * then one row per agent it called, in order: the request card over the answer card between the Orchestrator and the agent.
+ * Every line runs to its own card, so no line crosses another agent and no card sits on another's line. The waiting agents sit below.
+ */
+function fanned(user: GraphNode, hub: GraphNode, spoken: GraphNode[], waiting: GraphNode[], edges: GraphEdge[]): { nodes: GraphNode[]; edges: GraphEdge[] } {
+  const spokenEdges = edges.filter((edge) => edge.kind === 'request' || edge.kind === 'response')
+  const between = (from: string, to: string) => spokenEdges.find((edge) => edge.source === from && edge.target === to)
+  const nodes: GraphNode[] = []
+  const out: GraphEdge[] = []
+  const card = (edge: GraphEdge, x: number, y: number) => {
+    const node = saidCard(edge, x, y)
+    nodes.push(node)
+    return node.id
+  }
+  const line = (edge: GraphEdge, source: string, sourceHandle: string, target: string, targetHandle: string) =>
+    out.push({ ...edge, id: `${edge.id}:${source}→${target}`, source, target, sourceHandle, targetHandle })
+
+  const row = 2 * SLOT + ROW_GAP
+  const span = spoken.length ? spoken.length * row - ROW_GAP : 2 * SLOT
+  const middle = span / 2
+  const leftCards = -(CARD_WIDTH + COL_GAP)
+  const rightCards = NODE_WIDTH + COL_GAP
+  const personX = leftCards - COL_GAP - NODE_WIDTH
+  nodes.push({ ...user, position: { x: personX, y: middle - NODE_HEIGHT / 2 } }, { ...hub, position: { x: 0, y: middle - NODE_HEIGHT / 2 } })
+  const asked = between(USER, ORCHESTRATOR)
+  if (asked) {
+    const id = card(asked, leftCards, middle - SLOT)
+    line(asked, USER, 'out', id, 't-left')
+    line(asked, id, 's-right', ORCHESTRATOR, 'in')
+  } else {
+    const person = edges.find((edge) => edge.kind === 'user')
+    if (person) out.push({ ...person, sourceHandle: 'out', targetHandle: 'in' })
+  }
+  const replied = between(ORCHESTRATOR, USER)
+  if (replied) {
+    const id = card(replied, leftCards, middle + 8)
+    line(replied, ORCHESTRATOR, 'back', id, 't-right')
+    line(replied, id, 's-left', USER, 'return')
+  }
+  spoken.forEach((agent, index) => {
+    const top = index * row
+    nodes.push({ ...agent, position: { x: rightCards + CARD_WIDTH + COL_GAP, y: top + SLOT - NODE_HEIGHT / 2 } })
+    const request = between(ORCHESTRATOR, agent.id)
+    if (request) {
+      const id = card(request, rightCards, top)
+      line(request, ORCHESTRATOR, 'out', id, 't-left')
+      line(request, id, 's-right', agent.id, 'in')
+    }
+    // Its answer to the Orchestrator, or (the conversation's owner reply) to the person directly.
+    const answer = between(agent.id, ORCHESTRATOR) ?? between(agent.id, USER)
+    if (answer) {
+      const id = card(answer, rightCards, top + SLOT)
+      line(answer, agent.id, 'back', id, 't-right')
+      line(answer, id, 's-left', answer.target, 'return')
+    }
+  })
+  const idleTop = span + 90
+  const idle = waiting.map((node, index) => ({
+    ...node,
+    position: { x: personX + (index % IDLE_COLUMNS) * (NODE_WIDTH + IDLE_GAP_X), y: idleTop + Math.floor(index / IDLE_COLUMNS) * (NODE_HEIGHT + IDLE_GAP_Y) },
+  }))
+  return { nodes: [...nodes, ...idle], edges: out }
 }
 
 /**
@@ -195,13 +275,10 @@ function vertical(user: GraphNode, hub: GraphNode, spoken: GraphNode[], waiting:
   let y = 0
   const place = (node: GraphNode) => { nodes.push({ ...node, position: { x: 0, y } }); y += NODE_HEIGHT + V_GAP }
   const card = (edge: GraphEdge): string => {
-    const id = `said:${edge.id}`
-    nodes.push({
-      id, label: '', sub: '', kind: 'said', order: null, selected: false, idle: false, live: null, position: { x: (NODE_WIDTH - CARD_WIDTH) / 2, y },
-      said: { text: edge.said, full: edge.full ?? edge.said, caption: edge.caption ?? edge.label, kind: edge.kind as 'request' | 'response', running: !!edge.running, known: edge.known },
-    })
+    const node = saidCard(edge, (NODE_WIDTH - CARD_WIDTH) / 2, y)
+    nodes.push(node)
     y += CARD_HEIGHT + V_GAP
-    return id
+    return node.id
   }
   const line = (edge: GraphEdge, source: string, target: string, lane: 'down' | 'left' | 'right') =>
     out.push({ ...edge, id: `${edge.id}:${source}→${target}`, source, target, lane })

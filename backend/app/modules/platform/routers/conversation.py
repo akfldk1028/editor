@@ -12,6 +12,31 @@ from backend.app.modules.platform.routing.site_mention import site_named
 from backend.app.schemas.conversation import ConversationSnapshot, ConversationSubmit
 
 
+def settle_turns(ledger, snapshot) -> None:
+    """A person's message stays a running call in the 협업 장부 until the reply to it is in the conversation: then the
+    call ends with that reply (everything the Orchestrator said before the person's next message), or as failed."""
+    if ledger is None:
+        return
+    turns = ledger.open_calls(conversation_id=snapshot.conversation_id, tool='conversation')
+    if not turns:
+        return
+    messages = snapshot.messages
+    for turn in turns:
+        asked = next((index for index, message in enumerate(messages) if message.id == turn.attrs.get('message_id')), None)
+        if asked is None:
+            continue
+        replies, answered = [], False
+        for message in messages[asked + 1:]:
+            if message.role == 'user':
+                answered = True
+                break
+            replies.append(message)
+        if replies and (answered or snapshot.status != 'working'):
+            ledger.finish(turn, output_text='\n\n'.join(message.text for message in replies), state='completed')
+        elif snapshot.status == 'failed' and not answered:
+            ledger.finish(turn, status='ERROR', error_type=snapshot.error or 'conversation_failed')
+
+
 def create_conversation_router(projects_service, owner, allowed_origin, activation=None, ledger=None):
     router = APIRouter()
     remote = OrchestratorConversation(owner)
@@ -27,7 +52,9 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
             except (host.HostUnavailable, host.HostRefused):
                 raise HTTPException(503, 'Conversation providers unavailable') from None
         try:
-            return await remote.exchange(binding.owner_project_id, binding.branch_id, conversation_id, body)
+            snapshot = await remote.exchange(binding.owner_project_id, binding.branch_id, conversation_id, body)
+            settle_turns(ledger, snapshot)
+            return snapshot
         except ConversationRejected as exc:
             raise HTTPException(exc.status_code, 'Conversation request rejected by owner') from None
         except OwnerUnavailable:
@@ -81,16 +108,16 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
                 context['pnu'] = located['pnu']
             if located['address']:
                 context['address'] = located['address']
-        # The 협업 장부: the person's message to the Orchestrator is one call of this conversation (its reply comes by polling).
-        turn = ledger.begin(from_agent='user', to_agent='orchestrator', tool='conversation', conversation_id=body.conversation_id, input_text=body.text) if ledger else None
+        # The 협업 장부: the person's message to the Orchestrator is one call of this conversation; it runs until its reply
+        # arrives by polling (`settle_turns`, matched by the message id).
+        turn = ledger.begin(from_agent='user', to_agent='orchestrator', tool='conversation', conversation_id=body.conversation_id, input_text=body.text,
+                            attrs={'message_id': body.message_id}) if ledger else None
         try:
             snapshot = await exchange(project_id, body.conversation_id, payload)
         except HTTPException as exc:
             if turn is not None:
                 ledger.finish(turn, status='ERROR', error_type=f'http_{exc.status_code}')
             raise
-        if turn is not None:
-            ledger.finish(turn, status='OK', state='working')
         if located is None:
             return snapshot
         return JSONResponse({**snapshot.model_dump(), 'located': located}, status_code=202)

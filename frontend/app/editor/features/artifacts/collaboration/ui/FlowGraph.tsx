@@ -1,7 +1,7 @@
 'use client'
 
 import '@xyflow/react/dist/style.css'
-import { Background, BackgroundVariant, BaseEdge, Controls, type Edge, EdgeLabelRenderer, type EdgeProps, type EdgeTypes, getSmoothStepPath, Handle, MarkerType, type Node, type NodeProps, type NodeTypes, Position, ReactFlow, ReactFlowProvider, type Rect, useNodesState, useReactFlow } from '@xyflow/react'
+import { Background, BackgroundVariant, Controls, type Edge, Handle, MarkerType, type Node, type NodeProps, type NodeTypes, Position, ReactFlow, ReactFlowProvider, type Rect, useNodesState, useReactFlow } from '@xyflow/react'
 import { MessagesSquare } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -82,29 +82,6 @@ function SaidNode({ data }: NodeProps<FlowNode>) {
 
 const nodeTypes: NodeTypes = { agent: AgentNode, said: SaidNode }
 
-type SaidEdgeData = { said: string; caption: string; kind: 'request' | 'response'; running: boolean }
-type SaidEdge = Edge<SaidEdgeData, 'said'>
-
-/** A request or answer as a card on its line: what was said, and under it which call and how many times. */
-function SaidEdgeView({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, markerEnd }: EdgeProps<SaidEdge>) {
-  const [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 10 })
-  return (
-    <>
-      <BaseEdge id={id} markerEnd={markerEnd} path={path} />
-      {data && (
-        <EdgeLabelRenderer>
-          <div className="collab-said nodrag nopan" data-kind={data.kind} data-running={data.running ? 'true' : 'false'} style={{ transform: `translate(-50%, ${data.kind === 'request' ? '-100%' : '0%'}) translate(${labelX}px, ${labelY + (data.kind === 'request' ? -6 : 6)}px)` }}>
-            <small>{data.caption}</small>
-            {data.said ? <p>{data.said}</p> : null}
-          </div>
-        </EdgeLabelRenderer>
-      )}
-    </>
-  )
-}
-
-const edgeTypes: EdgeTypes = { said: SaidEdgeView }
-
 /** Refits the view to the flow that ran (the waiting agents stay below, reachable by scrolling) when the cards are laid out again, never on a plain selection. */
 function Refit({ when, compact, bounds, size }: { when: unknown; compact: boolean; bounds: Rect | null; size: number | undefined }) {
   const { fitView, fitBounds } = useReactFlow()
@@ -166,6 +143,13 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     const spoken = edge.kind === 'request' || edge.kind === 'response'
     const back = edge.kind === 'response'
     const className = `collab-edge-${edge.kind}${edge.known ? '' : ' collab-edge-unknown'}${edge.running ? ' collab-edge-running' : ''}`
+    if (edge.sourceHandle && edge.targetHandle) {
+      // The wide flow: each line names the handles it leaves and enters by.
+      return {
+        id: edge.id, source: edge.source, target: edge.target, sourceHandle: edge.sourceHandle, targetHandle: edge.targetHandle, type: 'smoothstep', pathOptions: { borderRadius: 12, offset: 18 }, animated: spoken, className,
+        ...(spoken ? { markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: back ? 'var(--success)' : 'var(--accent)' } } : {}),
+      }
+    }
     if (edge.lane) {
       // The vertical flow: cards are nodes, so a line only needs the right handles for its lane.
       const isCard = (id: string) => id.startsWith('said:')
@@ -215,7 +199,6 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     <div className="collab-graph" data-compact={compact ? 'true' : 'false'} data-edge-count={edges.length} data-node-count={nodes.length} data-orientation={vertical ? 'vertical' : 'horizontal'} ref={host} style={height ? { blockSize: height } : undefined}>
       <ReactFlowProvider>
         <ReactFlow
-          edgeTypes={edgeTypes}
           edges={edges}
           elementsSelectable
           onInit={(instance) => { void (bounds ? instance.fitBounds(bounds, { padding: compact ? 0.25 : 0.12 }) : instance.fitView({ padding: compact ? 0.25 : 0.1 })) }}

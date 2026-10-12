@@ -1,3 +1,4 @@
+import { toolSpecLabel } from '@/lib/agents'
 import { actionLabel, agentLabel, evidenceLabel, stateLabel, toolLabel } from '@/lib/orchestrator-runs/labels'
 
 import type { CollaborationMessage } from './transcript'
@@ -24,7 +25,7 @@ export const CODE_NOTES: Record<string, string> = {
 export const codeNote = (code: string): string => CODE_NOTES[code] ?? evidenceLabel(code)
 
 /** Request arguments in the user's words; internal plumbing keys are not shown. */
-const ARG_LABELS: Record<string, string> = { pnu: '대지', building_type: '용도', assessment_date: '기준일', goal: '목표', query: '질문' }
+const ARG_LABELS: Record<string, string> = { pnu: '대지', building_type: '용도', assessment_date: '기준일', goal: '목표', query: '질문', question: '질문', law_name: '법령', article: '조문' }
 const HIDDEN_ARGS = new Set(['project', 'branch', 'idempotency_key', 'run_id', 'task_id', 'context_id', 'facts', 'source_versions'])
 
 /** Site fact keys as the user knows them. */
@@ -38,6 +39,20 @@ const CONFIDENCE: Record<string, string> = { measured: '실측', derived: '유�
 const confidenceLabel = (value: unknown) => (typeof value === 'string' && CONFIDENCE[value] ? CONFIDENCE[value] : null)
 /** A state node key in words: "requirements.structured_brief" → "requirements · structured brief". */
 const nodeLabel = (key: string) => key.replace(/\./g, ' · ').replace(/_/g, ' ')
+/** A tool answer's headline numbers as the user knows them, with their units. */
+const RESULT_FIELDS: ReadonlyArray<readonly [string, string, string]> = [
+  ['building_type', '용도', ''], ['bcr_pct', '건폐율', '%'], ['far_pct', '용적률', '%'], ['max_storeys', '최고', '층'], ['max_height_m', '높이', ' m'],
+  ['parcel_area_m2', '대지면적', '㎡'], ['ground_capacity_m2', '건축면적 한도', '㎡'], ['far_capacity_m2', '연면적 한도', '㎡'], ['elevation_m', '지표면', ' m'],
+]
+const number = (value: unknown) => (typeof value === 'number' ? value.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) : String(value))
+/** A 19-digit PNU as its lot number (`…1 0684 0001` → `684-1`, `산` for a mountain lot); anything else as given. */
+export function lotOf(value: unknown): string {
+  const pnu = String(value)
+  if (!/^\d{19}$/.test(pnu)) return short(value)
+  const main = Number(pnu.slice(11, 15))
+  const sub = Number(pnu.slice(15, 19))
+  return `${pnu[10] === '2' ? '산 ' : ''}${main}${sub ? `-${sub}` : ''}번지`
+}
 const clip = (text: string, max = 140) => (text.length > max ? `${text.slice(0, max - 1)}…` : text)
 
 const MAX_LINES = 8
@@ -64,6 +79,9 @@ const short = (value: unknown): string => {
 
 function requestLines(args: Record<string, unknown>): string[] {
   const lines: string[] = []
+  // The plain inputs read as one line (`대지 … · 기준일 …`), so the card's first line says what was asked about.
+  const plain = Object.entries(args).filter(([key]) => ARG_LABELS[key]).map(([key, value]) => `${ARG_LABELS[key]} ${key === 'pnu' ? lotOf(value) : short(value)}`)
+  if (plain.length) lines.push(plain.join(' · '))
   if (Array.isArray(args.parcels) && args.parcels.length > 1) lines.push(`필지 ${args.parcels.length}개`)
   if (isRecord(args.site_evidence)) lines.push('대지 근거를 함께 보냄')
   if (Array.isArray(args.open_issues) && args.open_issues.length) {
@@ -78,8 +96,7 @@ function requestLines(args: Record<string, unknown>): string[] {
   let others = 0
   for (const [key, value] of Object.entries(args)) {
     if (HIDDEN_ARGS.has(key) || key === 'parcels' || key === 'site_evidence' || key === 'open_issues' || key === 'dirty_nodes') continue
-    if (ARG_LABELS[key]) lines.push(`${ARG_LABELS[key]} ${short(value)}`)
-    else others += 1
+    if (!ARG_LABELS[key]) others += 1
   }
   // The Orchestrator's own bookkeeping (budgets, owners, dirty nodes …) stays in the record, not in the sentence.
   if (others) lines.push(`그 밖의 전달 항목 ${others}개 — 기록 원문에`)
@@ -118,6 +135,14 @@ function lawLines(body: Record<string, unknown>): string[] {
 function responseLines(body: Record<string, unknown>): string[] {
   const lines: string[] = []
   if (typeof body.summary === 'string' && body.summary) lines.push(body.summary)
+  const numbers = RESULT_FIELDS.filter(([key]) => body[key] !== undefined && body[key] !== null && typeof body[key] !== 'object').map(([key, label, unit]) => `${label} ${number(body[key])}${unit}`)
+  if (numbers.length) lines.push(numbers.join(' · '))
+  // A tool catalog or conversation contract: what the agent offers, by name.
+  if (Array.isArray(body.tools) && body.tools.length) {
+    // Only the tools the agents' folders name in words are listed; the rest are counted, never shown as ids.
+    const named = body.tools.map((tool) => (isRecord(tool) ? tool.name ?? tool.id : tool)).map((name) => (typeof name === 'string' ? toolSpecLabel(name) : null)).filter((label): label is string => !!label)
+    lines.push(`할 수 있는 일 ${body.tools.length}가지${named.length ? `: ${named.slice(0, 4).join(', ')}${named.length > 4 ? ' 등' : ''}` : ''}`)
+  }
   lines.push(...lawLines(body))
   if (typeof body.code === 'string' && body.code) lines.push(codeNote(body.code))
   if (Array.isArray(body.out_of_scope) && body.out_of_scope.length) lines.push(`오케스트레이터가 받지 않은 항목: ${body.out_of_scope.map((key) => factLabel(String(key))).join(', ')}`)
@@ -150,7 +175,10 @@ export function describeMessage(message: CollaborationMessage, names: Readonly<R
   const value = parse(message.text)
   const raw = rawOf(message.text, value)
   if (message.direction === 'request') {
-    const lines = isRecord(value) ? requestLines(value) : [message.text.slice(0, PREVIEW_CHARS)]
+    // An A2A call carries `{tool, args}`; what was asked is the args.
+    const args = isRecord(value) && typeof value.tool === 'string' ? (isRecord(value.args) ? value.args : {}) : value
+    const lines = isRecord(args) ? requestLines(args) : [message.text.slice(0, PREVIEW_CHARS)]
+    if (!lines.length && message.tool) lines.push(`${toolLabel(message.tool)} — 따로 넘긴 값 없음`)
     return { headline: message.tool ? `${who} · ${toolLabel(message.tool)} 요청` : `${who} · 요청`, lines: lines.slice(0, MAX_LINES), raw, truncated: message.truncated }
   }
   const headline = message.tool ? `${who} · ${toolLabel(message.tool)} · ${stateLabel(message.state)}` : `${who} · ${stateLabel(message.state)}`

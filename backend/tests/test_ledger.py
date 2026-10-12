@@ -147,3 +147,24 @@ def test_the_ask_door_records_the_persons_question_and_the_skill_it_routed_to_un
     assert rows[1]['parent_span_id'] == rows[0]['span_id'] and rows[1]['task_id'] == 'task-9'
     assert message_text(rows[0]['input_messages']) == '조경 의무 면적' and '제42조' in message_text(rows[1]['output_messages'])
     assert ledger.rows(conversation_id='conv-2') == []
+
+
+def test_a_persons_message_runs_until_its_reply_is_in_the_conversation_then_ends_with_that_reply(tmp_path):
+    from backend.app.modules.platform.routers.conversation import settle_turns
+    from backend.app.schemas.conversation import ConversationSnapshot
+
+    ledger = Ledger(tmp_path)
+    ledger.begin(from_agent='user', to_agent='orchestrator', tool='conversation', conversation_id='c1', input_text='건폐율은?', attrs={'message_id': 'm1'})
+    ledger.begin(from_agent='user', to_agent='orchestrator', tool='conversation', conversation_id='c1', input_text='높이는?', attrs={'message_id': 'm2'})
+
+    def snapshot(status, messages, error=None):
+        return ConversationSnapshot(owner_project_id='p', branch_id='main', conversation_id='c1', revision=1, status=status, artifacts=[], error=error,
+                                    messages=[{'id': i, 'role': role, 'agent': agent, 'text': text, 'at': '2026-10-12T00:00:00Z'} for i, role, agent, text in messages])
+
+    settle_turns(ledger, snapshot('working', [('m1', 'user', None, '건폐율은?'), ('a1', 'assistant', 'law', '60%')]))
+    assert all(row['ts_end'] is None for row in ledger.rows(conversation_id='c1')), 'a reply still being written leaves the call running'
+    settle_turns(ledger, snapshot('working', [('m1', 'user', None, '건폐율은?'), ('a1', 'assistant', 'law', '60%'), ('m2', 'user', None, '높이는?')]))
+    first, second = ledger.rows(conversation_id='c1')
+    assert first['state'] == 'completed' and message_text(first['output_messages']) == '60%' and second['ts_end'] is None
+    settle_turns(ledger, snapshot('failed', [('m1', 'user', None, '건폐율은?'), ('a1', 'assistant', 'law', '60%'), ('m2', 'user', None, '높이는?')], error='owner_failed'))
+    assert ledger.rows(conversation_id='c1')[1]['status'] == 'ERROR' and ledger.open_calls(conversation_id='c1', tool='conversation') == []

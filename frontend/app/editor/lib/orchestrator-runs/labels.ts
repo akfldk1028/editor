@@ -64,6 +64,9 @@ export function toolLabel(tool: string | null | undefined): string {
   if (!tool) return '—'
   if (DOOR_LABELS[tool]) return DOOR_LABELS[tool]!
   if (tool.endsWith('_health')) return `${agentLabel(toolOwner(tool) ?? tool.slice(0, -'_health'.length))} 상태 확인`
+  // The lookups every agent carries for the Orchestrator's conversation engine: what it can do, and how to talk to it.
+  if (tool.endsWith('_tool_catalog')) return '할 수 있는 일 확인'
+  if (tool.endsWith('_conversation_contract')) return '대화 방식 확인'
   return toolSpecLabel(tool) ?? tool
 }
 

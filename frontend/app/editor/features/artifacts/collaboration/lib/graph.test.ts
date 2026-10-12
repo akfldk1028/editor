@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { buildGraph, callOrder, GAP_X, NODE_WIDTH } from './graph'
+import { buildGraph, CARD_WIDTH, callOrder, type GraphNode, NODE_WIDTH, SLOT } from './graph'
 import type { CollaborationMessage } from './transcript'
 
 const message = (over: Partial<CollaborationMessage>): CollaborationMessage => ({
@@ -20,9 +20,9 @@ test('an empty catalog with no records draws nothing; the call order is the orde
   expect(callOrder(run)).toEqual(['site_context', 'law', 'revision'])
 })
 
-test('the flow reads left to right as it ran: person → Orchestrator → Site → Law → Revision, numbered; the uncalled agent waits below, dimmed', () => {
+test('a wide canvas fans out from the Orchestrator: one row per agent in call order, the request card over the answer card, no line across another agent', () => {
   const { nodes, edges } = buildGraph(run, 'law', { catalog, live: { law: 'up', mass: 'down' } })
-  expect(nodes.map((node) => [node.id, node.kind, node.order, node.idle, node.selected, node.live])).toEqual([
+  expect(nodes.filter((node) => node.kind !== 'said').map((node) => [node.id, node.kind, node.order, node.idle, node.selected, node.live])).toEqual([
     ['user', 'user', null, false, false, null],
     ['orchestrator', 'hub', null, false, false, null],
     ['site_context', 'agent', 1, false, false, null],
@@ -30,23 +30,34 @@ test('the flow reads left to right as it ran: person → Orchestrator → Site �
     ['revision', 'agent', 3, false, false, null],
     ['mass', 'agent', null, true, false, 'down'],
   ])
-  const [user, hub, site, law, revision, mass] = nodes as [typeof nodes[number], typeof nodes[number], typeof nodes[number], typeof nodes[number], typeof nodes[number], typeof nodes[number]]
+  const at = (id: string) => nodes.find((node) => node.id === id)!
+  const [user, hub, site, law, revision, mass] = ['user', 'orchestrator', 'site_context', 'law', 'revision', 'mass'].map(at) as [GraphNode, GraphNode, GraphNode, GraphNode, GraphNode, GraphNode]
   expect(user.position.x).toBeLessThan(hub.position.x)
-  expect([hub.position.x, site.position.x, law.position.x, revision.position.x]).toEqual([0, NODE_WIDTH + GAP_X, 2 * (NODE_WIDTH + GAP_X), 3 * (NODE_WIDTH + GAP_X)])
-  expect([site.position.y, law.position.y, revision.position.y]).toEqual([0, 0, 0])
-  expect(mass.position.y).toBeGreaterThan(law.position.y + 84)
+  // Every called agent stands in one column right of the Orchestrator, a row each, in the order it was called.
+  expect(new Set([site, law, revision].map((node) => node.position.x)).size).toBe(1)
+  expect(site.position.x).toBeGreaterThan(hub.position.x + NODE_WIDTH + CARD_WIDTH)
+  expect(site.position.y).toBeLessThan(law.position.y)
+  expect(law.position.y).toBeLessThan(revision.position.y)
+  // Each row's request card sits over its answer card, between the Orchestrator and the agent.
+  const request = at('said:orchestrator→law')
+  const answer = at('said:law→orchestrator')
+  expect(request.position.x).toBe(answer.position.x)
+  expect(answer.position.y).toBe(request.position.y + SLOT)
+  expect(request.position.x).toBeGreaterThan(hub.position.x + NODE_WIDTH)
+  expect(request.position.x + CARD_WIDTH).toBeLessThan(law.position.x)
+  expect(mass.position.y).toBeGreaterThan(revision.position.y + 84)
   expect(hub.sub).toBe('요청 3건 · 응답 2건')
   expect(law.sub).toBe('60/250')
   expect(mass.sub).toBe('')
-  expect(edges.filter((edge) => edge.kind === 'next').map((edge) => [edge.source, edge.target, edge.label])).toEqual([
-    ['site_context', 'law', '2번째'], ['law', 'revision', '3번째'],
+  // No 'next' lines: the numbers on the cards carry the order.
+  expect(edges.some((edge) => edge.kind === 'next')).toBe(false)
+  expect(edges.find((edge) => edge.kind === 'user')).toMatchObject({ source: 'user', target: 'orchestrator', sourceHandle: 'out', targetHandle: 'in' })
+  expect(edges.filter((edge) => edge.id.startsWith('orchestrator→law') || edge.id.startsWith('law→orchestrator')).map((edge) => [edge.source, edge.sourceHandle, edge.target, edge.targetHandle])).toEqual([
+    ['orchestrator', 'out', 'said:orchestrator→law', 't-left'], ['said:orchestrator→law', 's-right', 'law', 'in'],
+    ['law', 'back', 'said:law→orchestrator', 't-right'], ['said:law→orchestrator', 's-left', 'orchestrator', 'return'],
   ])
-  expect(edges.find((edge) => edge.kind === 'user')).toMatchObject({ source: 'user', target: 'orchestrator' })
-  expect(edges.filter((edge) => edge.kind === 'request' || edge.kind === 'response').map((edge) => [edge.source, edge.target, edge.label, edge.said])).toEqual([
-    ['orchestrator', 'site_context', '대지 사실 확인 요청 1건', ''], ['site_context', 'orchestrator', '응답 1건', '6/9'],
-    ['orchestrator', 'law', '법규 한계 요청 1건', ''], ['law', 'orchestrator', '응답 1건 · 전송 미확인', '60/250'],
-    ['orchestrator', 'revision', '재검토 판정 요청 1건', ''],
-  ])
+  expect(at('said:law→orchestrator').said).toMatchObject({ text: '60/250', known: false })
+  expect(at('said:orchestrator→revision').said?.caption).toBe('Orchestrator Agent → Revision Agent · 재검토 판정 요청')
 })
 
 test('what was said is on the canvas: the person’s question on their card and on the line to the Orchestrator, the answer on the line back', () => {
@@ -59,10 +70,14 @@ test('what was said is on the canvas: the person’s question on their card and 
   const { nodes, edges } = buildGraph(talk, null, { catalog: [{ id: 'law' }] })
   expect(nodes.find((node) => node.id === 'user')?.sub).toBe('조경 의무 면적은 몇 퍼센트야?')
   expect(nodes.find((node) => node.id === 'orchestrator')?.sub).toBe('조경은 건축법 제42조가 정해요.')
-  expect(edges.find((edge) => edge.id === 'user→orchestrator')?.said).toBe('조경 의무 면적은 몇 퍼센트야?')
-  expect(edges.find((edge) => edge.id === 'orchestrator→law')?.said).toBe('질문 건축법 제42조 조경 기준')
-  expect(edges.find((edge) => edge.id === 'law→orchestrator')?.said).toBe('조문 1건: 건축법 제42조 (대지의 조경)')
-  expect(edges.find((edge) => edge.id === 'orchestrator→user')?.said).toBe('조경은 건축법 제42조가 정해요.')
+  const said = (id: string) => nodes.find((node) => node.id === `said:${id}`)?.said?.text
+  expect(said('user→orchestrator')).toBe('조경 의무 면적은 몇 퍼센트야?')
+  expect(said('orchestrator→law')).toBe('질문 건축법 제42조 조경 기준')
+  expect(said('law→orchestrator')).toBe('조문 1건: 건축법 제42조 (대지의 조경)')
+  expect(said('orchestrator→user')).toBe('조경은 건축법 제42조가 정해요.')
+  // The person's question sits above the reply, both between the person and the Orchestrator.
+  expect(nodes.find((node) => node.id === 'said:user→orchestrator')!.position.y).toBeLessThan(nodes.find((node) => node.id === 'said:orchestrator→user')!.position.y)
+  expect(edges.some((edge) => edge.id.startsWith('orchestrator→user') && edge.source === 'orchestrator' && edge.sourceHandle === 'back')).toBe(true)
 })
 
 test('a narrow canvas stacks the flow: person, their words, Orchestrator, each call’s card, the agent, its answer; requests go down the left lane, answers return on the right', () => {

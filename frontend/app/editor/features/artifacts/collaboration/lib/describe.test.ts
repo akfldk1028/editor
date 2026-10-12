@@ -11,7 +11,7 @@ const message = (over: Partial<CollaborationMessage> = {}): CollaborationMessage
 test('a request reads as who asked whom for what, with the arguments in the user\'s words and plumbing hidden', () => {
   const described = describeMessage(message({ text: JSON.stringify({ branch: 'main', project: 'p', parcels: ['1', '2'], pnu: '1168010100107370000', building_type: '업무시설', assessment_date: '2026-10-09' }) }))
   expect(described.headline).toBe('Orchestrator Agent → Site Agent · 대지 사실 확인 요청')
-  expect(described.lines).toEqual(['필지 2개', '대지 1168010100107370000', '용도 업무시설', '기준일 2026-10-09'])
+  expect(described.lines).toEqual(['대지 737번지 · 용도 업무시설 · 기준일 2026-10-09', '필지 2개'])
   expect(described.raw).not.toContain('"branch"' + ' hidden')
 })
 
@@ -57,4 +57,16 @@ test('a Law search answer names its provisions and quotes the first one', () => 
       { law_name: '건축법', article: '제42조', content: '대지에는 조경이나 그 밖에 필요한 조치를 하여야 한다.' },
     ], stats: {} }) })
   expect(described.lines).toEqual(['조문 2건: 빈집 및 소규모주택 정비에 관한 특례법 제46조 · 건축법 제42조', '1. 「건축법」 제42조에 따른 대지의 조경기준'])
+})
+
+test('an A2A call reads by its args; a catalog lists what the agent offers; a tool answer leads with its numbers', () => {
+  const asked = describeMessage(message({ to: 'law', tool: 'law_parcel_limits', text: JSON.stringify({ tool: 'law_parcel_limits', args: { pnu: '4115011300106840001', assessment_date: '2026-10-09' } }) }))
+  expect(asked.lines[0]).toBe('대지 684-1번지 · 기준일 2026-10-09')
+  const lookup = describeMessage(message({ to: 'law', tool: 'law_tool_catalog', text: JSON.stringify({ tool: 'law_tool_catalog', args: {} }) }))
+  expect(lookup.headline).toBe('Orchestrator Agent → Law Agent · 할 수 있는 일 확인 요청')
+  expect(lookup.lines).toEqual(['할 수 있는 일 확인 — 따로 넘긴 값 없음'])
+  const catalog = describeMessage(message({ direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_tool_catalog', text: JSON.stringify({ schema_version: 'tool-catalog/v1', instructions: '…', tools: [{ name: 'law_parcel_limits' }, { name: 'law_search' }, { name: 'law_unnamed_tool' }] }) }))
+  expect(catalog.lines).toEqual(['할 수 있는 일 3가지: 법규 한계, 법령 검색'])
+  const limits = describeMessage(message({ direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_parcel_limits', text: JSON.stringify({ pnu: 'x', building_type: '업무시설', bcr_pct: 60, far_pct: 250, max_storeys: 5, parcel_area_m2: 2499.691, policy: {} }) }))
+  expect(limits.lines[0]).toBe('용도 업무시설 · 건폐율 60% · 용적률 250% · 최고 5층 · 대지면적 2,499.7㎡')
 })
