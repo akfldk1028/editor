@@ -97,3 +97,6 @@
   .system-cell > span { white-space: normal; overflow-wrap: anywhere; }
   .system-hint { grid-column: 2; }
 }
+
+.system-note code { font: inherit; color: var(--muted); }
+.system-link { margin-inline-start: 6px; border: 0; padding: 0; color: var(--accent); background: transparent; font: inherit; font-size: var(--fs-2); cursor: pointer; text-decoration: underline; }

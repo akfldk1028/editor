@@ -1,5 +1,10 @@
-import type { RunSummary } from './runs';
+import type { RunSummary } from '@/lib/orchestrator-runs/types'
 
+/**
+ * The design page's view of an Orchestrator run as a MAS transcript (moved verbatim from the retired
+ * features/agent-dialogue/transcript.ts, 2026-10-12). The 협업 artifact owns the current reading
+ * (features/artifacts/collaboration/lib/transcript.ts); this stays until the design page is folded in.
+ */
 export interface MASDialogueMessage {
   id: string;
   step: number;

@@ -21,8 +21,8 @@ export const productRoutes: readonly ProductRoute[] = [
   { href: '/agents', label: 'Agents', sidebarLabel: 'A2A Agents' },
   { href: '/playground', label: 'Playground' },
   { href: '/mcp', label: 'MCP Workbench' },
-  { href: '/dialogue', label: '협업 대화', sidebarLabel: '에이전트 협업 대화' },
-  { href: '/flow', label: '협업 흐름도' },
+  // 협업 대화·흐름도는 /dwg의 협업 아티팩트로 들어갔다(2026-10-12); 전문가 검토 실행만 design 단계까지 여기 남는다.
+  { href: '/dialogue', label: '전문가 검토(임시)', sidebarLabel: '전문가 검토(임시)' },
   { href: '/build', label: 'Team Builder' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/history', label: 'History' },

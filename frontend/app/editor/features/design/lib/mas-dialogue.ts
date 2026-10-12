@@ -60,8 +60,8 @@ export async function fetchMASDialogue(pnu?: string | null): Promise<MASCollabor
   const runId = query.get('run_id');
   if (!projectId || !runId) return emptyTranscript(pnu || '', 'Project and run not selected');
   try {
-    const [{ listProjects }, { getRun }, { toTranscript }] = await Promise.all([
-      import('../../agent-dialogue/projects'), import('../../agent-dialogue/runs'), import('../../agent-dialogue/transcript'),
+    const [{ listProjects, getRun }, { toTranscript }] = await Promise.all([
+      import('@/lib/orchestrator-runs/api'), import('./run-transcript'),
     ]);
     const binding = (await listProjects()).find(project => project.project_id === projectId);
     if (!binding) throw new Error('Project binding not found');

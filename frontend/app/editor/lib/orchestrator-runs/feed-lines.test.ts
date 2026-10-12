@@ -315,14 +315,15 @@ test('the prompt asks 법규를 보시겠어요 with 법규 보기 opening the l
   expect(held.actions).toEqual([
     { label: '법규 검토 결과 보기', artifact: 'law', params: { pnu: '4115011300106840001', tab: 'orchestrator', address: '산곡동 684-1', project: 'p1' } },
     { label: '관련 법규 보기', artifact: 'law', params: { pnu: '4115011300106840001', tab: 'articles', address: '산곡동 684-1', project: 'p1' } },
+    { label: '협업 흐름 보기', artifact: 'collaboration', params: { project: 'p1', run: 'r', tab: 'log' } },
     { label: '나중에' },
   ])
   expect(resultPrompt(results({ law: null }), target).text).toBe('근거가 부족해 법규 한계를 확정하지 못했어요. 법규를 보시겠어요?')
   expect(resultPrompt(results({ status: 'completed', review: null, missing_evidence_all: [] }), { pnu: 'x' }).text).toBe('법규 검토가 끝났어요. 법규를 보시겠어요?')
-  expect(resultPrompt(results({ status: 'completed', review: null, missing_evidence_all: [] }), { pnu: 'x' }).actions.map((action) => action.label)).toEqual(['법규 검토 결과 보기', '관련 법규 보기', '나중에'])
+  expect(resultPrompt(results({ status: 'completed', review: null, missing_evidence_all: [] }), { pnu: 'x' }).actions.map((action) => action.label)).toEqual(['법규 검토 결과 보기', '관련 법규 보기', '협업 흐름 보기', '나중에'])
   const failed = resultPrompt(results({ status: 'failed' }), target)
   expect(failed.text).toBe('검토가 실패했어요. 어디서 멈췄는지 법규 패널에서 보시겠어요?')
-  expect(failed.actions.map((action) => action.label)).toEqual(['법규 검토 결과 보기', '시스템 보기', '나중에'])
+  expect(failed.actions.map((action) => action.label)).toEqual(['법규 검토 결과 보기', '협업 흐름 보기', '시스템 보기', '나중에'])
 })
 
 test('the law line carries the caps and floors as the UI shows them (the area lives in the tiles)', () => {

@@ -1,0 +1,71 @@
+/*
+ * 협업 artifact. Shell tokens only (--artifact, --panel-raised, --border-soft, --ink, --muted, --accent,
+ * --success, --warning, --shadow) and the shell's 11/12/14/16 type scale, so the graph is white in the
+ * light theme and follows the dark theme on its own.
+ */
+.collab-artifact { container: collab-artifact / inline-size; min-inline-size: 0; min-block-size: 0; overflow: auto; padding: 16px; color: var(--ink); background: var(--artifact); display: grid; gap: 14px; align-content: start; }
+.collab-note { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: var(--fs-2); }
+.collab-note[data-kind="error"] { color: var(--warning); }
+
+.collab-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.collab-head h2 { margin: 0; font-size: var(--fs-3); font-weight: 600; }
+.collab-head .collab-ids { color: var(--muted); font-size: var(--fs-1); }
+.collab-head code { font: inherit; }
+.collab-status { padding: 3px 10px; border-radius: 999px; font-size: var(--fs-1); font-weight: 600; color: var(--muted); background: var(--subtle); }
+.collab-status[data-tone="ok"] { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
+.collab-status[data-tone="warn"] { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
+.collab-status[data-tone="busy"] { color: var(--accent); background: var(--accent-soft); }
+
+/* Graph */
+.collab-graph { position: relative; block-size: 420px; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel-raised); overflow: hidden; }
+.collab-graph[data-compact="true"] { block-size: 320px; }
+.collab-graph .react-flow__attribution { display: none; }
+.collab-graph .react-flow__background { color: var(--border-soft); }
+.collab-graph .react-flow__controls { box-shadow: none; border: 1px solid var(--border-soft); border-radius: var(--radius-s); overflow: hidden; background: var(--panel-raised); }
+.collab-graph .react-flow__controls-button { border-block-end: 1px solid var(--border-soft); background: var(--panel-raised); color: var(--ink); }
+.collab-graph .react-flow__controls-button:hover { background: var(--hover); }
+.collab-graph .react-flow__controls-button svg { fill: var(--ink); }
+.collab-graph .react-flow__edge-path { stroke: var(--muted); stroke-width: 1.6px; }
+.collab-graph .react-flow__edge.collab-edge-request .react-flow__edge-path { stroke: var(--accent); }
+.collab-graph .react-flow__edge.collab-edge-response .react-flow__edge-path { stroke: var(--success); }
+.collab-graph .react-flow__edge.collab-edge-unknown .react-flow__edge-path { stroke-dasharray: 5 4; }
+.collab-graph .react-flow__edge-textbg { fill: var(--panel-raised); }
+.collab-graph .react-flow__edge-text { fill: var(--ink); font-size: 11px; font-weight: 600; }
+.collab-graph .react-flow__handle { inline-size: 7px; block-size: 7px; border: 1px solid var(--panel-raised); background: var(--muted); }
+.collab-graph .react-flow__node { cursor: pointer; }
+
+.collab-node { inline-size: 224px; min-block-size: 92px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel-raised); box-shadow: var(--shadow); color: var(--ink); }
+.collab-node[data-hub="true"] { border-color: var(--accent); }
+.collab-node[data-selected="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+.collab-node header { display: flex; align-items: center; gap: 8px; font-size: var(--fs-2); font-weight: 600; }
+.collab-node header svg { flex: none; color: var(--muted); }
+.collab-node[data-hub="true"] header svg { color: var(--accent); }
+.collab-node p { margin: 0; color: var(--muted); font-size: var(--fs-1); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.collab-empty { display: grid; place-items: center; gap: 6px; padding: 32px 16px; color: var(--muted); font-size: var(--fs-2); text-align: center; }
+.collab-empty svg { color: var(--muted); }
+
+/* Record */
+.collab-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; max-inline-size: 760px; }
+.collab-log li { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel-raised); max-inline-size: 92%; }
+.collab-log li[data-direction="response"] { justify-self: end; border-color: color-mix(in srgb, var(--success) 35%, var(--border-soft)); }
+.collab-log li[data-direction="request"] { border-color: color-mix(in srgb, var(--accent) 35%, var(--border-soft)); }
+.collab-log header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: var(--fs-2); font-weight: 600; }
+.collab-log header small { color: var(--muted); font-size: var(--fs-1); font-weight: 500; }
+.collab-log ul { margin: 0; padding-inline-start: 18px; color: var(--ink); font-size: var(--fs-2); line-height: 1.55; }
+.collab-log details { font-size: var(--fs-1); color: var(--muted); }
+.collab-log summary { cursor: pointer; }
+.collab-log pre { margin: 6px 0 0; padding: 8px; max-block-size: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: var(--radius-s); background: var(--subtle); color: var(--ink); font-size: var(--fs-1); }
+.collab-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+.collab-filter button { border: 1px solid var(--border-soft); border-radius: 999px; padding: 3px 10px; font: inherit; font-size: var(--fs-1); color: var(--muted); background: transparent; cursor: pointer; }
+.collab-filter button[aria-pressed="true"] { color: var(--ink); border-color: var(--accent); background: var(--accent-soft); }
+
+/* Runs */
+.collab-runs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-inline-size: 760px; }
+.collab-runs button { inline-size: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 12px; text-align: start; border: 1px solid var(--border-soft); border-radius: var(--radius-s); background: var(--panel-raised); color: var(--ink); font: inherit; font-size: var(--fs-2); cursor: pointer; }
+.collab-runs button:hover { background: var(--hover); }
+.collab-runs button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.collab-runs button code { color: var(--muted); font-size: var(--fs-1); }
+.collab-project { display: grid; gap: 4px; color: var(--muted); font-size: var(--fs-1); max-inline-size: 420px; }
+.collab-project select { min-block-size: 28px; color: var(--ink); background: var(--subtle); border: 1px solid var(--border-soft); border-radius: var(--radius-s); font-size: var(--fs-2); }
+.collab-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.collab-link { border: 0; padding: 0; color: var(--accent); background: transparent; font: inherit; font-size: var(--fs-2); cursor: pointer; text-decoration: underline; }

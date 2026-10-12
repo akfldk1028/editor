@@ -583,3 +583,19 @@ be told to the Orchestrator session.
   250 % 이하·최고층수 5층 이하 (image `agents/MassAgent/docs/reports/legal-sources/gosan-9-guidelines-public-office.png`).
   Tests: ordinance_reading 4. Next: the same reading for 도시계획 조례·주차장 조례 (ORDINANCE_KINDS + QUESTIONS lines), the
   review panel showing the `ordinance` block per item, and the Law Agent reading these items instead of the editor.
+- 2026-10-12 (night) the header folds into /dwg, one artifact at a time — starting with 협업. The user: "헤더에
+  있는 거 하나씩 없애자, 여기(/dwg)에 다 통합, GPT·Claude처럼" and "어떤 대화하는지 다 알 수 있게, 배경 흰색".
+  New artifact `features/artifacts/collaboration/` (manifest + lib/{transcript,describe,graph,status} pure+tested,
+  model/useCollaboration, ui/{CollaborationArtifact,FlowGraph,Transcript,RunList} + collaboration.css on shell tokens):
+  a run's agent-to-agent record as a white-card React Flow graph (Orchestrator left, agents right, 요청/응답 edges),
+  as readable messages (who → whom · tool · state, arguments and answers in words, coordinates never, 기록 원문 on
+  demand), and the project's runs. The law 검토 결과 tab embeds the compact graph + "협업 패널에서 대화 기록 보기";
+  the feed's result prompt offers 협업 흐름 보기. Removed: `/flow` route and `features/agent-flow/*`,
+  agent-dialogue's MASDialoguePanel/transcript/communications/HealthExecution/pending-health (health run now lives in
+  the system artifact: lib/pending-health + model/useHealthRun + 연결 점검 실행 button). `/dialogue` stays as
+  전문가 검토(임시) until the design page is folded in; design's MAS transcript adapter moved verbatim to
+  `features/design/lib/run-transcript.ts`. Ledger of where every other header item goes: plan file
+  `agile-doodling-emerson.md` (AG Studio pages retire, user decision). Observed on the way: a `limits` run without
+  building_type stops in waiting_input before any agent call; Site's 6/9 `partial` answer is dropped by the
+  Orchestrator (`site_patch_out_of_scope` for `site.zoning`) and that code never reaches the communication record —
+  the editor can only say "Site 단계에서 멈춤 (이유는 기록에 없음)" until the door carries the adapter's code.

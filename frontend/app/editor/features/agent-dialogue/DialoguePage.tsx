@@ -3,20 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { listProjects, type ProjectBinding } from './projects';
 import { getRun, listRuns, type RunSummary } from './runs';
-import { toTranscript } from './transcript';
-import MASDialoguePanel from './MASDialoguePanel';
 import { ProjectConnection } from './ProjectConnection';
-import { HealthExecution } from './HealthExecution';
 import { SpecialistReviewExecution } from './SpecialistReviewExecution';
 import { SceneRevisionRefresh } from './SceneRevisionRefresh';
 import { currentConversation, restoreConversationProject } from '@/lib/design-conversation/session';
 
-const RunFlow = dynamic(() => import('../agent-flow/RunFlow'), { ssr: false });
-
-export default function DialoguePage({ projectId, runId, view = 'dialogue' }: { projectId: string; runId: string; view?: 'dialogue' | 'flow' }) {
+/**
+ * 전문가 검토(임시): the specialist-review runner that stays until the design page is folded into /dwg.
+ * The run's collaboration record itself is read in the /dwg 협업 artifact (features/artifacts/collaboration).
+ */
+export default function DialoguePage({ projectId, runId }: { projectId: string; runId: string }) {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectBinding[]>([]);
   const [runs, setRuns] = useState<RunSummary[]>([]);
@@ -64,15 +62,13 @@ export default function DialoguePage({ projectId, runId, view = 'dialogue' }: { 
     const query = new URLSearchParams();
     if (project) query.set('project_id', project);
     if (selectedRun) query.set('run_id', selectedRun);
-    router.replace(`/${view}${query.size ? '?' + query : ''}`);
+    router.replace(`/dialogue${query.size ? '?' + query : ''}`);
   }
   const selectClass = 'rounded-lg border border-(--color-border-default) bg-(--color-surface-card) p-2 text-(--color-text-primary)';
   const project = projects.find(p => p.project_id === projectId);
   return <div className="space-y-4">
-    <h1 className="text-heading-medium text-(--color-text-primary)">{view === 'flow' ? '에이전트 협업 흐름도' : '에이전트 협업 대화'}</h1>
-    <nav aria-label="대화 표시 방식" className="flex gap-4 text-(--color-text-secondary)">
-      {(['dialogue', 'flow'] as const).map(mode => <Link key={mode} aria-current={view === mode ? 'page' : undefined} href={`/${mode}?${new URLSearchParams({ project_id: projectId, run_id: runId })}`}>{mode === 'flow' ? '협업 흐름도' : '대화 타임라인'}</Link>)}
-    </nav>
+    <h1 className="text-heading-medium text-(--color-text-primary)">전문가 검토 (임시)</h1>
+    <p className="text-(--color-text-secondary)">에이전트가 주고받은 대화와 흐름도는 <Link className="underline" href="/dwg?artifact=collaboration">CAD · DWG의 협업 패널</Link>에서 봅니다. 여기에는 전문가 검토 실행만 남아 있어요.</p>
     <ProjectConnection onConnected={p => { navigate(p.project_id); setRefresh(v => v + 1); }} />
     <div className="flex flex-wrap gap-3">
       <label className="text-(--color-text-secondary)">프로젝트 <select aria-label="프로젝트 선택" className={selectClass} value={projectId} onChange={e => navigate(e.target.value)}>
@@ -86,12 +82,10 @@ export default function DialoguePage({ projectId, runId, view = 'dialogue' }: { 
       <button type="button" className={selectClass} disabled={loading} onClick={() => setRefresh(v => v + 1)}>목록 새로고침</button>
     </div>
     {project && !error && <SceneRevisionRefresh key={`scene:${project.project_id}:${project.scene_revision}`} project={project} onRefreshed={() => setRefresh(v => v + 1)} />}
-    {project && !error && <HealthExecution key={`${project.project_id}:${project.scene_revision}`} project={project} onSubmitted={id => navigate(project.project_id, id)} />}
     {project && !error && <Link className="inline-block underline text-(--color-text-primary)" href={`/scene/${encodeURIComponent(project.scene_id)}`}>현재 프로젝트 3D 장면 열기</Link>}
     {project && !error && <SpecialistReviewExecution key={`review:${project.project_id}:${project.owner_project_id}:${project.branch_id}:${project.scene_id}:${project.scene_revision}`} project={project} followupRun={run} onSubmitted={id => navigate(project.project_id, id)} />}
     {error && <p role="alert" className="text-red-500">{error}</p>}
     {loading && !run && <p role="status">대화 기록을 불러오는 중입니다...</p>}
     {!loading && !error && !run && <p role="status">{projectId && runs.length === 0 ? '이 프로젝트에 저장된 실행이 없습니다.' : '프로젝트와 실행을 선택하면 저장된 요청·응답을 표시합니다.'}</p>}
-    {run && (view === 'flow' ? <RunFlow key={`${projectId}:${runId}`} projectId={projectId} run={run} /> : <MASDialoguePanel key={`${projectId}:${runId}`} transcript={toTranscript(projectId, run)} loading={loading} onRefresh={() => setRefresh(v => v + 1)} />)}
   </div>;
 }

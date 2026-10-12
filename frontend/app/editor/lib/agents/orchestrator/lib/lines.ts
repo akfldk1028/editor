@@ -203,22 +203,23 @@ export function resultLine(results: RunResults): string {
 export function resultPrompt(results: RunResults, target: LawTarget): { text: string; actions: FeedAction[] } {
   const law: FeedAction = { label: '법규 검토 결과 보기', artifact: 'law', params: lawParams(target, 'orchestrator') }
   const related: FeedAction = { label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }
+  const flow: FeedAction = { label: '협업 흐름 보기', artifact: 'collaboration', params: { ...(target.project ? { project: target.project } : {}), ...(results.run_id ? { run: results.run_id } : {}), tab: 'log' } }
   const later: FeedAction = { label: '나중에' }
   if (results.status === 'waiting_input') {
     const asked = askedFieldsLabel(results.pending_fields) || '조건'
     return { text: `${asked}를 고르고 다시 검토를 누르면 대지 → 법규 순서로 이어가요. 법규 패널에서 채우시겠어요?`, actions: [{ ...law, label: '조건 채우기' }, later] }
   }
   if (results.status === 'failed') {
-    return { text: '검토가 실패했어요. 어디서 멈췄는지 법규 패널에서 보시겠어요?', actions: [law, { label: '시스템 보기', artifact: 'system' }, later] }
+    return { text: '검토가 실패했어요. 어디서 멈췄는지 법규 패널에서 보시겠어요?', actions: [law, flow, { label: '시스템 보기', artifact: 'system' }, later] }
   }
   if (verdictLabel(results.status, results.review?.code).includes('근거')) {
     const numbers = results.law && (results.law.bcr_pct !== null || results.law.far_pct !== null)
     return {
       text: numbers ? '법규 한계는 나왔지만 근거가 더 필요해요. 법규를 보시겠어요?' : '근거가 부족해 법규 한계를 확정하지 못했어요. 법규를 보시겠어요?',
-      actions: [law, related, later],
+      actions: [law, related, flow, later],
     }
   }
-  return { text: '법규 검토가 끝났어요. 법규를 보시겠어요?', actions: [law, related, later] }
+  return { text: '법규 검토가 끝났어요. 법규를 보시겠어요?', actions: [law, related, flow, later] }
 }
 
 /**

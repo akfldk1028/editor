@@ -2,6 +2,7 @@
 
 import { Check, ExternalLink, Play, RotateCcw, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { useMemo } from 'react'
 
 import { actionLabel, agentForTool, agentLabel, askedFieldsLabel, evidenceLabel, isTerminal, stateLabel, statusLabel, toolLabel, traceLabel } from '@/lib/orchestrator-runs/labels'
 import { failureText } from '@/lib/orchestrator-runs/submit'
@@ -9,6 +10,8 @@ import type { RunResults, RunStep, RunSummary } from '@/lib/orchestrator-runs/ty
 import { ConditionsRow } from '@/lib/orchestrator-runs/ui/ConditionsRow'
 
 import type { ShellApi } from '../../../shell/artifact-types'
+import { runStatusLine, runTone } from '../../collaboration/lib/status'
+import { toTranscript } from '../../collaboration/lib/transcript'
 import { compareLaw, differingRows } from '../lib/orchestrator-compare'
 import type { Summary } from '../lib/summary'
 import { useOrchestratorReview } from '../model/useOrchestratorReview'
@@ -26,8 +29,8 @@ interface Props {
 /** The pipeline a `limits` run walks; a step not yet in the communications shows as 대기. */
 const PIPELINE = ['site_resolve', 'law_parcel_limits', 'revision_triage'] as const
 const base = () => process.env.NEXT_PUBLIC_BASE_PATH || ''
-/** The run's agent-to-agent record as a graph (the same React Flow view as 협업 흐름도), client-only. */
-const RunFlow = dynamic(() => import('../../../agent-flow/RunFlow'), { ssr: false, loading: () => <p className="law-note"><span aria-hidden="true" className="loading-mark" /> 협업 흐름을 그리는 중</p> })
+/** The run's agent-to-agent record as the 협업 artifact draws it, client-only; the full record opens in that artifact. */
+const FlowGraph = dynamic(() => import('../../collaboration/ui/FlowGraph'), { ssr: false, loading: () => <p className="law-note"><span aria-hidden="true" className="loading-mark" /> 협업 흐름을 그리는 중</p> })
 
 /** 오케스트레이터 검토: what the Orchestrator's run (대지 → 법규 → 검토 조정) returned for this parcel. */
 export function OrchestratorTab({ pnu, address, project, shell, editor }: Props) {
@@ -81,16 +84,26 @@ export function OrchestratorTab({ pnu, address, project, shell, editor }: Props)
         <>
           <RunHead onReload={reload} projectId={chosen?.project_id ?? ''} results={phase.results} run={phase.run} stale={phase.stale} />
           <Timeline results={phase.results} run={phase.run} />
-          <section aria-label="협업 흐름" className="law-card">
-            <h2>협업 흐름 <small>오케스트레이터와 에이전트가 주고받은 요청·응답 · 참여자를 누르면 내용</small></h2>
-            <RunFlow key={phase.run.run_id} projectId={chosen?.project_id ?? ''} run={phase.run} />
-          </section>
+          <Collaboration onOpen={() => shell.openArtifact('collaboration', { ...(chosen ? { project: chosen.project_id } : {}), run: phase.run.run_id, tab: 'log' })} run={phase.run} />
           <LawCard editor={editor} results={phase.results} />
           <Evidence results={phase.results} />
           {!live && <section aria-label="새 검토" className="law-card">{startForm}</section>}
         </>
       )}
     </div>
+  )
+}
+
+/** What the Orchestrator and the agents said in this run, in one line and one small graph; the record itself lives in the 협업 artifact. */
+function Collaboration({ run, onOpen }: { run: RunSummary; onOpen(): void }) {
+  const transcript = useMemo(() => toTranscript(run), [run])
+  const status = runStatusLine(run, transcript.messages)
+  return (
+    <section aria-label="협업 흐름" className="law-card">
+      <h2>협업 흐름 <span className="law-badge" data-tone={runTone(run.status)}>{status}</span></h2>
+      <FlowGraph compact messages={transcript.messages} />
+      <p className="law-sub"><button className="law-link" onClick={onOpen} type="button"><Workflow aria-hidden="true" size={11} />협업 패널에서 대화 기록 보기</button></p>
+    </section>
   )
 }
 
