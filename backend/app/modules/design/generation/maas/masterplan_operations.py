@@ -13,6 +13,7 @@ OPERATIONS = {
     'repack_core': ({'request', 'result'}, set()),
     'review_placement': ({'request', 'result'}, set()),
     'validate_plan': ({'request', 'result'}, set()),
+    'validate_external_layout': ({'draft'}, set()),
     'evaluate_siting_relations': ({'brief', 'owner_artifacts'}, set()),
     'footprint_inside': ({'parcel', 'target'}, {'direction', 'align_to', 'module_depth_m'}),
     'bind_program': ({'context', 'pnu', 'design'}, set()),
@@ -45,6 +46,9 @@ def dispatch(operation, arguments):
     if operation == 'apply_placement_moves':
         from backend.app.modules.design.generation.maas.masterplan.placement_moves import apply_placement_moves
         return apply_placement_moves(**arguments)
+    if operation == 'validate_external_layout':
+        from backend.app.modules.design.generation.maas.masterplan.external_layout import validate_external_layout
+        return validate_external_layout(**arguments)
     if operation == 'bind_delivered_request':
         from backend.app.modules.design.generation.maas.masterplan.delivered_source import bind_delivered_request
         return bind_delivered_request(**arguments)

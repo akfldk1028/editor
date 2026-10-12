@@ -1,5 +1,7 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-12 MasterPlan external candidate door: `validate_external_layout(draft)` added to existing HTTP planning operations. Explicit local metric rectangles retain building IDs; independent containment, obstacle and pairwise overlap checks do not repair geometry. Planning/legal/daylight remain unknown. Live RSPL source export (3 buildings, pinned 3bcd385) is rejected for 8 m2 outside the site even though upstream reported geometry_valid. Caller-declared input hash is provenance, not owner certification. No new URL or service restart. Agent research adapter: `research/site_layout/providers/rspl_candidate.py`; production source binding remains pending.
+
 - 2026-10-12 MasterPlan contract notice for Orchestrator: existing planning operations now issue persistent `placement_snapshot` and accept `parent_ref` for generated-parent revisions; no new URL. Placement parking count is a reference unless explicitly required, separate from Law evidence. Source binding, authored protection, generated Mass acceptance and independent preservation checks remain. Details: [placement parent contract](2026-10-12-placement-parent.md); agent design checkpoint `cb0aa90`. Shared services are not restarted by this work.
 
 - 2026-10-11/12 (MasterPlan session) Placement-stage engine measured against practice ALT1 on 고산 (same parti already:
