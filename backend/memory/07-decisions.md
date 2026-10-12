@@ -21,6 +21,16 @@
   re-validation sends the original request and failed the 11 bays under the overhang as stall_obstructions, which made
   the engine-passed plan ineligible for the whole AI loop (E3). Test in test_rows_piloti.py. Full engine suite not
   completed on this machine (two chunks timed out under load; 65 targeted tests passed).
+  Review pass (same day, /code-review high, 9 findings, 7 applied): the re-cut keeps only the drive touching the
+  entrance and clamps dead_end; the closed end keeps max(aisle, turn bay); for an entrance at the high-x end the
+  rows are refilled from the demand's closed end (accessible bays sit at the row start, i.e. the far end there) -
+  ONLY when the basement level asks (`demand_from_entrance`): on the ground that refill moved the bays off the
+  closed end where the ramp attaches and the 5 m piloti variant collapsed to 0 + 50; outward normal from the
+  rectangle centre (concave masses); the face is chosen on parcel minus vehicle-blocked ground; no variants for a
+  basement-only strategy; the validator accepts a drawn ground floor only for a GENERATED mass (an authored footprint
+  without a ground footprint stays enclosed) and the three shared checks run once; the generated ground footprint is
+  relabelled, not "authored". Not applied: the compact tie-break being global (a tie between different sources is
+  arbitrary either way). 고산 default and straight_6m both 30 + 20 / 1,114 m2 after the pass; 29 + 37 tests.
 - 2026-10-10 (MasterPlan session, circulation integration E) planner.py: `accept_ramp` used `Point` without importing it,
   so every AI proposal carrying `entry_approach` died with NameError (A's 6 tests never reach that branch; pyflakes now
   clean across the package). Finding for A: `circulation_network.plan_entry_approach`/`connect_landing_to_aisle` are

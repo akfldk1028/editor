@@ -83,21 +83,18 @@ def validate_plan(request, result):
     if request.get("ground_footprint") is not None:
         ground_occupancy = shape(request["ground_footprint"])
         drawn_ground = unary_union([g for g,p in grouped[(0,"building_ground_footprint")]])
-        drawn_mass = unary_union([g for g,p in grouped[(0,"building_footprint")]])
         check("authored_ground_footprint_preserved",drawn_ground.symmetric_difference(ground_occupancy).area<=TOL)
-        check("ground_footprint_containment",drawn_mass.buffer(TOL).covers(ground_occupancy))
         if request.get("core"):
             check("ground_footprint_contains_core",ground_occupancy.buffer(TOL).covers(shape(request["core"])))
-        if drawn_mass.difference(ground_occupancy).area>TOL:
-            pending.append("piloti_structural_clearance_review")
-        ground_drive = unary_union([g for g,p in grouped[(0,"parking_aisle")]+grouped[(0,"vehicular_access")]])
-        check("drive_ground_footprint_collision:0",ground_drive.intersection(ground_occupancy).area<=TOL)
-    elif grouped[(0,"building_ground_footprint")]:
+    elif not request.get("footprint") and grouped[(0,"building_ground_footprint")]:
         # The engine's own piloti variant (joint.piloti_ground_variants) draws the enclosed ground
         # floor it planned with. An independent re-validation sends the ORIGINAL request, which has
         # no ground footprint, and used to block the whole footprint: on 고산 the 11 bays under the
         # overhang failed stall_obstructions and the plan the engine had passed became ineligible.
+        # Only a GENERATED mass may draw its own ground floor: an authored footprint with no
+        # authored ground footprint is enclosed, whatever the plan draws.
         ground_occupancy = unary_union([g for g,p in grouped[(0,"building_ground_footprint")]])
+    if ground_occupancy is not None:
         drawn_mass = unary_union([g for g,p in grouped[(0,"building_footprint")]])
         check("ground_footprint_containment",drawn_mass.buffer(TOL).covers(ground_occupancy))
         if drawn_mass.difference(ground_occupancy).area>TOL:

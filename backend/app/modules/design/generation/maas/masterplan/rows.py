@@ -55,6 +55,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                    expanded_needed=None, ground_stalls=True, turn_radius_m=None, turn_lane_m=None,
                    field="auto", occupied_footprint=None, accept_ramp=None, ramp_shape="any", allowed_angles=None,
                    preserve_banks=False, straight_entry=False, prohibited=None, stall_exclusion=None,
+                   demand_from_entrance=False,
                    search_budget=SEARCH_BUDGET):  # noqa: E501
     """Scored row-and-aisle candidates in world coordinates.
 
@@ -329,12 +330,26 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                             exp_from = demand_end
                         else:
                             exp_from = None
-                        for side in ((-1, 1) if ground_stalls else ()):  # a basement-only plan keeps the ground clear
-                            stalls += _fill_row(g_ground, drive, y, y + aisle, xs0, xs1, stall_w, stall_l, acc_w, acc_l,
-                                                max(0, accessible - sum(s["type"] == "accessible" for s in stalls)), blocked, side,
-                                                expanded=expanded_dims, want_expanded=want_expanded,
-                                                n_expanded_start=sum(s["type"] == "expanded" for s in stalls),
-                                                expanded_from=exp_from)
+                        def fill(x_from):
+                            out = []
+                            for side in ((-1, 1) if ground_stalls else ()):  # a basement-only plan keeps the ground clear
+                                out += _fill_row(g_ground, drive, y, y + aisle, x_from, xs1, stall_w, stall_l, acc_w, acc_l,
+                                                 max(0, accessible - sum(s["type"] == "accessible" for s in out)), blocked, side,
+                                                 expanded=expanded_dims, want_expanded=want_expanded,
+                                                 n_expanded_start=sum(s["type"] == "expanded" for s in out),
+                                                 expanded_from=exp_from)
+                            return out
+                        stalls = fill(xs0)
+                        if demand_from_entrance and demand_end is not None and end == 1 and stalls:
+                            # Accessible bays are seated at the row START (see _fill_row), which for an
+                            # entrance at ax1 is the far closed end, so the kept set would span the whole
+                            # plate whatever `emit` trims. Refill from the demand's closed end when the
+                            # rows already hold the demand inside that span: nothing is lost, the bays move.
+                            # Only the basement level asks for this: on the ground the rows' closed end is
+                            # where the ramp attaches, and moving the bays away from it lost the attachment
+                            # (고산 5 m piloti variant: 30 + 20 became 0 + 50).
+                            if sum(s["polygon"].bounds[0] >= demand_end - EPS for s in stalls) >= required:
+                                stalls = fill(demand_end)
                         if bay:
                             # the held-back strip is drivable: it is where the turn happens
                             x0b, x1b = (xs1, ax1) if end == 0 else (ax0, xs0)
@@ -385,13 +400,20 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                                     from backend.app.modules.design.generation.maas.masterplan.circulation import full_width_stall_access
                                     sx0 = min(s["polygon"].bounds[0] for s in cand_stalls)
                                     sx1 = max(s["polygon"].bounds[2] for s in cand_stalls)
-                                    k0 = ax0 if end == 0 else max(ax0, sx0 - aisle)
-                                    k1 = ax1 if end == 1 else min(ax1, sx1 + aisle)
+                                    # the closed end keeps the larger of an aisle width and the turning
+                                    # field the rows were held back for (`bay`, from turn_radius_m)
+                                    room = max(aisle, bay or 0.0)
+                                    k0 = ax0 if end == 0 else max(ax0, sx0 - room)
+                                    k1 = ax1 if end == 1 else min(ax1, sx1 + room)
                                     if k1 - k0 < aisle_span - EPS:
                                         _, b1, _, b3 = cand_drive.bounds
                                         cut = unary_union([cand_drive.intersection(box(k0, b1 - EPS, k1, b3 + EPS)), entrance]).buffer(0)
+                                        # the cut can leave a turn-bay fragment on the far side of the box
+                                        # edge; only what still touches the entrance is the drive
+                                        cut = unary_union([g for g in parts(cut) if g.intersects(entrance.buffer(EPS))])
                                         if full_width_stall_access(cut, [s["polygon"] for s in cand_stalls], [entrance], aisle):
                                             cand_drive, aisle_span = cut, k1 - k0
+                                            dead_end = min(dead_end, int((k1 - k0) // stall_w))
                             if not cand_stalls and (ground_stalls or ramp_geom is None):
                                 return
                             # The objective keeps measuring the distance to the vehicle entrance,

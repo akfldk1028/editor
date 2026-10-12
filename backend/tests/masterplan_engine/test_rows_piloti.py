@@ -74,3 +74,21 @@ def test_validator_reads_the_drawn_ground_footprint_when_the_request_has_none():
     assert status["stall_obstructions:G-P001"] == "passed"
     assert status["ground_footprint_containment"] == "passed"
     assert "piloti_structural_clearance_review" in out["pending_reviews"]
+
+
+def test_an_authored_footprint_without_a_ground_footprint_stays_enclosed():
+    """A drawn ground floor is only accepted for a GENERATED mass; an authored mass with no authored
+    ground footprint cannot pass bays under itself by drawing a smaller building_ground_footprint."""
+    from shapely.geometry import mapping
+    from backend.app.modules.design.generation.maas.masterplan.validation import validate_plan
+    request = {"site": mapping(SITE), "buildable": mapping(SITE), "frontage": mapping(ROAD), "rules": RULES,
+               "footprint": mapping(FOOTPRINT), "options": {}}
+    def feat(layer, geom, **props):
+        return {"type": "Feature", "geometry": mapping(geom), "properties": {"layer": layer, "level": 0, **props}}
+    stall = box(45, 14, 47.5, 19)
+    plan = {"features": [feat("site_boundary", SITE), feat("building_footprint", FOOTPRINT),
+                         feat("building_ground_footprint", ENCLOSED), feat("parking_aisle", box(0, 22, 60, 28), width_m=6.0),
+                         feat("parking_stall", stall, stall_id="G-P001", type="standard_90deg", width_m=2.5, length_m=5.0)],
+            "levels": [{"level": 0, "z_m": 0, "provided_spaces": 1}]}
+    status = {c["id"]: c["status"] for c in validate_plan(request, plan)["checks"]}
+    assert status["stall_obstructions:G-P001"] == "failed"

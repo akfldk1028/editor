@@ -74,8 +74,10 @@ def piloti_ground_variants(site, footprint, stall_length, aisle_width):
     exactly this under its road-side wing and reaches 30 surface stalls where the same
     building with a fully enclosed ground floor reaches 22. Depths come from the rules, the
     face from the parcel; nothing here is parcel-specific. Yields (strip_depth_m, ground)."""
-    from shapely.geometry import Point, Polygon
-    rect = list(footprint.minimum_rotated_rectangle.exterior.coords)
+    from shapely.geometry import Polygon
+    mrr = footprint.minimum_rotated_rectangle
+    rect = list(mrr.exterior.coords)
+    cx, cy = mrr.centroid.x, mrr.centroid.y
     for depth in (stall_length, stall_length + aisle_width):
         best = None
         for a, b in zip(rect, rect[1:]):
@@ -84,7 +86,9 @@ def piloti_ground_variants(site, footprint, stall_length, aisle_width):
             if length <= EPS:
                 continue
             nx, ny = dy/length, -dx/length
-            if footprint.buffer(EPS).contains(Point((a[0]+b[0])/2+nx, (a[1]+b[1])/2+ny)):
+            # outward = away from the rectangle's centre; a probe point inside the mass is wrong
+            # on a notched (concave) footprint whose edge midpoint lies in the notch
+            if (cx - (a[0]+b[0])/2) * nx + (cy - (a[1]+b[1])/2) * ny > 0:
                 nx, ny = -nx, -ny
             outside = Polygon([a, b, (b[0]+nx*depth, b[1]+ny*depth), (a[0]+nx*depth, a[1]+ny*depth)])
             free = outside.intersection(site).difference(footprint).area
@@ -142,13 +146,20 @@ def select_joint_layout(request, solve):
     layouts=[baseline]
     generated = next((shape(f['geometry']) for f in baseline.get('features', [])
                       if f.get('properties', {}).get('layer') == 'building_footprint'), None)
-    if placement_stage and generated is not None and not generated.is_empty:
-        for depth, ground in piloti_ground_variants(site, generated, float(rules['stall_length_m']),
-                                                    float(rules['aisle_width_m'])):
+    surface_possible = opts.get('parking_strategy') != 'basement' and opts.get('max_surface_stalls') != 0
+    if placement_stage and surface_possible and generated is not None and not generated.is_empty:
+        # the face is chosen on ground a car may actually use: the parcel less the vehicle-blocked
+        # pedestrian reservation
+        for depth, ground in piloti_ground_variants(site.difference(pedestrian['vehicle_blocked']), generated,
+                                                    float(rules['stall_length_m']), float(rules['aisle_width_m'])):
             candidate = copy.deepcopy(request)
             candidate['footprint'] = mapping(generated)
             candidate['ground_footprint'] = mapping(ground)
             result = solve(candidate)
+            for f in result.get('features', []):
+                # the planner labels a ground footprint it was given as authored; this one is not
+                if f.get('properties', {}).get('layer') == 'building_ground_footprint':
+                    f['properties']['source'] = 'generated piloti variant (joint.piloti_ground_variants)'
             result['blocking'].append('generated piloti ground occupancy requires MassAgent/architect acceptance')
             if result['status']=='resolved':
                 result['status']='needs_evidence'

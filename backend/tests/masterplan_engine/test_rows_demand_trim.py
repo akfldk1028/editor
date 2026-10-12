@@ -30,3 +30,17 @@ def test_kept_bays_cluster_at_the_entrance_and_the_aisle_stops_after_them():
     assert part["drive"].area < 0.6 * full["drive"].area
     assert sum(s["type"] == "expanded" for s in part["stalls"]) >= 6     # the 30 % quota is still met
     assert sum(s["type"] == "accessible" for s in part["stalls"]) == 2
+
+
+def test_entrance_at_the_high_end_also_keeps_a_short_aisle():
+    """end == 1: accessible bays are seated at the row start (the far closed end), so the refill from the
+    demand's closed end is what makes the trim possible there."""
+    road = LineString([(80, 0), (80, 17)])
+    rows = row_candidates(SITE, SITE, Polygon(), None, road, road, RULES, 20, 2, allowed_angles=[0.0], limit=4,
+                          demand_from_entrance=True)        # what the basement level solver asks for
+    part = max((r for r in rows if r["provided"] >= 20), key=lambda r: r["score"])
+    assert part["provided"] == 20 and part["entrance_end"] == 1
+    near = min(s["polygon"].bounds[0] for s in part["stalls"])
+    assert near > 35, near                               # the kept bays sit at the entrance end
+    assert part["drive"].bounds[0] >= near - RULES["aisle_width_m"] - 1e-6
+    assert sum(s["type"] == "accessible" for s in part["stalls"]) == 2
