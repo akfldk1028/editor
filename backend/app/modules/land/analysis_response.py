@@ -214,7 +214,7 @@ def build_restrictions(reg: dict, zone_names: list[str],
         )
     if unlisted:
         restrictions.append(
-            f"규제표에 없는 지정: {', '.join(unlisted)} (지구단위계획·공공주택지구 결정의 용지·구역 — 상한에는 영향 없음, 해당 고시 확인)"
+            f"규제표에 없는 지정: {', '.join(unlisted)} (용도지역이 아닌 지정 — 건폐율·용적률 상한에는 영향 없음, 근거 법령·고시 확인)"
         )
 
     return restrictions
