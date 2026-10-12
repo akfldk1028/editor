@@ -13,6 +13,7 @@ OPERATIONS = {
     'repack_core': ({'request', 'result'}, set()),
     'review_placement': ({'request', 'result'}, set()),
     'validate_plan': ({'request', 'result'}, set()),
+    'evaluate_siting_relations': ({'brief', 'owner_artifacts'}, set()),
     'footprint_inside': ({'parcel', 'target'}, {'direction', 'align_to', 'module_depth_m'}),
     'bind_program': ({'context', 'pnu', 'design'}, set()),
     'check_consumption': ({'binding', 'features'}, set()),
@@ -83,6 +84,10 @@ def dispatch(operation, arguments):
     if operation == 'review_placement':
         from backend.app.modules.design.generation.maas.masterplan.placement_quality import review_placement
         return review_placement(**arguments)
+    if operation == 'evaluate_siting_relations':
+        from backend.app.modules.design.generation.maas.masterplan.siting_relations import evaluate_relations
+        return {'brief_id': arguments['brief'].get('brief_id'), 'relations': evaluate_relations(**arguments),
+                'scope': 'Bound polygon relationships; caller retains owner provenance, doors are not inferred'}
     if operation == 'validate_plan':
         from backend.app.modules.design.generation.maas.masterplan.validation import validate_plan
         from backend.app.modules.design.generation.maas.masterplan.placement_state import resolve_request, preservation_checks, retain_generated_review

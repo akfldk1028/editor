@@ -149,7 +149,15 @@ def curved_ramp_candidates(site, frontage, obstacles, rules, height, *, turns=(9
         quota = math.ceil(limit / len(turns))
         families = [curved_ramp_candidates(site, frontage, obstacles, rules, height,
                     turns=(turn,), limit=quota, accept=accept) for turn in turns]
-        return [family[i] for i in range(quota) for family in families if i < len(family)][:limit]
+        retained = [family[i] for i in range(quota) for family in families if i < len(family)][:limit]
+        for turn, family in zip(turns, families):
+            if len(retained) >= limit:
+                break
+            if len(family) == quota:
+                expanded = curved_ramp_candidates(site, frontage, obstacles, rules, height,
+                    turns=(turn,), limit=quota + limit - len(retained), accept=accept)
+                retained.extend(expanded[quota:])
+        return retained
     width = rules.get("curved_ramp_width_m") or rules.get("ramp_width_m")
     grade = rules.get("curved_ramp_max_slope") or rules.get("ramp_max_slope")
     inner_min = rules.get("curve_min_inner_radius_m")

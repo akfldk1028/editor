@@ -13,6 +13,13 @@ def test_small_curve_budget_preserves_distinct_turn_families():
     assert all(r['inner_radius_m'] >= 5 for r in rows)
 
 
+def test_unused_family_budget_can_find_more_accepted_landings():
+    rows = curved_ramp_candidates(box(0, 0, 80, 80), LineString([(0, 0), (80, 0)]),
+        Polygon(), rules(), 3.3, turns=(90., 180.), limit=4,
+        accept=lambda ramp: ramp['turn_deg'] == 90.)
+    assert len(rows) == 4
+
+
 def test_half_turn_move_is_a_geometric_constraint_and_can_be_cleared():
     source = {'options': {}, 'rules': rules()}
     result = apply_placement_moves(source, {'ramp': 'half_turn'})['request']
