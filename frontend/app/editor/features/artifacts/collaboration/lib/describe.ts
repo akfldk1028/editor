@@ -109,8 +109,10 @@ function responseLines(body: Record<string, unknown>): string[] {
   return lines
 }
 
-export function describeMessage(message: CollaborationMessage): Described {
-  const who = `${agentLabel(message.from)} → ${agentLabel(message.to)}`
+/** `names`: labels for agents the conversation's folders do not know (from the Orchestrator's catalog). */
+export function describeMessage(message: CollaborationMessage, names: Readonly<Record<string, string>> = {}): Described {
+  const label = (id: string) => names[id] ?? agentLabel(id)
+  const who = `${label(message.from)} → ${label(message.to)}`
   const value = parse(message.text)
   const raw = rawOf(message.text, value)
   if (message.direction === 'request') {

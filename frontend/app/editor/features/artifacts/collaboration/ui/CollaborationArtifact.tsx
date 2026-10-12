@@ -10,7 +10,7 @@ import type { ArtifactProps } from '../../../shell/artifact-types'
 import { collaborationArtifact } from '../manifest'
 import { goalLabel, runStatusLine, runTone } from '../lib/status'
 import { toTranscript } from '../lib/transcript'
-import { useAgentStates } from '../model/useAgentStates'
+import { useAgentCatalog } from '../model/useAgentCatalog'
 import { useCollaboration } from '../model/useCollaboration'
 import { AgentPanel } from './AgentPanel'
 import FlowGraph from './FlowGraph'
@@ -22,9 +22,9 @@ import './collaboration.css'
 export default function CollaborationArtifact({ tab = 'flow', params, shell }: ArtifactProps) {
   const { projects, chosen, setChosen, runs, run, selected: selectedRun, select, load, stale, reload } = useCollaboration(params)
   const [agent, setAgent] = useState<string | null>(null)
-  const live = useAgentStates()
+  const { entries, live, names } = useAgentCatalog()
   const transcript = useMemo(() => (run ? toTranscript(run) : null), [run])
-  const status = run && transcript ? runStatusLine(run, transcript.messages) : null
+  const status = run && transcript ? runStatusLine(run, transcript.messages, names) : null
   const { setTitle, setTab } = shell
 
   // `shell.openArtifact('collaboration', {tab})` lands on that tab; each open (new params object) applies it once.
@@ -74,13 +74,13 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
         {effectiveTab === 'runs' && <RunList onSelect={(id) => { select(id); setTab('flow') }} runs={runs} selected={selectedRun} />}
         {effectiveTab === 'flow' && (
           <>
-            <FlowGraph live={live} messages={transcript?.messages ?? []} onSelect={setAgent} selected={agent} />
+            <FlowGraph catalog={entries} live={live} messages={transcript?.messages ?? []} onSelect={setAgent} selected={agent} />
             {agent
-              ? <AgentPanel agent={agent} onClose={() => setAgent(null)} transcript={transcript} />
+              ? <AgentPanel agent={agent} entry={entries.find((entry) => entry.id === agent)} names={names} onClose={() => setAgent(null)} transcript={transcript} />
               : <p className="collab-note">에이전트를 누르면 이 실행에서 한 말과 할 수 있는 일이 보이고, 바로 물어볼 수 있어요.</p>}
           </>
         )}
-        {effectiveTab === 'log' && transcript && <Transcript onSelect={setAgent} selected={agent} transcript={transcript} />}
+        {effectiveTab === 'log' && transcript && <Transcript names={names} onSelect={setAgent} selected={agent} transcript={transcript} />}
         {effectiveTab === 'log' && !transcript && load.kind === 'ready' && chosen && (
           <p className="collab-note">이 프로젝트에 아직 실행이 없어요. 법규 패널에서 검토를 시작하면 여기에 기록이 쌓여요.</p>
         )}

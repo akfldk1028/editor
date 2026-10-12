@@ -614,3 +614,12 @@ be told to the Orchestrator session.
   below with what it answers; cards drag. The product header is back on /dwg (only absorbed items leave it); every
   artifact header carries a 흐름도 button that opens the 협업 artifact. The AutoGen-Studio pattern engine in
   features/team-builder/agentflow (selector/hub-spoke etc.) stays where it is; the run's own order is the picture.
+- 2026-10-12 (night, review) agents that get added later are drawn without a frontend change. The user: "코드 검토해,
+  계속 추가될 agent도 그렇게 잘해줘야지". Review found the canvas catalog was the frontend's `lib/agents` folder list
+  only, so an agent registered with the Orchestrator but without a folder (e.g. construction, a future structure agent)
+  would not be drawn until it spoke, and then as a raw id. Now `lib/orchestrator-runs/api.listAgents` reads the
+  Orchestrator's catalog (`GET /platform/agents`: id, label, capabilities, connection_status) and
+  `collaboration/lib/catalog.ts` merges it with the folders by canonical id: a folder agent keeps its name, mark and
+  tool labels and takes the live state; a catalog-only agent gets a readable name (humanize), its declared skills as
+  what it answers (plumbing skills dropped) and a dot. `names` from the merged catalog flow into describe/status/
+  Transcript/AgentPanel so an unknown agent is never shown by its id. Polled every 15 s (`useAgentCatalog`).

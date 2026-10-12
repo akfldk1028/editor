@@ -277,6 +277,17 @@ export interface LandAnalysisAnswer {
 
 /** One goal the product can ask the Orchestrator for (`GET /platform/capabilities`). */
 /** `GET /platform/host/status`: every agent's state from the host's last tick (agent ids). */
+/** One agent of the Orchestrator's catalog (`GET /platform/agents`): registered or not, reachable or not, and the skills it declares. */
+export interface AgentSummary {
+  agent_id: string
+  label: string
+  capabilities: string[]
+  implementation_status: string
+  connection_status: string
+  checked_at: string | null
+  evidence_ref: string | null
+}
+
 export interface HostStatus {
   at: string | null
   daemon: { pid: number | null; stale: boolean }

@@ -7,7 +7,8 @@ import { useMemo } from 'react'
 
 import { markOf } from '@/lib/agents'
 
-import { buildGraph, callOrder, type GraphNode, type LiveState, type Side } from '../lib/graph'
+import type { CatalogEntry, LiveState } from '../lib/catalog'
+import { buildGraph, callOrder, type GraphNode, type Side } from '../lib/graph'
 import type { CollaborationMessage } from '../lib/transcript'
 import './collaboration.css'
 
@@ -51,6 +52,8 @@ interface Props {
   messages: readonly CollaborationMessage[]
   selected?: string | null
   onSelect?: (agent: string | null) => void
+  /** The network to draw (the live catalog merged with the conversation's folders); absent = the folders only. */
+  catalog?: readonly CatalogEntry[]
   /** Which agents answer right now, by id; absent dots when unknown. */
   live?: Readonly<Record<string, LiveState>>
   /** A smaller canvas for a card inside another artifact; it draws the run's participants only. */
@@ -58,10 +61,13 @@ interface Props {
 }
 
 /** The flow as it ran: the person → the Orchestrator → the agents it called, left to right and numbered, what was said on dashed moving edges; every other agent waits below. Cards drag. */
-export default function FlowGraph({ messages, selected = null, onSelect, live, compact = false }: Props) {
+export default function FlowGraph({ messages, selected = null, onSelect, catalog, live, compact = false }: Props) {
   const { nodes, edges } = useMemo(() => {
     const spoken = new Set(messages.flatMap((message) => [message.from, message.to]))
-    const graph = buildGraph(messages, selected, { live, ...(compact ? { catalog: [...spoken].filter((id) => id !== 'orchestrator').map((id) => ({ id })) } : {}) })
+    const graph = buildGraph(messages, selected, {
+      live,
+      ...(compact ? { catalog: [...spoken].filter((id) => id !== 'orchestrator').map((id) => catalog?.find((entry) => entry.id === id) ?? { id }) } : catalog ? { catalog } : {}),
+    })
     const sides = new Map(graph.nodes.map((node) => [node.id, node.side]))
     const nodes: FlowNode[] = graph.nodes.map((node) => ({
       id: node.id, type: 'agent', position: node.position, draggable: true,
@@ -84,7 +90,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, live, c
       }
     })
     return { nodes, edges }
-  }, [messages, selected, live, compact])
+  }, [messages, selected, catalog, live, compact])
 
   if (!nodes.length) {
     return (

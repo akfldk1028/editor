@@ -5,6 +5,7 @@
  */
 import type { AskClause } from './commands'
 import type {
+  AgentSummary,
   AskAnswer,
   Capabilities,
   Communications,
@@ -198,6 +199,16 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
 /** The host's last tick, cached 5 s server-side: the conversation reads it to know whom to wake. */
 export async function getHostStatus(signal?: AbortSignal): Promise<HostStatus> {
   return (await request('/host/status', { signal })) as HostStatus
+}
+
+/** The Orchestrator's agent catalog: every agent it knows, with its skills and whether it answered the last probe. */
+export async function listAgents(signal?: AbortSignal): Promise<AgentSummary[]> {
+  const data = await request('/agents', { signal })
+  const ok = Array.isArray(data) && data.every((row) => row && typeof row === 'object'
+    && ['agent_id', 'label', 'implementation_status', 'connection_status'].every((key) => typeof (row as Record<string, unknown>)[key] === 'string')
+    && Array.isArray((row as AgentSummary).capabilities) && (row as AgentSummary).capabilities.every((item) => typeof item === 'string'))
+  if (!ok) throw new Error('에이전트 목록 형식이 올바르지 않습니다.')
+  return data as AgentSummary[]
 }
 
 /** Brings agents up (parallel, dependency-ordered by the host) and waits for their health; `lease_s` = how long they stay "in use". */
