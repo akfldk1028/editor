@@ -10,7 +10,7 @@ test('names read like the rest of the network, whatever the catalog spells', () 
   expect(humanize('construction')).toBe('Construction Agent')
   expect(humanize('DesignIntentAgent')).toBe('DesignIntent Agent')
   expect(humanize('site-context')).toBe('Site context Agent')
-  expect([liveOf('available'), liveOf('not_declared'), liveOf('unreachable')]).toEqual(['up', null, 'down'])
+  expect([liveOf('available'), liveOf('local'), liveOf('unavailable'), liveOf('not_declared'), liveOf('http_provider_declared')]).toEqual(['up', 'up', 'down', null, null])
 })
 
 test('a known agent keeps its folder name and tools and takes its live state from the catalog; a hyphenated id resolves', () => {
@@ -22,7 +22,7 @@ test('a known agent keeps its folder name and tools and takes its live state fro
 })
 
 test('an agent only the Orchestrator knows is drawn from the catalog: readable name, declared skills as what it answers, plumbing skills dropped', () => {
-  const entries = mergeCatalog([row({ agent_id: 'structure', label: 'structure', capabilities: ['structure_frame', 'structure_health', 'structure_conversation_contract'], connection_status: 'available' })])
+  const entries = mergeCatalog([row({ agent_id: 'structure', label: 'structure', capabilities: ['structure_frame', 'structure_health', 'structure_conversation_contract'], connection_status: 'local' })])
   const structure = entries.find((entry) => entry.id === 'structure')!
   expect(structure).toMatchObject({ label: 'Structure Agent', live: 'up', known: false, description: null })
   expect(structure.tools).toEqual({ structure_frame: 'frame' })

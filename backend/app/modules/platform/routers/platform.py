@@ -60,10 +60,14 @@ def create_platform_router(
         except OwnerContractError:
             return JSONResponse({'agents': [], 'orchestrator': {'state': 'invalid', 'error': 'Orchestrator catalog contract invalid'}},
                                 status_code=502)
-        # Each agent in its own words (A2A card: description, skills by name) — the catalog's ids stay the identity.
-        live = await roster([summary.agent_id for summary in summaries])
-        return [summary.model_copy(update={'description': card['description'], 'skills': card['skills']}) if (card := live.get(summary.agent_id)) else summary
-                for summary in summaries]
+        # Each agent in its own words (A2A card: description, skills by name) — the catalog's ids stay the identity;
+        # cards that cannot be read leave the catalog as it is.
+        try:
+            live = await roster([summary.agent_id for summary in summaries])
+        except Exception:
+            live = {}
+        return [AgentSummary.model_validate({**summary.model_dump(), 'description': card['description'], 'skills': card['skills']})
+                if (card := live.get(summary.agent_id)) else summary for summary in summaries]
 
     @router.get('/projects', response_model=list[ProjectBinding])
     async def projects():

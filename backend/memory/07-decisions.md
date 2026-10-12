@@ -641,3 +641,13 @@ be told to the Orchestrator session.
   X에게: …" with the card's skills as chips and 대화로 보내기. Review note: every registry agent has a role module tonight,
   so `extras()` is empty live and the path is proven by tests (`test_platform_routing`, `test_platform_ask`) — the next
   registered agent (e.g. structure) will be on the team the moment its services.json row carries a card_url.
+- 2026-10-12 (night, review fixes) an independent review of the 협업 commits found 13 items; the 9 real ones are fixed:
+  the Orchestrator's connection words are read as it defines them (`available|local` up, `unavailable` down, the
+  rest no dot); `/platform/agents` validates card skills through `AgentSummary` instead of pasting dicts and keeps the
+  catalog when the card lookup throws; cards are fetched together, not one timeout after another; dragged cards stay
+  put (React Flow node state, selection only restyles); the run list is read once per project and the chosen run on
+  its own, the list row follows the poll; the agent panel is keyed per agent; the person and an unrecorded party get
+  no ask line; an unknown agent id is never shown raw (`agentLabel` falls back to "X Agent", backend choices/delegate
+  use the card name or the same rule); goal labels come from the capabilities catalog; the law tab uses the
+  collaboration artifact's exported `CollaborationCard` instead of its lib; the dead side/handle plumbing is gone.
+  Left as noted: the shell's 흐름도 button names the collaboration artifact (a manifest flag would be neater).

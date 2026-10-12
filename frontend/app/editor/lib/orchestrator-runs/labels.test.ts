@@ -18,14 +18,16 @@ test('statuses: queued/running/queued_input stay open, the rest end, labels are 
   expect(traceLabel('4bf92f3577b34da6a3ce929d0e0e4736')).toBe('4bf92f35')
 })
 
-test('agents carry their English network names, tools and step states read in Korean; unknown names stay as they are', () => {
+test('agents carry their English network names, tools and step states read in Korean; unknown names are still named', () => {
   expect(agentLabel('site_context')).toBe('Site Agent')
   expect(agentLabel('law')).toBe('Law Agent')
   expect(agentLabel('revision')).toBe('Revision Agent')
   expect(agentLabel('masterplan')).toBe('MasterPlan Agent')
   expect(agentLabel('orchestrator')).toBe('Orchestrator Agent')
   expect(agentLabel('user')).toBe('사용자')
-  expect(agentLabel('new_agent')).toBe('new_agent')
+  // An id the folders do not know is still a name for a person, never the raw id.
+  expect(agentLabel('new_agent')).toBe('New Agent')
+  expect(agentLabel('site-context')).toBe('Site Agent')
   expect(agentLabel(null)).toBe('—')
   expect(toolLabel('site_resolve')).toBe('대지 사실 확인')
   expect(toolLabel('law_parcel_limits')).toBe('법규 한계')

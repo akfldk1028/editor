@@ -53,3 +53,16 @@ def test_agents_carry_their_own_card_words():
     assert rows[0]['description'] == 'Establishes the facts a parcel has.'
     assert rows[0]['skills'] == [{'id': 'site_resolve', 'name': 'resolve', 'description': 'Resolve the site facts for a parcel.'}]
     assert rows[1]['description'] is None and rows[1]['skills'] is None
+
+
+def test_a_failing_card_lookup_leaves_the_catalog_as_it_is():
+    catalog = [{'agent_id': 'law', 'label': 'LawAgent', 'capabilities': ['law_search'], 'implementation_status': 'unknown',
+                'connection_status': 'available', 'checked_at': None, 'evidence_ref': None}]
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=catalog))
+
+    async def roster(agents):
+        raise RuntimeError('registry unreadable')
+    app = FastAPI()
+    app.include_router(create_platform_router(OrchestratorClient('http://owner', transport=transport), roster=roster))
+    rows = TestClient(app).get('/api/v1/platform/agents').json()
+    assert rows[0]['agent_id'] == 'law' and rows[0]['description'] is None and rows[0]['skills'] is None

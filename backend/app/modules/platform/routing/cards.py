@@ -59,18 +59,34 @@ async def fetch_card(url: str) -> dict | None:
 
 
 async def roster(agents: list[str], *, fetch=fetch_card, now=time.monotonic, cache=_cache, registry: Registry = _registry) -> dict[str, dict | None]:
-    """{agent: card | None} for every agent, each card at most CACHE_S old."""
+    """{agent: card | None} for every agent, each card at most CACHE_S old; the misses are fetched together, so N
+    agents that are down cost one timeout, not N."""
+    import asyncio
     result = {}
+    misses = []
     for agent in agents:
         cached = cache.get(agent)
         if cached and now() - cached[0] < CACHE_S:
             result[agent] = cached[1]
-            continue
-        url = card_url(agent, registry=registry)
-        card = await fetch(url) if url else None
+        else:
+            misses.append(agent)
+    urls = {agent: card_url(agent, registry=registry) for agent in misses}
+    fetched = await asyncio.gather(*(fetch(urls[agent]) for agent in misses if urls[agent]))
+    answers = dict(zip([agent for agent in misses if urls[agent]], fetched))
+    for agent in misses:
+        card = answers.get(agent)
         cache[agent] = (now(), card)
         result[agent] = card
     return result
+
+
+def display_name(agent: str, card: dict | None = None) -> str:
+    """The agent's name for a person: its card's name, else its id as words ("site_context" -> "Site context Agent")."""
+    if card and card.get('name'):
+        return str(card['name'])
+    base = re.sub(r'[-_]+', ' ', agent).strip()
+    base = re.sub(r'\s*agent$', '', base, flags=re.IGNORECASE).strip()
+    return f'{base[:1].upper()}{base[1:]} Agent'
 
 
 def describe(agent: str, card: dict | None, fallback: str) -> str:

@@ -39,8 +39,14 @@ export const askedFieldsLabel = (fields: readonly string[] | undefined): string 
 /** The card shows the first 8 hex of the 32-hex W3C trace id (and of a run id); the copy button carries the whole id. */
 export const traceLabel = (id: string) => id.slice(0, 8)
 
-/** Agents go by their network names in English (user, 2026-10-08); the table is `agents.ts`. */
-export const agentLabel = (agent: string | null | undefined): string => (agent ? agentSpec(agent)?.name ?? agent : '—')
+/** An agent the folders do not know, named as the folders would: "structure" → "Structure Agent", "DesignIntentAgent" → "DesignIntent Agent". */
+export function humanizeAgent(idOrLabel: string): string {
+  const base = idOrLabel.replace(/[-_]+/g, ' ').replace(/\s*agent$/i, '').trim()
+  return `${base.replace(/^\w/, (first) => first.toUpperCase())} Agent`
+}
+
+/** Agents go by their network names in English (user, 2026-10-08); the table is `agents.ts`. An id the table does not know is never shown raw. */
+export const agentLabel = (agent: string | null | undefined): string => (agent ? agentSpec(agent)?.name ?? humanizeAgent(agent) : '—')
 
 /** The agent that owns a tool, for a step record that has not named its agent yet (a running step). */
 export function agentForTool(tool: string | null | undefined, agent?: string | null): string | null {

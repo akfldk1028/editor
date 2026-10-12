@@ -6,7 +6,6 @@ import { describeMessage } from './describe'
 import { type CollaborationMessage, ORCHESTRATOR } from './transcript'
 
 export type { LiveState } from './catalog'
-export type Side = 'left' | 'right' | 'top' | 'bottom'
 
 /** What the canvas needs of a catalog entry; a test may pass only an id. */
 export type CatalogLike = Pick<CatalogEntry, 'id'> & Partial<Pick<CatalogEntry, 'label' | 'tools' | 'live'>>
@@ -25,8 +24,6 @@ export interface GraphNode {
   /** Whether the agent's service answers right now, when the status is known. */
   live: LiveState | null
   position: { x: number; y: number }
-  /** Which side of the hub this node sits on, so edges leave the hub on that side. */
-  side: Side
 }
 
 export interface GraphEdge {
@@ -80,24 +77,23 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
   const requests = messages.filter((message) => message.direction === 'request').length
   const names = Object.fromEntries(catalog.filter((candidate) => candidate.label).map((candidate) => [candidate.id, candidate.label!]))
 
-  const user: GraphNode = { id: USER, label: agentLabel(USER), sub: '요청을 내고 답을 받습니다', kind: 'user', order: null, selected: selected === USER, idle: false, live: null, position: { x: -USER_GAP, y: 0 }, side: 'left' }
+  const user: GraphNode = { id: USER, label: agentLabel(USER), sub: '요청을 내고 답을 받습니다', kind: 'user', order: null, selected: selected === USER, idle: false, live: null, position: { x: -USER_GAP, y: 0 } }
   const hub: GraphNode = {
     id: ORCHESTRATOR, label: agentLabel(ORCHESTRATOR), kind: 'hub', order: null, selected: selected === ORCHESTRATOR, idle: false,
-    live: liveOf(ORCHESTRATOR), sub: `요청 ${requests}건 · 응답 ${messages.length - requests}건`, position: { x: 0, y: 0 }, side: 'right',
+    live: liveOf(ORCHESTRATOR), sub: `요청 ${requests}건 · 응답 ${messages.length - requests}건`, position: { x: 0, y: 0 },
   }
   const spoken: GraphNode[] = called.map((id, index) => {
     const last = [...messages].reverse().find((message) => message.from === id || message.to === id)
     return {
       id, label: name(id), kind: 'agent', order: index + 1, selected: selected === id, idle: false, live: liveOf(id),
       sub: last ? describeMessage(last, names).headline.replace(/^.*? · /, '') : '',
-      position: { x: (index + 1) * (NODE_WIDTH + GAP_X), y: 0 }, side: 'right',
+      position: { x: (index + 1) * (NODE_WIDTH + GAP_X), y: 0 },
     }
   })
   const waiting: GraphNode[] = rest.map((id, index) => ({
     id, label: name(id), kind: 'agent', order: null, selected: selected === id, idle: true, live: liveOf(id),
     sub: tools(entry(id)),
     position: { x: -USER_GAP + (index % IDLE_COLUMNS) * (NODE_WIDTH + IDLE_GAP_X), y: IDLE_TOP + Math.floor(index / IDLE_COLUMNS) * (NODE_HEIGHT + IDLE_GAP_Y) },
-    side: 'bottom',
   }))
 
   const edges: GraphEdge[] = [{ id: 'user→orchestrator', source: USER, target: ORCHESTRATOR, kind: 'user', label: '', known: true, count: 0 }]

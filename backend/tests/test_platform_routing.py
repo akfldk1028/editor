@@ -199,3 +199,27 @@ def test_a_registered_agent_without_a_role_module_is_a_participant_the_model_may
     # When the model asks, the registered agent is among the choices.
     asked = asyncio.run(decide('뭐부터?', judge=ledger('orchestrator', '어느 쪽부터 할까요?'), enabled=True, extras=extra))
     assert asked.kind == 'ask' and asked.choices[-1].agent == 'structure'
+
+
+def test_a_registered_agent_is_named_for_a_person_from_its_card_or_its_id_and_cards_are_fetched_together():
+    import asyncio
+
+    from backend.app.modules.platform.routing import cards
+
+    assert cards.display_name('structure') == 'Structure Agent'
+    assert cards.display_name('site-context') == 'Site context Agent'
+    assert cards.display_name('x', {'name': 'StructureAgent', 'description': '', 'skills': []}) == 'StructureAgent'
+    started = []
+
+    async def fetch(url):
+        started.append(url)
+        await asyncio.sleep(0.05)
+        return None
+    cache = {}
+    clock = [0.0]
+    from backend.app.modules.platform.status.registry import Registry
+    import time
+    t0 = time.perf_counter()
+    live = asyncio.run(cards.roster(['law', 'mass', 'site_context'], fetch=fetch, now=lambda: clock[0], cache=cache, registry=Registry()))
+    assert set(live) == {'law', 'mass', 'site_context'} and len(started) == 3
+    assert time.perf_counter() - t0 < 0.12, 'misses are fetched together, not one after another'

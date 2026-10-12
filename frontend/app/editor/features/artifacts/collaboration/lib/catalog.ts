@@ -1,4 +1,5 @@
 import { AGENTS, type AgentSpec, agentSpec, canonicalAgent, ORCHESTRATOR, toolSpecLabel, USER } from '@/lib/agents'
+import { humanizeAgent } from '@/lib/orchestrator-runs/labels'
 import type { AgentSummary } from '@/lib/orchestrator-runs/types'
 
 export type LiveState = 'up' | 'down' | 'unknown'
@@ -19,19 +20,18 @@ export interface CatalogEntry {
 /** Skills every agent carries that say nothing about what it does. */
 const PLUMBING = /_(health|conversation_contract|tool_catalog)$/
 
-/** "DesignIntentAgent" → "DesignIntent Agent", "construction" → "Construction Agent". */
-export function humanize(idOrLabel: string): string {
-  const base = idOrLabel.replace(/[-_]+/g, ' ').replace(/\s*agent$/i, '').trim()
-  const name = base.replace(/^\w/, (first) => first.toUpperCase())
-  return `${name} Agent`
-}
+export const humanize = humanizeAgent
 
 const plainTool = (tool: string) => toolSpecLabel(tool) ?? tool.replace(/^[a-z]+_/, '').replace(/_/g, ' ')
 
+/**
+ * The Orchestrator's connection words (its situation.py): `available`/`local` answer now, `unavailable` is down,
+ * `not_declared`/`http_provider_declared` are roles without a network agent — no dot for those.
+ */
 export function liveOf(status: string): LiveState | null {
-  if (status === 'available') return 'up'
-  if (status === 'not_declared') return null
-  return 'down'
+  if (status === 'available' || status === 'local') return 'up'
+  if (status === 'unavailable') return 'down'
+  return null
 }
 
 const fromSpec = (spec: AgentSpec, live: LiveState | null): CatalogEntry => ({ id: spec.id, label: spec.name, tools: spec.tools ?? {}, description: null, live, known: true })

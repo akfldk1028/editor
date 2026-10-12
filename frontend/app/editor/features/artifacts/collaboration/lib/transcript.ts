@@ -26,7 +26,7 @@ export interface Transcript {
 }
 
 export const ORCHESTRATOR = 'orchestrator'
-const UNKNOWN_PEER = '대상 미기록'
+export const UNKNOWN_PEER = '대상 미기록'
 
 /** The run's communications as messages in the order they were recorded: each row is a request and, once answered, a response. */
 export function toTranscript(run: Communications): Transcript {

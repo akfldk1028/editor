@@ -3,12 +3,12 @@
 import { Send, X } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 
-import { markOf, ORCHESTRATOR } from '@/lib/agents'
+import { markOf, ORCHESTRATOR, USER } from '@/lib/agents'
 import { sendCommand } from '@/lib/orchestrator-runs/commands'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 
 import type { CatalogEntry } from '../lib/catalog'
-import type { Transcript as TranscriptRecord } from '../lib/transcript'
+import { type Transcript as TranscriptRecord, UNKNOWN_PEER } from '../lib/transcript'
 import { Transcript } from './Transcript'
 
 interface Props {
@@ -32,6 +32,8 @@ export function AgentPanel({ agent, entry, names = {}, transcript, onClose }: Pr
   const label = entry?.label ?? names[agent] ?? agentLabel(agent)
   const tools = Object.values(entry?.tools ?? {})
   const hub = agent === ORCHESTRATOR
+  // The person and an unrecorded party cannot be asked anything; the Orchestrator takes a plain message.
+  const askable = agent !== USER && agent !== UNKNOWN_PEER
   const said = transcript ? transcript.messages.filter((message) => message.from === agent || message.to === agent).length : 0
 
   const submit = (event: FormEvent) => {
@@ -39,7 +41,7 @@ export function AgentPanel({ agent, entry, names = {}, transcript, onClose }: Pr
     const question = text.trim()
     if (!question) return
     // The Orchestrator routes a plain question itself; another agent is asked as that role.
-    const delivered = hub ? sendCommand({ kind: 'compose', draft: question }) : sendCommand({ kind: 'ask', text: question, role: agent })
+    const delivered = hub ? sendCommand({ kind: 'compose', draft: question }) : sendCommand({ kind: 'ask', text: question, role: agent.replace(/-/g, '_') })
     setSent(delivered ? (hub ? '대화 입력창에 넣었어요 — 보내기를 누르면 오케스트레이터가 답해요' : `${label}에게 물었어요 — 답은 왼쪽 대화에 와요`) : '대화 패널이 아직 열리지 않았어요')
     setText('')
   }
@@ -56,10 +58,10 @@ export function AgentPanel({ agent, entry, names = {}, transcript, onClose }: Pr
       {transcript && said > 0
         ? <Transcript names={names} onSelect={() => undefined} selected={agent} transcript={{ ...transcript, participants: [] }} />
         : <p className="collab-note">이 실행에서 {label}{hub ? '는' : '은'} 아무 말도 주고받지 않았어요.</p>}
-      <form className="collab-ask" onSubmit={submit}>
+      {askable && <form className="collab-ask" onSubmit={submit}>
         <input aria-label={`${label}에게 묻기`} onChange={(event) => setText(event.target.value)} placeholder={hub ? '오케스트레이터에게 할 말' : `${label}에게 물어볼 것`} value={text} />
         <button className="artifact-primary" disabled={!text.trim()} type="submit"><Send aria-hidden="true" size={12} /><span>{hub ? '대화에 넣기' : '묻기'}</span></button>
-      </form>
+      </form>}
       {sent && <p className="collab-note" role="status">{sent}</p>}
     </section>
   )

@@ -18,6 +18,7 @@ A `role` the user already chose (the button) skips 2–4 and goes to that role's
 """
 from __future__ import annotations
 
+from backend.app.modules.platform.routing import cards
 from backend.app.modules.platform.routing import judge as judging
 from backend.app.modules.platform.routing.roles import ROLES
 from backend.app.modules.platform.routing.roles.law import search
@@ -115,5 +116,5 @@ async def decide(text: str, *, assessment_date: str | None = None, role: str | N
     if speaker in extra:
         return _delegate(speaker, text, LEDGER_CONFIDENCE, ledger.next_speaker.reason, 'llm', instruction)
     # The Orchestrator asks: its question is the reason the user reads; no agent was told anything.
-    choices = (*_CHOICES, *(Choice(agent, agent) for agent in extra))
+    choices = (*_CHOICES, *(Choice(agent, cards.display_name(agent)) for agent in extra))
     return Route('ask', None, None, None, {}, ASK_CONFIDENCE, instruction or '어느 에이전트의 일인지 분명하지 않아요', choices, decided_by='llm')

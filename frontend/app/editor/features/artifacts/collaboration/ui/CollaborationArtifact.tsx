@@ -20,7 +20,7 @@ import './collaboration.css'
 
 /** 협업: one run's agent-to-agent record as a graph, as readable messages, and the runs to choose from. */
 export default function CollaborationArtifact({ tab = 'flow', params, shell }: ArtifactProps) {
-  const { projects, chosen, setChosen, runs, run, selected: selectedRun, select, load, stale, reload } = useCollaboration(params)
+  const { projects, chosen, setChosen, runs, run, selected: selectedRun, select, load, stale, reload, goals } = useCollaboration(params)
   const [agent, setAgent] = useState<string | null>(null)
   const { entries, live, names } = useAgentCatalog()
   const transcript = useMemo(() => (run ? toTranscript(run) : null), [run])
@@ -38,8 +38,8 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
   const effectiveTab = appliedParams === params ? tab : params.tab ?? tab
 
   useEffect(() => {
-    setTitle('협업', run ? `${goalLabel(run.goal)} · ${status ?? ''}` : undefined)
-  }, [setTitle, run, status])
+    setTitle('협업', run ? `${goalLabel(run.goal, goals)} · ${status ?? ''}` : undefined)
+  }, [setTitle, run, status, goals])
 
   return (
     <>
@@ -66,17 +66,17 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
         {load.kind === 'error' && <p className="collab-note" data-kind="error" role="alert">{load.text}</p>}
         {run && status && (
           <div className="collab-head">
-            <h2>{goalLabel(run.goal)}</h2>
+            <h2>{goalLabel(run.goal, goals)}</h2>
             <span className="collab-status" data-tone={runTone(run.status)}>{status}</span>
             <span className="collab-ids">실행 <code title={run.run_id}>{traceLabel(run.run_id)}</code>{stale && ' · 상태 확인 지연'}</span>
           </div>
         )}
-        {effectiveTab === 'runs' && <RunList onSelect={(id) => { select(id); setTab('flow') }} runs={runs} selected={selectedRun} />}
+        {effectiveTab === 'runs' && <RunList goals={goals} onSelect={(id) => { select(id); setTab('flow') }} runs={runs} selected={selectedRun} />}
         {effectiveTab === 'flow' && (
           <>
             <FlowGraph catalog={entries} live={live} messages={transcript?.messages ?? []} onSelect={setAgent} selected={agent} />
             {agent
-              ? <AgentPanel agent={agent} entry={entries.find((entry) => entry.id === agent)} names={names} onClose={() => setAgent(null)} transcript={transcript} />
+              ? <AgentPanel agent={agent} entry={entries.find((entry) => entry.id === agent)} key={agent} names={names} onClose={() => setAgent(null)} transcript={transcript} />
               : <p className="collab-note">에이전트를 누르면 이 실행에서 한 말과 할 수 있는 일이 보이고, 바로 물어볼 수 있어요.</p>}
           </>
         )}

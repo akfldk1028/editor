@@ -4,8 +4,8 @@ import type { RunSummary } from '@/lib/orchestrator-runs/types'
 import { codeNote } from './describe'
 import type { CollaborationMessage } from './transcript'
 
-const GOALS: Record<string, string> = { limits: '법규 한계', health: '연결 점검', specialist_review: '전문가 검토', masterplan: '배치', interior_concept: '실내 콘셉트' }
-export const goalLabel = (goal: string): string => GOALS[goal] ?? goal
+/** A goal in the user's words: the catalog's label (`/platform/capabilities`), else the id as words. */
+export const goalLabel = (goal: string, labels: Readonly<Record<string, string>> = {}): string => labels[goal] ?? goal.replace(/_/g, ' ')
 
 const codeOf = (message: CollaborationMessage): string | null => {
   try {
