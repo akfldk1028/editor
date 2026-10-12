@@ -91,7 +91,11 @@ def validate_circulation_geometry(
         req_corner_clearance = 4.0
 
     # 1. Entry Approach Corner Clearance & Width
-    entry_geoms = by_role.get((0, 'surface_entry_connector'), []) or by_role.get((0, 'ramp_departure'), [])
+    entry_geoms = (by_role.get((0, 'surface_entry_connector'), [])
+                   + by_role.get((0, 'road_to_ramp_connector'), [])) or by_role.get((0, 'ramp_departure'), [])
+    if frontage is not None and not frontage.is_empty:
+        entry_geoms = list(entry_geoms) + [g for g in by_role.get((0, 'ramp_departure'), [])
+                                          if g.distance(frontage) <= EPS]
     if entry_geoms and frontage is not None and not frontage.is_empty:
         entry = unary_union(entry_geoms)
         entry_hash = _hash_geom(entry)
@@ -133,10 +137,13 @@ def validate_circulation_geometry(
                 'note': f'Entry corner clearance not specified in options (measured: {min_corner_dist:.2f}m)',
             })
 
-        measured_w = _straight_corridor_width(entry, frontage)
+        widths = [_straight_corridor_width(g, frontage) for g in entry_geoms]
+        known_widths = [w for w in widths if w is not None]
         required_w = rules.get('aisle_width_m')
-        width_status = ('unknown' if measured_w is None or required_w is None else
-                        'passed' if measured_w >= float(required_w) - EPS else 'failed')
+        known_failure = required_w is not None and any(w < float(required_w) - EPS for w in known_widths)
+        measured_w = min(known_widths) if known_widths and (known_failure or all(w is not None for w in widths)) else None
+        width_status = ('failed' if known_failure else
+                        'unknown' if measured_w is None or required_w is None else 'passed')
         checks.append({
             'id': 'entry_approach_width',
             'check_id': 'entry_approach_width',

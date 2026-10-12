@@ -55,7 +55,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                    expanded_needed=None, ground_stalls=True, turn_radius_m=None, turn_lane_m=None,
                    field="auto", occupied_footprint=None, accept_ramp=None, ramp_shape="any", allowed_angles=None,
                    preserve_banks=False, straight_entry=False, prohibited=None, stall_exclusion=None,
-                   demand_from_entrance=False,
+                   demand_from_entrance=False, entry_clearance_m=None,
                    search_budget=SEARCH_BUDGET):  # noqa: E501
     """Scored row-and-aisle candidates in world coordinates.
 
@@ -78,6 +78,11 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
     road_segs = list(_segments(frontage))
     if not road_segs or ground.is_empty:
         return []
+    if entry_clearance_m is not None:
+        from .geometry import number
+        entry_clearance_m = number(entry_clearance_m, 'entry clearance')
+    source_lines = [frontage] if isinstance(frontage, LineString) else list(frontage.geoms)
+    corners = [Point(line.coords[i]) for line in source_lines for i in (0, -1)]
     longest_road = max(road_segs, key=lambda s: s.length)
     results = []
     search_count = 0
@@ -113,6 +118,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
         if g_ground.is_empty or not g_ground.is_valid:
             continue
         g_roads = [rot(s) for s in road_segs]
+        g_corners = [rot(p) for p in corners] if entry_clearance_m is not None else []
         road_union = unary_union(g_roads)
         g_prohibited = rot(prohibited) if prohibited is not None and not prohibited.is_empty else None
         # fixed for this orientation: the inner loops used to rebuild these on every iteration
@@ -196,6 +202,8 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                     # avoid it by construction from the permitted frontage; the surface connector is
                     # a parcel-edge strip and has to be checked outright.
                     if g_prohibited is not None and entrance.distance(g_prohibited) <= 0.05:
+                        continue
+                    if any(entrance.distance(p) < entry_clearance_m - EPS for p in g_corners):
                         continue
                     drive = unary_union([aisle_poly, entrance])
                     turn_bay = None

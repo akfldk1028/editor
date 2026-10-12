@@ -27,6 +27,7 @@ from backend.app.modules.design.generation.maas.masterplan.planner_metrics impor
     program_features)
 from backend.app.modules.design.generation.maas.masterplan.planner_rank import _rank_and_record
 from backend.app.modules.design.generation.maas.masterplan.parking_targets import target_mode
+from backend.app.modules.design.generation.maas.masterplan.entry_constraints import required_corner_clearance, ramp_ground_clear, clears_frontage_ends
 
 
 
@@ -97,6 +98,7 @@ def _plan_site_fixed(request):
         raise ValueError("site exceeds bounded planner area (1 km2); subdivide the design")
     law=request.get("law") or {}
     options=request.setdefault("options",{})
+    entry_clearance = required_corner_clearance(options)
     search_budget = BasementSearchBudget(options.get('max_basement_solves'))
     placement_stage = options.get('planning_stage') == 'placement'
     explicit_angle = layout_axis_angle(request)
@@ -117,8 +119,10 @@ def _plan_site_fixed(request):
         if straight_entry:
             kwargs['straight_entry'] = True
         kwargs.setdefault('prohibited', prohibited)
+        kwargs.setdefault('entry_clearance_m', entry_clearance)
         return row_candidates(*args, **kwargs)
     def plan_pack(*args, **kwargs):
+        kwargs.setdefault('entry_clearance_m', entry_clearance)
         if common_axis:
             kwargs.update(allowed_angles=[angle, angle+90], require_full_width=True, preserve_banks=True)
         return pack_level(*args, **kwargs)
@@ -446,6 +450,11 @@ def _plan_site_fixed(request):
                         if not matches_turn(ramp,requested_turn):
                             return False
                     entry_app = options.get("entry_approach")
+                    entry_geometry = ramp.get('ground_connector')
+                    if entry_geometry is None:
+                        entry_geometry = ramp.get('upper_landing')
+                    if not clears_frontage_ends(entry_geometry, frontage, entry_clearance):
+                        return False
                     if entry_app in ("corner_clear", "straight_6m", "straight_10m"):
                         corner_clearance = 6.0 if entry_app == "straight_6m" else (10.0 if entry_app == "straight_10m" else 3.0)
                         if isinstance(frontage, LineString) and len(frontage.coords) >= 2:
@@ -454,10 +463,8 @@ def _plan_site_fixed(request):
                             if upper is not None:
                                 if upper.distance(p0) < corner_clearance or upper.distance(p1) < corner_clearance:
                                     return False
-                    upper=ramp.get("upper_landing")
-                    if upper is not None and not ground_footprint.is_empty:
-                        if upper.intersection(ground_footprint).area>EPS:
-                            return False
+                    if not ramp_ground_clear(ramp, ground_footprint):
+                        return False
                     if not ground_footprint.is_empty and rules.get("min_headroom_m") is not None:
                         # Passing under the plate is only allowed where the declared slab leaves the
                         # headroom the rules require; otherwise the ramp would drive through the

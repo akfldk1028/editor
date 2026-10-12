@@ -102,7 +102,7 @@ def _road_portals(frontage, width):
             yield portal, tangent, (-left[0], -left[1])
 
 
-def _connector(site, frontage, obstacles, ramp, upper, width, landing):
+def _connector(site, frontage, obstacles, ramp, upper, width, landing, *, accept=None):
     """Test straight and orthogonal full-width corridors to the flat landing."""
     permitted = prep(site.buffer(EPS))
     descending = ramp.difference(upper)
@@ -138,7 +138,8 @@ def _connector(site, frontage, obstacles, ramp, upper, width, landing):
                     or corridor.distance(frontage) > EPS
                     or corridor.intersection(upper).area <= EPS):
                 continue
-            return corridor
+            if accept is None or accept(corridor):
+                return corridor
     return None
 
 
@@ -199,9 +200,6 @@ def interior_ramp_candidates(site, frontage, obstacles, rules, height, spec, *, 
                 if not site_cover.covers(area) or area.intersection(obstacles).area > EPS:
                     continue
                 upper = rectangle(origin, along, across, 0, 0, width, landing)
-                connector = _connector(site, frontage, obstacles, area, upper, width, landing)
-                if connector is None:
-                    continue
                 lower = rectangle(origin, along, across, 0, run - landing, width, run)
                 center = LineString([
                     (origin[0] + across[0] * width / 2 + along[0] * d,
@@ -212,10 +210,13 @@ def interior_ramp_candidates(site, frontage, obstacles, rules, height, spec, *, 
                     "polygon": area, "upper_landing": upper, "lower_landing": lower,
                     "centerline": center, "profile": spec["profile"],
                     "width_m": width, "length_m": run, "height_m": height,
-                    "orientation": "interior_straight", "ground_connector": connector,
+                    "orientation": "interior_straight",
                 }
-                if accept is not None and not accept(candidate):
+                connector = _connector(site, frontage, obstacles, area, upper, width, landing,
+                    accept=(lambda corridor: accept({**candidate, 'ground_connector': corridor})) if accept else None)
+                if connector is None:
                     continue
+                candidate['ground_connector'] = connector
                 candidates.append(candidate)
                 if len(candidates) >= limit:
                     return candidates

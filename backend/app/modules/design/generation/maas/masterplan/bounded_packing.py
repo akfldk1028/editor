@@ -132,11 +132,11 @@ def _width_connected(candidate, anchors, aisle_width):
     return False
 
 
-def pack_level(envelope, anchors, rules, required, accessible=0, *, preferred_angle=0, require_full_width=False, allowed_angles=None, preserve_banks=False):
+def pack_level(envelope, anchors, rules, required, accessible=0, *, preferred_angle=0, require_full_width=False, allowed_angles=None, preserve_banks=False, entry_clearance_m=None):
     """Pack one level, preserving the original function signature and evidence."""
     if envelope.is_empty or required <= 0:
         return _empty()
-    if (envelope.area < _LARGE_ENVELOPE_M2 and
+    if (entry_clearance_m is None and envelope.area < _LARGE_ENVELOPE_M2 and
             _legacy_cell_work(envelope, anchors, rules, preferred_angle, allowed_angles) <= _LEGACY_CELL_WORK_BUDGET):
         # The legacy packer has no mixed expanded-bay allocator. Conservatively
         # draw every non-accessible bay at the larger dimensions when a share is
@@ -194,6 +194,7 @@ def pack_level(envelope, anchors, rules, required, accessible=0, *, preferred_an
         field="auto",
         allowed_angles=allowed_angles,
         preserve_banks=preserve_banks,
+        entry_clearance_m=entry_clearance_m,
     )
     # A landing can be a polygon inside the free floor while a surface road is
     # a line at its edge. In either case the selected drive must truly reach a
@@ -216,6 +217,7 @@ def pack_level(envelope, anchors, rules, required, accessible=0, *, preferred_an
     return {
         "stalls": best["stalls"],
         "drive": best["drive"],
+        "entrance": best.get("entrance"),
         "provided": best["provided"],
         "accessible": best["accessible"],
         "available_spaces": best["provided"],
