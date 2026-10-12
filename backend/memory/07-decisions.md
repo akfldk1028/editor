@@ -664,3 +664,19 @@ be told to the Orchestrator session.
   Revision request shows the open issue sentence and the changed nodes instead of "그 밖의 항목 5개".
   The 8,000-char cap on each recorded message is the Orchestrator's; the official A2A SDK's `GetTask` (task history,
   artifacts, kept by `InMemoryTaskStore` while the agent lives) is the standard way to fetch the full text by task id.
+
+- 2026-10-12: Siting follow-up adds validate_plan.siting_evidence and evaluate_siting_relations(brief, owner_artifacts). Geometry diagnostics do not authenticate owner provenance or infer doors. Frozen brief content hash and floor association are checked; invalid area features produce unknown outdoor measures. Unused curved-family budget is reallocated.75 targeted engine regressions passed. Actual MasterPlan pilot: SW48 valid, SE50 collision failure; Programme/Mass/Plan acceptance remains unbound.
+- 2026-10-12 (night, official A2A) the user: "공식 A2A 기능 최대한 활용해, README도 코드도 봐서". Inventory of a2a-sdk
+  1.0.0a0 (installed only in agents/OrchestratorAgent/.venv-orchestrator; agents/a2a_common builds
+  A2AFastAPIApplication + DefaultRequestHandler + InMemoryTaskStore, one `{tool,args}` text message per call):
+  unused so far — `GetTask`/`ListTasks` (task history + full reply, kept in memory while the agent lives, owner-scoped),
+  `SendStreamingMessage`/`SubscribeToTask` + server `TaskUpdater` (progress), push notifications (needs a config store
+  + sender), `AgentSkill.examples`, `AgentCapabilities.extensions[].params` (free JSON — the place for a tool input
+  schema), `Part.data` (structured payloads instead of JSON-in-text), `TaskState.INPUT_REQUIRED`/`REJECTED`,
+  `context_id`/`reference_task_ids` for multi-turn, `ClientFactory` consumers/interceptors, OpenTelemetry hooks.
+  Done tonight in the editor: `GET /platform/agents/{agent}/tasks` (adapters/a2a_tasks.py, official ListTasks over the
+  registry URL + network token) and, in the 협업 record, "X의 기록에서 전체 보기" on a cut reply, matched by prefix to the
+  agent's own task (lib/tasks.ts). Proven live: route 200, Site held its 184,856-char reply right after a run; minutes
+  later the Site session redeployed its container and the in-memory store was empty ("더는 보관하지 않아요"). So the
+  durable half is the agents': `DatabaseTaskStore` in a2a_common; and the Orchestrator must record the A2A task id
+  and context_id per communication (today: its own row id and node key) so the view can `GetTask` directly.

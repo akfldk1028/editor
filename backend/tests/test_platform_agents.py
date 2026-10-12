@@ -1,3 +1,4 @@
+import json
 import httpx
 import pytest
 from fastapi import FastAPI
@@ -72,3 +73,38 @@ def test_a_card_with_a_non_string_skill_name_does_not_break_the_catalog():
     from backend.app.modules.platform.routing import cards
     card = cards._card({'name': 'X', 'description': 'd', 'skills': [{'id': 'x_a', 'name': None, 'description': 7}, {'id': 'x_b', 'name': 'b'}]})
     assert card['skills'] == [{'id': 'x_a', 'name': 'x_a', 'description': ''}, {'id': 'x_b', 'name': 'b', 'description': 'b'}]
+
+
+def test_an_agents_own_task_records_are_read_with_the_official_list_tasks_call():
+    """ListTasks (a2a-sdk 1.0) answers the request the agent got and its full reply; the route maps them for the view."""
+    import asyncio
+
+    from backend.app.adapters import a2a_tasks
+
+    listing = {'jsonrpc': '2.0', 'id': 'x', 'result': {'tasks': [{
+        'id': 'f2d2', 'contextId': 'ctx', 'status': {'state': 'TASK_STATE_COMPLETED', 'timestamp': '2026-10-12T10:47:03Z',
+        'message': {'role': 'ROLE_AGENT', 'parts': [{'text': '{"status": "partial", "summary": "6/9"}'}], 'metadata': {'tool': 'site_resolve'}}},
+        'history': [{'role': 'ROLE_USER', 'parts': [{'text': '{"tool": "site_resolve", "args": {"pnu": "1"}}'}]}], 'artifacts': []}]}}
+    seen = []
+
+    def handler(request):
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json=listing)
+    records = asyncio.run(a2a_tasks.list_tasks('site_context', transport=httpx.MockTransport(handler), env={'SITE_CONTEXT_A2A_URL': 'http://site'}))
+    assert seen[0]['method'] == 'ListTasks' and seen[0]['params'] == {'pageSize': 20, 'historyLength': 2}
+    assert records == [{'id': 'f2d2', 'context_id': 'ctx', 'state': 'completed', 'at': '2026-10-12T10:47:03Z', 'tool': 'site_resolve',
+                        'request_text': '{"tool": "site_resolve", "args": {"pnu": "1"}}', 'response_text': '{"status": "partial", "summary": "6/9"}'}]
+
+    async def tasks(agent):
+        assert agent == 'site_context'
+        return records
+
+    async def down(agent):
+        raise a2a_tasks.AgentTasksUnavailable('site_context unreachable')
+    app = FastAPI()
+    app.include_router(create_platform_router(OrchestratorClient(None), tasks=tasks))
+    assert TestClient(app).get('/api/v1/platform/agents/site_context/tasks').json() == {'agent': 'site_context', 'tasks': records}
+    assert TestClient(app).get('/api/v1/platform/agents/bad id/tasks').status_code == 400
+    gone = FastAPI()
+    gone.include_router(create_platform_router(OrchestratorClient(None), tasks=down))
+    assert TestClient(gone).get('/api/v1/platform/agents/site_context/tasks').status_code == 503

@@ -294,6 +294,17 @@ export interface AgentSummary {
   skills?: { id: string; name: string; description: string }[] | null
 }
 
+/** One task an agent still holds (official A2A ListTasks via `GET /platform/agents/{agent}/tasks`): the request it got and its full, uncut reply. */
+export interface AgentTask {
+  id: string
+  context_id: string | null
+  state: string
+  at: string | null
+  tool: string | null
+  request_text: string
+  response_text: string
+}
+
 export interface HostStatus {
   at: string | null
   daemon: { pid: number | null; stale: boolean }

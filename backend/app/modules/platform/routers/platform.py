@@ -1,9 +1,11 @@
 import os
+import re
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
+from backend.app.adapters import a2a_tasks
 from backend.app.adapters.orchestrator import OrchestratorClient, OwnerContractError, OwnerUnavailable
 from backend.app.schemas.platform import AgentSummary
 from backend.app.schemas.platform import ProjectBinding, ProjectCreate, SceneRevisionRefresh
@@ -23,10 +25,11 @@ from backend.app.modules.platform.routers.status import create_status_router
 def create_platform_router(
     client: OrchestratorClient | None = None, *, project_service=None, public_origin=None,
     design_repository=None, execution_catalog=None, native_design_service=None, status_service=None,
-    trace_recorder=None, conversation_activation=None, roster=None,
+    trace_recorder=None, conversation_activation=None, roster=None, tasks=None,
 ) -> APIRouter:
-    # The agents' own words: their live A2A cards (test seam `roster`).
+    # The agents' own words: their live A2A cards (test seam `roster`); their own task records (test seam `tasks`).
     roster = roster or cards.roster
+    tasks = tasks or a2a_tasks.list_tasks
     owner = client or OrchestratorClient(os.environ.get('EDITOR_ORCHESTRATOR_URL'))
     router = APIRouter(prefix='/api/v1/platform', tags=['platform'])
     allowed_origin = public_origin or os.environ.get('EDITOR_PUBLIC_URL', 'http://127.0.0.1:5173')
@@ -48,6 +51,16 @@ def create_platform_router(
             project_service = ProjectService(ProjectRepository(data_dir), owner,
                 PlatformScenes(os.environ.get('EDITOR_SCENE_URL')))
         return project_service
+
+    @router.get('/agents/{agent}/tasks')
+    async def agent_tasks(agent: str):
+        """The tasks the agent still holds (official A2A ListTasks): the request it got and its full, uncut reply."""
+        if not re.fullmatch(r'[a-z][a-z0-9_-]{0,40}', agent):
+            raise HTTPException(400, 'invalid agent id')
+        try:
+            return {'agent': agent, 'tasks': await tasks(agent)}
+        except a2a_tasks.AgentTasksUnavailable as exc:
+            raise HTTPException(503, str(exc)) from None
 
     @router.get('/agents', response_model=list[AgentSummary])
     async def agents():

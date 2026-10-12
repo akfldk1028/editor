@@ -6,6 +6,7 @@
 import type { AskClause } from './commands'
 import type {
   AgentSummary,
+  AgentTask,
   AskAnswer,
   Capabilities,
   Communications,
@@ -199,6 +200,16 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
 /** The host's last tick, cached 5 s server-side: the conversation reads it to know whom to wake. */
 export async function getHostStatus(signal?: AbortSignal): Promise<HostStatus> {
   return (await request('/host/status', { signal })) as HostStatus
+}
+
+/** The tasks an agent still holds, with the full text of each reply (the agent's own record, not the Orchestrator's cut copy). */
+export async function listAgentTasks(agent: string, signal?: AbortSignal): Promise<AgentTask[]> {
+  const data = (await request(`/agents/${encodeURIComponent(agent)}/tasks`, { signal })) as { tasks?: unknown }
+  const tasks = Array.isArray(data?.tasks) ? data.tasks : null
+  if (!tasks || !tasks.every((row) => row && typeof row === 'object' && typeof (row as AgentTask).id === 'string' && typeof (row as AgentTask).response_text === 'string')) {
+    throw new Error('에이전트 작업 목록 형식이 올바르지 않습니다.')
+  }
+  return tasks as AgentTask[]
 }
 
 /** The Orchestrator's agent catalog: every agent it knows, with its skills and whether it answered the last probe. */
