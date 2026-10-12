@@ -290,15 +290,47 @@ def test_address_message_is_located_by_the_editor_and_never_reaches_owner(tmp_pa
     assert client.post('/api/v1/platform/projects/unknown/conversation', json={'message_id': 'm-2', 'text': '산곡동 684-1'}).status_code == 404
 
 
-def test_a_sentence_with_an_address_in_it_still_goes_to_the_owner(tmp_path, monkeypatch):
+def test_a_sentence_naming_a_site_goes_to_the_owner_with_that_site_as_context_and_comes_back_located(tmp_path, monkeypatch):
     from backend.app.modules.platform.routers import conversation as module
+    async def named(text):
+        return '산곡동 684-1' if '산곡동' in text else None
     async def locate(query):
-        pytest.fail('only a whole-message address is the editor\'s')
+        assert query == '산곡동 684-1'
+        return {'kind': 'site', 'query': query, 'pnu': '4115011300106840001', 'address': '경기도 의정부시 산곡동 684-1',
+                'coordinates': {'x': 127.1, 'y': 37.7}, 'error': None}
+    monkeypatch.setattr(module, 'site_named', named)
     monkeypatch.setattr(module, 'locate_site', locate)
     forwarded = []
     def handler(request):
-        forwarded.append(json.loads(request.content)['text'])
+        body = json.loads(request.content)
+        forwarded.append(body)
+        return httpx.Response(202, json={**snapshot(), 'revision': 1, 'status': 'working'})
+    client, url = setup(tmp_path, handler)
+    response = client.post(url, json={'message_id': 'm-1', 'text': '산곡동 684-1에 어린이집을 지으려고 해요', 'context': {'assessment_date': '2026-10-06'}})
+    assert response.status_code == 202
+    assert response.json()['located']['pnu'] == '4115011300106840001'
+    assert response.json()['status'] == 'working' and response.json()['revision'] == 1
+    assert forwarded[0]['text'] == '산곡동 684-1에 어린이집을 지으려고 해요'
+    assert forwarded[0]['context'] == {'assessment_date': '2026-10-06', 'pnu': '4115011300106840001', 'address': '경기도 의정부시 산곡동 684-1'}
+    # No site named: the message goes through untouched and the answer is the plain snapshot.
+    plain = client.post(url, json={'message_id': 'm-2', 'text': '어린이집을 지으려고 해요'})
+    assert plain.status_code == 202 and 'located' not in plain.json()
+    assert 'context' not in forwarded[1] or forwarded[1]['context'] == {}
+
+
+def test_a_named_site_the_geocoder_cannot_find_changes_nothing(tmp_path, monkeypatch):
+    from backend.app.modules.platform.routers import conversation as module
+    async def named(text):
+        return '없는동 1'
+    async def locate(query):
+        return {'kind': 'site', 'query': query, 'pnu': None, 'address': None, 'coordinates': None, 'error': 'no result'}
+    monkeypatch.setattr(module, 'site_named', named)
+    monkeypatch.setattr(module, 'locate_site', locate)
+    forwarded = []
+    def handler(request):
+        forwarded.append(json.loads(request.content))
         return httpx.Response(202, json=snapshot())
     client, url = setup(tmp_path, handler)
-    assert client.post(url, json={'message_id': 'm-1', 'text': '산곡동 684-1에 어린이집을 지으려고 해요'}).status_code == 202
-    assert forwarded == ['산곡동 684-1에 어린이집을 지으려고 해요']
+    response = client.post(url, json={'message_id': 'm-1', 'text': '없는동 1에 뭐 지을까요'})
+    assert response.status_code == 202 and 'located' not in response.json()
+    assert 'pnu' not in forwarded[0].get('context', {})

@@ -39,10 +39,17 @@ export function parseLocated(value: unknown): ConversationLocated | null {
   return value as unknown as ConversationLocated
 }
 
-export async function postConversation(projectId: string, body: ConversationSubmission): Promise<ConversationSnapshot | ConversationLocated> {
+/**
+ * The door's answer to a message: the owner's snapshot (with `located` when the message named a site the editor
+ * found — the message went to the owner, the map moves too), or `{located}` alone when the message was one address.
+ */
+export async function postConversation(projectId: string, body: ConversationSubmission): Promise<(ConversationSnapshot & Partial<ConversationLocated>) | ConversationLocated> {
   // Once dispatched, a message belongs to the server even when the user changes projects or sends another.
   const response = await fetch(path(projectId), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
   if (!response.ok) throw new Error(`대화에 연결하지 못했어요 (${response.status}). 같은 메시지로 다시 시도할 수 있어요.`)
   const value = await response.json()
-  return parseLocated(value) ?? parseConversation(value)
+  if (object(value) && 'located' in value && !('conversation_id' in value)) return parseLocated(value)!
+  const snapshot = parseConversation(value)
+  const located = parseLocated(value)
+  return located ? { ...snapshot, located: located.located } : snapshot
 }

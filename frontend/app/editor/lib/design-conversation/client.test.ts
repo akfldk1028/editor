@@ -24,6 +24,10 @@ test('a message that was one address comes back located by the editor, not as a 
   fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ located }, { status: 200 }))
   expect(await postConversation('project-1', { ...body, text: '산곡동 684-1' })).toEqual({ located })
   fetchSpy.mockRestore()
+  // A sentence naming a site: the owner's snapshot plus `located`.
+  fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ ...answer, located }, { status: 202 }))
+  expect(await postConversation('project-1', { ...body, text: '산곡동 684-1에 어린이집' })).toEqual({ ...answer, located })
+  fetchSpy.mockRestore()
   fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ located: { kind: 'site', query: 1 } }))
   await expect(postConversation('project-1', body)).rejects.toThrow('대화 응답을 읽지 못했어요')
 })

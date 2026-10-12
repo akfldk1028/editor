@@ -30,6 +30,9 @@
 .conversation-artifact dd { margin: 0; white-space: pre-wrap; }
 .conversation-artifact ul { padding-inline-start: 18px; }
 .conversation-artifact pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.conversation-sheet dl > div[data-filled="false"] dt { color: var(--muted); }
+.conversation-sheet-empty { color: var(--muted); font-style: italic; }
+.conversation-sheet ul { margin: 0; }
 .agent-thread {
   min-block-size: 0;
   overflow: auto;

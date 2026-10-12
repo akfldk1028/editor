@@ -67,11 +67,11 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   const composerRef = useRef<HTMLInputElement>(null)
   useAsk(shell.openArtifact)
   const project = useConversationProject()
-  // A message that was one address: the editor located it (the owner's conversation does not keep it) — the
-  // user's bubble and the Site Agent's line go to the feed, and the map opens on that parcel and selects it.
-  const conversation = useConversation(project.projectId, project.conversationId, (text, located) => {
+  // The editor located a site the message named: the Site Agent's line goes to the feed and the map opens on that
+  // parcel and selects it. A message that was one address never reached the owner, so its bubble is posted here too.
+  const conversation = useConversation(project.projectId, project.conversationId, (located, text) => {
     const postFeed = projectFeed(project.projectId, project.conversationId)
-    postFeed(askLines(text)[0]!)
+    if (text) postFeed(askLines(text)[0]!)
     postFeed(siteLocatedLine(located))
     const params = siteLocateParams(located)
     if (params) shell.openArtifact('site-map', params)

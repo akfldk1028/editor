@@ -8,6 +8,7 @@ from backend.app.modules.platform import host
 from backend.app.modules.platform.ask import locate_site
 from backend.app.modules.platform.conversation_activation import activate
 from backend.app.modules.platform.routing.roles import site
+from backend.app.modules.platform.routing.site_mention import site_named
 from backend.app.schemas.conversation import ConversationSnapshot, ConversationSubmit
 
 
@@ -63,6 +64,24 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
             if projects_service().repository.get('local', project_id) is None:
                 raise HTTPException(404, 'Project not found')
             return JSONResponse({'located': await locate_site(claim['query'])})
-        return await exchange(project_id, body.conversation_id, body.model_dump(exclude_none=True))
+        # A sentence that names a site ("산곡동 684-1에 어린이집을…") goes to the owner as written, but the editor locates
+        # the site first (the model judges whether a site is named — `routing/site_mention`): the message carries that
+        # parcel as its context, and the answer carries `located` so the map moves there. Nothing named (or not
+        # geocodable) → the message goes through untouched.
+        payload = body.model_dump(exclude_none=True)
+        named = await site_named(body.text)
+        located = await locate_site(named) if named else None
+        if located is not None and not (located['pnu'] or located['coordinates']):
+            located = None
+        if located is not None:
+            context = payload.setdefault('context', {})
+            if located['pnu']:
+                context['pnu'] = located['pnu']
+            if located['address']:
+                context['address'] = located['address']
+        snapshot = await exchange(project_id, body.conversation_id, payload)
+        if located is None:
+            return snapshot
+        return JSONResponse({**snapshot.model_dump(), 'located': located}, status_code=202)
 
     return router

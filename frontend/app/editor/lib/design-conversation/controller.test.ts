@@ -190,17 +190,25 @@ test('explicit discard releases a rejected message without resending it', async 
 test('a message the editor located leaves the pending queue and reaches onLocated without touching the snapshot', async () => {
   const located = { kind: 'site' as const, query: '산곡동 684-1', pnu: '4115011300106840001', address: '경기도 의정부시 산곡동 684-1', coordinates: { x: 127.1, y: 37.7 }, error: null }
   const sent: ConversationSubmission[] = []
-  const controller = create('project', 'main', { get: async () => snapshot(3), post: async (_p, body) => { sent.push(body); return body.text === '산곡동 684-1' ? { located } : snapshot(4) } })
-  const heard: [string, unknown][] = []
-  controller.onLocated = (text, body) => { heard.push([text, body]) }
+  // The owner's snapshot records the message it took (its id confirms the pending one), as the real door does.
+  const taken = (revision: number, body: ConversationSubmission) => ({ ...snapshot(revision), messages: [{ id: body.message_id, role: 'user' as const, agent: null, text: body.text, at: '2026-10-12T00:00:00Z' }] })
+  const controller = create('project', 'main', { get: async () => snapshot(3), post: async (_p, body) => { sent.push(body); return body.text === '산곡동 684-1' ? { located } : body.text.includes('684-1에') ? { ...taken(4, body), located } : taken(5, body) } })
+  const heard: [unknown, string | null][] = []
+  controller.onLocated = (body, text) => { heard.push([body, text]) }
   controller.start(); await flush()
   controller.send('산곡동 684-1', { assessment_date: '2026-10-06' })
   await until(() => heard.length === 1)
-  expect(heard[0]).toEqual(['산곡동 684-1', located])
+  expect(heard[0]).toEqual([located, '산곡동 684-1'])
   expect(controller.getSnapshot().pending).toEqual([])
   expect(controller.getSnapshot().snapshot?.revision).toBe(3)
+  // A sentence naming the site: the owner keeps the message (snapshot accepted) and the map still moves (text null).
+  controller.send('산곡동 684-1에 어린이집', {})
+  await until(() => heard.length === 2)
+  expect(heard[1]).toEqual([located, null])
+  expect(controller.getSnapshot().snapshot?.revision).toBe(4)
+  expect(controller.getSnapshot().snapshot).not.toHaveProperty('located')
   controller.send('그 땅에 어린이집', {})
-  await until(() => controller.getSnapshot().snapshot?.revision === 4)
-  expect(sent.map((body) => body.text)).toEqual(['산곡동 684-1', '그 땅에 어린이집'])
-  expect(heard.length).toBe(1)
+  await until(() => controller.getSnapshot().snapshot?.revision === 5)
+  expect(sent.map((body) => body.text)).toEqual(['산곡동 684-1', '산곡동 684-1에 어린이집', '그 땅에 어린이집'])
+  expect(heard.length).toBe(2)
 })

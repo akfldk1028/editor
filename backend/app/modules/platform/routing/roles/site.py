@@ -16,6 +16,23 @@ def locate(text: str, context: dict) -> dict | None:
     return {'query': value} if PNU.match(value) or JIBUN.match(value) or ROAD.match(value) else None
 
 
+# The same shapes inside a sentence ("산곡동 684-1에 어린이집을 지으려고 해요"): the message still belongs to whoever answers it,
+# but the site it names is the map's. A 지번 ends at its number (a following 번지 is taken, a following 에/의 is not).
+JIBUN_IN = re.compile(r'(?:[가-힣]+\s+)*[가-힣]+(?:동|리|가|읍|면)\s+(?:산\s*)?\d+(?:-\d+)?(?:\s*번지)?')
+ROAD_IN = re.compile(r'(?:[가-힣]+\s+)*[가-힣0-9]{2,}(?:로|길)\s+\d+(?:-\d+)?')
+PNU_IN = re.compile(r'(?<!\d)\d{19}(?!\d)')
+
+
+def find(text: str) -> str | None:
+    """The first address or PNU named inside a message, or None — the whole-message form is `locate`'s."""
+    value = re.sub(r'\s+', ' ', text).strip()
+    for pattern in (PNU_IN, JIBUN_IN, ROAD_IN):
+        found = pattern.search(value)
+        if found:
+            return found.group(0).strip()
+    return None
+
+
 ROLE = Role(
     agent='site_context',
     label='대지 사실 (Site Agent)',

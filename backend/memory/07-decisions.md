@@ -464,3 +464,16 @@ be told to the Orchestrator session.
   proxy, one tile at a time) is a debugging flag only — the user does not want VWorld. Memory 05-decisions: the Naver
   key's registered URLs are the port's source of truth; a port change needs the NCP console or a key with port-less
   `http://localhost` / `http://127.0.0.1` (Maps troubleshoot guide says register the host without a port).
+- 2026-10-12 a sentence that names a site moves the map too, by the model's judgment (user: "산곡동 684-1에 어린이집을
+  지으려고 해요 이렇게 해도 지도로 가야 하는 거 아냐?", then "llm이 자동으로 판단해야지 … rules 기반은 옛날 방식"):
+  `routing/site_mention.site_named` asks the local Claude login (JSON schema `SiteMention`: names_site, address as
+  written) whether the message names an address/PNU; `roles/site.find` (the same shapes, searched) only when the
+  model is off or fails. The conversation door locates it (`ask.locate_site`), relays the message to the owner with
+  `context.pnu/address` set to the parcel, and returns the owner's 202 snapshot plus `located`; the frontend accepts
+  the snapshot and fires `onLocated(located, null)` (no bubble — the owner has the message) so the map opens and
+  selects the parcel. Not geocodable → untouched relay. Measured: judge 3.5–4.7 s per message (CLI spawn), catches
+  "테헤란로152" without a space, says no for "의정부 쪽에". Live in Chrome: sentence → Requirement Agent working +
+  map on 684-1 selected + Site Agent line. Also the Requirement Agent's seven `requirements.*` artifacts are one card
+  (`lib/agents/requirement/lib/sheet.ts`: fields in the user's words, n/7 채워짐, "아직 없음" for empty ones,
+  structured-brief keys translated) — user: "대화하면서 채워나가야지", "chat gpt claude 처럼 ui ux 가 좋아야지".
+  Tests: site_mention 3, conversation 50, frontend 72 (sheet 2, artifacts 4).

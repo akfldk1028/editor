@@ -15,6 +15,21 @@ test('reviewable server confirmation has one action; ordinary proposals have non
   expect(busy).toContain('disabled=""')
 })
 
+test('the requirement brief is one card in the user\'s words that fills in, never the owner\'s ids, codes or empty JSON', () => {
+  const field = (name: string, data: Record<string, unknown>) => ({ id: `requirements.${name}.r1`, owner: 'requirement', title: `requirements.${name}`, status: 'needs_evidence', data })
+  const html = renderToStaticMarkup(<ConversationArtifacts artifacts={[field('must_have', { value: [] }), field('raw_brief', { value: '어린이집을 지으려고 해요' }), field('unknowns', { value: ['대지면적'] }), artifact]} onConfirm={() => {}} />)
+  expect(html).toContain('<strong>요구사항</strong>')
+  expect(html).toContain('2/3 채워짐')
+  expect(html.indexOf('원문 요청')).toBeLessThan(html.indexOf('꼭 필요한 것'))
+  expect(html).toContain('어린이집을 지으려고 해요')
+  expect(html).toContain('아직 없음')
+  expect(html).not.toContain('requirements.')
+  expect(html).not.toContain('근거 보완 필요')
+  expect(html).not.toContain('<dt>value</dt>')
+  // Other owners' artifacts keep their own cards after the sheet.
+  expect(html.indexOf('요구사항')).toBeLessThan(html.indexOf('Review this intent'))
+})
+
 test('artifact status distinguishes proposals, stale evidence and confirmed results with a neutral fallback', () => {
   const cases = { proposed: '제안', stale: '이전 조건 기준', needs_evidence: '근거 보완 필요', confirmed: '확인됨', awaiting_confirmation: '확인 대기', valid: '현재 조건에 유효', future_status: '상태 미확인' }
   for (const [status, label] of Object.entries(cases)) {
