@@ -599,3 +599,11 @@ be told to the Orchestrator session.
   building_type stops in waiting_input before any agent call; Site's 6/9 `partial` answer is dropped by the
   Orchestrator (`site_patch_out_of_scope` for `site.zoning`) and that code never reaches the communication record —
   the editor can only say "Site 단계에서 멈춤 (이유는 기록에 없음)" until the door carries the adapter's code.
+- 2026-10-12 (night, follow-up) the 협업 graph draws the whole network, right-angled, and lets the person talk
+  to any agent — the user: "옛날 AutoGen처럼 직각 선, 모든 agent가 있고, 하나하나 확인하고 대화하고". `lib/graph.ts`
+  now lays every agent of `lib/agents` in a grid right of the Orchestrator (this run's participants first and bright,
+  the rest dimmed with what they answer; a dot per agent from `/platform/status`), edges are smoothstep. Clicking a
+  card opens `ui/AgentPanel`: who it is, what it answers, what it said in this run, and a line that asks it through
+  the conversation (`sendCommand ask` with the agent as role; the Orchestrator card fills the composer instead).
+  The old product header no longer renders on `/dwg` (`app/client-bootstrap.tsx`; the shell sizes itself with
+  `.editor-standalone { height: 100dvh }`), it stays on the legacy pages until each is folded in.

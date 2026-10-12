@@ -10,7 +10,9 @@ import type { ArtifactProps } from '../../../shell/artifact-types'
 import { collaborationArtifact } from '../manifest'
 import { goalLabel, runStatusLine, runTone } from '../lib/status'
 import { toTranscript } from '../lib/transcript'
+import { useAgentStates } from '../model/useAgentStates'
 import { useCollaboration } from '../model/useCollaboration'
+import { AgentPanel } from './AgentPanel'
 import FlowGraph from './FlowGraph'
 import { RunList } from './RunList'
 import { Transcript } from './Transcript'
@@ -20,6 +22,7 @@ import './collaboration.css'
 export default function CollaborationArtifact({ tab = 'flow', params, shell }: ArtifactProps) {
   const { projects, chosen, setChosen, runs, run, selected: selectedRun, select, load, stale, reload } = useCollaboration(params)
   const [agent, setAgent] = useState<string | null>(null)
+  const live = useAgentStates()
   const transcript = useMemo(() => (run ? toTranscript(run) : null), [run])
   const status = run && transcript ? runStatusLine(run, transcript.messages) : null
   const { setTitle, setTab } = shell
@@ -69,15 +72,17 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
           </div>
         )}
         {effectiveTab === 'runs' && <RunList onSelect={(id) => { select(id); setTab('flow') }} runs={runs} selected={selectedRun} />}
-        {effectiveTab === 'flow' && transcript && (
+        {effectiveTab === 'flow' && (
           <>
-            <FlowGraph messages={transcript.messages} onSelect={setAgent} selected={agent} />
-            {agent && <Transcript onSelect={setAgent} selected={agent} transcript={transcript} />}
+            <FlowGraph live={live} messages={transcript?.messages ?? []} onSelect={setAgent} selected={agent} />
+            {agent
+              ? <AgentPanel agent={agent} onClose={() => setAgent(null)} transcript={transcript} />
+              : <p className="collab-note">에이전트를 누르면 이 실행에서 한 말과 할 수 있는 일이 보이고, 바로 물어볼 수 있어요.</p>}
           </>
         )}
         {effectiveTab === 'log' && transcript && <Transcript onSelect={setAgent} selected={agent} transcript={transcript} />}
-        {effectiveTab !== 'runs' && !transcript && load.kind === 'ready' && chosen && (
-          <p className="collab-note">이 프로젝트에 아직 실행이 없어요. 법규 패널에서 검토를 시작하면 여기에 흐름이 그려져요.</p>
+        {effectiveTab === 'log' && !transcript && load.kind === 'ready' && chosen && (
+          <p className="collab-note">이 프로젝트에 아직 실행이 없어요. 법규 패널에서 검토를 시작하면 여기에 기록이 쌓여요.</p>
         )}
       </div>
     </>

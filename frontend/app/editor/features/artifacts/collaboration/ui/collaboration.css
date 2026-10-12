@@ -69,3 +69,21 @@
 .collab-project select { min-block-size: 28px; color: var(--ink); background: var(--subtle); border: 1px solid var(--border-soft); border-radius: var(--radius-s); font-size: var(--fs-2); }
 .collab-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .collab-link { border: 0; padding: 0; color: var(--accent); background: transparent; font: inherit; font-size: var(--fs-2); cursor: pointer; text-decoration: underline; }
+
+/* The whole network: an agent that did not take part is dimmed; the dot says whether its service answers now */
+.collab-node[data-idle="true"] { opacity: .6; border-style: dashed; box-shadow: none; }
+.collab-node[data-idle="true"][data-selected="true"] { opacity: 1; }
+.collab-live { inline-size: 8px; block-size: 8px; border-radius: 999px; background: var(--border); margin-inline-start: auto; flex: none; }
+.collab-live[data-state="up"] { background: var(--success); }
+.collab-live[data-state="down"] { background: var(--warning); }
+
+/* One agent, picked on the canvas */
+.collab-agent { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel-raised); max-inline-size: 760px; }
+.collab-agent header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.collab-agent header svg { color: var(--accent); }
+.collab-agent h3 { margin: 0; font-size: var(--fs-3); font-weight: 600; }
+.collab-agent header small { color: var(--muted); font-size: var(--fs-1); flex: 1 1 100%; }
+.collab-agent header .icon-button { margin-inline-start: auto; }
+.collab-ask { display: flex; gap: 8px; }
+.collab-ask input { flex: 1; min-inline-size: 0; min-block-size: 32px; padding: 0 10px; font: inherit; font-size: var(--fs-2); color: var(--ink); background: var(--subtle); border: 1px solid var(--border-soft); border-radius: var(--radius-s); }
+.collab-ask input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }

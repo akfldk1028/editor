@@ -6,24 +6,36 @@ import type { CollaborationMessage } from './transcript'
 const message = (over: Partial<CollaborationMessage>): CollaborationMessage => ({
   id: 'm', step: 1, direction: 'request', from: 'orchestrator', to: 'site_context', tool: 'site_resolve', state: 'succeeded', transport: 'a2a', truncated: false, text: '{}', ...over,
 })
+const catalog = [{ id: 'site_context', tools: { site_resolve: '대지 사실 확인' } }, { id: 'law', tools: { law_parcel_limits: '법규 한계' } }, { id: 'mass', tools: {} }]
 
-test('no records means no fabricated participants or edges', () => {
-  expect(buildGraph([])).toEqual({ nodes: [], edges: [] })
+test('an empty catalog and no records means nothing is drawn', () => {
+  expect(buildGraph([], null, { catalog: [] })).toEqual({ nodes: [], edges: [] })
 })
 
-test('only observed directions appear, named in the user\'s words, and an unknown transport stays marked', () => {
+test('the whole network is drawn: the ones this run spoke with first and bright, the rest dimmed with what they answer', () => {
   const { nodes, edges } = buildGraph([
-    message({ id: 'a' }),
-    message({ id: 'b', direction: 'response', from: 'site_context', to: 'orchestrator', state: 'partial', transport: 'unknown', text: '{"summary":"6/9 site facts"}' }),
-    message({ id: 'c', step: 3, to: 'law', tool: 'law_parcel_limits' }),
-  ], 'law')
-  expect(nodes.map((node) => [node.id, node.label, node.hub, node.selected])).toEqual([
-    ['orchestrator', 'Orchestrator Agent', true, false], ['site_context', 'Site Agent', false, false], ['law', 'Law Agent', false, true],
+    message({ id: 'a', to: 'law', tool: 'law_parcel_limits' }),
+    message({ id: 'b', direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_parcel_limits', state: 'succeeded', transport: 'unknown', text: '{"summary":"60/250"}' }),
+  ], 'law', { catalog, live: { law: 'up', mass: 'down' } })
+  expect(nodes.map((node) => [node.id, node.label, node.idle, node.selected, node.live])).toEqual([
+    ['orchestrator', 'Orchestrator Agent', false, false, null],
+    ['law', 'Law Agent', false, true, 'up'],
+    ['site_context', 'Site Agent', true, false, null],
+    ['mass', 'Mass Agent', true, false, 'down'],
   ])
   expect(nodes[0]!.position.x).toBe(0)
+  expect(nodes[0]!.sub).toBe('요청 1건 · 응답 1건')
   expect(nodes[1]!.position.x).toBeGreaterThan(NODE_WIDTH)
-  expect(nodes[1]!.sub).toBe('대지 사실 확인 · 근거 부족')
+  expect(nodes[1]!.sub).toBe('법규 한계 · 성공')
+  expect(nodes[2]!.sub).toBe('대지 사실 확인')
   expect(edges.map((edge) => [edge.source, edge.target, edge.label])).toEqual([
-    ['orchestrator', 'site_context', '대지 사실 확인 요청 1건'], ['site_context', 'orchestrator', '응답 1건 · 전송 미확인'], ['orchestrator', 'law', '법규 한계 요청 1건'],
+    ['orchestrator', 'law', '법규 한계 요청 1건'], ['law', 'orchestrator', '응답 1건 · 전송 미확인'],
   ])
+})
+
+test('without a catalog every agent the conversation knows is on the canvas', () => {
+  const { nodes } = buildGraph([])
+  expect(nodes.length).toBeGreaterThan(10)
+  expect(nodes.some((node) => node.id === 'user')).toBe(false)
+  expect(nodes.every((node) => node.hub || node.idle)).toBe(true)
 })
