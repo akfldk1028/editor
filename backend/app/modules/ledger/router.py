@@ -1,0 +1,115 @@
+"""`/api/v1/platform/ledger`: agents and exporters post calls in, the 협업 view reads and tails them."""
+from __future__ import annotations
+
+import asyncio
+import json
+import re
+from typing import AsyncIterator
+
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
+from pydantic import ValidationError
+
+from backend.app.core.agent_network import token_accepted
+
+from .service import Ledger
+
+HEARTBEAT_S = 15.0
+_ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$')
+
+
+def _scope(conversation_id, run_id, trace_id, project, branch) -> dict:
+    for name, value in (('conversation_id', conversation_id), ('run_id', run_id), ('trace_id', trace_id), ('project', project), ('branch', branch)):
+        if value is not None and not _ID.match(value):
+            raise HTTPException(400, f'invalid {name}')
+    if not any((conversation_id, run_id, trace_id, project)):
+        raise HTTPException(400, 'name a conversation, run, trace or project')
+    return {'conversation_id': conversation_id, 'run_id': run_id, 'trace_id': trace_id, 'project': project, 'branch': branch}
+
+
+def sse(row: dict) -> str:
+    return f'id: {row["id"]}\ndata: {json.dumps(row, ensure_ascii=False, default=str)}\n\n'
+
+
+async def stream_events(ledger: Ledger, scope: dict, since_id: int, *, heartbeat_s: float = HEARTBEAT_S, stop: asyncio.Event | None = None) -> AsyncIterator[str]:
+    """Rows after `since_id` now, then every new row that matches the scope as it is recorded; a comment line keeps the
+    connection alive while nothing happens. `stop` ends the stream (tests)."""
+    last = since_id
+    queue = ledger.watch()
+    try:
+        while not (stop and stop.is_set()):
+            rows = ledger.rows(**scope, since_id=last, limit=200)
+            for row in rows:
+                last = max(last, int(row['id']))
+                yield sse(row)
+            if rows:
+                continue
+            try:
+                await asyncio.wait_for(queue.get(), timeout=heartbeat_s)
+            except asyncio.TimeoutError:
+                yield ': keep-alive\n\n'
+    finally:
+        ledger.unwatch(queue)
+
+
+def create_ledger_router(ledger: Ledger, allowed_origin: str) -> APIRouter:
+    router = APIRouter(prefix='/ledger', tags=['ledger'])
+
+    def network_only(request: Request) -> None:
+        if not token_accepted(request.headers.get('authorization')):
+            raise HTTPException(401, 'network token required')
+
+    async def body_of(request: Request, cap: int = 4 * 1024 * 1024) -> dict:
+        chunks, size = [], 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > cap:
+                raise HTTPException(413, 'record too large')
+            chunks.append(chunk)
+        try:
+            value = json.loads(b''.join(chunks))
+        except ValueError:
+            raise HTTPException(400, 'invalid JSON') from None
+        if not isinstance(value, dict):
+            raise HTTPException(400, 'expected a JSON object')
+        return value
+
+    @router.post('/hops', status_code=201)
+    async def post_hop(request: Request):
+        """One hop as agents/a2a_common records it (plus request_text/response_text); bearer = the network token."""
+        network_only(request)
+        try:
+            row = ledger.ingest_hop(await body_of(request))
+        except (ValidationError, ValueError, TypeError) as exc:
+            raise HTTPException(422, f'invalid hop record: {type(exc).__name__}') from None
+        return {'id': row['id']}
+
+    @router.post('/v1/traces')
+    async def post_traces(request: Request):
+        """OTLP/HTTP JSON traces; spans that name an agent or tool (gen_ai.*) are recorded, the rest ignored."""
+        network_only(request)
+        try:
+            count = ledger.ingest_otlp(await body_of(request, cap=16 * 1024 * 1024))
+        except (ValidationError, ValueError, TypeError) as exc:
+            raise HTTPException(422, f'invalid trace export: {type(exc).__name__}') from None
+        return {'partialSuccess': {}, 'accepted': count}
+
+    @router.get('/hops')
+    async def get_hops(conversation_id: str | None = None, run_id: str | None = None, trace_id: str | None = None, project: str | None = None,
+                       branch: str | None = None, since_id: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1, le=500)):
+        scope = _scope(conversation_id, run_id, trace_id, project, branch)
+        return {'hops': ledger.rows(**scope, since_id=since_id, limit=limit), 'latest_id': ledger.latest_id()}
+
+    @router.get('/hops/stream')
+    async def stream_hops(request: Request, conversation_id: str | None = None, run_id: str | None = None, trace_id: str | None = None,
+                          project: str | None = None, branch: str | None = None, since_id: int = Query(default=0, ge=0)):
+        origin = request.headers.get('origin')
+        if origin and origin != allowed_origin:
+            raise HTTPException(403, 'Cross-origin stream is not allowed')
+        scope = _scope(conversation_id, run_id, trace_id, project, branch)
+        last_event = request.headers.get('last-event-id')
+        start = int(last_event) if last_event and last_event.isdigit() else since_id
+        return StreamingResponse(stream_events(ledger, scope, start), media_type='text/event-stream',
+                                 headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})
+
+    return router

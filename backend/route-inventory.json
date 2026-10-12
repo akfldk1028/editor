@@ -721,6 +721,26 @@
    "path": "/api/v1/platform/law-analysis"
   },
   {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/ledger/hops"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/ledger/hops"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/ledger/hops/stream"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/ledger/v1/traces"
+  },
+  {
    "method": "POST",
    "owner": "fastapi",
    "path": "/api/v1/platform/ordinances"

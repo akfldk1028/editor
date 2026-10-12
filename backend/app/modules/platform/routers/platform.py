@@ -11,6 +11,8 @@ from backend.app.schemas.platform import AgentSummary
 from backend.app.schemas.platform import ProjectBinding, ProjectCreate, SceneRevisionRefresh
 from backend.app.adapters.platform_scenes import PlatformScenes
 from backend.app.modules.platform.repository import ProjectRepository
+from backend.app.modules.ledger import Ledger
+from backend.app.modules.ledger.router import create_ledger_router
 from backend.app.modules.platform.routing import cards
 from backend.app.modules.platform.projects import ProjectService, BindingConflict, BindingNotFound
 from backend.app.modules.platform.routers.ask import create_ask_router
@@ -25,8 +27,10 @@ from backend.app.modules.platform.routers.status import create_status_router
 def create_platform_router(
     client: OrchestratorClient | None = None, *, project_service=None, public_origin=None,
     design_repository=None, execution_catalog=None, native_design_service=None, status_service=None,
-    trace_recorder=None, conversation_activation=None, roster=None, tasks=None, task=None,
+    trace_recorder=None, conversation_activation=None, roster=None, tasks=None, task=None, ledger=None,
 ) -> APIRouter:
+    # 협업 장부: every agent call the editor makes or receives word of, scoped by conversation (test seam `ledger`).
+    ledger = ledger or Ledger.from_env()
     # The agents' own words: their live A2A cards (test seam `roster`); their own task records (test seam `tasks`).
     roster = roster or cards.roster
     tasks = tasks or a2a_tasks.list_tasks
@@ -144,9 +148,10 @@ def create_platform_router(
         except OwnerContractError:
             raise HTTPException(502, 'Project source contract invalid') from None
 
-    router.include_router(create_run_router(projects_service, owner, allowed_origin, trace_recorder))
-    router.include_router(create_conversation_router(projects_service, owner, allowed_origin, conversation_activation))
-    router.include_router(create_ask_router(allowed_origin, trace_recorder, owner=owner))
+    router.include_router(create_run_router(projects_service, owner, allowed_origin, trace_recorder, ledger=ledger))
+    router.include_router(create_conversation_router(projects_service, owner, allowed_origin, conversation_activation, ledger=ledger))
+    router.include_router(create_ask_router(allowed_origin, trace_recorder, owner=owner, ledger=ledger))
+    router.include_router(create_ledger_router(ledger, allowed_origin))
     router.include_router(create_host_router(allowed_origin))
     router.include_router(create_status_router(owner, status_service))
     router.include_router(create_scene_assets_router())

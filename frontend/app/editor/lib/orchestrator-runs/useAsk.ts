@@ -42,7 +42,7 @@ export function useAsk(open?: (artifact: string, params?: Record<string, string>
     const site = about.site ? { pnu: about.site.pnu, address: about.site.address ?? '' } : conversationSite()
     const clause: AskClause | undefined = about.clause
     try {
-      const answer = await askLaw({ text, ...(site ? { pnu: site.pnu, ...(site.address ? { address: site.address } : {}) } : {}), ...(role ? { role } : {}),
+      const answer = await askLaw({ text, conversation_id: currentConversation().conversationId, ...(site ? { pnu: site.pnu, ...(site.address ? { address: site.address } : {}) } : {}), ...(role ? { role } : {}),
         ...(clause ? { clause } : {}), ...(about.site?.assessmentDate ? { assessment_date: about.site.assessmentDate } : {}) }, controller.signal)
       if (controller.signal.aborted) return
       if (answer.answer?.kind === 'site') {

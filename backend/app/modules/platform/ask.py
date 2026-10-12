@@ -14,6 +14,7 @@ Answer contract (every key present):
   legal_evidence: {assessment_date, currency_status, coverage_status, reason} | null
 """
 import asyncio
+import json
 import re
 
 from backend.app.adapters import law_agent
@@ -125,7 +126,7 @@ def _summary(analysis: dict) -> dict:
 
 
 async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: float | None, assessment_date: str | None, recorder,
-                       traceparent: str | None = None, agent=law_agent.ask) -> dict:
+                       traceparent: str | None = None, agent=law_agent.ask, ledger=None, conversation_id: str | None = None) -> dict:
     """The law artifact's analysis, from the Law Agent: `law_land_analyze` (the 42 regulations, lines, articles —
     the whole answer) and `law_parcel_limits` (the parcel's caps: district policy / ordinance, area-weighted),
     asked together; each hop is one span. `limits` is null when that call failed (the analysis still answers)."""
@@ -138,12 +139,18 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
     async def hop(tool, args):
         span = Span.start(recorder, parent, agent='law', conversation_id=f'editor:law-analysis:{pnu}')
         trace = {'caller': 'editor', 'trace_id': span.context.trace_id, 'span_id': span.context.span_id, 'hop': 1, 'tool': tool}
+        hop = ledger.begin(from_agent='orchestrator', to_agent='law', tool=tool, conversation_id=conversation_id, input_text=json.dumps(args, ensure_ascii=False),
+                           trace=span.context) if ledger else None
         try:
             raw = await agent(tool, args, trace=trace)
         except Exception as exc:
             span.end('error', error_type=type(exc).__name__)
+            if hop is not None:
+                ledger.finish(hop, status='ERROR', error_type=type(exc).__name__)
             raise
         span.end('ok')
+        if hop is not None:
+            ledger.finish(hop, output_text=json.dumps(raw.get('payload') or {}, ensure_ascii=False), status='OK', task_id=raw.get('task_id'))
         return raw
 
     land, limits = await asyncio.gather(hop('law_land_analyze', land_args), hop('law_parcel_limits', limits_args), return_exceptions=True)
@@ -221,7 +228,7 @@ def clause_route(question: str, clause: dict, assessment_date: str | None):
 
 async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None, recorder, traceparent: str | None = None,
                   role: str | None = None, agent=law_agent.ask, judge=None, situation: str = '', clause: dict | None = None,
-                  addresses=None, roster=cards.roster, extras=None) -> dict:
+                  addresses=None, roster=cards.roster, extras=None, ledger=None, conversation_id: str | None = None) -> dict:
     """One question → one route (the Orchestrator's judgment, `routing.decide`): a Law skill called now (one
     recorded span), a goal handed off to the catalog (no agent call; the conversation offers to start it), or a
     question back to the user with the roles as choices. A message that is an address goes to `locate_site`
@@ -229,12 +236,19 @@ async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None
     which part is filled and `route.decided_by` who decided (pattern · llm · rules · user)."""
     chosen = clause_route(question, clause, assessment_date) if clause else \
         await decide(question, assessment_date=assessment_date, role=role, judge=judge, situation=situation, extras=extras)
+    # The 협업 장부: the person's question to the Orchestrator is one call; the skill it routes to is a second, under it.
+    turn = ledger.begin(from_agent='user', to_agent='orchestrator', tool='ask', conversation_id=conversation_id, input_text=question) if ledger else None
+
+    def done(result: dict, summary: str | None, status: str = 'OK', error_type: str | None = None) -> dict:
+        if turn is not None:
+            ledger.finish(turn, output_text=summary, status=status, error_type=error_type)
+        return result
     base = {'question': question, 'route': chosen.to_dict(), 'agent': chosen.agent, 'tool': chosen.skill, 'trace_id': None,
             'version': None, 'answer': None, 'handoff': None, 'delegate': None,
             'clause': {'item_id': clause.get('item_id'), 'title': clause.get('title'), 'pnu': pnu, 'assessment_date': assessment_date} if clause else None}
     if chosen.kind in ('ask', 'answer'):
         # The Orchestrator speaks itself: a question back (choices in the route) or its own reply (route.instruction).
-        return base
+        return done(base, chosen.instruction or chosen.reason)
     if chosen.kind == 'agent':
         # A registered agent without a role module: hand the question to it in its own words (its A2A card) —
         # the skill call itself is the Orchestrator conversation's job, so no agent is called here.
@@ -242,25 +256,34 @@ async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None
             card = (await roster([chosen.agent])).get(chosen.agent)
         except Exception:
             card = None
-        return {**base, 'delegate': {'agent': chosen.agent, 'label': cards.display_name(chosen.agent, card),
+        return done({**base, 'delegate': {'agent': chosen.agent, 'label': cards.display_name(chosen.agent, card),
                                      'description': (card or {}).get('description'), 'instruction': chosen.instruction,
                                      'skills': [{'id': s['id'], 'name': s.get('name') or s['id']} for s in (card or {}).get('skills') or []][:12],
-                                     'available': card is not None}}
+                                     'available': card is not None}}, f'{cards.display_name(chosen.agent, card)}의 일로 넘김')
     if chosen.skill == 'site_locate':
-        return {**base, 'answer': await locate_site(chosen.args['query'], addresses=addresses)}
+        located = await locate_site(chosen.args['query'], addresses=addresses)
+        return done({**base, 'answer': located}, located.get('address') or located.get('pnu') or '위치를 찾지 못함')
     if chosen.kind == 'goal':
         catalog = goal(chosen.goal) or {}
-        return {**base, 'handoff': {'goal': chosen.goal, 'label': catalog.get('label') or chosen.goal,
+        return done({**base, 'handoff': {'goal': chosen.goal, 'label': catalog.get('label') or chosen.goal,
                                     'owners': catalog.get('owners') or [],
                                     # Offered to start only when the door takes it AND the conversation may offer it.
-                                    'available': catalog.get('available') is True and catalog.get('offer') is True}}
+                                    'available': catalog.get('available') is True and catalog.get('offer') is True}}, f"{catalog.get('label') or chosen.goal} 목표로 넘김")
     tool, args = chosen.skill, chosen.args
     span = Span.start(recorder, continue_or_start(traceparent), agent=chosen.agent, conversation_id=f'editor:ask:{pnu or "-"}')
     trace = {'caller': 'editor', 'trace_id': span.context.trace_id, 'span_id': span.context.span_id, 'hop': 1, 'tool': tool}
+    hop = ledger.begin(from_agent='orchestrator', to_agent=chosen.agent, tool=tool, conversation_id=conversation_id, input_text=json.dumps(args, ensure_ascii=False),
+                       trace=span.context, parent_span_id=turn.span_id if turn else None) if ledger else None
     try:
         raw = await agent(tool, args, trace=trace)
     except Exception as exc:
         span.end('error', error_type=type(exc).__name__)
+        if hop is not None:
+            ledger.finish(hop, status='ERROR', error_type=type(exc).__name__)
+        done(base, None, status='ERROR', error_type=type(exc).__name__)
         raise
     span.end('ok')
-    return {**base, 'trace_id': span.context.trace_id, 'version': raw.get('version'), 'answer': normalize(tool, raw.get('payload') or {}, full_text=bool(clause))}
+    if hop is not None:
+        ledger.finish(hop, output_text=json.dumps(raw.get('payload') or {}, ensure_ascii=False), status='OK', task_id=raw.get('task_id'))
+    return done({**base, 'trace_id': span.context.trace_id, 'version': raw.get('version'), 'answer': normalize(tool, raw.get('payload') or {}, full_text=bool(clause))},
+                None)  # the skill's answer is on the hop; a tool name is not a reply to the person

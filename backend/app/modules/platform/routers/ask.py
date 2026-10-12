@@ -8,7 +8,7 @@ from backend.app.modules.platform.situation import describe
 from backend.app.schemas.ask import AskCreate, LawAnalysisCreate, OrdinanceBodyCreate, OrdinanceDiscoveryCreate
 
 
-def create_ask_router(allowed_origin, trace_recorder=None, agent=None, owner=None):
+def create_ask_router(allowed_origin, trace_recorder=None, agent=None, owner=None, ledger=None):
     """The conversation's doors (same-origin only, like a run submission): `POST /ask` routes and answers a typed
     question — the Orchestrator's judgment over the situation (site, goal catalog, which agents `owner` reports up) —
     and `POST /law-analysis` analyses one parcel with the Law Agent."""
@@ -44,12 +44,12 @@ def create_ask_router(allowed_origin, trace_recorder=None, agent=None, owner=Non
         situation = describe(pnu=body.pnu, address=body.address, assessment_date=body.assessment_date, agents=await agents())
         return await answer(ask_law(body.text, pnu=body.pnu, assessment_date=body.assessment_date, recorder=recorder,
                                     traceparent=request.headers.get('traceparent'), role=body.role, situation=situation,
-                                    clause=body.clause.model_dump() if body.clause else None, **kwargs))
+                                    clause=body.clause.model_dump() if body.clause else None, ledger=ledger, conversation_id=body.conversation_id, **kwargs))
 
     @router.post('/law-analysis')
     async def law_analysis(body: LawAnalysisCreate, request: Request):
         same_origin(request)
-        return await answer(analyze_land(body.pnu, building_type=body.building_type, floor_area_m2=body.floor_area_m2,
+        return await answer(analyze_land(body.pnu, ledger=ledger, conversation_id=body.conversation_id, building_type=body.building_type, floor_area_m2=body.floor_area_m2,
                                          assessment_date=body.assessment_date, recorder=recorder,
                                          traceparent=request.headers.get('traceparent'), **kwargs))
 

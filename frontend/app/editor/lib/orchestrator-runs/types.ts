@@ -309,6 +309,36 @@ export interface AgentTask {
   response_text: string
 }
 
+/** One recorded call of the 협업 장부 (`GET /platform/ledger/hops`): OpenTelemetry GenAI names, A2A facts, the texts as GenAI messages. */
+export interface HopMessage { role: string; parts: { type: string; content: string }[] }
+export interface Hop {
+  id: number
+  trace_id: string
+  span_id: string
+  parent_span_id: string | null
+  ts_start: string
+  ts_end: string | null
+  operation: 'invoke_agent' | 'execute_tool' | 'start_run'
+  from_agent: string
+  to_agent: string
+  tool: string | null
+  status: 'OK' | 'ERROR' | 'UNSET'
+  error_type: string | null
+  state: string | null
+  elapsed_ms: number | null
+  conversation_id: string | null
+  run_id: string | null
+  task_id: string | null
+  project: string | null
+  branch: string | null
+  hop: number | null
+  source: 'agent' | 'orchestrator' | 'editor'
+  input_messages: HopMessage[] | null
+  output_messages: HopMessage[] | null
+  attrs: Record<string, unknown>
+  recorded_at: string
+}
+
 export interface HostStatus {
   at: string | null
   daemon: { pid: number | null; stale: boolean }

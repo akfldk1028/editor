@@ -12,7 +12,7 @@ from backend.app.modules.platform.routing.site_mention import site_named
 from backend.app.schemas.conversation import ConversationSnapshot, ConversationSubmit
 
 
-def create_conversation_router(projects_service, owner, allowed_origin, activation=None):
+def create_conversation_router(projects_service, owner, allowed_origin, activation=None, ledger=None):
     router = APIRouter()
     remote = OrchestratorConversation(owner)
     ensure_providers = activation if activation is not None else activate
@@ -81,7 +81,16 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
                 context['pnu'] = located['pnu']
             if located['address']:
                 context['address'] = located['address']
-        snapshot = await exchange(project_id, body.conversation_id, payload)
+        # The 협업 장부: the person's message to the Orchestrator is one call of this conversation (its reply comes by polling).
+        turn = ledger.begin(from_agent='user', to_agent='orchestrator', tool='conversation', conversation_id=body.conversation_id, input_text=body.text) if ledger else None
+        try:
+            snapshot = await exchange(project_id, body.conversation_id, payload)
+        except HTTPException as exc:
+            if turn is not None:
+                ledger.finish(turn, status='ERROR', error_type=f'http_{exc.status_code}')
+            raise
+        if turn is not None:
+            ledger.finish(turn, status='OK', state='working')
         if located is None:
             return snapshot
         return JSONResponse({**snapshot.model_dump(), 'located': located}, status_code=202)

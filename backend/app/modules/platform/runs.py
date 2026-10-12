@@ -9,9 +9,11 @@ LATEST_CANDIDATES = 10
 
 
 class RunService:
-    def __init__(self, projects, owner, recorder=None):
+    def __init__(self, projects, owner, recorder=None, ledger=None):
         self.projects, self.owner = projects, owner
         self.recorder = recorder or JsonlTraceRecorder()
+        # The 협업 장부: a run started from a conversation is linked to it, so its agents' calls belong to that conversation.
+        self.ledger = ledger
 
     def binding(self, actor, project_id):
         binding = self.projects.repository.get(actor, project_id)
@@ -49,6 +51,9 @@ class RunService:
             span.end('error', error_type=type(exc).__name__)
             raise
         span.end('ok', run_id=run['run_id'])
+        if self.ledger is not None and body.conversation_id:
+            self.ledger.link_run(conversation_id=body.conversation_id, run_id=run['run_id'], project=binding.owner_project_id, branch=binding.branch_id,
+                                 text=json.dumps(body.request, ensure_ascii=False))
         return {**run, 'trace_id': span.context.trace_id}
 
     async def list(self, actor, project_id):

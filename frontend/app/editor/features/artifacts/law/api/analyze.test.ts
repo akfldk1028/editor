@@ -14,7 +14,7 @@ test('analysis waits for Law activation, preserves input, and stops on activatio
   try {
     await analyzeSite('parcel', { assessmentDate: '2026-10-09' })
     expect(calls.map(call => call.url)).toEqual(['/api/v1/platform/host/ensure', '/api/v1/platform/law-analysis'])
-    expect(calls[1]?.body).toEqual({ pnu: 'parcel', assessment_date: '2026-10-09' })
+    expect(calls[1]?.body).toEqual({ pnu: 'parcel', assessment_date: '2026-10-09', conversation_id: 'main' })
     failed = true
     calls.length = 0
     await expect(analyzeSite('parcel', {})).rejects.toThrow('시작하지 못했어요')

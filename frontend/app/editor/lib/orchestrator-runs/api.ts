@@ -7,6 +7,7 @@ import type { AskClause } from './commands'
 import type {
   AgentSummary,
   AgentTask,
+  Hop,
   AskAnswer,
   Capabilities,
   Communications,
@@ -169,13 +170,14 @@ export async function getRunContext(projectId: string, signal?: AbortSignal): Pr
   return value
 }
 
-export async function submitRun(projectId: string, context: RunContext, key: string, body: RunRequest, signal?: AbortSignal): Promise<RunSummary> {
+export async function submitRun(projectId: string, context: RunContext, key: string, body: RunRequest, signal?: AbortSignal, conversationId?: string): Promise<RunSummary> {
   return parseRun(
     await request(`/projects/${encodeURIComponent(projectId)}/runs`, {
       method: 'POST',
       signal,
       headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
-      body: JSON.stringify({ ...context, request: body }),
+      // The conversation the run was started from: the 협업 장부 links the run's calls to it.
+      body: JSON.stringify({ ...context, request: body, ...(conversationId ? { conversation_id: conversationId } : {}) }),
     }),
   )
 }
@@ -200,6 +202,14 @@ export async function getCapabilities(signal?: AbortSignal): Promise<Capabilitie
 /** The host's last tick, cached 5 s server-side: the conversation reads it to know whom to wake. */
 export async function getHostStatus(signal?: AbortSignal): Promise<HostStatus> {
   return (await request('/host/status', { signal })) as HostStatus
+}
+
+/** The 협업 장부 for one scope: this conversation's calls (and its runs'), or one run's; rows after `sinceId`. */
+export async function listHops(scope: { conversation_id: string } | { run_id: string }, sinceId = 0, signal?: AbortSignal): Promise<{ hops: Hop[]; latest_id: number }> {
+  const query = 'conversation_id' in scope ? `conversation_id=${encodeURIComponent(scope.conversation_id)}` : `run_id=${encodeURIComponent(scope.run_id)}`
+  const data = (await request(`/ledger/hops?${query}&since_id=${sinceId}`, { signal })) as { hops?: unknown; latest_id?: unknown }
+  if (!Array.isArray(data?.hops) || typeof data.latest_id !== 'number') throw new Error('장부 응답 형식이 올바르지 않습니다.')
+  return { hops: data.hops as Hop[], latest_id: data.latest_id }
 }
 
 /** The tasks an agent still holds, with the full text of each reply (the agent's own record, not the Orchestrator's cut copy). */
@@ -240,7 +250,7 @@ export async function ensureAgents(agents: string[], lease_s: number, signal?: A
   return (await request('/host/ensure', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agents, lease_s, timeout_s }) })) as EnsureAnswer
 }
 
-export async function askLaw(body: { text: string; pnu?: string; address?: string; assessment_date?: string; role?: string; clause?: AskClause }, signal?: AbortSignal): Promise<AskAnswer> {
+export async function askLaw(body: { text: string; pnu?: string; address?: string; assessment_date?: string; role?: string; clause?: AskClause; conversation_id?: string }, signal?: AbortSignal): Promise<AskAnswer> {
   return (await request('/ask', { method: 'POST', signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })) as AskAnswer
 }
 

@@ -5,6 +5,7 @@
  * read-only; to be folded in later); the fields the `/land` page never read are typed here.
  */
 import type { LandAnalysisAnswer } from '@/lib/orchestrator-runs/types'
+import { currentConversation } from '@/lib/design-conversation/session'
 import { ensureAgents } from '@/lib/orchestrator-runs/api'
 import { RUN_LEASE_S } from '@/lib/goals/activation'
 
@@ -86,7 +87,8 @@ export async function analyzeSite(pnu: string, options: AnalyzeOptions, signal?:
     signal?.throwIfAborted()
     throw new AnalyzeError('Law Agent를 시작하지 못했어요. 잠시 후 다시 분석해 주세요.', 503)
   }
-  const body: Record<string, unknown> = { pnu }
+  // The conversation this analysis belongs to: the 협업 장부 files the Law Agent's calls under it.
+  const body: Record<string, unknown> = { pnu, conversation_id: currentConversation().conversationId }
   if (options.buildingType) body.building_type = options.buildingType
   if (options.floorAreaM2 != null && options.floorAreaM2 > 0) body.floor_area_m2 = options.floorAreaM2
   if (options.assessmentDate) body.assessment_date = options.assessmentDate

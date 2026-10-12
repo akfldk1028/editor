@@ -135,7 +135,7 @@ export function useOrchestratorReview(pnu: string | null, address: string, proje
       const context = await getRunContext(chosen.project_id, controller.signal)
       const submitted = await submitRun(chosen.project_id, context, idempotencyKey('law', pnu, ++attempts.current), {
         goal: 'limits', pnu, parcels: [pnu], assessment_date: conditions.assessmentDate, ...(buildingType ? { building_type: buildingType } : {}),
-      }, controller.signal)
+      }, controller.signal, conversationId)
       if (controller.signal.aborted) return
       startedHere.current.add(`${conversationId}:${submitted.run_id}`)
       resultsFor.current = null

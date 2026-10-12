@@ -8,13 +8,13 @@ from backend.app.schemas.platform import RunCreate
 from backend.app.schemas.site_run import PNU
 
 
-def create_run_router(projects_service, owner, allowed_origin, trace_recorder=None):
+def create_run_router(projects_service, owner, allowed_origin, trace_recorder=None, ledger=None):
     router = APIRouter()
     # Submissions record their span here; the trace route reads the same recorder.
     recorder = trace_recorder or JsonlTraceRecorder()
 
     def service():
-        return RunService(projects_service(), owner, recorder)
+        return RunService(projects_service(), owner, recorder, ledger)
 
     async def respond(operation, *, submission=False):
         try:

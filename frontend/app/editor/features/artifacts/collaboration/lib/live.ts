@@ -64,7 +64,7 @@ export function liveMessages(entries: readonly FeedEntry[], conversation: readon
   const feed = fromFeed(entries)
   const feedUserTexts = new Set(feed.filter((item) => item.message.from === USER).map((item) => item.message.text))
   const saved = fromConversation(conversation).filter((item) => !(item.message.from === USER && feedUserTexts.has(item.message.text)))
-  return [...feed, ...saved].sort((a, b) => a.at - b.at).map((item, index) => ({ ...item.message, step: index + 1 }))
+  return [...feed, ...saved].sort((a, b) => a.at - b.at).map((item, index) => ({ ...item.message, step: index + 1, at: item.at }))
 }
 
 /** Who the conversation is waiting on right now, if anyone. */

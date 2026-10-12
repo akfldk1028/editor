@@ -13,6 +13,8 @@ class LawAnalysisCreate(BaseModel):
     building_type: str | None = Field(default=None, max_length=64)
     floor_area_m2: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     assessment_date: str | None = None
+    # The conversation this request belongs to (the editor's conversation id), so the ledger scopes the call to it.
+    conversation_id: str | None = Field(default=None, max_length=128, pattern=r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$')
 
     @field_validator('pnu')
     @classmethod
@@ -132,6 +134,8 @@ class AskCreate(BaseModel):
     role: str | None = Field(default=None, min_length=1, max_length=40, pattern=r'^[a-z_]+$')
     # The review item the question is about (law artifact); the Law Agent is asked about it directly.
     clause: ClauseContext | None = None
+    # The conversation this request belongs to (the editor's conversation id), so the ledger scopes the call to it.
+    conversation_id: str | None = Field(default=None, max_length=128, pattern=r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$')
 
     @field_validator('text')
     @classmethod

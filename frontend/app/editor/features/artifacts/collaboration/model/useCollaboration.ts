@@ -11,9 +11,9 @@ import type { RunSummary } from '@/lib/orchestrator-runs/types'
 export type CollaborationLoad = { kind: 'loading' } | { kind: 'ready' } | { kind: 'error'; text: string }
 
 /**
- * The run the 협업 panel shows: `params.run` in `params.project` when the opener named one, else the
- * conversation's project and its newest run (the owner lists newest first). The list is read once per project
- * (and on 다시 확인); the chosen run is read on its own and polled while open, and the list row follows it.
+ * The runs of the 협업 panel's project and the one run it shows on its own: `params.run` when the opener named one,
+ * else the one picked in the 실행 tab, else none (the canvas then shows the conversation's ledger). The list is read
+ * once per project (and on 다시 확인); the chosen run is read on its own and polled while open, and the list row follows it.
  */
 export function useCollaboration(params: Readonly<Record<string, string>>) {
   const { projects, chosen, setChosen } = useProjectBinding(params.project)
@@ -50,7 +50,7 @@ export function useCollaboration(params: Readonly<Record<string, string>>) {
     return () => controller.abort()
   }, [chosen, reloads])
 
-  const selected = useMemo(() => (picked && runs.some((item) => item.run_id === picked) ? picked : runs[0]?.run_id ?? null), [picked, runs])
+  const selected = useMemo(() => (picked && runs.some((item) => item.run_id === picked) ? picked : null), [picked, runs])
 
   useEffect(() => {
     if (!chosen || !selected) { setRun(null); return }

@@ -17,6 +17,8 @@ export interface CollaborationMessage {
   text: string
   /** The A2A task this call ran as, when the record carries it: the key to the agent's own full copy. */
   a2a_task_id?: string | null
+  /** When it happened (epoch ms), where the source says: the ledger's clock, the feed's, the saved conversation's. */
+  at?: number
 }
 
 export interface Transcript {

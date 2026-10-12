@@ -108,7 +108,7 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
         pending = postFeed(busy!)
       }
       const context = await getRunContext(chosen.project_id, controller.signal)
-      const submitted = await submitRun(chosen.project_id, context, key, siteRunRequest(site, conditions), controller.signal)
+      const submitted = await submitRun(chosen.project_id, context, key, siteRunRequest(site, conditions), controller.signal, conversationId)
       if (!controller.signal.aborted) setState({ kind: 'submitted', run: submitted })
     } catch (error) {
       if (controller.signal.aborted) return

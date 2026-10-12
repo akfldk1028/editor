@@ -54,6 +54,8 @@ class SceneRevisionRefresh(BaseModel):
 class RunCreate(BaseModel):
     model_config = ConfigDict(strict=True, extra='forbid')
     request: dict
+    # The conversation this request belongs to (the editor's conversation id), so the ledger scopes the call to it.
+    conversation_id: str | None = Field(default=None, max_length=128, pattern=r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$')
     scene_revision: int = Field(ge=0)
     source_versions: dict[str, Annotated[int, Field(ge=0)]]
 
