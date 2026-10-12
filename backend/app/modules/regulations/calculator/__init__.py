@@ -22,6 +22,7 @@ from ..legal_use import classify_building_use
 from ..ordinance_evidence import assessment_day, source_eligibility
 
 from .. import zoning_limits, overlays
+from backend.app.modules.land.reference.services import designations
 from ..zoning_catalog import CatalogUnavailable
 from .rules import (
     Extractor,
@@ -107,10 +108,12 @@ def calculate_all(zone_names: list[str], land_info: dict | None = None,
     coverage = _municipal_coverage(zones_data, sigungu_code, day)
     known_zones = {z['zone_name'] for z in zones_data}
     recognized_overlays = overlays.get_all_matched_zones(zone_names)
-    unresolved = [z for z in zone_names if z not in known_zones and z not in recognized_overlays]
-    if unresolved:
+    # Only an unknown 용도지역 leaves the caps unresolved; an unknown 지구·구역 or a district-plan 용지·시설 (공공청사)
+    # is reported and the ordinance caps stand (land/reference/services/designations.py).
+    blocking, codes = designations.unresolved_evidence(zone_names, known_zones, recognized_overlays)
+    coverage['missing_evidence'].extend(codes)
+    if blocking:
         coverage['status'] = 'needs_evidence'
-        coverage['missing_evidence'].extend('unresolved_zoning:' + z for z in unresolved)
 
     # Apply only eligible source snapshots.
     if sigungu_code:
@@ -118,7 +121,7 @@ def calculate_all(zone_names: list[str], land_info: dict | None = None,
 
     result = {}
     result.update(_resolve_bcr_far(zones_data, zone_areas))
-    snapshot_complete = coverage['caps_complete'] and not unresolved
+    snapshot_complete = coverage['caps_complete'] and not blocking
     result['municipal_bcr_snapshot_pct'] = result['bcr_pct'] if snapshot_complete else None
     result['municipal_far_snapshot_pct'] = result['far_pct'] if snapshot_complete else None
     result['national_bcr_ceiling_pct'] = national_limits['bcr_pct']

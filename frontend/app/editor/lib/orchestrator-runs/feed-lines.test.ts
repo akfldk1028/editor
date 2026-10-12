@@ -239,7 +239,8 @@ test("Law's legal basis: the ordinance source with its law.go.kr link, the artic
 
 test("the law card carries Law's numbers as stat tiles with their article and ceiling, the capacities and the height rule", () => {
   expect(lawCard(results())).toEqual({ type: 'stats', items: [
-    { label: '대지면적', value: '2,499.7㎡' }, { label: '건폐율', value: '59.92%' }, { label: '용적률', value: '249.67%' }, { label: '최고 층수', value: '5층' },
+    // A storey cap is the district plan's 획지 decision, so its note names that, not a height article.
+    { label: '대지면적', value: '2,499.7㎡' }, { label: '건폐율', value: '59.92%' }, { label: '용적률', value: '249.67%' }, { label: '최고 층수', value: '5층', hint: '지구단위계획 획지 결정' },
   ] })
   const whole = results({ law: { ...results().law!, site_area_m2: 1006.531, bcr_pct: 20, far_pct: 80, max_floors: null, ground_capacity_m2: 201.306, far_capacity_m2: 805.225,
     zones: ['자연녹지지역'], national_bcr_ceiling_pct: 20, national_far_ceiling_pct: 100,

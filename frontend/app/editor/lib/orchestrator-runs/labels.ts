@@ -98,6 +98,7 @@ export function evidenceLabel(code: string): string {
   if (EVIDENCE[code]) return EVIDENCE[code]!
   const [kind, value] = code.split(':', 2)
   if (kind === 'unresolved_zoning') return `용도 구분 미확인: ${value}`
+  if (kind === 'unlisted_designation') return `규제표에 없는 지정: ${value}`
   if (value && kind?.startsWith('law.')) return actionLabel(value.trim())
   if (code.startsWith('law.district_review.')) return '지구단위계획 검토 (법규)'
   return code

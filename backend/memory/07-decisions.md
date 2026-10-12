@@ -520,3 +520,21 @@ be told to the Orchestrator session.
   backend subset 120. Left as debt: `massv2/parcel_policy._POLICIES` hard-codes 684-1's district caps by PNU; the
   zone facts (official list + measured split + district 획지 caps) belong to the Site Agent and should move there
   with this module.
+- 2026-10-12 the rest of 684-1's law summary reviewed against the statutes (user: "나머지도 검토해봐" → "진행해"), using
+  the Law Agent's own `law_ordinance` for the 의정부시 건축 조례 text. Right as found: 조경 (조례 제29조 verbatim: 200 ㎡
+  이상 대지, 15/10/5 %), 인접대지 0.5 m (민법 242조), 가각전제 (시행령 31조), 과밀억제권역·공공주택지구·지구단위계획구역·
+  가축사육제한구역, 도로사선 삭제, 일조 수치 (10 m 이하 1.5 m · 초과 H/2, 2023.9 개정). Fixed (editor): (1) `공공청사`
+  was "unresolved zoning" and withheld the ordinance caps ("상한 미확정" beside 60/250 tiles) → new
+  `land/reference/services/designations.py` classifies a name by suffix (…지역 = 용도지역 and blocks when unknown;
+  …지구·구역·권역·지대·구간 = overlay; anything else = 용지·시설, reported as `unlisted_designation:` and never
+  blocking); both calculators use it; 684-1 now `available_snapshot` 60/250. (2) 일조 was asserted "applies": 시행령
+  86조① 단서 lifts it inside 지구단위계획구역·경관지구·중점경관관리구역·특별가로구역·건축협정구역 when the parcel fronts
+  a road ≥ 20 m → the restriction line and the review item say so and the item is `conditional` (road width is a
+  Site fact). (3) 대지 분할 제한 said "최소 60 ㎡" (before the zone fix it said 200 ㎡, the 녹지 value): 건축법 57조
+  makes the ordinance's figure the rule within the 시행령 80조 floor → the line now says "시행령 하한 60 ㎡ … 조례로 정함
+  — 조례 면적 확인 필요". (4) 접도 "2,000 ㎡ 초과 6 m 도로" is the 시행령 28조② default; 의정부 건축 조례 31조 sets 3,000 ㎡
+  → rule text says the ordinance may set the size and the review item is `conditional`. (5) 최고 층수 5층 was annotated
+  with the height articles; it is the district plan's 획지 decision (parcel policy) → the tile's note says 지구단위계획
+  획지 결정 + source. Not verified: the 5-storey figure itself (시행지침 PDF not opened), the 의정부 조례 article for
+  대지 분할 면적 (not in 제30~36조). Tests: designations 4, land review/local analysis/calculator safety/ask 77,
+  frontend 72.

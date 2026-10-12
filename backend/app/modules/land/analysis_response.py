@@ -4,6 +4,7 @@ Response formatters for land regulation analysis.
 Extracted from views.py — pure functions, no Django imports.
 """
 from backend.app.modules.regulations import zoning_limits
+from backend.app.modules.land.reference.services import designations
 
 
 def format_regulations(reg: dict, reg_ext: dict | None = None) -> dict:
@@ -105,7 +106,9 @@ def build_restrictions(reg: dict, zone_names: list[str],
         restrictions.append("건폐율·용적률: 적용 조례·판본·용도지역 증거 부족 — 상한 미확정")
 
     if reg.get("sunlight_applies"):
-        restrictions.append("일조사선: 정북방향 H/2 이격")
+        exempt = designations.sunlight_exemption_areas(zone_names)
+        restrictions.append("일조사선: 정북방향 10m 이하 1.5m · 초과 부분 H/2 이격"
+                            + (f" — {'·'.join(exempt)} 안 대지가 너비 20m 이상 도로에 접하면 적용 제외(시행령 §86① 단서), 접도 폭 확인" if exempt else ""))
 
     if reg.get("road_diagonal_multiplier") is not None:
         restrictions.append(
@@ -150,7 +153,8 @@ def build_restrictions(reg: dict, zone_names: list[str],
 
         sub = reg_ext.get("site_subdivision_limit", {})
         if sub.get("min_area_m2"):
-            restrictions.append(f"대지 분할 제한: 최소 {sub['min_area_m2']}m²")
+            # 건축법 §57: the figure is the ordinance's, within the 시행령 §80 floor; the floor is what is known here.
+            restrictions.append(f"대지 분할 제한: 시행령 하한 {sub['min_area_m2']}m² 이상 범위에서 조례로 정함 — 조례 면적 확인 필요")
 
         dl = reg_ext.get("daylighting_spacing", {})
         if dl.get("applies"):
@@ -197,9 +201,15 @@ def build_restrictions(reg: dict, zone_names: list[str],
         z for z in reg.get("unmatched_zones", [])
         if z not in all_recognized
     ]
-    if unmatched:
+    unknown_zones = [z for z in unmatched if designations.kind(z) == designations.USE_ZONE]
+    unlisted = [z for z in unmatched if z not in unknown_zones]
+    if unknown_zones:
         restrictions.append(
-            f"미인식 용도지역: {', '.join(unmatched)} (수동 확인 필요)"
+            f"미인식 용도지역: {', '.join(unknown_zones)} (수동 확인 필요)"
+        )
+    if unlisted:
+        restrictions.append(
+            f"규제표에 없는 지정: {', '.join(unlisted)} (지구단위계획·공공주택지구 결정의 용지·구역 — 상한에는 영향 없음, 해당 고시 확인)"
         )
 
     return restrictions

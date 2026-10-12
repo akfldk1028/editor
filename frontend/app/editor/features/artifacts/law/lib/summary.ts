@@ -45,6 +45,7 @@ const MISSING_LABEL: Record<string, string> = {
 function describeMissing(code: string): string {
   const [kind, value] = code.split(':', 2)
   if (kind === 'unresolved_zoning') return `용도 구분 미확인: ${value}`
+  if (kind === 'unlisted_designation') return `규제표에 없는 지정: ${value}`
   return MISSING_LABEL[code] ?? code
 }
 

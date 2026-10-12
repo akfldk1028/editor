@@ -5,6 +5,7 @@ from time import perf_counter
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.modules.regulations import calculator, extended, overlays, zoning_limits
+from backend.app.modules.land.reference.services import designations
 from backend.app.modules.land.reference.services.zone_split import exclusive_zone_names, with_removed
 from .analysis_request import normalize_program_request
 from .analysis_response import build_restrictions, format_regulations
@@ -46,8 +47,12 @@ def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, propo
         overlay_all_matched=overlays.get_all_matched_zones(names))
     # What the split excluded is said where the restrictions are read, not hidden in a sub-dict.
     restrictions.extend(note for note in (zone_split or {}).get('notes') or [] if isinstance(note, str))
+    regulations = format_regulations(reg, reg_ext=reg_ext)
+    if regulations.get('sunlight_setback'):
+        # 시행령 §86① 단서: inside these designations a parcel on a 20 m road is not bound — a Site fact decides.
+        regulations['sunlight_setback']['exemption_areas'] = designations.sunlight_exemption_areas(names)
     result = {
-        'pnu': pnu_info, 'regulations': format_regulations(reg, reg_ext=reg_ext),
+        'pnu': pnu_info, 'regulations': regulations,
         'zone_info': zone_info, 'land_info': land_info, 'law_articles': None,
         'restrictions': restrictions,
         'overlay_regulations': overlay or [], 'setback_lines': None, 'program': program,

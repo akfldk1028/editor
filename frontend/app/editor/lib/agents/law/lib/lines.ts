@@ -46,7 +46,8 @@ export function limitsCard(law: RunLaw): FeedCard | null {
     law.ground_capacity_m2 !== null ? { label: '건축면적 상한', value: `${fmt(law.ground_capacity_m2, 1)}㎡`, hint: '건폐율 × 대지면적' } : null,
     law.far_capacity_m2 !== null ? { label: '연면적 상한', value: `${fmt(law.far_capacity_m2, 1)}㎡`, hint: '용적률 × 대지면적' } : null,
     law.max_floors !== null
-      ? { label: '최고 층수', value: `${law.max_floors}층`, ...hint(law.articles.height) }
+      // A storey cap comes from the district plan's 획지 decision (parcel policy), not from the height articles.
+      ? { label: '최고 층수', value: `${law.max_floors}층`, ...hint(law.policy_id ? `지구단위계획 획지 결정${law.sources[0]?.title ? ` · ${law.sources[0].title}` : ''}` : law.articles.height) }
       : { label: '높이 제한', value: heightLabel(law.height.status, law.height.limit_m), ...hint(law.articles.height) },
   ].filter((item): item is { label: string; value: string; hint?: string } => item !== null)
   return items.length ? { type: 'stats', items } : null

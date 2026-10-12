@@ -295,7 +295,9 @@ def _resolve_group_a(zone_names: list[str], land_info=None, building_type='', pr
     result["site_road_requirement"] = {
         "name": "접도의무",
         "min_frontage_m": road.get("min_frontage_m", 2),
-        "rule": road.get("rule", ""),
+        # The 2,000 m² (공장 3,000 m²) size above which a 6 m road is required is the 시행령 §28② default; the
+        # ordinance may set the size (의정부: 3,000 m²), so the figure here is a floor, not the parcel's rule.
+        "rule": (road.get("rule", "") + " — 규모 기준은 시행령 §28②의 기본값이며 건축조례가 달리 정할 수 있음, 조례 확인").strip(" —"),
         "article": road.get("article", "건축법 §44"),
     }
 
@@ -310,7 +312,9 @@ def _resolve_group_a(zone_names: list[str], land_info=None, building_type='', pr
     ))
     result["site_subdivision_limit"] = {
         "name": "대지 분할 제한",
+        # The 시행령 §80 floor for the zone(s); 건축법 §57 makes the ordinance's figure (at or above it) the rule.
         "min_area_m2": max(sub_areas) if sub_areas else None,
+        "basis": "시행령 §80 하한 — 조례가 정한 면적이 적용 기준(미확인)",
         "article": "; ".join(sub_articles) if sub_articles else "건축법 §57, 시행령 §80",
     }
 
