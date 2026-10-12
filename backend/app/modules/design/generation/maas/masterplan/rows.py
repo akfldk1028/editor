@@ -124,6 +124,29 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
         # fixed for this orientation: the inner loops used to rebuild these on every iteration
         g_site_b, g_ground_b = g_site.buffer(EPS), g_ground.buffer(EPS)
         road_reach = road_union.buffer(float(turn_radius_m) * 1.5) if turn_radius_m else None
+        def prepare_entrance(entrance):
+            if entrance is None:
+                return None
+            # 제6조제1항제1호 (제11조제1항이 부설주차장에 준용): "출구와 입구에서 자동차의 회전을
+            # 쉽게 하기 위하여 ... 차로와 도로가 접하는 부분을 곡선형으로 하여야 한다."  The statute
+            # names no radius, so the flare is taken from the declared vehicle's turning radius;
+            # with none declared the junction stays square and the validator says so.
+            if turn_radius_m:
+                flare = entrance.buffer(float(turn_radius_m), join_style=1, quad_segs=16)
+                flare = flare.intersection(g_ground).intersection(
+                    entrance.buffer(float(turn_radius_m)).difference(entrance).buffer(0))
+                near_road = flare.intersection(road_reach)
+                if not near_road.is_empty:
+                    entrance = unary_union([entrance, near_road]).buffer(0)
+            # 차량출입불허구간: a vehicle entrance may not touch a prohibited interval. Ramp portals
+            # avoid it by construction from the permitted frontage; the surface connector is
+            # a parcel-edge strip and has to be checked outright.
+            if g_prohibited is not None and entrance.distance(g_prohibited) <= 0.05:
+                return None
+            if any(entrance.distance(p) < entry_clearance_m - EPS for p in g_corners):
+                return None
+            return entrance
+
         minx, miny, maxx, maxy = g_ground.bounds
         offsets = _band_offsets(g_ground, aisle, stall_w, stall_l, step, straight_entry=straight_entry,
                                 limit=per_angle if bounded else None)
@@ -155,7 +178,8 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                     drive = aisle_poly
                     entrance = None
                     if straight_entry:
-                        entrance = straight_row_entrance(aisle_poly, road_union, g_site, g_ground, y, aisle, end)
+                        entrance = prepare_entrance(straight_row_entrance(
+                            aisle_poly, road_union, g_site, g_ground, y, aisle, end))
                     elif aisle_poly.distance(road_union) <= 0.05:
                         entrance = box(xe0, y, xe1, y + aisle).intersection(g_ground)  # the aisle end itself sits on the road
                         if entrance.is_empty or entrance.distance(road_union) > 0.05:
@@ -165,6 +189,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                         elif (road_union.intersection(entrance.buffer(0.05)).length + 0.05
                               < min(aisle, road_union.length)):
                             entrance = None
+                        entrance = prepare_entrance(entrance)
                     elif not straight_entry:
                         sy0, sy1 = g_site.bounds[1], g_site.bounds[3]
                         for ydir in (-1, 1):
@@ -183,27 +208,10 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                             piece = road_hits[0]
                             if not g_ground_b.covers(piece.difference(aisle_poly)):
                                 continue
-                            entrance = piece
-                            break
+                            entrance = prepare_entrance(piece)
+                            if entrance is not None:
+                                break
                     if entrance is None:
-                        continue
-                    # 제6조제1항제1호 (제11조제1항이 부설주차장에 준용): "출구와 입구에서 자동차의 회전을
-                    # 쉽게 하기 위하여 ... 차로와 도로가 접하는 부분을 곡선형으로 하여야 한다."  The statute
-                    # names no radius, so the flare is taken from the declared vehicle's turning radius;
-                    # with none declared the junction stays square and the validator says so.
-                    if turn_radius_m:
-                        flare = entrance.buffer(float(turn_radius_m), join_style=1, quad_segs=16)
-                        flare = flare.intersection(g_ground).intersection(
-                            entrance.buffer(float(turn_radius_m)).difference(entrance).buffer(0))
-                        near_road = flare.intersection(road_reach)
-                        if not near_road.is_empty:
-                            entrance = unary_union([entrance, near_road]).buffer(0)
-                    # 차량출입불허구간: a vehicle entrance may not touch a prohibited interval. Ramp portals
-                    # avoid it by construction from the permitted frontage; the surface connector is
-                    # a parcel-edge strip and has to be checked outright.
-                    if g_prohibited is not None and entrance.distance(g_prohibited) <= 0.05:
-                        continue
-                    if any(entrance.distance(p) < entry_clearance_m - EPS for p in g_corners):
                         continue
                     drive = unary_union([aisle_poly, entrance])
                     turn_bay = None

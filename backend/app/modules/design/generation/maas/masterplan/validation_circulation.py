@@ -15,7 +15,7 @@ import math
 from typing import Any, Dict, List, Optional, Tuple
 
 from shapely.geometry import shape, Point, LineString, Polygon, MultiPolygon
-from shapely.ops import unary_union
+from shapely.ops import linemerge, unary_union
 
 from .geometry import EPS, parts
 from .circulation import closed_aisle_loop
@@ -52,7 +52,15 @@ def _straight_corridor_width(geometry, frontage):
             continue
         if abs(dx * ey - dy * ex) / (length * opposite) <= EPS:
             widths.append(abs(dx * (c[1] - a[1]) - dy * (c[0] - a[0])) / length)
-    return min(widths) if widths else None
+    if not widths:
+        return None
+    contact = geometry.boundary.intersection(portal)
+    if contact.geom_type == 'MultiLineString':
+        contact = linemerge(contact)
+    openings = [contact] if isinstance(contact, LineString) else list(getattr(contact, 'geoms', ()))
+    opening_width = max((line.length for line in openings if isinstance(line, LineString)), default=0.0)
+    # Separate permitted intervals cannot be added into a single vehicle opening.
+    return min(min(widths), opening_width)
 
 
 def validate_circulation_geometry(
@@ -151,11 +159,11 @@ def validate_circulation_geometry(
             'measured': round(measured_w, 2) if measured_w is not None else None,
             'required': required_w,
             'source': 'request.rules.aisle_width_m',
-            'check_version': 2,
+            'check_version': 3,
             'feature_ids': ['surface_entry_connector'],
             'coordinate_frame': 'metric_local_m',
             'geometry_hash': entry_hash,
-            'note': ('Distance between parallel sides of a convex straight entry; not a full route or steering check'
+            'note': ('Minimum of straight corridor width and longest continuous road opening; not a full route or steering check'
                      if width_status != 'unknown' else
                      'Entry width needs a supported straight corridor and supplied width rule; bounding box is not evidence'),
         })
