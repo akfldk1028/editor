@@ -31,6 +31,9 @@ export interface RunSummary extends Communications {
   status: string
   receipt_task_ids: string[]
   pending_input: boolean
+  /** What the run asks the person for (door `pending_fields`, e.g. `building_type`); answered by a new run with the condition set. */
+  pending_fields?: string[]
+  pending_note?: string | null
   /** W3C trace id (32 hex) of the submission; only the editor's POST answer carries it. */
   trace_id?: string
 }
@@ -152,6 +155,8 @@ export interface RunResults {
   status: string
   goal: string | null
   pending_input: boolean
+  /** Fields the run is waiting on (empty when none). */
+  pending_fields?: string[]
   truncated: boolean
   request: { pnu: string | null; parcels: string[]; building_type: string | null; assessment_date: string | null } | null
   steps: RunStep[]

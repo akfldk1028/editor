@@ -1,8 +1,9 @@
 'use client'
 
 import { Check, ExternalLink, Play, RotateCcw, Workflow } from 'lucide-react'
+import dynamic from 'next/dynamic'
 
-import { actionLabel, agentForTool, agentLabel, evidenceLabel, isTerminal, stateLabel, statusLabel, toolLabel, traceLabel } from '@/lib/orchestrator-runs/labels'
+import { actionLabel, agentForTool, agentLabel, askedFieldsLabel, evidenceLabel, isTerminal, stateLabel, statusLabel, toolLabel, traceLabel } from '@/lib/orchestrator-runs/labels'
 import { failureText } from '@/lib/orchestrator-runs/submit'
 import type { RunResults, RunStep, RunSummary } from '@/lib/orchestrator-runs/types'
 import { ConditionsRow } from '@/lib/orchestrator-runs/ui/ConditionsRow'
@@ -25,6 +26,8 @@ interface Props {
 /** The pipeline a `limits` run walks; a step not yet in the communications shows as 대기. */
 const PIPELINE = ['site_resolve', 'law_parcel_limits', 'revision_triage'] as const
 const base = () => process.env.NEXT_PUBLIC_BASE_PATH || ''
+/** The run's agent-to-agent record as a graph (the same React Flow view as 협업 흐름도), client-only. */
+const RunFlow = dynamic(() => import('../../../agent-flow/RunFlow'), { ssr: false, loading: () => <p className="law-note"><span aria-hidden="true" className="loading-mark" /> 협업 흐름을 그리는 중</p> })
 
 /** 오케스트레이터 검토: what the Orchestrator's run (대지 → 법규 → 검토 조정) returned for this parcel. */
 export function OrchestratorTab({ pnu, address, project, shell, editor }: Props) {
@@ -78,6 +81,10 @@ export function OrchestratorTab({ pnu, address, project, shell, editor }: Props)
         <>
           <RunHead onReload={reload} projectId={chosen?.project_id ?? ''} results={phase.results} run={phase.run} stale={phase.stale} />
           <Timeline results={phase.results} run={phase.run} />
+          <section aria-label="협업 흐름" className="law-card">
+            <h2>협업 흐름 <small>오케스트레이터와 에이전트가 주고받은 요청·응답 · 참여자를 누르면 내용</small></h2>
+            <RunFlow key={phase.run.run_id} projectId={chosen?.project_id ?? ''} run={phase.run} />
+          </section>
           <LawCard editor={editor} results={phase.results} />
           <Evidence results={phase.results} />
           {!live && <section aria-label="새 검토" className="law-card">{startForm}</section>}
@@ -89,16 +96,23 @@ export function OrchestratorTab({ pnu, address, project, shell, editor }: Props)
 
 function RunHead({ run, results, stale, projectId, onReload }: { run: RunSummary; results: RunResults | null; stale: boolean; projectId: string; onReload(): void }) {
   const open = !isTerminal(run.status)
+  const waiting = run.status === 'waiting_input'
+  const asked = waiting ? askedFieldsLabel(run.pending_fields) : ''
   const verdict = !open && results?.review?.code === 'needs_user_input' ? '보류 — 근거 보충 필요' : statusLabel(run.status)
   const href = `${base()}/runs/${encodeURIComponent(run.run_id)}?project_id=${encodeURIComponent(projectId)}`
   return (
     <section aria-label="검토 실행" className="law-card law-orch-head">
       <h2>
         {open ? <span aria-hidden="true" className="loading-mark" /> : <Check aria-hidden="true" size={14} />}
-        검토 실행 <span className="law-badge" data-tone={open ? undefined : run.status === 'failed' ? 'warn' : results?.review?.code === 'needs_user_input' ? 'warn' : 'ok'}>{verdict}</span>
+        검토 실행 <span className="law-badge" data-tone={open ? undefined : run.status === 'failed' || waiting ? 'warn' : results?.review?.code === 'needs_user_input' ? 'warn' : 'ok'}>{verdict}</span>
         {open && <small>3초마다 확인</small>}
         {stale && <small>· 상태 확인 지연</small>}
       </h2>
+      {waiting && (
+        <p className="law-note" data-kind="warn" role="status">
+          오케스트레이터가 검토를 시작하기 전에 {asked || '조건'}을 물어요{run.pending_note ? ` — ${run.pending_note}` : ''}. 아래에서 {asked || '조건'}을 고르고 다시 검토를 누르면 대지 → 법규 순서로 이어가요.
+        </p>
+      )}
       <p className="law-sub law-orch-ids">
         run <code title={run.run_id}>{traceLabel(run.run_id)}</code>
         {run.trace_id && <> · trace <code title={run.trace_id}>{traceLabel(run.trace_id)}</code></>}

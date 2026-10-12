@@ -338,6 +338,14 @@ test('the verdict line says 보류 with the short missing-evidence list, or the 
   expect(resultLine(results({ status: 'completed', review: null, missing_evidence_all: [] }))).toBe('검토 결과: 완료')
 })
 
+test('a run waiting on the person names the condition it asks for and says no agent was called yet', () => {
+  const waiting = results({ status: 'waiting_input', pending_input: true, pending_fields: ['building_type'], steps: [], review: null, missing_evidence_all: [] })
+  expect(resultLine(waiting)).toBe('검토를 시작하기 전에 용도를 물어요 — 아직 에이전트를 부르지 않았어요')
+  const prompt = resultPrompt(waiting, { pnu: '4115011300106840001', address: '산곡동 684-1' })
+  expect(prompt.text).toBe('용도를 고르고 다시 검토를 누르면 대지 → 법규 순서로 이어가요. 법규 패널에서 채우시겠어요?')
+  expect(prompt.actions.map((action) => action.label)).toEqual(['조건 채우기', '나중에'])
+})
+
 test('activation: the Orchestrator says whom it is waking, names what did not come up without submitting, and the handoff button says 켜고 시작', () => {
   expect(activatingLine(['program', 'mass'])).toEqual({ kind: 'progress', agent: 'orchestrator', tone: 'busy', relay: { from: 'orchestrator', to: 'program' }, text: 'Program Agent · Mass Agent 켜는 중 (병렬 2)' })
   expect(activatingLine(['law']).text).toBe('Law Agent 켜는 중')

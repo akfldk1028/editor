@@ -12,6 +12,7 @@ export function statusLabel(status: string): string {
     case 'running':
       return '진행 중'
     case 'queued_input':
+    case 'waiting_input':
       return '입력 대기'
     case 'completed':
     case 'succeeded':
@@ -30,6 +31,10 @@ export function statusLabel(status: string): string {
       return status
   }
 }
+
+/** The conditions a run can ask the person for, in the user's words; an unknown field keeps its name. */
+const ASKED_FIELDS: Record<string, string> = { building_type: '용도', assessment_date: '기준일', pnu: '대지', parcels: '필지' }
+export const askedFieldsLabel = (fields: readonly string[] | undefined): string => (fields ?? []).map((field) => ASKED_FIELDS[field] ?? field).join('·')
 
 /** The card shows the first 8 hex of the 32-hex W3C trace id (and of a run id); the copy button carries the whole id. */
 export const traceLabel = (id: string) => id.slice(0, 8)

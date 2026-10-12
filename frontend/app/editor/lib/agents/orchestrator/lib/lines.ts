@@ -5,7 +5,7 @@
  */
 import type { RunConditions } from '@/lib/orchestrator-runs/conditions'
 import type { FeedAction, FeedCard, FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
-import { agentForTool, agentLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from '@/lib/orchestrator-runs/labels'
+import { agentForTool, agentLabel, askedFieldsLabel, evidenceLabel, shortEvidence, stateLabel, toolLabel, traceLabel, verdictLabel } from '@/lib/orchestrator-runs/labels'
 import { failureText, type RunFailure } from '@/lib/orchestrator-runs/submit'
 import type { AskAnswer, Capabilities, Communication, OrchestratorConnection, RunResults, RunSummary } from '@/lib/orchestrator-runs/types'
 import { fmt } from '@/lib/orchestrator-runs/format'
@@ -183,6 +183,10 @@ export function evidenceCard(results: RunResults): FeedCard | null {
 /** "검토 결과: 보류 — 근거 보충 필요: 기준일, 대지 접근·재해·설비" */
 export function resultLine(results: RunResults): string {
   const verdict = verdictLabel(results.status, results.review?.code)
+  if (results.status === 'waiting_input') {
+    const asked = askedFieldsLabel(results.pending_fields)
+    return asked ? `검토를 시작하기 전에 ${asked}를 물어요 — 아직 에이전트를 부르지 않았어요` : '검토를 시작하기 전에 조건을 물어요 — 아직 에이전트를 부르지 않았어요'
+  }
   if (results.status === 'failed') {
     const code = results.site?.code
     return `검토 결과: 실패${code ? ` — ${evidenceLabel(code)}` : ''}`
@@ -200,6 +204,10 @@ export function resultPrompt(results: RunResults, target: LawTarget): { text: st
   const law: FeedAction = { label: '법규 검토 결과 보기', artifact: 'law', params: lawParams(target, 'orchestrator') }
   const related: FeedAction = { label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }
   const later: FeedAction = { label: '나중에' }
+  if (results.status === 'waiting_input') {
+    const asked = askedFieldsLabel(results.pending_fields) || '조건'
+    return { text: `${asked}를 고르고 다시 검토를 누르면 대지 → 법규 순서로 이어가요. 법규 패널에서 채우시겠어요?`, actions: [{ ...law, label: '조건 채우기' }, later] }
+  }
   if (results.status === 'failed') {
     return { text: '검토가 실패했어요. 어디서 멈췄는지 법규 패널에서 보시겠어요?', actions: [law, { label: '시스템 보기', artifact: 'system' }, later] }
   }

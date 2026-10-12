@@ -12,6 +12,7 @@ import { ProjectConnection } from './ProjectConnection';
 import { HealthExecution } from './HealthExecution';
 import { SpecialistReviewExecution } from './SpecialistReviewExecution';
 import { SceneRevisionRefresh } from './SceneRevisionRefresh';
+import { currentConversation, restoreConversationProject } from '@/lib/design-conversation/session';
 
 const RunFlow = dynamic(() => import('../agent-flow/RunFlow'), { ssr: false });
 
@@ -32,7 +33,15 @@ export default function DialoguePage({ projectId, runId, view = 'dialogue' }: { 
       try {
         const nextProjects = await listProjects(controller.signal);
         if (projectId && !nextProjects.some(p => p.project_id === projectId)) throw new Error('연결된 프로젝트를 찾지 못했습니다.');
+        if (!projectId) {
+          // Nothing chosen yet: the conversation's project (the one /dwg works in), else the only project.
+          restoreConversationProject();
+          const remembered = currentConversation().projectId;
+          const fallback = nextProjects.find(p => p.project_id === remembered) ?? (nextProjects.length === 1 ? nextProjects[0] : undefined);
+          if (fallback) { navigate(fallback.project_id); return; }
+        }
         const nextRuns = projectId ? await listRuns(projectId, controller.signal) : [];
+        if (projectId && !runId && nextRuns.length) { navigate(projectId, nextRuns[0]!.run_id); return; }
         const nextRun = projectId && runId ? await getRun(projectId, runId, controller.signal) : null;
         const binding = nextProjects.find(p => p.project_id === projectId);
         if (nextRun && (nextRun.run_id !== runId || nextRun.owner_project_id !== binding?.owner_project_id || nextRun.branch_id !== binding?.branch_id)) throw new Error('프로젝트와 실행 연결이 일치하지 않습니다.');
