@@ -67,12 +67,47 @@ def footprint_candidates(buildable, target, front, module_depth, limit=32, *, an
     return out
 
 
+def piloti_ground_variants(site, footprint, stall_length, aisle_width):
+    """Enclosed-ground variants of a generated building: upper floors keep the footprint, the
+    ground floor gives up a strip along the face with the most open parcel ground so a stall
+    row (or a row and its aisle) can pass beneath. The practice reference (고산 ALT1) does
+    exactly this under its road-side wing and reaches 30 surface stalls where the same
+    building with a fully enclosed ground floor reaches 22. Depths come from the rules, the
+    face from the parcel; nothing here is parcel-specific. Yields (strip_depth_m, ground)."""
+    from shapely.geometry import Point, Polygon
+    rect = list(footprint.minimum_rotated_rectangle.exterior.coords)
+    for depth in (stall_length, stall_length + aisle_width):
+        best = None
+        for a, b in zip(rect, rect[1:]):
+            dx, dy = b[0]-a[0], b[1]-a[1]
+            length = math.hypot(dx, dy)
+            if length <= EPS:
+                continue
+            nx, ny = dy/length, -dx/length
+            if footprint.buffer(EPS).contains(Point((a[0]+b[0])/2+nx, (a[1]+b[1])/2+ny)):
+                nx, ny = -nx, -ny
+            outside = Polygon([a, b, (b[0]+nx*depth, b[1]+ny*depth), (a[0]+nx*depth, a[1]+ny*depth)])
+            free = outside.intersection(site).difference(footprint).area
+            inside = Polygon([a, b, (b[0]-nx*depth, b[1]-ny*depth), (a[0]-nx*depth, a[1]-ny*depth)])
+            if best is None or free > best[0]:
+                best = (free, inside)
+        if best is None:
+            continue
+        ground = footprint.difference(best[1])
+        ground = max(parts(ground), key=lambda g: g.area, default=Polygon())
+        if ground.area > EPS and footprint.area - ground.area > EPS:
+            yield depth, ground
+
+
 def select_joint_layout(request, solve):
     """Screen equal-area proposals, then compare complete ground/basement plans.
 
     A coarse surface screen is only a shortlist, never the feasibility verdict.
     The original proposal remains in the final competition. Fixed authored mass,
     core and partial-piloti input are never silently relocated by this search.
+    In the placement stage the engine's own building zone also competes against
+    its piloti variants (`piloti_ground_variants`); an authored ground footprint
+    is never replaced.
     """
     import copy
     from shapely.geometry import shape, mapping, Polygon
@@ -83,9 +118,10 @@ def select_joint_layout(request, solve):
     baseline = solve(copy.deepcopy(request))
     if baseline.get('planner_invoked') is False:
         return baseline
+    placement_stage = opts.get('planning_stage') == 'placement'
     if (request.get('footprint') or request.get('ground_footprint') or request.get('core')
-            or request.get('columns') or opts.get('target_surface_stalls') is None
-            or opts.get('joint_placement_search') is False):
+            or request.get('columns') or opts.get('joint_placement_search') is False
+            or (opts.get('target_surface_stalls') is None and not placement_stage)):
         return baseline
     site = shape(request['site'])
     if site.area >= 10000:
@@ -103,8 +139,26 @@ def select_joint_layout(request, solve):
     host=host.difference(pedestrian['reserved'])
     target = baseline['metrics']['building_footprint_m2']
     module = 2*rules['stall_length_m']+rules['aisle_width_m']
+    layouts=[baseline]
+    generated = next((shape(f['geometry']) for f in baseline.get('features', [])
+                      if f.get('properties', {}).get('layer') == 'building_footprint'), None)
+    if placement_stage and generated is not None and not generated.is_empty:
+        for depth, ground in piloti_ground_variants(site, generated, float(rules['stall_length_m']),
+                                                    float(rules['aisle_width_m'])):
+            candidate = copy.deepcopy(request)
+            candidate['footprint'] = mapping(generated)
+            candidate['ground_footprint'] = mapping(ground)
+            result = solve(candidate)
+            result['blocking'].append('generated piloti ground occupancy requires MassAgent/architect acceptance')
+            if result['status']=='resolved':
+                result['status']='needs_evidence'
+            result['handoff'].update(input_hash=digest(request),hard_pass=False,
+                status='failed' if result['status']=='needs_revision' else 'needs_evidence')
+            result['piloti_strip_m']=depth
+            layouts.append(result)
     shortlist=[]
-    for p in footprint_candidates(host,target,front,module,angle_deg=explicit_angle):
+    for p in (footprint_candidates(host,target,front,module,angle_deg=explicit_angle)
+              if opts.get('target_surface_stalls') is not None else []):
         free = site.difference(p)
         free = free.difference(pedestrian['vehicle_blocked'])
         rows = row_candidates(site,free,p,Polygon(),road,front,rules,
@@ -116,7 +170,6 @@ def select_joint_layout(request, solve):
         count = max((exclude_reserved_stalls(r,pedestrian['reserved'])['provided'] for r in rows),default=0)
         shortlist.append((count,p))
     shortlist.sort(key=lambda v:-v[0])
-    layouts=[baseline]
     for _, p in shortlist[:2]:
         candidate = copy.deepcopy(request)
         candidate['footprint'] = mapping(p)
@@ -127,6 +180,7 @@ def select_joint_layout(request, solve):
         result['handoff'].update(input_hash=digest(request),hard_pass=False,
             status='failed' if result['status']=='needs_revision' else 'needs_evidence')
         layouts.append(result)
+    surface_target=opts.get('target_surface_stalls')
     def rank(r):
         from .planner_rank import drive_burden
         metrics=r['metrics']
@@ -134,14 +188,15 @@ def select_joint_layout(request, solve):
         return (r['validation']['geometry_status']=='passed',
                 min(metrics['provided_accessible_stalls'],metrics['required_accessible_stalls'] or 0),
                 min(metrics['provided_parking_stalls'],metrics['planned_parking_stalls'] or 0),
-                -abs(surface-opts['target_surface_stalls']),
+                -abs(surface-surface_target) if surface_target is not None else 0,
                 -drive_burden(r['features'], metrics['provided_parking_stalls']))
     chosen=max(layouts,key=rank)
     chosen['joint_search']={'screened_placements':len(shortlist),'complete_layouts':len(layouts),
         'selected_index':layouts.index(chosen),'target_footprint_m2':target,
-        'scope':'equal-area generated mass alternatives; authored mass remains fixed',
+        'scope':'equal-area generated mass alternatives and piloti variants of the generated zone; authored mass remains fixed',
         'alternatives':[{'provided':r['metrics']['provided_parking_stalls'],
             'surface':sum(v['provided_spaces'] for v in r['levels'] if v['level']==0),
             'excavation_m2':r['metrics']['excavation_m2'],
+            'piloti_strip_m':r.get('piloti_strip_m'),
             'geometry_status':r['validation']['geometry_status']} for r in layouts]}
     return chosen

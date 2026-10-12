@@ -53,3 +53,24 @@ def test_no_occupied_footprint_means_the_footprint_is_the_enclosed_floor():
     a = _candidates(None)
     b = _candidates(FOOTPRINT)
     assert [(r["provided"], round(r["score"], 6)) for r in a] == [(r["provided"], round(r["score"], 6)) for r in b]
+
+
+def test_validator_reads_the_drawn_ground_footprint_when_the_request_has_none():
+    """An engine-generated piloti plan re-validated with the original request (no ground_footprint)."""
+    from shapely.geometry import mapping
+    from backend.app.modules.design.generation.maas.masterplan.validation import validate_plan
+    request = {"site": mapping(SITE), "buildable": mapping(SITE), "frontage": mapping(ROAD), "rules": RULES,
+               "options": {"planning_stage": "placement"}}
+    def feat(layer, geom, **props):
+        return {"type": "Feature", "geometry": mapping(geom), "properties": {"layer": layer, "level": 0, **props}}
+    stall = box(45, 14, 47.5, 19)                     # under the overhang: inside FOOTPRINT, outside ENCLOSED
+    aisle = box(0, 22, 60, 28)
+    plan = {"features": [feat("site_boundary", SITE), feat("building_footprint", FOOTPRINT),
+                         feat("building_ground_footprint", ENCLOSED), feat("parking_aisle", aisle, width_m=6.0),
+                         feat("parking_stall", stall, stall_id="G-P001", type="standard_90deg", width_m=2.5, length_m=5.0)],
+            "levels": [{"level": 0, "z_m": 0, "provided_spaces": 1}]}
+    out = validate_plan(request, plan)
+    status = {c["id"]: c["status"] for c in out["checks"]}
+    assert status["stall_obstructions:G-P001"] == "passed"
+    assert status["ground_footprint_containment"] == "passed"
+    assert "piloti_structural_clearance_review" in out["pending_reviews"]

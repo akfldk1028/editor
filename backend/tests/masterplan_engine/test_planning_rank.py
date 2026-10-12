@@ -41,3 +41,12 @@ def test_all_levels_use_common_geometry_not_generator_score():
         value['features'] = [{'properties': {'layer': 'parking_aisle', 'level': -1},
                               'geometry': mapping(box(0, 0, area, 1))}]
     assert rank(a) > rank(b)
+
+
+def test_compacted_plate_wins_only_the_tie_with_its_own_source():
+    original, compact = candidate(), candidate()
+    compact['compact_slab'] = {'saved_area_m2': 900.0}
+    assert rank(compact) > rank(original)
+    # Never ahead of a plan that is better on a planning key.
+    original['provided'], compact['provided'] = 50, 49
+    assert rank(original) > rank(compact)

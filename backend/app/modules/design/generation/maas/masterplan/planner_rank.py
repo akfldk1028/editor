@@ -30,7 +30,12 @@ def planning_rank(candidate, *, placement_stage, accessible, planned, surface_ta
                  - surface_target) if surface_target is not None else 0,
             -drive_burden(candidate['features'], candidate['provided']),
             candidate.get('ramp_orientation') in ('parallel_to_edge', 'off_aisle'),
-            -len(candidate['levels']))
+            -len(candidate['levels']),
+            # Last, between a plan and its own compacted plate (same stalls, aisles and ramp):
+            # the declared envelope - the whole parcel when none is authored - is the search
+            # domain, not the plan. Measured on 고산 (placement stage): the 22 + 28 rows plan
+            # tied with its 1,557 m2 compact twin and `max` kept the first, the 2,500 m2 parcel.
+            candidate.get('compact_slab') is not None)
 
 
 def _rank_and_record(request, candidates, *, rules, options, law, evidence, site, footprint, strategy, planned, required, accessible, target_stalls, surface_target, max_surface, bcr, maxlevels, angle, explicit_angle, placement_stage, search_budget, missing, failures):

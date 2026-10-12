@@ -92,6 +92,18 @@ def validate_plan(request, result):
             pending.append("piloti_structural_clearance_review")
         ground_drive = unary_union([g for g,p in grouped[(0,"parking_aisle")]+grouped[(0,"vehicular_access")]])
         check("drive_ground_footprint_collision:0",ground_drive.intersection(ground_occupancy).area<=TOL)
+    elif grouped[(0,"building_ground_footprint")]:
+        # The engine's own piloti variant (joint.piloti_ground_variants) draws the enclosed ground
+        # floor it planned with. An independent re-validation sends the ORIGINAL request, which has
+        # no ground footprint, and used to block the whole footprint: on 고산 the 11 bays under the
+        # overhang failed stall_obstructions and the plan the engine had passed became ineligible.
+        ground_occupancy = unary_union([g for g,p in grouped[(0,"building_ground_footprint")]])
+        drawn_mass = unary_union([g for g,p in grouped[(0,"building_footprint")]])
+        check("ground_footprint_containment",drawn_mass.buffer(TOL).covers(ground_occupancy))
+        if drawn_mass.difference(ground_occupancy).area>TOL:
+            pending.append("piloti_structural_clearance_review")
+        ground_drive = unary_union([g for g,p in grouped[(0,"parking_aisle")]+grouped[(0,"vehicular_access")]])
+        check("drive_ground_footprint_collision:0",ground_drive.intersection(ground_occupancy).area<=TOL)
     for (level,layer),items in list(grouped.items()):
         if layer!="basement_boundary":
             continue

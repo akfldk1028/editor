@@ -54,7 +54,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                    ramp=None, curved=None, curve_min_radius=None, weights=None, step=0.5, limit=14,
                    expanded_needed=None, ground_stalls=True, turn_radius_m=None, turn_lane_m=None,
                    field="auto", occupied_footprint=None, accept_ramp=None, ramp_shape="any", allowed_angles=None,
-                   preserve_banks=False, straight_entry=False, prohibited=None,
+                   preserve_banks=False, straight_entry=False, prohibited=None, stall_exclusion=None,
                    search_budget=SEARCH_BUDGET):  # noqa: E501
     """Scored row-and-aisle candidates in world coordinates.
 
@@ -102,6 +102,11 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
         # footprint) the aisle, its road connector and an at-grade landing may pass beneath the
         # upper floors; only the enclosed part blocks them. Without one it is the footprint.
         g_occ = g_fp if occupied_footprint is None else rot(occupied_footprint)
+        # Drivable but not for bays: a basement level's ramp landings. The level solver keeps them
+        # in the free area so the aisle can reach them and dropped the bays laid on them afterwards;
+        # with the kept set clustered at the landing (`emit`) that cost 고산 B1 its 20th bay.
+        g_excl = (unary_union([g_obst, rot(stall_exclusion)]).buffer(0)
+                  if stall_exclusion is not None and not stall_exclusion.is_empty else g_obst)
         if not g_occ.is_valid:
             g_occ = g_occ.buffer(0)
         if g_ground.is_empty or not g_ground.is_valid:
@@ -195,7 +200,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                     turn_bay = None
                     # one entry per ramp the position can carry; a surface-only plan carries none and
                     # runs the tail once with no ramp, no plate and only the site's own obstacles
-                    ramp_variants = [] if ramp is not None else [(None, None, g_obst)]
+                    ramp_variants = [] if ramp is not None else [(None, None, g_excl)]
                     if ramp is not None:
                         best = {}
                         xs = ax0 + aisle if end == 0 else ax0
@@ -276,7 +281,7 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                             hull = unary_union([g_fp, poly]).convex_hull if not g_fp.is_empty else poly.buffer(aisle)
                             ramp_variants.append((ramp_geom,
                                                   hull.intersection(g_site).buffer(0),  # the plate + ramp, clipped to the parcel
-                                                  unary_union([g_obst, poly])))
+                                                  unary_union([g_excl, poly])))
                     for ramp_geom, basement, blocked in ramp_variants:
                         stalls = []
                         # The entrance end is kept clear of bays - except on a direct field shorter than
@@ -305,7 +310,25 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                         exp_w = expanded_dims[0] if expanded_dims else stall_w
                         # one stall of slack: the greedy scan mixes 2.5 and 2.6 m widths, so a zone sized
                         # exactly to want_expanded * 2.6 loses a slot to alignment
-                        exp_from = (xs1 - (want_expanded * exp_w + stall_w)) if (want_expanded and end == 0) else None
+                        # The rows carry the whole plate and the demand decides what is kept (`emit`), so
+                        # the closed end of the 확장형 zone is the closed end of the DEMAND, not of the
+                        # plate. Measured on 고산 B1 at 20 of 28: the zone sat at the far end of a 62 m
+                        # aisle, the nearest standard bays were taken from the near end, and the kept set
+                        # spanned the whole corridor - 14 bays on one side, 6 at the far end of the other.
+                        # The per-row demand is an estimate; the fill still runs to the end of the plate.
+                        demand_end = None
+                        if required and ground_stalls and 2 * int((xs1 - xs0) // stall_w) > required:
+                            per_row = math.ceil(required / 2)
+                            need = (per_row * stall_w + min(want_expanded, per_row) * max(0.0, exp_w - stall_w)
+                                    + min(int(accessible), per_row) * max(0.0, acc_w - stall_w) + stall_w)
+                            if xs1 - xs0 > need:
+                                demand_end = xs0 + need if end == 0 else xs1 - need
+                        if want_expanded and end == 0:
+                            exp_from = (demand_end if demand_end is not None else xs1) - (want_expanded * exp_w + stall_w)
+                        elif want_expanded and demand_end is not None:
+                            exp_from = demand_end
+                        else:
+                            exp_from = None
                         for side in ((-1, 1) if ground_stalls else ()):  # a basement-only plan keeps the ground clear
                             stalls += _fill_row(g_ground, drive, y, y + aisle, xs0, xs1, stall_w, stall_l, acc_w, acc_l,
                                                 max(0, accessible - sum(s["type"] == "accessible" for s in stalls)), blocked, side,
@@ -347,12 +370,28 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
                             # accessible stalls closest to the entrance first, then 확장형 (inside the quota), then by distance
                             cand_stalls = sorted(cand_stalls, key=lambda s: (s["type"] != "accessible", s["type"] != "expanded",
                                                                              s["polygon"].distance(ent_c)))
+                            n_offered = len(cand_stalls)
                             if required:
                                 if preserve_banks:
                                     from backend.app.modules.design.generation.maas.masterplan.stall_banks import select_complete_banks
                                     cand_stalls=select_complete_banks(cand_stalls,required)
                                 else:
                                     cand_stalls = cand_stalls[:required]
+                                if 0 < len(cand_stalls) < n_offered and ramp_geom is None:
+                                    # The aisle follows the kept bays. The trim above saw every bay the plate
+                                    # could hold, so a level that keeps 20 of 28 kept the 28-bay corridor.
+                                    # Keep the entrance end and one aisle width past the last kept bay; a
+                                    # cross-aisle plan the cut would sever keeps its drive.
+                                    from backend.app.modules.design.generation.maas.masterplan.circulation import full_width_stall_access
+                                    sx0 = min(s["polygon"].bounds[0] for s in cand_stalls)
+                                    sx1 = max(s["polygon"].bounds[2] for s in cand_stalls)
+                                    k0 = ax0 if end == 0 else max(ax0, sx0 - aisle)
+                                    k1 = ax1 if end == 1 else min(ax1, sx1 + aisle)
+                                    if k1 - k0 < aisle_span - EPS:
+                                        _, b1, _, b3 = cand_drive.bounds
+                                        cut = unary_union([cand_drive.intersection(box(k0, b1 - EPS, k1, b3 + EPS)), entrance]).buffer(0)
+                                        if full_width_stall_access(cut, [s["polygon"] for s in cand_stalls], [entrance], aisle):
+                                            cand_drive, aisle_span = cut, k1 - k0
                             if not cand_stalls and (ground_stalls or ramp_geom is None):
                                 return
                             # The objective keeps measuring the distance to the vehicle entrance,
@@ -451,10 +490,16 @@ def row_candidates(site, ground, footprint, obstacles, frontage, front, rules, r
     if _os.environ.get("MASTERPLAN_EXPLAIN_RANK") and ramp is not None:
         import sys as _sys
         print("RAMP-BUILDS results=%d drops=%s" % (len(results), _drops), file=_sys.stderr)
+    # THE DEMAND COMES BEFORE THE SCORE, as in `parking_modules` and `planning_rank`. The score
+    # prices a metre of aisle against a bay; once the aisle follows the kept bays (`emit`), a plan
+    # that offers 19 of the 20 asked for can out-score the one that offers 20 by running a little
+    # shorter, and the per-kind cut below would then hide the 20 from the planner for good.
+    # Measured on 고산 B1 at 20: 19 standard bays on a 318 m2 drive beat 20.
+    demand = lambda r: min(r["provided"], required) if required else r["provided"]
     if field == "ring":
-        results.sort(key=lambda r: (r["terms"].get("closed_aisle_loop", False), r["score"]), reverse=True)
+        results.sort(key=lambda r: (r["terms"].get("closed_aisle_loop", False), demand(r), r["score"]), reverse=True)
     else:
-        results.sort(key=lambda r: -r["score"])
+        results.sort(key=lambda r: (-demand(r), -r["score"]))
     # keep the best per (angle, entrance_end, ramp, bands, cross aisles) so alternatives differ
     # in kind, not by 0.5 m - the band count is a kind, so a tiled plan is never crowded out
     # of the list by a one-band plan that scored better at some other offset

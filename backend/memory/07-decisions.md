@@ -1,5 +1,26 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-11/12 (MasterPlan session) Placement-stage engine measured against practice ALT1 on 고산 (same parti already:
+  entrance 0.8 m, rows 0°, ramp departure 6 m off; gaps were 22 vs 30 surface, a whole-parcel B1 plate, and a 20-bay level
+  on a 28-bay corridor). Four changes, all result-changing by design: (1) joint.py `piloti_ground_variants` - in the
+  placement stage the engine's own building zone competes against two enclosed-ground variants (a stall row, a row + aisle,
+  cut from the face with the most open ground); authored footprints are never touched; the planner's existing
+  "partial piloti ... require review" note carries the Mass hand-off. (2) planner_rank.py: a plan's own compacted plate wins
+  the tie with its source (same bays/aisles/ramp; the declared envelope is the search domain, not the plan). (3) rows.py:
+  the 확장형 zone sits at the closed end of the demand, the aisle is re-cut to the kept bays in `emit` (full-width access
+  verified, cross-aisle plans the cut would sever keep their drive, no re-cut when a ramp hangs off the aisle), and the
+  final sort puts min(provided, required) before the score as parking_modules/planning_rank do - a 19-bay plan on a
+  shorter aisle was out-scoring the 20. (4) rows.py `stall_exclusion` + basement_layout passes the landings: bays were
+  laid on the ramp landing and dropped afterwards (the 20th bay). 고산 placement default: 22+28 / 2,500 m2 plate →
+  30+20 / 1,114 m2 plate, ramp at the aisle's west end as in practice, geometry passed, same with entry_approach
+  straight_6m. Golden fixtures (rows_golden.py) change on all three cases (scores up, counts equal or higher) - not a
+  byte-identical refactor. Tests: 61 (rows/joint/rank/compact/modules/circulation) passed; new test_rows_demand_trim.py,
+  tests added to test_joint_placement.py and test_planning_rank.py. 16-parcel corpus not re-run yet.
+  (5) validation.py: with no `ground_footprint` in the request, the drawn `building_ground_footprint` feature is the
+  ground occupancy (containment + drive collision checked, piloti review pended) - the agent's independent
+  re-validation sends the original request and failed the 11 bays under the overhang as stall_obstructions, which made
+  the engine-passed plan ineligible for the whole AI loop (E3). Test in test_rows_piloti.py. Full engine suite not
+  completed on this machine (two chunks timed out under load; 65 targeted tests passed).
 - 2026-10-10 (MasterPlan session, circulation integration E) planner.py: `accept_ramp` used `Point` without importing it,
   so every AI proposal carrying `entry_approach` died with NameError (A's 6 tests never reach that branch; pyflakes now
   clean across the package). Finding for A: `circulation_network.plan_entry_approach`/`connect_landing_to_aisle` are

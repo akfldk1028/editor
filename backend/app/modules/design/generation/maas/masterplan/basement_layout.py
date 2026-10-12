@@ -185,7 +185,7 @@ def solve_basement_level(slab, ramp, obstacles, rooms, rules, required, accessib
                 field=field,expanded_needed=expanded_needed)
         else:
             plans=row_candidates(slab,free,Polygon(),obstacles,LineString(landing_edge.exterior.coords),
-                None,rules,required,accessible,expanded_needed=expanded_needed,
+                None,rules,required,accessible,expanded_needed=expanded_needed,stall_exclusion=landings,
                 turn_radius_m=turn_radius_m,turn_lane_m=turn_lane_m,field=field,
                 allowed_angles=[angle, angle+90] if orthogonal_layout else None,
                 preserve_banks=orthogonal_layout)
