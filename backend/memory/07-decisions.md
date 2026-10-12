@@ -424,7 +424,8 @@ be told to the Orchestrator session.
 - 2026-10-12 address → map through the conversation door (user: "ㅇㅇ 해결해"): `POST /projects/{id}/conversation` runs
   the Site role's deterministic claim (`roles/site.locate`, whole message only) before anything else; a hit is
   answered by `ask.locate_site` as 200 `{located}` — no activation, never relayed, so the owner's conversation does
-  not record the address and the flow works with the Orchestrator down. A sentence that merely contains an address
+  not record the address. (The door answers without the owner, but the frontend controller only dispatches while the
+  conversation's GET succeeds, so with the owner down a typed address waits as 전송 대기 like any message.) A sentence that merely contains an address
   still goes to the owner (202 snapshot). Frontend: `postConversation` returns snapshot | `{located}`; the controller
   drops the pending message and calls `onLocated` (set by `useConversation(…, onLocated)`); `AgentConversation` posts
   the user bubble + Site Agent line to the feed and opens `site-map` with `pnu|address` + `pick=1` (same path as
