@@ -127,6 +127,16 @@ def test_exclusive_zone_names_drops_only_use_zones_that_lost_their_ground():
     assert exclusive_zone_names(None, names, use_zone) == (names, [])
 
 
+def test_with_removed_explains_a_removed_zone_the_slivers_do_not():
+    from backend.app.modules.land.reference.services.zone_split import with_removed
+    split = split_parcel(PARCEL, clipped(('A', box(-10, -10, 60, 60)), ('B', box(49.9, -10, 60, 60))), small_part_m2=330)
+    payload = with_removed(split.to_dict(), ['B', 'C'])        # C: in the official list, never inside the parcel
+    assert payload['removed_zones'] == ['B', 'C']
+    assert len(payload['notes']) == 2 and payload['notes'][0].startswith('B:') and payload['notes'][1].startswith('C:')
+    assert '겹치는 면적이 없어' in payload['notes'][1]
+    assert with_removed(split.to_dict(), [])['notes'] == split.notes()
+
+
 def test_to_dict_is_json_with_thresholds_and_notes():
     split = split_parcel(PARCEL, clipped(('A', box(-10, -10, 60, 60)), ('B', box(49.9, -10, 60, 60))), small_part_m2=330)
     payload = json.loads(json.dumps(split.to_dict(), ensure_ascii=False))

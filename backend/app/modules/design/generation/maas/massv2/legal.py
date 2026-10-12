@@ -26,7 +26,7 @@ from backend.app.modules.design.generation.services.constraint_bridge import reg
 from backend.app.modules.land.reference import config as land_config
 from backend.app.modules.design.generation.services.site_geometry import fetch_parcel_boundary, geojson_to_polygon, wgs84_to_utm
 from backend.app.modules.design.generation.maas.massv2.parcel_policy import policy_for, default_building_type, registered_buildable, frontage_evidence
-from backend.app.modules.land.reference.services.zone_split import SPLIT_VERSION, exclusive_zone_names
+from backend.app.modules.land.reference.services.zone_split import SPLIT_VERSION, exclusive_zone_names, with_removed
 
 
 logger = logging.getLogger(__name__)
@@ -274,7 +274,7 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
     # this parcel for 제84조: it leaves the zone list, and the exclusion is disclosed in `zone_split`.
     kept_zones, removed_zones = exclusive_zone_names(
         areas if split_detail is not None else None, zones, lambda name: zoning_mapper.lookup(name) is not None)
-    zone_split_payload = {**split_detail, "removed_zones": removed_zones} if split_detail is not None else None
+    zone_split_payload = with_removed(split_detail, removed_zones) if split_detail is not None else None
     limits = zoning_mapper.resolve_limits(kept_zones, areas) if kept_zones else {}
     zone_names = [
         item["zone_name"] if isinstance(item, dict) else str(item)

@@ -190,6 +190,17 @@ def exclusive_zone_names(areas: Mapping[str, float] | None, names: Iterable[str]
     return kept, removed
 
 
+def with_removed(payload: Mapping, removed: Sequence[str]) -> dict:
+    """The split's dict plus `removed_zones` — the official 용도지역 names the split left no ground to — with a
+    note for every removed zone the slivers do not already explain (a zone the layer never brings inside the
+    parcel at all leaves no sliver, but the 토지이용계획 attribute still lists it, so it must be said)."""
+    explained = {sliver.get('zone') for sliver in payload.get('excluded_slivers') or [] if isinstance(sliver, dict)}
+    notes = list(payload.get('notes') or [])
+    notes.extend(f'{zone}: 토지이용계획 속성에는 표시되나 용도지역 레이어에서 필지와 겹치는 면적이 없어 제84조 분할에서 제외'
+                 for zone in removed if zone not in explained)
+    return {**payload, 'removed_zones': list(removed), 'notes': notes}
+
+
 __all__ = ['AREA_EPSILON_M2', 'BOUNDARY_TOLERANCE', 'BOUNDARY_TOLERANCE_MAX_SHARE', 'BOUNDARY_TOLERANCE_MAX_WIDTH_M',
            'ExcludedSliver', 'METHOD', 'SPLIT_VERSION', 'ZONE_OVERLAP', 'ZoneSplit', 'exclusive_zone_names',
-           'polygonal', 'split_parcel']
+           'polygonal', 'split_parcel', 'with_removed']

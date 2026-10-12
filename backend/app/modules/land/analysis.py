@@ -5,7 +5,7 @@ from time import perf_counter
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.modules.regulations import calculator, extended, overlays, zoning_limits
-from backend.app.modules.land.reference.services.zone_split import exclusive_zone_names
+from backend.app.modules.land.reference.services.zone_split import exclusive_zone_names, with_removed
 from .analysis_request import normalize_program_request
 from .analysis_response import build_restrictions, format_regulations
 from .pnu import parse_pnu
@@ -115,7 +115,7 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
                 # A 용도지역 the split left no ground to (a boundary strip) is not a part of the parcel for 제84조.
                 zone_areas = dict(split.areas)
                 names, removed = exclusive_zone_names(zone_areas, names, lambda name: zoning_limits.lookup(name) is not None)
-                split_info = {**split.to_dict(), 'removed_zones': removed}
+                split_info = with_removed(split.to_dict(), removed)
         law, advisory = await collect_evidence(names, include_law=body.get('include_law', True),
             law_client=law_client, extraction_client=extraction_client)
         result, reg = await run_in_threadpool(calculate, body, names, pnu_info, land_info, zone_areas,
