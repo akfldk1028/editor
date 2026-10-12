@@ -45,9 +45,23 @@ def test_quotes_are_verified_against_the_text_and_everything_else_is_dropped():
     assert module.verify_quotes(misattributed, ARTICLES) == ([], ['site_road_requirement: 인용문이 제41조 원문에 없음'])
 
 
-def test_pick_ordinance_takes_the_innermost_building_ordinance():
+def test_pick_ordinance_takes_the_innermost_ordinance_of_each_kind():
     assert module.pick_ordinance(DISCOVERY)['name'] == '어느시 건축 조례'
     assert module.pick_ordinance({'ordinances': [{'name': '어느시 도시계획 조례'}]}) is None
+    rows = {'ordinances': [{'name': '경기도 도시계획 조례', 'edition_id': '1'}, {'name': '어느시 도시계획 조례', 'edition_id': '2'},
+                           {'name': '어느시 주차장 설치 및 관리 조례', 'edition_id': '3'}, {'name': '어느군 도시·군계획 조례', 'edition_id': '4'}]}
+    assert module.pick_ordinance(rows, 'planning')['edition_id'] == '4'
+    assert module.pick_ordinance(rows, 'parking')['edition_id'] == '3'
+    assert set(module.questions_for('planning')) == {'bcr_by_zone', 'far_by_zone', 'use_tables'} and module.questions_for('building') is module.QUESTIONS
+
+
+def test_read_all_kinds_reads_each_ordinance_side_by_side_and_skips_what_it_cannot(tmp_path, monkeypatch):
+    async def reading(pnu, sigungu, day, *, kind):
+        if kind == 'parking':
+            raise RuntimeError('no parking ordinance')
+        return None if kind == 'planning' else {'kind': kind, 'items': {}}
+    monkeypatch.setattr(module, 'ordinance_reading', reading)
+    assert asyncio.run(module.read_all_kinds('p', '41150', '2026-10-12')) == {'building': {'kind': 'building', 'items': {}}}
 
 
 def test_the_model_reads_the_whole_ordinance_once_per_day_and_the_figures_reach_the_rules(tmp_path):

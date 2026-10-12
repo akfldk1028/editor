@@ -60,11 +60,17 @@ def sunlight_exemption_areas(names: Iterable[str]) -> list[str]:
     return [name for name in names if name.endswith(_SUNLIGHT_ROAD_EXEMPTION_AREAS) or name == _SUNLIGHT_AGREEMENT_AREA]
 
 
-def sunlight_exemption_note(names: Iterable[str]) -> str | None:
-    """The one-line 단서 for the parcel's designations, or None when none applies."""
+_SUNLIGHT_BOUND_NEIGHBOUR = ('전용주거지역', '일반주거지역')
+
+
+def sunlight_exemption_note(names: Iterable[str], north_neighbour_zone: str | None = None) -> str | None:
+    """The one-line 단서 for the parcel's designations (and, when known, its 정북 neighbour's zone), or None."""
     found = sunlight_exemption_areas(names)
     road = [name for name in found if name != _SUNLIGHT_AGREEMENT_AREA]
     parts = []
+    if north_neighbour_zone and not north_neighbour_zone.endswith(_SUNLIGHT_BOUND_NEIGHBOUR):
+        # 시행령 제86조①3: the 정북 neighbour is not an 전용·일반주거지역 — the setback does not apply (zone layer reading).
+        parts.append(f'정북방향 인접 대지가 {north_neighbour_zone}(전용·일반주거지역 아님)이라 적용 제외(시행령 §86①3) — 용도지역 레이어로 읽은 값, 지적·현황 확인')
     if road:
         parts.append(f"{'·'.join(road)} 안 대지가 너비 20m 이상 도로에 접하면 적용 제외(시행령 §86①1), 접도 폭 확인")
     if _SUNLIGHT_AGREEMENT_AREA in found:

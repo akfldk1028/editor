@@ -188,11 +188,38 @@ async def describe_site(services, picks, label=''):
     described = [_described(pick, known[pick['pnu']]) for pick in picks]
     parcels = [parcel for parcel, _, _ in described]
     geometries = [geometry for _, _, geometry in described]
+    zone_notes = await _settle_zones(services, local, parcels, geometries)
     areas = [parcel['summary']['area_m2'] for parcel in parcels]
     return {'label': site_label(label, parcels), 'parcels': parcels,
             'total_area_m2': round(sum(areas), 2) if all(area is not None for area in areas) else None,
             'contiguous': contiguity(geometries),
             'zones': list(dict.fromkeys(zone for parcel in parcels for zone in parcel['summary']['zones'])),
+            'zone_notes': zone_notes,
             'source': {parcel['pnu']: source for parcel, source, _ in described},
             'geometries': {parcel['pnu']: geometry for parcel, geometry in zip(parcels, geometries)},
             'outline': merged_outline(geometries)}
+
+
+async def _settle_zones(services, local, parcels, geometries):
+    """A parcel the land-use record lists under two 용도지역 is measured against the zone layer (the same split the
+    law analysis uses): a zone that is only a hair of overlap at the boundary leaves the card's zone list and the
+    reason is returned as a note, so the card and the review agree. Nothing changes when the split is unavailable."""
+    from .geometry_queries import GeometryQueries
+    from .reference.services.zone_split import exclusive_zone_names, with_removed
+    notes = []
+    queries = GeometryQueries(services.geometries, local)
+    for parcel, geometry in zip(parcels, geometries):
+        zones = parcel['summary']['zones']
+        if not geometry or len(zones) < 2:
+            continue
+        try:
+            split, _ = await queries.split(geometry)
+        except Exception:
+            split = None
+        if split is None or not split.areas:
+            continue
+        kept, removed = exclusive_zone_names(split.areas, zones, lambda name: True, uncovered_m2=split.uncovered_m2, parcel_area_m2=split.parcel_area_m2)
+        if removed:
+            parcel['summary']['zones'] = kept
+            notes.extend(with_removed(split.to_dict(), removed)['notes'])
+    return list(dict.fromkeys(notes))

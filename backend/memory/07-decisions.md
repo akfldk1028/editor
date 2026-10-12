@@ -563,6 +563,20 @@ be told to the Orchestrator session.
   (건축협정구역) separately; tolerance share 1 % → 5 % (a 0.09 m strip is 1.4 % of a 200 ㎡ parcel); `folded_into` names
   the zone that holds the ground; the conversation door asks the model only when the message has a digit and is not
   a confirmation; the reading cache is per assessment date; legal.py splits only when two catalog zones are listed.
+- 2026-10-12 (evening) the six editor leftovers (user: "빨리 해결하셈"): (1) the law artifact's 검토 조항 tab ends with
+  `OrdinanceReadings` — every ordinance the model read (name, edition, 시행일, verified items with figure, breakdown,
+  article and quote, dropped count) and the zone-split disclosure; (2) `ordinance_reading` reads three kinds side
+  by side (`ORDINANCE_KINDS`: 건축·도시계획·주차장 by name pattern + law topic; `QUESTIONS_BY_KIND` for 도시계획
+  (용도지역별 건폐율·용적률, 건축 가능 건축물 별표) and 주차장 (설치기준, 설치제한지역); `read_all_kinds` gathers them;
+  the analysis carries `ordinance_reading[kind]`; only the 건축 reading feeds the rule table); (3) the split's notes
+  are no longer appended to `restrictions` — they live in `zone_info.zone_split.notes` and the UI shows them, so
+  "제한 N건" counts restrictions only; (4) 시행령 86조①3: `zone_split.north_neighbour_zone` samples the zone layer
+  3 m across every north-facing boundary segment (outward normal within 45° of north, longest run wins) and the
+  일조 note says "정북방향 인접 대지가 X(전용·일반주거지역 아님)이라 적용 제외(§86①3) — 레이어로 읽은 값"; SPLIT_VERSION v2;
+  (5) the site card: `describe_site` runs the same split for a parcel listed under two zones and drops a boundary
+  hair from the card's zone list, with the note under the warnings (`zone_notes`), so card and review agree;
+  (6) other owners' artifacts: field names in the user's words (`FIELD_LABELS`), empty fields as "아직 없음", `{value}`
+  wrappers unwrapped, titles by id family (프로그램·설계 의도·요구사항). Tests: backend 118, frontend 99.
   Also verified 5층: 의정부고산 지구단위계획 시행지침 제2편 제23조(공공청사용지, p.56) — 공공1 건폐율 60 % 이하·용적률
   250 % 이하·최고층수 5층 이하 (image `agents/MassAgent/docs/reports/legal-sources/gosan-9-guidelines-public-office.png`).
   Tests: ordinance_reading 4. Next: the same reading for 도시계획 조례·주차장 조례 (ORDINANCE_KINDS + QUESTIONS lines), the

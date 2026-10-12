@@ -6,6 +6,7 @@ import type { ReferenceSite } from '../api/reference'
 import { articlesOf, toReviewItem, toReviewRef } from '../lib/ordinances'
 import { KIND_LABEL, type Review } from '../lib/review'
 import { useOrdinances } from '../model/useOrdinances'
+import { OrdinanceReadings } from './OrdinanceReadings'
 import { SourceArticle } from './SourceArticle'
 import { ReviewNavigation, type ReviewSelection } from './ReviewNavigation'
 import { ReviewContext } from './ReviewContext'
@@ -14,7 +15,10 @@ import './review-reader.css'
 export function ReviewTab({ analysis, site }: { analysis: LawAnalysis; site: ReferenceSite }) {
   const review = (analysis as LawAnalysis & { review?: Review }).review
   if (!review) return <p className="law-note">검토 조항 목록을 받지 못했습니다. 새로고침으로 다시 조회해 주세요.</p>
-  return <ReviewReader review={review} site={site} key={`${site.pnu}|${site.assessmentDate}`} />
+  return <>
+    <ReviewReader review={review} site={site} key={`${site.pnu}|${site.assessmentDate}`} />
+    <OrdinanceReadings analysis={analysis} />
+  </>
 }
 
 function ReviewReader({ review, site }: { review: Review; site: ReferenceSite }) {

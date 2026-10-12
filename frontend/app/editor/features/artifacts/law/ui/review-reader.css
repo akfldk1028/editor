@@ -17,6 +17,17 @@
 .law-reader-nav button[aria-current] { background: var(--accent-soft); box-shadow: inset 2px 0 var(--accent); }
 .law-reader-nav small { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; }
 .law-reader-paper { background: var(--panel-raised); border: 1px solid var(--border-soft); border-radius: 6px; }
+.law-ordinance-readings { display: grid; gap: 8px; margin-block: 14px; font-size: 13px; }
+.law-ordinance-note, .law-ordinance-reading { padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 6px; background: var(--panel-raised); }
+.law-ordinance-note ul, .law-ordinance-reading ul { margin: 4px 0 0; padding-inline-start: 18px; }
+.law-ordinance-reading summary { cursor: pointer; }
+.law-ordinance-reading summary span { margin-inline-start: 8px; color: var(--muted); }
+.law-ordinance-reading dl { margin: 10px 0 0; }
+.law-ordinance-reading dl > div { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 3fr); gap: 10px; padding-block: 6px; border-block-start: 1px solid var(--border-soft); }
+.law-ordinance-reading dt { color: var(--muted); }
+.law-ordinance-reading dd { margin: 0; }
+.law-ordinance-value { font-weight: 600; }
+.law-ordinance-reading small { display: block; margin-block-start: 4px; color: var(--muted); }
 .law-reader-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border-soft); font-size: 12px; }
 .law-reader-font { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
 .law-reader-font button { width: 27px; height: 27px; border: 1px solid var(--border); border-radius: 4px; color: var(--ink); background: var(--artifact); cursor: pointer; }

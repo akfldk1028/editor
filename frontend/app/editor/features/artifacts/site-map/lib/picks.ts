@@ -22,6 +22,8 @@ export interface SiteBundle {
   contiguous: boolean | null
   /** 용도지역 across all parcels. */
   zones: string[]
+  /** Why a zone the land-use record lists is not counted (a hair of overlap at the boundary), one line each. */
+  zone_notes?: string[]
 }
 
 export interface SavedSite extends SiteBundle {

@@ -36,7 +36,7 @@ from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 from shapely.validation import make_valid
 
-SPLIT_VERSION = 'zone_split.v1'            # stored with cached splits; bump on any change of rule
+SPLIT_VERSION = 'zone_split.v2'            # stored with cached splits; bump on any change of rule (v2: north neighbour)
 METHOD = 'exclusive_partition+boundary_tolerance'
 # A part narrower than one map line, under this share of the parcel and no larger than the 시행령 제94조 small part
 # is boundary tolerance (see the module docstring). The share is loose on purpose: a 0.09 m strip is 0.2 % of a
@@ -76,6 +76,9 @@ class ZoneSplit:
     uncovered_m2: float                          # ground no zone polygon covers; reported, never redistributed
     method: str = METHOD
     version: str = SPLIT_VERSION
+    # The 용도지역 of the ground across the parcel's north-facing boundary (시행령 제86조①3 asks whether the 정북
+    # neighbour is an 전용·일반주거지역); None when no surroundings were given or nothing lies there.
+    north_neighbour_zone: str | None = None
 
     @property
     def zones(self) -> list[str]:
@@ -98,6 +101,7 @@ class ZoneSplit:
                                   'share': round(s.share, 6), 'reason': s.reason, 'folded_into': s.folded_into}
                                  for s in self.excluded_slivers],
             'uncovered_m2': round(self.uncovered_m2, 4),
+            'north_neighbour_zone': self.north_neighbour_zone,
             'thresholds': {'max_share': BOUNDARY_TOLERANCE_MAX_SHARE, 'max_width_m': BOUNDARY_TOLERANCE_MAX_WIDTH_M,
                            'basis': TOLERANCE_BASIS},
             'notes': self.notes(),
@@ -122,17 +126,51 @@ def _width(geometry: BaseGeometry) -> float:
     return 2.0 * float(geometry.area) / length if length > 0.0 else 0.0
 
 
+NORTH_PROBE_M = 3.0                        # how far across a north-facing boundary the neighbour's zone is sampled
+NORTH_COSINE = 0.7                         # a boundary counts as north-facing when its outward normal is within ~45° of north
+
+
+def north_neighbour_zone(parcel_utm: Polygon, surroundings: Mapping[str, Sequence[BaseGeometry]]) -> str | None:
+    """The 용도지역 across the parcel's north-facing boundary: each exterior segment whose outward normal points north
+    is sampled NORTH_PROBE_M outside its midpoint; the zone covering the longest such boundary wins. None when no
+    segment faces north or no zone polygon lies there."""
+    from shapely.geometry import Point
+    from shapely.geometry.polygon import orient
+    if parcel_utm.is_empty or not surroundings:
+        return None
+    ring = list(orient(parcel_utm, sign=1.0).exterior.coords)   # counter-clockwise: outward normal of (dx, dy) is (dy, -dx)
+    lengths: dict[str, float] = {}
+    for (x0, y0), (x1, y1) in zip(ring, ring[1:]):
+        dx, dy = x1 - x0, y1 - y0
+        length = (dx * dx + dy * dy) ** 0.5
+        if length <= 0.0:
+            continue
+        nx, ny = dy / length, -dx / length
+        if ny < NORTH_COSINE:
+            continue
+        probe = Point((x0 + x1) / 2 + nx * NORTH_PROBE_M, (y0 + y1) / 2 + ny * NORTH_PROBE_M)
+        if parcel_utm.contains(probe):
+            continue
+        for name, parts in surroundings.items():
+            if any(part is not None and not part.is_empty and part.contains(probe) for part in parts):
+                lengths[name] = lengths.get(name, 0.0) + length
+                break
+    return max(lengths, key=lambda name: (lengths[name], name)) if lengths else None
+
+
 def split_parcel(parcel_utm: Polygon, pieces_by_zone: Mapping[str, Sequence[BaseGeometry]], *,
-                 small_part_m2: float | None = None) -> ZoneSplit:
+                 small_part_m2: float | None = None, surroundings: Mapping[str, Sequence[BaseGeometry]] | None = None) -> ZoneSplit:
     """Divide `parcel_utm` (metres) between zones from their parcel-clipped pieces.
 
     `pieces_by_zone`: per zone name, the UTM geometries of that zone's features already intersected with
     the parcel (one per WFS feature; the same zone comes back as several features). `small_part_m2` is the
     시행령 제94조 small-part size (330 m²); a strip larger than it is never treated as tolerance, whatever
-    its width, so this rule can never swallow a part the statute would split on."""
+    its width, so this rule can never swallow a part the statute would split on. `surroundings`, when given,
+    are the same zones' unclipped geometries, used only to name the 정북 neighbour's zone."""
     parcel_area = float(parcel_utm.area)
+    north = north_neighbour_zone(parcel_utm, surroundings) if surroundings else None
     if parcel_area <= AREA_EPSILON_M2:
-        return ZoneSplit(parcel_area_m2=max(parcel_area, 0.0), areas={}, excluded_slivers=(), uncovered_m2=0.0)
+        return ZoneSplit(parcel_area_m2=max(parcel_area, 0.0), areas={}, excluded_slivers=(), uncovered_m2=0.0, north_neighbour_zone=north)
 
     merged: dict[str, BaseGeometry] = {}
     for name, parts in pieces_by_zone.items():
@@ -176,7 +214,8 @@ def split_parcel(parcel_utm: Polygon, pieces_by_zone: Mapping[str, Sequence[Base
                                               reason=BOUNDARY_TOLERANCE, folded_into=largest))
                 areas[largest] += area
                 del areas[name]
-    return ZoneSplit(parcel_area_m2=parcel_area, areas=areas, excluded_slivers=tuple(slivers), uncovered_m2=uncovered)
+    return ZoneSplit(parcel_area_m2=parcel_area, areas=areas, excluded_slivers=tuple(slivers), uncovered_m2=uncovered,
+                     north_neighbour_zone=north)
 
 
 def exclusive_zone_names(areas: Mapping[str, float] | None, names: Iterable[str], is_use_zone: Callable[[str], bool], *,
@@ -214,4 +253,4 @@ def with_removed(payload: Mapping, removed: Sequence[str]) -> dict:
 
 __all__ = ['AREA_EPSILON_M2', 'BOUNDARY_TOLERANCE', 'BOUNDARY_TOLERANCE_MAX_SHARE', 'BOUNDARY_TOLERANCE_MAX_WIDTH_M',
            'ExcludedSliver', 'METHOD', 'SPLIT_VERSION', 'ZONE_OVERLAP', 'ZoneSplit', 'exclusive_zone_names',
-           'polygonal', 'split_parcel', 'with_removed']
+           'north_neighbour_zone', 'polygonal', 'split_parcel', 'with_removed']

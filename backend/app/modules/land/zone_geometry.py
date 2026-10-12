@@ -41,6 +41,7 @@ def zone_split(
         return split_parcel(parcel, {})
 
     grouped: dict[str, list[Polygon]] = {}
+    surroundings: dict[str, list[Polygon]] = {}
     for feature in features:
         name = ((feature.get("properties") or {}).get("uname") or "").strip()
         geometry = feature.get("geometry")
@@ -53,11 +54,12 @@ def zone_split(
             continue
         if piece.is_empty:
             continue
+        surroundings.setdefault(name, []).append(piece)
         overlap = piece.intersection(parcel)
         if overlap.is_empty or float(overlap.area) <= 0.0:
             continue
         grouped.setdefault(name, []).append(overlap)
-    return split_parcel(parcel, grouped, small_part_m2=_small_part_threshold_m2())
+    return split_parcel(parcel, grouped, small_part_m2=_small_part_threshold_m2(), surroundings=surroundings)
 
 
 def zone_areas(

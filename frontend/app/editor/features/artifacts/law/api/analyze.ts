@@ -34,10 +34,24 @@ export interface LawZoneInfo extends Omit<ZoneInfo, 'bcr_limit' | 'far_limit'> {
   unmatched?: string[]
   zone_areas_m2?: Record<string, number>
   overlap?: { article?: string; capacity_method?: string }
+  /** The exclusive zone split behind the areas and what it excluded as boundary tolerance (disclosed). */
+  zone_split?: { notes?: string[]; excluded_slivers?: unknown[]; removed_zones?: string[]; north_neighbour_zone?: string | null } | null
+}
+
+/** One ordinance as the model read it from the official text (backend `ordinance_reading`): verified items only. */
+export interface OrdinanceReadingResult {
+  kind: string
+  label?: string
+  ordinance: { name: string; edition_id: string; effective_date: string | null; url: string | null }
+  items: Record<string, { value: number | null; unit: string | null; by_scope: { scope: string; value: number | null; text?: string | null }[]; article: string; quote: string | null; note?: string | null }>
+  dropped?: string[]
+  reason?: string
 }
 
 export interface LawAnalysis extends Omit<LandAnalysisResult, 'zone_info'> {
   zone_info: LawZoneInfo | null
+  /** What the jurisdiction's ordinances decide, by kind (건축·도시계획·주차장), as the model read them; null when unread. */
+  ordinance_reading?: Record<string, OrdinanceReadingResult | null> | null
   program?: { building_type: string; floor_area_m2: number | null; assessment_date: string }
   assessment?: Assessment
   storage?: { saved: boolean; analysis_id: string | null }

@@ -65,9 +65,10 @@ function Ready({ state, adding, onAddingChange, onRemove, onSelect, project, she
           </li>
         ))}
       </ul>
-      {(site.zones.length > 1 || site.contiguous === false) && (
+      {(site.zones.length > 1 || site.contiguous === false || site.zone_notes?.length) && (
         <ul className="site-card-warnings">
           {site.zones.length > 1 && <li><AlertTriangle aria-hidden="true" size={12} />용도지역 {site.zones.length}개 걸침 ({site.zones.join(' · ')})</li>}
+          {site.zone_notes?.map((note) => <li key={note}><AlertTriangle aria-hidden="true" size={12} />{note}</li>)}
           {site.contiguous === false && <li><AlertTriangle aria-hidden="true" size={12} />서로 붙어 있지 않아 합필 불가</li>}
         </ul>
       )}

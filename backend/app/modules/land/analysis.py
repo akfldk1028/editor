@@ -6,7 +6,7 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.app.modules.regulations import calculator, extended, overlays, zoning_limits
 from backend.app.modules.land.reference.services import designations
-from backend.app.modules.land.reference.services.ordinance_reading import apply_to_extended, ordinance_reading
+from backend.app.modules.land.reference.services.ordinance_reading import apply_to_extended, read_all_kinds
 from backend.app.modules.land.reference.services.zone_split import exclusive_zone_names, with_removed
 from .analysis_request import normalize_program_request
 from .analysis_response import build_restrictions, format_regulations
@@ -35,7 +35,7 @@ def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, propo
     reg_ext = extended.calculate_extended(
         names, land_info, building_type=program['building_type'], program_uses=schedule,
         assessment_date=program['assessment_date'])
-    reg_ext = apply_to_extended(reg_ext, ordinance_rules, names, zone_areas)
+    reg_ext = apply_to_extended(reg_ext, (ordinance_rules or {}).get('building'), names, zone_areas)
     overlay = overlays.resolve_overlays(names)
     zone_info = zoning_limits.resolve_limits(names, zone_areas)
     zone_info['zones'] = [zone['zone_name'] for zone in zone_info['zones']]
@@ -45,19 +45,22 @@ def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, propo
         zone_info['zone_areas_m2'] = {key: round(float(value), 2) for key, value in zone_areas.items()}
     if zone_split:
         zone_info['zone_split'] = zone_split
+    # The 정북 neighbour's zone (시행령 86조①3) comes from the split's reading of the zone layer around the parcel.
+    north = zone_split.get('north_neighbour_zone') if isinstance(zone_split, dict) else None
+    reg['north_neighbour_zone'] = north
+    # What the split excluded is a disclosure (zone_info.zone_split.notes), not a restriction: it is not counted here.
     restrictions = build_restrictions(reg, names, reg_ext, overlays=overlay,
         overlay_all_matched=overlays.get_all_matched_zones(names))
-    # What the split excluded is said where the restrictions are read, not hidden in a sub-dict.
-    restrictions.extend(note for note in (zone_split or {}).get('notes') or [] if isinstance(note, str))
     regulations = format_regulations(reg, reg_ext=reg_ext)
     if regulations.get('sunlight_setback'):
-        # 시행령 §86① 단서: inside these designations a parcel on a 20 m road (or in a 건축협정구역) is not bound — Site facts decide.
+        # 시행령 §86① 단서: 1호·2호 from the parcel's designations, 3호 from the 정북 neighbour's zone.
         regulations['sunlight_setback']['exemption_areas'] = designations.sunlight_exemption_areas(names)
-        regulations['sunlight_setback']['exemption_note'] = designations.sunlight_exemption_note(names)
+        regulations['sunlight_setback']['north_neighbour_zone'] = north
+        regulations['sunlight_setback']['exemption_note'] = designations.sunlight_exemption_note(names, north)
     result = {
         'pnu': pnu_info, 'regulations': regulations,
-        # What the jurisdiction's ordinance decides, as the model read it (verified quotes) — None when unread.
-        'ordinance_reading': ordinance_rules,
+        # What the jurisdiction's ordinances decide, as the model read them (verified quotes), by kind — None when unread.
+        'ordinance_reading': ordinance_rules or None,
         'zone_info': zone_info, 'land_info': land_info, 'law_articles': None,
         'restrictions': restrictions,
         'overlay_regulations': overlay or [], 'setback_lines': None, 'program': program,
@@ -131,13 +134,14 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
                 split_info = with_removed(split.to_dict(), removed)
         law, advisory = await collect_evidence(names, include_law=body.get('include_law', True),
             law_client=law_client, extraction_client=extraction_client)
-        # The jurisdiction's 건축 조례 figures (분할 면적, 접도 규모) from the official text; None keeps the defaults flagged.
+        # The jurisdiction's ordinances (건축·도시계획·주차장) read from the official text, by kind; an unread kind is absent
+        # and the national defaults stay flagged.
         ordinance_rules = None
         if pnu_info:
             try:
-                ordinance_rules = await ordinance_reading(pnu_info['pnu'], pnu_info['sido'] + pnu_info['sigungu'], body.get('assessment_date'))
+                ordinance_rules = await read_all_kinds(pnu_info['pnu'], pnu_info['sido'] + pnu_info['sigungu'], body.get('assessment_date'))
             except Exception as error:
-                errors.append(f'Building ordinance unavailable: {type(error).__name__}')
+                errors.append(f'Ordinance reading unavailable: {type(error).__name__}')
         result, reg = await run_in_threadpool(calculate, body, names, pnu_info, land_info, zone_areas,
             advisory['proposals'] if advisory else None, split_info, ordinance_rules)
         result['law_articles'] = law

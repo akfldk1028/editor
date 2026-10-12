@@ -27,13 +27,31 @@ from backend.app.modules.design.generation import paths as _design_paths
 
 logger = logging.getLogger(__name__)
 
-READING_VERSION = 'ordinance_reading.v1'
+READING_VERSION = 'ordinance_reading.v2'
 CACHE_TTL_DAYS = 1
-ORDINANCE_KINDS = {'building': r'(시|군|구)\s*건축\s*조례$'}
 MAX_TEXT_CHARS = 160_000
 
-# What the product wants from the 건축 조례, keyed like the extended rule table. Data, not code: a new figure is a
-# new line here. `scope_kind` says how the answer is broken down (the model fills `by_scope` accordingly).
+# The ordinances read, by kind: how their official names end and which law topic finds them. Data, not code.
+ORDINANCE_KINDS: dict[str, dict] = {
+    'building': {'pattern': r'(시|군|구)\s*건축\s*조례$', 'topic': '건축', 'label': '건축 조례'},
+    'planning': {'pattern': r'(시|군|구)\s*도시\s*·?\s*군?\s*계획\s*조례$', 'topic': '도시계획', 'label': '도시계획 조례'},
+    'parking': {'pattern': r'(시|군|구)\s*주차장\s*(설치\s*및\s*관리\s*)?조례$', 'topic': '주차장', 'label': '주차장 조례'},
+}
+
+# What the product wants from each ordinance, keyed like the rule tables where a key exists. Data, not code: a new
+# figure is a new line here. `scope_kind` says how the answer is broken down (the model fills `by_scope`).
+QUESTIONS_BY_KIND: dict[str, dict[str, dict]] = {
+    'planning': {
+        'bcr_by_zone': {'ask': '용도지역별 건폐율 상한(%)', 'unit': '%', 'scope_kind': '용도지역'},
+        'far_by_zone': {'ask': '용도지역별 용적률 상한(%)', 'unit': '%', 'scope_kind': '용도지역'},
+        'use_tables': {'ask': '용도지역 안에서 건축할 수 있는(또는 없는) 건축물을 정한 별표의 번호와 그 별표가 적용되는 용도지역',
+                       'unit': None, 'scope_kind': '용도지역 → 별표 번호'},
+    },
+    'parking': {
+        'parking_ratio': {'ask': '부설주차장 설치기준 — 용도별 시설면적 몇 ㎡당 1대(별표 본문에 수치가 있을 때만)', 'unit': 'm2/대', 'scope_kind': '시설 용도'},
+        'restricted_district': {'ask': '주차장 설치제한지역의 범위와 그 안의 설치 상한(비율)', 'unit': '%', 'scope_kind': '지역·구간'},
+    },
+}
 QUESTIONS: dict[str, dict] = {
     'site_subdivision_limit': {'ask': '건축물이 있는 대지를 분할할 수 없는 최소 면적(건축법 제57조·시행령 제80조를 받는 조문)', 'unit': 'm2',
                                'scope_kind': '용도지역 종류(주거지역·상업지역·공업지역·녹지지역·그 밖의 지역)'},
@@ -88,15 +106,16 @@ def _normalize(value: str) -> str:
     return re.sub(r'[\s ]+', '', value or '')
 
 
-def verify_quotes(reading: OrdinanceReading, articles: list[dict]) -> tuple[list[ReadItem], list[str]]:
+def verify_quotes(reading: OrdinanceReading, articles: list[dict], kind: str = 'building') -> tuple[list[ReadItem], list[str]]:
     """Keep only items whose quote is in the text (whitespace ignored) and whose article, when named, exists;
     the second value lists what was dropped and why."""
     by_article = {_normalize(str(a.get('article') or '')): _normalize(str(a.get('content') or '')) for a in articles}
+    asked = questions_for(kind)
     kept, dropped = [], []
     for item in reading.items:
         quote = _normalize(item.quote or '')
         article = _normalize(item.article or '')
-        if item.key not in QUESTIONS:
+        if item.key not in asked:
             dropped.append(f'{item.key}: 질문 목록에 없는 항목')
         elif article and article not in by_article:
             dropped.append(f'{item.key}: 인용 조문 {item.article}이 원문에 없음')
@@ -108,7 +127,8 @@ def verify_quotes(reading: OrdinanceReading, articles: list[dict]) -> tuple[list
     return kept, dropped
 
 
-async def read_with_model(name: str, edition_id: str, effective_date: str | None, articles: list[dict], client=None) -> OrdinanceReading | None:
+async def read_with_model(name: str, edition_id: str, effective_date: str | None, articles: list[dict], client=None,
+                          kind: str = 'building') -> OrdinanceReading | None:
     try:
         from autogen_core.models import UserMessage
 
@@ -116,8 +136,8 @@ async def read_with_model(name: str, edition_id: str, effective_date: str | None
 
         model = client or ClaudeCodeChatCompletionClient(timeout_s=120.0)
         text = '\n\n'.join(f"{a.get('article') or ''}({a.get('title') or ''}) {a.get('content') or ''}" for a in articles)[:MAX_TEXT_CHARS]
-        questions = '\n'.join(f"- {key}: {q['ask']} (unit {q['unit']}{'; by_scope by ' + q['scope_kind'] if q['scope_kind'] else ''})"
-                              for key, q in QUESTIONS.items())
+        questions = '\n'.join(f"- {key}: {q['ask']} (unit {q['unit'] or '-'}{'; by_scope by ' + q['scope_kind'] if q['scope_kind'] else ''})"
+                              for key, q in questions_for(kind).items())
         prompt = PROMPT.format(questions=questions, name=name, edition_id=edition_id, effective_date=effective_date or '?', text=text)
         result = await model.create([UserMessage(content=prompt, source='editor')], json_output=OrdinanceReading)
         return OrdinanceReading.model_validate_json(result.content if isinstance(result.content, str) else '{}')
@@ -141,12 +161,23 @@ def _read_cache(path: Path, assessment_date: str) -> dict | None:
     return payload
 
 
+def questions_for(kind: str) -> dict[str, dict]:
+    return QUESTIONS if kind == 'building' else QUESTIONS_BY_KIND.get(kind, {})
+
+
 def pick_ordinance(discovery: dict, kind: str = 'building') -> dict | None:
     """The innermost jurisdiction's ordinance of this kind among what discovery found in force on the date
     (discovery lists outermost first, so the last match is the 시군구's own)."""
-    pattern = ORDINANCE_KINDS[kind]
+    pattern = ORDINANCE_KINDS[kind]['pattern']
     rows = [row for row in discovery.get('ordinances') or [] if isinstance(row, dict) and re.search(pattern, str(row.get('name') or '').strip())]
     return rows[-1] if rows else None
+
+
+async def read_all_kinds(pnu: str, sigungu_code: str, assessment_date: str | None, *, kinds: tuple[str, ...] = tuple(ORDINANCE_KINDS)) -> dict[str, dict]:
+    """Every ordinance kind read for the parcel, side by side ({kind: reading}); kinds that could not be read are absent."""
+    import asyncio
+    readings = await asyncio.gather(*(ordinance_reading(pnu, sigungu_code, assessment_date, kind=kind) for kind in kinds), return_exceptions=True)
+    return {kind: reading for kind, reading in zip(kinds, readings) if isinstance(reading, dict)}
 
 
 async def ordinance_reading(pnu: str, sigungu_code: str, assessment_date: str | None, *, kind: str = 'building',
@@ -171,7 +202,7 @@ async def ordinance_reading(pnu: str, sigungu_code: str, assessment_date: str | 
     discover = discover or ordinances.discover
     body = body or ordinances.body
     try:
-        row = pick_ordinance(await discover(pnu, day, topics=['건축']) or {}, kind)
+        row = pick_ordinance(await discover(pnu, day, topics=[ORDINANCE_KINDS[kind]['topic']]) or {}, kind)
         if row is None:
             return None
         text = await body(row['name'], row['edition_id'], day)
@@ -180,12 +211,13 @@ async def ordinance_reading(pnu: str, sigungu_code: str, assessment_date: str | 
         return None
     if not isinstance(text, dict) or text.get('error') or not isinstance(text.get('articles'), list) or not text['articles']:
         return None
-    reading = await read_with_model(row['name'], row['edition_id'], row.get('effective_date'), text['articles'], client)
+    reading = await read_with_model(row['name'], row['edition_id'], row.get('effective_date'), text['articles'], client, kind=kind)
     if reading is None:
         return None
-    kept, dropped = verify_quotes(reading, text['articles'])
+    kept, dropped = verify_quotes(reading, text['articles'], kind)
     result = {
-        'version': READING_VERSION, 'assessment_date': day, 'fetched_at': datetime.now(timezone.utc).isoformat(),
+        'version': READING_VERSION, 'kind': kind, 'label': ORDINANCE_KINDS[kind]['label'],
+        'assessment_date': day, 'fetched_at': datetime.now(timezone.utc).isoformat(),
         'ordinance': {'name': row['name'], 'edition_id': row['edition_id'], 'effective_date': row.get('effective_date'), 'url': row.get('detail_url')},
         'items': {item.key: {'value': item.value, 'unit': item.unit, 'by_scope': [s.model_dump() for s in item.by_scope],
                              'article': f"{row['name']} {item.article}" if item.article else row['name'], 'quote': item.quote, 'note': item.note}
@@ -254,5 +286,6 @@ def apply_to_extended(reg_ext: dict, reading: dict | None, zone_names: list[str]
     return reg_ext
 
 
-__all__ = ['OrdinanceReading', 'QUESTIONS', 'READING_VERSION', 'ReadItem', 'apply_to_extended', 'main_use_zone', 'ordinance_reading',
-           'pick_ordinance', 'read_with_model', 'verify_quotes', 'zone_category']
+__all__ = ['ORDINANCE_KINDS', 'OrdinanceReading', 'QUESTIONS', 'QUESTIONS_BY_KIND', 'READING_VERSION', 'ReadItem', 'apply_to_extended',
+           'main_use_zone', 'ordinance_reading', 'pick_ordinance', 'questions_for', 'read_all_kinds', 'read_with_model', 'verify_quotes',
+           'zone_category']

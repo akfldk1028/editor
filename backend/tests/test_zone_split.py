@@ -118,6 +118,19 @@ def test_the_largest_zone_is_never_tolerance_and_an_empty_parcel_is_empty():
     assert split_parcel(Polygon(), {'A': [PARCEL]}).areas == {}
 
 
+def test_the_north_neighbours_zone_is_read_across_the_north_facing_boundary():
+    from backend.app.modules.land.reference.services.zone_split import north_neighbour_zone
+    # The parcel sits in A; B lies north of y = 48, C south of y = 0: the 정북 neighbour is B (probed 3 m outside).
+    surroundings = {'A': [box(-10, -10, 60, 48)], 'B': [box(-10, 48, 60, 120)], 'C': [box(-10, -80, 60, 0)]}
+    assert north_neighbour_zone(PARCEL, surroundings) == 'B'
+    # Nothing north: None. A parcel rotated 30° still finds its north-facing edges.
+    assert north_neighbour_zone(PARCEL, {'A': [box(-10, -10, 60, 50)]}) is None
+    from shapely.affinity import rotate
+    assert north_neighbour_zone(rotate(PARCEL, 30), surroundings) == 'B'
+    split = split_parcel(PARCEL, clipped(('A', box(-10, -10, 60, 60))), small_part_m2=330, surroundings=surroundings)
+    assert split.north_neighbour_zone == 'B' and split.to_dict()['north_neighbour_zone'] == 'B'
+
+
 def test_exclusive_zone_names_drops_only_use_zones_that_lost_their_ground():
     names = ['제2종일반주거지역', '자연녹지지역', '지구단위계획구역', '과밀억제권역']
     use_zone = lambda name: name.endswith('지역') and name != '권역'  # the catalog's shape: 용도지역 only

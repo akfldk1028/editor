@@ -106,7 +106,7 @@ def build_restrictions(reg: dict, zone_names: list[str],
         restrictions.append("건폐율·용적률: 적용 조례·판본·용도지역 증거 부족 — 상한 미확정")
 
     if reg.get("sunlight_applies"):
-        note = designations.sunlight_exemption_note(zone_names)
+        note = designations.sunlight_exemption_note(zone_names, reg.get("north_neighbour_zone"))
         restrictions.append("일조사선: 정북방향 10m 이하 1.5m · 초과 부분 H/2 이격" + (f" — {note}" if note else ""))
 
     if reg.get("road_diagonal_multiplier") is not None:
