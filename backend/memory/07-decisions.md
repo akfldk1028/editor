@@ -431,3 +431,15 @@ be told to the Orchestrator session.
   the user bubble + Site Agent line to the feed and opens `site-map` with `pnu|address` + `pick=1` (same path as
   `useAsk`). `siteLocatedLine` now takes the site body, not the whole AskAnswer. Live: 산곡동 684-1 → 200 located
   (PNU + point); 없는 주소 → error body; 문장 → 202 working. Tests: conversation 46 (+2), frontend 256.
+- 2026-10-12 editor back on port 3003 (user: "네이버가 원래 됐었는데 왜 안 되냐" → "3003으로 하면 되잖아"): the Naver
+  Maps app `editor` has Web 서비스 URL 127.0.0.1:3003 · localhost:3003 · 127.0.0.1:3005 (05-decisions 10-07), and the
+  10-08 host registry (852dcffe) put the editor on the repo default 3002 and retired the manual 3003 instance without
+  checking that list — so Naver's auth answered 503 for every 3002 page and the map showed "인증 실패" tiles (the
+  mount-time fallback does not catch it: the auth callback lands after `init`). Proof: JSONP probes of
+  oapi.map.naver.com/v3/auth from the page succeed for the three registered URLs and fail for 3002. Changed: registry
+  editor port 3003, `.env.defaults`/`.env.example` PORT, `package.json` kill script, pascal_mcp default editor URL,
+  infra runtime tests, and the backend's env file (`.superpowers/sdd/editor-law.env`, git-ignored) EDITOR_PUBLIC_URL /
+  EDITOR_SCENE_URL → 3003 so the same-origin doors accept the browser. `?engine=openlayers` (VWorld through the tile
+  proxy, one tile at a time) is a debugging flag only — the user does not want VWorld. Memory 05-decisions: the Naver
+  key's registered URLs are the port's source of truth; a port change needs the NCP console or a key with port-less
+  `http://localhost` / `http://127.0.0.1` (Maps troubleshoot guide says register the host without a port).

@@ -44,7 +44,7 @@ test('platform startup wires the external owner and separate product data', () =
   assert.equal(services.backend.env.EDITOR_LAND_DATA_DIR, process.env.EDITOR_LAND_DATA_DIR || resolve(repositoryRoot, 'runtime/editor/land'));
   assert.equal(services.backend.env.EDITOR_DESIGN_DATA_DIR, process.env.EDITOR_DESIGN_DATA_DIR || resolve(repositoryRoot, 'runtime/editor/design'));
   assert.equal(services.backend.env.EDITOR_ARR_URL, undefined);
-  assert.equal(services.backend.env.EDITOR_SCENE_URL, 'http://127.0.0.1:3002/editor');
+  assert.equal(services.backend.env.EDITOR_SCENE_URL, 'http://127.0.0.1:3003/editor');
   assert.equal(services.orchestrator.cwd, undefined);
   assert.equal(services.orchestrator.command, undefined);
   assert.equal(services.orchestrator.management, 'agent-host');
@@ -64,7 +64,7 @@ test("the editor and the bridge that reaches it are part of the product", () => 
   assert.equal(services.editor.publicUrl, "http://127.0.0.1:5173/editor");
   // Next must know it is mounted under that path, not just proxied to it.
   assert.equal(services.editor.env.PASCAL_BASE_PATH, "/editor");
-  assert.ok(services.editor.healthUrl.startsWith("http://127.0.0.1:3002/editor/"));
+  assert.ok(services.editor.healthUrl.startsWith("http://127.0.0.1:3003/editor/"));
 
   // The MCP server only answers /health once it knows which instance it is.
   assert.equal(services.pascalMcp.env.PASCAL_INSTANCE_ID, "plan-dev");

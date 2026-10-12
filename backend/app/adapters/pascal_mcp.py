@@ -35,7 +35,7 @@ class PascalMcpError(RuntimeError):
 class PascalMcpSettings:
     url: str
     auth_token: str | None = None
-    editor_url: str = "http://localhost:3002"
+    editor_url: str = "http://localhost:3003"
     timeout: float = DEFAULT_TIMEOUT_SECONDS
 
     @classmethod
@@ -48,7 +48,7 @@ class PascalMcpSettings:
         return cls(
             url=url,
             auth_token=source.get("PASCAL_MCP_AUTH_TOKEN") or None,
-            editor_url=source.get("PASCAL_EDITOR_URL", "http://localhost:3002"),
+            editor_url=source.get("PASCAL_EDITOR_URL", "http://localhost:3003"),
             timeout=float(timeout_raw) if timeout_raw else DEFAULT_TIMEOUT_SECONDS,
         )
 

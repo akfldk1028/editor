@@ -36,10 +36,10 @@ test('native profile makes Editor the public app and aligns all backend bindings
   assert.equal(services.frontend, undefined);
   assert.equal(services.arr, undefined);
   assert.equal(services.dwg, undefined);
-  assert.equal(services.editor.publicUrl, 'http://127.0.0.1:3002');
+  assert.equal(services.editor.publicUrl, 'http://127.0.0.1:3003');
   assert.equal(services.editor.env.EDITOR_BACKEND_URL, `http://127.0.0.1:${runtime.BACKEND_PORT}`);
   assert.equal(services.editor.env.PASCAL_BASE_PATH, '');
-  assert.equal(services.editor.env.PORT, '3002');
+  assert.equal(services.editor.env.PORT, '3003');
   assert.equal(services.backend.env.EDITOR_PUBLIC_URL, services.editor.publicUrl);
   assert.equal(services.backend.env.EDITOR_SCENE_URL, services.editor.publicUrl);
   assert.equal(services.backend.env.PASCAL_EDITOR_URL, services.editor.publicUrl);

@@ -23,7 +23,7 @@
       "lifecycle": "session",
       "management": "editor-session",
       "host_env": null,
-      "port": 3002,
+      "port": 3003,
       "health_url": "{base}/api/health",
       "card_url": null,
       "start": { "cwd": "editor", "cmd": ["bun", "run", "dev", "--filter", "editor", "--", "--webpack", "--hostname", "127.0.0.1", "--port", "{port}"] },
