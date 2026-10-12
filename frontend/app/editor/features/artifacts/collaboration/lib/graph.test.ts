@@ -78,7 +78,7 @@ test('a narrow canvas stacks the flow: person, their words, Orchestrator, each c
     ['user', 'user'], ['said:user→orchestrator', 'said'], ['orchestrator', 'hub'], ['said:orchestrator→law', 'said'], ['law', 'agent'], ['said:law→orchestrator', 'said'], ['said:orchestrator→user', 'said'],
   ])
   for (let index = 1; index < column.length; index++) expect(column[index]!.position.y).toBeGreaterThan(column[index - 1]!.position.y)
-  expect(column[1]!.said).toEqual({ text: '조경 의무 면적은 몇 퍼센트야?', caption: '사용자 → Orchestrator Agent · 질문', kind: 'request', running: false })
+  expect(column[1]!.said).toEqual({ text: '조경 의무 면적은 몇 퍼센트야?', full: '조경 의무 면적은 몇 퍼센트야?', caption: '사용자 → Orchestrator Agent · 질문', kind: 'request', running: false, known: true })
   expect(column[3]!.said?.caption).toBe('Orchestrator Agent → Law Agent · 법령 검색 요청')
   expect(column[5]!.said?.caption).toBe('Law Agent의 답')
   expect(column[5]!.said?.text).toBe('조문 1건')
@@ -92,6 +92,19 @@ test('a narrow canvas stacks the flow: person, their words, Orchestrator, each c
   expect(idle.map((node) => node.id)).toEqual(['mass', 'site_context'])
   expect(idle[0]!.position.y).toBeGreaterThan(column[6]!.position.y)
   expect(idle[0]!.position.y).toBe(idle[1]!.position.y)
+})
+
+test('an owner that answered the person directly gets its own card in the column, back to the person', () => {
+  const talk = [
+    message({ id: 'q', from: 'user', to: 'orchestrator', tool: 'conversation', text: '용적률 상한은?' }),
+    message({ id: 'a', direction: 'response', from: 'law', to: 'user', tool: '', text: '용적률 상한은 250퍼센트입니다.' }),
+  ]
+  const { nodes, edges } = buildGraph(talk, null, { catalog: [{ id: 'law' }], orientation: 'vertical' })
+  expect(nodes.filter((node) => !node.idle).map((node) => node.id)).toEqual(['user', 'said:user→orchestrator', 'orchestrator', 'said:orchestrator→law', 'law', 'said:law→user'])
+  expect(nodes.find((node) => node.id === 'said:law→user')?.said).toMatchObject({ text: '용적률 상한은 250퍼센트입니다.', full: '용적률 상한은 250퍼센트입니다.', caption: 'Law Agent의 답', known: true })
+  // The relay the Orchestrator made but did not record: drawn, marked unknown, nothing invented about what was asked.
+  expect(nodes.find((node) => node.id === 'said:orchestrator→law')?.said).toMatchObject({ caption: 'Orchestrator Agent → Law Agent · 전달', known: false })
+  expect(edges.filter((edge) => edge.id.startsWith('law→user')).map((edge) => [edge.source, edge.target, edge.lane])).toEqual([['law', 'said:law→user', 'down'], ['said:law→user', 'user', 'left']])
 })
 
 test('without a catalog every agent the conversation knows is on the canvas, in rows that do not overlap', () => {

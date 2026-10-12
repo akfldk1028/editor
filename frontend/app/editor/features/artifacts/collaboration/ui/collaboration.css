@@ -121,3 +121,11 @@
 .collab-node header span:not(.collab-mark):not(.collab-live) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .collab-node .react-flow__handle[data-handleid="t-top"], .collab-node .react-flow__handle[data-handleid="s-bottom"] { opacity: 0; pointer-events: none; }
 .collab-graph[data-orientation="vertical"] .collab-node .react-flow__handle[data-handleid="t-top"], .collab-graph[data-orientation="vertical"] .collab-node .react-flow__handle[data-handleid="s-bottom"] { opacity: 1; }
+.collab-said[data-known="false"] { border-style: dashed; background: var(--panel-raised); }
+.collab-said[data-known="false"] p { color: var(--muted); font-style: italic; }
+.collab-said[data-open="true"] { inline-size: 340px; z-index: 5; box-shadow: 0 8px 24px rgb(0 0 0 / 0.14); }
+.collab-said-full { display: block !important; -webkit-line-clamp: unset !important; max-block-size: 300px; overflow-y: auto !important; white-space: pre-wrap; padding-inline-end: 4px; }
+.collab-said-toggle { justify-self: end; border: 0; padding: 2px 0 0; background: transparent; color: var(--accent); font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+.collab-said-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.collab-said[data-kind="response"] .collab-said-toggle { color: color-mix(in srgb, var(--success) 75%, var(--ink)); }
+.collab-graph .react-flow__node-said:has(.collab-said[data-open="true"]) { z-index: 10 !important; }

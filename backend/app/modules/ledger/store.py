@@ -59,7 +59,9 @@ class LedgerStore:
     def append(self, record: HopRecord) -> int:
         """Inserts the call; the same span recorded again (its end after its start) updates the row. Returns the row id."""
         placeholders = ', '.join('?' for _ in COLUMNS)
-        updates = ', '.join(f'{column}=excluded.{column}' for column in COLUMNS if column not in ('trace_id', 'span_id'))
+        # The end of a call updates its start's row and stamps when: readers that already have the row see it changed.
+        updates = ', '.join([*(f'{column}=excluded.{column}' for column in COLUMNS if column not in ('trace_id', 'span_id')),
+                             "recorded_at=strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"])
         with closing(self.connect()) as db, db:
             row = db.execute(f'INSERT INTO agent_calls ({", ".join(COLUMNS)}) VALUES ({placeholders}) '
                              f'ON CONFLICT(trace_id, span_id) DO UPDATE SET {updates} RETURNING id', self._values(record)).fetchone()

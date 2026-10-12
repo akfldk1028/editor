@@ -50,9 +50,19 @@ function AgentNode({ data }: NodeProps<FlowNode>) {
 /** What was said, as a card of its own in the vertical flow; lines enter and leave on every side. */
 function SaidNode({ data }: NodeProps<FlowNode>) {
   const said = data.said
+  const [open, setOpen] = useState(false)
   if (!said) return null
+  const more = said.full.length > said.text.length || said.full.includes('\n')
   return (
-    <div className="collab-said" data-kind={said.kind} data-node="true" data-running={said.running ? 'true' : 'false'}>
+    <div
+      className={`collab-said${open ? ' nowheel' : ''}`}
+      data-known={said.known ? 'true' : 'false'}
+      data-kind={said.kind}
+      data-more={more ? 'true' : 'false'}
+      data-node="true"
+      data-open={open ? 'true' : 'false'}
+      data-running={said.running ? 'true' : 'false'}
+    >
       <Handle id="t-top" isConnectable={false} position={Position.Top} type="target" />
       <Handle id="s-bottom" isConnectable={false} position={Position.Bottom} type="source" />
       <Handle id="t-left" isConnectable={false} position={Position.Left} type="target" />
@@ -60,7 +70,12 @@ function SaidNode({ data }: NodeProps<FlowNode>) {
       <Handle id="t-right" isConnectable={false} position={Position.Right} type="target" />
       <Handle id="s-right" isConnectable={false} position={Position.Right} type="source" />
       <small>{said.caption}</small>
-      {said.text ? <p>{said.text}</p> : null}
+      {open ? <p className="collab-said-full">{said.full}</p> : said.text ? <p>{said.text}</p> : null}
+      {more && (
+        <button aria-expanded={open} className="collab-said-toggle nodrag" onClick={(event) => { event.stopPropagation(); setOpen((value) => !value) }} type="button">
+          {open ? '접기 ▲' : '전체 보기 ▼'}
+        </button>
+      )}
     </div>
   )
 }
@@ -91,12 +106,12 @@ function SaidEdgeView({ id, sourceX, sourceY, targetX, targetY, sourcePosition, 
 const edgeTypes: EdgeTypes = { said: SaidEdgeView }
 
 /** Refits the view to the flow that ran (the waiting agents stay below, reachable by scrolling) when the cards are laid out again, never on a plain selection. */
-function Refit({ when, compact, bounds }: { when: unknown; compact: boolean; bounds: Rect | null }) {
+function Refit({ when, compact, bounds, size }: { when: unknown; compact: boolean; bounds: Rect | null; size: number | undefined }) {
   const { fitView, fitBounds } = useReactFlow()
   useEffect(() => {
     const timer = window.setTimeout(() => { void (bounds ? fitBounds(bounds, { padding: compact ? 0.25 : 0.12, duration: 250 }) : fitView({ padding: compact ? 0.25 : 0.1, duration: 250 })) }, 150)
     return () => window.clearTimeout(timer)
-  }, [when, compact, bounds])
+  }, [when, compact, bounds, size])
   return null
 }
 
@@ -157,14 +172,14 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
       const sourceHandle = edge.lane === 'down' ? 's-bottom' : isCard(edge.source) ? `s-${edge.lane}` : edge.lane === 'left' ? 'back' : 'out'
       const targetHandle = edge.lane === 'down' ? 't-top' : isCard(edge.target) ? `t-${edge.lane}` : edge.lane === 'left' ? 'in' : 'return'
       return {
-        id: edge.id, source: edge.source, target: edge.target, sourceHandle, targetHandle, type: 'smoothstep', pathOptions: { borderRadius: 12, offset: 28 }, animated: !!edge.running, className,
+        id: edge.id, source: edge.source, target: edge.target, sourceHandle, targetHandle, type: 'smoothstep', pathOptions: { borderRadius: 12, offset: 28 }, animated: spoken, className,
         ...(spoken ? { markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: back ? 'var(--success)' : 'var(--accent)' } } : {}),
       }
     }
     const base = {
       id: edge.id, source: edge.source, target: edge.target,
       sourceHandle: back ? 'back' : 'out', targetHandle: back ? 'return' : 'in',
-      animated: !!edge.running, className,
+      animated: spoken, className,
     }
     if (!spoken) return { ...base, label: edge.label || undefined, type: 'smoothstep', pathOptions: { borderRadius: 10 } }
     // What was said rides on the line as a card; the call and its count sit under it.
@@ -218,7 +233,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
         >
           <Background gap={18} size={1} variant={BackgroundVariant.Dots} />
           <Controls position="bottom-left" showInteractive={false} />
-          <Refit bounds={bounds} compact={compact} when={graph} />
+          <Refit bounds={bounds} compact={compact} size={height} when={graph} />
         </ReactFlow>
       </ReactFlowProvider>
       {!compact && <p className="collab-pattern">진행 순서 · {[agentLabel(ORCHESTRATOR), ...order].join(' → ')}</p>}

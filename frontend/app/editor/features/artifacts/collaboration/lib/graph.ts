@@ -17,7 +17,7 @@ export interface GraphNode {
   sub: string
   kind: 'user' | 'hub' | 'agent' | 'said'
   /** A `said` card (the vertical flow): what was said on one line, and under it which call and how many times. */
-  said?: { text: string; caption: string; kind: 'request' | 'response'; running: boolean }
+  said?: { text: string; full: string; caption: string; kind: 'request' | 'response'; running: boolean; known: boolean }
   /** 1, 2, 3 … in the order the Orchestrator called it; null when it was not called. */
   order: number | null
   selected: boolean
@@ -39,6 +39,8 @@ export interface GraphEdge {
   said: string
   /** The card's small line: who asked whom for what, or whose answer — `사용자 → Orchestrator Agent · 질문`, `Law Agent의 답`. */
   caption?: string
+  /** The whole of what was last said on this edge, for the card opened to read it all. */
+  full?: string
   /** Every message on this edge was recorded over A2A (always true for user/next edges). */
   known: boolean
   count: number
@@ -75,6 +77,16 @@ const V_IDLE_COLUMNS = 2
 
 const tools = (entry: CatalogLike | undefined) => Object.values(entry?.tools ?? {}).join(' · ')
 const GIST_CHARS = 110
+/** The whole message in the user's words: plain text as written; a record as all its described lines. */
+export function fullText(message: CollaborationMessage, names: Readonly<Record<string, string>> = {}): string {
+  try {
+    JSON.parse(message.text)
+  } catch {
+    return message.text.trim()
+  }
+  return describeMessage(message, names).lines.filter((line) => line && !/기록 원문/.test(line)).join('\n')
+}
+
 /** The editor's own doors, recorded as the tool of the person's line: their label is the whole caption (`질문`, not `질문 요청`). */
 const DOORS = new Set(['ask', 'conversation', 'law-analysis'])
 
@@ -154,7 +166,15 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
     const what = first.direction === 'request' ? `${toolsUsed.length === 1 ? `${toolLabel(toolsUsed[0])} ` : ''}요청` : '응답'
     const latest = rows[rows.length - 1]!
     const running = latest.state === 'running'
-    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, said: gist(latest, names), caption: captionOf(rows, names, running), running })
+    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, said: gist(latest, names), full: fullText(latest, names), caption: captionOf(rows, names, running), running })
+  }
+  // An owner that answered the person was reached through the Orchestrator even when that call is not on the record yet:
+  // the relay is drawn (dashed, unknown) so the path reads person → Orchestrator → owner, without inventing what was asked.
+  for (const id of called) {
+    if (!groups.has(`${id}→${USER}`) || groups.has(`${ORCHESTRATOR}→${id}`)) continue
+    const note = '요청 내용은 Orchestrator가 아직 기록으로 남기지 않아요'
+    edges.push({ id: `${ORCHESTRATOR}→${id}`, source: ORCHESTRATOR, target: id, kind: 'request', known: false, count: 0, label: '전달 · 요청 내용 미기록',
+      said: note, full: note, caption: `${name(ORCHESTRATOR)} → ${name(id)} · 전달`, running: false })
   }
   // The person's standing line to the hub is drawn only until the person has actually said something on the record.
   if (!groups.has(`${USER}→${ORCHESTRATOR}`)) edges.unshift({ id: `person:${USER}→${ORCHESTRATOR}`, source: USER, target: ORCHESTRATOR, kind: 'user', label: '', said: '', known: true, count: 0 })
@@ -178,7 +198,7 @@ function vertical(user: GraphNode, hub: GraphNode, spoken: GraphNode[], waiting:
     const id = `said:${edge.id}`
     nodes.push({
       id, label: '', sub: '', kind: 'said', order: null, selected: false, idle: false, live: null, position: { x: (NODE_WIDTH - CARD_WIDTH) / 2, y },
-      said: { text: edge.said, caption: edge.caption ?? edge.label, kind: edge.kind as 'request' | 'response', running: !!edge.running },
+      said: { text: edge.said, full: edge.full ?? edge.said, caption: edge.caption ?? edge.label, kind: edge.kind as 'request' | 'response', running: !!edge.running, known: edge.known },
     })
     y += CARD_HEIGHT + V_GAP
     return id
@@ -210,6 +230,13 @@ function vertical(user: GraphNode, hub: GraphNode, spoken: GraphNode[], waiting:
       const id = card(answer)
       line(answer, agent.id, id, 'down')
       line(answer, id, ORCHESTRATOR, 'right')
+    }
+    // An owner that answered the person directly (the conversation's owner reply): its words go back to the person.
+    const toPerson = between(agent.id, USER)
+    if (toPerson) {
+      const id = card(toPerson)
+      line(toPerson, agent.id, id, 'down')
+      line(toPerson, id, USER, 'left')
     }
   }
   const replied = between(ORCHESTRATOR, USER)

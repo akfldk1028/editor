@@ -117,11 +117,17 @@ def test_the_door_takes_hops_with_the_network_token_reads_by_scope_and_tails_liv
         events.append(await agen.__anext__())            # a heartbeat while nothing happens
         ledger.ingest_hop({**HOP, 'trace': {**HOP['trace'], 'span_id': '2' * 16}})
         events.append(await agen.__anext__())            # the new row, pushed by the watcher
+        started = ledger.begin(from_agent='user', to_agent='orchestrator', tool='conversation', conversation_id=None, run_id='run1')
+        events.append(await agen.__anext__())            # a call that started (running)
+        ledger.finish(started, status='OK')
+        events.append(await agen.__anext__())            # the same row again, now finished
         stop.set()
         await agen.aclose()
         return events
     events = asyncio.run(tail())
     assert events[0].startswith('id: 1\ndata: ') and events[1] == ': keep-alive\n\n' and events[2].startswith('id: 2\ndata: ')
+    assert events[3].startswith('id: 3\ndata: ') and '"ts_end": null' in events[3]
+    assert events[4].startswith('id: 3\ndata: ') and '"status": "OK"' in events[4] and '"ts_end": null' not in events[4]
 
 
 def test_the_ask_door_records_the_persons_question_and_the_skill_it_routed_to_under_the_conversation(tmp_path):

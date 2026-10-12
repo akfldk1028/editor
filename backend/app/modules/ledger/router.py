@@ -35,19 +35,29 @@ async def stream_events(ledger: Ledger, scope: dict, since_id: int, *, heartbeat
     """Rows after `since_id` now, then every new row that matches the scope as it is recorded; a comment line keeps the
     connection alive while nothing happens. `stop` ends the stream (tests)."""
     last = since_id
+    # A call is recorded twice on the same row (its start, then its end): a row this stream already sent is sent
+    # again when it changes, so a running call turns finished on the client without a reload.
+    sent: dict[int, str] = {}
     queue = ledger.watch()
     try:
         while not (stop and stop.is_set()):
             rows = ledger.rows(**scope, since_id=last, limit=200)
             for row in rows:
                 last = max(last, int(row['id']))
+                sent[int(row['id'])] = str(row.get('recorded_at'))
                 yield sse(row)
             if rows:
                 continue
             try:
-                await asyncio.wait_for(queue.get(), timeout=heartbeat_s)
+                changed = await asyncio.wait_for(queue.get(), timeout=heartbeat_s)
             except asyncio.TimeoutError:
                 yield ': keep-alive\n\n'
+                continue
+            if isinstance(changed, int) and changed in sent:
+                row = ledger.store.get(changed)
+                if row and str(row.get('recorded_at')) != sent[changed]:
+                    sent[changed] = str(row.get('recorded_at'))
+                    yield sse(row)
     finally:
         ledger.unwatch(queue)
 
