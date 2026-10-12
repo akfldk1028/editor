@@ -8,6 +8,7 @@ from backend.app.schemas.platform import AgentSummary
 from backend.app.schemas.platform import ProjectBinding, ProjectCreate, SceneRevisionRefresh
 from backend.app.adapters.platform_scenes import PlatformScenes
 from backend.app.modules.platform.repository import ProjectRepository
+from backend.app.modules.platform.routing import cards
 from backend.app.modules.platform.projects import ProjectService, BindingConflict, BindingNotFound
 from backend.app.modules.platform.routers.ask import create_ask_router
 from backend.app.modules.platform.routers.conversation import create_conversation_router
@@ -21,8 +22,10 @@ from backend.app.modules.platform.routers.status import create_status_router
 def create_platform_router(
     client: OrchestratorClient | None = None, *, project_service=None, public_origin=None,
     design_repository=None, execution_catalog=None, native_design_service=None, status_service=None,
-    trace_recorder=None, conversation_activation=None,
+    trace_recorder=None, conversation_activation=None, roster=None,
 ) -> APIRouter:
+    # The agents' own words: their live A2A cards (test seam `roster`).
+    roster = roster or cards.roster
     owner = client or OrchestratorClient(os.environ.get('EDITOR_ORCHESTRATOR_URL'))
     router = APIRouter(prefix='/api/v1/platform', tags=['platform'])
     allowed_origin = public_origin or os.environ.get('EDITOR_PUBLIC_URL', 'http://127.0.0.1:5173')
@@ -50,13 +53,17 @@ def create_platform_router(
         # Without the Orchestrator the answer is still a shape, not a bare string: the status
         # artifact and the agents page both read `orchestrator.state`.
         try:
-            return await owner.list_agents()
+            summaries = await owner.list_agents()
         except OwnerUnavailable:
             return JSONResponse({'agents': [], 'orchestrator': {'state': 'down', 'error': 'Orchestrator catalog unavailable'}},
                                 status_code=503)
         except OwnerContractError:
             return JSONResponse({'agents': [], 'orchestrator': {'state': 'invalid', 'error': 'Orchestrator catalog contract invalid'}},
                                 status_code=502)
+        # Each agent in its own words (A2A card: description, skills by name) — the catalog's ids stay the identity.
+        live = await roster([summary.agent_id for summary in summaries])
+        return [summary.model_copy(update={'description': card['description'], 'skills': card['skills']}) if (card := live.get(summary.agent_id)) else summary
+                for summary in summaries]
 
     @router.get('/projects', response_model=list[ProjectBinding])
     async def projects():

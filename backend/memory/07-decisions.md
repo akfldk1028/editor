@@ -623,3 +623,11 @@ be told to the Orchestrator session.
   tool labels and takes the live state; a catalog-only agent gets a readable name (humanize), its declared skills as
   what it answers (plumbing skills dropped) and a dot. `names` from the merged catalog flow into describe/status/
   Transcript/AgentPanel so an unknown agent is never shown by its id. Polled every 15 s (`useAgentCatalog`).
+- 2026-10-12 (night, A2A cards) the catalog speaks in the agents' own words. The user: "그것도 A2A 공식 문서에 있지
+  않아?" — yes: A2A's agent card (`/.well-known/agent-card.json`: name, description, skills[id,name,description])
+  is the standard self-description, and the editor already read it for the routing judge (`routing/cards.py`, cached
+  60 s). Now `GET /platform/agents` merges each Orchestrator catalog row with its live card (`description`, `skills`
+  by name; None when the card is unreachable — 7 of 26 answered tonight), `AgentSummary` carries both, and the
+  협업 canvas/panel show the card's description and skill names, folder labels first when a folder exists. Still a
+  hand list: the ask door's roles (`routing/roles/*.py`, also what the judge's team roster iterates) — asking an
+  agent that has a card but no role file is the Orchestrator conversation's job (tool catalog), not another role file.

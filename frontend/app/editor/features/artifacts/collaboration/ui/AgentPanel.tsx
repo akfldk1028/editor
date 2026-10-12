@@ -49,7 +49,8 @@ export function AgentPanel({ agent, entry, names = {}, transcript, onClose }: Pr
       <header>
         <Icon aria-hidden="true" size={16} />
         <h3>{label}</h3>
-        <small>{hub ? '요청을 나누고 답을 모읍니다' : tools.length ? `할 수 있는 일: ${tools.join(' · ')}` : '할 수 있는 일은 아직 등록되지 않았어요'}</small>
+        <small>{hub ? '요청을 나누고 답을 모읍니다' : entry?.description ? entry.description : tools.length ? `할 수 있는 일: ${tools.join(' · ')}` : '할 수 있는 일은 아직 등록되지 않았어요'}</small>
+        {!hub && entry?.description && tools.length > 0 && <small>할 수 있는 일: {tools.join(' · ')}</small>}
         <button aria-label="닫기" className="icon-button" onClick={onClose} type="button"><X aria-hidden="true" size={14} /></button>
       </header>
       {transcript && said > 0

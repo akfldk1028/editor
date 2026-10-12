@@ -286,6 +286,9 @@ export interface AgentSummary {
   connection_status: string
   checked_at: string | null
   evidence_ref: string | null
+  /** The agent's own words from its A2A card; absent or null when the card was unreachable. */
+  description?: string | null
+  skills?: { id: string; name: string; description: string }[] | null
 }
 
 export interface HostStatus {

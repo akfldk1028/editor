@@ -4,6 +4,14 @@ from .site_run import is_site_run, validate_site_run
 from .specialist_review import specialist_items, validate_specialist_review
 
 
+class AgentSkill(BaseModel):
+    """A skill as the agent's A2A card declares it (id, name, description)."""
+    model_config = ConfigDict(strict=True, extra='forbid')
+    id: str
+    name: str
+    description: str
+
+
 class AgentSummary(BaseModel):
     model_config = ConfigDict(strict=True, extra='forbid')
     agent_id: str
@@ -13,6 +21,9 @@ class AgentSummary(BaseModel):
     connection_status: str
     checked_at: str | None
     evidence_ref: str | None
+    # The agent's own words from its live A2A card (`/.well-known/agent-card.json`); None when the card is unreachable.
+    description: str | None = None
+    skills: list[AgentSkill] | None = None
 
 
 class ProjectCreate(BaseModel):

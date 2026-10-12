@@ -38,9 +38,14 @@ def _card(data: dict) -> dict | None:
     name, description = data.get('name'), data.get('description')
     if not isinstance(name, str) or not isinstance(description, str):
         return None
-    skills = [{'id': s['id'], 'description': s.get('description') or s.get('name') or ''}
+    skills = [{'id': s['id'], 'name': s.get('name') or s['id'], 'description': s.get('description') or s.get('name') or ''}
               for s in data.get('skills') or [] if isinstance(s, dict) and isinstance(s.get('id'), str)]
     return {'name': name, 'description': description, 'skills': skills}
+
+
+def registered(*, registry: Registry = _registry) -> list[str]:
+    """Every agent the registry lists with a card, as the network names it (underscored id)."""
+    return [str(e['id']).replace('-', '_') for e in registry.entries() if e.get('kind') == 'agent' and e.get('card_url')]
 
 
 async def fetch_card(url: str) -> dict | None:

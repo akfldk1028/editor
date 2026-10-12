@@ -7,8 +7,10 @@ export type LiveState = 'up' | 'down' | 'unknown'
 export interface CatalogEntry {
   id: string
   label: string
-  /** Skill id → label in the user's words (the folder's labels when known, else the skill id in plain words). */
+  /** Skill id → label in the user's words (the folder's labels when known, else the card's skill name, else the id in plain words). */
   tools: Readonly<Record<string, string>>
+  /** What the agent says it does (its A2A card); null when it has no card. */
+  description: string | null
   live: LiveState | null
   /** Known to the conversation's agent folders (`lib/agents`), i.e. has a mark, a name and turn lines. */
   known: boolean
@@ -32,7 +34,13 @@ export function liveOf(status: string): LiveState | null {
   return 'down'
 }
 
-const fromSpec = (spec: AgentSpec, live: LiveState | null): CatalogEntry => ({ id: spec.id, label: spec.name, tools: spec.tools ?? {}, live, known: true })
+const fromSpec = (spec: AgentSpec, live: LiveState | null): CatalogEntry => ({ id: spec.id, label: spec.name, tools: spec.tools ?? {}, description: null, live, known: true })
+
+/** The card's skills by name (plumbing dropped), else the catalog's skill ids in plain words. */
+function skillsOf(row: AgentSummary): Record<string, string> {
+  if (row.skills?.length) return Object.fromEntries(row.skills.filter((skill) => !PLUMBING.test(skill.id)).map((skill) => [skill.id, toolSpecLabel(skill.id) ?? skill.name]))
+  return Object.fromEntries(row.capabilities.filter((skill) => !PLUMBING.test(skill)).map((skill) => [skill, plainTool(skill)]))
+}
 
 /**
  * The agents to draw: the conversation's folders and the Orchestrator's catalog, merged by canonical id. An agent
@@ -46,14 +54,15 @@ export function mergeCatalog(live: readonly AgentSummary[] = [], specs: readonly
     const id = canonicalAgent(row.agent_id)
     if (id === USER || id === ORCHESTRATOR) continue
     const state = liveOf(row.connection_status)
+    const description = row.description ?? null
     const spec = agentSpec(id)
     if (spec) {
       const known = entries.get(id) ?? fromSpec(spec, state)
-      entries.set(id, { ...known, live: state })
+      // The folder's labels name the tools it knows; the card adds the skills it does not.
+      entries.set(id, { ...known, tools: { ...skillsOf(row), ...known.tools }, description, live: state })
       continue
     }
-    const tools = Object.fromEntries(row.capabilities.filter((skill) => !PLUMBING.test(skill)).map((skill) => [skill, plainTool(skill)]))
-    entries.set(id, { id, label: humanize(row.label || id), tools, live: state, known: false })
+    entries.set(id, { id, label: humanize(row.label || id), tools: skillsOf(row), description, live: state, known: false })
   }
   return [...entries.values()]
 }

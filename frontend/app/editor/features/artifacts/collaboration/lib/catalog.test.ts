@@ -24,8 +24,19 @@ test('a known agent keeps its folder name and tools and takes its live state fro
 test('an agent only the Orchestrator knows is drawn from the catalog: readable name, declared skills as what it answers, plumbing skills dropped', () => {
   const entries = mergeCatalog([row({ agent_id: 'structure', label: 'structure', capabilities: ['structure_frame', 'structure_health', 'structure_conversation_contract'], connection_status: 'available' })])
   const structure = entries.find((entry) => entry.id === 'structure')!
-  expect(structure).toMatchObject({ label: 'Structure Agent', live: 'up', known: false })
+  expect(structure).toMatchObject({ label: 'Structure Agent', live: 'up', known: false, description: null })
   expect(structure.tools).toEqual({ structure_frame: 'frame' })
   expect(namesOf(entries).structure).toBe('Structure Agent')
   expect(entries.length).toBeGreaterThan(10)
+})
+
+test('with its A2A card the agent speaks for itself: description, skills by their card names, folder labels still first', () => {
+  const entries = mergeCatalog([
+    row({ agent_id: 'structure', label: 'StructureAgent', capabilities: ['structure_frame'], connection_status: 'available', description: 'Frames and walls for a mass.', skills: [{ id: 'structure_frame', name: 'frame', description: 'Propose a frame.' }, { id: 'structure_health', name: 'health', description: '' }] }),
+    row({ agent_id: 'site-context', label: 'SiteContextAgent', capabilities: [], connection_status: 'available', description: 'Establishes the facts a parcel has.', skills: [{ id: 'site_resolve', name: 'resolve', description: '' }, { id: 'site_district_plan', name: 'district plan', description: '' }] }),
+  ])
+  expect(entries.find((entry) => entry.id === 'structure')).toMatchObject({ description: 'Frames and walls for a mass.', tools: { structure_frame: 'frame' } })
+  const site = entries.find((entry) => entry.id === 'site_context')!
+  expect(site.description).toBe('Establishes the facts a parcel has.')
+  expect(site.tools).toEqual({ site_resolve: '대지 사실 확인', site_district_plan: 'district plan' })
 })
