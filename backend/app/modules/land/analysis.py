@@ -6,6 +6,7 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.app.modules.regulations import calculator, extended, overlays, zoning_limits
 from backend.app.modules.land.reference.services import designations
+from backend.app.modules.land.reference.services.ordinance_reading import apply_to_extended, ordinance_reading
 from backend.app.modules.land.reference.services.zone_split import exclusive_zone_names, with_removed
 from .analysis_request import normalize_program_request
 from .analysis_response import build_restrictions, format_regulations
@@ -21,7 +22,7 @@ def analyze_zones(body, repository=None):
     return save_result(body, result, started, repository)
 
 
-def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, proposals=None, zone_split=None):
+def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, proposals=None, zone_split=None, ordinance_rules=None):
     program = normalize_program_request(body)
     jurisdiction = pnu_info['sido'] + pnu_info['sigungu'] if pnu_info else ''
     extractor = (lambda zones, kind: proposals.get(kind)) if proposals else None
@@ -34,6 +35,7 @@ def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, propo
     reg_ext = extended.calculate_extended(
         names, land_info, building_type=program['building_type'], program_uses=schedule,
         assessment_date=program['assessment_date'])
+    reg_ext = apply_to_extended(reg_ext, ordinance_rules, names)
     overlay = overlays.resolve_overlays(names)
     zone_info = zoning_limits.resolve_limits(names, zone_areas)
     zone_info['zones'] = [zone['zone_name'] for zone in zone_info['zones']]
@@ -53,6 +55,8 @@ def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, propo
         regulations['sunlight_setback']['exemption_areas'] = designations.sunlight_exemption_areas(names)
     result = {
         'pnu': pnu_info, 'regulations': regulations,
+        # What the jurisdiction's ordinance decides, as the model read it (verified quotes) — None when unread.
+        'ordinance_reading': ordinance_rules,
         'zone_info': zone_info, 'land_info': land_info, 'law_articles': None,
         'restrictions': restrictions,
         'overlay_regulations': overlay or [], 'setback_lines': None, 'program': program,
@@ -123,8 +127,15 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
                 split_info = with_removed(split.to_dict(), removed)
         law, advisory = await collect_evidence(names, include_law=body.get('include_law', True),
             law_client=law_client, extraction_client=extraction_client)
+        # The jurisdiction's 건축 조례 figures (분할 면적, 접도 규모) from the official text; None keeps the defaults flagged.
+        ordinance_rules = None
+        if pnu_info:
+            try:
+                ordinance_rules = await ordinance_reading(pnu_info['pnu'], pnu_info['sido'] + pnu_info['sigungu'], body.get('assessment_date'))
+            except Exception as error:
+                errors.append(f'Building ordinance unavailable: {type(error).__name__}')
         result, reg = await run_in_threadpool(calculate, body, names, pnu_info, land_info, zone_areas,
-            advisory['proposals'] if advisory else None, split_info)
+            advisory['proposals'] if advisory else None, split_info, ordinance_rules)
         result['law_articles'] = law
         if law:
             errors.extend(law['errors'])

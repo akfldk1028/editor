@@ -538,3 +538,22 @@ be told to the Orchestrator session.
   획지 결정 + source. Not verified: the 5-storey figure itself (시행지침 PDF not opened), the 의정부 조례 article for
   대지 분할 면적 (not in 제30~36조). Tests: designations 4, land review/local analysis/calculator safety/ask 77,
   frontend 72.
+- 2026-10-12 the ordinance is read by the model, one generic path (user: "뭐 빨리해 제대로", "법규 MCP로 다 찾아지는 거
+  아님?", "하드코딩 아니지 제발 — llm이 자연스럽게 뱉게 해야지, 그렇게 따지면 모든 법규 다 코드 짜야 하는데"): a first
+  version with an extractor per article (분할·접도) was thrown away before commit. `land/reference/services/
+  ordinance_reading.py`: the jurisdiction's 「…시 건축 조례」 is discovered and fetched as the Law Agent's
+  `law_ordinance` does (`modules/law/ordinances` — law.go.kr official text, the edition in force on the date), the
+  local model reads the WHOLE text against QUESTIONS (data: key → what to find, unit, breakdown kind; 6 lines today:
+  분할 면적·접도 규모·조경·대지 안의 공지·공개공지·일조), and answers each with figure(s), the article and a verbatim
+  quote; code only verifies the quote is in the text and the article exists (`verify_quotes`), drops the rest,
+  caches per jurisdiction edition for a day, and lands every item on the extended rule of the same key
+  (`apply_to_extended`: `ordinance` block + the two figures the restriction lines print — 분할 by the parcel's 시행령
+  80조 zone category, 접도 size). No rules fallback: model off → defaults stay flagged "조례 확인". Live 684-1
+  (의정부시 건축 조례 2163451, 시행 2026-08-19, 11 s): 분할 주거 60·상업 150·공업 150·녹지 200·그 밖 60 (제41조), 접도
+  3,000 ㎡ (제31조), 조경 15/10/5 % (제29조), 공개공지 5/6/7 % (제44조), 일조 1.5 m·H/2 (제43조), 대지 안의 공지 skipped by
+  the model itself (제45조 cites 별표 3, no figure in the body), dropped 0. Restriction lines now read "대지 분할 제한:
+  최소 60 ㎡ (의정부시 건축 조례 제41조, 주거지역)" and "접도의무: 연면적 3,000 ㎡ 이상이면 6 m 도로에 4 m 이상 접함 (… 제31조)".
+  Also verified 5층: 의정부고산 지구단위계획 시행지침 제2편 제23조(공공청사용지, p.56) — 공공1 건폐율 60 % 이하·용적률
+  250 % 이하·최고층수 5층 이하 (image `agents/MassAgent/docs/reports/legal-sources/gosan-9-guidelines-public-office.png`).
+  Tests: ordinance_reading 4. Next: the same reading for 도시계획 조례·주차장 조례 (ORDINANCE_KINDS + QUESTIONS lines), the
+  review panel showing the `ordinance` block per item, and the Law Agent reading these items instead of the editor.

@@ -152,9 +152,14 @@ def build_restrictions(reg: dict, zone_names: list[str],
             restrictions.append(f"건축물 용도 제한: {bur['prohibited_summary']}")
 
         sub = reg_ext.get("site_subdivision_limit", {})
-        if sub.get("min_area_m2"):
+        if sub.get("min_area_m2") and sub.get("basis") == "ordinance":
+            restrictions.append(f"대지 분할 제한: 최소 {sub['min_area_m2']:g}m² ({sub.get('article')}, {sub.get('zone_category')})")
+        elif sub.get("min_area_m2"):
             # 건축법 §57: the figure is the ordinance's, within the 시행령 §80 floor; the floor is what is known here.
             restrictions.append(f"대지 분할 제한: 시행령 하한 {sub['min_area_m2']}m² 이상 범위에서 조례로 정함 — 조례 면적 확인 필요")
+        road = reg_ext.get("site_road_requirement", {})
+        if road.get("basis") == "ordinance" and road.get("road_rule_size_m2") is not None:
+            restrictions.append(f"접도의무: 연면적 {road['road_rule_size_m2']:,.0f}m² 이상이면 6m 도로에 4m 이상 접함 ({road.get('article')})")
 
         dl = reg_ext.get("daylighting_spacing", {})
         if dl.get("applies"):
