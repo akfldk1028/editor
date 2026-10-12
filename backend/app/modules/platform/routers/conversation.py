@@ -1,10 +1,13 @@
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
 from backend.app.adapters.orchestrator import OwnerContractError, OwnerUnavailable
 from backend.app.adapters.orchestrator_conversation import ConversationRejected, OrchestratorConversation
 from backend.app.modules.platform import host
+from backend.app.modules.platform.ask import locate_site
 from backend.app.modules.platform.conversation_activation import activate
+from backend.app.modules.platform.routing.roles import site
 from backend.app.schemas.conversation import ConversationSnapshot, ConversationSubmit
 
 
@@ -51,6 +54,15 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
             body = ConversationSubmit.model_validate_json(b''.join(chunks))
         except ValidationError:
             raise HTTPException(422, 'Invalid conversation request') from None
+        claim = site.locate(body.text, {})
+        if claim:
+            # A message that is one address or PNU names the site: the editor's own claim (the Site role's
+            # deterministic pattern, same as `/ask`), answered by its own geocoder and never sent to the owner —
+            # the map opens on the parcel and selects it, and later messages carry that site as context.
+            # 200 `{located}` instead of the 202 snapshot; the owner's conversation does not record the address.
+            if projects_service().repository.get('local', project_id) is None:
+                raise HTTPException(404, 'Project not found')
+            return JSONResponse({'located': await locate_site(claim['query'])})
         return await exchange(project_id, body.conversation_id, body.model_dump(exclude_none=True))
 
     return router

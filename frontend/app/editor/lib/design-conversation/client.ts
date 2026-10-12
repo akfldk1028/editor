@@ -1,4 +1,4 @@
-import type { ConversationSnapshot, ConversationSubmission } from './types'
+import type { ConversationLocated, ConversationSnapshot, ConversationSubmission } from './types'
 
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 
@@ -27,7 +27,22 @@ export async function getConversation(projectId: string, conversationId: string,
   return read(await fetch(`${path(projectId)}?conversation_id=${encodeURIComponent(conversationId)}`, { signal, cache: 'no-store' }))
 }
 
-export async function postConversation(projectId: string, body: ConversationSubmission) {
+/** A message that was one address comes back located by the editor (`{located}`, 200) instead of as the owner's snapshot. */
+export function parseLocated(value: unknown): ConversationLocated | null {
+  if (!object(value) || !('located' in value)) return null
+  const body = value.located
+  if (!object(body) || body.kind !== 'site' || typeof body.query !== 'string' || !(body.pnu === null || typeof body.pnu === 'string') ||
+    !(body.address === null || typeof body.address === 'string') || !(body.error === null || typeof body.error === 'string') ||
+    !(body.coordinates === null || (object(body.coordinates) && typeof body.coordinates.x === 'number' && typeof body.coordinates.y === 'number'))) {
+    throw new Error('대화 응답을 읽지 못했어요. 다시 연결해 주세요.')
+  }
+  return value as unknown as ConversationLocated
+}
+
+export async function postConversation(projectId: string, body: ConversationSubmission): Promise<ConversationSnapshot | ConversationLocated> {
   // Once dispatched, a message belongs to the server even when the user changes projects or sends another.
-  return read(await fetch(path(projectId), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }))
+  const response = await fetch(path(projectId), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  if (!response.ok) throw new Error(`대화에 연결하지 못했어요 (${response.status}). 같은 메시지로 다시 시도할 수 있어요.`)
+  const value = await response.json()
+  return parseLocated(value) ?? parseConversation(value)
 }

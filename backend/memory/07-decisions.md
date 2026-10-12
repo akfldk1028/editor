@@ -421,3 +421,12 @@ be told to the Orchestrator session.
   tests 22, feed-line tests 28. Caveat: the other session's uncommitted conversation rewiring sends typed messages to
   the Orchestrator's door (`routers/conversation.py`), not `/ask`; that path has to run the same `site_locate` claim
   (or the Orchestrator must) for a typed address to reach the map there.
+- 2026-10-12 address → map through the conversation door (user: "ㅇㅇ 해결해"): `POST /projects/{id}/conversation` runs
+  the Site role's deterministic claim (`roles/site.locate`, whole message only) before anything else; a hit is
+  answered by `ask.locate_site` as 200 `{located}` — no activation, never relayed, so the owner's conversation does
+  not record the address and the flow works with the Orchestrator down. A sentence that merely contains an address
+  still goes to the owner (202 snapshot). Frontend: `postConversation` returns snapshot | `{located}`; the controller
+  drops the pending message and calls `onLocated` (set by `useConversation(…, onLocated)`); `AgentConversation` posts
+  the user bubble + Site Agent line to the feed and opens `site-map` with `pnu|address` + `pick=1` (same path as
+  `useAsk`). `siteLocatedLine` now takes the site body, not the whole AskAnswer. Live: 산곡동 684-1 → 200 located
+  (PNU + point); 없는 주소 → error body; 문장 → 202 working. Tests: conversation 46 (+2), frontend 256.

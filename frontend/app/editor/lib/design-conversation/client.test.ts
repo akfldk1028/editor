@@ -19,6 +19,15 @@ test('client sends stable message body and refreshes explicit conversation witho
   expect(calls[1]?.init?.cache).toBe('no-store')
 })
 
+test('a message that was one address comes back located by the editor, not as a snapshot', async () => {
+  const located = { kind: 'site', query: '산곡동 684-1', pnu: '4115011300106840001', address: '경기도 의정부시 산곡동 684-1', coordinates: { x: 127.1, y: 37.7 }, error: null }
+  fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ located }, { status: 200 }))
+  expect(await postConversation('project-1', { ...body, text: '산곡동 684-1' })).toEqual({ located })
+  fetchSpy.mockRestore()
+  fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ located: { kind: 'site', query: 1 } }))
+  await expect(postConversation('project-1', body)).rejects.toThrow('대화 응답을 읽지 못했어요')
+})
+
 test('platform proxy forwards conversation GET/POST and query, rejects extra paths', async () => {
   process.env.EDITOR_BACKEND_URL = 'http://backend.test'
   const urls: string[] = []

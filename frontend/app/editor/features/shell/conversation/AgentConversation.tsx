@@ -3,7 +3,8 @@
 import { Send, SquarePen, Workflow } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import { dismissFeed, type FeedEntry, useFeed, feedForProject } from '@/lib/orchestrator-runs/feed'
+import { dismissFeed, type FeedEntry, useFeed, feedForProject, projectFeed } from '@/lib/orchestrator-runs/feed'
+import { askLines, siteLocateParams, siteLocatedLine } from '@/lib/orchestrator-runs/feed-lines'
 import { newConversation, useConversationSelection } from '@/lib/design-conversation/session'
 import { useConversation } from '@/lib/design-conversation/useConversation'
 import { conversationErrorText } from '@/lib/design-conversation/errors'
@@ -66,7 +67,15 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   const composerRef = useRef<HTMLInputElement>(null)
   useAsk(shell.openArtifact)
   const project = useConversationProject()
-  const conversation = useConversation(project.projectId, project.conversationId)
+  // A message that was one address: the editor located it (the owner's conversation does not keep it) — the
+  // user's bubble and the Site Agent's line go to the feed, and the map opens on that parcel and selects it.
+  const conversation = useConversation(project.projectId, project.conversationId, (text, located) => {
+    const postFeed = projectFeed(project.projectId, project.conversationId)
+    postFeed(askLines(text)[0]!)
+    postFeed(siteLocatedLine(located))
+    const params = siteLocateParams(located)
+    if (params) shell.openArtifact('site-map', params)
+  })
   const messages = conversation.snapshot?.messages ?? []
   const count = entries.length + messages.length + conversation.pending.length
   const timeline = [

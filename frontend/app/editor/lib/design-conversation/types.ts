@@ -1,3 +1,5 @@
+import type { SiteLocateBody } from '@/lib/orchestrator-runs/types'
+
 export interface ConversationMessage {
   id: string
   role: 'user' | 'assistant'
@@ -28,6 +30,11 @@ export interface ConversationContext {
   address?: string
   assessment_date?: string
   law_run_id?: string
+}
+
+/** The door's answer to a message that was one address: the editor located the parcel itself; the owner never saw it. */
+export interface ConversationLocated {
+  located: SiteLocateBody
 }
 
 export interface ConversationSubmission {

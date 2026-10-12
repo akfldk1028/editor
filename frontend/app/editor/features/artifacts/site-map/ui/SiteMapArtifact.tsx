@@ -48,6 +48,9 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   // (the conversation located a typed address: the parcel becomes the site without a click).
   const [requestedSite] = useState(() => siteParam(params))
   const [requestedPick] = useState(() => params.pick === '1')
+  // The engine is chosen once per mount: the shell re-opens the map with new site params (no `engine`), and
+  // that must not rebuild the map on a different engine.
+  const [requestedEngine] = useState(() => params.engine)
   /** Saved sites are kept per project (`?project=`), else under `default`. */
   const scope = selectionScope(params)
   const [engineKind, setEngineKind] = useState<MapEngineKind | null>(null)
@@ -176,7 +179,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       }
     }
 
-    start(chooseEngine(params.engine, naverKeyId)).catch((error: unknown) => {
+    start(chooseEngine(requestedEngine, naverKeyId)).catch((error: unknown) => {
       if (!disposed) setStatus({ kind: 'error', text: error instanceof Error ? error.message : '지도를 불러오지 못했습니다.' })
     })
     return () => {
@@ -185,7 +188,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       engine?.destroy()
       engineRef.current = null
     }
-  }, [params.engine, requestedPick, requestedSite, scope])
+  }, [requestedEngine, requestedPick, requestedSite, scope])
 
   /** Both views stay mounted; the switch only shows one. The URL changes by replaceState, never by navigation. */
   function switchView(next: View) {

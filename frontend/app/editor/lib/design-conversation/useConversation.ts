@@ -5,7 +5,8 @@ import { ConversationController, type ConversationState } from './controller'
 
 const empty: ConversationState = { snapshot: null, loading: false, error: null, pending: [] }
 const noop = () => () => {}
-export function useConversation(projectId: string | null, conversationId: string) {
+/** `onLocated`: a sent message that was one address came back located by the editor (not stored by the owner). */
+export function useConversation(projectId: string | null, conversationId: string, onLocated?: ConversationController['onLocated']) {
   const sessions = useRef(new Map<string, ConversationController>())
   const controller = useMemo(() => {
     if (!projectId) return null
@@ -17,6 +18,9 @@ export function useConversation(projectId: string | null, conversationId: string
     return created
   }, [projectId, conversationId])
   const state = useSyncExternalStore(controller?.subscribe ?? noop, controller?.getSnapshot ?? (() => empty), () => empty)
+  useEffect(() => {
+    if (controller) controller.onLocated = onLocated ?? null
+  }, [controller, onLocated])
   useEffect(() => {
     if (!controller) return
     const refresh = () => { if (document.visibilityState === 'visible') void controller.refresh() }

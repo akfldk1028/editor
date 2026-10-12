@@ -186,3 +186,21 @@ test('explicit discard releases a rejected message without resending it', async 
   expect(sent.map((body) => body.text)).toEqual(['stale', 'next'])
   expect(controller.getSnapshot().pending).toHaveLength(0)
 })
+
+test('a message the editor located leaves the pending queue and reaches onLocated without touching the snapshot', async () => {
+  const located = { kind: 'site' as const, query: '산곡동 684-1', pnu: '4115011300106840001', address: '경기도 의정부시 산곡동 684-1', coordinates: { x: 127.1, y: 37.7 }, error: null }
+  const sent: ConversationSubmission[] = []
+  const controller = create('project', 'main', { get: async () => snapshot(3), post: async (_p, body) => { sent.push(body); return body.text === '산곡동 684-1' ? { located } : snapshot(4) } })
+  const heard: [string, unknown][] = []
+  controller.onLocated = (text, body) => { heard.push([text, body]) }
+  controller.start(); await flush()
+  controller.send('산곡동 684-1', { assessment_date: '2026-10-06' })
+  await until(() => heard.length === 1)
+  expect(heard[0]).toEqual(['산곡동 684-1', located])
+  expect(controller.getSnapshot().pending).toEqual([])
+  expect(controller.getSnapshot().snapshot?.revision).toBe(3)
+  controller.send('그 땅에 어린이집', {})
+  await until(() => controller.getSnapshot().snapshot?.revision === 4)
+  expect(sent.map((body) => body.text)).toEqual(['산곡동 684-1', '그 땅에 어린이집'])
+  expect(heard.length).toBe(1)
+})

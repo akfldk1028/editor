@@ -269,3 +269,36 @@ def test_activation_without_required_gateway_registration_refuses(tmp_path, monk
     monkeypatch.setattr(module.host, 'ensure', ensure)
     with pytest.raises(module.host.HostUnavailable):
         asyncio.run(module.activate())
+
+
+def test_address_message_is_located_by_the_editor_and_never_reaches_owner(tmp_path, monkeypatch):
+    from backend.app.modules.platform.routers import conversation as module
+    located = []
+    async def locate(query):
+        located.append(query)
+        return {'kind': 'site', 'query': query, 'pnu': '4115011300106840001', 'address': '경기도 의정부시 산곡동 684-1',
+                'coordinates': {'x': 127.1, 'y': 37.7}, 'error': None}
+    monkeypatch.setattr(module, 'locate_site', locate)
+    async def no_providers():
+        pytest.fail('an address needs no owner, so no activation')
+    client, url = setup(tmp_path, lambda request: pytest.fail('an address reached the owner'), no_providers)
+    response = client.post(url, json={'message_id': 'm-1', 'text': ' 경기도  의정부시 산곡동 684-1 '})
+    assert response.status_code == 200
+    assert response.json() == {'located': {'kind': 'site', 'query': '경기도 의정부시 산곡동 684-1', 'pnu': '4115011300106840001',
+                                           'address': '경기도 의정부시 산곡동 684-1', 'coordinates': {'x': 127.1, 'y': 37.7}, 'error': None}}
+    assert located == ['경기도 의정부시 산곡동 684-1']
+    assert client.post('/api/v1/platform/projects/unknown/conversation', json={'message_id': 'm-2', 'text': '산곡동 684-1'}).status_code == 404
+
+
+def test_a_sentence_with_an_address_in_it_still_goes_to_the_owner(tmp_path, monkeypatch):
+    from backend.app.modules.platform.routers import conversation as module
+    async def locate(query):
+        pytest.fail('only a whole-message address is the editor\'s')
+    monkeypatch.setattr(module, 'locate_site', locate)
+    forwarded = []
+    def handler(request):
+        forwarded.append(json.loads(request.content)['text'])
+        return httpx.Response(202, json=snapshot())
+    client, url = setup(tmp_path, handler)
+    assert client.post(url, json={'message_id': 'm-1', 'text': '산곡동 684-1에 어린이집을 지으려고 해요'}).status_code == 202
+    assert forwarded == ['산곡동 684-1에 어린이집을 지으려고 해요']

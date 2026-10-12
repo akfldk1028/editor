@@ -117,7 +117,7 @@ export function answerLine(answer: AskAnswer, target: LawTarget | null, needed: 
   if (answer.route.kind === 'ask') return askRolePrompt(answer)
   if (answer.route.kind === 'answer') return orchestratorReplyLine(answer)
   if (answer.route.kind === 'goal' || !answer.answer) return handoffLine(answer, needed)
-  if (answer.answer.kind === 'site') return siteLocatedLine(answer)
+  if (answer.answer.kind === 'site') return siteLocatedLine(answer.answer)
   const actions: FeedAction[] = target ? [{ label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }] : []
   const note = evidenceNote(answer.answer.legal_evidence)
   if (answer.answer.kind === 'ordinance') {

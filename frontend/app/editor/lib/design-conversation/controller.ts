@@ -1,6 +1,7 @@
 import { getConversation, postConversation } from './client'
 import { confirmationFor } from './confirmation'
 import { designConversationContext } from './context'
+import type { SiteLocateBody } from '@/lib/orchestrator-runs/types'
 import type { ConversationArtifact, ConversationContext, ConversationSnapshot, ConversationSubmission } from './types'
 
 export interface PendingMessage { body: ConversationSubmission; at: string; error: string | null; delivery: 'waiting' | 'sending' | 'sent' | 'failed' }
@@ -14,6 +15,8 @@ export class ConversationController {
   private active = false
   private readController: AbortController | null = null
   private posting = false
+  /** A message that was one address: the editor located it (the owner never saw it); the conversation opens the map. */
+  onLocated: ((text: string, located: SiteLocateBody) => void) | null = null
   constructor(readonly projectId: string, readonly conversationId: string, private transport: Transport = { get: getConversation, post: postConversation }, private interval = 1200, private idleInterval = 15000) {}
   getSnapshot = () => this.state
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
@@ -92,9 +95,14 @@ export class ConversationController {
     this.posting = true
     this.update({ pending: this.state.pending.map((item) => item === pending ? { ...item, error: null, delivery: 'sending' } : item) })
     try {
-      const snapshot = await this.transport.post(this.projectId, pending.body)
+      const result = await this.transport.post(this.projectId, pending.body)
+      if ('located' in result) {
+        this.update({ pending: this.state.pending.filter((item) => item.body.message_id !== pending.body.message_id) })
+        this.onLocated?.(pending.body.text, result.located)
+        return
+      }
       this.update({ pending: this.state.pending.map((item) => item.body.message_id === pending.body.message_id ? { ...item, delivery: 'sent' } : item) })
-      this.accept(snapshot)
+      this.accept(result)
     } catch (error) {
       this.update({ pending: this.state.pending.map((item) => item.body.message_id === pending.body.message_id ? { ...item, delivery: 'failed', error: error instanceof Error ? error.message : '전송 여부를 확인하지 못했어요.' } : item) })
     } finally { this.posting = false; this.drain(); this.schedule() }

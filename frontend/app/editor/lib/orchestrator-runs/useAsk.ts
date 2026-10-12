@@ -46,7 +46,7 @@ export function useAsk(open?: (artifact: string, params?: Record<string, string>
         ...(clause ? { clause } : {}), ...(about.site?.assessmentDate ? { assessment_date: about.site.assessmentDate } : {}) }, controller.signal)
       if (controller.signal.aborted) return
       if (answer.answer?.kind === 'site') {
-        postFeed(siteLocatedLine(answer))
+        postFeed(siteLocatedLine(answer.answer))
         const params = siteLocateParams(answer.answer)
         if (params) open?.('site-map', params)
         return
