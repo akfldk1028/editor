@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
+from .parking_targets import target_mode
 
 
 def _mapping(value):
@@ -64,6 +65,9 @@ def build_mass_feedback(request: Mapping, result: Mapping) -> dict:
     # carries a task id; `law_status` travels beside it so the receiver knows it is provisional.
     required = _count(law.get("required_spaces"))
     planned = _count(metrics.get("planned_parking_stalls"))
+    mode = target_mode(request)
+    reference = (_count(options.get('target_parking_stalls'))
+                 if _count(options.get('target_parking_stalls')) is not None else planned) if mode == 'reference' else None
     target = max(required, planned or 0) if required is not None else planned
     provided = _count(metrics.get("provided_parking_stalls"))
     module_ideal = _area(metrics.get("module_ideal_m2"))
@@ -94,6 +98,8 @@ def build_mass_feedback(request: Mapping, result: Mapping) -> dict:
     ground = actual.get(0, 0)
     observed = sum(actual.values())
     count_consistent = provided is None or provided == observed
+    if mode == 'reference':
+        target = max(required or 0, observed) if count_consistent else required
 
     explicit_depth = _count(options.get("max_basement_levels"))
     if 'max_basement_levels' in options and (explicit_depth is None or explicit_depth > 5):
@@ -209,6 +215,9 @@ def build_mass_feedback(request: Mapping, result: Mapping) -> dict:
         "review_required": bool(actions),
         "demand": {"required_stalls": required, "law_status": law.get("status"),
                    "planned_stalls": planned,
+                   "parking_target_mode": mode,
+                   "reference_stalls": reference,
+                   "reference_shortfall_stalls": max(reference - provided, 0) if reference is not None and provided is not None else None,
                    "planning_target_stalls": target, "provided_stalls": provided,
                    "legal_shortfall_stalls": max(required - provided, 0) if required is not None and provided is not None else None,
                    "shortfall_stalls": shortfall, "ground_provided_stalls": ground,

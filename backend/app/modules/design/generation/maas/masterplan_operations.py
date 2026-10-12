@@ -62,6 +62,8 @@ def dispatch(operation, arguments):
         result.setdefault('validation', {}).setdefault('checks', []).extend(checks)
         result['placement_delta'] = change_report(logical_request, result)
         retain_generated_review(logical_request, result)
+        from backend.app.modules.design.generation.maas.masterplan.feedback import build_mass_feedback
+        result['mass_feedback'] = build_mass_feedback(logical_request, result)
         if logical_request.get('placement_state') and not any(logical_request.get(k) for k in ('footprint', 'ground_footprint', 'core', 'columns')):
             for feature in result.get('features') or []:
                 if feature['properties'].get('layer') == 'building_ground_footprint':

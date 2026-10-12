@@ -162,3 +162,18 @@ def test_local_revision_retains_generated_mass_acceptance_requirement(parent, mo
     assert child['status'] == 'needs_evidence'
     assert 'generated_mass_acceptance' in child['validation']['pending_reviews']
     assert child['handoff']['hard_pass'] is False
+
+
+def test_mass_feedback_keeps_original_authorship_when_parent_is_generated(parent, monkeypatch):
+    request, solved, *_ = parent
+    from backend.app.modules.design.generation.maas.masterplan import planner
+    from backend.app.modules.design.generation.maas.masterplan.feedback import build_mass_feedback
+    def plan(internal_request):
+        result = deepcopy(solved)
+        result['mass_feedback'] = build_mass_feedback(internal_request, result)
+        return result
+    monkeypatch.setattr(planner, 'plan_site', plan)
+    applied = ops.dispatch('apply_placement_moves', {'request': request, 'moves': {'ramp': 'straight'},
+                                                   'parent_ref': solved['placement_snapshot']['ref']})
+    child = ops.dispatch('plan_site', {'request': applied['request']})
+    assert child['mass_feedback']['mass_context']['authored_footprint'] is False
