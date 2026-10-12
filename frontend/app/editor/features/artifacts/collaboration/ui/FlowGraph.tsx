@@ -7,25 +7,35 @@ import { useMemo } from 'react'
 
 import { markOf } from '@/lib/agents'
 
-import { buildGraph, type GraphNode, type LiveState } from '../lib/graph'
+import { buildGraph, callOrder, type GraphNode, type LiveState, type Side } from '../lib/graph'
 import type { CollaborationMessage } from '../lib/transcript'
 import './collaboration.css'
 
-type FlowNodeData = Pick<GraphNode, 'label' | 'sub' | 'hub' | 'selected' | 'idle' | 'live'> & { agent: string }
+type FlowNodeData = Pick<GraphNode, 'label' | 'sub' | 'kind' | 'order' | 'selected' | 'idle' | 'live'> & { agent: string }
 type FlowNode = Node<FlowNodeData, 'agent'>
 
 const LIVE_TITLE: Record<LiveState, string> = { up: '지금 응답함', down: '꺼져 있음', unknown: '상태 미확인' }
+const POSITION: Record<Side, Position> = { left: Position.Left, right: Position.Right, top: Position.Top, bottom: Position.Bottom }
+const OPPOSITE: Record<Side, Side> = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' }
+const SIDES: Side[] = ['left', 'right', 'top', 'bottom']
+/** Two handles per side: requests leave/enter at the first, answers at the second, so a pair of edges runs side by side. */
+const offset = (side: Side, which: 'a' | 'b') => (side === 'left' || side === 'right' ? { top: which === 'a' ? '40%' : '62%' } : { left: which === 'a' ? '40%' : '62%' })
 
-/** One participant: its mark, name and whether its service answers, and the last thing it said or what it answers. Requests leave the hub on the right and enter an agent on the left; answers go back the other way. */
+/** One participant: its mark, name and whether its service answers, and the last thing it said or what it answers. */
 function AgentNode({ data }: NodeProps<FlowNode>) {
   const Icon = markOf(data.agent).icon
   return (
-    <div className="collab-node" data-hub={data.hub ? 'true' : 'false'} data-idle={data.idle ? 'true' : 'false'} data-selected={data.selected ? 'true' : 'false'}>
-      <Handle id="req-out" isConnectable={false} position={Position.Right} style={{ top: '38%' }} type="source" />
-      <Handle id="res-in" isConnectable={false} position={Position.Right} style={{ top: '66%' }} type="target" />
-      <Handle id="req-in" isConnectable={false} position={Position.Left} style={{ top: '38%' }} type="target" />
-      <Handle id="res-out" isConnectable={false} position={Position.Left} style={{ top: '66%' }} type="source" />
+    <div className="collab-node" data-hub={data.kind === 'hub' ? 'true' : 'false'} data-idle={data.idle ? 'true' : 'false'} data-kind={data.kind} data-selected={data.selected ? 'true' : 'false'}>
+      {SIDES.map((side) => (
+        <span key={side}>
+          <Handle id={`${side}-a-out`} isConnectable={false} position={POSITION[side]} style={offset(side, 'a')} type="source" />
+          <Handle id={`${side}-a-in`} isConnectable={false} position={POSITION[side]} style={offset(side, 'a')} type="target" />
+          <Handle id={`${side}-b-out`} isConnectable={false} position={POSITION[side]} style={offset(side, 'b')} type="source" />
+          <Handle id={`${side}-b-in`} isConnectable={false} position={POSITION[side]} style={offset(side, 'b')} type="target" />
+        </span>
+      ))}
       <header>
+        {data.order !== null && <b className="collab-order">{data.order}</b>}
         <Icon aria-hidden="true" size={14} />
         <span>{data.label}</span>
         {data.live && <span className="collab-live" data-state={data.live} title={LIVE_TITLE[data.live]} />}
@@ -47,21 +57,32 @@ interface Props {
   compact?: boolean
 }
 
-/** The network as a graph: the Orchestrator and every agent, right-angled edges for what this run said, one per direction and pair. */
+/** The flow as it ran: the person → the Orchestrator → the agents it called, left to right and numbered, what was said on dashed moving edges; every other agent waits below. Cards drag. */
 export default function FlowGraph({ messages, selected = null, onSelect, live, compact = false }: Props) {
   const { nodes, edges } = useMemo(() => {
     const spoken = new Set(messages.flatMap((message) => [message.from, message.to]))
     const graph = buildGraph(messages, selected, { live, ...(compact ? { catalog: [...spoken].filter((id) => id !== 'orchestrator').map((id) => ({ id })) } : {}) })
+    const sides = new Map(graph.nodes.map((node) => [node.id, node.side]))
     const nodes: FlowNode[] = graph.nodes.map((node) => ({
       id: node.id, type: 'agent', position: node.position, draggable: true,
-      data: { label: node.label, sub: node.sub, hub: node.hub, selected: node.selected, idle: node.idle, live: node.live, agent: node.id },
+      data: { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.selected, idle: node.idle, live: node.live, agent: node.id },
     }))
-    const edges: Edge[] = graph.edges.map((edge) => ({
-      id: edge.id, source: edge.source, target: edge.target, label: edge.label, type: 'smoothstep', pathOptions: { borderRadius: 10 },
-      sourceHandle: edge.kind === 'request' ? 'req-out' : 'res-out', targetHandle: edge.kind === 'request' ? 'req-in' : 'res-in',
-      className: `collab-edge-${edge.kind}${edge.known ? '' : ' collab-edge-unknown'}`,
-      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: edge.kind === 'request' ? 'var(--accent)' : 'var(--success)' },
-    }))
+    const edges: Edge[] = graph.edges.map((edge) => {
+      // The hub leaves on the side the other party sits on; the other party receives on the facing side.
+      // Everything runs left to right: requests and the 'next' order on the upper lane, answers back on the lower lane.
+      const hubSide = sides.get(edge.source === 'orchestrator' ? edge.target : edge.source) ?? 'right'
+      const fromHub = edge.source === 'orchestrator'
+      const lane = edge.kind === 'response' ? 'b' : 'a'
+      const sourceSide: Side = edge.kind === 'user' || edge.kind === 'next' ? 'right' : fromHub ? hubSide : OPPOSITE[hubSide]
+      const targetSide: Side = edge.kind === 'user' || edge.kind === 'next' ? 'left' : fromHub ? OPPOSITE[hubSide] : hubSide
+      const spoken = edge.kind === 'request' || edge.kind === 'response'
+      return {
+        id: edge.id, source: edge.source, target: edge.target, label: edge.label || undefined, type: 'smoothstep', pathOptions: { borderRadius: 10 },
+        sourceHandle: `${sourceSide}-${lane}-out`, targetHandle: `${targetSide}-${lane}-in`,
+        animated: spoken, className: `collab-edge-${edge.kind}${edge.known ? '' : ' collab-edge-unknown'}`,
+        ...(spoken ? { markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: edge.kind === 'request' ? 'var(--accent)' : 'var(--success)' } } : {}),
+      }
+    })
     return { nodes, edges }
   }, [messages, selected, live, compact])
 
@@ -78,14 +99,16 @@ export default function FlowGraph({ messages, selected = null, onSelect, live, c
       <ReactFlowProvider>
         <ReactFlow
           edges={edges}
-          elementsSelectable={false}
+          elementsSelectable
           fitView
-          fitViewOptions={{ padding: compact ? 0.25 : 0.12 }}
+          fitViewOptions={{ padding: compact ? 0.25 : 0.1 }}
           maxZoom={1.6}
-          minZoom={0.3}
+          minZoom={0.25}
           nodeTypes={nodeTypes}
           nodes={nodes}
           nodesConnectable={false}
+          nodesDraggable
+          onEdgeClick={(_, edge) => onSelect?.(edge.source === 'orchestrator' ? edge.target : edge.source)}
           onNodeClick={(_, node) => onSelect?.(selected === node.id ? null : node.id)}
           onPaneClick={() => onSelect?.(null)}
           proOptions={{ hideAttribution: true }}
@@ -94,6 +117,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, live, c
           <Controls position="bottom-left" showInteractive={false} />
         </ReactFlow>
       </ReactFlowProvider>
+      {!compact && <p className="collab-pattern">진행 순서 · {[ 'Orchestrator Agent', ...callOrder(messages).map((id) => nodes.find((node) => node.id === id)?.data.label ?? id)].join(' → ')}</p>}
     </div>
   )
 }

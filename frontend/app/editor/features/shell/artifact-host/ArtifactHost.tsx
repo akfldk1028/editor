@@ -1,11 +1,12 @@
 'use client'
 
-import { Maximize2, Minimize2, MoreHorizontal, X } from 'lucide-react'
+import { Maximize2, Minimize2, MoreHorizontal, Workflow, X } from 'lucide-react'
 import { lazy, Suspense, useCallback, useId, useMemo, useRef, useState, type ComponentType, type LazyExoticComponent, type RefObject } from 'react'
 
 import type { ArtifactManifest, ArtifactProps, ArtifactTab, ShellApi } from '../artifact-types'
 import type { ArtifactPresentation } from '../layout/layoutModes'
 import { useModalOverlay } from '../layout/useModalOverlay'
+import { collaborationArtifact } from '../../artifacts/collaboration/manifest'
 import { ArtifactHostContext, type ArtifactHostSlots } from './ArtifactChrome'
 import { closePopover, usePopoverAnchor } from './usePopoverAnchor'
 
@@ -98,6 +99,11 @@ export function ArtifactHost({ manifest, tab, params, shell, textTitle, presenta
           <div className="shell-slot" ref={setTitleEl} />
         </div>
         <div className="shell-slot" ref={setActionsEl} />
+        {manifest.id !== collaborationArtifact.id && (
+          <button aria-label="협업 흐름도 열기" className="artifact-flow-button" onClick={() => shell.openArtifact(collaborationArtifact.id, { tab: 'flow' })} title="에이전트들이 어떻게 대화했는지" type="button">
+            <Workflow aria-hidden="true" size={14} /><span>흐름도</span>
+          </button>
+        )}
         <button
           aria-haspopup="menu"
           aria-label="아티팩트 메뉴"

@@ -480,3 +480,8 @@ button { cursor: pointer; }
 ::view-transition-new(root) { animation-duration: .14s; }
 
 @keyframes shell-spin { to { transform: rotate(360deg); } }
+
+/* 흐름도: one click from any artifact to the collaboration graph (the panel is one slot; the rail icon does the same) */
+.artifact-flow-button { display: inline-flex; align-items: center; gap: 6px; min-block-size: var(--target); padding: 0 10px; border: 1px solid var(--border-soft); border-radius: var(--radius-s); color: var(--ink); background: var(--panel-raised); font: inherit; font-size: var(--fs-2); cursor: pointer; white-space: nowrap; }
+.artifact-flow-button:hover { background: var(--hover); }
+.artifact-flow-button svg { color: var(--accent); }

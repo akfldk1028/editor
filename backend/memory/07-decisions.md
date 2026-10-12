@@ -607,3 +607,10 @@ be told to the Orchestrator session.
   the conversation (`sendCommand ask` with the agent as role; the Orchestrator card fills the composer instead).
   The old product header no longer renders on `/dwg` (`app/client-bootstrap.tsx`; the shell sizes itself with
   `.editor-standalone { height: 100dvh }`), it stays on the legacy pages until each is folded in.
+- 2026-10-12 (night, 3rd) the 협업 graph draws the flow as it actually ran, and the header stays. The user: "지금 우리가
+  하는 흐름도 그대로 — 오케스트라부터 law, site 등등", "헤더는 우리가 포함시킨 것만 없애라, 나머지는 냅둬, 내가 하나씩
+  합치게", "흐름도 버튼 추가". `lib/graph.ts`: person → Orchestrator → the agents in the order it called them, left to right
+  and numbered, labelled request/answer edges that run as moving dashes, every other agent of the network dimmed in rows
+  below with what it answers; cards drag. The product header is back on /dwg (only absorbed items leave it); every
+  artifact header carries a 흐름도 button that opens the 협업 artifact. The AutoGen-Studio pattern engine in
+  features/team-builder/agentflow (selector/hub-spoke etc.) stays where it is; the run's own order is the picture.

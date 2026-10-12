@@ -34,13 +34,13 @@
 .collab-graph .react-flow__handle { inline-size: 7px; block-size: 7px; border: 1px solid var(--panel-raised); background: var(--muted); }
 .collab-graph .react-flow__node { cursor: pointer; }
 
-.collab-node { inline-size: 224px; min-block-size: 92px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel-raised); box-shadow: var(--shadow); color: var(--ink); }
+.collab-node { inline-size: 176px; min-block-size: 84px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel-raised); box-shadow: var(--shadow); color: var(--ink); }
 .collab-node[data-hub="true"] { border-color: var(--accent); }
 .collab-node[data-selected="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
 .collab-node header { display: flex; align-items: center; gap: 8px; font-size: var(--fs-2); font-weight: 600; }
 .collab-node header svg { flex: none; color: var(--muted); }
 .collab-node[data-hub="true"] header svg { color: var(--accent); }
-.collab-node p { margin: 0; color: var(--muted); font-size: var(--fs-1); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.collab-node p { margin: 0; color: var(--muted); font-size: var(--fs-1); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .collab-empty { display: grid; place-items: center; gap: 6px; padding: 32px 16px; color: var(--muted); font-size: var(--fs-2); text-align: center; }
 .collab-empty svg { color: var(--muted); }
 
@@ -87,3 +87,14 @@
 .collab-ask { display: flex; gap: 8px; }
 .collab-ask input { flex: 1; min-inline-size: 0; min-block-size: 32px; padding: 0 10px; font: inherit; font-size: var(--fs-2); color: var(--ink); background: var(--subtle); border: 1px solid var(--border-soft); border-radius: var(--radius-s); }
 .collab-ask input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.collab-graph .react-flow__edge { cursor: pointer; }
+.collab-graph .react-flow__edge.animated .react-flow__edge-path { stroke-dasharray: 6 4; animation: collab-dash 0.9s linear infinite; }
+.collab-graph .react-flow__edge:hover .react-flow__edge-path { stroke-width: 2.4px; }
+@keyframes collab-dash { to { stroke-dashoffset: -20; } }
+@media (prefers-reduced-motion: reduce) { .collab-graph .react-flow__edge.animated .react-flow__edge-path { animation: none; } }
+.collab-node[data-kind="user"] { border-color: var(--border); }
+.collab-graph .react-flow__edge.collab-edge-next .react-flow__edge-path { stroke: var(--muted); stroke-dasharray: 2 5; }
+.collab-graph .react-flow__edge.collab-edge-user .react-flow__edge-path { stroke: var(--ink); stroke-width: 1.4px; }
+.collab-pattern { position: absolute; inset-block-end: 8px; inset-inline-end: 12px; margin: 0; padding: 4px 10px; border-radius: 999px; background: var(--panel-raised); border: 1px solid var(--border-soft); color: var(--muted); font-size: var(--fs-1); pointer-events: none; }
+.collab-graph[data-compact="false"] { block-size: 560px; }
+.collab-order { inline-size: 18px; block-size: 18px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 10px; font-weight: 700; flex: none; }

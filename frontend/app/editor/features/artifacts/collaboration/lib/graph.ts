@@ -5,91 +5,107 @@ import { describeMessage } from './describe'
 import { type CollaborationMessage, ORCHESTRATOR } from './transcript'
 
 export type LiveState = 'up' | 'down' | 'unknown'
+export type Side = 'left' | 'right' | 'top' | 'bottom'
 
 export interface GraphNode {
   id: string
   label: string
   /** The last thing this participant said or was asked, in the user's words; what it answers when it did not take part. */
   sub: string
-  hub: boolean
+  kind: 'user' | 'hub' | 'agent'
+  /** 1, 2, 3 … in the order the Orchestrator called it; null when it was not called. */
+  order: number | null
   selected: boolean
   /** In the catalog but not in this run's record. */
   idle: boolean
   /** Whether the agent's service answers right now, when the status is known. */
   live: LiveState | null
   position: { x: number; y: number }
+  /** Which side of the hub this node sits on, so edges leave the hub on that side. */
+  side: Side
 }
 
 export interface GraphEdge {
   id: string
   source: string
   target: string
-  kind: 'request' | 'response'
+  /** `user`: the person's request to the hub; `next`: the order the hub went on to the next agent; the rest is what was said. */
+  kind: 'user' | 'next' | 'request' | 'response'
   label: string
-  /** Every message on this edge was recorded over A2A. */
+  /** Every message on this edge was recorded over A2A (always true for user/next edges). */
   known: boolean
   count: number
 }
 
 export interface GraphOptions {
-  /** The whole network to draw (default: every agent the conversation knows, the user aside). */
+  /** The whole network to draw (default: every agent the conversation knows, the user and the Orchestrator aside). */
   catalog?: readonly Pick<AgentSpec, 'id' | 'tools'>[]
   live?: Readonly<Record<string, LiveState>>
 }
 
-export const NODE_WIDTH = 224
-export const NODE_HEIGHT = 92
-const COLUMNS = 3
-const COLUMN_GAP = 48
-const HUB_GAP = 120
-const ROW_GAP = 28
+export const NODE_WIDTH = 176
+export const NODE_HEIGHT = 84
+const GAP_X = 120
+const USER_GAP = 260
+/** The agents the run did not call wait in rows under the flow. */
+const IDLE_TOP = NODE_HEIGHT + 150
+const IDLE_COLUMNS = 6
+const IDLE_GAP_X = 24
+const IDLE_GAP_Y = 24
 
 const tools = (spec: Pick<AgentSpec, 'tools'> | undefined) => Object.keys(spec?.tools ?? {}).map((tool) => toolLabel(tool)).join(' · ')
 
+/** The agents in the order the Orchestrator first spoke to them. */
+export const callOrder = (messages: readonly CollaborationMessage[]): string[] =>
+  [...new Set(messages.map((message) => (message.direction === 'request' ? message.to : message.from)))].filter((id) => id !== ORCHESTRATOR)
+
 /**
- * The whole network on the canvas the way the old flow showed it: the Orchestrator on the left, every agent
- * in a grid on the right — the ones this run spoke with first and bright, the rest dimmed — and one
- * right-angled edge per direction and pair, labelled with what and how many.
+ * The flow as it actually ran: the person → the Orchestrator → the agents it called, left to right in the order
+ * it called them (numbered, with labelled request/answer edges), and under that every other agent of the
+ * network, dimmed, with what it answers — so the whole team is on the canvas and the run's path reads at once.
  */
 export function buildGraph(messages: readonly CollaborationMessage[], selected?: string | null, options: GraphOptions = {}): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const catalog = options.catalog ?? AGENTS.filter((spec) => spec.id !== USER && spec.id !== ORCHESTRATOR)
-  const spoken = [...new Set(messages.flatMap((message) => [message.from, message.to]))].filter((id) => id !== ORCHESTRATOR)
-  const ids = [...spoken, ...catalog.map((spec) => spec.id).filter((id) => !spoken.includes(id))]
-  if (!ids.length && !messages.length) return { nodes: [], edges: [] }
-  const rows = Math.ceil(ids.length / COLUMNS)
-  const gridHeight = rows * NODE_HEIGHT + Math.max(0, rows - 1) * ROW_GAP
+  const called = callOrder(messages)
+  const rest = catalog.map((spec) => spec.id).filter((id) => !called.includes(id))
+  if (!called.length && !rest.length) return { nodes: [], edges: [] }
   const requests = messages.filter((message) => message.direction === 'request').length
+
+  const user: GraphNode = { id: USER, label: agentLabel(USER), sub: '요청을 내고 답을 받습니다', kind: 'user', order: null, selected: selected === USER, idle: false, live: null, position: { x: -USER_GAP, y: 0 }, side: 'left' }
   const hub: GraphNode = {
-    id: ORCHESTRATOR, label: agentLabel(ORCHESTRATOR), hub: true, selected: selected === ORCHESTRATOR, idle: false,
-    live: options.live?.[ORCHESTRATOR] ?? null, sub: `요청 ${requests}건 · 응답 ${messages.length - requests}건`,
-    position: { x: 0, y: Math.max(0, (gridHeight - NODE_HEIGHT) / 2) },
+    id: ORCHESTRATOR, label: agentLabel(ORCHESTRATOR), kind: 'hub', order: null, selected: selected === ORCHESTRATOR, idle: false,
+    live: options.live?.[ORCHESTRATOR] ?? null, sub: `요청 ${requests}건 · 응답 ${messages.length - requests}건`, position: { x: 0, y: 0 }, side: 'right',
   }
-  const nodes: GraphNode[] = [hub, ...ids.map((id, index) => {
+  const spoken: GraphNode[] = called.map((id, index) => {
     const last = [...messages].reverse().find((message) => message.from === id || message.to === id)
-    const idle = !spoken.includes(id)
     return {
-      id, label: agentLabel(id), hub: false, selected: selected === id, idle, live: options.live?.[id] ?? null,
-      sub: last ? describeMessage(last).headline.replace(/^.*? · /, '') : tools(catalog.find((spec) => spec.id === id)),
-      position: {
-        x: NODE_WIDTH + HUB_GAP + (index % COLUMNS) * (NODE_WIDTH + COLUMN_GAP),
-        y: Math.floor(index / COLUMNS) * (NODE_HEIGHT + ROW_GAP),
-      },
+      id, label: agentLabel(id), kind: 'agent', order: index + 1, selected: selected === id, idle: false, live: options.live?.[id] ?? null,
+      sub: last ? describeMessage(last).headline.replace(/^.*? · /, '') : '',
+      position: { x: (index + 1) * (NODE_WIDTH + GAP_X), y: 0 }, side: 'right',
     }
-  })]
+  })
+  const waiting: GraphNode[] = rest.map((id, index) => ({
+    id, label: agentLabel(id), kind: 'agent', order: null, selected: selected === id, idle: true, live: options.live?.[id] ?? null,
+    sub: tools(catalog.find((spec) => spec.id === id)),
+    position: { x: -USER_GAP + (index % IDLE_COLUMNS) * (NODE_WIDTH + IDLE_GAP_X), y: IDLE_TOP + Math.floor(index / IDLE_COLUMNS) * (NODE_HEIGHT + IDLE_GAP_Y) },
+    side: 'bottom',
+  }))
+
+  const edges: GraphEdge[] = [{ id: 'user→orchestrator', source: USER, target: ORCHESTRATOR, kind: 'user', label: '', known: true, count: 0 }]
+  for (let index = 1; index < called.length; index++) {
+    edges.push({ id: `next:${called[index - 1]}→${called[index]}`, source: called[index - 1]!, target: called[index]!, kind: 'next', label: `${index + 1}번째`, known: true, count: 0 })
+  }
   const groups = new Map<string, CollaborationMessage[]>()
   for (const message of messages) {
     const key = `${message.from}→${message.to}`
     groups.set(key, [...(groups.get(key) ?? []), message])
   }
-  const edges: GraphEdge[] = [...groups.entries()].map(([key, rows]) => {
+  for (const [key, rows] of groups) {
     const first = rows[0]!
     const toolsUsed = [...new Set(rows.map((row) => row.tool))]
     const known = rows.every((row) => row.transport === 'a2a')
     const what = first.direction === 'request' ? `${toolsUsed.length === 1 ? `${toolLabel(toolsUsed[0])} ` : ''}요청` : '응답'
-    return {
-      id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length,
-      label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`,
-    }
-  })
-  return { nodes, edges }
+    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}` })
+  }
+  return { nodes: [user, hub, ...spoken, ...waiting], edges }
 }
