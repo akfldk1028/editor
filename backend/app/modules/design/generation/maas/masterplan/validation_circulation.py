@@ -27,6 +27,34 @@ def _hash_geom(geom) -> str:
     return hashlib.sha256(geom.wkb).hexdigest()[:16]
 
 
+def _straight_corridor_width(geometry, frontage):
+    """Measure parallel corridor sides; unsupported topology stays unverified."""
+    if (geometry.geom_type != 'Polygon' or not geometry.is_valid or geometry.interiors
+            or not geometry.equals(geometry.convex_hull)):
+        return None
+    coordinates = list(geometry.simplify(EPS, preserve_topology=True).exterior.coords)[:-1]
+    if len(coordinates) != 4:
+        return None
+    portal = frontage.buffer(EPS)
+    if geometry.boundary.intersection(portal).length <= EPS * 10:
+        return None
+    widths = []
+    for index in (0, 1):
+        a, b = coordinates[index], coordinates[index + 1]
+        c, d = coordinates[(index + 2) % 4], coordinates[(index + 3) % 4]
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        ex, ey = d[0] - c[0], d[1] - c[1]
+        length, opposite = math.hypot(dx, dy), math.hypot(ex, ey)
+        if length <= EPS or opposite <= EPS:
+            continue
+        if (LineString([a, b]).intersection(portal).length > EPS * 10
+                or LineString([c, d]).intersection(portal).length > EPS * 10):
+            continue
+        if abs(dx * ey - dy * ex) / (length * opposite) <= EPS:
+            widths.append(abs(dx * (c[1] - a[1]) - dy * (c[0] - a[0])) / length)
+    return min(widths) if widths else None
+
+
 def validate_circulation_geometry(
     features: List[Dict[str, Any]],
     rules: Dict[str, Any],
@@ -105,20 +133,24 @@ def validate_circulation_geometry(
                 'note': f'Entry corner clearance not specified in options (measured: {min_corner_dist:.2f}m)',
             })
 
-        # Entry Width check
-        bounds = entry.bounds
-        measured_w = min(bounds[2] - bounds[0], bounds[3] - bounds[1])
+        measured_w = _straight_corridor_width(entry, frontage)
+        required_w = rules.get('aisle_width_m')
+        width_status = ('unknown' if measured_w is None or required_w is None else
+                        'passed' if measured_w >= float(required_w) - EPS else 'failed')
         checks.append({
             'id': 'entry_approach_width',
             'check_id': 'entry_approach_width',
-            'status': 'passed' if measured_w >= req_aisle_w - 0.1 else 'failed',
-            'measured': round(measured_w, 2),
-            'required': req_aisle_w,
-            'source': 'parking_act_rules:art6_par1_no5',
+            'status': width_status,
+            'measured': round(measured_w, 2) if measured_w is not None else None,
+            'required': required_w,
+            'source': 'request.rules.aisle_width_m',
+            'check_version': 2,
             'feature_ids': ['surface_entry_connector'],
             'coordinate_frame': 'metric_local_m',
             'geometry_hash': entry_hash,
-            'note': f'Entry corridor width: {measured_w:.2f}m (required >= {req_aisle_w:.2f}m)',
+            'note': ('Distance between parallel sides of a convex straight entry; not a full route or steering check'
+                     if width_status != 'unknown' else
+                     'Entry width needs a supported straight corridor and supplied width rule; bounding box is not evidence'),
         })
     else:
         checks.append({
@@ -215,14 +247,15 @@ def validate_circulation_geometry(
         checks.append({
             'id': 'swept_path_design_vehicle',
             'check_id': 'swept_path_design_vehicle',
-            'status': 'passed',
+            'status': 'unknown',
             'measured': vehicle,
             'required': 'full vehicle envelope simulation',
             'source': 'options.vehicle',
             'feature_ids': [],
             'coordinate_frame': 'metric_local_m',
             'geometry_hash': 'vehicle_spec',
-            'note': 'Design vehicle parameters fully provided',
+            'check_version': 2,
+            'note': 'Vehicle parameters provided, but no trajectory is checked here; use explicit path body-envelope evidence separately',
         })
     else:
         checks.append({
