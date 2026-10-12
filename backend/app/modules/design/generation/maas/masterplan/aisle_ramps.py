@@ -15,6 +15,10 @@ from backend.app.modules.design.generation.maas.masterplan.ramps import curved_r
 def reserve_ramp(row, ramp, road, aisle_width):
     sloping = ramp['polygon'].difference(ramp['upper_landing'])
     drive = unary_union([row['drive'].difference(sloping), ramp['upper_landing']]).buffer(0)
+    # Cutting a ramp can strand empty drive fragments that stall reachability
+    # alone does not inspect. Keep actual geometry connected to the road.
+    reachable = unary_union([p for p in parts(drive.buffer(EPS)) if p.distance(road) <= EPS])
+    drive = drive.intersection(reachable)
     stalls = [s for s in row['stalls']
               if s['polygon'].intersection(ramp['polygon']).area <= EPS
               and drive.buffer(EPS).covers(s['front'])]

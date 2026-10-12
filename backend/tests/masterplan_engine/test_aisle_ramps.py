@@ -26,6 +26,15 @@ def test_ramp_cutting_the_only_road_approach_is_rejected():
     assert reserve_ramp(row(), ramp, LineString([(0, 0), (0, 6)]), 6.) is None
 
 
+def test_ramp_reservation_discards_unreachable_empty_drive_fragments():
+    original = row()
+    original['drive'] = original['drive'].union(box(12, 12, 15, 15))
+    ramp = {'polygon': box(20, 6, 26, 36), 'upper_landing': box(20, 6, 26, 12)}
+    result = reserve_ramp(original, ramp, LineString([(0, 0), (0, 6)]), 6.)
+    assert result is not None
+    assert result['drive'].intersection(box(12, 12, 15, 15)).area == 0
+
+
 def test_rotated_exact_width_road_contact_tolerates_roundoff_only():
     from shapely.affinity import rotate, translate
     from backend.app.modules.design.generation.maas.masterplan.bounded_packing import _width_connected
