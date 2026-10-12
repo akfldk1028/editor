@@ -44,7 +44,7 @@ const MISSING_LABEL: Record<string, string> = {
 /** `kind:value` codes from the backend; unknown codes stay as they are rather than vanish. */
 function describeMissing(code: string): string {
   const [kind, value] = code.split(':', 2)
-  if (kind === 'unresolved_zoning') return `미인식 용도지역: ${value}`
+  if (kind === 'unresolved_zoning') return `용도 구분 미확인: ${value}`
   return MISSING_LABEL[code] ?? code
 }
 

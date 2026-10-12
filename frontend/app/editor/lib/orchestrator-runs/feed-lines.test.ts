@@ -160,11 +160,14 @@ test("a land analysis: the user's 법규 요약 bubble, the Orchestrator asking,
   const line = landAnalysisLine(answer, target)
   expect(line.agent).toBe('law')
   expect(line.tone).toBe('warn')
-  expect(line.text).toContain('법규 요약 (제2종일반주거지역 · 자연녹지지역): 건폐 59.92% · 용적 249.67% · 5층 · 지구단위 정책 gosan-public1-molit-2026-334 · 제한 3건 · 확인 필요: 설계 적용성·허가 검토 미완료, 미인식 용도지역: 공공청사')
+  // The user's words only — no policy id, no tool name; what still needs checking on its own line.
+  expect(line.text).toContain('법규 요약 (제2종일반주거지역 · 자연녹지지역): 건폐율 59.92% · 용적률 249.67% · 최고 5층 · 제한 3건\n확인 필요: 설계 적용성·허가 검토 미완료, 용도 구분 미확인: 공공청사')
+  expect(line.text).not.toContain('gosan-public1')
   expect((line.card as { items: { label: string; value: string }[] }).items[1]).toEqual({ label: '건폐율', value: '59.92%', hint: '의정부시 도시계획 조례 제42조' })
   expect(line.actions?.map((action) => `${action.label}→${action.params?.tab}`)).toEqual(['검토 조항 보기→review', '설계 방향 이야기하기→undefined'])
   const noLimits = landAnalysisLine({ ...answer, limits: null, limits_error: 'LawAgentError: x' }, target)
-  expect(noLimits.text).toContain('상한 미확정 (law_parcel_limits 실패)')
+  expect(noLimits.text).toContain('상한 미확정')
+  expect(noLimits.text).not.toContain('law_parcel_limits')
   expect(noLimits.card).toBeUndefined()
 })
 

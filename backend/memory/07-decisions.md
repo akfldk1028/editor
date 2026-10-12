@@ -477,3 +477,26 @@ be told to the Orchestrator session.
   (`lib/agents/requirement/lib/sheet.ts`: fields in the user's words, n/7 채워짐, "아직 없음" for empty ones,
   structured-brief keys translated) — user: "대화하면서 채워나가야지", "chat gpt claude 처럼 ui ux 가 좋아야지".
   Tests: site_mention 3, conversation 50, frontend 72 (sheet 2, artifacts 4).
+- 2026-10-12 a sentence that names a site moves the map too, by the model's judgment (user: "산곡동 684-1에 어린이집을
+  지으려고 해요 이렇게 해도 지도로 가야 하는 거 아냐?", then "llm이 자동으로 판단해야지 … rules 기반은 옛날 방식"):
+  `routing/site_mention.site_named` asks the local Claude login (JSON schema `SiteMention`: names_site, address as
+  written) whether the message names an address/PNU; `roles/site.find` (the same shapes, searched) only when the
+  model is off or fails. The conversation door locates it (`ask.locate_site`), relays the message to the owner with
+  `context.pnu/address` set to the parcel, and returns the owner's 202 snapshot plus `located`; the frontend accepts
+  the snapshot and fires `onLocated(located, null)` (no bubble — the owner has the message) so the map opens and
+  selects the parcel. Not geocodable → untouched relay. Measured: judge 3.5–4.7 s per message (CLI spawn), catches
+  "테헤란로152" without a space, says no for "의정부 쪽에". Live in Chrome: sentence → Requirement Agent working +
+  map on 684-1 selected + Site Agent line. Also the Requirement Agent's seven `requirements.*` artifacts are one card
+  (`lib/agents/requirement/lib/sheet.ts`: fields in the user's words, n/7 채워짐, "아직 없음" for empty ones,
+  structured-brief keys translated) — user: "대화하면서 채워나가야지", "chat gpt claude 처럼 ui ux 가 좋아야지".
+  Tests: site_mention 3, conversation 50, frontend 72 (sheet 2, artifacts 4).
+- 2026-10-12 Law defect found live (user: "59.92%도 맞아? 60%가 아니고?", "법은 틀리면 안 되는데"): for 684-1 Law weights
+  `zone_areas_m2 {제2종일반주거지역: 2499.69, 자연녹지지역: 4.85}` (sum 2,504.54 > parcel 2,499.69 — the green 4.85 ㎡ is
+  a zoning/cadastral layer overlap, not a split; 10-07 measured 1.2–1.8 m offset) under 국토계획법 84조① and reports
+  59.92 / 249.67 with "national ceiling 59.9225 / 249.7094". Legally 84조① weighting needs a real split; the 획지
+  공공1 has the district plan's 60 / 250 → the right caps are 60% / 250%. The editor does not recompute (user 10-08:
+  numbers come from the agent); the fix is Law's: clip zone areas to the parcel, drop a zone below ~0.5% when
+  another covers the parcel, let a district-plan 획지 cap override zone weighting, and stop calling 과밀억제권역 ·
+  공공주택지구 · 지구단위계획구역 · 가축사육제한구역 · 공공청사 "용도지역" (they are 지구·구역·용지). Editor side today:
+  the law summary line drops the policy id and tool names ("건폐율 59.92% · 용적률 249.67% · 최고 5층 · 제한 12건",
+  확인 필요 on its own line) and `unresolved_zoning:` reads "용도 구분 미확인". Memory: law-zone-sliver-weighting-defect.

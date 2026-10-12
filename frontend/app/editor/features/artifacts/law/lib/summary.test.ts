@@ -31,7 +31,7 @@ test('the assessment badge names the status, the ordinance edition and each miss
   expect(badge.tone).toBe('warn')
   expect(badge.detail[0]).toContain('미검증')
   expect(badge.detail).toContain('의정부시 도시계획 조례 (시행 2025-09-25)')
-  expect(badge.detail).toContain('미인식 용도지역: 공공청사')
+  expect(badge.detail).toContain('용도 구분 미확인: 공공청사')
   expect(badge.detail).toContain('설계 적용성·허가 검토 미완료')
   expect(badge.detail).toHaveLength(5)
   expect(assessmentBadge(undefined)).toEqual({ label: '심사 정보 없음', tone: 'muted', detail: [] })

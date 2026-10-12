@@ -42,7 +42,7 @@ test('agents carry their English network names, tools and step states read in Ko
 test('missing-evidence codes and recommended actions read in Korean', () => {
   expect(evidenceLabel('SITE-ACCESS')).toBe('대지 접근(출입구·접도)')
   expect(evidenceLabel('assessment_date_required')).toBe('기준일 지정')
-  expect(evidenceLabel('unresolved_zoning:자연녹지지역')).toBe('미인식 용도지역: 자연녹지지역')
+  expect(evidenceLabel('unresolved_zoning:자연녹지지역')).toBe('용도 구분 미확인: 자연녹지지역')
   expect(evidenceLabel('law.district_review.0333: Supply an explicit valid assessment date; Law cannot choose'))
     .toBe('기준일을 명시해 주세요 — 법규 에이전트는 날짜·법령 판본을 대신 고르지 않아요')
   expect(evidenceLabel('something_new')).toBe('something_new')

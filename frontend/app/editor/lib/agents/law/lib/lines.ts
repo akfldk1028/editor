@@ -162,13 +162,13 @@ export function landAnalysisLines(label: string, conditions: { buildingType?: st
 export function landAnalysisLine(answer: LandAnalysisAnswer, target: LawTarget): FeedInput {
   const { summary, limits } = answer
   const zones = summary.zones.length ? ` (${summary.zones.join(' · ')})` : ''
+  // The user's words only: the caps, the floors, how many restrictions, what still needs checking. Policy ids and
+  // tool names stay in the law artifact (검토 조항), not in the conversation.
   const caps = limits && limits.bcr_pct !== null && limits.far_pct !== null
-    ? `건폐 ${fmt(limits.bcr_pct, 2)}% · 용적 ${fmt(limits.far_pct, 2)}%${limits.max_floors !== null ? ` · ${limits.max_floors}층` : ''}${limits.policy_id ? ` · 지구단위 정책 ${limits.policy_id}` : ''}`
-    : limits
-      ? '상한 미확정'
-      : `상한 미확정 (law_parcel_limits ${answer.limits_error ? '실패' : '없음'})`
+    ? `건폐율 ${fmt(limits.bcr_pct, 2)}% · 용적률 ${fmt(limits.far_pct, 2)}%${limits.max_floors !== null ? ` · 최고 ${limits.max_floors}층` : ''}`
+    : '상한 미확정'
   const missing = summary.missing_evidence.map(evidenceLabel)
-  const text = `법규 요약${zones}: ${caps} · 제한 ${summary.restrictions.length}건${missing.length ? ` · 확인 필요: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` 외 ${missing.length - 3}` : ''}` : ''}`
+  const text = `법규 요약${zones}: ${caps} · 제한 ${summary.restrictions.length}건${missing.length ? `\n확인 필요: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` 외 ${missing.length - 3}` : ''}` : ''}`
   const tone: FeedTone = limits && limits.bcr_pct !== null && summary.permit_compliance_verified ? 'ok' : 'warn'
   return {
     kind: 'progress',
