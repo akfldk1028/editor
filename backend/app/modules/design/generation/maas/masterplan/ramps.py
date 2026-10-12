@@ -139,6 +139,17 @@ def curved_ramp_candidates(site, frontage, obstacles, rules, height, *, turns=(9
     `curve_min_inner_radius_m` + half the width.  Returns the same candidate shape as
     `ramp_candidates`, with the measured radius carried for the validator to re-check.
     """
+    if limit <= 0:
+        return []
+    turns = tuple(dict.fromkeys(turns))
+    if any(not math.isfinite(t) or not 0 < t < 360 for t in turns):
+        raise ValueError('curve turns must be finite and between 0 and 360 degrees')
+    if len(turns) > 1:
+        # A first-fit cap previously consumed the entire budget with one angle.
+        quota = math.ceil(limit / len(turns))
+        families = [curved_ramp_candidates(site, frontage, obstacles, rules, height,
+                    turns=(turn,), limit=quota, accept=accept) for turn in turns]
+        return [family[i] for i in range(quota) for family in families if i < len(family)][:limit]
     width = rules.get("curved_ramp_width_m") or rules.get("ramp_width_m")
     grade = rules.get("curved_ramp_max_slope") or rules.get("ramp_max_slope")
     inner_min = rules.get("curve_min_inner_radius_m")

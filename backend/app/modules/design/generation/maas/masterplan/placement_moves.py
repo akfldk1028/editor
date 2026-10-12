@@ -14,7 +14,7 @@ SHARES = {'all_basement': 0, 'mostly_basement': .25, 'half': .5,
           'mostly_surface': .6, 'all_surface': 1}
 MOVES = {'building_side': {'keep', 'center', 'N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'},
          'piloti': {'keep', 'piloti'}, 'surface_share': {'keep', *SHARES},
-         'ramp': {'keep', 'any', 'straight', 'curved', 'quarter_turn'}}
+         'ramp': {'keep', 'any', 'straight', 'curved', 'quarter_turn', 'half_turn'}}
 MOVES['pedestrian_route'] = {'keep', 'front_start', 'front_middle', 'front_end'}
 MOVES['circulation'] = {'keep', 'auto', 'comb', 'ring'}
 MOVES['parking_mix'] = {'keep', 'perpendicular', 'parallel_infill'}
@@ -145,9 +145,10 @@ def apply_placement_moves(request, moves, parent_ref=None):
         if cap is None:
             options['max_surface_stalls'] = proposed
     if 'ramp' in applied:
-        options['ramp_shape'] = 'curved' if applied['ramp']=='quarter_turn' else applied['ramp']
-        if applied['ramp']=='quarter_turn':
-            options['ramp_turn_deg']=90.
+        turn = {'quarter_turn': 90., 'half_turn': 180.}.get(applied['ramp'])
+        options['ramp_shape'] = 'curved' if turn is not None else applied['ramp']
+        if turn is not None:
+            options['ramp_turn_deg'] = turn
         else:
             options.pop('ramp_turn_deg',None)
     for key in ('basement_module', 'module_axis'):

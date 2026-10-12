@@ -329,7 +329,9 @@ def validate_plan(request, result):
     status = "failed" if any(c["status"]=="failed" for c in checks) else "passed"
     if status == 'passed' and any(c['status']=='needs_evidence' for c in checks):
         status = 'needs_evidence'
+    from .planning_scores import score_relationships
     return {"schema_version":"masterplan.validation.v1","geometry_status":status,
+            "relationship_scores": score_relationships(features, checks),
             "checks":checks,"pending_reviews":pending,
             "scope":"serialized geometry and design modules; not a permit approval",
             "measured_parking_stalls":count,"measured_accessible_stalls":accessible}

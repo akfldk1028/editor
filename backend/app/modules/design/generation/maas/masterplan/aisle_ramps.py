@@ -70,7 +70,7 @@ def aisle_ramp_candidates(site, rows, obstacles, road, rules, height, *, limit=1
                         (accept_ramp is None or accept_ramp(ramp)) and
                         reserve_ramp(row, ramp, road, float(rules['aisle_width_m'])) is not None)
             for ramp in curved_ramp_candidates(site, edge, ramp_obstacles, rules, height,
-                                               turns=(45., 90.), limit=3, accept=usable):
+                                               turns=(45., 90., 180.), limit=3, accept=usable):
                 proposal = reserve_ramp(row, ramp, road, float(rules['aisle_width_m']))
                 if proposal is not None:
                     proposal['ramp']['shape'] = 'curved'

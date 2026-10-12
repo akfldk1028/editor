@@ -651,3 +651,5 @@ be told to the Orchestrator session.
   use the card name or the same rule); goal labels come from the capabilities catalog; the law tab uses the
   collaboration artifact's exported `CollaborationCard` instead of its lib; the dead side/handle plumbing is gone.
   Left as noted: the shell's 흐름도 button names the collaboration artifact (a manifest flag would be neater).
+
+- 2026-10-12: MasterPlan validate_plan now returns relationship_scores (diagnostic pass fraction plus coverage, no overall score). Curved family budgets retain multiple angles; half_turn requests measured 180-degree centerlines including internal-aisle proposals. Missing trajectory/Programme evidence stays unknown. Tests: test_curve_portfolio_scores plus ramp/placement/validation regressions. No production restart performed.
