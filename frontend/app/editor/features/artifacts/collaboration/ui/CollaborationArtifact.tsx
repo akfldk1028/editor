@@ -3,7 +3,7 @@
 import { RotateCcw } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
-import { traceLabel } from '@/lib/orchestrator-runs/labels'
+import { agentLabel, traceLabel } from '@/lib/orchestrator-runs/labels'
 
 import { ArtifactChrome } from '../../../shell/artifact-host/ArtifactChrome'
 import type { ArtifactProps } from '../../../shell/artifact-types'
@@ -15,6 +15,7 @@ import { type CollaborationMessage, toTranscript } from '../lib/transcript'
 const NO_MESSAGES: readonly CollaborationMessage[] = []
 import { useAgentCatalog } from '../model/useAgentCatalog'
 import { useCollaboration } from '../model/useCollaboration'
+import { useLiveFlow } from '../model/useLiveFlow'
 import { AgentPanel } from './AgentPanel'
 import FlowGraph from './FlowGraph'
 import { RunList } from './RunList'
@@ -26,8 +27,17 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
   const { projects, chosen, setChosen, runs, run, selected: selectedRun, select, load, stale, reload, goals } = useCollaboration(params)
   const [agent, setAgent] = useState<string | null>(null)
   const { entries, live, names } = useAgentCatalog()
-  const transcript = useMemo(() => (run ? toTranscript(run) : null), [run])
-  const status = run && transcript ? runStatusLine(run, transcript.messages, names) : null
+  const flow = useLiveFlow(chosen?.project_id ?? null)
+  // What is on the canvas: the run named by the opener alone, else the run's record followed by the conversation as it happens.
+  const transcript = useMemo(() => {
+    const record = run ? toTranscript(run) : null
+    if (params.run || !flow.messages.length) return record
+    const messages = [...(record?.messages ?? []), ...flow.messages].map((message, index) => ({ ...message, step: index + 1 }))
+    const participants = [...new Set([...(record?.participants ?? []), ...messages.flatMap((message) => [message.from, message.to])])]
+    return { participants, messages, available: record?.available ?? true, truncated: record?.truncated ?? false }
+  }, [run, flow.messages, params.run])
+  const waiting = flow.waitingOn ? `${names[flow.waitingOn] ?? agentLabel(flow.waitingOn)}에게 묻는 중` : null
+  const status = waiting ?? (run && transcript ? runStatusLine(run, transcript.messages, names) : null)
   const { setTitle, setTab } = shell
 
   // `shell.openArtifact('collaboration', {tab})` lands on that tab; each open (new params object) applies it once.
@@ -41,7 +51,7 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
   const effectiveTab = appliedParams === params ? tab : params.tab ?? tab
 
   useEffect(() => {
-    setTitle('협업', run ? `${goalLabel(run.goal, goals)} · ${status ?? ''}` : undefined)
+    setTitle('협업', run ? `${goalLabel(run.goal, goals)} · ${status ?? ''}` : status ?? undefined)
   }, [setTitle, run, status, goals])
 
   return (
@@ -67,11 +77,11 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
           </label>
         )}
         {load.kind === 'error' && <p className="collab-note" data-kind="error" role="alert">{load.text}</p>}
-        {run && status && (
+        {status && (
           <div className="collab-head">
-            <h2>{goalLabel(run.goal, goals)}</h2>
-            <span className="collab-status" data-tone={runTone(run.status)}>{status}</span>
-            <span className="collab-ids">실행 <code title={run.run_id}>{traceLabel(run.run_id)}</code>{stale && ' · 상태 확인 지연'}</span>
+            <h2>{run ? goalLabel(run.goal, goals) : '대화'}</h2>
+            <span className="collab-status" data-tone={waiting ? 'busy' : run ? runTone(run.status) : 'ok'}>{status}</span>
+            {run && <span className="collab-ids">실행 <code title={run.run_id}>{traceLabel(run.run_id)}</code>{stale && ' · 상태 확인 지연'}</span>}
           </div>
         )}
         {effectiveTab === 'runs' && <RunList goals={goals} onSelect={(id) => { select(id); setTab('flow') }} runs={runs} selected={selectedRun} />}

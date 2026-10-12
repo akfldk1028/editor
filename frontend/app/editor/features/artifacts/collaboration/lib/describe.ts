@@ -139,9 +139,9 @@ export function describeMessage(message: CollaborationMessage, names: Readonly<R
   const raw = rawOf(message.text, value)
   if (message.direction === 'request') {
     const lines = isRecord(value) ? requestLines(value) : [message.text.slice(0, PREVIEW_CHARS)]
-    return { headline: `${who} · ${toolLabel(message.tool)} 요청`, lines: lines.slice(0, MAX_LINES), raw, truncated: message.truncated }
+    return { headline: message.tool ? `${who} · ${toolLabel(message.tool)} 요청` : `${who} · 요청`, lines: lines.slice(0, MAX_LINES), raw, truncated: message.truncated }
   }
-  const headline = `${who} · ${toolLabel(message.tool)} · ${stateLabel(message.state)}`
+  const headline = message.tool ? `${who} · ${toolLabel(message.tool)} · ${stateLabel(message.state)}` : `${who} · ${stateLabel(message.state)}`
   if (!isRecord(value)) {
     const salvaged = message.truncated ? salvageLines(message.text) : []
     const lines = salvaged.length ? [...salvaged, '기록이 잘렸어요 — 긴 답은 8,000자까지만 남아요'] : [message.truncated ? `${message.text.slice(0, PREVIEW_CHARS)} … 기록이 잘렸어요` : message.text.slice(0, PREVIEW_CHARS)]

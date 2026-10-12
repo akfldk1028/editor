@@ -36,6 +36,8 @@ export interface GraphEdge {
   /** Every message on this edge was recorded over A2A (always true for user/next edges). */
   known: boolean
   count: number
+  /** The latest message on this edge is still running (the conversation is waiting on it). */
+  running?: boolean
 }
 
 export interface GraphOptions {
@@ -59,7 +61,7 @@ const tools = (entry: CatalogLike | undefined) => Object.values(entry?.tools ?? 
 
 /** The agents in the order the Orchestrator first spoke to them. */
 export const callOrder = (messages: readonly CollaborationMessage[]): string[] =>
-  [...new Set(messages.map((message) => (message.direction === 'request' ? message.to : message.from)))].filter((id) => id !== ORCHESTRATOR)
+  [...new Set(messages.map((message) => (message.direction === 'request' ? message.to : message.from)))].filter((id) => id !== ORCHESTRATOR && id !== USER)
 
 /**
  * The flow as it actually ran: the person → the Orchestrator → the agents it called, left to right in the order
@@ -96,7 +98,7 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
     position: { x: -USER_GAP + (index % IDLE_COLUMNS) * (NODE_WIDTH + IDLE_GAP_X), y: IDLE_TOP + Math.floor(index / IDLE_COLUMNS) * (NODE_HEIGHT + IDLE_GAP_Y) },
   }))
 
-  const edges: GraphEdge[] = [{ id: 'user→orchestrator', source: USER, target: ORCHESTRATOR, kind: 'user', label: '', known: true, count: 0 }]
+  const edges: GraphEdge[] = []
   for (let index = 1; index < called.length; index++) {
     edges.push({ id: `next:${called[index - 1]}→${called[index]}`, source: called[index - 1]!, target: called[index]!, kind: 'next', label: `${index + 1}번째`, known: true, count: 0 })
   }
@@ -110,7 +112,9 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
     const toolsUsed = [...new Set(rows.map((row) => row.tool))]
     const known = rows.every((row) => row.transport === 'a2a')
     const what = first.direction === 'request' ? `${toolsUsed.length === 1 ? `${toolLabel(toolsUsed[0])} ` : ''}요청` : '응답'
-    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}` })
+    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, running: rows[rows.length - 1]!.state === 'running' })
   }
+  // The person's standing line to the hub is drawn only until the person has actually said something on the record.
+  if (!groups.has(`${USER}→${ORCHESTRATOR}`)) edges.unshift({ id: `person:${USER}→${ORCHESTRATOR}`, source: USER, target: ORCHESTRATOR, kind: 'user', label: '', known: true, count: 0 })
   return { nodes: [user, hub, ...spoken, ...waiting], edges }
 }

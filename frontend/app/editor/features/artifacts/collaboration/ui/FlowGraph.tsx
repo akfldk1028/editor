@@ -1,11 +1,11 @@
 'use client'
 
 import '@xyflow/react/dist/style.css'
-import { Background, BackgroundVariant, Controls, type Edge, Handle, MarkerType, type Node, type NodeProps, type NodeTypes, Position, ReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react'
+import { Background, BackgroundVariant, Controls, type Edge, Handle, MarkerType, type Node, type NodeProps, type NodeTypes, Position, ReactFlow, ReactFlowProvider, useNodesState, useReactFlow } from '@xyflow/react'
 import { MessagesSquare } from 'lucide-react'
 import { useEffect, useMemo, useRef } from 'react'
 
-import { markOf, ORCHESTRATOR } from '@/lib/agents'
+import { markOf, ORCHESTRATOR, USER } from '@/lib/agents'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 
 import type { CatalogEntry, LiveState } from '../lib/catalog'
@@ -44,6 +44,16 @@ function AgentNode({ data }: NodeProps<FlowNode>) {
 
 const nodeTypes: NodeTypes = { agent: AgentNode }
 
+/** Refits the view when the cards are laid out again (a new record, a new participant), never on a plain selection. */
+function Refit({ when, compact }: { when: unknown; compact: boolean }) {
+  const { fitView } = useReactFlow()
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void fitView({ padding: compact ? 0.25 : 0.1, duration: 250 }) }, 60)
+    return () => window.clearTimeout(timer)
+  }, [when, compact, fitView])
+  return null
+}
+
 interface Props {
   messages: readonly CollaborationMessage[]
   selected?: string | null
@@ -62,7 +72,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     const spoken = new Set(messages.flatMap((message) => [message.from, message.to]))
     return buildGraph(messages, null, {
       live,
-      ...(compact ? { catalog: [...spoken].filter((id) => id !== ORCHESTRATOR).map((id) => catalog?.find((entry) => entry.id === id) ?? { id }) } : catalog ? { catalog } : {}),
+      ...(compact ? { catalog: [...spoken].filter((id) => id !== ORCHESTRATOR && id !== USER).map((id) => catalog?.find((entry) => entry.id === id) ?? { id }) } : catalog ? { catalog } : {}),
     })
   }, [messages, catalog, live, compact])
 
@@ -86,7 +96,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     return {
       id: edge.id, source: edge.source, target: edge.target, label: edge.label || undefined, type: 'smoothstep', pathOptions: { borderRadius: 10 },
       sourceHandle: back ? 'back' : 'out', targetHandle: back ? 'return' : 'in',
-      animated: spoken, className: `collab-edge-${edge.kind}${edge.known ? '' : ' collab-edge-unknown'}`,
+      animated: spoken, className: `collab-edge-${edge.kind}${edge.known ? '' : ' collab-edge-unknown'}${edge.running ? ' collab-edge-running' : ''}`,
       ...(spoken ? { markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: back ? 'var(--success)' : 'var(--accent)' } } : {}),
     }
   }), [graph])
@@ -123,6 +133,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
         >
           <Background gap={18} size={1} variant={BackgroundVariant.Dots} />
           <Controls position="bottom-left" showInteractive={false} />
+          <Refit compact={compact} when={graph} />
         </ReactFlow>
       </ReactFlowProvider>
       {!compact && <p className="collab-pattern">진행 순서 · {[agentLabel(ORCHESTRATOR), ...order].join(' → ')}</p>}

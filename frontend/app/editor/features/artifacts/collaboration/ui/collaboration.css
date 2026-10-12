@@ -98,3 +98,4 @@
 .collab-pattern { position: absolute; inset-block-end: 8px; inset-inline-end: 12px; margin: 0; padding: 4px 10px; border-radius: 999px; background: var(--panel-raised); border: 1px solid var(--border-soft); color: var(--muted); font-size: var(--fs-1); pointer-events: none; }
 .collab-graph[data-compact="false"] { block-size: 560px; }
 .collab-order { inline-size: 18px; block-size: 18px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 10px; font-weight: 700; flex: none; }
+.collab-graph .react-flow__edge.collab-edge-running .react-flow__edge-path { stroke-width: 2.6px; animation-duration: 0.45s; }

@@ -1,6 +1,7 @@
 import { getConversation, postConversation } from './client'
 import { confirmationFor } from './confirmation'
 import { designConversationContext } from './context'
+import { publishConversation } from './live'
 import type { SiteLocateBody } from '@/lib/orchestrator-runs/types'
 import type { ConversationArtifact, ConversationContext, ConversationSnapshot, ConversationSubmission } from './types'
 
@@ -24,6 +25,8 @@ export class ConversationController {
   private update(patch: Partial<ConversationState>) {
     this.state = { ...this.state, ...patch }
     this.listeners.forEach((listener) => { listener() })
+    // Views that watch the conversation without their own poller (the 협업 flow) read the latest snapshot here.
+    if ('snapshot' in patch) publishConversation(this.projectId, this.conversationId, this.state.snapshot)
   }
   start = () => { this.active = true; void this.refresh() }
   stop = () => { this.active = false; clearTimeout(this.timer); this.readController?.abort() }

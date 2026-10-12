@@ -680,3 +680,14 @@ be told to the Orchestrator session.
   later the Site session redeployed its container and the in-memory store was empty ("더는 보관하지 않아요"). So the
   durable half is the agents': `DatabaseTaskStore` in a2a_common; and the Orchestrator must record the A2A task id
   and context_id per communication (today: its own row id and node key) so the view can `GetTask` directly.
+- 2026-10-12 (night, live flow) the 협업 graph follows the conversation as it happens. The user: "대화를 하다가 법규도
+  연결되고 site도 연결되고 — 흐름도가 항상 바로 반영되어야". Until now the canvas read only finished run records.
+  Now `lib/design-conversation/live.ts` publishes every conversation snapshot the panel's controller polls (no second
+  poller), and `collaboration/lib/live.ts` turns the panel's feed into messages: the person's lines, a relay ("Law
+  Agent에게 묻는 중") as a running request until that agent's line arrives, each agent's feed line as its answer, and
+  the saved conversation's owner replies — merged after the run record in time order (`useLiveFlow`). A running edge
+  pulses, the status reads "Law Agent에게 묻는 중", the canvas refits when cards are laid out again. Proven in Chrome:
+  asking Law from its card put the running edge up at once and, 20 s later, the answer edge, the Law card "성공"
+  and the order "Orchestrator → Site → Revision → Law". The standing person line gives way to recorded person messages
+  (they shared an edge id). Still only what the editor door sees: the Orchestrator conversation engine's own calls
+  to Requirement/DesignIntent appear as their replies, not as request edges, until the door exposes turn calls.
