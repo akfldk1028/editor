@@ -168,7 +168,9 @@ export function landAnalysisLine(answer: LandAnalysisAnswer, target: LawTarget):
     ? `건폐율 ${fmt(limits.bcr_pct, 2)}% · 용적률 ${fmt(limits.far_pct, 2)}%${limits.max_floors !== null ? ` · 최고 ${limits.max_floors}층` : ''}`
     : '상한 미확정'
   const missing = summary.missing_evidence.map(evidenceLabel)
-  const text = `법규 요약${zones}: ${caps} · 제한 ${summary.restrictions.length}건${missing.length ? `\n확인 필요: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` 외 ${missing.length - 3}` : ''}` : ''}`
+  // A hair of another zone excluded from the 제84조 split is said here, next to the caps it would have changed.
+  const split = (limits?.zone_split ?? summary.zone_split)?.notes ?? []
+  const text = `법규 요약${zones}: ${caps} · 제한 ${summary.restrictions.length}건${missing.length ? `\n확인 필요: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` 외 ${missing.length - 3}` : ''}` : ''}${split.length ? `\n${split.join('\n')}` : ''}`
   const tone: FeedTone = limits && limits.bcr_pct !== null && summary.permit_compliance_verified ? 'ok' : 'warn'
   return {
     kind: 'progress',

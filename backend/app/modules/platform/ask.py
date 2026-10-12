@@ -117,6 +117,7 @@ def _summary(analysis: dict) -> dict:
     return {'zones': [z for z in zone.get('zones') or [] if isinstance(z, str)],
             'unmatched_zones': [z for z in zone.get('unmatched') or [] if isinstance(z, str)],
             'zone_areas_m2': {k: v for k, v in (zone.get('zone_areas_m2') or {}).items() if isinstance(k, str) and isinstance(v, (int, float))},
+            'zone_split': zone.get('zone_split') if isinstance(zone.get('zone_split'), dict) else None,
             'restrictions': [r for r in analysis.get('restrictions') or [] if isinstance(r, str)],
             'assessment_status': _str(assessment.get('status')),
             'permit_compliance_verified': assessment.get('permit_compliance_verified') is True,

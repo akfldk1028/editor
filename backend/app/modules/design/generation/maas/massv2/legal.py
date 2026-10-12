@@ -26,6 +26,7 @@ from backend.app.modules.design.generation.services.constraint_bridge import reg
 from backend.app.modules.land.reference import config as land_config
 from backend.app.modules.design.generation.services.site_geometry import fetch_parcel_boundary, geojson_to_polygon, wgs84_to_utm
 from backend.app.modules.design.generation.maas.massv2.parcel_policy import policy_for, default_building_type, registered_buildable, frontage_evidence
+from backend.app.modules.land.reference.services.zone_split import SPLIT_VERSION, exclusive_zone_names
 
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,9 @@ class LegalSite:
     # articles, which ordinance edition, on which assessment date. Kept so a receipt
     # can cite them instead of only the numbers.
     regulation: dict[str, Any] | None = None
+    # How the parcel was divided between its 용도지역 for 제84조 (zone_split.ZoneSplit.to_dict() plus
+    # `removed_zones`): which hair-thin strips were excluded as boundary tolerance and disclosed.
+    zone_split: dict[str, Any] | None = None
 
     def __post_init__(self):
         object.__setattr__(self, 'building_type', default_building_type(self.pnu, self.building_type))
@@ -168,11 +172,40 @@ class LegalSite:
             'exact_building_line_geometry_verified': False,
             'building_line_geometry_registered': frontages is not None,
             'frontage_constraints': frontages,
+            'zone_split': self.zone_split,
             'authoring_frontage': site_open_side_evidence(self),
             "legal_floor_section_count": len(
                 self.floor_field.get("legal_floor_section_areas_m2") or ()
             ),
         }
+
+
+def _read_zoning_cache(path) -> dict | None:
+    """The cached zoning answer for a parcel, only when it was written by the current split rule
+    (`split_version`); an older file is ignored and rewritten, so a rule change reaches every parcel."""
+    import json as _json
+
+    if not path.exists():
+        return None
+    try:
+        payload = _json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(payload, dict) or payload.get("split_version") != SPLIT_VERSION:
+        logger.info("zoning cache %s has split_version %r, recomputing", path.name, (payload or {}).get("split_version") if isinstance(payload, dict) else None)
+        return None
+    return payload
+
+
+def _write_zoning_cache(path, pnu: str, land_info: dict, areas: dict[str, float], split_detail: dict | None) -> None:
+    import json as _json
+
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_json.dumps({"pnu": pnu, "land_info": land_info, "areas": areas, "zone_split": split_detail,
+                                     "split_version": SPLIT_VERSION}, ensure_ascii=False, indent=1), encoding="utf-8")
+    except (OSError, TypeError, ValueError):
+        pass
 
 
 def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_date: str | None = None) -> LegalSite:
@@ -194,15 +227,9 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
     # to 249.67%, and every seat on the board - and every anchor - stopped
     # matching its certificate. A complete answer is kept beside the parcel
     # boundary cache and is the answer from then on; delete the file to refresh.
-    import json as _json
     from backend.app.modules.design.generation.services.site_geometry import PARCEL_BOUNDARY_CACHE_DIR
     zoning_cache = PARCEL_BOUNDARY_CACHE_DIR / f"{pnu}.zoning.json"
-    cached_zoning = None
-    if zoning_cache.exists():
-        try:
-            cached_zoning = _json.loads(zoning_cache.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            cached_zoning = None
+    cached_zoning = _read_zoning_cache(zoning_cache)
     if cached_zoning is not None:
         land_info = cached_zoning["land_info"]
     else:
@@ -213,17 +240,21 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
     # only fetched when there is more than one zone to split between, and a
     # failure to measure is not fatal here - `resolve_limits` answers with
     # `needs_zone_areas` and the site refuses itself below, rather than this
-    # quietly substituting a guess.
+    # quietly substituting a guess. What the measurement excluded (a hair of
+    # another zone at the boundary) travels with the site as `zone_split`.
     areas: dict[str, float] = {}
+    split_detail: dict[str, Any] | None = None
     if cached_zoning is not None:
         areas = {str(k): float(v) for k, v in (cached_zoning.get("areas") or {}).items()}
+        split_detail = cached_zoning.get("zone_split") if isinstance(cached_zoning.get("zone_split"), dict) else None
     elif len(zones) > 1:
         from backend.app.modules.land.reference.services import zone_geometry
 
         try:
-            areas = zone_geometry.parcel_zone_split(
+            split = zone_geometry.parcel_zone_split(
                 geojson_to_polygon(boundary), to_utm=wgs84_to_utm
             )
+            areas, split_detail = dict(split.areas), split.to_dict()
         except zone_geometry.ZoneGeometryUnavailable as error:
             # 국토계획법 제84조 apportions a parcel that straddles zones by the
             # area in each. Without the split there is no lawful way to combine
@@ -238,16 +269,16 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
             ) from error
     if (cached_zoning is None and land_info.get("success") and zones
             and not land_info.get("errors") and (len(zones) == 1 or areas)):
-        try:
-            PARCEL_BOUNDARY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-            zoning_cache.write_text(_json.dumps({"pnu": pnu, "land_info": land_info, "areas": areas},
-                                                ensure_ascii=False, indent=1), encoding="utf-8")
-        except (OSError, TypeError, ValueError):
-            pass
-    limits = zoning_mapper.resolve_limits(zones, areas) if zones else {}
+        _write_zoning_cache(zoning_cache, pnu, land_info, areas, split_detail)
+    # A 용도지역 the split left no ground to (a strip excluded as boundary tolerance) is not a part of
+    # this parcel for 제84조: it leaves the zone list, and the exclusion is disclosed in `zone_split`.
+    kept_zones, removed_zones = exclusive_zone_names(
+        areas if split_detail is not None else None, zones, lambda name: zoning_mapper.lookup(name) is not None)
+    zone_split_payload = {**split_detail, "removed_zones": removed_zones} if split_detail is not None else None
+    limits = zoning_mapper.resolve_limits(kept_zones, areas) if kept_zones else {}
     zone_names = [
         item["zone_name"] if isinstance(item, dict) else str(item)
-        for item in ((limits or {}).get("zones") or zones)
+        for item in ((limits or {}).get("zones") or kept_zones)
     ]
     if not zone_names:
         raise LegalSiteUnavailable(f"{pnu} zoning lookup returned no executable zone")
@@ -323,4 +354,5 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
         building_type=building_type,
         datum=setback_lines.get("datum_result"),
         regulation=regulation,
+        zone_split=zone_split_payload,
     )

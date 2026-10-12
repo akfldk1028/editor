@@ -33,7 +33,8 @@ from typing import Any, Iterable
 
 import httpx
 from shapely.geometry import Polygon, shape
-from shapely.ops import unary_union
+
+from backend.app.modules.land.reference.services.zone_split import ZoneSplit, split_parcel
 
 logger = logging.getLogger(__name__)
 
@@ -158,14 +159,8 @@ class ZoneGeometryUnavailable(RuntimeError):
     """The split could not be measured, so no capacity may be derived from it."""
 
 
-def zone_areas(
-    parcel_wgs84: Polygon,
-    features: Iterable[dict[str, Any]],
-    *,
-    to_utm,
-    minimum_share: float = 0.001,
-) -> dict[str, float]:
-    """Square metres of the parcel lying in each named 용도지역.
+def zone_split(parcel_wgs84: Polygon, features: Iterable[dict[str, Any]], *, to_utm) -> ZoneSplit:
+    """The parcel's exclusive division between the named 용도지역 of `features`, in square metres.
 
     Three things this does that a naive loop does not.
 
@@ -174,19 +169,20 @@ def zone_areas(
     the intersection tells them apart - which is the same distinction
     `getLandUseAttr`'s 접함 makes, arrived at independently.
 
-    It unions per name before measuring. The same 용도지역 comes back as several
-    features, designated in different years; added up they would count the
-    overlap twice and report more zone than there is parcel.
-
     It measures in metres. Areas in degrees are not areas, and they are wrong by
     a different factor at every latitude, which is exactly the kind of error that
     looks plausible on one parcel and is nonsense on the next.
+
+    It hands the pieces to `zone_split.split_parcel`, the one rule for what is a
+    part of the parcel and what is a boundary drawn at a different scale: the
+    same zone back as several features is unioned, zones that overlap each
+    other are resolved to the one covering more of the parcel, a hair-thin strip
+    is folded into the largest zone and disclosed, never counted as a 제84조 part.
     """
 
     parcel = to_utm(parcel_wgs84)
-    total = float(parcel.area)
-    if total <= 0.0:
-        return {}
+    if float(parcel.area) <= 0.0:
+        return split_parcel(parcel, {})
 
     grouped: dict[str, list[Polygon]] = {}
     for feature in features:
@@ -205,22 +201,29 @@ def zone_areas(
         if overlap.is_empty or float(overlap.area) <= 0.0:
             continue
         grouped.setdefault(name, []).append(overlap)
-
-    areas: dict[str, float] = {}
-    for name, parts in grouped.items():
-        merged = parts[0] if len(parts) == 1 else unary_union(parts)
-        area = float(merged.area)
-        # A hair of overlap is a boundary drawn at a different scale, not a part
-        # of the parcel that carries its own building limits.
-        if area / total >= minimum_share:
-            areas[name] = area
-    return areas
+    return split_parcel(parcel, grouped, small_part_m2=small_part_threshold_m2())
 
 
-def parcel_zone_split(parcel_wgs84: Polygon, *, to_utm, timeout: float = 20.0) -> dict[str, float]:
-    """The one call a caller needs: parcel in, 용도지역 areas in m2 out."""
+def small_part_threshold_m2() -> float | None:
+    """시행령 제94조's small-part size from the overlap rules (the split never folds a part larger than it)."""
+    try:
+        from backend.app.modules.land.reference.services.zoning_mapper import _load_overlap
+        value = (_load_overlap().get("small_part_threshold") or {}).get("default_m2")
+        return float(value) if value is not None else None
+    except Exception:
+        return None
 
-    return zone_areas(
+
+def zone_areas(parcel_wgs84: Polygon, features: Iterable[dict[str, Any]], *, to_utm) -> dict[str, float]:
+    """Square metres of the parcel lying in each named 용도지역 (`zone_split(...).areas`)."""
+
+    return zone_split(parcel_wgs84, features, to_utm=to_utm).areas
+
+
+def parcel_zone_split(parcel_wgs84: Polygon, *, to_utm, timeout: float = 20.0) -> ZoneSplit:
+    """The one call a caller needs: parcel in, the 용도지역 split (areas, exclusions, uncovered ground) out."""
+
+    return zone_split(
         parcel_wgs84, fetch_zone_features(parcel_wgs84, timeout=timeout), to_utm=to_utm
     )
 
@@ -228,7 +231,10 @@ def parcel_zone_split(parcel_wgs84: Polygon, *, to_utm, timeout: float = 20.0) -
 __all__ = [
     "VWORLD_ZONE_LAYER",
     "ZoneGeometryUnavailable",
+    "ZoneSplit",
     "fetch_zone_features",
     "parcel_zone_split",
+    "small_part_threshold_m2",
     "zone_areas",
+    "zone_split",
 ]

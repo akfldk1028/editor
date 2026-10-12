@@ -227,6 +227,9 @@ def parcel_limits(request):
     out["ordinance"] = ordinance_receipt(site.regulation)
     if site.regulation:
         out["zones"] = site.regulation.get("matched_zones")
+    # How the parcel was divided between its 용도지역 and what was excluded as boundary tolerance (disclosed, see
+    # land/reference/services/zone_split.py); None when the parcel is in one zone.
+    out["zone_split"] = getattr(site, "zone_split", None)
     return JsonResponse(out, json_dumps_params={"default": str, "ensure_ascii": False})
 
 

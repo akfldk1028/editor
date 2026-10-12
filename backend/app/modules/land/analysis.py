@@ -5,6 +5,7 @@ from time import perf_counter
 from starlette.concurrency import run_in_threadpool
 
 from backend.app.modules.regulations import calculator, extended, overlays, zoning_limits
+from backend.app.modules.land.reference.services.zone_split import exclusive_zone_names
 from .analysis_request import normalize_program_request
 from .analysis_response import build_restrictions, format_regulations
 from .pnu import parse_pnu
@@ -19,7 +20,7 @@ def analyze_zones(body, repository=None):
     return save_result(body, result, started, repository)
 
 
-def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, proposals=None):
+def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, proposals=None, zone_split=None):
     program = normalize_program_request(body)
     jurisdiction = pnu_info['sido'] + pnu_info['sigungu'] if pnu_info else ''
     extractor = (lambda zones, kind: proposals.get(kind)) if proposals else None
@@ -39,11 +40,16 @@ def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, propo
     zone_info['far_limit'] = reg.get('far_pct', zone_info.get('far_limit'))
     if zone_areas:
         zone_info['zone_areas_m2'] = {key: round(float(value), 2) for key, value in zone_areas.items()}
+    if zone_split:
+        zone_info['zone_split'] = zone_split
+    restrictions = build_restrictions(reg, names, reg_ext, overlays=overlay,
+        overlay_all_matched=overlays.get_all_matched_zones(names))
+    # What the split excluded is said where the restrictions are read, not hidden in a sub-dict.
+    restrictions.extend(note for note in (zone_split or {}).get('notes') or [] if isinstance(note, str))
     result = {
         'pnu': pnu_info, 'regulations': format_regulations(reg, reg_ext=reg_ext),
         'zone_info': zone_info, 'land_info': land_info, 'law_articles': None,
-        'restrictions': build_restrictions(reg, names, reg_ext, overlays=overlay,
-            overlay_all_matched=overlays.get_all_matched_zones(names)),
+        'restrictions': restrictions,
         'overlay_regulations': overlay or [], 'setback_lines': None, 'program': program,
         'assessment': {'status': 'needs_evidence', 'permit_compliance_verified': False,
             'scope': 'regulation_lookup_and_partial_calculation',
@@ -101,14 +107,19 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
             'warning': 'No zoning zones provided or resolved'}
     else:
         queries = GeometryQueries(geometry_provider, repository)
-        zone_areas = None
+        zone_areas = split_info = None
         if geometry and sum(zoning_limits.lookup(name) is not None for name in names) > 1:
-            zone_areas, split_errors = await queries.split(geometry)
+            split, split_errors = await queries.split(geometry)
             errors.extend(split_errors)
+            if split is not None:
+                # A 용도지역 the split left no ground to (a boundary strip) is not a part of the parcel for 제84조.
+                zone_areas = dict(split.areas)
+                names, removed = exclusive_zone_names(zone_areas, names, lambda name: zoning_limits.lookup(name) is not None)
+                split_info = {**split.to_dict(), 'removed_zones': removed}
         law, advisory = await collect_evidence(names, include_law=body.get('include_law', True),
             law_client=law_client, extraction_client=extraction_client)
         result, reg = await run_in_threadpool(calculate, body, names, pnu_info, land_info, zone_areas,
-            advisory['proposals'] if advisory else None)
+            advisory['proposals'] if advisory else None, split_info)
         result['law_articles'] = law
         if law:
             errors.extend(law['errors'])

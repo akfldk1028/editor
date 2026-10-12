@@ -186,7 +186,7 @@ def test_analyze_land_asks_both_law_tools_and_answers_the_analysis_with_its_limi
     assert (limits['bcr_pct'], limits['far_pct'], limits['max_floors'], limits['policy_id']) == (59.92, 249.67, 5, 'gosan-public1-molit-2026-334')
     assert limits['articles']['bcr'] == '의정부시 도시계획 조례 제42조' and limits['ordinance']['edition_id'] == '2072835'
     assert answer['summary'] == {'zones': ['제2종일반주거지역', '자연녹지지역'], 'unmatched_zones': ['과밀억제권역', '공공청사'],
-                                 'zone_areas_m2': {'자연녹지지역': 4.85, '제2종일반주거지역': 2499.69},
+                                 'zone_areas_m2': {'자연녹지지역': 4.85, '제2종일반주거지역': 2499.69}, 'zone_split': None,
                                  'restrictions': LAND['raw']['restrictions'], 'assessment_status': 'needs_evidence', 'permit_compliance_verified': False,
                                  'missing_evidence': ['complete_design_applicability_and_permit_checks', 'unresolved_zoning:공공청사']}
     assert [(row['name'], row['status']) for row in recorder.rows] == [('invoke_agent law', 'ok'), ('invoke_agent law', 'ok')]

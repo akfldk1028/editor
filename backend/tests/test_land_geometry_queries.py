@@ -24,7 +24,7 @@ class Provider:
 def test_zone_cache_fallback_is_visible_and_only_used_for_transport_outage(tmp_path):
     repo = LandRepository(tmp_path)
     first, errors = asyncio.run(GeometryQueries(Provider(),repo).split(PARCEL))
-    assert first['제2종일반주거지역'] > 0
+    assert first.areas['제2종일반주거지역'] > 0
     assert errors == []
     cached, errors = asyncio.run(GeometryQueries(Provider(True),LandRepository(tmp_path)).split(PARCEL))
     assert cached == first
@@ -46,5 +46,5 @@ def test_broken_cache_cannot_destroy_live_geometry():
         def put_zone_cache(self,*args):
             raise OSError('private path')
     value, errors = asyncio.run(GeometryQueries(Provider(),Broken()).split(PARCEL))
-    assert value['제2종일반주거지역'] > 0
+    assert value.areas['제2종일반주거지역'] > 0
     assert errors == []

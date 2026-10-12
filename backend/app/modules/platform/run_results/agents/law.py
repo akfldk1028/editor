@@ -52,7 +52,9 @@ def parse(row, response, rationale, notes):
                          'legal_floor_section_count': _int(evidence.get('legal_floor_section_count'))},
             'sources': [{'title': _str(_dict(s).get('title')), 'date': _str(_dict(s).get('date'))}
                         for s in policy.get('sources') or [] if isinstance(s, dict)],
-            'findings': findings, 'truncated': row.get('truncated') is True}
+            'findings': findings, 'truncated': row.get('truncated') is True,
+            # The 용도지역 split behind the caps: excluded boundary strips, disclosed (null for a single zone).
+            'zone_split': _dict(response.get('zone_split')) or None}
 
 
 def law_from_response(payload, *, truncated=False):

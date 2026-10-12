@@ -6,7 +6,7 @@ from shapely.errors import GEOSException
 from starlette.concurrency import run_in_threadpool
 from backend.app.modules.land.vworld.geometry import GeometryProviderUnavailable
 from .projection import geojson_to_polygon
-from .zone_geometry import zone_areas
+from .zone_geometry import zone_split
 from .frontage import neighbor_roads, neighbor_parcels
 
 
@@ -39,7 +39,7 @@ class GeometryQueries:
                         await run_in_threadpool(self.repository.put_zone_cache, key, features)
                     except (OSError, ValueError, sqlite3.Error):
                         pass
-            return await run_in_threadpool(zone_areas, parcel, features), errors
+            return await run_in_threadpool(zone_split, parcel, features), errors
         except (GeometryProviderUnavailable, ValueError, TypeError, KeyError, AttributeError, GEOSException):
             return None, ['Zone area split unavailable']
 

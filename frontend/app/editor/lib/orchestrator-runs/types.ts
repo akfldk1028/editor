@@ -126,6 +126,8 @@ export interface RunLaw {
   sources: { title: string | null; date: string | null }[]
   findings: { finding: string | null; recommended_action: string | null; missing_evidence: string[]; assessment_date: string | null }[]
   truncated: boolean
+  /** The 용도지역 split behind the caps; null for a single zone or when Law sent none. */
+  zone_split?: ZoneSplit | null
 }
 
 export interface ReviewAction {
@@ -236,10 +238,20 @@ export interface AskAnswer {
 }
 
 /** What the conversation says about a Law Agent land analysis (`POST /platform/law-analysis`); the artifact shows the rest. */
+/** How the parcel was divided between its 용도지역 for 제84조 and what was excluded as boundary tolerance (disclosed). */
+export interface ZoneSplit {
+  areas_m2: Record<string, number>
+  excluded_slivers: { zone: string; area_m2: number; width_m: number; share: number; reason: string; folded_into: string }[]
+  uncovered_m2: number
+  notes: string[]
+  removed_zones?: string[]
+}
+
 export interface LandAnalysisSummary {
   zones: string[]
   unmatched_zones: string[]
   zone_areas_m2: Record<string, number>
+  zone_split?: ZoneSplit | null
   restrictions: string[]
   assessment_status: string | null
   permit_compliance_verified: boolean

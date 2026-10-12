@@ -487,3 +487,26 @@ be told to the Orchestrator session.
   공공주택지구 · 지구단위계획구역 · 가축사육제한구역 · 공공청사 "용도지역" (they are 지구·구역·용지). Editor side today:
   the law summary line drops the policy id and tool names ("건폐율 59.92% · 용적률 249.67% · 최고 5층 · 제한 12건",
   확인 필요 on its own line) and `unresolved_zoning:` reads "용도 구분 미확인". Memory: law-zone-sliver-weighting-defect.
+- 2026-10-12 zone split fixed in the editor (plan `agile-doodling-emerson`, user: "모든 대지가 잘되게, 모듈화, 메모리"; the
+  Law Agent never looked at the land — its `law_parcel_limits` calls the editor's ARR land pipeline, so the defect
+  was ours): one pure module `land/reference/services/zone_split.py` (`split_parcel`: per-zone union → exclusive
+  partition largest-first, overlaps between zones go to the zone covering more of the parcel → a remaining part
+  under 1 % of the parcel, narrower than 1 m and no larger than the 시행령 94조 small part (330 ㎡, read from the
+  rules JSON) is boundary tolerance folded into the largest zone; uncovered ground reported, never redistributed;
+  every exclusion disclosed in Korean) used by both `zone_geometry` copies (`zone_split(...)`, `zone_areas` =
+  `.areas`, `parcel_zone_split` → ZoneSplit). `massv2/legal.load_legal_site` drops a 용도지역 the split left no
+  ground to (`exclusive_zone_names`), caches `{pnu}.zoning.json` with `split_version` (old caches ignored and
+  rewritten), carries `LegalSite.zone_split`; `/law/agent/parcel-limits` returns `zone_split`; land analysis puts
+  it in `zone_info.zone_split` and appends the notes to `restrictions`; `run_results` law parser and the
+  conversation's law summary line show the note. Thresholds are module constants with their basis (the rules JSON
+  is sha-pinned by tests). Before/after over the 11 cached parcels (cached LT_C_UQ111 features): 684-1 59.9225 /
+  249.7094 (84조① on a 4.85 ㎡, 0.089 m strip) → 60 / 250 single zone; 684-3 79.94 / 1298.7 → 80 / 1300 (2.31 ㎡,
+  0.051 m); Seoul 1168010600105090002 and 1168010100106770000 caps unchanged, sums now equal the parcel (0.22 ㎡
+  and 0.07+0.04 ㎡ folded); the other 7 identical; Σareas + uncovered − parcel = 0 everywhere. Live after restart:
+  parcel-limits 684-1 → bcr 60, far 250, zones [제2종일반주거지역], zone_split.excluded_slivers = 자연녹지지역
+  0.089 m, both caches rewritten. Tests: zone_split 11 (synthetic boxes: overlap sliver, genuine split, mutual
+  overlap, uncovered gap, thin strip, green minor part + 84조①/③ branches, >330 ㎡ strip kept, zero-area pieces,
+  tiny parcel, name filter, JSON, both copies agree through the projection), cache 1, parity fixture unchanged;
+  backend subset 120. Left as debt: `massv2/parcel_policy._POLICIES` hard-codes 684-1's district caps by PNU; the
+  zone facts (official list + measured split + district 획지 caps) belong to the Site Agent and should move there
+  with this module.

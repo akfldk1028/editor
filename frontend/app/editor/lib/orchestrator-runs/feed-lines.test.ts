@@ -163,6 +163,10 @@ test("a land analysis: the user's 법규 요약 bubble, the Orchestrator asking,
   // The user's words only — no policy id, no tool name; what still needs checking on its own line.
   expect(line.text).toContain('법규 요약 (제2종일반주거지역 · 자연녹지지역): 건폐율 59.92% · 용적률 249.67% · 최고 5층 · 제한 3건\n확인 필요: 설계 적용성·허가 검토 미완료, 용도 구분 미확인: 공공청사')
   expect(line.text).not.toContain('gosan-public1')
+  // A hair of another zone the split excluded is disclosed next to the caps, in the words the backend wrote.
+  const note = '자연녹지지역: 토지이용계획 속성에는 표시되나 측정 폭 0.09 m, 4.85㎡(0.19%)의 용도지역 폴리곤끼리 겹친 부분으로 제84조 분할에서 제외, 제2종일반주거지역에 귀속'
+  const disclosed = landAnalysisLine({ ...answer, limits: { ...answer.limits!, zone_split: { areas_m2: { 제2종일반주거지역: 2499.69 }, excluded_slivers: [{ zone: '자연녹지지역', area_m2: 4.85, width_m: 0.089, share: 0.00194, reason: 'zone_overlap', folded_into: '제2종일반주거지역' }], uncovered_m2: 0, notes: [note], removed_zones: ['자연녹지지역'] } } }, target)
+  expect(disclosed.text).toContain(`\n${note}\n\n이 대지에`)
   expect((line.card as { items: { label: string; value: string }[] }).items[1]).toEqual({ label: '건폐율', value: '59.92%', hint: '의정부시 도시계획 조례 제42조' })
   expect(line.actions?.map((action) => `${action.label}→${action.params?.tab}`)).toEqual(['검토 조항 보기→review', '설계 방향 이야기하기→undefined'])
   const noLimits = landAnalysisLine({ ...answer, limits: null, limits_error: 'LawAgentError: x' }, target)
