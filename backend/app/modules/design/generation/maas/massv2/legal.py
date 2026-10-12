@@ -191,8 +191,10 @@ def _read_zoning_cache(path) -> dict | None:
         payload = _json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    if not isinstance(payload, dict) or payload.get("split_version") != SPLIT_VERSION:
-        logger.info("zoning cache %s has split_version %r, recomputing", path.name, (payload or {}).get("split_version") if isinstance(payload, dict) else None)
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("split_version") != SPLIT_VERSION:
+        logger.info("zoning cache %s has split_version %r, recomputing", path.name, payload.get("split_version"))
         return None
     return payload
 
@@ -247,7 +249,8 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
     if cached_zoning is not None:
         areas = {str(k): float(v) for k, v in (cached_zoning.get("areas") or {}).items()}
         split_detail = cached_zoning.get("zone_split") if isinstance(cached_zoning.get("zone_split"), dict) else None
-    elif len(zones) > 1:
+    elif sum(zoning_mapper.lookup(zone) is not None for zone in zones) > 1:
+        # Only a parcel across two 용도지역 needs the split; 지구·구역 names in the list are not zones.
         from backend.app.modules.land.reference.services import zone_geometry
 
         try:
@@ -273,7 +276,8 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
     # A 용도지역 the split left no ground to (a strip excluded as boundary tolerance) is not a part of
     # this parcel for 제84조: it leaves the zone list, and the exclusion is disclosed in `zone_split`.
     kept_zones, removed_zones = exclusive_zone_names(
-        areas if split_detail is not None else None, zones, lambda name: zoning_mapper.lookup(name) is not None)
+        areas if split_detail is not None else None, zones, lambda name: zoning_mapper.lookup(name) is not None,
+        uncovered_m2=float((split_detail or {}).get("uncovered_m2") or 0.0), parcel_area_m2=(split_detail or {}).get("parcel_area_m2"))
     zone_split_payload = with_removed(split_detail, removed_zones) if split_detail is not None else None
     limits = zoning_mapper.resolve_limits(kept_zones, areas) if kept_zones else {}
     zone_names = [

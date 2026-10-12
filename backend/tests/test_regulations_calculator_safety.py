@@ -164,10 +164,16 @@ class CalculatorSafetyTests(SimpleTestCase):
         self.assertIsNone(result['national_bcr_ceiling_pct'])
 
     def test_unknown_zone_cannot_be_silently_discarded(self):
-        result = calc.calculate_all(['일반상업지역', '미확인용도지역'],
+        # An unknown 용도지역 (a 국토계획법 제36조 family name the catalog lacks) withholds the caps.
+        result = calc.calculate_all(['일반상업지역', '미확인주거지역'],
                                     sigungu_code='11680', use_llm_extraction=False)
         self.assertIsNone(result['bcr_pct'])
-        self.assertIn('unresolved_zoning:미확인용도지역', result['municipal_coverage']['missing_evidence'])
+        self.assertIn('unresolved_zoning:미확인주거지역', result['municipal_coverage']['missing_evidence'])
+        # A designation outside those families is reported, never silently dropped, and the caps stand.
+        other = calc.calculate_all(['일반상업지역', '엉뚱한보존지역'],
+                                   sigungu_code='11680', use_llm_extraction=False)
+        self.assertIsNotNone(other['bcr_pct'])
+        self.assertIn('unlisted_designation:엉뚱한보존지역', other['municipal_coverage']['missing_evidence'])
 
     def test_recognized_overlay_is_not_unresolved_zoning(self):
         result = calc.calculate_all(['일반상업지역', '지구단위계획구역'],

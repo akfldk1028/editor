@@ -38,8 +38,11 @@ from shapely.validation import make_valid
 
 SPLIT_VERSION = 'zone_split.v1'            # stored with cached splits; bump on any change of rule
 METHOD = 'exclusive_partition+boundary_tolerance'
-BOUNDARY_TOLERANCE_MAX_SHARE = 0.01        # a part under 1 % of the parcel ...
-BOUNDARY_TOLERANCE_MAX_WIDTH_M = 1.0       # ... and narrower than one map line (see module docstring)
+# A part narrower than one map line, under this share of the parcel and no larger than the 시행령 제94조 small part
+# is boundary tolerance (see the module docstring). The share is loose on purpose: a 0.09 m strip is 0.2 % of a
+# 2,500 m² parcel but 1.4 % of a 200 m² one, and it is the width, not the share, that says it is a drawn line.
+BOUNDARY_TOLERANCE_MAX_SHARE = 0.05
+BOUNDARY_TOLERANCE_MAX_WIDTH_M = 1.0
 AREA_EPSILON_M2 = 1e-6                     # below this a geometry has no area (shared edges, collapsed rings)
 TOLERANCE_BASIS = ('1:5,000 지형도면(국토계획법 제32조) 선 굵기 0.1~0.2 mm = 지상 0.5~1.0 m; 용도지역 레이어와 지적 경계의 '
                    '실측 오프셋 1.2~1.8 m; 시행령 제94조의 분할 부분(330/660㎡)은 수십 m 폭')
@@ -77,7 +80,8 @@ class ZoneSplit:
     @property
     def zones(self) -> list[str]:
         """Zone names that keep ground, largest first."""
-        return [name for name, _ in sorted(self.areas.items(), key=lambda item: (-item[1], item[0])) if _ > AREA_EPSILON_M2]
+        ordered = sorted(self.areas.items(), key=lambda item: (-item[1], item[0]))
+        return [name for name, area in ordered if area > AREA_EPSILON_M2]
 
     def notes(self) -> list[str]:
         lines = [sliver.note() for sliver in self.excluded_slivers]
@@ -146,8 +150,9 @@ def split_parcel(parcel_utm: Polygon, pieces_by_zone: Mapping[str, Sequence[Base
         piece = merged[name]
         overlap = polygonal(piece.intersection(covered)) if not covered.is_empty else Polygon()
         if float(overlap.area) > AREA_EPSILON_M2:
-            owner = max((earlier for earlier in exclusive if merged[earlier].intersects(overlap)),
-                        key=lambda earlier: float(merged[earlier].intersection(overlap).area), default=order[0])
+            # The owner is the earlier zone that actually holds that ground (its exclusive part), not merely whose polygon touches it.
+            owner = max((earlier for earlier in exclusive if exclusive[earlier].intersects(overlap)),
+                        key=lambda earlier: float(exclusive[earlier].intersection(overlap).area), default=order[0])
             slivers.append(ExcludedSliver(zone=name, area_m2=float(overlap.area), width_m=_width(overlap),
                                           share=float(overlap.area) / parcel_area, reason=ZONE_OVERLAP, folded_into=owner))
         part = polygonal(piece.difference(covered)) if not covered.is_empty else piece
@@ -174,12 +179,18 @@ def split_parcel(parcel_utm: Polygon, pieces_by_zone: Mapping[str, Sequence[Base
     return ZoneSplit(parcel_area_m2=parcel_area, areas=areas, excluded_slivers=tuple(slivers), uncovered_m2=uncovered)
 
 
-def exclusive_zone_names(areas: Mapping[str, float] | None, names: Iterable[str],
-                         is_use_zone: Callable[[str], bool]) -> tuple[list[str], list[str]]:
+def exclusive_zone_names(areas: Mapping[str, float] | None, names: Iterable[str], is_use_zone: Callable[[str], bool], *,
+                         uncovered_m2: float = 0.0, parcel_area_m2: float | None = None) -> tuple[list[str], list[str]]:
     """(kept, removed): a 용도지역 name (`is_use_zone`) with no ground left in `areas` is removed; 지구·구역 and
-    unknown names pass through. With no split (`areas` None) nothing is removed."""
+    unknown names pass through. Nothing is removed when there was no split (`areas` None), when the split measured
+    nothing at all, or when ground is left uncovered (`uncovered_m2` beyond tolerance): a zone the layer names
+    differently from the 토지이용계획 would then be missing from `areas` while its ground shows as uncovered, and
+    dropping it would be wrong."""
     names = list(names)
-    if areas is None:
+    if not areas:
+        return names, []
+    tolerance = max(AREA_EPSILON_M2, BOUNDARY_TOLERANCE_MAX_SHARE * float(parcel_area_m2 or 0.0))
+    if uncovered_m2 > tolerance:
         return names, []
     kept, removed = [], []
     for name in names:

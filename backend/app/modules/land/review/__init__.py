@@ -106,12 +106,11 @@ def build(analysis: dict, *, assessment_date: str | None = None) -> dict:
             height.get('rule') or '가로구역 높이 지정 고시 확인 필요', value=f"{height['limit_m']} m" if height.get('limit_m') else None))
     sun = reg.get('sunlight_setback') or {}
     if sun:
-        exempt = sun.get('exemption_areas') or []
+        exemption = sun.get('exemption_note')
         items.append(_item('sunlight', 'height_sunlight', '일조 등의 확보를 위한 높이 제한', sun.get('article'),
-            (f"{zone_text}(전용·일반주거지역)이라 정북방향 인접대지 경계에서 높이별로 띄워야 해요"
-             + (f" — 다만 {'·'.join(exempt)} 안 대지가 너비 20m 이상 도로에 접하면 적용되지 않아요(시행령 §86① 단서), 접도 폭을 확인해야 해요" if exempt else ''))
+            (f"{zone_text}(전용·일반주거지역)이라 정북방향 인접대지 경계에서 높이별로 띄워야 해요" + (f" — 다만 {exemption}" if exemption else ''))
             if sun.get('applies') else '해당 용도지역이면 정북방향 이격이 적용돼요',
-            ('conditional' if exempt else 'applies') if sun.get('applies') else 'needs_check',
+            ('conditional' if exemption else 'applies') if sun.get('applies') else 'needs_check',
             '; '.join(f"{r.get('condition')}: {r.get('setback_m', r.get('formula'))}" for r in sun.get('rules') or [])))
     day = ext.get('daylighting_spacing') or {}
     if day:
@@ -120,8 +119,10 @@ def build(analysis: dict, *, assessment_date: str | None = None) -> dict:
 
     road = ext.get('site_road_requirement') or {}
     if road:
+        exempt = road.get('exempt_similar_buildings_below_m2')
         items.append(_item('road-frontage', 'road_setback', road.get('name') or '대지와 도로의 관계', road.get('article'),
-            '모든 건축물의 대지는 정해진 폭 이상 도로에 접해야 해요 — 6m 도로가 필요한 규모는 조례가 정할 수 있어요', 'conditional', road.get('rule') or ''))
+            '모든 건축물의 대지는 정해진 폭 이상 도로에 접해야 해요' + (f" — 축사·작물재배사 등은 연면적 {exempt:,.0f}㎡ 미만이면 6m 접도에서 제외돼요({road.get('exemption_article')})" if exempt else ''),
+            'applies', road.get('rule') or ''))
     corner = reg.get('corner_cutoff') or {}
     if corner:
         items.append(_item('corner', 'road_setback', '도로 모퉁이의 건축선(가각전제)', corner.get('article'),

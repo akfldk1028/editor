@@ -39,7 +39,10 @@ def test_quotes_are_verified_against_the_text_and_everything_else_is_dropped():
     reading = module.OrdinanceReading.model_validate(ANSWER)
     kept, dropped = module.verify_quotes(reading, ARTICLES)
     assert [item.key for item in kept] == ['site_subdivision_limit', 'site_road_requirement']
-    assert dropped == ['landscaping: 인용문이 조례 원문에 없음', 'public_open_space: 인용 조문 제44조이 원문에 없음', 'invented_rule: 질문 목록에 없는 항목']
+    assert dropped == ['landscaping: 인용문이 제29조 원문에 없음', 'public_open_space: 인용 조문 제44조이 원문에 없음', 'invented_rule: 질문 목록에 없는 항목']
+    # A quote attributed to the wrong article is dropped even though the sentence exists elsewhere in the text.
+    misattributed = module.OrdinanceReading.model_validate({'reason': 'x', 'items': [{'key': 'site_road_requirement', 'value': 3000, 'article': '제41조', 'quote': '연면적 3,000 제곱미터 미만으로 한다'}]})
+    assert module.verify_quotes(misattributed, ARTICLES) == ([], ['site_road_requirement: 인용문이 제41조 원문에 없음'])
 
 
 def test_pick_ordinance_takes_the_innermost_building_ordinance():
@@ -66,14 +69,21 @@ def test_the_model_reads_the_whole_ordinance_once_per_day_and_the_figures_reach_
     ext = {'site_subdivision_limit': {'name': '대지 분할 제한', 'min_area_m2': 60, 'article': '건축법 §57, 시행령 §80'},
            'site_road_requirement': {'name': '접도의무', 'min_frontage_m': 2, 'rule': '2m', 'article': '건축법 §44'},
            'landscaping_x': {}}
-    applied = module.apply_to_extended(ext, reading, ['제2종일반주거지역', '지구단위계획구역'])
+    applied = module.apply_to_extended(ext, reading, ['지구단위계획구역', '제2종일반주거지역'])
     assert applied['site_subdivision_limit']['min_area_m2'] == 60 and applied['site_subdivision_limit']['zone_category'] == '주거지역'
     assert applied['site_subdivision_limit']['article'] == '어느시 건축 조례 제41조' and applied['site_subdivision_limit']['basis'] == 'ordinance'
-    assert applied['site_road_requirement']['road_rule_size_m2'] == 3000 and '3,000' in applied['site_road_requirement']['rule']
+    # 시행령 §28②: the ordinance figure is the size of 축사·작물재배사-type buildings exempt from the 6 m road, not the 2,000 m² rule.
+    assert applied['site_road_requirement']['exempt_similar_buildings_below_m2'] == 3000 and applied['site_road_requirement']['rule'] == '2m'
+    assert applied['site_road_requirement']['exemption_article'] == '어느시 건축 조례 제31조'
     green = module.apply_to_extended({'site_subdivision_limit': {'min_area_m2': 60}}, reading, ['자연녹지지역'])
     assert green['site_subdivision_limit']['min_area_m2'] == 200
+    # Two zones left after the split: the one with more ground governs the category, whatever the list order.
+    two = module.apply_to_extended({'site_subdivision_limit': {'min_area_m2': 60}}, reading, ['자연녹지지역', '일반상업지역'], {'자연녹지지역': 100.0, '일반상업지역': 900.0})
+    assert two['site_subdivision_limit']['min_area_m2'] == 150 and two['site_subdivision_limit']['zone_category'] == '상업지역'
     other = module.apply_to_extended({'site_subdivision_limit': {'min_area_m2': 60}}, reading, ['계획관리지역'])
     assert other['site_subdivision_limit']['min_area_m2'] == 60 and other['site_subdivision_limit']['zone_category'] == '그 밖의 지역'
+    unknown = module.apply_to_extended({'site_subdivision_limit': {'min_area_m2': 60}}, reading, ['도시지역'])
+    assert 'basis' not in unknown['site_subdivision_limit'] or unknown['site_subdivision_limit']['zone_category'] == '그 밖의 지역'
     assert module.apply_to_extended(ext, None, ['제2종일반주거지역']) is ext
 
 

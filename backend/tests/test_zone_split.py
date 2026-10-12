@@ -125,6 +125,10 @@ def test_exclusive_zone_names_drops_only_use_zones_that_lost_their_ground():
     assert kept == ['제2종일반주거지역', '지구단위계획구역', '과밀억제권역']
     assert removed == ['자연녹지지역']
     assert exclusive_zone_names(None, names, use_zone) == (names, [])
+    # A split that measured nothing says nothing; ground left uncovered may be the missing zone under another name.
+    assert exclusive_zone_names({}, names, use_zone) == (names, [])
+    assert exclusive_zone_names({'제2종일반주거지역': 2000.0}, names, use_zone, uncovered_m2=500.0, parcel_area_m2=2500.0) == (names, [])
+    assert exclusive_zone_names({'제2종일반주거지역': 2499.0}, names, use_zone, uncovered_m2=1.0, parcel_area_m2=2500.0)[1] == ['자연녹지지역']
 
 
 def test_with_removed_explains_a_removed_zone_the_slivers_do_not():

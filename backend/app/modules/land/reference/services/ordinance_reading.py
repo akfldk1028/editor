@@ -37,8 +37,10 @@ MAX_TEXT_CHARS = 160_000
 QUESTIONS: dict[str, dict] = {
     'site_subdivision_limit': {'ask': '건축물이 있는 대지를 분할할 수 없는 최소 면적(건축법 제57조·시행령 제80조를 받는 조문)', 'unit': 'm2',
                                'scope_kind': '용도지역 종류(주거지역·상업지역·공업지역·녹지지역·그 밖의 지역)'},
-    'site_road_requirement': {'ask': '너비 6m 이상 도로에 4m 이상 접해야 하는 건축물의 연면적 규모(시행령 제28조제2항을 받는 조문; '
-                                     '"연면적 N제곱미터 미만으로 한다"면 N)', 'unit': 'm2', 'scope_kind': None},
+    # 시행령 제28조②: 연면적 2,000 ㎡(공장 3,000 ㎡) 이상이면 6 m 도로에 4 m 이상 접해야 하되, "축사·작물재배사 그 밖에 이와 비슷한
+    # 건축물로서 건축조례로 정하는 규모의 건축물은 제외" — the ordinance sets that exemption size, not the 2,000 ㎡ rule.
+    'site_road_requirement': {'ask': '6m 도로 접도 의무(시행령 제28조제2항)에서 제외되는 축사·작물재배사 등 이와 비슷한 건축물의 연면적 규모'
+                                     '("건축조례로 정하는 건축물의 규모는 연면적 N제곱미터 미만으로 한다"면 N)', 'unit': 'm2', 'scope_kind': None},
     'landscaping': {'ask': '대지 안의 조경 면적 비율(연면적 구간별 %)과 조경 의무가 생기는 대지 면적', 'unit': '%', 'scope_kind': '연면적 구간'},
     'on_site_open_space': {'ask': '건축선·인접대지경계선에서 건축물까지 띄어야 하는 거리(대지 안의 공지)', 'unit': 'm',
                            'scope_kind': '용도·규모(별표면 별표 번호와 그 안의 구분)'},
@@ -89,17 +91,20 @@ def _normalize(value: str) -> str:
 def verify_quotes(reading: OrdinanceReading, articles: list[dict]) -> tuple[list[ReadItem], list[str]]:
     """Keep only items whose quote is in the text (whitespace ignored) and whose article, when named, exists;
     the second value lists what was dropped and why."""
-    corpus = _normalize(' '.join(str(a.get('content') or '') for a in articles))
-    numbers = {_normalize(str(a.get('article') or '')) for a in articles}
+    by_article = {_normalize(str(a.get('article') or '')): _normalize(str(a.get('content') or '')) for a in articles}
     kept, dropped = [], []
     for item in reading.items:
+        quote = _normalize(item.quote or '')
+        article = _normalize(item.article or '')
         if item.key not in QUESTIONS:
-            dropped.append(f'{item.key}: 질문 목록에 없는 항목'); continue
-        if not item.quote or len(_normalize(item.quote)) < 6 or _normalize(item.quote) not in corpus:
-            dropped.append(f'{item.key}: 인용문이 조례 원문에 없음'); continue
-        if item.article and _normalize(item.article) not in numbers:
-            dropped.append(f'{item.key}: 인용 조문 {item.article}이 원문에 없음'); continue
-        kept.append(item)
+            dropped.append(f'{item.key}: 질문 목록에 없는 항목')
+        elif article and article not in by_article:
+            dropped.append(f'{item.key}: 인용 조문 {item.article}이 원문에 없음')
+        elif len(quote) < 6 or (article and quote not in by_article[article]) or (not article and not any(quote in c for c in by_article.values())):
+            # The whole quote must sit inside the article it is attributed to (or inside one article when none is named).
+            dropped.append(f'{item.key}: 인용문이 {item.article + " " if article else ""}원문에 없음')
+        else:
+            kept.append(item)
     return kept, dropped
 
 
@@ -152,7 +157,7 @@ async def ordinance_reading(pnu: str, sigungu_code: str, assessment_date: str | 
     {'ordinance': {name, edition_id, effective_date, url}, 'items': {key: {value, unit, by_scope, article, quote, note}},
      'dropped': [...], 'reason', 'fetched_at', 'assessment_date', 'version'}"""
     day = assessment_date or date.today().isoformat()
-    path = (cache_dir or _cache_dir()) / f'{kind}-{sigungu_code}.json'
+    path = (cache_dir or _cache_dir()) / f'{kind}-{sigungu_code}-{day}.json'
     if path.exists():
         cached = _read_cache(path, day)
         if cached is not None:
@@ -215,30 +220,39 @@ def _scoped(item: dict, scope_name: str) -> float | None:
     return float(item['value']) if item.get('value') is not None else None
 
 
-def apply_to_extended(reg_ext: dict, reading: dict | None, zone_names: list[str]) -> dict:
-    """Every read item lands on the extended rule of the same key as `ordinance` (value, article, quote); the two
-    figures the restrictions print as numbers are also set on their known fields."""
+def main_use_zone(zone_names: list[str], zone_areas: dict[str, float] | None = None) -> str:
+    """The parcel's governing 용도지역: the catalog zone with the most ground (or the first listed when no split)."""
+    from backend.app.modules.land.reference.services import zoning_mapper
+    zones = [name for name in zone_names if zoning_mapper.lookup(name) is not None]
+    if not zones:
+        return ''
+    if zone_areas:
+        zones.sort(key=lambda name: -float(zone_areas.get(name, 0.0)))
+    return zones[0]
+
+
+def apply_to_extended(reg_ext: dict, reading: dict | None, zone_names: list[str], zone_areas: dict[str, float] | None = None) -> dict:
+    """A read item lands on the extended rule of the same key as its `ordinance` block (every item stays visible in
+    the analysis' `ordinance_reading`); the two figures the restriction lines print are set on their fields, and
+    `basis='ordinance'` only where a figure was applied."""
     if not reading or not isinstance(reg_ext, dict):
         return reg_ext
     items = reading.get('items') or {}
     for key, item in items.items():
         if key in reg_ext and isinstance(reg_ext[key], dict):
-            reg_ext[key] = {**reg_ext[key], 'ordinance': {k: item.get(k) for k in ('value', 'unit', 'by_scope', 'article', 'quote', 'note')}, 'basis': 'ordinance'}
-    main_zone = next((name for name in zone_names if name.endswith('지역')), '')
+            reg_ext[key] = {**reg_ext[key], 'ordinance': {k: item.get(k) for k in ('value', 'unit', 'by_scope', 'article', 'quote', 'note')}}
     sub = items.get('site_subdivision_limit')
     if sub and isinstance(reg_ext.get('site_subdivision_limit'), dict):
-        category = zone_category(main_zone)
+        category = zone_category(main_use_zone(zone_names, zone_areas))
         area = _scoped(sub, category)
         if area is not None:
-            reg_ext['site_subdivision_limit'].update({'min_area_m2': area, 'zone_category': category, 'article': sub.get('article')})
+            reg_ext['site_subdivision_limit'].update({'min_area_m2': area, 'zone_category': category, 'article': sub.get('article'), 'basis': 'ordinance'})
     road = items.get('site_road_requirement')
     if road and road.get('value') is not None and isinstance(reg_ext.get('site_road_requirement'), dict):
         size = float(road['value'])
-        reg_ext['site_road_requirement'].update({
-            'road_rule_size_m2': size, 'article': f"건축법 §44, 시행령 §28②; {road.get('article')}",
-            'rule': f"건축물 대지는 2m 이상 도로에 접해야 함; 연면적 합계 {size:,.0f}㎡ 이상이면 너비 6m 이상 도로에 4m 이상 접해야 함 ({road.get('article')})"})
+        reg_ext['site_road_requirement'].update({'exempt_similar_buildings_below_m2': size, 'exemption_article': road.get('article'), 'basis': 'ordinance'})
     return reg_ext
 
 
-__all__ = ['OrdinanceReading', 'QUESTIONS', 'READING_VERSION', 'ReadItem', 'apply_to_extended', 'ordinance_reading', 'pick_ordinance',
-           'read_with_model', 'verify_quotes', 'zone_category']
+__all__ = ['OrdinanceReading', 'QUESTIONS', 'READING_VERSION', 'ReadItem', 'apply_to_extended', 'main_use_zone', 'ordinance_reading',
+           'pick_ordinance', 'read_with_model', 'verify_quotes', 'zone_category']

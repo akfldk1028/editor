@@ -35,7 +35,7 @@ def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, propo
     reg_ext = extended.calculate_extended(
         names, land_info, building_type=program['building_type'], program_uses=schedule,
         assessment_date=program['assessment_date'])
-    reg_ext = apply_to_extended(reg_ext, ordinance_rules, names)
+    reg_ext = apply_to_extended(reg_ext, ordinance_rules, names, zone_areas)
     overlay = overlays.resolve_overlays(names)
     zone_info = zoning_limits.resolve_limits(names, zone_areas)
     zone_info['zones'] = [zone['zone_name'] for zone in zone_info['zones']]
@@ -51,8 +51,9 @@ def calculate(body, names, pnu_info=None, land_info=None, zone_areas=None, propo
     restrictions.extend(note for note in (zone_split or {}).get('notes') or [] if isinstance(note, str))
     regulations = format_regulations(reg, reg_ext=reg_ext)
     if regulations.get('sunlight_setback'):
-        # 시행령 §86① 단서: inside these designations a parcel on a 20 m road is not bound — a Site fact decides.
+        # 시행령 §86① 단서: inside these designations a parcel on a 20 m road (or in a 건축협정구역) is not bound — Site facts decide.
         regulations['sunlight_setback']['exemption_areas'] = designations.sunlight_exemption_areas(names)
+        regulations['sunlight_setback']['exemption_note'] = designations.sunlight_exemption_note(names)
     result = {
         'pnu': pnu_info, 'regulations': regulations,
         # What the jurisdiction's ordinance decides, as the model read it (verified quotes) — None when unread.
@@ -120,10 +121,13 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
         if geometry and sum(zoning_limits.lookup(name) is not None for name in names) > 1:
             split, split_errors = await queries.split(geometry)
             errors.extend(split_errors)
-            if split is not None:
+            if split is not None and not split.areas:
+                errors.append('Zone split returned no ground')
+            elif split is not None:
                 # A 용도지역 the split left no ground to (a boundary strip) is not a part of the parcel for 제84조.
                 zone_areas = dict(split.areas)
-                names, removed = exclusive_zone_names(zone_areas, names, lambda name: zoning_limits.lookup(name) is not None)
+                names, removed = exclusive_zone_names(zone_areas, names, lambda name: zoning_limits.lookup(name) is not None,
+                                                      uncovered_m2=split.uncovered_m2, parcel_area_m2=split.parcel_area_m2)
                 split_info = with_removed(split.to_dict(), removed)
         law, advisory = await collect_evidence(names, include_law=body.get('include_law', True),
             law_client=law_client, extraction_client=extraction_client)

@@ -1,4 +1,4 @@
-﻿import { expect, test } from 'bun:test'
+import { expect, test } from 'bun:test'
 
 import {
   activatingLine, activationFailedLine, answerLine, askFailedLine, askLines, connectionLine, evidenceCard, landAnalysisLine, landAnalysisLines, lawBasisLine, lawCard, lawLine, relayLine, requestFailedLine,

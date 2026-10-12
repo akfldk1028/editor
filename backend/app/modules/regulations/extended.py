@@ -295,9 +295,9 @@ def _resolve_group_a(zone_names: list[str], land_info=None, building_type='', pr
     result["site_road_requirement"] = {
         "name": "접도의무",
         "min_frontage_m": road.get("min_frontage_m", 2),
-        # The 2,000 m² (공장 3,000 m²) size above which a 6 m road is required is the 시행령 §28② default; the
-        # ordinance may set the size (의정부: 3,000 m²), so the figure here is a floor, not the parcel's rule.
-        "rule": (road.get("rule", "") + " — 규모 기준은 시행령 §28②의 기본값이며 건축조례가 달리 정할 수 있음, 조례 확인").strip(" —"),
+        # 시행령 §28②: the 2,000 m² (공장 3,000 m²) size is statute; the ordinance only sets the size of 축사·작물재배사
+        # and similar buildings that are exempt (`exempt_similar_buildings_below_m2`, read from the ordinance text).
+        "rule": road.get("rule", ""),
         "article": road.get("article", "건축법 §44"),
     }
 

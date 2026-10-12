@@ -106,9 +106,8 @@ def build_restrictions(reg: dict, zone_names: list[str],
         restrictions.append("건폐율·용적률: 적용 조례·판본·용도지역 증거 부족 — 상한 미확정")
 
     if reg.get("sunlight_applies"):
-        exempt = designations.sunlight_exemption_areas(zone_names)
-        restrictions.append("일조사선: 정북방향 10m 이하 1.5m · 초과 부분 H/2 이격"
-                            + (f" — {'·'.join(exempt)} 안 대지가 너비 20m 이상 도로에 접하면 적용 제외(시행령 §86① 단서), 접도 폭 확인" if exempt else ""))
+        note = designations.sunlight_exemption_note(zone_names)
+        restrictions.append("일조사선: 정북방향 10m 이하 1.5m · 초과 부분 H/2 이격" + (f" — {note}" if note else ""))
 
     if reg.get("road_diagonal_multiplier") is not None:
         restrictions.append(
@@ -158,8 +157,9 @@ def build_restrictions(reg: dict, zone_names: list[str],
             # 건축법 §57: the figure is the ordinance's, within the 시행령 §80 floor; the floor is what is known here.
             restrictions.append(f"대지 분할 제한: 시행령 하한 {sub['min_area_m2']}m² 이상 범위에서 조례로 정함 — 조례 면적 확인 필요")
         road = reg_ext.get("site_road_requirement", {})
-        if road.get("basis") == "ordinance" and road.get("road_rule_size_m2") is not None:
-            restrictions.append(f"접도의무: 연면적 {road['road_rule_size_m2']:,.0f}m² 이상이면 6m 도로에 4m 이상 접함 ({road.get('article')})")
+        if road.get("basis") == "ordinance" and road.get("exempt_similar_buildings_below_m2") is not None:
+            restrictions.append(f"접도의무: 연면적 2,000m²(공장 3,000m²) 이상이면 6m 도로에 4m 이상 접함 (시행령 §28②); "
+                                f"축사·작물재배사 등 이와 비슷한 건축물은 연면적 {road['exempt_similar_buildings_below_m2']:,.0f}m² 미만이면 제외 ({road.get('exemption_article')})")
 
         dl = reg_ext.get("daylighting_spacing", {})
         if dl.get("applies"):

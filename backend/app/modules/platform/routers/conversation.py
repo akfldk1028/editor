@@ -69,7 +69,9 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
         # parcel as its context, and the answer carries `located` so the map moves there. Nothing named (or not
         # geocodable) → the message goes through untouched.
         payload = body.model_dump(exclude_none=True)
-        named = await site_named(body.text)
+        # A confirmation turn is not a message about a site, and an address or PNU always carries a digit: the model
+        # is asked only when the message could name one.
+        named = await site_named(body.text) if body.confirmation is None and any(ch.isdigit() for ch in body.text) else None
         located = await locate_site(named) if named else None
         if located is not None and not (located['pnu'] or located['coordinates']):
             located = None
