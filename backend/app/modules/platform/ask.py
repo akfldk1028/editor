@@ -238,7 +238,10 @@ async def ask_law(question: str, *, pnu: str | None, assessment_date: str | None
     if chosen.kind == 'agent':
         # A registered agent without a role module: hand the question to it in its own words (its A2A card) —
         # the skill call itself is the Orchestrator conversation's job, so no agent is called here.
-        card = (await roster([chosen.agent])).get(chosen.agent)
+        try:
+            card = (await roster([chosen.agent])).get(chosen.agent)
+        except Exception:
+            card = None
         return {**base, 'delegate': {'agent': chosen.agent, 'label': cards.display_name(chosen.agent, card),
                                      'description': (card or {}).get('description'), 'instruction': chosen.instruction,
                                      'skills': [{'id': s['id'], 'name': s.get('name') or s['id']} for s in (card or {}).get('skills') or []][:12],

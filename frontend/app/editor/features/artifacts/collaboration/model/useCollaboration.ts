@@ -38,6 +38,9 @@ export function useCollaboration(params: Readonly<Record<string, string>>) {
   useEffect(() => {
     if (!chosen) return
     const controller = new AbortController()
+    // A new project starts clean: no run of the old one may be read against the new project id.
+    setRuns([])
+    setRun(null)
     setLoad({ kind: 'loading' })
     listRuns(chosen.project_id, controller.signal)
       .then((list) => { if (!controller.signal.aborted) { setRuns(list); setLoad({ kind: 'ready' }) } })
@@ -55,13 +58,16 @@ export function useCollaboration(params: Readonly<Record<string, string>>) {
     getRun(chosen.project_id, selected, controller.signal)
       .then((detail) => { if (!controller.signal.aborted) setRun(detail) })
       .catch((error: unknown) => {
-        if (!controller.signal.aborted) setLoad({ kind: 'error', text: error instanceof Error ? error.message : '실행을 불러오지 못했어요.' })
+        if (controller.signal.aborted) return
+        setRun(null)
+        setLoad({ kind: 'error', text: error instanceof Error ? error.message : '실행을 불러오지 못했어요.' })
       })
     return () => controller.abort()
   }, [chosen, selected, reloads])
 
   const onRun = useCallback((next: RunSummary) => {
-    setRun(next)
+    // A poll that changed nothing keeps the same object, so the canvas is not laid out again every tick.
+    setRun((current) => (current && JSON.stringify(current) === JSON.stringify(next) ? current : next))
     setRuns((current) => current.map((item) => (item.run_id === next.run_id ? { ...item, status: next.status, pending_input: next.pending_input } : item)))
   }, [])
   const { stale } = useRunPolling(chosen?.project_id ?? null, run, onRun)

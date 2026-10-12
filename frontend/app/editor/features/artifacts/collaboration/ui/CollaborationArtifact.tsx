@@ -9,7 +9,10 @@ import { ArtifactChrome } from '../../../shell/artifact-host/ArtifactChrome'
 import type { ArtifactProps } from '../../../shell/artifact-types'
 import { collaborationArtifact } from '../manifest'
 import { goalLabel, runStatusLine, runTone } from '../lib/status'
-import { toTranscript } from '../lib/transcript'
+import { type CollaborationMessage, toTranscript } from '../lib/transcript'
+
+/** One empty record for every render, so a canvas without a run is not laid out again on each click. */
+const NO_MESSAGES: readonly CollaborationMessage[] = []
 import { useAgentCatalog } from '../model/useAgentCatalog'
 import { useCollaboration } from '../model/useCollaboration'
 import { AgentPanel } from './AgentPanel'
@@ -74,7 +77,7 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
         {effectiveTab === 'runs' && <RunList goals={goals} onSelect={(id) => { select(id); setTab('flow') }} runs={runs} selected={selectedRun} />}
         {effectiveTab === 'flow' && (
           <>
-            <FlowGraph catalog={entries} live={live} messages={transcript?.messages ?? []} onSelect={setAgent} selected={agent} />
+            <FlowGraph catalog={entries} live={live} messages={transcript?.messages ?? NO_MESSAGES} onSelect={setAgent} selected={agent} />
             {agent
               ? <AgentPanel agent={agent} entry={entries.find((entry) => entry.id === agent)} key={agent} names={names} onClose={() => setAgent(null)} transcript={transcript} />
               : <p className="collab-note">에이전트를 누르면 이 실행에서 한 말과 할 수 있는 일이 보이고, 바로 물어볼 수 있어요.</p>}

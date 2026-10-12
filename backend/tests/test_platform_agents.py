@@ -66,3 +66,9 @@ def test_a_failing_card_lookup_leaves_the_catalog_as_it_is():
     app.include_router(create_platform_router(OrchestratorClient('http://owner', transport=transport), roster=roster))
     rows = TestClient(app).get('/api/v1/platform/agents').json()
     assert rows[0]['agent_id'] == 'law' and rows[0]['description'] is None and rows[0]['skills'] is None
+
+
+def test_a_card_with_a_non_string_skill_name_does_not_break_the_catalog():
+    from backend.app.modules.platform.routing import cards
+    card = cards._card({'name': 'X', 'description': 'd', 'skills': [{'id': 'x_a', 'name': None, 'description': 7}, {'id': 'x_b', 'name': 'b'}]})
+    assert card['skills'] == [{'id': 'x_a', 'name': 'x_a', 'description': ''}, {'id': 'x_b', 'name': 'b', 'description': 'b'}]

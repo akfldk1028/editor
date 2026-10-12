@@ -3,7 +3,7 @@
 import '@xyflow/react/dist/style.css'
 import { Background, BackgroundVariant, Controls, type Edge, Handle, MarkerType, type Node, type NodeProps, type NodeTypes, Position, ReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react'
 import { MessagesSquare } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 import { markOf, ORCHESTRATOR } from '@/lib/agents'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
@@ -67,11 +67,13 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
   }, [messages, catalog, live, compact])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
-  // A new record or catalog lays the cards out again; a selection only restyles them, so a dragged card stays put.
+  const selectedRef = useRef(selected)
+  selectedRef.current = selected
+  // A new record or catalog lays the cards out again (keeping the current selection); a selection only restyles them, so a dragged card stays put.
   useEffect(() => {
     setNodes(graph.nodes.map((node) => ({
       id: node.id, type: 'agent', position: node.position, draggable: true,
-      data: { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: false, idle: node.idle, live: node.live, agent: node.id },
+      data: { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id },
     })))
   }, [graph, setNodes])
   useEffect(() => {

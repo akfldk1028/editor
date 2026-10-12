@@ -28,6 +28,7 @@ test('agents carry their English network names, tools and step states read in Ko
   // An id the folders do not know is still a name for a person, never the raw id.
   expect(agentLabel('new_agent')).toBe('New Agent')
   expect(agentLabel('site-context')).toBe('Site Agent')
+  expect(agentLabel('대상 미기록')).toBe('대상 미기록')
   expect(agentLabel(null)).toBe('—')
   expect(toolLabel('site_resolve')).toBe('대지 사실 확인')
   expect(toolLabel('law_parcel_limits')).toBe('법규 한계')

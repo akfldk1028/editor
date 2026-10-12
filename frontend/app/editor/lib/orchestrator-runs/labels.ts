@@ -41,6 +41,8 @@ export const traceLabel = (id: string) => id.slice(0, 8)
 
 /** An agent the folders do not know, named as the folders would: "structure" → "Structure Agent", "DesignIntentAgent" → "DesignIntent Agent". */
 export function humanizeAgent(idOrLabel: string): string {
+  // Only an id-shaped string is a name to make; a sentence ("대상 미기록") is already one.
+  if (!/^[A-Za-z][\w-]*$/.test(idOrLabel)) return idOrLabel
   const base = idOrLabel.replace(/[-_]+/g, ' ').replace(/\s*agent$/i, '').trim()
   return `${base.replace(/^\w/, (first) => first.toUpperCase())} Agent`
 }

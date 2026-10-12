@@ -653,3 +653,14 @@ be told to the Orchestrator session.
   Left as noted: the shell's 흐름도 button names the collaboration artifact (a manifest flag would be neater).
 
 - 2026-10-12: MasterPlan validate_plan now returns relationship_scores (diagnostic pass fraction plus coverage, no overall score). Curved family budgets retain multiple angles; half_turn requests measured 180-degree centerlines including internal-aisle proposals. Missing trajectory/Programme evidence stays unknown. Tests: test_curve_portfolio_scores plus ramp/placement/validation regressions. No production restart performed.
+- 2026-10-12 (night, second review + content) a second independent review of the fix commit found 8 items; 6 fixed:
+  the poll handed a new run object every tick and re-laid the canvas out (now same-content → same object, and the
+  empty record is one constant); re-layout dropped the selection (kept via a ref); "대상 미기록" was humanized into
+  "대상 미기록 Agent" (only id-shaped strings are named); switching projects could read the old run against the new
+  project (list and run cleared first; a failed run read clears the run); a card with non-string skill fields could
+  500 the catalog (fields coerced, per-agent validation falls back); gather now returns exceptions as no-card and
+  the ask door's card lookup is guarded. Content review in Chrome against the raw API record: a cut Site answer now
+  lists the facts it established with Site's own confidence words (실측·유도·추정) and the ones it could not, a
+  Revision request shows the open issue sentence and the changed nodes instead of "그 밖의 항목 5개".
+  The 8,000-char cap on each recorded message is the Orchestrator's; the official A2A SDK's `GetTask` (task history,
+  artifacts, kept by `InMemoryTaskStore` while the agent lives) is the standard way to fetch the full text by task id.

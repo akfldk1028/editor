@@ -2,6 +2,7 @@ import os
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from backend.app.adapters.orchestrator import OrchestratorClient, OwnerContractError, OwnerUnavailable
 from backend.app.schemas.platform import AgentSummary
@@ -66,8 +67,15 @@ def create_platform_router(
             live = await roster([summary.agent_id for summary in summaries])
         except Exception:
             live = {}
-        return [AgentSummary.model_validate({**summary.model_dump(), 'description': card['description'], 'skills': card['skills']})
-                if (card := live.get(summary.agent_id)) else summary for summary in summaries]
+        def with_card(summary):
+            card = live.get(summary.agent_id)
+            if not card:
+                return summary
+            try:
+                return AgentSummary.model_validate({**summary.model_dump(), 'description': card['description'], 'skills': card['skills']})
+            except ValidationError:
+                return summary
+        return [with_card(summary) for summary in summaries]
 
     @router.get('/projects', response_model=list[ProjectBinding])
     async def projects():

@@ -38,7 +38,9 @@ def _card(data: dict) -> dict | None:
     name, description = data.get('name'), data.get('description')
     if not isinstance(name, str) or not isinstance(description, str):
         return None
-    skills = [{'id': s['id'], 'name': s.get('name') or s['id'], 'description': s.get('description') or s.get('name') or ''}
+    def text(value, fallback=''):
+        return value if isinstance(value, str) else fallback
+    skills = [{'id': s['id'], 'name': text(s.get('name')) or s['id'], 'description': text(s.get('description')) or text(s.get('name'))}
               for s in data.get('skills') or [] if isinstance(s, dict) and isinstance(s.get('id'), str)]
     return {'name': name, 'description': description, 'skills': skills}
 
@@ -71,8 +73,8 @@ async def roster(agents: list[str], *, fetch=fetch_card, now=time.monotonic, cac
         else:
             misses.append(agent)
     urls = {agent: card_url(agent, registry=registry) for agent in misses}
-    fetched = await asyncio.gather(*(fetch(urls[agent]) for agent in misses if urls[agent]))
-    answers = dict(zip([agent for agent in misses if urls[agent]], fetched))
+    fetched = await asyncio.gather(*(fetch(urls[agent]) for agent in misses if urls[agent]), return_exceptions=True)
+    answers = {agent: (None if isinstance(card, BaseException) else card) for agent, card in zip([agent for agent in misses if urls[agent]], fetched)}
     for agent in misses:
         card = answers.get(agent)
         cache[agent] = (now(), card)
