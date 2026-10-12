@@ -57,8 +57,12 @@ export function agentForTool(tool: string | null | undefined, agent?: string | n
   return toolOwner(tool)
 }
 
+/** The editor's own doors, recorded as tools in the 협업 장부 (no agent owns them). */
+const DOOR_LABELS: Record<string, string> = { ask: '질문', conversation: '대화', 'law-analysis': '법규 분석' }
+
 export function toolLabel(tool: string | null | undefined): string {
   if (!tool) return '—'
+  if (DOOR_LABELS[tool]) return DOOR_LABELS[tool]!
   if (tool.endsWith('_health')) return `${agentLabel(toolOwner(tool) ?? tool.slice(0, -'_health'.length))} 상태 확인`
   return toolSpecLabel(tool) ?? tool
 }

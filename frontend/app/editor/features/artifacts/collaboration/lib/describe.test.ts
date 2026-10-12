@@ -49,3 +49,12 @@ test('the Orchestrator\'s own bookkeeping in a request is counted, not spelled o
   const described = describeMessage(message({ to: 'revision', tool: 'revision_triage', text: JSON.stringify({ available_owners: ['law'], budget: 3, dirty_nodes: ['requirements.structured_brief'], open_issues: [{ description: 'Floor area is unknown; parking cannot be sized.' }, {}], proposal: {}, rounds_spent: 1 }) }))
   expect(described.lines).toEqual(['열린 이슈: Floor area is unknown; parking cannot be sized.', '열린 이슈 1건', '바뀐 항목: requirements · structured brief', '그 밖의 전달 항목 4개 — 기록 원문에'])
 })
+
+test('a Law search answer names its provisions and quotes the first one', () => {
+  const described = describeMessage({ id: 'x', step: 1, direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_search', state: 'completed', transport: 'a2a', truncated: false,
+    text: JSON.stringify({ results: [
+      { law_name: '빈집 및 소규모주택 정비에 관한 특례법', article: '제46조', content: '1. 「건축법」 제42조에 따른 대지의 조경기준' },
+      { law_name: '건축법', article: '제42조', content: '대지에는 조경이나 그 밖에 필요한 조치를 하여야 한다.' },
+    ], stats: {} }) })
+  expect(described.lines).toEqual(['조문 2건: 빈집 및 소규모주택 정비에 관한 특례법 제46조 · 건축법 제42조', '1. 「건축법」 제42조에 따른 대지의 조경기준'])
+})

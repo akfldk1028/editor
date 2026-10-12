@@ -99,3 +99,25 @@
 .collab-graph[data-compact="false"] { block-size: 560px; }
 .collab-order { inline-size: 18px; block-size: 18px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 10px; font-weight: 700; flex: none; }
 .collab-graph .react-flow__edge.collab-edge-running .react-flow__edge-path { stroke-width: 2.6px; animation-duration: 0.45s; }
+
+/* What was said, as a speech card: who and what on the small line, the words under it; requests in the accent, answers in green */
+.collab-graph .react-flow { --xy-edge-stroke-default: var(--muted); --xy-edge-stroke-width-default: 1.6; --xy-handle-background-color-default: var(--muted); --xy-handle-border-color-default: var(--panel-raised); }
+.collab-said { position: absolute; max-inline-size: 230px; padding: 7px 10px 8px; display: grid; gap: 3px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-soft)); border-radius: var(--radius-m); background: color-mix(in srgb, var(--accent) 7%, var(--panel-raised)); box-shadow: var(--shadow); color: var(--ink); pointer-events: all; cursor: pointer; }
+.collab-said[data-kind="response"] { border-color: color-mix(in srgb, var(--success) 35%, var(--border-soft)); background: color-mix(in srgb, var(--success) 7%, var(--panel-raised)); }
+.collab-said[data-running="true"] { border-style: dashed; animation: collab-breathe 1.6s ease-in-out infinite; }
+.collab-said small { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .01em; line-height: 1.3; }
+.collab-said[data-kind="request"] small { color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
+.collab-said[data-kind="response"] small { color: color-mix(in srgb, var(--success) 70%, var(--ink)); }
+.collab-said p { margin: 0; color: var(--ink); font-size: var(--fs-2); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.collab-said[data-node="true"] { position: relative; inline-size: 230px; max-inline-size: none; cursor: default; }
+.collab-said[data-node="true"] .react-flow__handle { opacity: 0; inline-size: 1px; block-size: 1px; min-inline-size: 0; min-block-size: 0; pointer-events: none; }
+@keyframes collab-breathe { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .collab-said[data-running="true"] { animation: none; } }
+
+/* Agent cards: the mark in a soft disc, the Orchestrator in the accent; vertical flow uses the top/bottom handles */
+.collab-mark { inline-size: 24px; block-size: 24px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--subtle); color: var(--muted); flex: none; }
+.collab-node[data-hub="true"] .collab-mark { background: color-mix(in srgb, var(--accent) 14%, var(--panel-raised)); color: var(--accent); }
+.collab-node[data-kind="user"] .collab-mark { background: color-mix(in srgb, var(--ink) 8%, var(--panel-raised)); color: var(--ink); }
+.collab-node header span:not(.collab-mark):not(.collab-live) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.collab-node .react-flow__handle[data-handleid="t-top"], .collab-node .react-flow__handle[data-handleid="s-bottom"] { opacity: 0; pointer-events: none; }
+.collab-graph[data-orientation="vertical"] .collab-node .react-flow__handle[data-handleid="t-top"], .collab-graph[data-orientation="vertical"] .collab-node .react-flow__handle[data-handleid="s-bottom"] { opacity: 1; }

@@ -104,9 +104,21 @@ function salvageLines(text: string): string[] {
   return lines
 }
 
+/** The Law Agent's search, article and ordinance answers: which provisions, then the first one's words. */
+function lawLines(body: Record<string, unknown>): string[] {
+  const rows = (Array.isArray(body.results) ? body.results : Array.isArray(body.matches) ? body.matches : Array.isArray(body.items) ? body.items : []).filter(isRecord)
+  if (!rows.length) return []
+  const cite = (row: Record<string, unknown>) => [row.law_name ?? row.law, row.article, row.title ? `(${String(row.title)})` : ''].filter(Boolean).map(String).join(' ').trim()
+  const cited = [...new Set(rows.map(cite).filter(Boolean))]
+  const head = `조문 ${rows.length}건: ${cited.slice(0, 3).join(' · ')}${cited.length > 3 ? ` 외 ${cited.length - 3}` : ''}`
+  const words = rows.map((row) => row.content ?? row.text).find((text) => typeof text === 'string' && text)
+  return typeof words === 'string' ? [head, clip(words.replace(/\s+/g, ' ').trim())] : [head]
+}
+
 function responseLines(body: Record<string, unknown>): string[] {
   const lines: string[] = []
   if (typeof body.summary === 'string' && body.summary) lines.push(body.summary)
+  lines.push(...lawLines(body))
   if (typeof body.code === 'string' && body.code) lines.push(codeNote(body.code))
   if (Array.isArray(body.out_of_scope) && body.out_of_scope.length) lines.push(`오케스트레이터가 받지 않은 항목: ${body.out_of_scope.map((key) => factLabel(String(key))).join(', ')}`)
   for (const key of ['reason', 'error'] as const) if (typeof body[key] === 'string' && body[key]) lines.push(String(body[key]))
