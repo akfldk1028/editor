@@ -82,13 +82,19 @@ function SaidNode({ data }: NodeProps<FlowNode>) {
 
 const nodeTypes: NodeTypes = { agent: AgentNode, said: SaidNode }
 
-/** Refits the view to the flow that ran (the waiting agents stay below, reachable by scrolling) when the cards are laid out again, never on a plain selection. */
-function Refit({ when, compact, bounds, size }: { when: unknown; compact: boolean; bounds: Rect | null; size: number | undefined }) {
+/**
+ * Refits the view to the flow that ran (the waiting agents stay below, reachable by scrolling) when a card is added or
+ * removed — never on a live update of the same cards, and never again once the user has zoomed or panned (the fit
+ * button brings it back).
+ */
+function Refit({ when, compact, bounds, size, held }: { when: string; compact: boolean; bounds: Rect | null; size: number | undefined; held: { current: boolean } }) {
   const { fitView, fitBounds } = useReactFlow()
+  // biome-ignore lint/correctness/useExhaustiveDependencies: bounds follow the cards; refitting on each live update is what this avoids.
   useEffect(() => {
+    if (held.current) return
     const timer = window.setTimeout(() => { void (bounds ? fitBounds(bounds, { padding: compact ? 0.25 : 0.12, duration: 250 }) : fitView({ padding: compact ? 0.25 : 0.1, duration: 250 })) }, 150)
     return () => window.clearTimeout(timer)
-  }, [when, compact, bounds, size])
+  }, [when, compact, size])
   return null
 }
 
@@ -184,6 +190,9 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     const y = Math.min(...active.map((node) => node.position.y)) - (vertical ? 10 : 80)
     return { x, y, width: Math.max(...active.map(right)) + (vertical ? 40 : 0) - x, height: Math.max(...active.map(bottom)) + (vertical ? 10 : 90) - y }
   }, [graph, vertical])
+  // Which cards there are, not what they say: a new card refits the view, a live update of one does not.
+  const layoutKey = graph.nodes.map((node) => node.id).join('|')
+  const userMoved = useRef(false)
   // A stacked flow gets the height it needs (within reason), so it reads at full size without zooming.
   const height = vertical && bounds && !compact ? Math.min(1100, Math.max(420, Math.round(bounds.height + 60))) : undefined
 
@@ -212,11 +221,12 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
           onNodeClick={(_, node) => onSelect?.(selected === node.id ? null : node.id)}
           onNodesChange={onNodesChange}
           onPaneClick={() => onSelect?.(null)}
+          onMoveStart={(event) => { if (event) userMoved.current = true }}
           proOptions={{ hideAttribution: true }}
         >
           <Background gap={18} size={1} variant={BackgroundVariant.Dots} />
           <Controls position="bottom-left" showInteractive={false} />
-          <Refit bounds={bounds} compact={compact} size={height} when={graph} />
+          <Refit bounds={bounds} compact={compact} held={userMoved} size={height} when={layoutKey} />
         </ReactFlow>
       </ReactFlowProvider>
       {!compact && <p className="collab-pattern">진행 순서 · {[agentLabel(ORCHESTRATOR), ...order].join(' → ')}</p>}

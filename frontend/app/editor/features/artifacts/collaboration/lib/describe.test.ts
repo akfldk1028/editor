@@ -64,7 +64,7 @@ test('an A2A call reads by its args; a catalog lists what the agent offers; a to
   expect(asked.lines[0]).toBe('대지 684-1번지 · 기준일 2026-10-09')
   const lookup = describeMessage(message({ to: 'law', tool: 'law_tool_catalog', text: JSON.stringify({ tool: 'law_tool_catalog', args: {} }) }))
   expect(lookup.headline).toBe('Orchestrator Agent → Law Agent · 할 수 있는 일 확인 요청')
-  expect(lookup.lines).toEqual(['할 수 있는 일 확인 — 따로 넘긴 값 없음'])
+  expect(lookup.lines).toEqual([])
   const catalog = describeMessage(message({ direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_tool_catalog', text: JSON.stringify({ schema_version: 'tool-catalog/v1', instructions: '…', tools: [{ name: 'law_parcel_limits' }, { name: 'law_search' }, { name: 'law_unnamed_tool' }] }) }))
   expect(catalog.lines).toEqual(['할 수 있는 일 3가지: 법규 한계, 법령 검색'])
   const limits = describeMessage(message({ direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_parcel_limits', text: JSON.stringify({ pnu: 'x', building_type: '업무시설', bcr_pct: 60, far_pct: 250, max_storeys: 5, parcel_area_m2: 2499.691, policy: {} }) }))

@@ -178,7 +178,7 @@ export function describeMessage(message: CollaborationMessage, names: Readonly<R
     // An A2A call carries `{tool, args}`; what was asked is the args.
     const args = isRecord(value) && typeof value.tool === 'string' ? (isRecord(value.args) ? value.args : {}) : value
     const lines = isRecord(args) ? requestLines(args) : [message.text.slice(0, PREVIEW_CHARS)]
-    if (!lines.length && message.tool) lines.push(`${toolLabel(message.tool)} — 따로 넘긴 값 없음`)
+    // A call with nothing to pass reads by its headline alone ("… · 할 수 있는 일 확인 요청").
     return { headline: message.tool ? `${who} · ${toolLabel(message.tool)} 요청` : `${who} · 요청`, lines: lines.slice(0, MAX_LINES), raw, truncated: message.truncated }
   }
   const headline = message.tool ? `${who} · ${toolLabel(message.tool)} · ${stateLabel(message.state)}` : `${who} · ${stateLabel(message.state)}`

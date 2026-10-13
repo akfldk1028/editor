@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react'
 import { dismissFeed, type FeedEntry, useFeed, feedForProject, projectFeed } from '@/lib/orchestrator-runs/feed'
 import { askLines, siteLocateParams, siteLocatedLine } from '@/lib/orchestrator-runs/feed-lines'
 import { newConversation, useConversationSelection } from '@/lib/design-conversation/session'
+import { waitingLine } from '@/features/artifacts/collaboration/lib/status'
+import { useLedger } from '@/features/artifacts/collaboration/model/useLedger'
 import { useConversation } from '@/lib/design-conversation/useConversation'
 import { conversationErrorText } from '@/lib/design-conversation/errors'
 import { designConversationContext } from '@/lib/design-conversation/context'
@@ -43,8 +45,11 @@ export function AgentConversationHeading() {
 }
 
 export function AgentConversationActions() {
+  // Until the page is interactive a press would be lost, so the button says so instead of looking ready.
+  const [ready, setReady] = useState(false)
+  useEffect(() => { setReady(true) }, [])
   return (
-    <button aria-label="새 대화" className="icon-button" onClick={newConversation} title="새 대화 · 이전 대화는 저장됩니다" type="button">
+    <button aria-label="새 대화" className="icon-button" disabled={!ready} onClick={newConversation} title="새 대화 · 이전 대화는 저장됩니다" type="button">
       <SquarePen size={17} />
     </button>
   )
@@ -68,6 +73,8 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   const project = useConversationProject()
   // The editor located a site the message named: the Site Agent's line goes to the feed and the map opens on that
   // parcel and selects it. A message that was one address never reached the owner, so its bubble is posted here too.
+  // The ledger of this conversation, so the waiting line names the agent being asked right now.
+  const ledger = useLedger(project.projectId ? { conversation_id: project.conversationId } : null)
   const conversation = useConversation(project.projectId, project.conversationId, (located, text) => {
     const postFeed = projectFeed(project.projectId, project.conversationId)
     if (text) postFeed(askLines(text)[0]!)
@@ -125,7 +132,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
           timeline.map((item) => <div key={item.key}>{item.node}</div>)
         )}
         {conversation.loading && <p className="agent-turn-system" role="status">저장된 대화를 불러오는 중…</p>}
-        {conversation.snapshot?.status === 'working' && <p className="agent-turn-system" role="status"><span aria-hidden="true" className="loading-mark" />에이전트가 대화를 이어가고 있어요. 추가 메시지는 차례로 보낼게요.</p>}
+        {conversation.snapshot?.status === 'working' && <p className="agent-turn-system" role="status"><span aria-hidden="true" className="loading-mark" />{waitingLine(ledger.messages)}</p>}
         {(conversation.error || conversation.snapshot?.error) && <div className="agent-turn-system" role="alert">{conversation.error || conversationErrorText(conversation.snapshot?.error)}<button className="agent-turn-link" onClick={() => void conversation.refresh?.()} title="저장된 대화 상태를 다시 불러옵니다" type="button">상태 새로고침</button></div>}
         <ConversationArtifacts artifacts={conversation.snapshot?.artifacts ?? []} onConfirm={conversation.confirm} disabled={conversation.loading || conversation.snapshot?.status === 'working' || conversation.pending.length > 0} />
         <div ref={endRef} />
