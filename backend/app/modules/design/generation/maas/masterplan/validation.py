@@ -8,6 +8,7 @@ from shapely.geometry import LineString, Point, Polygon, shape
 from shapely.ops import unary_union, substring
 
 from backend.app.modules.design.generation.maas.masterplan.compact_slab import REQUIRED_LAYERS
+from backend.app.modules.design.generation.maas.masterplan.geometry import EPS
 from backend.app.modules.design.generation.maas.masterplan.ramp_overhead import overhead_clearance
 from backend.app.modules.design.generation.maas.masterplan.pedestrian import pedestrian_reservation, profile_flat_area, ramp_reservation_conflicts
 from backend.app.modules.design.generation.maas.masterplan.circulation import closed_aisle_loop, full_width_stall_access
@@ -100,7 +101,9 @@ def validate_plan(request, result):
         if drawn_mass.difference(ground_occupancy).area>TOL:
             pending.append("piloti_structural_clearance_review")
         ground_drive = unary_union([g for g,p in grouped[(0,"parking_aisle")]+grouped[(0,"vehicular_access")]])
-        check("drive_ground_footprint_collision:0",ground_drive.intersection(ground_occupancy).area<=TOL)
+        # Coincident rotated owner edges can flip an overlay face at floating
+        # precision. Use the engine's existing metric precision, below TOL.
+        check("drive_ground_footprint_collision:0",ground_drive.intersection(ground_occupancy,grid_size=EPS).area<=TOL)
     for (level,layer),items in list(grouped.items()):
         if layer!="basement_boundary":
             continue
@@ -167,7 +170,7 @@ def validate_plan(request, result):
                     drive_blockers.append(ramp_geom.difference(flat.buffer(LANDING_JOINT_TOL)))
         # Record the overlap, not just the verdict: a failure of 0.01 m2 on a turning ramp and one of
         # 150 m2 on a drive drawn up the slope are different problems, and the id alone cannot tell them apart.
-        drive_conflict=drive.intersection(unary_union(drive_blockers)).area
+        drive_conflict=drive.intersection(unary_union(drive_blockers),grid_size=EPS).area
         check(f"drive_obstructions:{level}",drive_conflict<=TOL,overlap_m2=round(drive_conflict,4))
         if request.get('core') and core_clearance:
             core_geom = shape(request['core'])
