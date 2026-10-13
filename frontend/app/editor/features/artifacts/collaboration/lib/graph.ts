@@ -91,14 +91,48 @@ export function fullText(message: CollaborationMessage, names: Readonly<Record<s
   return describeMessage(message, names).lines.filter((line) => line && !/기록 원문/.test(line)).join('\n')
 }
 
-/** Every call on one card, oldest first, each under its own tool: a card that stands for several calls reads them all. */
-function fullOf(rows: readonly CollaborationMessage[], names: Readonly<Record<string, string>>): string {
-  if (rows.length === 1) return fullText(rows[0]!, names)
-  return rows.map((row) => {
+/**
+ * Each call's place in the conversation (1, 2, 3 … in the order the calls were made) by message id, an answer
+ * carrying its request's number; the person's own messages are not calls. `startedAt` times each numbered call.
+ */
+export interface CallOrder { number: Map<string, number>; startedAt: Map<number, number> }
+
+export function callNumbers(messages: readonly CollaborationMessage[]): CallOrder {
+  const number = new Map<string, number>()
+  const startedAt = new Map<number, number>()
+  const requests = messages.map((message, index) => ({ message, index }))
+    .filter(({ message }) => message.direction === 'request' && message.from !== USER)
+    .sort((a, b) => (a.message.at ?? 0) - (b.message.at ?? 0) || a.index - b.index)
+  requests.forEach(({ message }, index) => {
+    number.set(message.id, index + 1)
+    if (message.at) startedAt.set(index + 1, message.at)
+  })
+  // An answer carries its request's number: the ledger's ids pair them (`hop:7:request` ↔ `hop:7:response`).
+  for (const message of messages) {
+    const asked = message.direction === 'response' ? number.get(message.id.replace(/:response$/, ':request')) : undefined
+    if (asked) number.set(message.id, asked)
+  }
+  return { number, startedAt }
+}
+
+/** The numbers a card stands for, short: " · 2·3·5번째", " · 2·3·5·6·8 …번째" past five. */
+function numbersLabel(rows: readonly CollaborationMessage[], order: CallOrder): string {
+  const numbers = [...new Set(rows.map((row) => order.number.get(row.id)).filter((n): n is number => !!n))].sort((a, b) => a - b)
+  if (!numbers.length) return ''
+  return ` · ${numbers.slice(0, 5).join('·')}${numbers.length > 5 ? ' …' : ''}번째`
+}
+
+/** Every call on one card in the order made, each under its number and tool; an answer says how long its call took. */
+function fullOf(rows: readonly CollaborationMessage[], names: Readonly<Record<string, string>>, order: CallOrder): string {
+  if (rows.length === 1 && !order.number.get(rows[0]!.id)) return fullText(rows[0]!, names)
+  return [...rows].sort((a, b) => (order.number.get(a.id) ?? 0) - (order.number.get(b.id) ?? 0)).map((row) => {
     const text = fullText(row, names)
+    const n = order.number.get(row.id)
     // A tool no folder names in words reads as a lookup, never as its id.
     const label = toolLabel(row.tool)
-    return `· ${label !== row.tool && label !== '—' ? label : '조회'}${text ? `\n${text}` : ''}`
+    const started = n ? order.startedAt.get(n) : undefined
+    const took = row.direction === 'response' && started && row.at ? ` · ${Math.max(0, Math.round((row.at - started) / 1000))}초` : ''
+    return `${n ? `${n}. ` : '· '}${label !== row.tool && label !== '—' ? label : '조회'}${took}${text ? `\n${text}` : ''}`
   }).join('\n\n')
 }
 
@@ -106,14 +140,15 @@ function fullOf(rows: readonly CollaborationMessage[], names: Readonly<Record<st
 const DOORS = new Set(['ask', 'conversation', 'law-analysis'])
 
 /** The small line under what was said: who asked whom for what, or whose answer, and how many times when more than once. */
-function captionOf(rows: readonly CollaborationMessage[], names: Readonly<Record<string, string>>, running: boolean): string {
+function captionOf(rows: readonly CollaborationMessage[], names: Readonly<Record<string, string>>, running: boolean, order: CallOrder): string {
   const first = rows[0]!
   const label = (id: string) => names[id] ?? agentLabel(id)
   const count = rows.length > 1 ? ` · ${rows.length}건` : ''
-  if (first.direction === 'response') return `${label(first.from)}의 답${count}`
+  const numbers = numbersLabel(rows, order)
+  if (first.direction === 'response') return `${label(first.from)}의 답${count}${numbers}`
   const toolsUsed = [...new Set(rows.map((row) => row.tool).filter(Boolean))]
   const what = toolsUsed.length === 1 ? (DOORS.has(toolsUsed[0]!) ? toolLabel(toolsUsed[0]) : `${toolLabel(toolsUsed[0])} 요청`) : '요청'
-  return `${label(first.from)} → ${label(first.to)} · ${what}${count}${running ? ' · 답을 기다리는 중' : ''}`
+  return `${label(first.from)} → ${label(first.to)} · ${what}${count}${numbers}${running ? ' · 답을 기다리는 중' : ''}`
 }
 
 /** One message in the user's words, short enough for a card on the canvas: its first described line (never the record note). */
@@ -169,6 +204,7 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
   for (let index = 1; index < called.length; index++) {
     edges.push({ id: `next:${called[index - 1]}→${called[index]}`, source: called[index - 1]!, target: called[index]!, kind: 'next', label: `${index + 1}번째`, said: '', known: true, count: 0 })
   }
+  const order = callNumbers(messages)
   const groups = new Map<string, CollaborationMessage[]>()
   for (const message of messages) {
     const key = `${message.from}→${message.to}`
@@ -181,7 +217,7 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
     const what = first.direction === 'request' ? `${toolsUsed.length === 1 ? `${toolLabel(toolsUsed[0])} ` : ''}요청` : '응답'
     const latest = rows[rows.length - 1]!
     const running = latest.state === 'running'
-    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, said: gist(latest, names), full: fullOf(rows, names), caption: captionOf(rows, names, running), running })
+    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, said: gist(latest, names), full: fullOf(rows, names, order), caption: captionOf(rows, names, running, order), running })
   }
   // An owner that answered the person was reached through the Orchestrator even when that call is not on the record yet:
   // the relay is drawn (dashed, unknown) so the path reads person → Orchestrator → owner, without inventing what was asked.

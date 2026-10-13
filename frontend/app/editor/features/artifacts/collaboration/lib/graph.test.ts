@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { buildGraph, CARD_WIDTH, callOrder, type GraphNode, NODE_WIDTH, SLOT } from './graph'
+import { buildGraph, CARD_WIDTH, callNumbers, callOrder, type GraphNode, NODE_WIDTH, SLOT } from './graph'
 import type { CollaborationMessage } from './transcript'
 
 const message = (over: Partial<CollaborationMessage>): CollaborationMessage => ({
@@ -57,7 +57,7 @@ test('a wide canvas fans out from the Orchestrator: one row per agent in call or
     ['law', 'back', 'said:law→orchestrator', 't-right'], ['said:law→orchestrator', 's-left', 'orchestrator', 'return'],
   ])
   expect(at('said:law→orchestrator').said).toMatchObject({ text: '60/250', known: false })
-  expect(at('said:orchestrator→revision').said?.caption).toBe('Orchestrator Agent → Revision Agent · 재검토 판정 요청')
+  expect(at('said:orchestrator→revision').said?.caption).toBe('Orchestrator Agent → Revision Agent · 재검토 판정 요청 · 3번째')
 })
 
 test('what was said is on the canvas: the person’s question on their card and on the line to the Orchestrator, the answer on the line back', () => {
@@ -94,7 +94,7 @@ test('a narrow canvas stacks the flow: person, their words, Orchestrator, each c
   ])
   for (let index = 1; index < column.length; index++) expect(column[index]!.position.y).toBeGreaterThan(column[index - 1]!.position.y)
   expect(column[1]!.said).toEqual({ text: '조경 의무 면적은 몇 퍼센트야?', full: '조경 의무 면적은 몇 퍼센트야?', caption: '사용자 → Orchestrator Agent · 질문', kind: 'request', running: false, known: true })
-  expect(column[3]!.said?.caption).toBe('Orchestrator Agent → Law Agent · 법령 검색 요청')
+  expect(column[3]!.said?.caption).toBe('Orchestrator Agent → Law Agent · 법령 검색 요청 · 1번째')
   expect(column[5]!.said?.caption).toBe('Law Agent의 답')
   expect(column[5]!.said?.text).toBe('조문 1건')
   expect(edges.map((edge) => [edge.source, edge.target, edge.lane])).toEqual([
@@ -129,4 +129,25 @@ test('without a catalog every agent the conversation knows is on the canvas, in 
   const rows = new Set(waiting.map((node) => node.position.y))
   expect(rows.size).toBeGreaterThan(1)
   for (const node of waiting) for (const other of waiting) if (node !== other && node.position.y === other.position.y) expect(Math.abs(node.position.x - other.position.x)).toBeGreaterThanOrEqual(NODE_WIDTH)
+})
+
+
+test('every call is numbered in the order it was made; an answer carries the number of its call and how long it took', () => {
+  const at = (s: number) => Date.UTC(2026, 9, 13, 6, 0, s)
+  const row = (id: string, direction: 'request' | 'response', from: string, to: string, tool: string, when: number, text = '{}') =>
+    ({ id, step: 0, direction, from, to, tool, state: 'completed', transport: 'a2a' as const, truncated: false, text, at: at(when) })
+  const messages = [
+    row('hop:1:request', 'request', 'user', 'orchestrator', 'conversation', 0, '질문'),
+    row('hop:3:request', 'request', 'orchestrator', 'law', 'law_land_analyze', 11),
+    row('hop:2:request', 'request', 'orchestrator', 'site_context', 'site_zoning', 10),
+    row('hop:3:response', 'response', 'law', 'orchestrator', 'law_land_analyze', 53),
+    row('hop:4:request', 'request', 'orchestrator', 'law', 'law_article', 64),
+  ]
+  const order = callNumbers(messages)
+  expect([...order.number.entries()]).toEqual([['hop:2:request', 1], ['hop:3:request', 2], ['hop:4:request', 3], ['hop:3:response', 2]])
+  const { nodes } = buildGraph(messages, null, { catalog: [{ id: 'law' }, { id: 'site_context' }] })
+  const asked = nodes.find((node) => node.id === 'said:orchestrator→law')!.said!
+  expect(asked.caption).toContain('· 2·3번째')
+  expect(asked.full.split('\n\n').map((block) => block.split('\n')[0])).toEqual(['2. 법규 분석', '3. 조문'])
+  expect(nodes.find((node) => node.id === 'said:law→orchestrator')!.said!.full.split('\n')[0]).toBe('2. 법규 분석 · 42초')
 })
