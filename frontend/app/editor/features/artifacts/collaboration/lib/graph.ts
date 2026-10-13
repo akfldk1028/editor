@@ -28,7 +28,7 @@ export interface GraphNode {
   /** Everything this participant sent or was sent, in call order, to step through on its card; empty when it did not take part. */
   items: SaidItem[]
   /** A `said` card: every message on one line in call order (stepped through with ‹ ›), how the line is drawn. */
-  said?: { items: SaidItem[]; kind: 'request' | 'response'; running: boolean; known: boolean }
+  said?: { items: SaidItem[]; kind: 'request' | 'response'; running: boolean; known: boolean; party: string }
   /** 1, 2, 3 … in the order the Orchestrator called it; null when it was not called. */
   order: number | null
   selected: boolean
@@ -262,11 +262,15 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
   return fanned(user, hub, spoken, waiting, edges)
 }
 
+/** Whom a line is about: the agent at its other end from the person and the Orchestrator, or the Orchestrator itself. */
+export const partyOf = (source: string, target: string): string =>
+  [source, target].find((id) => id !== ORCHESTRATOR && id !== USER) ?? ORCHESTRATOR
+
 /** What was said on one line, as a card of its own at (x, y). */
 function saidCard(edge: GraphEdge, x: number, y: number): GraphNode {
   return {
     id: `said:${edge.id}`, label: '', sub: '', kind: 'said', items: [], order: null, selected: false, idle: false, live: null, position: { x, y },
-    said: { items: edge.items ?? [], kind: edge.kind as 'request' | 'response', running: !!edge.running, known: edge.known },
+    said: { items: edge.items ?? [], kind: edge.kind as 'request' | 'response', running: !!edge.running, known: edge.known, party: partyOf(edge.source, edge.target) },
   }
 }
 

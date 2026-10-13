@@ -157,3 +157,12 @@ test('every call is numbered in the order it was made; an answer carries the num
     'Orchestrator Agent → Law Agent · 법규 분석 요청 · 2번째', 'Law Agent의 답 · 2번째 · 42초', 'Orchestrator Agent → Law Agent · 조문 요청 · 3번째',
   ])
 })
+
+test('a card is about the agent at its far end: clicking the Orchestrator → Law request opens Law, not the card', () => {
+  const at = (s: number) => Date.UTC(2026, 9, 13, 6, 0, s)
+  const row = (id: string, direction: 'request' | 'response', from: string, to: string) =>
+    ({ id, step: 0, direction, from, to, tool: 'law_parcel_limits', state: 'completed', transport: 'a2a' as const, truncated: false, text: '{}', at: at(1) })
+  const { nodes } = buildGraph([row('hop:1:request', 'request', 'user', 'orchestrator'), row('hop:2:request', 'request', 'orchestrator', 'law'), row('hop:2:response', 'response', 'law', 'orchestrator')], null, { catalog: [{ id: 'law' }] })
+  const party = (id: string) => nodes.find((node) => node.id === id)?.said?.party
+  expect([party('said:orchestrator→law'), party('said:law→orchestrator'), party('said:user→orchestrator')]).toEqual(['law', 'law', 'orchestrator'])
+})

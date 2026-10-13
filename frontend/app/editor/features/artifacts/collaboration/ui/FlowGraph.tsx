@@ -9,7 +9,7 @@ import { markOf, ORCHESTRATOR, USER } from '@/lib/agents'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 
 import type { CatalogEntry, LiveState } from '../lib/catalog'
-import { buildGraph, CARD_HEIGHT, CARD_WIDTH, type GraphNode, NODE_HEIGHT, NODE_WIDTH } from '../lib/graph'
+import { buildGraph, CARD_HEIGHT, CARD_WIDTH, type GraphNode, NODE_HEIGHT, NODE_WIDTH, partyOf } from '../lib/graph'
 import type { CollaborationMessage } from '../lib/transcript'
 import { SaidViewer } from './SaidViewer'
 import './collaboration.css'
@@ -187,6 +187,9 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     }
   }), [graph])
 
+  // A line runs to and from a card: clicking it, like clicking the card, picks the agent the card is about.
+  const partyAt = (source: string, target: string) =>
+    [source, target].map((id) => nodes.find((node) => node.id === id)?.data.said?.party).find(Boolean) ?? partyOf(source, target)
   const order = useMemo(() => graph.nodes.filter((node) => node.order !== null).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((node) => node.label), [graph])
   // The flow that ran, with room above and below the cards for what was said; the waiting agents stay below, reachable by scrolling.
   const bounds = useMemo<Rect | null>(() => {
@@ -225,8 +228,8 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
           nodes={nodes}
           nodesConnectable={false}
           nodesDraggable
-          onEdgeClick={(_, edge) => onSelect?.(edge.source === ORCHESTRATOR ? edge.target : edge.source)}
-          onNodeClick={(_, node) => onSelect?.(selected === node.id ? null : node.id)}
+          onEdgeClick={(_, edge) => onSelect?.(partyAt(edge.source, edge.target))}
+          onNodeClick={(_, node) => { const party = node.data.said?.party ?? node.id; onSelect?.(selected === party ? null : party) }}
           onNodeDragStop={(_, node) => { moved.current.add(node.id) }}
           onNodesChange={onNodesChange}
           onPaneClick={() => onSelect?.(null)}
