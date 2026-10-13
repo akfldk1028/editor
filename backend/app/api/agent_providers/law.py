@@ -203,7 +203,7 @@ def parcel_limits(request):
             return _bad("assessment_date must be YYYY-MM-DD")
     try:
         from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site
-        site = load_legal_site(pnu, building_type=building_type, assessment_date=assessment_date, parcel_policy=False)
+        site = load_legal_site(pnu, building_type=building_type, assessment_date=assessment_date, apply_parcel_policy=False)
     except Exception as exc:
         return _failed(exc)
     parcel_area = float(site.parcel_area_m2)
@@ -211,7 +211,8 @@ def parcel_limits(request):
            "parcel_area_m2": round(parcel_area, 3),
            "ground_capacity_m2": round(float(site.ground_capacity_m2), 3),
            "far_capacity_m2": round(float(site.far_capacity_m2), 3),
-           "max_storeys": site.max_storeys,
+           # No 지구단위계획 value is in these caps; the model must not read them as the parcel's final limits.
+           "district_plan_applied": False,
            "bcr_pct": round(100 * float(site.ground_capacity_m2) / parcel_area, 2),
            "far_pct": round(100 * float(site.far_capacity_m2) / parcel_area, 2)}
     try:

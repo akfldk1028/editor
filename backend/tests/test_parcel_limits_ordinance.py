@@ -34,8 +34,8 @@ def test_parcel_limits_carries_the_receipt(monkeypatch):
                            max_storeys=None, regulation=REGULATION, evidence=lambda: {'schema_version': 'x'})
     seen = []
 
-    def load(pnu, building_type=None, assessment_date=None, parcel_policy=True):
-        seen.append(parcel_policy)
+    def load(pnu, building_type=None, assessment_date=None, apply_parcel_policy=True):
+        seen.append(apply_parcel_policy)
         return site
     monkeypatch.setattr(legal, 'load_legal_site', load)
     request = RequestFactory().post('/law/agent/parcel-limits/', data=json.dumps({'pnu': '4115011300106840001'}),
@@ -44,7 +44,8 @@ def test_parcel_limits_carries_the_receipt(monkeypatch):
     assert body['ordinance']['bcr_article'].endswith('제42조') and body['zones'] == ['제2종일반주거지역']
     assert body['far_pct'] == 250.0 and body['evidence'] == {'schema_version': 'x'}
     # Public rules only: the hand-registered parcel table never reaches a law answer.
-    assert seen == [False] and 'policy' not in body
+    assert seen == [False] and 'policy' not in body and 'max_storeys' not in body
+    assert body['district_plan_applied'] is False
 
 
 def test_a_site_loaded_without_the_parcel_policy_ignores_the_registered_table():
@@ -52,15 +53,20 @@ def test_a_site_loaded_without_the_parcel_policy_ignores_the_registered_table():
     from backend.app.modules.design.generation.maas.massv2 import legal, parcel_policy
     pnu = next(iter(parcel_policy._POLICIES))
     assert parcel_policy.policy_of(SimpleNamespace(pnu=pnu)) is not None
-    assert parcel_policy.policy_of(SimpleNamespace(pnu=pnu, parcel_policy=False)) is None
-    assert parcel_policy.registered_buildable(SimpleNamespace(pnu=pnu, site_local_utm=box(0, 0, 1, 1), parcel_policy=False)) is None
+    assert parcel_policy.policy_of(SimpleNamespace(pnu=pnu, apply_parcel_policy=False)) is None
+    assert parcel_policy.registered_buildable(SimpleNamespace(pnu=pnu, site_local_utm=box(0, 0, 1, 1), apply_parcel_policy=False)) is None
     site = legal.LegalSite(pnu=pnu, site_local_utm=box(0, 0, 10, 10), site_origin_utm=(0.0, 0.0), context=None,
                            floor_field={'bcr_footprint_capacity_m2': 60.0, 'statutory_far_capacity_m2': 250.0},
-                           building_type='업무시설', parcel_policy=False)
+                           building_type='업무시설', apply_parcel_policy=False)
     assert (site.ground_capacity_m2, site.far_capacity_m2, site.max_storeys, site.statutory_max_height_m) == (60.0, 250.0, None, None)
+    # The table's own fields are left out, not reported as an absent limit or an unregistered building line.
+    site_with_context = legal.LegalSite(pnu=pnu, site_local_utm=box(0, 0, 10, 10), site_origin_utm=(0.0, 0.0),
+                                        context=SimpleNamespace(envelope=SimpleNamespace(floor_height=3.3)),
+                                        floor_field={}, building_type='업무시설', apply_parcel_policy=False)
+    assert not set(legal.TABLE_ONLY_EVIDENCE) & set(site_with_context.evidence())
     # Without a requested type the table's default use is not borrowed either.
     unnamed = legal.LegalSite(pnu=pnu, site_local_utm=box(0, 0, 10, 10), site_origin_utm=(0.0, 0.0), context=None,
-                              floor_field={}, parcel_policy=False)
+                              floor_field={}, apply_parcel_policy=False)
     assert unnamed.building_type == parcel_policy.default_building_type(None)
 
 
@@ -81,7 +87,7 @@ def test_parcel_limits_passes_the_callers_assessment_date_and_refuses_a_bad_one(
     site = SimpleNamespace(parcel_area_m2=1000.0, ground_capacity_m2=600.0, far_capacity_m2=2000.0,
                            max_storeys=None, regulation=REGULATION, evidence=lambda: {})
 
-    def load(pnu, building_type=None, assessment_date=None, parcel_policy=True):
+    def load(pnu, building_type=None, assessment_date=None, apply_parcel_policy=True):
         seen.append(assessment_date)
         return site
     monkeypatch.setattr(legal, 'load_legal_site', load)

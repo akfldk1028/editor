@@ -32,13 +32,18 @@ from backend.app.modules.land.reference.services.zone_split import SPLIT_VERSION
 logger = logging.getLogger(__name__)
 
 
+# Evidence fields that report the hand-registered parcel table (parcel_policy) and nothing else.
+TABLE_ONLY_EVIDENCE = ('max_storeys', 'statutory_max_height_m', 'parcel_policy',
+                       'exact_building_line_geometry_verified', 'building_line_geometry_registered', 'frontage_constraints')
+
+
 class LegalSiteUnavailable(RuntimeError):
     """The parcel could not be resolved from live data."""
 
 
-def apply_registered_parcel_plan(pnu, parcel, context, *, parcel_policy=True):
+def apply_registered_parcel_plan(pnu, parcel, context, *, apply_parcel_policy=True):
     """Intersect the existing legal context with source-registered plan controls."""
-    site = SimpleNamespace(pnu=pnu, site_local_utm=parcel, parcel_policy=parcel_policy)
+    site = SimpleNamespace(pnu=pnu, site_local_utm=parcel, apply_parcel_policy=apply_parcel_policy)
     try:
         registered = registered_buildable(site)
     except ValueError as error:
@@ -89,10 +94,10 @@ class LegalSite:
     zone_split: dict[str, Any] | None = None
     # Whether the hand-registered parcel table (parcel_policy._POLICIES) narrows this parcel. Mass generation keeps
     # it; the law parcel-limits answer turns it off so its caps come from public rules alone.
-    parcel_policy: bool = True
+    apply_parcel_policy: bool = True
 
     def __post_init__(self):
-        object.__setattr__(self, 'building_type', default_building_type(self.pnu if self.parcel_policy else None, self.building_type))
+        object.__setattr__(self, 'building_type', default_building_type(self.pnu if self.apply_parcel_policy else None, self.building_type))
 
     @property
     def datum_is_measured(self) -> bool:
@@ -160,7 +165,7 @@ class LegalSite:
     def evidence(self) -> dict[str, Any]:
         from backend.app.modules.design.generation.maas.massv2.siting import site_open_side_evidence
         frontages = frontage_evidence(self)
-        return {
+        evidence = {
             "schema_version": "arr.maas.massv2_legal_site.v1",
             "pnu": self.pnu,
             "parcel_area_m2": round(self.parcel_area_m2, 2),
@@ -181,6 +186,12 @@ class LegalSite:
                 self.floor_field.get("legal_floor_section_areas_m2") or ()
             ),
         }
+        if not self.apply_parcel_policy:
+            # These fields exist only to report the parcel table; without it they would read as facts
+            # (no storey limit, no building line) that nobody established.
+            for key in TABLE_ONLY_EVIDENCE:
+                evidence.pop(key)
+        return evidence
 
 
 def _read_zoning_cache(path) -> dict | None:
@@ -214,10 +225,10 @@ def _write_zoning_cache(path, pnu: str, land_info: dict, areas: dict[str, float]
 
 
 def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_date: str | None = None,
-                    parcel_policy: bool = True) -> LegalSite:
+                    apply_parcel_policy: bool = True) -> LegalSite:
     """Resolve one parcel into the limits the form language generates against."""
 
-    building_type = default_building_type(pnu if parcel_policy else None, building_type)
+    building_type = default_building_type(pnu if apply_parcel_policy else None, building_type)
     boundary = fetch_parcel_boundary(pnu)
     if boundary is None:
         raise LegalSiteUnavailable(
@@ -337,7 +348,7 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
         constraints=constraints,
         sunlight_envelope=setback_lines.get("sunlight_envelope"),
     )
-    context = apply_registered_parcel_plan(pnu, local_site, context, parcel_policy=parcel_policy)
+    context = apply_registered_parcel_plan(pnu, local_site, context, apply_parcel_policy=apply_parcel_policy)
     floor_field = materialize_legal_floor_field(
         context, site_local_utm=local_site, pnu=pnu
     )
@@ -363,5 +374,5 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
         datum=setback_lines.get("datum_result"),
         regulation=regulation,
         zone_split=zone_split_payload,
-        parcel_policy=parcel_policy,
+        apply_parcel_policy=apply_parcel_policy,
     )
