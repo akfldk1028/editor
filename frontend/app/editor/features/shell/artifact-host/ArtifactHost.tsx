@@ -1,12 +1,13 @@
 'use client'
 
-import { Maximize2, Minimize2, MoreHorizontal, Workflow, X } from 'lucide-react'
+import { ArrowLeft, Maximize2, Minimize2, MoreHorizontal, Workflow, X } from 'lucide-react'
 import { lazy, Suspense, useCallback, useId, useMemo, useRef, useState, type ComponentType, type LazyExoticComponent, type RefObject } from 'react'
 
 import type { ArtifactManifest, ArtifactProps, ArtifactTab, ShellApi } from '../artifact-types'
 import type { ArtifactPresentation } from '../layout/layoutModes'
 import { useModalOverlay } from '../layout/useModalOverlay'
 import { collaborationArtifact } from '../../artifacts/collaboration/manifest'
+import { artifactById } from '../registry'
 import { ArtifactHostContext, type ArtifactHostSlots } from './ArtifactChrome'
 import { closePopover, usePopoverAnchor } from './usePopoverAnchor'
 
@@ -35,6 +36,8 @@ interface Props {
   restoreFocusRef?: RefObject<HTMLElement | null>
   onClose(): void
   onMaximizedChange(maximized: boolean): void
+  /** The artifact shown before this one; the flow offers the way back to it. */
+  previous?: { id: string; params: Record<string, string> } | null
 }
 
 /**
@@ -42,7 +45,7 @@ interface Props {
  * tab strip and the artifact's lazily loaded body. Remount it (key) per
  * artifact so slots and counts start fresh.
  */
-export function ArtifactHost({ manifest, tab, params, shell, textTitle, presentation, hidden = false, maximized, restoreFocusRef, onClose, onMaximizedChange }: Props) {
+export function ArtifactHost({ manifest, tab, params, shell, textTitle, presentation, hidden = false, maximized, restoreFocusRef, onClose, onMaximizedChange, previous = null }: Props) {
   const overlay = presentation === 'sheet'
   const dialogRef = useRef<HTMLElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -99,6 +102,11 @@ export function ArtifactHost({ manifest, tab, params, shell, textTitle, presenta
           <div className="shell-slot" ref={setTitleEl} />
         </div>
         <div className="shell-slot" ref={setActionsEl} />
+        {manifest.id === collaborationArtifact.id && previous && artifactById(previous.id) && (
+          <button aria-label={`돌아가기: ${artifactById(previous.id)!.title}`} className="artifact-flow-button" onClick={() => shell.openArtifact(previous.id, previous.params)} title="흐름도를 열기 전에 보던 화면으로" type="button">
+            <ArrowLeft aria-hidden="true" size={14} /><span>{artifactById(previous.id)!.title}</span>
+          </button>
+        )}
         {manifest.id !== collaborationArtifact.id && (
           <button aria-label="협업 흐름도 열기" className="artifact-flow-button" onClick={() => shell.openArtifact(collaborationArtifact.id, { tab: 'flow' })} title="에이전트들이 어떻게 대화했는지" type="button">
             <Workflow aria-hidden="true" size={14} /><span>흐름도</span>

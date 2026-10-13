@@ -76,6 +76,8 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
   const [initial] = useState(initialLocation)
   const [artifactId, setArtifactId] = useState(initial.id)
   const [params, setParams] = useState<Record<string, string>>(initial.params)
+  // The artifact shown before this one, so the flow (opened from the map, the law reader, CAD …) can lead back to it.
+  const [previous, setPrevious] = useState<{ id: string; params: Record<string, string> } | null>(null)
   const [tabs, setTabs] = useState<Record<string, string>>({})
   const [textTitle, setTextTitle] = useState<{ title: string; subtitle?: string } | null>(null)
   const manifest = artifactById(artifactId) ?? artifacts[0]!
@@ -85,12 +87,13 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
   const openArtifact = useCallback((id: string, next?: Record<string, string>) => {
     if (!artifactById(id)) return
     if (id !== artifactId) {
+      setPrevious({ id: artifactId, params })
       setTextTitle(null)
       setArtifactId(id)
     }
     if (next) setParams(next)
     showArtifact()
-  }, [artifactId, showArtifact])
+  }, [artifactId, params, showArtifact])
 
   const shell = useMemo<ShellApi>(() => ({
     openArtifact,
@@ -197,6 +200,7 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
               onMaximizedChange={controls.setArtifactMaximized}
               params={params}
               presentation={artifactPresentation}
+              previous={previous && previous.id !== manifest.id ? previous : null}
               restoreFocusRef={controls.artifactButtonRef}
               shell={shell}
               tab={tab}
