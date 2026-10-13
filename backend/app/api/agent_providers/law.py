@@ -129,13 +129,21 @@ _PARKING_OPTIONS = ("facility_type", "parking_method", "structure", "parking_ang
 
 @csrf_exempt
 @require_http_methods(["POST"])
+def siting_requirements(request):
+    from backend.app.modules.law.reference.siting_rules import siting_requirements as owner
+    return _passthrough(request, ('pnu', 'building_type', 'total_floor_area_m2'),
+                        lambda b: owner(b['pnu'], b['building_type'], b['total_floor_area_m2'], b.get('assessment_date')))
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
 def parking_design_rules(request):
     """required_spaces is an already resolved legal count (rounding belongs to the parking-requirement calculator)."""
     from backend.app.modules.design.generation.maas.masterplan.rules import parking_design_rules as owner
 
     def call(b):
         options = {k: b[k] for k in _PARKING_OPTIONS if k in b}
-        return owner(int(b["required_spaces"]), **options)
+        return owner(b["required_spaces"], **options)
     return _passthrough(request, ("required_spaces",), call)
 
 

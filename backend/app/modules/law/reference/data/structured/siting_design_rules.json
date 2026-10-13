@@ -1,0 +1,27 @@
+{
+  "schema_version": "law.siting_design_rules.v1",
+  "verified_on": "2026-10-13",
+  "small_attached_parking": {
+    "source": "주차장법 시행규칙 제11조제5항·제6항",
+    "official_url": "https://law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1029242759",
+    "effective_from": "2026-07-27",
+    "numeric_owner": "design.generation.maas.parking.layout",
+    "through_aisle_min_width_m": 2.5,
+    "adjacent_aisle_widths_m": {"opposed_60": 4.0, "opposed_45": 3.5, "cross": 3.5},
+    "entrance_exception": {"requires": ["dead_end_road", "authority_no_traffic_obstruction_recognition"]},
+    "road_aisle": {"extent": "centreline_or_opposite_edge_if_no_centreline", "requires": ["road_boundary", "sidewalk_separation", "centreline_presence", "unobstructed_connection"]},
+    "wide_road_aisle": {"parking_angle": "perpendicular", "requires": ["no_obstruction_to_parking_use", "unobstructed_connection"]},
+    "tandem": {"max_depth_spaces": 2},
+    "pedestrian_clearance": {"min_m": 0.5, "applies_when": "pedestrian_passage_required"}
+  },
+  "road_frontage": {
+    "source": "건축법 제44조·시행령 제28조",
+    "official_url": "https://www.law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1028917043",
+    "act_url": "https://law.go.kr/lsLawLinkInfo.do?chrClsCd=010202&lsJoLnkSeq=1000989731",
+    "effective_from": "2026-10-06",
+    "ordinary": {"min_frontage_m": 2.0},
+    "large": {"total_floor_area_at_least_m2": 2000.0, "factory_total_floor_area_at_least_m2": 3000.0, "min_frontage_m": 4.0, "min_road_width_m": 6.0},
+    "requires": ["building_act_road_classification", "not_motorway_only", "contiguous_parcel_contact", "road_width_evidence"],
+    "exceptions_require_review": ["article_44_1_exceptions", "article_28_ordinance_exemptions", "mixed_factory_use"]
+  }
+}

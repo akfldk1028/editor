@@ -57,7 +57,7 @@ DEFAULT_LEVEL_LANDING_LENGTH_M = 6.0
 _SUPPORTED = {
     "facility_type": {"attached"},
     "parking_method": {"self_parking"},
-    "structure": {"underground_or_building", "underground", "building"},
+    "structure": {"underground_or_building", "underground", "building", "surface"},
     "parking_angle": {"perpendicular"},
     "ramp_shape": {"straight"},
 }
@@ -117,9 +117,8 @@ def parking_design_rules(
 ) -> dict[str, Any]:
     """Return the applicable Art. 3/6/11 + Annex 1 design-rule snapshot.
 
-    ``required_spaces`` is an already resolved legal count.  Fractional demand
-    must first be resolved by ARR's parking-requirement calculator because its
-    rounding policy depends on the selected use/jurisdiction rule.
+    ``required_spaces`` is the proposed total installed count for structural
+    applicability. The statutory minimum demand is calculated separately.
     """
     if isinstance(required_spaces, bool) or not isinstance(required_spaces, int) or required_spaces <= 0:
         raise ValueError("required_spaces must be a positive exact integer")
@@ -168,7 +167,9 @@ def parking_design_rules(
         result["unresolved"] = ["historical_edition_and_transitional_applicability"]
         return result
 
-    if required_spaces <= 8:
+    from backend.app.modules.law.reference.siting_rules import catalog
+    small = catalog()['small_attached_parking']
+    if required_spaces <= small['max_total_spaces']:
         result = _base_result(
             status="needs_evidence",
             assessment=assessment,
@@ -230,6 +231,20 @@ def parking_design_rules(
             "accessible_space_count_requires_facility_and_local_ordinance_evidence",
             "ramp_level_landing_length_requires_project_review",
         ]
+        result['statutory']['entrance'] = {'min_width_m': small['entrance_min_width_m'],
+                                          'large_lot': False, 'source': small['source']}
+        result['statutory']['aisle']['min_width_m'] = small['adjacent_aisle_widths_m'][parking_angle]
+        result['statutory']['through_aisle'] = {'min_width_m': small['through_aisle_min_width_m'], 'source': small['source']}
+        result['conditional_options'] = small
+        result['applicability']['installed_spaces_range'] = {'minimum': 1, 'maximum': small['max_total_spaces']}
+        if structure == 'surface':
+            result['status'] = 'rules_available'
+            result['applicability']['status'] = 'applicable_for_preliminary_design'
+            result['applicability']['reason'] = 'Small attached surface self-parking; conditional relaxations are not applied.'
+            result['statutory']['ramp'] = {'status': 'not_applicable'}
+            result['design_assumptions'] = {}
+            result['unresolved'] = ['accessible_space_count_requires_facility_and_local_ordinance_evidence',
+                                    'conditional_parking_options_require_evidence', 'parcel_specific_ordinance_and_permit_review']
         return result
 
     transition_required = required_spaces >= 50
@@ -333,6 +348,8 @@ def parking_design_rules(
             "level_landing_length_m": None,
         },
     }
+    if structure == 'surface':
+        statutory['ramp'] = {'status': 'not_applicable'}
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "rules_available",
@@ -341,11 +358,12 @@ def parking_design_rules(
             "status": "applicable_for_preliminary_design",
             "requested": requested,
             "unsupported_fields": [],
-            "scope": "general attached underground/building self-parking; perpendicular stalls; straight ramp",
+            "installed_spaces_range": {'minimum': (small['max_total_spaces'] + 1 if required_spaces < 50 else 50 if required_spaces == 50 else 51 if required_spaces < 100 else 100), 'maximum': (49 if required_spaces < 50 else 50 if required_spaces == 50 else 99 if required_spaces < 100 else None)},
+            "scope": f"attached {structure} self-parking; perpendicular stalls; conditional exceptions not applied",
         },
         "source_snapshot": _source_snapshot(assessment),
         "statutory": statutory,
-        "design_assumptions": {
+        "design_assumptions": {} if structure == 'surface' else {
             "ramp_level_landing": {
                 "status": "design_assumption",
                 "length_m": DEFAULT_LEVEL_LANDING_LENGTH_M,
@@ -355,7 +373,7 @@ def parking_design_rules(
         },
         "unresolved": [
             "accessible_space_count_requires_facility_and_local_ordinance_evidence",
-            "ramp_level_landing_length_requires_project_review",
+            *([] if structure == 'surface' else ["ramp_level_landing_length_requires_project_review"]),
             "vehicle_swept_path_requires_project_review",
             "parcel_specific_ordinance_and_permit_review",
         ],

@@ -1,5 +1,7 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-13 Contract notice for Orchestrator: added law provider `siting-requirements`, exposed as LawAgent `law_siting_requirements`. Explicit total GFA is distinct from parking facility area. Existing parking-design-rules accepts surface structure; independent validation adds `legal_siting` and `parking_rules_applicability`. Missing legal road certification stays unresolved. See [siting law memory](2026-10-13-siting-law.md).
+
 - 2026-10-13 Rotated ground-contact overlay precision corrected in two drive collision checks. Existing EPS grid prevents a135m2 false overlap at coincident edges; actual0.1m intrusion still fails.56 scoped tests passed; backend reloaded and actual HTTP replan checked. No new API. Parking0/2 still rejected. See [evidence](2026-10-13-rotated-ground-contact.md).
 
 - 2026-10-12 MasterPlan external candidate door: `validate_external_layout(draft)` added to existing HTTP planning operations. Explicit local metric rectangles retain building IDs; independent containment, obstacle and pairwise overlap checks do not repair geometry. Planning/legal/daylight remain unknown. Live RSPL source export (3 buildings, pinned 3bcd385) is rejected for 8 m2 outside the site even though upstream reported geometry_valid. Caller-declared input hash is provenance, not owner certification. No new URL or service restart. Agent research adapter: `research/site_layout/providers/rspl_candidate.py`; production source binding remains pending.

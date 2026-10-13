@@ -347,7 +347,14 @@ def validate_plan(request, result):
     from .planning_scores import score_relationships
     from .siting_relations import measure_siting
     from .relationship_measurements import measure_relationships
+    from .legal_siting import measure as measure_legal_siting, parking_applicability, building_parking
+    legal_siting = measure_legal_siting(request)
+    profile = parking_applicability(rules, count, building_parking(features))
+    pending.append('legal_road_frontage_review')
+    if count and profile['status'] != 'matched':
+        pending.append('parking_rules_actual_layout_applicability')
     return {"schema_version":"masterplan.validation.v1","geometry_status":status,
+            "legal_siting":legal_siting, "parking_rules_applicability":profile,
             "relationship_scores": score_relationships(features, checks),
             "relationship_measurements": measure_relationships(grouped, request),
             "siting_evidence": measure_siting(request, features, occupied),

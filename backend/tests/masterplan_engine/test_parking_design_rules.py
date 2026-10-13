@@ -104,7 +104,7 @@ def test_level_landing_is_explicitly_a_design_assumption_not_a_legal_threshold()
         ({"parking_method": "mechanical"}, "parking_method"),
         ({"parking_angle": "parallel"}, "parking_angle"),
         ({"ramp_shape": "curved"}, "ramp_shape"),
-        ({"structure": "surface"}, "structure"),
+        ({"structure": "unknown"}, "structure"),
     ],
 )
 def test_unsupported_context_is_gated_without_applying_the_snapshot(context: dict, gate: str):
