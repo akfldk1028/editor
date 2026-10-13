@@ -58,6 +58,10 @@ def test_a_site_loaded_without_the_parcel_policy_ignores_the_registered_table():
                            floor_field={'bcr_footprint_capacity_m2': 60.0, 'statutory_far_capacity_m2': 250.0},
                            building_type='업무시설', parcel_policy=False)
     assert (site.ground_capacity_m2, site.far_capacity_m2, site.max_storeys, site.statutory_max_height_m) == (60.0, 250.0, None, None)
+    # Without a requested type the table's default use is not borrowed either.
+    unnamed = legal.LegalSite(pnu=pnu, site_local_utm=box(0, 0, 10, 10), site_origin_utm=(0.0, 0.0), context=None,
+                              floor_field={}, parcel_policy=False)
+    assert unnamed.building_type == parcel_policy.default_building_type(None)
 
 
 def test_a_street_block_ceiling_without_a_number_is_needs_evidence_not_resolved():

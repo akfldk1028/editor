@@ -92,7 +92,7 @@ class LegalSite:
     parcel_policy: bool = True
 
     def __post_init__(self):
-        object.__setattr__(self, 'building_type', default_building_type(self.pnu, self.building_type))
+        object.__setattr__(self, 'building_type', default_building_type(self.pnu if self.parcel_policy else None, self.building_type))
 
     @property
     def datum_is_measured(self) -> bool:

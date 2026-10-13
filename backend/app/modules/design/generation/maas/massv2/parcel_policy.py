@@ -138,7 +138,7 @@ def policy_for(pnu):
 def policy_applies(site):
     # A site loaded with parcel_policy=False (the law parcel-limits answer) is judged on public rules only:
     # a 지구단위계획 reaches it through the Site/Law district review, never through this table.
-    return getattr(site, 'parcel_policy', True) is not False
+    return bool(getattr(site, 'parcel_policy', True))
 
 
 def policy_of(site):
