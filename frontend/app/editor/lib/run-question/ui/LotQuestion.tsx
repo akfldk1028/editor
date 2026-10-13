@@ -12,7 +12,8 @@ interface Props {
   projectId: string
   runId: string
   question: RunQuestion
-  onAnswered?(): void
+  /** The lot chosen, once the run took it (the card itself leaves when the run moves on). */
+  onAnswered?(lot: string): void
 }
 
 /**
@@ -31,7 +32,7 @@ export function LotQuestion({ projectId, runId, question, onAnswered }: Props) {
     try {
       await resumeRun(projectId, runId, { district_lot: lot })
       setAnswered(lot)
-      onAnswered?.()
+      onAnswered?.(lot)
     } catch {
       setError('답을 보내지 못했어요. 잠시 뒤 다시 골라 주세요.')
     } finally {
@@ -45,7 +46,16 @@ export function LotQuestion({ projectId, runId, question, onAnswered }: Props) {
       <div className="run-question-lots">
         {choices.map((choice) => (
           <article className="run-question-lot" key={choice.lot}>
-            <header><strong>{choice.lot}</strong></header>
+            <header>
+              <strong>{choice.lot}</strong>
+              {choice.basis?.quote && (
+                <details>
+                  <summary>획지 근거</summary>
+                  {choice.basis.source && <small>{choice.basis.source}</small>}
+                  <blockquote>{choice.basis.quote}</blockquote>
+                </details>
+              )}
+            </header>
             <dl>
               {choice.rows.map((row) => (
                 <div key={row.label}>

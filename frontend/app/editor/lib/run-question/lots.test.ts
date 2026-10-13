@@ -28,3 +28,16 @@ test('only a question about the district lot that offers lots asks for one', () 
   expect(asksForLot({ ...QUESTION, candidates: { lots: [] } })).toBe(false)
   expect(asksForLot(null)).toBe(false)
 })
+
+test('a use list reads as its text, a figure with what it is measured from, a source by its file name', () => {
+  const question: RunQuestion = { kind: 'request_input', fields: ['district_lot'], candidates: { lots: [{
+    lot: 'A11', lot_basis: { document: '/data/ace/notices/365180/전라남도_2016-490호_고시.pdf', quote: '결정도 참조 : A11 ~ A12' },
+    allowed_uses: [{ text: '공장; 창고시설', value: null, quote: '허용용도 …', document: '/data/ace/notices/365180/전라남도_2016-490호_고시.pdf', article: '마.1) 산업시설용지' }],
+    building_line_m: [{ value: 8, text: '중로 2-54, 55호선변', quote: '…8m' }],
+  }] } }
+  const [a11] = lotChoices(question)
+  expect(a11!.basis).toEqual({ quote: '결정도 참조 : A11 ~ A12', source: '전라남도_2016-490호_고시.pdf' })
+  expect(a11!.rows.map((row) => [row.label, row.values[0]!.text])).toEqual([['건축한계선', '8 m (중로 2-54, 55호선변)'], ['허용 용도', '공장; 창고시설']])
+  expect(a11!.rows[1]!.values[0]!.source).toBe('전라남도_2016-490호_고시.pdf · 마.1) 산업시설용지')
+  expect(a11!.others).toBe(0)
+})

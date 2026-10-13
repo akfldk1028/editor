@@ -4,3 +4,4 @@
  */
 export { asksForLot, type LotChoice, lotChoices } from './lots'
 export { LotQuestion } from './ui/LotQuestion'
+export { useWaitingQuestions, type WaitingQuestion } from './useWaitingQuestions'

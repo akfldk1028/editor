@@ -3,7 +3,7 @@
 import { Send, SquarePen, Workflow } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import { dismissFeed, type FeedEntry, useFeed, feedForProject, projectFeed } from '@/lib/orchestrator-runs/feed'
+import { dismissFeed, type FeedEntry, useFeed, feedForProject, postFeed, projectFeed } from '@/lib/orchestrator-runs/feed'
 import { askLines, siteLocateParams, siteLocatedLine } from '@/lib/orchestrator-runs/feed-lines'
 import { newConversation, useConversationSelection } from '@/lib/design-conversation/session'
 import { turnSteps, useLedger, waitingLine } from '@/lib/ledger'
@@ -24,6 +24,8 @@ import { AskedAgents, StepList } from './AgentSteps'
 import { ConversationArtifacts } from './ConversationArtifacts'
 import { ConversationProject, useConversationProject } from './ConversationProject'
 import './agent-conversation.css'
+import { LotQuestion } from '@/lib/run-question/ui/LotQuestion'
+import { useWaitingQuestions } from '@/lib/run-question/useWaitingQuestions'
 
 /** When the question a reply answers was asked: the nearest earlier message from the person, or null. */
 function askedAt(messages: readonly { role: string; at: string }[], index: number): number | null {
@@ -77,6 +79,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   const composerRef = useRef<HTMLInputElement>(null)
   useAsk(shell.openArtifact)
   const project = useConversationProject()
+  const waiting = useWaitingQuestions(project.projectId)
   // The editor located a site the message named: the Site Agent's line goes to the feed and the map opens on that
   // parcel and selects it. A message that was one address never reached the owner, so its bubble is posted here too.
   // The ledger of this conversation, so the waiting line names the agent being asked right now.
@@ -152,6 +155,12 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
         )}
         {(conversation.error || conversation.snapshot?.error) && <div className="agent-turn-system" role="alert">{conversation.error || conversationErrorText(conversation.snapshot?.error)}<button className="agent-turn-link" onClick={() => void conversation.refresh?.()} title="저장된 대화 상태를 다시 불러옵니다" type="button">상태 새로고침</button></div>}
         <ConversationArtifacts artifacts={conversation.snapshot?.artifacts ?? []} onConfirm={conversation.confirm} disabled={conversation.loading || conversation.snapshot?.status === 'working' || conversation.pending.length > 0} />
+        {/* What a run of this workspace waits on that the person answers here (a district lot), however it was started. */}
+        {project.projectId && waiting.map((item) => (
+          // The choice stays in the thread as the person's line, like 대지 선택; the card leaves when the run moves on.
+          <LotQuestion key={item.runId} onAnswered={(lot) => postFeed({ kind: 'user', text: `획지 선택: ${lot}`, run_id: item.runId })}
+            projectId={project.projectId!} question={item.question} runId={item.runId} />
+        ))}
         <div ref={endRef} />
       </div>
       <form

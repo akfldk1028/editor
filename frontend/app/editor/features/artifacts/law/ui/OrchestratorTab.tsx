@@ -108,7 +108,7 @@ function RunHead({ run, results, stale, projectId, onReload }: { run: RunSummary
         {stale && <small>· 상태 확인 지연</small>}
       </h2>
       {waiting && asksForLot(run.pending_request) && run.pending_request && (
-        <LotQuestion onAnswered={onReload} projectId={projectId} question={run.pending_request} runId={run.run_id} />
+        <LotQuestion onAnswered={() => onReload()} projectId={projectId} question={run.pending_request} runId={run.run_id} />
       )}
       {waiting && !asksForLot(run.pending_request) && (
         <p className="law-note" data-kind="warn" role="status">
