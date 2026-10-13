@@ -4,12 +4,12 @@ import { useCallback, useSyncExternalStore } from 'react'
 
 import type { Hop } from '@/lib/orchestrator-runs/types'
 
-import { listHops, openHopStream } from '../api/ledger'
-import { fromHops, type LedgerScope } from '../lib/hops'
-import type { CollaborationMessage } from '../lib/transcript'
+import { listHops, openHopStream } from './api'
+import { fromHops, type LedgerScope } from './hops'
+import type { LedgerMessage } from './types'
 
 export type LedgerLoad = { kind: 'loading' } | { kind: 'ready' } | { kind: 'error'; text: string }
-interface LedgerView { hops: Hop[]; messages: CollaborationMessage[]; load: LedgerLoad }
+interface LedgerView { hops: Hop[]; messages: LedgerMessage[]; load: LedgerLoad }
 
 /** Rows by id, so a row recorded twice (its start, then its end) is one row. */
 function merge(current: readonly Hop[], incoming: readonly Hop[]): Hop[] {

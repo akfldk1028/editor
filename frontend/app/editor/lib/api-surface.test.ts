@@ -48,6 +48,7 @@ const CLIENTS: Record<string, Client> = {
   'features/agents/api.ts': {},
   'features/agent-dialogue/projects.ts': { helpers: [{ fn: 'request', prefix: '/api/v1/platform/projects' }] },
   'lib/orchestrator-runs/api.ts': { helpers: [{ fn: 'request', prefix: '/api/v1/platform' }] },
+  'lib/ledger/api.ts': {},
   'features/agent-dialogue/followup-review.ts': {},
   'features/agent-dialogue/specialist-review.ts': {},
   'features/mcp/api/mcp-client.ts': { tokens: { '${base}': '/api/v1/workspace/mcp/connections' } },

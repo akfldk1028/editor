@@ -1,7 +1,7 @@
 import { listHops } from '@/lib/orchestrator-runs/api'
 import type { Hop } from '@/lib/orchestrator-runs/types'
 
-import { type LedgerScope, scopeQuery } from '../lib/hops'
+import { type LedgerScope, scopeQuery } from './hops'
 
 export { listHops }
 

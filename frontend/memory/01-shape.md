@@ -24,6 +24,7 @@ into other screens; their AG unit tests were not ported).
 `backend-request.ts` (the one server-side fetch to the backend), `workspace-request.ts`,
 `design-operation-path.ts` (which design paths the proxy forwards), `platform-design-operation.ts`,
 `scene-*` (scene store/security), `api-surface.test.ts` (guard, see 02).
+`ledger/` (2026-10-13): the 협업 장부 client - first read + live tail, one shared tail per scope per page, rows → messages, who the chat waits on and what each agent was asked; the flow (collaboration artifact) and the conversation both read it here, never each other.
 
 ## Where split pieces go (2026-10-06)
 A feature folder keeps its page/entry file at the root; pieces go to its own `components/`

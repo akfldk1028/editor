@@ -1,6 +1,6 @@
 import type { Hop } from '@/lib/orchestrator-runs/types'
 
-import type { CollaborationMessage } from './transcript'
+import type { LedgerMessage } from './types'
 
 /** The text of a GenAI message list (`[{role, parts:[{type:'text', content}]}]`). */
 export const hopText = (messages: Hop['input_messages']): string =>
@@ -18,8 +18,8 @@ const stateOf = (hop: Hop): string => {
  * asked) and, once it ended, the callee's response (what came back). A call still running shows as a running request.
  * `start_run` rows are the person's request to the Orchestrator that opened a run.
  */
-export function fromHops(hops: readonly Hop[]): CollaborationMessage[] {
-  const out: CollaborationMessage[] = []
+export function fromHops(hops: readonly Hop[]): LedgerMessage[] {
+  const out: LedgerMessage[] = []
   for (const hop of hops) {
     const base = { tool: hop.tool ?? '', transport: 'a2a' as const, truncated: false, a2a_task_id: hop.task_id ?? null }
     const input = hopText(hop.input_messages)

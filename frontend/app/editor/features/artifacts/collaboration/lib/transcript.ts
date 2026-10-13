@@ -1,25 +1,11 @@
 import { agentForTool } from '@/lib/orchestrator-runs/labels'
-import type { Communication, Communications } from '@/lib/orchestrator-runs/types'
+import type { LedgerMessage } from '@/lib/ledger'
+import type { Communications } from '@/lib/orchestrator-runs/types'
 
-export type Direction = 'request' | 'response'
+export type { Direction } from '@/lib/ledger'
 
 /** One thing said in a run: the Orchestrator's request to an agent, or that agent's answer. */
-export interface CollaborationMessage {
-  id: string
-  step: number
-  direction: Direction
-  from: string
-  to: string
-  tool: string
-  state: string
-  transport: Communication['transport']
-  truncated: boolean
-  text: string
-  /** The A2A task this call ran as, when the record carries it: the key to the agent's own full copy. */
-  a2a_task_id?: string | null
-  /** When it happened (epoch ms), where the source says: the ledger's clock, the feed's, the saved conversation's. */
-  at?: number
-}
+export type CollaborationMessage = LedgerMessage
 
 export interface Transcript {
   /** Canonical agent ids in order of appearance; the Orchestrator first whenever anything was said. */
