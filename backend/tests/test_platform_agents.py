@@ -91,7 +91,7 @@ def test_an_agents_own_task_records_are_read_with_the_official_list_tasks_call()
         seen.append(json.loads(request.content))
         return httpx.Response(200, json=listing)
     records = asyncio.run(a2a_tasks.list_tasks('site_context', transport=httpx.MockTransport(handler), env={'SITE_CONTEXT_A2A_URL': 'http://site'}))
-    assert seen[0]['method'] == 'ListTasks' and seen[0]['params'] == {'pageSize': 20, 'historyLength': 2}
+    assert seen[0]['method'] == 'ListTasks' and seen[0]['params'] == {'pageSize': 20, 'historyLength': 2, 'includeArtifacts': True}
     assert records == [{'id': 'f2d2', 'context_id': 'ctx', 'state': 'completed', 'at': '2026-10-12T10:47:03Z', 'tool': 'site_resolve',
                         'request_text': '{"tool": "site_resolve", "args": {"pnu": "1"}}', 'response_text': '{"status": "partial", "summary": "6/9"}'}]
 
@@ -148,3 +148,15 @@ def test_the_door_may_name_the_a2a_task_of_a_communication():
                                            'request_text': '{}', 'response_text': '{}', 'transport': 'a2a', 'truncated': True, 'redacted': False,
                                            'a2a_task_id': 'c639', 'a2a_context_id': 'run1'})
     assert (row.a2a_task_id, row.a2a_context_id) == ('c639', 'run1')
+
+
+
+def test_a_task_answered_the_a2a_way_reads_its_artifact():
+    """A data-part caller (the Orchestrator) gets its result as an artifact; the full view reads it from there."""
+    from backend.app.adapters.a2a_tasks import task_record
+    task = {'id': 't1', 'status': {'state': 'TASK_STATE_COMPLETED', 'message': {'parts': [{'text': ''}], 'metadata': {'tool': 'law_parcel_limits'}}},
+            'artifacts': [{'artifactId': 'a', 'name': 'law_parcel_limits', 'parts': [{'data': {'bcr_pct': 60.0, 'far_pct': 250.5}}]}],
+            'history': [{'role': 'ROLE_USER', 'parts': [{'text': '{"tool": "law_parcel_limits", "args": {}}'}]}]}
+    record = task_record(task)
+    assert record['tool'] == 'law_parcel_limits' and record['state'] == 'completed'
+    assert record['response_text'] == '{"bcr_pct": 60, "far_pct": 250.5}'

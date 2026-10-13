@@ -40,6 +40,30 @@ def _text(message: dict | None) -> str:
     return ''.join(part.get('text', '') for part in (message or {}).get('parts') or [] if isinstance(part, dict))
 
 
+def _whole(value):
+    """A data part's numbers arrive as doubles (60.0); whole ones read back as integers, as the agent sent them."""
+    if isinstance(value, float) and value.is_integer() and abs(value) < 2 ** 53:
+        return int(value)
+    if isinstance(value, dict):
+        return {key: _whole(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_whole(item) for item in value]
+    return value
+
+
+def _result(task: dict) -> str:
+    """A task's result the A2A way, its artifacts (a data part as JSON, a text part as written); empty when the
+    agent answered on the status message (a text-only caller, or a failure)."""
+    out = []
+    for artifact in task.get('artifacts') or []:
+        for part in (artifact or {}).get('parts') or [] if isinstance(artifact, dict) else []:
+            if isinstance(part, dict) and 'data' in part:
+                out.append(json.dumps(_whole(part['data']), ensure_ascii=False))
+            elif isinstance(part, dict) and part.get('text'):
+                out.append(part['text'])
+    return ''.join(out)
+
+
 def _dict(value):
     return value if isinstance(value, dict) else {}
 
@@ -55,7 +79,7 @@ def task_record(task: dict) -> dict:
         'id': str(task.get('id') or ''), 'context_id': task.get('contextId') if isinstance(task.get('contextId'), str) else None,
         'state': state.removeprefix('TASK_STATE_').lower() or 'unknown', 'at': status.get('timestamp') if isinstance(status.get('timestamp'), str) else None,
         'tool': _dict(reply.get('metadata')).get('tool') if isinstance(_dict(reply.get('metadata')).get('tool'), str) else None,
-        'request_text': _text(asked), 'response_text': _text(reply),
+        'request_text': _text(asked), 'response_text': _result(task) or _text(reply),
     }
 
 
@@ -79,7 +103,8 @@ async def _rpc(agent: str, method: str, params: dict, *, registry: Registry, tra
 async def list_tasks(agent: str, *, page_size: int = 20, history_length: int = 2, registry: Registry = _registry,
                      transport: httpx.AsyncBaseTransport | None = None, env=os.environ) -> list[dict]:
     """The agent's tasks, newest first as the agent lists them; raises AgentTasksUnavailable when it cannot answer."""
-    reply = await _rpc(agent, 'ListTasks', {'pageSize': max(1, min(page_size, MAX_PAGE)), 'historyLength': max(0, history_length)},
+    reply = await _rpc(agent, 'ListTasks', {'pageSize': max(1, min(page_size, MAX_PAGE)), 'historyLength': max(0, history_length),
+                                            'includeArtifacts': True},
                        registry=registry, transport=transport, env=env)
     if isinstance(reply.get('error'), dict):
         raise AgentTasksUnavailable(f'{agent} refused ListTasks')
