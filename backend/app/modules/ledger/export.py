@@ -16,6 +16,9 @@ README = """# 협업 장부 (ledger)
 - `YYYY-MM-DD.jsonl` — the same rows as they were recorded that day (UTC), one JSON object per line, for people and tails.
   Written by the editor backend only; agents post their hops to `POST /api/v1/platform/ledger/hops` (bearer A2A_TOKEN),
   OTLP/HTTP JSON exporters to `POST /api/v1/platform/ledger/v1/traces`.
+- `conversations/YYYY-MM-DD/HHMMSS-<question>-<id>/` — one folder per conversation, rewritten when a question is
+  answered: `transcript.md` (each question, every call in order with its request, reply and outcome, the answer; calls
+  that failed or answered without settling listed first) and `calls.jsonl` (those calls in full).
 - Field names follow the OpenTelemetry GenAI semantic conventions where they exist (`invoke_agent`, `execute_tool`,
   `gen_ai.conversation.id` = `conversation_id`, GenAI message JSON); A2A-only facts keep their own names (`task_id`, `run_id`, `hop`).
 """
@@ -33,7 +36,7 @@ class DailyMirror:
     def ensure_readme(self) -> None:
         self.directory.mkdir(parents=True, exist_ok=True)
         readme = self.directory / 'README.md'
-        if not readme.is_file():
+        if not readme.is_file() or readme.read_text(encoding='utf-8') != README:
             readme.write_text(README, encoding='utf-8')
 
     def write(self, row: dict) -> None:

@@ -12,6 +12,7 @@ from backend.app.core.tracing import SpanContext, new_span_id, new_trace_id
 from .export import DailyMirror
 from .schema import HopRecord, from_hop_log, from_otlp_payload, now_iso, text_message
 from .store import LedgerStore
+from .transcript import ConversationLogs, is_turn
 
 EDITOR_ROOT = Path(__file__).resolve().parents[4]  # backend/app/modules/ledger/service.py → editor
 USER = 'user'
@@ -37,6 +38,7 @@ class Ledger:
         self.mirror = DailyMirror(self.directory, keep_days=keep_days)
         self.mirror.ensure_readme()
         self.mirror.prune()
+        self.conversations = ConversationLogs(self.directory / 'conversations', self.conversation_rows, user=USER)
         self._watchers: set[asyncio.Queue] = set()
 
     @classmethod
@@ -50,6 +52,9 @@ class Ledger:
         row_id = self.store.append(record)
         row = self.store.get(row_id) or {'id': row_id}
         self.mirror.write(row)
+        if row.get('ts_end') and row.get('conversation_id') and is_turn(row, USER):
+            # A turn ended: its folder under conversations/ is rewritten to match the ledger.
+            self.conversations.write(row['conversation_id'])
         self._notify(row_id)
         return row
 
@@ -112,6 +117,16 @@ class Ledger:
         run_ids = self.store.runs_of(conversation_id) if conversation_id else None
         return self.store.query(conversation_id=conversation_id, run_ids=run_ids, run_id=run_id, trace_id=trace_id, project=project, branch=branch,
                                 since_id=since_id, limit=limit)
+
+    def conversation_rows(self, conversation_id: str) -> list[dict]:
+        """Every call of a conversation (and of the runs it started), however many."""
+        rows, since = [], 0
+        while True:
+            page = self.rows(conversation_id=conversation_id, since_id=since, limit=500)
+            rows += page
+            if len(page) < 500:
+                return rows
+            since = int(page[-1]['id'])
 
     def latest_id(self) -> int:
         return self.store.latest_id()
