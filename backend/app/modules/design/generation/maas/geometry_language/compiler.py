@@ -1181,8 +1181,14 @@ def _macro(node: GeometryNode, inputs: list[Any]) -> tuple[Any, list[str]]:
         parts = list(base.decompose())
         if len(parts) < 2:
             return base, ["already_connected"]
+        # BOOK join states its bridge as `bridge_ratio`; the bridge reads
+        # `width_ratio`. Without this the word's variation never reached the
+        # geometry (both default to 0.24, so an unstated ratio is unchanged).
+        bridge_params = dict(p)
+        if "bridge_ratio" in p and "width_ratio" not in p:
+            bridge_params["width_ratio"] = float(p["bridge_ratio"])
         bridges = [
-            _bridge_between(left, right, p, node.id)
+            _bridge_between(left, right, bridge_params, node.id)
             for left, right in _nearest_component_tree(parts)
         ]
         return m3d.Manifold.batch_boolean([base, *bridges], m3d.OpType.Add), ["nearest_component_tree", "bridge", "union"]
@@ -1347,12 +1353,24 @@ def _macro(node: GeometryNode, inputs: list[Any]) -> tuple[Any, list[str]]:
         axis = str(p.get("axis") or "x").lower()
         count = max(1, min(3, int(p.get("count", p.get("n", 2)))))
         ratio = max(0.06, min(0.26, float(p.get("ratio", 0.14))))
+        # Hole centres along the cut axis. BOOK puncture states their spacing
+        # (`spacing_ratio`, centre to centre as a share of the span); it used to
+        # be ignored and the holes always sat at (i+1)/(n+1).
+        if "spacing_ratio" in p and count > 1:
+            spacing = max(ratio + 0.02, min(0.45, float(p["spacing_ratio"])))
+            edge = ratio / 2.0 + 0.02
+            positions = [
+                max(edge, min(1.0 - edge, 0.5 + (index - (count - 1) / 2.0) * spacing))
+                for index in range(count)
+            ]
+        else:
+            positions = [(index + 1) / (count + 1) for index in range(count)]
         cutters = []
         if axis == "y":
             width = (maxx - minx) * ratio
             height = (maxz - minz) * ratio
             for index in range(count):
-                t = (index + 1) / (count + 1)
+                t = positions[index]
                 cutters.append(m3d.Manifold.cube((width, maxy - miny + 2.0, height)).translate((
                     minx + (maxx - minx) * t - width / 2.0, miny - 1.0,
                     minz + (maxz - minz) * 0.5 - height / 2.0,
@@ -1361,7 +1379,7 @@ def _macro(node: GeometryNode, inputs: list[Any]) -> tuple[Any, list[str]]:
             depth = (maxy - miny) * ratio
             height = (maxz - minz) * ratio
             for index in range(count):
-                t = (index + 1) / (count + 1)
+                t = positions[index]
                 cutters.append(m3d.Manifold.cube((maxx - minx + 2.0, depth, height)).translate((
                     minx - 1.0, miny + (maxy - miny) * t - depth / 2.0,
                     minz + (maxz - minz) * 0.5 - height / 2.0,

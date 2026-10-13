@@ -934,7 +934,10 @@ def _append_book_call(
                 "mode": "offset",
                 "axis": axis,
                 "count": 2,
-                "pitch_ratio": round(max(0.25, min(0.6, 0.25 + distance)), 4),
+                # distance_ratio spans (-0.34, 0.34); 0.25 + distance clamped every
+                # negative variation to 0.25, so 11 variations built 6 shapes.
+                # Map the whole span linearly onto the pitch range instead.
+                "pitch_ratio": round(0.25 + 0.35 * max(0.0, min(1.0, (distance + 0.34) / 0.68)), 4),
             }, verb=verb)
         if verb == "__offset_retired__":
             return add("macro", "nested_related", (current,), {

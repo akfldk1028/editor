@@ -70,3 +70,34 @@ class PathOfferCoversTheRequest(SimpleTestCase):
             if not offered:
                 self.skipTest("BOOK composition lattice unavailable")
             self.assertGreaterEqual(len(offered), min(count, 13662))
+
+
+class BookParametersReachTheGeometry(SimpleTestCase):
+    """puncture spacing and offset pitch used to be dropped or clamped flat."""
+
+    def _compile(self, operator, parameters):
+        from backend.app.modules.design.generation.maas.geometry_language.compiler import compile_geometry_program
+        from backend.app.modules.design.generation.maas.geometry_language.programs import GeometryProgramBuilder
+
+        builder = GeometryProgramBuilder("book_parameter_probe")
+        body = builder.add("primitive", "box", parameters={"width": 20.0, "depth": 12.0, "height": 8.0})
+        root = builder.add("macro", operator, inputs=(body,), parameters=parameters)
+        result = compile_geometry_program(builder.build(root))
+        self.assertEqual(result.status, "compiled")
+        return result
+
+    def test_puncture_spacing_changes_the_holes(self):
+        near = self._compile("puncture", {"axis": "x", "count": 2, "ratio": 0.12, "spacing_ratio": 0.16})
+        far = self._compile("puncture", {"axis": "x", "count": 2, "ratio": 0.12, "spacing_ratio": 0.40})
+        self.assertNotEqual(near.geometry_hash, far.geometry_hash)
+
+    def test_offset_variations_are_distinct(self):
+        from backend.app.modules.design.generation.maas.geometry_language import book_adapter  # noqa: F401
+        hashes = {
+            self._compile("book_array", {
+                "mode": "offset", "axis": "x", "count": 2,
+                "pitch_ratio": round(0.25 + 0.35 * (d + 0.34) / 0.68, 4),
+            }).geometry_hash
+            for d in (-0.34, -0.2, 0.0, 0.2, 0.34)
+        }
+        self.assertEqual(len(hashes), 5)
