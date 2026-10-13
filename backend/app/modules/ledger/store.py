@@ -63,8 +63,13 @@ class LedgerStore:
         updates = ', '.join([*(f'{column}=excluded.{column}' for column in COLUMNS if column not in ('trace_id', 'span_id')),
                              "recorded_at=strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"])
         with closing(self.connect()) as db, db:
+            # A caller's start row and the agent's end row are posted from different processes, so the end can arrive
+            # first; a late start must not reopen a call that has already ended.
             row = db.execute(f'INSERT INTO agent_calls ({", ".join(COLUMNS)}) VALUES ({placeholders}) '
-                             f'ON CONFLICT(trace_id, span_id) DO UPDATE SET {updates} RETURNING id', self._values(record)).fetchone()
+                             f'ON CONFLICT(trace_id, span_id) DO UPDATE SET {updates} '
+                             'WHERE excluded.ts_end IS NOT NULL OR agent_calls.ts_end IS NULL RETURNING id', self._values(record)).fetchone()
+            if row is None:
+                row = db.execute('SELECT id FROM agent_calls WHERE trace_id=? AND span_id=?', (record.trace_id, record.span_id)).fetchone()
             return int(row['id'])
 
     @staticmethod

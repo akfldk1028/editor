@@ -141,6 +141,9 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
   // drags snapped back). A selection only restyles them.
   useEffect(() => {
     setNodes((current) => {
+      // A card gone means another flow (another conversation or run): what was dragged there no longer applies.
+      const ids = new Set(graph.nodes.map((node) => node.id))
+      if (current.some((node) => !ids.has(node.id))) moved.current.clear()
       const known = new Map(current.map((node) => [node.id, node]))
       return graph.nodes.map((node) => {
         const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id, said: node.said }

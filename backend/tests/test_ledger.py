@@ -177,3 +177,10 @@ def test_a_callers_start_row_runs_until_the_agents_row_for_the_same_span_ends_it
     assert first['ts_end'] is None and first['state'] == 'working'
     done = ledger.ingest_hop({**HOP, 'response_text': '{"status": "partial"}'})
     assert done['id'] == first['id'] and done['ts_end'] == '2026-10-12T10:51:56.559Z' and done['state'] == 'completed'
+
+
+def test_a_start_row_that_arrives_after_the_end_does_not_reopen_the_call(tmp_path):
+    ledger = Ledger(tmp_path)
+    done = ledger.ingest_hop({**HOP, 'response_text': '{"status": "partial"}'})
+    late = ledger.ingest_hop({**HOP, 'state': 'working', 'elapsed_ms': None, 'ts': '2026-10-12T10:51:55.000Z'})
+    assert late['id'] == done['id'] and late['ts_end'] == '2026-10-12T10:51:56.559Z' and late['state'] == 'completed'
