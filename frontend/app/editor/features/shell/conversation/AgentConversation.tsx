@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { dismissFeed, type FeedEntry, useFeed, feedForProject, projectFeed } from '@/lib/orchestrator-runs/feed'
 import { askLines, siteLocateParams, siteLocatedLine } from '@/lib/orchestrator-runs/feed-lines'
 import { newConversation, useConversationSelection } from '@/lib/design-conversation/session'
-import { waitingLine } from '@/features/artifacts/collaboration/lib/status'
+import { turnSteps, waitingLine } from '@/features/artifacts/collaboration/lib/status'
 import { useLedger } from '@/features/artifacts/collaboration/model/useLedger'
 import { useConversation } from '@/lib/design-conversation/useConversation'
 import { conversationErrorText } from '@/lib/design-conversation/errors'
@@ -75,6 +75,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   // parcel and selects it. A message that was one address never reached the owner, so its bubble is posted here too.
   // The ledger of this conversation, so the waiting line names the agent being asked right now.
   const ledger = useLedger(project.projectId ? { conversation_id: project.conversationId } : null)
+  const steps = turnSteps(ledger.messages)
   const conversation = useConversation(project.projectId, project.conversationId, (located, text) => {
     const postFeed = projectFeed(project.projectId, project.conversationId)
     if (text) postFeed(askLines(text)[0]!)
@@ -132,7 +133,19 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
           timeline.map((item) => <div key={item.key}>{item.node}</div>)
         )}
         {conversation.loading && <p className="agent-turn-system" role="status">저장된 대화를 불러오는 중…</p>}
-        {conversation.snapshot?.status === 'working' && <p className="agent-turn-system" role="status"><span aria-hidden="true" className="loading-mark" />{waitingLine(ledger.messages)}</p>}
+        {conversation.snapshot?.status === 'working' && (
+          <div className="agent-turn-steps" role="status">
+            <p className="agent-turn-system"><span aria-hidden="true" className="loading-mark" />{waitingLine(ledger.messages)}</p>
+            {/* What each agent was asked in this turn, as a chat app shows its tool steps: who, what, how many, done or not. */}
+            {steps.length > 0 && <ul>
+              {steps.map((step) => <li data-failed={step.failed ? 'true' : 'false'} data-running={step.running ? 'true' : 'false'} key={step.agent}>
+                <b>{step.label}</b>
+                {step.tools.length > 0 && <span>{step.tools.slice(0, 3).join(', ')}{step.tools.length > 3 ? ' …' : ''}</span>}
+                <small>{step.running ? '묻는 중' : step.failed ? `${step.calls}번 · 실패 있음` : `${step.calls}번 ✓`}</small>
+              </li>)}
+            </ul>}
+          </div>
+        )}
         {(conversation.error || conversation.snapshot?.error) && <div className="agent-turn-system" role="alert">{conversation.error || conversationErrorText(conversation.snapshot?.error)}<button className="agent-turn-link" onClick={() => void conversation.refresh?.()} title="저장된 대화 상태를 다시 불러옵니다" type="button">상태 새로고침</button></div>}
         <ConversationArtifacts artifacts={conversation.snapshot?.artifacts ?? []} onConfirm={conversation.confirm} disabled={conversation.loading || conversation.snapshot?.status === 'working' || conversation.pending.length > 0} />
         <div ref={endRef} />

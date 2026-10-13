@@ -40,6 +40,29 @@ export function waitingLine(messages: readonly CollaborationMessage[], names: Re
   return `${names[running.to] ?? agentLabel(running.to)}에게 묻는 중${tool && tool !== running.tool ? ` · ${tool}` : ''}`
 }
 
+export interface TurnStep { agent: string; label: string; tools: string[]; calls: number; running: boolean; failed: boolean }
+
+/**
+ * What the agents were asked since the person's last message, one line per agent in the order first asked:
+ * "Law Agent · 용도 분류, 별표 조회 … 7번". A tool no folder names in words is counted, never shown as its id.
+ */
+export function turnSteps(messages: readonly CollaborationMessage[], names: Readonly<Record<string, string>> = {}): TurnStep[] {
+  const asked = [...messages].reverse().find((message) => message.direction === 'request' && message.from === USER)
+  const since = asked?.at ?? 0
+  const steps = new Map<string, TurnStep>()
+  for (const message of messages) {
+    if (message.direction !== 'request' || message.from === USER || message.to === USER || (message.at ?? 0) < since) continue
+    const step = steps.get(message.to) ?? { agent: message.to, label: names[message.to] ?? agentLabel(message.to), tools: [], calls: 0, running: false, failed: false }
+    const tool = message.tool ? toolLabel(message.tool) : ''
+    if (tool && tool !== message.tool && !step.tools.includes(tool)) step.tools.push(tool)
+    step.calls += 1
+    step.running ||= message.state === 'running'
+    step.failed ||= /failed|error/.test(message.state)
+    steps.set(message.to, step)
+  }
+  return [...steps.values()]
+}
+
 /** One line on where the run stands: "실패 — Site의 답에 … 받지 않음", "용도를 묻는 중", "진행 중", "완료". */
 export function runStatusLine(run: Pick<RunSummary, 'status' | 'pending_fields'>, messages: readonly CollaborationMessage[], names: Readonly<Record<string, string>> = {}): string {
   if (run.status === 'waiting_input') {
