@@ -143,3 +143,8 @@
 .collab-node[data-open="true"] { inline-size: 340px; position: relative; z-index: 5; box-shadow: 0 8px 24px rgb(0 0 0 / 0.14); }
 .collab-graph .react-flow__node-agent:has(.collab-node[data-open="true"]) { z-index: 10 !important; }
 .collab-node .collab-said-toggle { color: var(--accent); }
+/* An opened card: the words, then the record itself, whole and selectable, scrolling inside the card. */
+.collab-said-open { display: grid; gap: 6px; max-block-size: 460px; overflow-y: auto; padding-inline-end: 4px; }
+.collab-said-open .collab-said-full { max-block-size: none; overflow: visible !important; }
+.collab-said-raw { margin: 0; padding: 8px; border-radius: 6px; background: var(--subtle); color: var(--ink); font-size: 11px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; cursor: text; }
+.collab-said[data-open="true"], .collab-node[data-open="true"] { inline-size: 460px; }

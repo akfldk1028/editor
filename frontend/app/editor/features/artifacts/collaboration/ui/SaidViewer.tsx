@@ -1,9 +1,23 @@
 'use client'
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { type MouseEvent, useState } from 'react'
+import { type MouseEvent, useMemo, useState } from 'react'
 
 import type { SaidItem } from '../lib/graph'
+
+/** The recorded text as it is, JSON indented; parsed only when a card is opened. */
+function Recorded({ text, words }: { text: string; words: string }) {
+  const shown = useMemo(() => {
+    try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text }
+  }, [text])
+  if (!shown.trim() || shown.trim() === words.trim()) return null
+  return (
+    <>
+      <small className="collab-said-caption">기록 원문 · {text.length.toLocaleString('ko-KR')}자</small>
+      <pre className="collab-said-raw">{shown}</pre>
+    </>
+  )
+}
 
 interface Props {
   items: readonly SaidItem[]
@@ -20,13 +34,18 @@ export function SaidViewer({ items, open, onToggle }: Props) {
   if (!items.length) return null
   const at = picked === null ? items.length - 1 : Math.min(picked, items.length - 1)
   const item = items[at]!
-  const more = item.full.length > item.text.length || item.full.includes('\n')
+  const more = item.full.length > item.text.length || item.full.includes('\n') || (!!item.raw.trim() && item.raw.trim() !== item.text.trim())
   // The card itself selects its agent on click; its own buttons must not.
   const step = (event: MouseEvent, to: number) => { event.stopPropagation(); setPicked(to >= items.length - 1 ? null : to) }
   return (
     <>
       <small className="collab-said-caption" title={item.caption}>{item.caption}</small>
-      {open ? <p className="collab-said-full">{item.full}</p> : item.text ? <p>{item.text}</p> : null}
+      {open ? (
+        <div className="collab-said-open">
+          <p className="collab-said-full">{item.full}</p>
+          <Recorded text={item.raw} words={item.full} />
+        </div>
+      ) : item.text ? <p>{item.text}</p> : null}
       {(items.length > 1 || more) && (
         <div className="collab-said-bar nodrag">
           {items.length > 1 && (

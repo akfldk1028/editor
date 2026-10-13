@@ -16,6 +16,8 @@ export interface SaidItem {
   caption: string
   text: string
   full: string
+  /** The message as it was recorded, whole: an opened card shows it under the words. */
+  raw: string
   running: boolean
 }
 
@@ -157,7 +159,7 @@ function itemOf(message: CollaborationMessage, names: Readonly<Record<string, st
     ? `${label(message.from)}의 답${numbered}${took}`
     : `${label(message.from)} → ${label(message.to)} · ${what}${numbered}${running ? ' · 답을 기다리는 중' : ''}`
   const text = gist(message, names)
-  return { id: message.id, caption, text, full: fullText(message, names) || text, running }
+  return { id: message.id, caption, text, full: fullText(message, names) || text, raw: message.text, running }
 }
 
 export const itemsOf = (rows: readonly CollaborationMessage[], names: Readonly<Record<string, string>>, order: CallOrder): SaidItem[] =>
@@ -253,7 +255,7 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
     if (!groups.has(`${id}→${USER}`) || groups.has(`${ORCHESTRATOR}→${id}`)) continue
     const note = '요청 내용은 Orchestrator가 아직 기록으로 남기지 않아요'
     edges.push({ id: `${ORCHESTRATOR}→${id}`, source: ORCHESTRATOR, target: id, kind: 'request', known: false, count: 0, label: '전달 · 요청 내용 미기록',
-      said: note, items: [{ id: `relay:${id}`, caption: `${name(ORCHESTRATOR)} → ${name(id)} · 전달`, text: note, full: note, running: false }],
+      said: note, items: [{ id: `relay:${id}`, caption: `${name(ORCHESTRATOR)} → ${name(id)} · 전달`, text: note, full: note, raw: '', running: false }],
       caption: `${name(ORCHESTRATOR)} → ${name(id)} · 전달`, running: false })
   }
   // The person's standing line to the hub is drawn only until the person has actually said something on the record.

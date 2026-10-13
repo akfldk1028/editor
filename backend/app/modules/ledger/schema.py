@@ -18,7 +18,8 @@ Source = Literal['agent', 'orchestrator', 'editor']
 
 _HEX32 = re.compile(r'^[0-9a-f]{32}$')
 _HEX16 = re.compile(r'^[0-9a-f]{16}$')
-TEXT_CAP = 262_144
+# A request or reply is kept whole up to this many characters (the agents send up to 8 MiB, a2a_common HOP_TEXT_LIMIT).
+TEXT_CAP = 8_388_608
 
 
 def text_message(role: str, text: str) -> dict:

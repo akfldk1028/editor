@@ -100,7 +100,8 @@ def create_ledger_router(ledger: Ledger, allowed_origin: str) -> APIRouter:
         """One hop as agents/a2a_common records it (plus request_text/response_text); bearer = the network token."""
         network_only(request)
         try:
-            row = ledger.ingest_hop(await body_of(request))
+            # A hop carries its request and reply texts whole (up to 8 MiB each, a2a_common HOP_TEXT_LIMIT).
+            row = ledger.ingest_hop(await body_of(request, cap=24 * 1024 * 1024))
         except (ValidationError, ValueError, TypeError) as exc:
             raise HTTPException(422, f'invalid hop record: {type(exc).__name__}') from None
         return {'id': row['id']}
