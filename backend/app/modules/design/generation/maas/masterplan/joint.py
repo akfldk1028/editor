@@ -103,6 +103,25 @@ def piloti_ground_variants(site, footprint, stall_length, aisle_width):
             yield depth, ground
 
 
+def screen_placements(proposals, evaluate, demand):
+    """Keep the exhaustive shortlist while avoiding provably inferior screens.
+
+    Row generation caps count at positive demand. Once two candidates attain
+    it, a lower-area ground plate cannot beat either under the existing key.
+    Original order breaks exact ties, independently of evaluation order.
+    """
+    pending = sorted(enumerate(proposals), key=lambda v: (-round(v[1][1].area, 6), v[0]))
+    evaluated = []
+    for index, (p, ground, choice) in pending:
+        if (demand > 0 and len(evaluated) >= 2 and evaluated[1][0] >= demand
+                and round(ground.area, 6) <= round(evaluated[1][2].area, 6)):
+            break
+        count = evaluate(p, ground, choice)
+        evaluated.append((count, p, ground, choice, index))
+        evaluated.sort(key=lambda v: (-v[0], -round(v[2].area, 6), v[4]))
+    return [v[:4] for v in evaluated], len(proposals)-len(evaluated)
+
+
 def select_joint_layout(request, solve):
     """Screen equal-area proposals, then compare complete ground/basement plans.
 
@@ -178,15 +197,17 @@ def select_joint_layout(request, solve):
                 status='failed' if result['status']=='needs_revision' else 'needs_evidence')
             result['piloti_strip_m']=depth
             layouts.append(result)
-    shortlist=[]
+    proposals=[]
     for p in (footprint_candidates(host,target,front,module,angle_deg=explicit_angle)
               if opts.get('target_surface_stalls') is not None else []):
         variants = [(p, None)]
         if placement_stage and surface_possible:
             variants += [(shape(choice['ground']), choice) for choice in _choices(p, rules)]
         for ground, choice in variants:
-            free = site.difference(ground).difference(pedestrian['vehicle_blocked'])
-            rows = row_candidates(site,free,p,Polygon(),road,front,rules,
+            proposals.append((p, ground, choice))
+    def screen(p, ground, choice):
+        free = site.difference(ground).difference(pedestrian['vehicle_blocked'])
+        rows = row_candidates(site,free,p,Polygon(),road,front,rules,
                                   int(opts['target_surface_stalls']),
                                   int(request.get('law',{}).get('required_accessible_spaces') or 0),
                                   step=1 if placement_stage else 2,limit=2,occupied_footprint=ground,
@@ -196,8 +217,8 @@ def select_joint_layout(request, solve):
                                   turn_lane_m=opts.get('turn_lane_m'),field=opts.get('parking_field', 'auto'),
                                   **({'allowed_angles':[screen_angle] if straight_entry else [screen_angle,screen_angle+90],
                                       'preserve_banks':True} if screen_angle is not None else {}))
-            count = max((exclude_reserved_stalls(r,pedestrian['reserved'])['provided'] for r in rows),default=0)
-            shortlist.append((count,p,ground,choice))
+        return max((exclude_reserved_stalls(r,pedestrian['reserved'])['provided'] for r in rows),default=0)
+    shortlist, skipped = screen_placements(proposals, screen, int(opts.get('target_surface_stalls') or 0))
     # Preserve enclosed ground when surface counts tie; this limits programme
     # loss in the shortlist and is not an architectural quality score.
     shortlist.sort(key=lambda v:(-v[0], -round(v[2].area, 6)))
@@ -232,6 +253,7 @@ def select_joint_layout(request, solve):
                 -drive_burden(r['features'], metrics['provided_parking_stalls']))
     chosen=max(layouts,key=rank)
     chosen['joint_search']={'screened_placements':len(shortlist),'complete_layouts':len(layouts),
+        'proposed_placements':len(proposals),'screens_pruned_by_upper_bound':skipped,
         'selected_index':layouts.index(chosen),'target_footprint_m2':target,
         'scope':'equal-area generated mass alternatives and owner piloti choices; authored mass remains fixed',
         'screen_tie_break':'preserve enclosed ground area among equal surface counts; not architectural quality',
