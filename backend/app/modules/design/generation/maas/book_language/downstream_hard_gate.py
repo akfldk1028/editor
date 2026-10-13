@@ -743,9 +743,13 @@ def _evaluate_candidate(
         legal_failures.append("far_limit_exceeded")
     if original_metrics["height_m"] > envelope.height_limit + 0.1:
         legal_failures.append("height_limit_exceeded")
+    # Unbuilt site area is not landscaping (건축법 제42조): it also holds parking,
+    # drives and paved yards. No landscaped area is measured here, so the
+    # requirement is recorded as unverified instead of passed or failed.
+    legal_unverified: list[str] = []
     landscaping_limit = _constraint_limit(envelope.outputs_def, "landscaping_pct")
-    if landscaping_limit is not None and original_metrics["open_pct"] < landscaping_limit - 0.1:
-        legal_failures.append("landscaping_minimum_not_met")
+    if landscaping_limit is not None:
+        legal_unverified.append("landscaping_area_not_measured")
     geometry_retention_pass = bool(
         not final_authority_failures
         and retention >= 0.80
@@ -945,6 +949,7 @@ def _evaluate_candidate(
         "evaluated": True,
         "hard_pass": legal_hard_pass,
         "failure_reasons": legal_failures,
+        "unverified_requirements": legal_unverified,
         "source_volume_count": len(source.volumes),
         "projected_volume_count": len(projected),
         "clipped_volume_count": clipped_volume_count,
@@ -1125,7 +1130,15 @@ def _metrics(
         else None
     )
     ground = _ground_footprint(volumes)
-    footprint_area = float(ground.area) if ground is not None else 0.0
+    ground_contact_area = float(ground.area) if ground is not None else 0.0
+    # 건축면적 is the horizontal projection of the whole building (건축법
+    # 시행령 제119조①2), not its ground contact: an upper floor that overhangs
+    # a small base counts. Statutory exclusions are applied elsewhere, never by
+    # dropping the upper floors.
+    projection = repair_source_polygon(
+        unary_union([volume.footprint for volume in volumes]), minimum_area=1.0
+    ) if volumes else None
+    footprint_area = float(projection.area) if projection is not None else 0.0
     floor_area = 0.0
     for floor in range(max(1, floors)):
         fraction = (floor + 0.5) / max(1, floors)
@@ -1147,6 +1160,7 @@ def _metrics(
     site_area = max(float(site.area), 1e-9)
     return {
         "footprint_area_m2": round(footprint_area, 3),
+        "ground_contact_area_m2": round(ground_contact_area, 3),
         "floor_area_m2": round(floor_area, 3),
         "bcr_pct": round(footprint_area / site_area * 100.0, 3),
         "far_pct": round(floor_area / site_area * 100.0, 3),

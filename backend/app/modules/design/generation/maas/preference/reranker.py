@@ -77,7 +77,8 @@ def _hard_gate_pass(feature: dict[str, Any]) -> bool:
     hard = pref.get("hard_gates") if isinstance(pref.get("hard_gates"), dict) else {}
     if hard:
         return hard.get("legal_gate_preserved") is True and hard.get("parking_mass_stage_gate_preserved") is True
-    return True
+    # No hard-gate evidence is not a pass (quality_audit already reads it so).
+    return False
 
 
 def _formal_principle(feature: dict[str, Any]) -> str:

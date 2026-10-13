@@ -1770,8 +1770,8 @@ Rules:
   role is explicitly an internal environmental court, not the public threshold.
 - Use bounded local normalized dimensions, not parcel coordinates and not a copied famous building.
 - Optional placement: facing.access_side names the local east(+x)/north(+y)/west(-x)/south(-y)
-  side to align exactly with the supplied world access direction. facing.north_side names the nearest local
-  side toward the legal sunlight-setback removal; incompatible declarations are refused. Without directional
+  side to align exactly with the supplied world access direction. facing.north_side names a local side within
+  60 degrees of the legal sunlight-setback removal after that alignment; a side turned further away is refused. Without directional
   legal evidence it remains an explicitly unverified preference. It does not assert true-north measurement.
   site_fit=inherit permits legal trimming; impose permits uniform plan shrink before trimming. Legal gates remain.
   Use null for either optional placement field to retain legacy placement, or omit them in local legacy payloads.

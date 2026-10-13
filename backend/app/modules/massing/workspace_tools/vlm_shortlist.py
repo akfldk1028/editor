@@ -610,7 +610,12 @@ def read_verdict(path: Path, key_tiles, weights: dict[str, float] | None = None)
             for line in lines[start:end]:
                 m = re.match(r"^\s*([A-Z]+)\s+([0-9.]+)\s*\|", line)
                 if m and m.group(1) in weights:
-                    counts[m.group(1)] = float(m.group(2))
+                    try:
+                        counts[m.group(1)] = float(m.group(2))
+                    except ValueError:
+                        raise VerdictError(
+                            f"{name}: TILE {tile} has {m.group(1)} {m.group(2)!r}, "
+                            "which is not a number") from None
             if set(counts) == set(weights):
                 if not all(1.0 <= c <= 5.0 for c in counts.values()):
                     raise VerdictError(

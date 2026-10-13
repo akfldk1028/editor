@@ -44,7 +44,12 @@ def _resolve_facing(facing, site, height_m, *, road_direction):
                     # Invert the requested placement into the program frame.
                     lx, ly = c * dx + t * dy, -t * dx + c * dy
                     scores = {name: x * lx + y * ly for name, (x, y) in sides.items()}
-                    if scores[north] < max(scores.values()) - 1e-8:
+                    # A setback that lies on a diagonal (the corner a sunlight
+                    # cut takes on an oblique parcel) has two defensible nearest
+                    # sides; the strict argmax refused the side the author was
+                    # told. A side within 60 degrees of the setback direction
+                    # takes it; one turned further away contradicts it.
+                    if scores[north] < 0.5 * hypot(lx, ly) - 1e-8:
                         raise ValueError('facing.north_side contradicts access-aligned legal setback direction')
                     evidence.update(north_status='verified_nearest_side',
                                     setback_direction_world_xy=[dx, dy])

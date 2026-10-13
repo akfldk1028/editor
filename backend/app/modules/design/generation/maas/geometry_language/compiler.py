@@ -1358,7 +1358,9 @@ def _macro(node: GeometryNode, inputs: list[Any]) -> tuple[Any, list[str]]:
         # be ignored and the holes always sat at (i+1)/(n+1).
         if "spacing_ratio" in p and count > 1:
             spacing = max(ratio + 0.02, min(0.45, float(p["spacing_ratio"])))
-            edge = ratio / 2.0 + 0.02
+            # Keep each hole at least 8% of the span from the end face, so a
+            # wide spacing cannot leave a paper-thin end wall.
+            edge = ratio / 2.0 + 0.08
             positions = [
                 max(edge, min(1.0 - edge, 0.5 + (index - (count - 1) / 2.0) * spacing))
                 for index in range(count)

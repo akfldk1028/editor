@@ -464,7 +464,7 @@ def sentence_prompt(context: dict[str, Any], offer: list[dict[str, Any]], *, cou
         f"(basis: {facts.get('access_basis') or 'unknown'}); use access_direction_world_xy for alignment.",
         f"  north_side: which program side takes the sunlight setback. The evidenced parcel setback side is {facts.get('sunlight_setback_side_world') or 'unknown'}. "
         "Use legal_plan_by_height below to assess the actual legal section profile; a missing direction or profile is unknown.",
-        "  Access alignment is exact. north_side must be the nearest local cardinal side toward the legal setback after that rotation; contradictions are refused. "
+        "  Access alignment is exact. north_side must be a local cardinal side within 60 degrees of the legal setback direction after that rotation; a side turned further away is refused. "
         "If no directional legal setback is evidenced, north_side remains an explicitly unverified preference, not an executed true-north claim.",
         "",
         "SPREAD - no two sentences may share a path_id; choose distinct propositions that serve the brief.",

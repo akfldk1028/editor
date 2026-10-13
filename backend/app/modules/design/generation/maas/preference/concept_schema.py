@@ -56,7 +56,10 @@ def _concept_scores_from_geometry(feature: dict[str, Any]) -> dict[str, float]:
     repair = props.get("repair_delta") if isinstance(props.get("repair_delta"), dict) else {}
     volume_count = float(visual.get("volume_count") or len(props.get("mass_volumes") or []) or 0)
     orderliness = float(order.get("orderliness_score") or 0)
-    repair_retention = float(repair.get("area_retention") or 1.0)
+    # A retention of 0 (the repair erased the form) must score 0, not 1:
+    # only an absent measurement defaults to an untouched form.
+    retention_raw = repair.get("area_retention")
+    repair_retention = 1.0 if retention_raw is None else float(retention_raw)
     formal = 1.0 if ambition.get("architecture_grade_pass") else 0.55
     stair_penalty = 0.22 if visual.get("stepback_dominant") else 0.0
     concept = {
@@ -86,7 +89,8 @@ def build_preference_distillation(
     parking = props.get("parking_precheck") if isinstance(props.get("parking_precheck"), dict) else {}
     layout = parking.get("layout_candidate") if isinstance(parking.get("layout_candidate"), dict) else {}
     mass_stage = layout.get("mass_stage_parking") if isinstance(layout.get("mass_stage_parking"), dict) else {}
-    legal_gate = bool(props.get("legal_pass", True))
+    # Missing legal evidence is not a pass.
+    legal_gate = props.get("legal_pass") is True
     parking_gate = str(mass_stage.get("status") or layout.get("status") or "") in {
         "pass",
         "needs_mechanical_parking_review",
