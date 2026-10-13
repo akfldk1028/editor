@@ -74,6 +74,10 @@ def dispatch(operation, arguments):
                 if feature['properties'].get('layer') == 'building_ground_footprint':
                     feature['properties']['source'] = 'owner generated parent occupancy'
         result['placement_snapshot'] = publish(logical_request, result)
+        for candidate in result.get('planning_candidates', []):
+            alternative = candidate['layout']
+            alternative['handoff']['input_hash'] = digest(logical_request)
+            alternative['placement_snapshot'] = publish(logical_request, alternative)
         if 'handoff' in result:
             result['handoff'].update(input_hash=digest(logical_request),
                                      geometry_hash=digest(result.get('features') or []),

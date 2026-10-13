@@ -1,5 +1,7 @@
 # Editor backend — memory index (read this first)
 
+- [2026-10-13 retained planning alternatives](2026-10-13-planning-portfolio.md): individually revisable solved geometries reach MasterPlan comparison and AI.
+
 - [2026-10-13 default siting search](2026-10-13-default-siting-search.md): real seven-site paired verification, shared-axis search and ground-area preservation.
 
 This folder is the working memory for any AI session that works on the editor **backend**

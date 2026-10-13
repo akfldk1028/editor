@@ -139,6 +139,8 @@ def select_joint_layout(request, solve):
     from backend.app.modules.design.generation.maas.masterplan.placement_state import _choices
     from backend.app.modules.design.generation.maas.masterplan.entry_constraints import required_corner_clearance
     opts = request.get('options', {})
+    from .planning_portfolio import policy, retain
+    selection_policy, portfolio_limit = policy(opts)
     explicit_angle = layout_axis_angle(request)
     baseline = solve(copy.deepcopy(request))
     if baseline.get('planner_invoked') is False:
@@ -266,6 +268,7 @@ def select_joint_layout(request, solve):
                 round(unary_union(ground).area, 6),
                 -drive_burden(r['features'], metrics['provided_parking_stalls']))
     chosen=max(layouts,key=rank)
+    portfolio = retain(layouts, chosen, limit=portfolio_limit) if selection_policy=='siting_portfolio_v1' else None
     chosen['joint_search']={'screened_placements':len(shortlist),'complete_layouts':len(layouts),
         'screen_demand':screen_demand, 'screen_demand_source':demand_source,
         'proposed_placements':len(proposals),'screens_pruned_by_upper_bound':skipped,
@@ -278,4 +281,7 @@ def select_joint_layout(request, solve):
             'excavation_m2':r['metrics']['excavation_m2'],
             'piloti_strip_m':r.get('piloti_strip_m'),
             'geometry_status':r['validation']['geometry_status']} for r in layouts]}
+    if portfolio is not None:
+        chosen['planning_portfolio'] = {k:v for k,v in portfolio.items() if k!='candidates'}
+        chosen['planning_candidates'] = portfolio['candidates']
     return chosen

@@ -37,6 +37,13 @@ def plan_site(request):
         return refusal
     from backend.app.modules.design.generation.maas.masterplan.joint import select_joint_layout
     result = select_joint_layout(request, _plan_site_fixed)
+    for candidate in result.get('planning_candidates', []):
+        _review_result(request, candidate['layout'])
+    _review_result(request, result)
+    return result
+
+
+def _review_result(request, result):
     if request.get('options', {}).get('planning_stage') == 'placement':
         from backend.app.modules.design.generation.maas.masterplan.placement_quality import review_placement
         result['placement_quality'] = review_placement(request, result)
@@ -48,7 +55,6 @@ def plan_site(request):
             result['blocking'].extend('placement quality: '+v for v in result['placement_quality']['failures'])
             result['handoff'].update(hard_pass=False,
                 status='needs_evidence' if result['status'] == 'needs_evidence' else 'failed')
-    return result
 
 
 def _off_prohibited(candidates, prohibited):
