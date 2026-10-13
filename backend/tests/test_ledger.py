@@ -184,3 +184,34 @@ def test_a_start_row_that_arrives_after_the_end_does_not_reopen_the_call(tmp_pat
     done = ledger.ingest_hop({**HOP, 'response_text': '{"status": "partial"}'})
     late = ledger.ingest_hop({**HOP, 'state': 'working', 'elapsed_ms': None, 'ts': '2026-10-12T10:51:55.000Z'})
     assert late['id'] == done['id'] and late['ts_end'] == '2026-10-12T10:51:56.559Z' and late['state'] == 'completed'
+
+
+def test_a_stream_from_where_the_client_left_off_still_finishes_the_calls_it_already_holds(tmp_path):
+    """The client's first read (or the stream before a reconnect) left it holding a running call: that call's end must
+    still reach it, and a change it missed while away is sent as soon as the stream opens again."""
+    import time
+    ledger = Ledger(tmp_path)
+    scope = {'conversation_id': 'c1', 'run_id': None, 'trace_id': None, 'project': None, 'branch': None}
+    held = ledger.begin(from_agent='orchestrator', to_agent='law', tool='law_annex', conversation_id='c1')
+    missed = ledger.begin(from_agent='orchestrator', to_agent='site_context', tool='site_zoning', conversation_id='c1')
+    newest = ledger.begin(from_agent='orchestrator', to_agent='program', tool='program_get', conversation_id='c1')
+    time.sleep(0.01)
+    ledger.finish(missed, status='OK')  # ended while the client was away
+
+    async def tail():
+        stop = asyncio.Event()
+        agen = stream_events(ledger, scope, since_id=ledger.latest_id(), heartbeat_s=0.05, stop=stop)
+        events = [await agen.__anext__()]                # the change it missed, at once
+        ledger.finish(held, status='OK')
+        while True:
+            event = await agen.__anext__()
+            if event.startswith('id:'):
+                events.append(event)
+                break
+        stop.set()
+        await agen.aclose()
+        return events
+    events = asyncio.run(tail())
+    assert newest  # the client's newest row is the mark
+    assert '"to_agent": "site_context"' in events[0] and '"status": "OK"' in events[0]
+    assert '"to_agent": "law"' in events[1] and '"status": "OK"' in events[1]

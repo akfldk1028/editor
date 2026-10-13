@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { dismissFeed, type FeedEntry, useFeed, feedForProject, projectFeed } from '@/lib/orchestrator-runs/feed'
 import { askLines, siteLocateParams, siteLocatedLine } from '@/lib/orchestrator-runs/feed-lines'
 import { newConversation, useConversationSelection } from '@/lib/design-conversation/session'
-import { turnSteps, waitingLine } from '@/features/artifacts/collaboration/lib/status'
+import { type TurnStep, turnSteps, waitingLine } from '@/features/artifacts/collaboration/lib/status'
 import { useLedger } from '@/features/artifacts/collaboration/model/useLedger'
 import { useConversation } from '@/lib/design-conversation/useConversation'
 import { conversationErrorText } from '@/lib/design-conversation/errors'
@@ -87,10 +87,13 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   const count = entries.length + messages.length + conversation.pending.length
   const timeline = [
     ...turns.map((turn) => ({ at: turn.kind === 'agent' ? turn.at : turn.entry.at, key: `feed-${turnKey(turn)}`, node: <TurnView shell={shell} turn={turn} /> })),
-    ...messages.map((message) => ({ at: Date.parse(message.at), key: `saved-${message.id}`, node: message.role === 'user' ? (
+    ...messages.map((message, index) => ({ at: Date.parse(message.at), key: `saved-${message.id}`, node: message.role === 'user' ? (
       <div className="agent-turn-user"><p>{message.text}</p><time dateTime={message.at}>{time(Date.parse(message.at))}</time></div>
     ) : (
-      <article className="agent-turn conversation-message"><Who agent={message.agent ?? 'orchestrator'} at={Date.parse(message.at)} /><p>{message.text}</p></article>
+      <article className="agent-turn conversation-message"><Who agent={message.agent ?? 'orchestrator'} at={Date.parse(message.at)} />
+        {/* The first reply after a question carries what the agents were asked for it, folded, as a chat app keeps its tool steps. */}
+        {messages[index - 1]?.role === 'user' && <AskedAgents steps={turnSteps(ledger.messages, {}, { since: Date.parse(messages[index - 1]!.at), until: Date.parse(message.at) })} />}
+        <p>{message.text}</p></article>
     ) })),
     ...conversation.pending.map((pending) => ({ at: Date.parse(pending.at), key: `pending-${pending.body.message_id}`, node: <div className="agent-turn-user">
       <p>{pending.body.text}</p>
@@ -137,13 +140,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
           <div className="agent-turn-steps" role="status">
             <p className="agent-turn-system"><span aria-hidden="true" className="loading-mark" />{waitingLine(ledger.messages)}</p>
             {/* What each agent was asked in this turn, as a chat app shows its tool steps: who, what, how many, done or not. */}
-            {steps.length > 0 && <ul>
-              {steps.map((step) => <li data-failed={step.failed ? 'true' : 'false'} data-running={step.running ? 'true' : 'false'} key={step.agent}>
-                <b>{step.label}</b>
-                {step.tools.length > 0 && <span>{step.tools.slice(0, 3).join(', ')}{step.tools.length > 3 ? ' …' : ''}</span>}
-                <small>{step.running ? '묻는 중' : step.failed ? `${step.calls}번 · 실패 있음` : `${step.calls}번 ✓`}</small>
-              </li>)}
-            </ul>}
+            <StepList steps={steps} />
           </div>
         )}
         {(conversation.error || conversation.snapshot?.error) && <div className="agent-turn-system" role="alert">{conversation.error || conversationErrorText(conversation.snapshot?.error)}<button className="agent-turn-link" onClick={() => void conversation.refresh?.()} title="저장된 대화 상태를 다시 불러옵니다" type="button">상태 새로고침</button></div>}
@@ -260,6 +257,28 @@ function RelayView({ entry }: { entry: FeedEntry }) {
 }
 
 /** Speaker row: the agent's own mark, its network name, the time. */
+/** One line per agent asked: who, what (tools named in words), how many times, and done, asking or failed. */
+function StepList({ steps }: { steps: TurnStep[] }) {
+  if (!steps.length) return null
+  return <ul className="agent-step-list">
+    {steps.map((step) => <li data-failed={step.failed ? 'true' : 'false'} data-running={step.running ? 'true' : 'false'} key={step.agent}>
+      <b>{step.label}</b>
+      {step.tools.length > 0 && <span>{step.tools.slice(0, 3).join(', ')}{step.tools.length > 3 ? ' …' : ''}</span>}
+      <small>{step.running ? '묻는 중' : step.failed ? `${step.calls}번 · 실패 있음` : `${step.calls}번 ✓`}</small>
+    </li>)}
+  </ul>
+}
+
+/** A finished reply's steps, folded under one line: "에이전트 3곳에 13번 물어봤어요 · Law Agent, Site Agent, …". */
+function AskedAgents({ steps }: { steps: TurnStep[] }) {
+  if (!steps.length) return null
+  const calls = steps.reduce((sum, step) => sum + step.calls, 0)
+  return <details className="agent-asked">
+    <summary>에이전트 {steps.length}곳에 {calls}번 물어봤어요 · {steps.map((step) => step.label).join(', ')}</summary>
+    <StepList steps={steps} />
+  </details>
+}
+
 function Who({ agent, at }: { agent: string; at: number }) {
   return (
     <header className="agent-turn-who">

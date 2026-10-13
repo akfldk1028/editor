@@ -46,12 +46,15 @@ export interface TurnStep { agent: string; label: string; tools: string[]; calls
  * What the agents were asked since the person's last message, one line per agent in the order first asked:
  * "Law Agent · 용도 분류, 별표 조회 … 7번". A tool no folder names in words is counted, never shown as its id.
  */
-export function turnSteps(messages: readonly CollaborationMessage[], names: Readonly<Record<string, string>> = {}): TurnStep[] {
-  const asked = [...messages].reverse().find((message) => message.direction === 'request' && message.from === USER)
-  const since = asked?.at ?? 0
+export function turnSteps(messages: readonly CollaborationMessage[], names: Readonly<Record<string, string>> = {},
+  window: { since?: number; until?: number } = {}): TurnStep[] {
+  // Without a window: since the person's last message (the turn still running).
+  const since = window.since ?? [...messages].reverse().find((message) => message.direction === 'request' && message.from === USER)?.at ?? 0
+  const until = window.until ?? Number.POSITIVE_INFINITY
   const steps = new Map<string, TurnStep>()
   for (const message of messages) {
-    if (message.direction !== 'request' || message.from === USER || message.to === USER || (message.at ?? 0) < since) continue
+    const at = message.at ?? 0
+    if (message.direction !== 'request' || message.from === USER || message.to === USER || at < since || at > until) continue
     const step = steps.get(message.to) ?? { agent: message.to, label: names[message.to] ?? agentLabel(message.to), tools: [], calls: 0, running: false, failed: false }
     const tool = message.tool ? toolLabel(message.tool) : ''
     if (tool && tool !== message.tool && !step.tools.includes(tool)) step.tools.push(tool)

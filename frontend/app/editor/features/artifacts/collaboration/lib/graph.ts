@@ -96,7 +96,9 @@ function fullOf(rows: readonly CollaborationMessage[], names: Readonly<Record<st
   if (rows.length === 1) return fullText(rows[0]!, names)
   return rows.map((row) => {
     const text = fullText(row, names)
-    return `· ${toolLabel(row.tool)}${text ? `\n${text}` : ''}`
+    // A tool no folder names in words reads as a lookup, never as its id.
+    const label = toolLabel(row.tool)
+    return `· ${label !== row.tool && label !== '—' ? label : '조회'}${text ? `\n${text}` : ''}`
   }).join('\n\n')
 }
 

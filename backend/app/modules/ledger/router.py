@@ -35,11 +35,22 @@ async def stream_events(ledger: Ledger, scope: dict, since_id: int, *, heartbeat
     """Rows after `since_id` now, then every new row that matches the scope as it is recorded; a comment line keeps the
     connection alive while nothing happens. `stop` ends the stream (tests)."""
     last = since_id
-    # A call is recorded twice on the same row (its start, then its end): a row this stream already sent is sent
-    # again when it changes, so a running call turns finished on the client without a reload.
+    # A call is recorded twice on the same row (its start, then its end): a row the client holds is sent again when it
+    # changes, so a running call turns finished without a reload.
     sent: dict[int, str] = {}
     queue = ledger.watch()
     try:
+        if since_id:
+            # The client already holds the rows up to `since_id` (from its first read, or before a reconnect): remember them
+            # so their later changes reach it, and resend the ones that changed after its newest row was recorded.
+            newest = ledger.store.get(since_id)
+            mark = str(newest.get('recorded_at')) if newest else ''
+            for row in ledger.rows(**scope, since_id=0, limit=500):
+                if int(row['id']) > since_id:
+                    break
+                sent[int(row['id'])] = str(row.get('recorded_at'))
+                if mark and str(row.get('recorded_at')) > mark:
+                    yield sse(row)
         while not (stop and stop.is_set()):
             rows = ledger.rows(**scope, since_id=last, limit=200)
             for row in rows:
