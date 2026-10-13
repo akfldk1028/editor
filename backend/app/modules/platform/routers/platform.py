@@ -132,6 +132,19 @@ def create_platform_router(
         except OwnerContractError:
             raise HTTPException(502, 'Project source contract invalid') from None
 
+    @router.post('/projects/{project_id}/conversations', response_model=ProjectBinding, status_code=201)
+    async def start_conversation(project_id: str, request: Request):
+        """A new conversation gets its own branch of the project (one conversation = one workspace)."""
+        origin = request.headers.get('origin')
+        if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != allowed_origin):
+            raise HTTPException(403, 'Cross-origin project changes are not allowed')
+        try:
+            return projects_service().start_conversation('local', project_id)
+        except BindingNotFound:
+            raise HTTPException(404, 'Project not found') from None
+        except BindingConflict:
+            raise HTTPException(409, 'Conversation workspace could not be created') from None
+
     @router.post('/projects/{project_id}/scene-revision', response_model=ProjectBinding)
     async def refresh_scene_revision(project_id: str, body: SceneRevisionRefresh, request: Request):
         origin = request.headers.get('origin')

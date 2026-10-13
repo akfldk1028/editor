@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from backend.app.schemas.platform import ProjectCreate, SceneRevisionRefresh
 from backend.app.adapters.platform_scenes import SceneNotFound
 
@@ -29,6 +31,21 @@ class ProjectService:
         if (scene.get('id') != request.scene_id or scene.get('projectId') != request.scene_project_id
                 or scene.get('version') != request.scene_revision):
             raise BindingConflict('scene project or revision does not match')
+        try:
+            return self.repository.create(actor, request)
+        except ValueError as exc:
+            raise BindingConflict(str(exc)) from exc
+
+    def start_conversation(self, actor: str, project_id: str):
+        """A new conversation's own workspace: the same owner project and scene on a branch of its own, so what one
+        conversation records (its parcel, assessment date, brief) never binds another. The Orchestrator makes the
+        branch with the conversation's first record, so it is not looked up here."""
+        binding = self.repository.get(actor, project_id)
+        if binding is None:
+            raise BindingNotFound()
+        request = ProjectCreate(owner_project_id=binding.owner_project_id, branch_id=f'c-{uuid4().hex[:12]}',
+                                scene_id=binding.scene_id, scene_revision=binding.scene_revision,
+                                scene_project_id=binding.scene_project_id)
         try:
             return self.repository.create(actor, request)
         except ValueError as exc:

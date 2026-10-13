@@ -20,6 +20,13 @@ export function useConversationProject() {
     })
     return () => controller.abort()
   }, [])
+  // A new conversation's workspace is a binding the list has not seen yet: read the list again.
+  useEffect(() => {
+    if (loading || !selection.projectId || projects.some((project) => project.project_id === selection.projectId)) return
+    const controller = new AbortController()
+    listProjects(controller.signal).then((items) => { if (!controller.signal.aborted) setProjects(items) }).catch(() => undefined)
+    return () => controller.abort()
+  }, [selection.projectId, projects, loading])
   const chosen = projects.find((project) => project.project_id === selection.projectId)
   return { ...selection, projectId: chosen?.project_id ?? null, projects, loading, error }
 }

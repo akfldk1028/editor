@@ -781,6 +781,11 @@
    "path": "/api/v1/platform/projects/{project_id}/conversation"
   },
   {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/conversations"
+  },
+  {
    "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/platform/projects/{project_id}/design/archive/executions"

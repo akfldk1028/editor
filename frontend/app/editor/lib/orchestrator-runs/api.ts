@@ -127,6 +127,11 @@ export async function listProjects(signal?: AbortSignal): Promise<ProjectBinding
   return data.map(parseBinding)
 }
 
+/** A new conversation's own workspace: the same project and scene on a branch of its own (one conversation = one workspace). */
+export async function startConversation(projectId: string, signal?: AbortSignal): Promise<ProjectBinding> {
+  return parseBinding(await request(`/projects/${encodeURIComponent(projectId)}/conversations`, { method: 'POST', signal }))
+}
+
 export async function listRuns(projectId: string, signal?: AbortSignal): Promise<RunSummary[]> {
   const values = await request(`/projects/${encodeURIComponent(projectId)}/runs`, { signal })
   if (!Array.isArray(values)) throw new Error('실행 목록 형식이 올바르지 않습니다.')
