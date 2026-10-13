@@ -57,7 +57,7 @@ function Ready({ state, adding, onAddingChange, onRemove, onSelect, project, she
             <div>
               <b>{lotLabel(parcel.address, parcel.pnu)}</b>
               <span>{[parcel.summary.land_category, area(parcel.summary.area_m2)].filter(Boolean).join(' · ')}</span>
-              <small>{parcel.summary.zones.length ? parcel.summary.zones.join(' · ') : '용도지역 —'} · {parcel.pnu}</small>
+              <small>{parcel.summary.zones.length ? parcel.summary.zones.join(' · ') : '용도지역 —'}</small>
             </div>
             {editable && count > 1 && (
               <button aria-label={`${lotLabel(parcel.address, parcel.pnu)} 빼기`} className="site-card-icon" onClick={() => onRemove(parcel.pnu)} title="빼기" type="button"><X size={12} /></button>
