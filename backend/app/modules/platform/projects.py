@@ -18,8 +18,12 @@ class ProjectService:
 
     async def create(self, actor: str, request: ProjectCreate):
         projects = await self.owner.list_projects()
-        if not any(item['owner_project_id'] == request.owner_project_id and
-                   item['branch_id'] == request.branch_id for item in projects):
+        # A conversation's own branch exists in the Orchestrator only after its first record: the workspace the
+        # editor made for it stands for the branch until then. Everything else is checked as for any binding.
+        held = self.repository.find(actor, request)
+        if not (held is not None and held.conversation) and not any(
+                item['owner_project_id'] == request.owner_project_id and item['branch_id'] == request.branch_id
+                for item in projects):
             raise BindingConflict('owner project or branch does not exist')
         try:
             scene = await self.scenes.get_scene(request.scene_id)
@@ -47,7 +51,7 @@ class ProjectService:
                                 scene_id=binding.scene_id, scene_revision=binding.scene_revision,
                                 scene_project_id=binding.scene_project_id)
         try:
-            return self.repository.create(actor, request)
+            return self.repository.create(actor, request, conversation=True)
         except ValueError as exc:
             raise BindingConflict(str(exc)) from exc
 

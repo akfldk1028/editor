@@ -37,6 +37,14 @@ class ProjectCreate(BaseModel):
 
 class ProjectBinding(ProjectCreate):
     project_id: str
+    # A conversation's own workspace (one conversation = one workspace) and the title its first message gave it.
+    conversation: bool = False
+    title: str | None = Field(default=None, max_length=200)
+    created_at: str | None = None
+
+    def creation(self) -> ProjectCreate:
+        """The request that made this binding (its identity fields only)."""
+        return ProjectCreate(**self.model_dump(include=set(ProjectCreate.model_fields)))
 
 
 class SceneRevisionRefresh(BaseModel):

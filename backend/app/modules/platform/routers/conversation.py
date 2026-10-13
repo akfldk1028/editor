@@ -37,6 +37,15 @@ def settle_turns(ledger, snapshot) -> None:
             ledger.finish(turn, status='ERROR', error_type=snapshot.error or 'conversation_failed')
 
 
+def conversation_title(text: str, limit: int = 40) -> str:
+    """A thread title from the message that started it: its first line, cut at a word near `limit` characters."""
+    line = ' '.join(text.split('\n', 1)[0].split())
+    if len(line) <= limit:
+        return line
+    cut = line[:limit].rsplit(' ', 1)[0] or line[:limit]
+    return cut.rstrip(' ,.') + '…'
+
+
 def create_conversation_router(projects_service, owner, allowed_origin, activation=None, ledger=None):
     router = APIRouter()
     remote = OrchestratorConversation(owner)
@@ -119,6 +128,9 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
                 code = exc.detail.get('code') if isinstance(exc.detail, dict) else None
                 ledger.finish(turn, status='ERROR', error_type=code or f'http_{exc.status_code}')
             raise
+        if body.confirmation is None:
+            # A conversation's workspace is named by its first message, like a chat thread (once; later ones keep it).
+            projects_service().repository.name_conversation('local', project_id, conversation_title(body.text))
         if located is None:
             return snapshot
         return JSONResponse({**snapshot.model_dump(), 'located': located}, status_code=202)

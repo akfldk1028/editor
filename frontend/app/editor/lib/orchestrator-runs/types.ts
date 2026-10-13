@@ -59,6 +59,10 @@ export interface ProjectBinding {
   scene_id: string
   scene_revision: number
   scene_project_id: string | null
+  /** A conversation's own workspace (one conversation = one workspace), named by its first message. */
+  conversation?: boolean
+  title?: string | null
+  created_at?: string | null
 }
 
 /** One agent step of a run, in communication order. */

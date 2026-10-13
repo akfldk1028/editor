@@ -2,7 +2,6 @@ from fastapi import HTTPException
 
 from backend.app.adapters.orchestrator import OwnerContractError, OwnerUnavailable
 from backend.app.modules.platform.projects import BindingConflict
-from backend.app.schemas.platform import ProjectCreate
 
 
 class DesignAccess:
@@ -24,7 +23,7 @@ class DesignAccess:
         if value.scene_revision != body.scene_revision:
             raise HTTPException(409, 'Scene revision changed')
         try:
-            await self.projects_service().create('local', ProjectCreate(**value.model_dump(exclude={'project_id'})))
+            await self.projects_service().create('local', value.creation())
         except BindingConflict:
             raise HTTPException(409, 'Project or scene revision changed') from None
         except OwnerUnavailable:

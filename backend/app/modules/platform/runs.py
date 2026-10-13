@@ -1,5 +1,4 @@
 from backend.app.core.tracing import JsonlTraceRecorder, Span, continue_or_start
-from backend.app.schemas.platform import ProjectCreate
 from backend.app.schemas.specialist_review import specialist_items
 from .projects import BindingConflict
 from .run_results import parse_run_results, request_pnu
@@ -44,7 +43,7 @@ class RunService:
         try:
             previous = await self.owner.list_runs(binding.owner_project_id,binding.branch_id,request_id, trace=span.context)
             if not any(run['request_id'] == request_id for run in previous):
-                await self.projects.create(actor, ProjectCreate(**binding.model_dump(exclude={'project_id'})))
+                await self.projects.create(actor, binding.creation())
             run = await self.owner.submit_run({'project':binding.owner_project_id,'branch':binding.branch_id,
                 'request_id':request_id, 'request':body.request,'source_versions':body.source_versions}, trace=span.context)
         except Exception as exc:
