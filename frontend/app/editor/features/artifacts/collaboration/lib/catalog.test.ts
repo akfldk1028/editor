@@ -33,10 +33,11 @@ test('an agent only the Orchestrator knows is drawn from the catalog: readable n
 test('with its A2A card the agent speaks for itself: description, skills by their card names, folder labels still first', () => {
   const entries = mergeCatalog([
     row({ agent_id: 'structure', label: 'StructureAgent', capabilities: ['structure_frame'], connection_status: 'available', description: 'Frames and walls for a mass.', skills: [{ id: 'structure_frame', name: 'frame', description: 'Propose a frame.' }, { id: 'structure_health', name: 'health', description: '' }] }),
-    row({ agent_id: 'site-context', label: 'SiteContextAgent', capabilities: [], connection_status: 'available', description: 'Establishes the facts a parcel has.', skills: [{ id: 'site_resolve', name: 'resolve', description: '' }, { id: 'site_district_plan', name: 'district plan', description: '' }] }),
+    row({ agent_id: 'site-context', label: 'SiteContextAgent', capabilities: [], connection_status: 'available', description: 'Establishes the facts a parcel has.', skills: [{ id: 'site_resolve', name: 'resolve', description: '' }, { id: 'site_new_survey', name: 'new survey', description: '' }] }),
   ])
   expect(entries.find((entry) => entry.id === 'structure')).toMatchObject({ description: 'Frames and walls for a mass.', tools: { structure_frame: 'frame' } })
   const site = entries.find((entry) => entry.id === 'site_context')!
   expect(site.description).toBe('Establishes the facts a parcel has.')
-  expect(site.tools).toEqual({ site_resolve: '대지 사실 확인', site_district_plan: 'district plan' })
+  // Folder labels win; a skill the folder does not name yet reads by its card name.
+  expect(site.tools).toMatchObject({ site_resolve: '대지 사실 확인', site_new_survey: 'new survey' })
 })

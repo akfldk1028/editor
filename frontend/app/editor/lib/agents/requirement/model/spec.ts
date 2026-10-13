@@ -4,4 +4,5 @@ import type { AgentSpec } from '../../spec'
 export const spec: AgentSpec = {
   id: 'requirement',
   name: 'Requirement Agent',
+  tools: { requirement_structure: '요구사항 정리' },
 }
