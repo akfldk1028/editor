@@ -110,7 +110,9 @@ STATE_STATUS = {'completed': 'OK', 'failed': 'ERROR', 'rejected': 'ERROR', 'canc
 
 def from_hop_log(row: dict, *, request_text: str | None = None, response_text: str | None = None, capture: bool = True) -> HopRecord:
     """A row as agents/a2a_common/protocol.py `_record` writes it (plus the texts a network sink adds), as a HopRecord.
-    The row is written when the call ends, so `ts` is the end and the start is `elapsed_ms` earlier."""
+    The row is written when the call ends, so `ts` is the end and the start is `elapsed_ms` earlier — except a caller's
+    start row (state `working`, sent as it dispatches): `ts` is then the start and the call is still running, until the
+    answering agent's row for the same span ends it."""
     if not isinstance(row.get('agent'), str) or not row['agent']:
         raise ValueError('a hop record names the agent that answered')
     trace = row.get('trace') if isinstance(row.get('trace'), dict) else {}
@@ -118,6 +120,7 @@ def from_hop_log(row: dict, *, request_text: str | None = None, response_text: s
     elapsed = _int(row.get('elapsed_ms'))
     started = ended - timedelta(milliseconds=elapsed) if elapsed is not None else ended
     state = str(row.get('state') or '') or None
+    running = state in ('working', 'submitted')
     args = row.get('args')
     request = request_text if isinstance(request_text, str) else (json.dumps(args, ensure_ascii=False, default=str) if isinstance(args, dict) else None)
     to_agent = str(row.get('agent') or trace.get('to_agent') or 'unknown')
@@ -128,7 +131,7 @@ def from_hop_log(row: dict, *, request_text: str | None = None, response_text: s
     return HopRecord(
         trace_id=_hex(trace.get('trace_id'), _HEX32, new_trace_id), span_id=_hex(trace.get('span_id'), _HEX16, new_span_id),
         parent_span_id=_hex(trace.get('parent_span_id'), _HEX16, lambda: None) if trace.get('parent_span_id') else None,
-        ts_start=_iso(started), ts_end=_iso(ended), operation='invoke_agent',
+        ts_start=_iso(started), ts_end=None if running else _iso(ended), operation='invoke_agent',
         from_agent=str(trace.get('from_agent') or trace.get('caller') or 'unknown'), to_agent=to_agent,
         tool=str(row['tool']) if row.get('tool') else None, status=STATE_STATUS.get(state or '', 'UNSET'),
         error_type=None, state=state, elapsed_ms=elapsed,

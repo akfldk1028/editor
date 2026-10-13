@@ -168,3 +168,12 @@ def test_a_persons_message_runs_until_its_reply_is_in_the_conversation_then_ends
     assert first['state'] == 'completed' and message_text(first['output_messages']) == '60%' and second['ts_end'] is None
     settle_turns(ledger, snapshot('failed', [('m1', 'user', None, '건폐율은?'), ('a1', 'assistant', 'law', '60%'), ('m2', 'user', None, '높이는?')], error='owner_failed'))
     assert ledger.rows(conversation_id='c1')[1]['status'] == 'ERROR' and ledger.open_calls(conversation_id='c1', tool='conversation') == []
+
+
+def test_a_callers_start_row_runs_until_the_agents_row_for_the_same_span_ends_it(tmp_path):
+    ledger = Ledger(tmp_path)
+    start = {**HOP, 'state': 'working', 'elapsed_ms': None, 'ts': '2026-10-12T10:51:55.000Z'}
+    first = ledger.ingest_hop(start)
+    assert first['ts_end'] is None and first['state'] == 'working'
+    done = ledger.ingest_hop({**HOP, 'response_text': '{"status": "partial"}'})
+    assert done['id'] == first['id'] and done['ts_end'] == '2026-10-12T10:51:56.559Z' and done['state'] == 'completed'
