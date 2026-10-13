@@ -879,6 +879,11 @@ def _plan_site_fixed(request):
                         if f["properties"].get("layer")=="basement_boundary"),
                     "pending_reviews":sorted({r for p in proposals for r in p["pending_reviews"]})}
                 candidates.append(compact)
+    from .tandem import expand as expand_tandem
+    for original in list(candidates):
+        tandem = expand_tandem(request, original, planned)
+        if tandem is not None:
+            candidates.append(tandem)
     if not candidates:
         candidates=[{"strategy":strategy,"features":base,"levels":[{"level":0,"z_m":0,"provided_spaces":0}],
                      "provided":0,"accessible":0,"search_count":0}]

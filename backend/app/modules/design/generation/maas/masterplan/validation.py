@@ -34,6 +34,11 @@ def validate_plan(request, result):
     rules = request.get("rules") or {}
     law = request.get("law") or {}
     features = result.get("features",[])
+    from .tandem import certified_rears
+    tandem_rears, tandem_checks = certified_rears(request, features)
+    checks.extend(tandem_checks)
+    if tandem_rears:
+        pending.append('tandem_front_vehicle_relocation_and_operation_review')
     core_clearance = core_clearance_requirement(request)
     pedestrian=pedestrian_reservation(request)
     from .pedestrian_routes import check_route_features
@@ -219,7 +224,8 @@ def validate_plan(request, result):
                 coords = list(rect.exterior.coords)
                 long_edges = [LineString([a,b]) for a,b in zip(coords,coords[1:]) if math.dist(a,b)+TOL>=length]
                 frontage = max(edge.intersection(drive.buffer(TOL)).length for edge in long_edges)
-            check(f"stall_aisle_frontage:{sid}",frontage+TOL>=(length if parallel else width),contact_m=frontage)
+            check(f"stall_aisle_frontage:{sid}",sid in tandem_rears or frontage+TOL>=(length if parallel else width),contact_m=frontage,
+                  access_kind='verified_tandem_pair' if sid in tandem_rears else 'direct_aisle')
         # Drive aisles must be one component, except at ground where a surface
         # lot and a ramp departure may each meet the road on their own: there
         # every component must touch the road. Tiny coordinate noise is not a road.
@@ -228,7 +234,7 @@ def validate_plan(request, result):
             road = shape(request["frontage"]) if request.get("frontage") else None
             from .ground_access import certify_ground_access
             checks.append(certify_ground_access(drive.difference(unary_union(drive_blockers)),
-                                                [g for g,p in stalls], road, rules.get('aisle_width_m')))
+                                                [g for g,p in stalls if p.get('stall_id') not in tandem_rears], road, rules.get('aisle_width_m')))
             if road is not None:
                 check(f"drive_connected:{level}",all(c.distance(road)<=TOL for c in components) if not drive.is_empty else True,
                       components=len(components))
