@@ -15,7 +15,7 @@ export const productRoutes: readonly ProductRoute[] = [
   { href: '/projects', label: 'Projects' },
   { href: '/land', label: '토지 분석', translationKey: 'nav.land', icon: 'map' },
   { href: '/map', label: 'VWorld 지도', icon: 'map' },
-  { href: '/law', label: '법규 검색', sidebarLabel: '법규 검색 · 3D 지도', icon: 'map' },
+  // 법규 검색은 대화와 협업 아티팩트(법규 검토 결과)로 들어가 헤더에서 뺐다(2026-10-13); /law 화면은 남아 있다.
   { href: '/design', label: '매스 · 평면 설계' },
   { href: '/design/language', label: '설계 언어', sidebarLabel: '설계 언어 · 실행 근거' },
   { href: '/agents', label: 'Agents', sidebarLabel: 'A2A Agents' },
