@@ -15,7 +15,7 @@ Kept out of views.py on purpose: this is the agent seam, not the frontend API. F
     POST /law/agent/parking-design-rules/  {required_spaces, ...options}   -> design.maas.masterplan.rules.parking_design_rules
     POST /law/agent/parking-count/         {zone_names, sigungu_code?, building_type?, floor_area_m2?, program_uses?,
                                             assessment_date?}              -> land.reference.services.regulation_calculator.calculate_all
-    POST /law/agent/parcel-limits/         {pnu, building_type?, assessment_date?} -> massv2 legal.load_legal_site + parcel_policy.policy_for
+    POST /law/agent/parcel-limits/         {pnu, building_type?, assessment_date?} -> massv2 legal.load_legal_site on public rules (no parcel_policy)
 """
 from datetime import date
 import json
@@ -182,8 +182,10 @@ def ordinance_receipt(regulation):
 @csrf_exempt
 @require_http_methods(["POST"])
 def parcel_limits(request):
-    """Statutory caps for one parcel by massv2 (legal + parcel_policy): the same figures the numeric gate uses.
-    The output shape is the one the agent's former `manage.py shell` snippet produced, field for field."""
+    """Statutory caps for one parcel by massv2 legal, on public rules only (zoning, ordinance, setbacks).
+
+    The hand-registered parcel table (massv2.parcel_policy) is not applied: a 지구단위계획 reaches an answer only
+    through Site's district plan and Law's district review, where it is cited, never from a table keyed by PNU."""
     body = _body(request)
     if body is None:
         return _bad("Invalid JSON")
@@ -201,8 +203,7 @@ def parcel_limits(request):
             return _bad("assessment_date must be YYYY-MM-DD")
     try:
         from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site
-        from backend.app.modules.design.generation.maas.massv2.parcel_policy import policy_for
-        site = load_legal_site(pnu, building_type=building_type, assessment_date=assessment_date)
+        site = load_legal_site(pnu, building_type=building_type, assessment_date=assessment_date, parcel_policy=False)
     except Exception as exc:
         return _failed(exc)
     parcel_area = float(site.parcel_area_m2)
@@ -213,13 +214,6 @@ def parcel_limits(request):
            "max_storeys": site.max_storeys,
            "bcr_pct": round(100 * float(site.ground_capacity_m2) / parcel_area, 2),
            "far_pct": round(100 * float(site.far_capacity_m2) / parcel_area, 2)}
-    try:
-        policy = policy_for(pnu)
-        out["policy"] = policy if isinstance(policy, dict) else (
-            {k: getattr(policy, k) for k in dir(policy) if not k.startswith("_") and not callable(getattr(policy, k))}
-            or repr(policy))
-    except Exception as exc:
-        out["policy_error"] = str(exc)
     try:
         out["evidence"] = site.evidence()
     except Exception as exc:

@@ -29,16 +29,35 @@ def test_the_receipt_names_articles_edition_and_date():
 
 
 def test_parcel_limits_carries_the_receipt(monkeypatch):
-    from backend.app.modules.design.generation.maas.massv2 import legal, parcel_policy
+    from backend.app.modules.design.generation.maas.massv2 import legal
     site = SimpleNamespace(parcel_area_m2=1000.0, ground_capacity_m2=600.0, far_capacity_m2=2500.0,
                            max_storeys=None, regulation=REGULATION, evidence=lambda: {'schema_version': 'x'})
-    monkeypatch.setattr(legal, 'load_legal_site', lambda pnu, building_type=None, assessment_date=None: site)
-    monkeypatch.setattr(parcel_policy, 'policy_for', lambda pnu: {})
+    seen = []
+
+    def load(pnu, building_type=None, assessment_date=None, parcel_policy=True):
+        seen.append(parcel_policy)
+        return site
+    monkeypatch.setattr(legal, 'load_legal_site', load)
     request = RequestFactory().post('/law/agent/parcel-limits/', data=json.dumps({'pnu': '4115011300106840001'}),
                                     content_type='application/json')
     body = json.loads(law.parcel_limits(request).content)
     assert body['ordinance']['bcr_article'].endswith('제42조') and body['zones'] == ['제2종일반주거지역']
     assert body['far_pct'] == 250.0 and body['evidence'] == {'schema_version': 'x'}
+    # Public rules only: the hand-registered parcel table never reaches a law answer.
+    assert seen == [False] and 'policy' not in body
+
+
+def test_a_site_loaded_without_the_parcel_policy_ignores_the_registered_table():
+    from shapely.geometry import box
+    from backend.app.modules.design.generation.maas.massv2 import legal, parcel_policy
+    pnu = next(iter(parcel_policy._POLICIES))
+    assert parcel_policy.policy_of(SimpleNamespace(pnu=pnu)) is not None
+    assert parcel_policy.policy_of(SimpleNamespace(pnu=pnu, parcel_policy=False)) is None
+    assert parcel_policy.registered_buildable(SimpleNamespace(pnu=pnu, site_local_utm=box(0, 0, 1, 1), parcel_policy=False)) is None
+    site = legal.LegalSite(pnu=pnu, site_local_utm=box(0, 0, 10, 10), site_origin_utm=(0.0, 0.0), context=None,
+                           floor_field={'bcr_footprint_capacity_m2': 60.0, 'statutory_far_capacity_m2': 250.0},
+                           building_type='업무시설', parcel_policy=False)
+    assert (site.ground_capacity_m2, site.far_capacity_m2, site.max_storeys, site.statutory_max_height_m) == (60.0, 250.0, None, None)
 
 
 def test_a_street_block_ceiling_without_a_number_is_needs_evidence_not_resolved():
@@ -53,16 +72,15 @@ def test_a_street_block_ceiling_without_a_number_is_needs_evidence_not_resolved(
 
 
 def test_parcel_limits_passes_the_callers_assessment_date_and_refuses_a_bad_one(monkeypatch):
-    from backend.app.modules.design.generation.maas.massv2 import legal, parcel_policy
+    from backend.app.modules.design.generation.maas.massv2 import legal
     seen = []
     site = SimpleNamespace(parcel_area_m2=1000.0, ground_capacity_m2=600.0, far_capacity_m2=2000.0,
                            max_storeys=None, regulation=REGULATION, evidence=lambda: {})
 
-    def load(pnu, building_type=None, assessment_date=None):
+    def load(pnu, building_type=None, assessment_date=None, parcel_policy=True):
         seen.append(assessment_date)
         return site
     monkeypatch.setattr(legal, 'load_legal_site', load)
-    monkeypatch.setattr(parcel_policy, 'policy_for', lambda pnu: {})
 
     def post(body):
         return law.parcel_limits(RequestFactory().post('/law/agent/parcel-limits/', data=json.dumps(body), content_type='application/json'))

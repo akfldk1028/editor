@@ -135,6 +135,16 @@ def policy_for(pnu):
     return deepcopy(_POLICIES.get(str(pnu)))
 
 
+def policy_applies(site):
+    # A site loaded with parcel_policy=False (the law parcel-limits answer) is judged on public rules only:
+    # a 지구단위계획 reaches it through the Site/Law district review, never through this table.
+    return getattr(site, 'parcel_policy', True) is not False
+
+
+def policy_of(site):
+    return policy_for(getattr(site, 'pnu', None)) if policy_applies(site) else None
+
+
 def default_building_type(pnu, requested=None):
     if requested:
         return str(requested)
@@ -179,6 +189,8 @@ def frontage_shapes_from_registration(reg):
 
 
 def _registered_frontage(site):
+    if not policy_applies(site):
+        return None
     pnu = str(getattr(site, 'pnu', None))
     shapes = _frontage_shapes(pnu)
     if shapes is None:
@@ -354,7 +366,7 @@ def area_limit_evidence(source, site, gross_m2):
 
 def storey_limit_evidence(source, site, *, storey_m=None, declared_storeys=None,
                          book_floor_count=None, source_kind='authored'):
-    policy = policy_for(getattr(site, 'pnu', None))
+    policy = policy_of(site)
     limit = (policy or {}).get('max_storeys')
     meta = source.metadata or {}
     declared = declared_storeys if declared_storeys is not None else meta.get('declared_storeys')

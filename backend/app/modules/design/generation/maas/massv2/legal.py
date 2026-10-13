@@ -25,7 +25,7 @@ from backend.app.modules.design.generation.maas.book_language.legal_floor_field 
 from backend.app.modules.design.generation.services.constraint_bridge import regulations_to_constraints
 from backend.app.modules.land.reference import config as land_config
 from backend.app.modules.design.generation.services.site_geometry import fetch_parcel_boundary, geojson_to_polygon, wgs84_to_utm
-from backend.app.modules.design.generation.maas.massv2.parcel_policy import policy_for, default_building_type, registered_buildable, frontage_evidence
+from backend.app.modules.design.generation.maas.massv2.parcel_policy import policy_of, default_building_type, registered_buildable, frontage_evidence
 from backend.app.modules.land.reference.services.zone_split import SPLIT_VERSION, exclusive_zone_names, with_removed
 
 
@@ -36,9 +36,9 @@ class LegalSiteUnavailable(RuntimeError):
     """The parcel could not be resolved from live data."""
 
 
-def apply_registered_parcel_plan(pnu, parcel, context):
+def apply_registered_parcel_plan(pnu, parcel, context, *, parcel_policy=True):
     """Intersect the existing legal context with source-registered plan controls."""
-    site = SimpleNamespace(pnu=pnu, site_local_utm=parcel)
+    site = SimpleNamespace(pnu=pnu, site_local_utm=parcel, parcel_policy=parcel_policy)
     try:
         registered = registered_buildable(site)
     except ValueError as error:
@@ -87,6 +87,9 @@ class LegalSite:
     # How the parcel was divided between its 용도지역 for 제84조 (zone_split.ZoneSplit.to_dict() plus
     # `removed_zones`): which hair-thin strips were excluded as boundary tolerance and disclosed.
     zone_split: dict[str, Any] | None = None
+    # Whether the hand-registered parcel table (parcel_policy._POLICIES) narrows this parcel. Mass generation keeps
+    # it; the law parcel-limits answer turns it off so its caps come from public rules alone.
+    parcel_policy: bool = True
 
     def __post_init__(self):
         object.__setattr__(self, 'building_type', default_building_type(self.pnu, self.building_type))
@@ -108,22 +111,22 @@ class LegalSite:
         """건축면적 ceiling - 건축법 시행령 제119조 제1항 제2호."""
 
         measured = float(self.floor_field.get("bcr_footprint_capacity_m2") or 0.0)
-        cap = (policy_for(self.pnu) or {}).get('max_bcr_pct')
+        cap = (policy_of(self) or {}).get('max_bcr_pct')
         return min(measured, self.parcel_area_m2 * cap / 100) if cap is not None else measured
 
     @property
     def far_capacity_m2(self) -> float:
         measured = float(self.floor_field.get("statutory_far_capacity_m2") or 0.0)
-        cap = (policy_for(self.pnu) or {}).get('max_far_pct')
+        cap = (policy_of(self) or {}).get('max_far_pct')
         return min(measured, self.parcel_area_m2 * cap / 100) if cap is not None else measured
 
     @property
     def max_storeys(self):
-        return (policy_for(self.pnu) or {}).get('max_storeys')
+        return (policy_of(self) or {}).get('max_storeys')
 
     @property
     def statutory_max_height_m(self):
-        return (policy_for(self.pnu) or {}).get('statutory_max_height_m')
+        return (policy_of(self) or {}).get('statutory_max_height_m')
 
     @property
     def floor_height_m(self) -> float:
@@ -167,7 +170,7 @@ class LegalSite:
             'max_storeys': self.max_storeys,
             'statutory_max_height_m': self.statutory_max_height_m,
             'building_type': self.building_type,
-            'parcel_policy': policy_for(self.pnu),
+            'parcel_policy': policy_of(self),
             'datum_measured': self.datum_is_measured,
             'exact_building_line_geometry_verified': False,
             'building_line_geometry_registered': frontages is not None,
@@ -210,10 +213,11 @@ def _write_zoning_cache(path, pnu: str, land_info: dict, areas: dict[str, float]
         pass
 
 
-def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_date: str | None = None) -> LegalSite:
+def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_date: str | None = None,
+                    parcel_policy: bool = True) -> LegalSite:
     """Resolve one parcel into the limits the form language generates against."""
 
-    building_type = default_building_type(pnu, building_type)
+    building_type = default_building_type(pnu if parcel_policy else None, building_type)
     boundary = fetch_parcel_boundary(pnu)
     if boundary is None:
         raise LegalSiteUnavailable(
@@ -333,7 +337,7 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
         constraints=constraints,
         sunlight_envelope=setback_lines.get("sunlight_envelope"),
     )
-    context = apply_registered_parcel_plan(pnu, local_site, context)
+    context = apply_registered_parcel_plan(pnu, local_site, context, parcel_policy=parcel_policy)
     floor_field = materialize_legal_floor_field(
         context, site_local_utm=local_site, pnu=pnu
     )
@@ -359,4 +363,5 @@ def load_legal_site(pnu: str, *, building_type: str | None = None, assessment_da
         datum=setback_lines.get("datum_result"),
         regulation=regulation,
         zone_split=zone_split_payload,
+        parcel_policy=parcel_policy,
     )
