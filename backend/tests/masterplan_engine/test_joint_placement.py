@@ -67,9 +67,9 @@ def test_placement_stage_competes_the_generated_zone_against_its_piloti_variants
         calls.append(r)
         return _fake_result(generated, 22, 400) if r.get('ground_footprint') is None else _fake_result(generated, 30, 300)
     chosen = select_joint_layout(_placement_request(), solve)
-    assert len(calls) == 3 and calls[0].get('ground_footprint') is None
+    assert len(calls) == 5 and calls[0].get('ground_footprint') is None
     strips = []
-    for r in calls[1:]:
+    for r in calls[1:3]:
         assert shape(r['footprint']).equals(generated)
         ground = shape(r['ground_footprint'])
         assert generated.covers(ground) and ground.bounds[1] > 40   # the strip is the south face
@@ -77,7 +77,7 @@ def test_placement_stage_competes_the_generated_zone_against_its_piloti_variants
     assert strips == [40 * 5.0, 40 * 11.0]
     assert chosen.get('piloti_strip_m') in (5.0, 11.0)
     assert 'generated piloti ground occupancy requires MassAgent/architect acceptance' in chosen['blocking']
-    assert chosen['joint_search']['complete_layouts'] == 3
+    assert chosen['joint_search']['complete_layouts'] == 5
 
 
 def test_no_surface_target_outside_placement_stage_keeps_the_single_solve():
@@ -87,6 +87,23 @@ def test_no_surface_target_outside_placement_stage_keeps_the_single_solve():
         calls.append(r); return _fake_result(box(10, 40, 50, 60), 22)
     select_joint_layout(req, solve)
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize('extra_stall', [False, True])
+def test_final_choice_preserves_ground_before_optimizing_drive(monkeypatch, extra_stall):
+    from backend.app.modules.design.generation.maas.masterplan import joint
+    generated = box(10, 40, 50, 60)
+    monkeypatch.setattr(joint, 'footprint_candidates', lambda *a, **k: [])
+    def solve(request):
+        piloti = request.get('ground_footprint') is not None
+        result = _fake_result(generated, 22, 10 if piloti else 400)
+        result['metrics']['provided_parking_stalls'] = 50 if piloti or not extra_stall else 49
+        if piloti:
+            result['features'].append({'properties': {'layer':'building_ground_footprint','level':0},
+                                       'geometry':request['ground_footprint']})
+        return result
+    chosen = select_joint_layout(_placement_request(), solve)
+    assert (chosen.get('piloti_strip_m') is not None) == extra_stall
 
 
 @pytest.mark.parametrize('surface_cap', [5, 7])

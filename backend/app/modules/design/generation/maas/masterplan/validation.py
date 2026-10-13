@@ -8,7 +8,7 @@ from shapely.geometry import LineString, Point, Polygon, shape
 from shapely.ops import unary_union, substring
 
 from backend.app.modules.design.generation.maas.masterplan.compact_slab import REQUIRED_LAYERS
-from backend.app.modules.design.generation.maas.masterplan.geometry import EPS
+from backend.app.modules.design.generation.maas.masterplan.geometry import EPS, parts
 from backend.app.modules.design.generation.maas.masterplan.ramp_overhead import overhead_clearance
 from backend.app.modules.design.generation.maas.masterplan.pedestrian import pedestrian_reservation, profile_flat_area, ramp_reservation_conflicts
 from backend.app.modules.design.generation.maas.masterplan.circulation import closed_aisle_loop, full_width_stall_access
@@ -49,6 +49,15 @@ def validate_plan(request, result):
             try:
                 g = shape(f["geometry"])
                 check(f"geometry_valid:{p.get('layer')}:{p.get('stall_id','')}",g.is_valid and not g.is_empty)
+                if p.get('layer') in REQUIRED_LAYERS:
+                    areal = g.geom_type in ('Polygon', 'MultiPolygon')
+                    check(f"geometry_areal:{p['layer']}:{p.get('stall_id','')}", areal)
+                    if not areal:
+                        # Reject mixed-dimensional input but continue measuring its area;
+                        # zero-width lines must neither connect aisles nor crash overlays.
+                        g = unary_union(parts(g))
+                        if g.is_empty:
+                            continue
                 grouped[(p.get("level",0),p["layer"])].append((g,p))
             except Exception:
                 check("geometry_parse",False)

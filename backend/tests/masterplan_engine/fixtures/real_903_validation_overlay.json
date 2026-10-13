@@ -1,0 +1,463 @@
+{
+  "request": {
+    "site": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            0.0,
+            33.64542977884412
+          ],
+          [
+            77.25857414980419,
+            31.954011276829988
+          ],
+          [
+            83.39444121229462,
+            23.702128313481808
+          ],
+          [
+            72.48338424810208,
+            20.453287803102285
+          ],
+          [
+            56.69177441182546,
+            14.867679418995976
+          ],
+          [
+            11.727520424232353,
+            0.0
+          ],
+          [
+            5.632425073708873,
+            17.232705373782665
+          ],
+          [
+            0.0,
+            33.64542977884412
+          ]
+        ]
+      ]
+    },
+    "buildable": null,
+    "footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            58.96131528987979,
+            16.350758392607805
+          ],
+          [
+            17.596852126684357,
+            17.2563487311565
+          ],
+          [
+            17.94705549330437,
+            33.2525156971114
+          ],
+          [
+            59.31151865649981,
+            32.3469253585627
+          ],
+          [
+            58.96131528987979,
+            16.350758392607805
+          ]
+        ]
+      ]
+    },
+    "ground_footprint": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            17.94705549330437,
+            33.2525156971114
+          ],
+          [
+            59.31151865649981,
+            32.3469253585627
+          ],
+          [
+            59.20208010443072,
+            27.348123181686788
+          ],
+          [
+            17.837616941235286,
+            28.253713520235515
+          ],
+          [
+            17.94705549330437,
+            33.2525156971114
+          ]
+        ]
+      ]
+    },
+    "frontage": {
+      "type": "MultiLineString",
+      "coordinates": [
+        [
+          [
+            0.0,
+            33.64542977884412
+          ],
+          [
+            77.25857414980419,
+            31.954011276829988
+          ]
+        ],
+        [
+          [
+            77.25857414980419,
+            31.954011276829988
+          ],
+          [
+            83.39444121229462,
+            23.702128313481808
+          ]
+        ]
+      ]
+    },
+    "front_frontage": {
+      "type": "LineString",
+      "coordinates": [
+        [
+          0.0,
+          33.64542977884412
+        ],
+        [
+          77.25857414980419,
+          31.954011276829988
+        ]
+      ]
+    },
+    "rules": {
+      "status": "rules_available",
+      "source_snapshot": {
+        "jurisdiction": "KR",
+        "instrument": "주차장법 시행규칙",
+        "edition_effective_from": "2026-07-27",
+        "as_of": "2026-09-17",
+        "official_url": "https://www.law.go.kr/법령/주차장법시행규칙",
+        "provisions": [
+          "제3조제1항제2호",
+          "제5조제6호",
+          "제6조제1항제2호ㆍ제3호ㆍ제4호ㆍ제5호ㆍ제7호ㆍ제13호ㆍ제14호",
+          "제11조제1항ㆍ제4항ㆍ제5항",
+          "별표 1"
+        ]
+      },
+      "owner_snapshot": {
+        "schema_version": "arr.maas.parking_design_rules.v1",
+        "status": "rules_available",
+        "permit_compliance_verified": false,
+        "applicability": {
+          "status": "applicable_for_preliminary_design",
+          "requested": {
+            "required_spaces": 13,
+            "facility_type": "attached",
+            "parking_method": "self_parking",
+            "structure": "underground_or_building",
+            "parking_angle": "perpendicular",
+            "ramp_shape": "straight",
+            "entrance_count": 1
+          },
+          "unsupported_fields": [],
+          "scope": "general attached underground/building self-parking; perpendicular stalls; straight ramp"
+        },
+        "source_snapshot": {
+          "jurisdiction": "KR",
+          "instrument": "주차장법 시행규칙",
+          "edition_effective_from": "2026-07-27",
+          "as_of": "2026-09-17",
+          "official_url": "https://www.law.go.kr/법령/주차장법시행규칙",
+          "provisions": [
+            "제3조제1항제2호",
+            "제5조제6호",
+            "제6조제1항제2호ㆍ제3호ㆍ제4호ㆍ제5호ㆍ제7호ㆍ제13호ㆍ제14호",
+            "제11조제1항ㆍ제4항ㆍ제5항",
+            "별표 1"
+          ]
+        },
+        "statutory": {
+          "stalls": {
+            "general": {
+              "min_width_m": 2.5,
+              "min_length_m": 5.0,
+              "source": "제3조제1항제2호"
+            },
+            "accessible": {
+              "min_width_m": 3.3,
+              "min_length_m": 5.0,
+              "source": "제3조제1항제2호"
+            },
+            "expanded": {
+              "min_width_m": 2.6,
+              "min_length_m": 5.2,
+              "min_share": null,
+              "applies_from_spaces": 50,
+              "share_basis": "주차단위구획 총수 (평행주차형식 제외)",
+              "source": "제3조제1항제2호; 제11조제4항 -> 제6조제1항제14호"
+            },
+            "ev": {
+              "min_share": null,
+              "applies_from_spaces": 50,
+              "source": "제11조제4항 -> 제6조제1항제14호 (조례로 상향 가능)"
+            },
+            "surface": {
+              "max_grade_ratio": 0.07,
+              "source": "제6조제1항제13호 및 제11조제1항"
+            }
+          },
+          "entrance": {
+            "min_width_m": 3.5,
+            "large_lot": false,
+            "large_lot_alternative": null,
+            "road_choice": "둘 이상의 도로에 접하면 자동차교통에 미치는 지장이 적은 도로에 출입구",
+            "road_choice_source": "제5조제6호 및 제11조제1항",
+            "sight": {
+              "setback_m": 2.0,
+              "eye_height_m": 1.4,
+              "angle_deg": 60.0,
+              "source": "제6조제1항제2호 및 제11조제1항"
+            },
+            "source": "제6조제1항제4호 및 제11조제1항"
+          },
+          "aisle": {
+            "parking_angle": "perpendicular",
+            "min_width_m": 6.0,
+            "source": "제6조제1항제3호나목 및 제11조제1항"
+          },
+          "ramp": {
+            "straight": {
+              "one_lane_min_width_m": 3.3,
+              "two_lane_min_width_m": 6.0,
+              "max_longitudinal_slope_ratio": 0.17,
+              "source": "제6조제1항제5호다목ㆍ라목 및 제11조제1항"
+            },
+            "curved": {
+              "one_lane_min_width_m": 3.6,
+              "two_lane_min_width_m": 6.5,
+              "max_longitudinal_slope_ratio": 0.14,
+              "min_inner_radius_m": 5.0,
+              "road_interface_max_slope_ratio": 0.07,
+              "kerb": "양쪽 벽면에서 30 cm 지점에 높이 10~15 cm 연석 (차로 너비에 포함)",
+              "source": "제6조제1항제5호나목ㆍ다목ㆍ라목ㆍ바목 및 제11조제1항"
+            },
+            "min_clear_height_m": 2.3,
+            "min_clear_height_source": "제6조제1항제5호가목 및 제11조제1항",
+            "parking_area_min_clear_height_m": 2.1,
+            "parking_area_min_clear_height_source": "제6조제1항제7호 및 제11조제1항",
+            "road_interface": {
+              "applies_to": "uphill_ramp_within_3m_of_road",
+              "length_m": 3.0,
+              "max_slope_ratio": 0.085,
+              "source": "제6조제1항제5호바목 및 제11조제1항"
+            },
+            "traffic_separation": {
+              "required": false,
+              "applies_from_spaces": 50,
+              "requirement": null,
+              "source": "제6조제1항제5호사목1) 및 제11조제1항"
+            },
+            "grade_transitions": {
+              "convex": {
+                "required": false,
+                "length_m": null,
+                "max_slope_ratio": null,
+                "source": "제6조제1항제5호사목 및 별표 1"
+              },
+              "concave": {
+                "required": false,
+                "length_m": null,
+                "max_slope_ratio": null,
+                "source": "제6조제1항제5호사목 및 별표 1"
+              }
+            },
+            "level_landing_length_m": null
+          }
+        },
+        "design_assumptions": {
+          "ramp_level_landing": {
+            "status": "design_assumption",
+            "length_m": 6.0,
+            "statutory_basis": null,
+            "reason": "The cited provisions do not prescribe a general level-landing length; verify vehicle geometry and authority requirements."
+          }
+        },
+        "unresolved": [
+          "accessible_space_count_requires_facility_and_local_ordinance_evidence",
+          "ramp_level_landing_length_requires_project_review",
+          "vehicle_swept_path_requires_project_review",
+          "parcel_specific_ordinance_and_permit_review"
+        ],
+        "via": "lawagent_a2a",
+        "law_task_id": "4db728ca-0d01-4aca-9a46-318b48350728"
+      },
+      "stall_width_m": 2.5,
+      "stall_length_m": 5.0,
+      "accessible_width_m": 3.3,
+      "accessible_length_m": 5.0,
+      "aisle_width_m": 6.0,
+      "ramp_width_m": 6.0,
+      "ramp_max_slope": 0.17,
+      "transition_length_m": 3.0,
+      "transition_slope": 0.085,
+      "min_headroom_m": 2.3,
+      "entrance_width_m": 3.5,
+      "entrance_large_lot": false,
+      "expanded_width_m": 2.6,
+      "expanded_length_m": 5.2,
+      "expanded_min_share": null,
+      "ev_min_share": null,
+      "stall_max_grade": 0.07,
+      "curve_min_inner_radius_m": 5.0,
+      "curved_ramp_width_m": 6.5,
+      "curved_ramp_max_slope": 0.14,
+      "design_basis": "two-way straight ramp; symmetric grade transitions; level landings use aisle manoeuvring width"
+    },
+    "options": {
+      "max_basement_levels": 0,
+      "target_footprint_m2": 661.99,
+      "planning_stage": "placement",
+      "parking_strategy": "surface"
+    },
+    "law": {
+      "status": "needs_evidence",
+      "bcr_pct": 60.0,
+      "ground_capacity_m2": 992.983,
+      "required_spaces": 13,
+      "max_spaces": null,
+      "requested_parking_stalls": null,
+      "requested_count_kind": null,
+      "parking_count_binding": {
+        "status": "bound",
+        "task_id": "7d1153fd-73e9-48a5-a193-00796a1367d1",
+        "blocking": [],
+        "scope": "answer identity; statutory area qualification and permit approval are not inferred",
+        "payload_sha256": "16f4af0f71f6cdfeed8ad1bd8fe44875b0cb70f84b648964f7799e21ab37be03"
+      },
+      "parking_calculation": {
+        "notes_applied": [
+          "별표1 비고6"
+        ],
+        "mixed_use": false,
+        "rounding_policy": "exact_quotient",
+        "final_rule": "소수점 이하 0.5 이상은 1로 본다; 총주차대수 1대 미만은 0대",
+        "basis": "municipal_snapshot",
+        "subtotal_first_decimal": null,
+        "uses": [
+          {
+            "id": "single_use",
+            "building_type": "업무시설",
+            "ratio_m2_per_car": 100,
+            "rule": null,
+            "use_precision": "exact",
+            "calculated_intermediate": 13.2398,
+            "cars_first_decimal": 13.2,
+            "status": "calculated_intermediate"
+          }
+        ],
+        "note1_exemptions_evaluated": false,
+        "subtotal": 13.2398
+      },
+      "required_accessible_spaces": 1,
+      "accessible": {
+        "required_accessible_cars": 1,
+        "status": "calculated",
+        "article": "주차장법 시행령 별표 1 비고 10; 장애인등편의법 제17조, 시행령 제4조 별표 2 제2호(2)(가); 대상시설은 같은 시행령 별표 1",
+        "ratio_pct": 3,
+        "ratio_article": "서울특별시 주차장 설치 및 관리 조례 제25조제1항",
+        "ratio_basis": "municipal_snapshot",
+        "national_band_pct": [
+          2,
+          4
+        ],
+        "min_cars": 10,
+        "rounding": "ceil - 장애인등편의법 시행령 별표 2: 산정된 주차대수의 소수점 이하 끝수는 1대",
+        "applicability": {
+          "status": "applies",
+          "source": "장애인ㆍ노인ㆍ임산부 등의 편의증진 보장에 관한 법률 시행령 별표 1 편의시설 설치 대상시설(제3조 관련)",
+          "uses": [
+            {
+              "id": "single_use",
+              "building_type": "업무시설",
+              "status": "applies",
+              "basis": "제2호 카(2)"
+            }
+          ]
+        },
+        "missing_evidence": [],
+        "exact": 0.39
+      },
+      "source_task_ids": [
+        "7d1153fd-73e9-48a5-a193-00796a1367d1",
+        "87e92fe9-df7e-491d-b8c8-34f5cac9f77d",
+        "4db728ca-0d01-4aca-9a46-318b48350728",
+        "8d556d78-7aa0-4055-88dd-426bcd52240a"
+      ]
+    }
+  },
+  "drive": {
+    "type": "GeometryCollection",
+    "geometries": [
+      {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              17.947055493304372,
+              33.252515697111406
+            ],
+            [
+              17.83761694123529,
+              28.253713520235518
+            ],
+            [
+              18.88600971997644,
+              28.230761104107536
+            ],
+            [
+              18.864122009563197,
+              27.23100066875852
+            ],
+            [
+              18.371648525254482,
+              4.736390872915142
+            ],
+            [
+              12.373085913029579,
+              4.8677171353974655
+            ],
+            [
+              12.865559397338293,
+              27.362326931240844
+            ],
+            [
+              12.996885659820617,
+              33.360889543465746
+            ],
+            [
+              17.947055493304372,
+              33.252515697111406
+            ]
+          ]
+        ]
+      },
+      {
+        "type": "LineString",
+        "coordinates": [
+          [
+            18.995448272045518,
+            33.22956328098343
+          ],
+          [
+            17.947055493304372,
+            33.252515697111406
+          ]
+        ]
+      }
+    ]
+  }
+}

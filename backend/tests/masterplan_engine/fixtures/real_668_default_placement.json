@@ -1,0 +1,2787 @@
+{
+  "pnu": "1168010100106680017",
+  "crs": "EPSG:32652",
+  "origin_utm": [
+    326430.91269346664,
+    4152403.882417729
+  ],
+  "coordinate_frame": "site-local metres: crs minus origin_utm",
+  "site": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          17.18399012531154,
+          21.43821148853749
+        ],
+        [
+          23.047899897967,
+          4.62050005979836
+        ],
+        [
+          9.847277795081027,
+          0.0
+        ],
+        [
+          4.441381341719534,
+          2.595305451657623
+        ],
+        [
+          0.0,
+          15.282026570290327
+        ],
+        [
+          17.18399012531154,
+          21.43821148853749
+        ]
+      ]
+    ]
+  },
+  "buildable": null,
+  "vehicle_prohibited": null,
+  "footprint": null,
+  "core": null,
+  "ground_footprint": null,
+  "pedestrian_reserved_area": null,
+  "pedestrian_frontage": null,
+  "pedestrian_vehicle_crossing_area": null,
+  "columns": [],
+  "frontage": {
+    "type": "MultiLineString",
+    "coordinates": [
+      [
+        [
+          23.047899897967,
+          4.62050005979836
+        ],
+        [
+          9.847277795081027,
+          0.0
+        ]
+      ],
+      [
+        [
+          4.441381341719534,
+          2.595305451657623
+        ],
+        [
+          0.0,
+          15.282026570290327
+        ]
+      ]
+    ]
+  },
+  "front_frontage": {
+    "type": "LineString",
+    "coordinates": [
+      [
+        4.441381341719534,
+        2.595305451657623
+      ],
+      [
+        0.0,
+        15.282026570290327
+      ]
+    ]
+  },
+  "basement_boundary": null,
+  "law": {
+    "status": "needs_evidence",
+    "bcr_pct": 50.0,
+    "ground_capacity_m2": 157.346,
+    "required_spaces": 3,
+    "max_spaces": null,
+    "requested_parking_stalls": null,
+    "requested_count_kind": null,
+    "parking_count_binding": {
+      "status": "bound",
+      "task_id": "5aedda3f-712b-4673-94e4-d46e995a7181",
+      "blocking": [],
+      "scope": "answer identity; statutory area qualification and permit approval are not inferred",
+      "payload_sha256": "c01e1708cdfa94555c43be8f67c46dc07f62a6e072fcfff24e296d1bea3be80c"
+    },
+    "parking_calculation": {
+      "notes_applied": [
+        "별표1 비고6"
+      ],
+      "mixed_use": false,
+      "rounding_policy": "exact_quotient",
+      "final_rule": "소수점 이하 0.5 이상은 1로 본다; 총주차대수 1대 미만은 0대",
+      "basis": "municipal_snapshot",
+      "subtotal_first_decimal": null,
+      "uses": [
+        {
+          "id": "single_use",
+          "building_type": "업무시설",
+          "ratio_m2_per_car": 100,
+          "rule": null,
+          "use_precision": "exact",
+          "calculated_intermediate": 2.5176,
+          "cars_first_decimal": 2.5,
+          "status": "calculated_intermediate"
+        }
+      ],
+      "note1_exemptions_evaluated": false,
+      "subtotal": 2.5176
+    },
+    "required_accessible_spaces": 0,
+    "accessible": {
+      "required_accessible_cars": 0,
+      "status": "not_required",
+      "article": "주차장법 시행령 별표 1 비고 10; 장애인등편의법 제17조, 시행령 제4조 별표 2 제2호(2)(가); 대상시설은 같은 시행령 별표 1",
+      "ratio_pct": 3,
+      "ratio_article": "서울특별시 주차장 설치 및 관리 조례 제25조제1항",
+      "ratio_basis": "municipal_snapshot",
+      "national_band_pct": [
+        2,
+        4
+      ],
+      "min_cars": 10,
+      "rounding": "ceil - 장애인등편의법 시행령 별표 2: 산정된 주차대수의 소수점 이하 끝수는 1대",
+      "applicability": {
+        "status": "not_applicable",
+        "source": "장애인ㆍ노인ㆍ임산부 등의 편의증진 보장에 관한 법률 시행령 별표 1 편의시설 설치 대상시설(제3조 관련)",
+        "uses": [
+          {
+            "id": "single_use",
+            "building_type": "업무시설",
+            "status": "not_applicable",
+            "basis": "제2호 카(2) 문턱 500㎡ 미달"
+          }
+        ]
+      },
+      "missing_evidence": [],
+      "reason": "부설주차장 주차대수 3대 < 10대 (별표 2 제2호(2)(가) 단서)"
+    },
+    "source_task_ids": [
+      "5aedda3f-712b-4673-94e4-d46e995a7181",
+      "afc5311d-d477-478e-9ed7-bd607c123eb1",
+      "bd5cc2e6-40a3-4671-978f-5994dba395d1",
+      "d22d3dfc-3cba-4f50-816f-0e6f2fe38f06"
+    ],
+    "blocking": [
+      "district plan: Site source coverage unresolved",
+      "district plan: Law applicability/effective-source review pending",
+      "overlay district_unit_plan: district plan: Site source coverage unresolved; district plan: Law applicability/effective-source review pending",
+      "article_11_5_small_attached_parking_special_standard",
+      "accessible_space_count_requires_facility_and_local_ordinance_evidence",
+      "ramp_level_landing_length_requires_project_review",
+      "district plan: Site source coverage unresolved",
+      "district plan: Law applicability/effective-source review pending",
+      "district plan Law geometry: Law parcel-limits policy is not an object",
+      "district plan: complete applicable provisions verification pending"
+    ]
+  },
+  "rules": {
+    "status": "needs_evidence",
+    "source_snapshot": {
+      "jurisdiction": "KR",
+      "instrument": "주차장법 시행규칙",
+      "edition_effective_from": "2026-07-27",
+      "as_of": "2026-09-17",
+      "official_url": "https://www.law.go.kr/법령/주차장법시행규칙",
+      "provisions": [
+        "제3조제1항제2호",
+        "제5조제6호",
+        "제6조제1항제2호ㆍ제3호ㆍ제4호ㆍ제5호ㆍ제7호ㆍ제13호ㆍ제14호",
+        "제11조제1항ㆍ제4항ㆍ제5항",
+        "별표 1"
+      ]
+    },
+    "owner_snapshot": {
+      "schema_version": "arr.maas.parking_design_rules.v1",
+      "status": "needs_evidence",
+      "permit_compliance_verified": false,
+      "applicability": {
+        "status": "needs_evidence",
+        "requested": {
+          "required_spaces": 3,
+          "facility_type": "attached",
+          "parking_method": "self_parking",
+          "structure": "underground_or_building",
+          "parking_angle": "perpendicular",
+          "ramp_shape": "straight",
+          "entrance_count": 1
+        },
+        "unsupported_fields": [],
+        "reason": "Article 11(5) supplies a special standard for attached self-parking with eight or fewer total spaces; this general ramp snapshot does not silently apply Article 6 ramp values across that exception."
+      },
+      "source_snapshot": {
+        "jurisdiction": "KR",
+        "instrument": "주차장법 시행규칙",
+        "edition_effective_from": "2026-07-27",
+        "as_of": "2026-09-17",
+        "official_url": "https://www.law.go.kr/법령/주차장법시행규칙",
+        "provisions": [
+          "제3조제1항제2호",
+          "제5조제6호",
+          "제6조제1항제2호ㆍ제3호ㆍ제4호ㆍ제5호ㆍ제7호ㆍ제13호ㆍ제14호",
+          "제11조제1항ㆍ제4항ㆍ제5항",
+          "별표 1"
+        ]
+      },
+      "statutory": {
+        "stalls": {
+          "general": {
+            "min_width_m": 2.5,
+            "min_length_m": 5.0,
+            "source": "제3조제1항제2호"
+          },
+          "accessible": {
+            "min_width_m": 3.3,
+            "min_length_m": 5.0,
+            "source": "제3조제1항제2호"
+          }
+        },
+        "aisle": {
+          "parking_angle": "perpendicular",
+          "min_width_m": 6.0,
+          "source": "제11조제5항제1호"
+        },
+        "ramp": {
+          "status": "needs_evidence",
+          "reason": "Article 11(5) replaces the paragraph (1) general structure standard for eight or fewer spaces.",
+          "straight": null
+        }
+      },
+      "design_assumptions": {
+        "small_attached_ramp_preliminary_envelope": {
+          "status": "design_assumption_needs_legal_applicability",
+          "legal_applicability_verified": false,
+          "candidate_basis": "제6조제1항제5호 general attached-parking envelope; not selected as the applicable small-parking rule",
+          "straight": {
+            "one_lane_min_width_m": 3.3,
+            "two_lane_min_width_m": 6.0,
+            "max_longitudinal_slope_ratio": 0.17,
+            "min_clear_height_m": 2.3
+          },
+          "road_interface": {
+            "length_m": 3.0,
+            "max_slope_ratio": 0.085
+          },
+          "level_landing_length_m": 6.0
+        }
+      },
+      "unresolved": [
+        "article_11_5_small_attached_parking_special_standard",
+        "accessible_space_count_requires_facility_and_local_ordinance_evidence",
+        "ramp_level_landing_length_requires_project_review"
+      ],
+      "via": "lawagent_a2a",
+      "law_task_id": "bd5cc2e6-40a3-4671-978f-5994dba395d1"
+    },
+    "stall_width_m": 2.5,
+    "stall_length_m": 5.0,
+    "accessible_width_m": 3.3,
+    "accessible_length_m": 5.0,
+    "aisle_width_m": 6.0,
+    "ramp_width_m": null,
+    "ramp_max_slope": null,
+    "transition_length_m": null,
+    "transition_slope": null,
+    "min_headroom_m": null,
+    "entrance_width_m": null,
+    "entrance_large_lot": null,
+    "expanded_width_m": null,
+    "expanded_length_m": null,
+    "expanded_min_share": null,
+    "ev_min_share": null,
+    "stall_max_grade": null,
+    "curve_min_inner_radius_m": null,
+    "curved_ramp_width_m": null,
+    "curved_ramp_max_slope": null,
+    "design_basis": "two-way straight ramp; symmetric grade transitions; level landings use aisle manoeuvring width"
+  },
+  "options": {
+    "max_basement_levels": 0,
+    "target_footprint_m2": 125.88,
+    "planning_stage": "placement",
+    "parking_strategy": "surface"
+  },
+  "evidence": {
+    "district_binding": {
+      "schema_version": "masterplan.district_binding.v1",
+      "pnu": "1168010100106680017",
+      "project": "",
+      "branch": "",
+      "source_hash": "63dd49596062f45d6701cdc668def27953c638a1b0ad08895a0c3e08b549c6bb",
+      "review_hash": "d1c76d9f6a8a3b29d2103a23458e4ab380fa4a5ee5765b6c50ad5a0c3d402a0e",
+      "status": "needs_evidence",
+      "blocking": [
+        "district plan: Site source coverage unresolved",
+        "district plan: Law applicability/effective-source review pending"
+      ]
+    },
+    "district_context": {
+      "site_evidence": {
+        "schema_version": "site.district_plan.v1",
+        "applicability": {
+          "assessed_by_site": false,
+          "next_step": "apply_district_rules",
+          "owner": "law",
+          "tool": "law_review_district_plan",
+          "pass_as": "site_evidence",
+          "pass_value": "this whole answer",
+          "note": "Site holds the raw district evidence only; whether and how it applies to the parcel is Law's judgement."
+        },
+        "status": "needs_evidence",
+        "pnu": "1168010100106680017",
+        "project": "",
+        "branch": "",
+        "missing_evidence": [
+          "no spatial candidates in available dataset; legal applicability unknown",
+          "district documents unavailable; applicability and effective version unknown"
+        ],
+        "findings": [
+          {
+            "id": "site.district_sources.9f626ecedd122bdcd7a5",
+            "severity": "major",
+            "category": "district_source_evidence",
+            "affected_nodes": [
+              "site.district_plan"
+            ],
+            "raised_by": "site_context",
+            "evidence": {
+              "pnu": "1168010100106680017",
+              "project": "",
+              "branch": "",
+              "query": {
+                "boundary_hash": "468a5108e6e245a7caf1b10fd5778221f05f98ebf70bac9f29d36fafbf4cf86c",
+                "crs": "EPSG:4326",
+                "search_radius_m": 0.0
+              },
+              "release": {
+                "id": "eum-20260929",
+                "path": "/data/ace/district-unit-plans/eum-20260929",
+                "effective_date": null,
+                "layers_from_older_releases": []
+              },
+              "missing_evidence": [
+                "no spatial candidates in available dataset; legal applicability unknown",
+                "district documents unavailable; applicability and effective version unknown"
+              ]
+            },
+            "recommended_agents": [
+              "site_context"
+            ],
+            "recommended_action": "Site must supply the missing raw district source or boundary evidence; source availability does not decide legal applicability."
+          }
+        ],
+        "coverage": {
+          "legal_applicability": "not_assessed",
+          "documents": "local_candidates_only",
+          "spatial_candidates": 0
+        },
+        "release": {
+          "id": "eum-20260929",
+          "path": "/data/ace/district-unit-plans/eum-20260929",
+          "effective_date": null,
+          "layers_from_older_releases": []
+        },
+        "query": {
+          "boundary_hash": "468a5108e6e245a7caf1b10fd5778221f05f98ebf70bac9f29d36fafbf4cf86c",
+          "crs": "EPSG:4326",
+          "search_radius_m": 0.0
+        },
+        "features": [],
+        "documents": [],
+        "tables": [],
+        "boundary_source": {
+          "owner": "caller",
+          "crs": "EPSG:4326"
+        },
+        "source_hash": "63dd49596062f45d6701cdc668def27953c638a1b0ad08895a0c3e08b549c6bb",
+        "sources": [
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+            "kind": "archive",
+            "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+            "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+            "bytes": 163970793,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.shp",
+            "sha256": "ed3cf0f0f148e1ac095f6e2a5e5395f25ea2c48971e3c34f11f9e364859ded94",
+            "bytes": 2285296,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.dbf",
+                "sha256": "97744e6d8e0997afe8beb2fa34e4e46640664490cf540d86500e3381ca336295",
+                "bytes": 228449,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.fix",
+                "sha256": "ad5ba3f331fbe416683cfd3086e230f7fd3e329f88e638da4a242d812f3632d8",
+                "bytes": 11413,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.shp",
+                "sha256": "ed3cf0f0f148e1ac095f6e2a5e5395f25ea2c48971e3c34f11f9e364859ded94",
+                "bytes": 2285296,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ161.shx",
+                "sha256": "643008e8431f025c74e0a36bc3d625d7a013b54975154ebbf84d71407a87679c",
+                "bytes": 7700,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ161.shp": "ed3cf0f0f148e1ac095f6e2a5e5395f25ea2c48971e3c34f11f9e364859ded94",
+                "UPIS_C_UQ161.dbf": "97744e6d8e0997afe8beb2fa34e4e46640664490cf540d86500e3381ca336295",
+                "UPIS_C_UQ161.fix": "ad5ba3f331fbe416683cfd3086e230f7fd3e329f88e638da4a242d812f3632d8",
+                "UPIS_C_UQ161.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ161.shx": "643008e8431f025c74e0a36bc3d625d7a013b54975154ebbf84d71407a87679c"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.shp",
+            "sha256": "1e0fd9842e8971c2ef94364889f3ad8af041009e73d2f03d7797048fbf2c79c7",
+            "bytes": 267148,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.dbf",
+                "sha256": "e54ffd787afb84c4742c70de84903370febd8ad1912dc05645cd5f71b26a8e41",
+                "bytes": 177563,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.fix",
+                "sha256": "e8e9b958745ba6b7d79f2ca20c25c5bd5dd1f62e893b8096a671f274fc173a0a",
+                "bytes": 11893,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.shp",
+                "sha256": "1e0fd9842e8971c2ef94364889f3ad8af041009e73d2f03d7797048fbf2c79c7",
+                "bytes": 267148,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ162.shx",
+                "sha256": "127ce695db532ece598f5faa4bb86a4a512c767efdf30fdecb05a5636131419f",
+                "bytes": 8020,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ162.shp": "1e0fd9842e8971c2ef94364889f3ad8af041009e73d2f03d7797048fbf2c79c7",
+                "UPIS_C_UQ162.dbf": "e54ffd787afb84c4742c70de84903370febd8ad1912dc05645cd5f71b26a8e41",
+                "UPIS_C_UQ162.fix": "e8e9b958745ba6b7d79f2ca20c25c5bd5dd1f62e893b8096a671f274fc173a0a",
+                "UPIS_C_UQ162.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ162.shx": "127ce695db532ece598f5faa4bb86a4a512c767efdf30fdecb05a5636131419f"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.shp",
+            "sha256": "789088caba9d336fc1578642f3e6d4f849106bba20b2f1f1240dc8d3f850fe01",
+            "bytes": 607016,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.dbf",
+                "sha256": "f60ff441dca9214dabc800e773fee560879a5ab6a58fd8c9e83abeb95f04b350",
+                "bytes": 25303,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.fix",
+                "sha256": "8ac8c18048052481a1bf27a12eeeb8d8777504938b2ef0e3aee88a10d3b6e14d",
+                "bytes": 3733,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.shp",
+                "sha256": "789088caba9d336fc1578642f3e6d4f849106bba20b2f1f1240dc8d3f850fe01",
+                "bytes": 607016,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_AS.shx",
+                "sha256": "79d6c700eac81723d714718ed6bf50c673db0bfe7bc7a0321f583085198f9665",
+                "bytes": 2580,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ163_AS.shp": "789088caba9d336fc1578642f3e6d4f849106bba20b2f1f1240dc8d3f850fe01",
+                "UPIS_C_UQ163_AS.dbf": "f60ff441dca9214dabc800e773fee560879a5ab6a58fd8c9e83abeb95f04b350",
+                "UPIS_C_UQ163_AS.fix": "8ac8c18048052481a1bf27a12eeeb8d8777504938b2ef0e3aee88a10d3b6e14d",
+                "UPIS_C_UQ163_AS.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ163_AS.shx": "79d6c700eac81723d714718ed6bf50c673db0bfe7bc7a0321f583085198f9665"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.shp",
+            "sha256": "eb5af1ba875978b083ac9670efc5b41aaced7cff17a258747dd0e10be4c49a53",
+            "bytes": 4276420,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.dbf",
+                "sha256": "34f80e7a2c0af344ac7fa40ccb71e46068cb6e8d19376accd0e41e22da4bb8c1",
+                "bytes": 1733917,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.fix",
+                "sha256": "e0940107933b807aab9c5eee7036c041dc274423642ebd8ebbe4e75bfdfdbe03",
+                "bytes": 256861,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.shp",
+                "sha256": "eb5af1ba875978b083ac9670efc5b41aaced7cff17a258747dd0e10be4c49a53",
+                "bytes": 4276420,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_LM.shx",
+                "sha256": "6f075341ee471ab62dc437e99666f92d47ab57008e3a6bd0cb9666f3649ce025",
+                "bytes": 171332,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ163_LM.shp": "eb5af1ba875978b083ac9670efc5b41aaced7cff17a258747dd0e10be4c49a53",
+                "UPIS_C_UQ163_LM.dbf": "34f80e7a2c0af344ac7fa40ccb71e46068cb6e8d19376accd0e41e22da4bb8c1",
+                "UPIS_C_UQ163_LM.fix": "e0940107933b807aab9c5eee7036c041dc274423642ebd8ebbe4e75bfdfdbe03",
+                "UPIS_C_UQ163_LM.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ163_LM.shx": "6f075341ee471ab62dc437e99666f92d47ab57008e3a6bd0cb9666f3649ce025"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.shp",
+            "sha256": "e074a4d092895d10f98fb486061535c97656c8731bba3f710c563e9eac30037a",
+            "bytes": 15204272,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.dbf",
+                "sha256": "1a5959d94f33121e23d1af48b43199a0fa3ecf228be6e0a3f3bf3fca9a0365b9",
+                "bytes": 37372,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.fix",
+                "sha256": "4a216790b9048dee6928b924b1db07651f89316c1b68fb691cd912b7d53de7b3",
+                "bytes": 5521,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.shp",
+                "sha256": "e074a4d092895d10f98fb486061535c97656c8731bba3f710c563e9eac30037a",
+                "bytes": 15204272,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WA.shx",
+                "sha256": "e7fd2f63865bfa6085a9788ddd089df1f57ba98c58eef2d3145c11580c5999c8",
+                "bytes": 3772,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ163_WA.shp": "e074a4d092895d10f98fb486061535c97656c8731bba3f710c563e9eac30037a",
+                "UPIS_C_UQ163_WA.dbf": "1a5959d94f33121e23d1af48b43199a0fa3ecf228be6e0a3f3bf3fca9a0365b9",
+                "UPIS_C_UQ163_WA.fix": "4a216790b9048dee6928b924b1db07651f89316c1b68fb691cd912b7d53de7b3",
+                "UPIS_C_UQ163_WA.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ163_WA.shx": "e7fd2f63865bfa6085a9788ddd089df1f57ba98c58eef2d3145c11580c5999c8"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.shp",
+            "sha256": "4424afdff6e392dc43db4baf4b3b3fb0ad6348c376c15259478d9a4ca0283903",
+            "bytes": 5891968,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.dbf",
+                "sha256": "a6d9ba522f6d72d710222d2107d8b12447bd4fbfb85730c12c4d7ae1be9854b1",
+                "bytes": 15988,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.fix",
+                "sha256": "2bc16157a336b0130241fd9af5ef7b33690aebcc7f151b109740796efb2624e1",
+                "bytes": 2353,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.shp",
+                "sha256": "4424afdff6e392dc43db4baf4b3b3fb0ad6348c376c15259478d9a4ca0283903",
+                "bytes": 5891968,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ163_WS.shx",
+                "sha256": "148eb61353124ccd0de9b7047a228d3353a0e1b4f83d4a6ec3ba7993fa7a35e1",
+                "bytes": 1660,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ163_WS.shp": "4424afdff6e392dc43db4baf4b3b3fb0ad6348c376c15259478d9a4ca0283903",
+                "UPIS_C_UQ163_WS.dbf": "a6d9ba522f6d72d710222d2107d8b12447bd4fbfb85730c12c4d7ae1be9854b1",
+                "UPIS_C_UQ163_WS.fix": "2bc16157a336b0130241fd9af5ef7b33690aebcc7f151b109740796efb2624e1",
+                "UPIS_C_UQ163_WS.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ163_WS.shx": "148eb61353124ccd0de9b7047a228d3353a0e1b4f83d4a6ec3ba7993fa7a35e1"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.shp",
+            "sha256": "109f43068c1ee9eddf425f2922c1aba62371f9dbd3ab56aee0543b72952f835d",
+            "bytes": 499928,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.dbf",
+                "sha256": "ab38b1d70d874a0701b01e3be0604d54ec04dc03bfab8bdef86f2ad548924463",
+                "bytes": 41422,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.fix",
+                "sha256": "87243cefabfbbc1d05e89423887cbbbea151a30ec06ea36e2ac354856e11e589",
+                "bytes": 6121,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.shp",
+                "sha256": "109f43068c1ee9eddf425f2922c1aba62371f9dbd3ab56aee0543b72952f835d",
+                "bytes": 499928,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PC.shx",
+                "sha256": "071dd4621c51423c8ef00e0b5920b5cf511efaf901bec4aba942a97b176a74cd",
+                "bytes": 4172,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ164_PC.shp": "109f43068c1ee9eddf425f2922c1aba62371f9dbd3ab56aee0543b72952f835d",
+                "UPIS_C_UQ164_PC.dbf": "ab38b1d70d874a0701b01e3be0604d54ec04dc03bfab8bdef86f2ad548924463",
+                "UPIS_C_UQ164_PC.fix": "87243cefabfbbc1d05e89423887cbbbea151a30ec06ea36e2ac354856e11e589",
+                "UPIS_C_UQ164_PC.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ164_PC.shx": "071dd4621c51423c8ef00e0b5920b5cf511efaf901bec4aba942a97b176a74cd"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.shp",
+            "sha256": "87e39008535df1b4dfb2dc2eeff455cdd04d4b7a48d73d517ffbe1626b57c71a",
+            "bytes": 101616,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.dbf",
+                "sha256": "096e688131086b6d8fde03a9e2ca6b2765572ea663fd75887a3295b3c0e357c5",
+                "bytes": 51001,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.fix",
+                "sha256": "7bff852715172f0871a46bfb7ab7253d020a4e8c147df84ef51a628b83610f82",
+                "bytes": 9853,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.shp",
+                "sha256": "87e39008535df1b4dfb2dc2eeff455cdd04d4b7a48d73d517ffbe1626b57c71a",
+                "bytes": 101616,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PG.shx",
+                "sha256": "08fbe0199c15cc8d70cc98231d4a4ed2984cb06aef4404e2cfc064a45e203d4f",
+                "bytes": 6660,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ164_PG.shp": "87e39008535df1b4dfb2dc2eeff455cdd04d4b7a48d73d517ffbe1626b57c71a",
+                "UPIS_C_UQ164_PG.dbf": "096e688131086b6d8fde03a9e2ca6b2765572ea663fd75887a3295b3c0e357c5",
+                "UPIS_C_UQ164_PG.fix": "7bff852715172f0871a46bfb7ab7253d020a4e8c147df84ef51a628b83610f82",
+                "UPIS_C_UQ164_PG.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ164_PG.shx": "08fbe0199c15cc8d70cc98231d4a4ed2984cb06aef4404e2cfc064a45e203d4f"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.shp",
+            "sha256": "0efc536a4a146d3357f89199dc3e854fc5121dad73504a54a385961bdc9f645d",
+            "bytes": 13700,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.dbf",
+                "sha256": "7d7b7bb4916d0f9260b16f0738d0b66fb8229087b321dc4fcf15ed9f0ce8dc4e",
+                "bytes": 7321,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.fix",
+                "sha256": "9489eb40bf857b576ed687910f6670059246125f2fa90a707364f415eb05fcaf",
+                "bytes": 1069,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.shp",
+                "sha256": "0efc536a4a146d3357f89199dc3e854fc5121dad73504a54a385961bdc9f645d",
+                "bytes": 13700,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PU.shx",
+                "sha256": "f4ba2e0bf1a5b3f7a2f1088771f2fcbaf2f5713fbdadf64c74e53a013bb2e4ee",
+                "bytes": 804,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ164_PU.shp": "0efc536a4a146d3357f89199dc3e854fc5121dad73504a54a385961bdc9f645d",
+                "UPIS_C_UQ164_PU.dbf": "7d7b7bb4916d0f9260b16f0738d0b66fb8229087b321dc4fcf15ed9f0ce8dc4e",
+                "UPIS_C_UQ164_PU.fix": "9489eb40bf857b576ed687910f6670059246125f2fa90a707364f415eb05fcaf",
+                "UPIS_C_UQ164_PU.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ164_PU.shx": "f4ba2e0bf1a5b3f7a2f1088771f2fcbaf2f5713fbdadf64c74e53a013bb2e4ee"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.shp",
+            "sha256": "ebad0c332caa6dc7f7619334ea0e56cd07caed056ea89869faf78590e248c87e",
+            "bytes": 728400,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.dbf",
+                "sha256": "b73f2f224371ea42957718475e5c88e17746cfb1341c6e7b4d0755ae5f5a90e5",
+                "bytes": 56245,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.fix",
+                "sha256": "4b7b85c3adabf890640fe35f745c067dbf211198f2e4f8d1f4cceeb14750052f",
+                "bytes": 8317,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.shp",
+                "sha256": "ebad0c332caa6dc7f7619334ea0e56cd07caed056ea89869faf78590e248c87e",
+                "bytes": 728400,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_PW.shx",
+                "sha256": "cc57b5c1bcf25e8e1c39ba0a4b37a3ab450ec16555ee733d83c49fb8d9fe655d",
+                "bytes": 5636,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ164_PW.shp": "ebad0c332caa6dc7f7619334ea0e56cd07caed056ea89869faf78590e248c87e",
+                "UPIS_C_UQ164_PW.dbf": "b73f2f224371ea42957718475e5c88e17746cfb1341c6e7b4d0755ae5f5a90e5",
+                "UPIS_C_UQ164_PW.fix": "4b7b85c3adabf890640fe35f745c067dbf211198f2e4f8d1f4cceeb14750052f",
+                "UPIS_C_UQ164_PW.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ164_PW.shx": "cc57b5c1bcf25e8e1c39ba0a4b37a3ab450ec16555ee733d83c49fb8d9fe655d"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.shp",
+            "sha256": "a648ca42eeed48979858aa1598b3424dae386cdf00813eef9aadb4ae7ee1b7ef",
+            "bytes": 56540,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.dbf",
+                "sha256": "cce7b01ac7b972bc78c0b316b2d9a9125f7e9a9b2f3ba964bcc59b2b4b77b6a1",
+                "bytes": 23349,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.fix",
+                "sha256": "d72a46d5d5c6afc8b6b9889bbd8119e12799b82b298c4b1be3fbc108933f1e53",
+                "bytes": 4501,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.shp",
+                "sha256": "a648ca42eeed48979858aa1598b3424dae386cdf00813eef9aadb4ae7ee1b7ef",
+                "bytes": 56540,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RD.shx",
+                "sha256": "7c6c39cb49d5269528198f69fee17580d4806b239b613aa2e2be40775716ac66",
+                "bytes": 3092,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ164_RD.shp": "a648ca42eeed48979858aa1598b3424dae386cdf00813eef9aadb4ae7ee1b7ef",
+                "UPIS_C_UQ164_RD.dbf": "cce7b01ac7b972bc78c0b316b2d9a9125f7e9a9b2f3ba964bcc59b2b4b77b6a1",
+                "UPIS_C_UQ164_RD.fix": "d72a46d5d5c6afc8b6b9889bbd8119e12799b82b298c4b1be3fbc108933f1e53",
+                "UPIS_C_UQ164_RD.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ164_RD.shx": "7c6c39cb49d5269528198f69fee17580d4806b239b613aa2e2be40775716ac66"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.shp",
+            "sha256": "7fba2bb582aa27dac1d8da8869e112d65c4671108eb5a451e1de724afed57f42",
+            "bytes": 8994300,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.dbf",
+                "sha256": "721058409ff7686d28fc90fa83fa442510989244ad28fce7f20ba55650a457e5",
+                "bytes": 62471,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.fix",
+                "sha256": "3ea6dc90adb1f56d667d91fe7ec0b9a0de7630414949ff659585d76e8862fe79",
+                "bytes": 12073,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.shp",
+                "sha256": "7fba2bb582aa27dac1d8da8869e112d65c4671108eb5a451e1de724afed57f42",
+                "bytes": 8994300,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RF.shx",
+                "sha256": "f3723632d8be3a7357d5696ae181f4b201a9d634dce1dc6a756cf48c93981e94",
+                "bytes": 8140,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ164_RF.shp": "7fba2bb582aa27dac1d8da8869e112d65c4671108eb5a451e1de724afed57f42",
+                "UPIS_C_UQ164_RF.dbf": "721058409ff7686d28fc90fa83fa442510989244ad28fce7f20ba55650a457e5",
+                "UPIS_C_UQ164_RF.fix": "3ea6dc90adb1f56d667d91fe7ec0b9a0de7630414949ff659585d76e8862fe79",
+                "UPIS_C_UQ164_RF.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ164_RF.shx": "f3723632d8be3a7357d5696ae181f4b201a9d634dce1dc6a756cf48c93981e94"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.shp",
+            "sha256": "c196d3021646e0e81c14fe767f27b7067b4edd977c9b0bc8c031e59be3296c13",
+            "bytes": 2925024,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.dbf",
+                "sha256": "b5ae4ed1f4541156db3142cceff52ad708046f5873de280fe18eae9c56963655",
+                "bytes": 33579,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.fix",
+                "sha256": "041c150428008559f7a6a76699e19114f816c682d75abb4c5b5cf89bfc735e7d",
+                "bytes": 6481,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.shp",
+                "sha256": "c196d3021646e0e81c14fe767f27b7067b4edd977c9b0bc8c031e59be3296c13",
+                "bytes": 2925024,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ164_RO.shx",
+                "sha256": "36d55231272872034317e04700fd749b816e9dd576b699617f4242493a0b863d",
+                "bytes": 4412,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ164_RO.shp": "c196d3021646e0e81c14fe767f27b7067b4edd977c9b0bc8c031e59be3296c13",
+                "UPIS_C_UQ164_RO.dbf": "b5ae4ed1f4541156db3142cceff52ad708046f5873de280fe18eae9c56963655",
+                "UPIS_C_UQ164_RO.fix": "041c150428008559f7a6a76699e19114f816c682d75abb4c5b5cf89bfc735e7d",
+                "UPIS_C_UQ164_RO.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ164_RO.shx": "36d55231272872034317e04700fd749b816e9dd576b699617f4242493a0b863d"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.shp",
+            "sha256": "9edac0cd9349ee3a9cd7e7aba0b14fdb55b87b9660c610460317e64e8878b2a3",
+            "bytes": 445956,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.dbf",
+                "sha256": "d6f98d4e06a34e5b375f157a471db9a806d9d690b0e69fa3d68e2b50e7d586a2",
+                "bytes": 30045,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.fix",
+                "sha256": "1802133b8f18b31dfad7662ac905eddab2e4c3b10b520ab57c3994ea2e8e8ca7",
+                "bytes": 5797,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.shp",
+                "sha256": "9edac0cd9349ee3a9cd7e7aba0b14fdb55b87b9660c610460317e64e8878b2a3",
+                "bytes": 445956,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_AL.shx",
+                "sha256": "71b65ef0105a818a5ff7f4b2472af533810e45b9f05199790fb804823a8f8460",
+                "bytes": 3956,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ166_AL.shp": "9edac0cd9349ee3a9cd7e7aba0b14fdb55b87b9660c610460317e64e8878b2a3",
+                "UPIS_C_UQ166_AL.dbf": "d6f98d4e06a34e5b375f157a471db9a806d9d690b0e69fa3d68e2b50e7d586a2",
+                "UPIS_C_UQ166_AL.fix": "1802133b8f18b31dfad7662ac905eddab2e4c3b10b520ab57c3994ea2e8e8ca7",
+                "UPIS_C_UQ166_AL.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ166_AL.shx": "71b65ef0105a818a5ff7f4b2472af533810e45b9f05199790fb804823a8f8460"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.shp",
+            "sha256": "8e1e14f1b0c14af84e5906da7227de737d81ad0e2a5dd2459e952928b73ed5ab",
+            "bytes": 3998392,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.dbf",
+                "sha256": "a9c67c66f9bc8bdb765ddb517d2ad963c207d293fecfdb1b7c9f125abac44ff5",
+                "bytes": 411159,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.fix",
+                "sha256": "8c65957735f84aac81bbb7d8de9d04447fd62ecc14a0e995b6c1ae581c9e523d",
+                "bytes": 79561,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.shp",
+                "sha256": "8e1e14f1b0c14af84e5906da7227de737d81ad0e2a5dd2459e952928b73ed5ab",
+                "bytes": 3998392,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_LM.shx",
+                "sha256": "a1b2e9811dfe4104497c848d5388ea0355813592b2b066897125ae186f4b19e2",
+                "bytes": 53132,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ166_LM.shp": "8e1e14f1b0c14af84e5906da7227de737d81ad0e2a5dd2459e952928b73ed5ab",
+                "UPIS_C_UQ166_LM.dbf": "a9c67c66f9bc8bdb765ddb517d2ad963c207d293fecfdb1b7c9f125abac44ff5",
+                "UPIS_C_UQ166_LM.fix": "8c65957735f84aac81bbb7d8de9d04447fd62ecc14a0e995b6c1ae581c9e523d",
+                "UPIS_C_UQ166_LM.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ166_LM.shx": "a1b2e9811dfe4104497c848d5388ea0355813592b2b066897125ae186f4b19e2"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.shp",
+            "sha256": "5a8e54aa885601e0a70bc73c7f21d9eb9e55263782df0a4bf66abeaf2f4e85e2",
+            "bytes": 135032,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.dbf",
+                "sha256": "47fba4e3714c920db126ffe480a19cda0159309eef07f08e777bfbcc56cf9756",
+                "bytes": 68237,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.fix",
+                "sha256": "a9fb782fb208a4f9ce318d91c39173182aae3eb355ba06c24834c9f569c29fb9",
+                "bytes": 13189,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.shp",
+                "sha256": "5a8e54aa885601e0a70bc73c7f21d9eb9e55263782df0a4bf66abeaf2f4e85e2",
+                "bytes": 135032,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ166_PK.shx",
+                "sha256": "5e746db0f375094980e458d6feaa1791e7e2aaa2bee18206e9ab48d1057826f5",
+                "bytes": 8884,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ166_PK.shp": "5a8e54aa885601e0a70bc73c7f21d9eb9e55263782df0a4bf66abeaf2f4e85e2",
+                "UPIS_C_UQ166_PK.dbf": "47fba4e3714c920db126ffe480a19cda0159309eef07f08e777bfbcc56cf9756",
+                "UPIS_C_UQ166_PK.fix": "a9fb782fb208a4f9ce318d91c39173182aae3eb355ba06c24834c9f569c29fb9",
+                "UPIS_C_UQ166_PK.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ166_PK.shx": "5e746db0f375094980e458d6feaa1791e7e2aaa2bee18206e9ab48d1057826f5"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.shp",
+            "sha256": "3a02ad545e36f591d1e8064d90673a077ad8089651e74626d693f48f8212f52d",
+            "bytes": 69900,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.dbf",
+                "sha256": "4d1ae96960685af589440be20ce3f9eaa718aa935c9e2046c951d5a8faed1dd8",
+                "bytes": 37547,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.fix",
+                "sha256": "00e2457c3168bd11e1ad3b84523333c1e32733802b4c3ddcd9a312db97fb37ea",
+                "bytes": 7249,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.shp",
+                "sha256": "3a02ad545e36f591d1e8064d90673a077ad8089651e74626d693f48f8212f52d",
+                "bytes": 69900,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BA.shx",
+                "sha256": "f6512dac904553197434242c2d57a9efdad42c717603a705ccd895dd607ce729",
+                "bytes": 4924,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ167_BA.shp": "3a02ad545e36f591d1e8064d90673a077ad8089651e74626d693f48f8212f52d",
+                "UPIS_C_UQ167_BA.dbf": "4d1ae96960685af589440be20ce3f9eaa718aa935c9e2046c951d5a8faed1dd8",
+                "UPIS_C_UQ167_BA.fix": "00e2457c3168bd11e1ad3b84523333c1e32733802b4c3ddcd9a312db97fb37ea",
+                "UPIS_C_UQ167_BA.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ167_BA.shx": "f6512dac904553197434242c2d57a9efdad42c717603a705ccd895dd607ce729"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.shp",
+            "sha256": "3184bac4ff09ebfcaf20034e2de06e27665eadb315702388bfd4318c228ea553",
+            "bytes": 60460,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.dbf",
+                "sha256": "fae246b1c484bc7fd0c8d3e036e4d25fc3796b857acc0c9a3dd10d1cb2aa352c",
+                "bytes": 31347,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.fix",
+                "sha256": "8f6e8c2cebb231b5c91294550d45bd408b37c90953356e0b23b5467b58c3777d",
+                "bytes": 6049,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.shp",
+                "sha256": "3184bac4ff09ebfcaf20034e2de06e27665eadb315702388bfd4318c228ea553",
+                "bytes": 60460,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_BT.shx",
+                "sha256": "02cbfd66627a10856c595c4b896f34c513470e57934d36b10b24458a2cf526c3",
+                "bytes": 4124,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ167_BT.shp": "3184bac4ff09ebfcaf20034e2de06e27665eadb315702388bfd4318c228ea553",
+                "UPIS_C_UQ167_BT.dbf": "fae246b1c484bc7fd0c8d3e036e4d25fc3796b857acc0c9a3dd10d1cb2aa352c",
+                "UPIS_C_UQ167_BT.fix": "8f6e8c2cebb231b5c91294550d45bd408b37c90953356e0b23b5467b58c3777d",
+                "UPIS_C_UQ167_BT.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ167_BT.shx": "02cbfd66627a10856c595c4b896f34c513470e57934d36b10b24458a2cf526c3"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.shp",
+            "sha256": "5d9f76407652e0d55e1a5e472efe6b3ef07f4c7af1692e8adbd1953d324283c8",
+            "bytes": 577604,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.dbf",
+                "sha256": "3cc1ece717661e6be4d44c45d9ec52b70f1729bb1a076b34bb0407ec5fb61f96",
+                "bytes": 348973,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.fix",
+                "sha256": "e87a634985fd04055a18fdc63337bc7dbd5710adc3d9ca09c47c7e03fe1fdb63",
+                "bytes": 67525,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.shp",
+                "sha256": "5d9f76407652e0d55e1a5e472efe6b3ef07f4c7af1692e8adbd1953d324283c8",
+                "bytes": 577604,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DS.shx",
+                "sha256": "4919955d8f5713aa2cc9e95c1118ae306be56d45a0a9b77fa9e5ae94eb1f4c08",
+                "bytes": 45108,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ167_DS.shp": "5d9f76407652e0d55e1a5e472efe6b3ef07f4c7af1692e8adbd1953d324283c8",
+                "UPIS_C_UQ167_DS.dbf": "3cc1ece717661e6be4d44c45d9ec52b70f1729bb1a076b34bb0407ec5fb61f96",
+                "UPIS_C_UQ167_DS.fix": "e87a634985fd04055a18fdc63337bc7dbd5710adc3d9ca09c47c7e03fe1fdb63",
+                "UPIS_C_UQ167_DS.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ167_DS.shx": "4919955d8f5713aa2cc9e95c1118ae306be56d45a0a9b77fa9e5ae94eb1f4c08"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.shp",
+            "sha256": "4fce019179752284e3a0917cc13ebfff485c5959350c04c40c81111472010807",
+            "bytes": 1963300,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.dbf",
+                "sha256": "c92e66ab62633d0ddb95a520d3b8eb667dc828e3cf13075fc5d97582e1a7f830",
+                "bytes": 1014481,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.fix",
+                "sha256": "b95653170c082a9f479be999c8aa60a109930e77f8b5f6e5793c8e7897498c1d",
+                "bytes": 196333,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.shp",
+                "sha256": "4fce019179752284e3a0917cc13ebfff485c5959350c04c40c81111472010807",
+                "bytes": 1963300,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_DT.shx",
+                "sha256": "5c1ba9d441d690fb95472b6f3403c243f5881b8c20577b2cd60d50e63fd0d9c3",
+                "bytes": 130980,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ167_DT.shp": "4fce019179752284e3a0917cc13ebfff485c5959350c04c40c81111472010807",
+                "UPIS_C_UQ167_DT.dbf": "c92e66ab62633d0ddb95a520d3b8eb667dc828e3cf13075fc5d97582e1a7f830",
+                "UPIS_C_UQ167_DT.fix": "b95653170c082a9f479be999c8aa60a109930e77f8b5f6e5793c8e7897498c1d",
+                "UPIS_C_UQ167_DT.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ167_DT.shx": "5c1ba9d441d690fb95472b6f3403c243f5881b8c20577b2cd60d50e63fd0d9c3"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.shp",
+            "sha256": "9de20cc6b32ae90760009b0b3069f6eddff930eaae8a8d8a33201b35152142a7",
+            "bytes": 449812,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.dbf",
+                "sha256": "6b8569f4ee50f0a241cbd5d102cd8e40cebca0364a10f282b5051c1e2c2097a8",
+                "bytes": 266699,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.fix",
+                "sha256": "f4f40c63ec129c90d301e698c2865cb0a8dc7463b82b428ddbcf1a4834ee65c4",
+                "bytes": 51601,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.shp",
+                "sha256": "9de20cc6b32ae90760009b0b3069f6eddff930eaae8a8d8a33201b35152142a7",
+                "bytes": 449812,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RC.shx",
+                "sha256": "652a04059a57364c4a819277c0c3a7187b63651e9051da34fdecc1385ee19b10",
+                "bytes": 34492,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ167_RC.shp": "9de20cc6b32ae90760009b0b3069f6eddff930eaae8a8d8a33201b35152142a7",
+                "UPIS_C_UQ167_RC.dbf": "6b8569f4ee50f0a241cbd5d102cd8e40cebca0364a10f282b5051c1e2c2097a8",
+                "UPIS_C_UQ167_RC.fix": "f4f40c63ec129c90d301e698c2865cb0a8dc7463b82b428ddbcf1a4834ee65c4",
+                "UPIS_C_UQ167_RC.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ167_RC.shx": "652a04059a57364c4a819277c0c3a7187b63651e9051da34fdecc1385ee19b10"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.shp",
+            "sha256": "46011a5e46fdf1192f83ea160c674dbbe6a06286dd29aff00c05fc65169c3790",
+            "bytes": 913300,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.dbf",
+                "sha256": "f3c79db464c0b691961969b4b09f2a8d0b6c9c3dd415c4e31d67f874ae42b18e",
+                "bytes": 471981,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.fix",
+                "sha256": "cdac0c388378381eff19a3c269c8fe91ab5e23834e7e2c7c5962ba48b672e23f",
+                "bytes": 91333,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.shp",
+                "sha256": "46011a5e46fdf1192f83ea160c674dbbe6a06286dd29aff00c05fc65169c3790",
+                "bytes": 913300,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ167_RT.shx",
+                "sha256": "e0125c8056cb9d142ea5b62a793a1ba860efe32b7537968ad071b34474878b38",
+                "bytes": 60980,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ167_RT.shp": "46011a5e46fdf1192f83ea160c674dbbe6a06286dd29aff00c05fc65169c3790",
+                "UPIS_C_UQ167_RT.dbf": "f3c79db464c0b691961969b4b09f2a8d0b6c9c3dd415c4e31d67f874ae42b18e",
+                "UPIS_C_UQ167_RT.fix": "cdac0c388378381eff19a3c269c8fe91ab5e23834e7e2c7c5962ba48b672e23f",
+                "UPIS_C_UQ167_RT.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ167_RT.shx": "e0125c8056cb9d142ea5b62a793a1ba860efe32b7537968ad071b34474878b38"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.shp",
+            "sha256": "445880d57802131dde62d75a1028b85496a799070eccf397f7957241c49330b9",
+            "bytes": 60620,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.dbf",
+                "sha256": "9c2555cacdd313a3ee5e4931fbc7cf3b058a67221e2638c32e94f891fb177af2",
+                "bytes": 35005,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.fix",
+                "sha256": "303fc58cf0914d7d58d97b51b211bd70556c1fd1b4039c4af0e7d3c65ffb2c89",
+                "bytes": 6757,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.shp",
+                "sha256": "445880d57802131dde62d75a1028b85496a799070eccf397f7957241c49330b9",
+                "bytes": 60620,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_DV.shx",
+                "sha256": "2929bdf931ce292b8e6fc5b1161713a099e38fca10e84779990498e7a091f145",
+                "bytes": 4596,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ168_DV.shp": "445880d57802131dde62d75a1028b85496a799070eccf397f7957241c49330b9",
+                "UPIS_C_UQ168_DV.dbf": "9c2555cacdd313a3ee5e4931fbc7cf3b058a67221e2638c32e94f891fb177af2",
+                "UPIS_C_UQ168_DV.fix": "303fc58cf0914d7d58d97b51b211bd70556c1fd1b4039c4af0e7d3c65ffb2c89",
+                "UPIS_C_UQ168_DV.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ168_DV.shx": "2929bdf931ce292b8e6fc5b1161713a099e38fca10e84779990498e7a091f145"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.shp",
+            "sha256": "5d83247452009076c64ddbdb08fd8ded95367a42359a6a24a84a5279296981e1",
+            "bytes": 16864,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.dbf",
+                "sha256": "be3174bfbcfc4989ac899e01c84db293930cf66d4cf220c05e46595640c6934d",
+                "bytes": 3323,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.fix",
+                "sha256": "76efb59f17eef3a90048a3d8faba88f3af6528c1033742f452bd9e6174d8ae68",
+                "bytes": 625,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.shp",
+                "sha256": "5d83247452009076c64ddbdb08fd8ded95367a42359a6a24a84a5279296981e1",
+                "bytes": 16864,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ168_EX.shx",
+                "sha256": "b68479381bdcef8c53379c5e418060290496122e92a93770b6234ba4d6f7cdca",
+                "bytes": 508,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ168_EX.shp": "5d83247452009076c64ddbdb08fd8ded95367a42359a6a24a84a5279296981e1",
+                "UPIS_C_UQ168_EX.dbf": "be3174bfbcfc4989ac899e01c84db293930cf66d4cf220c05e46595640c6934d",
+                "UPIS_C_UQ168_EX.fix": "76efb59f17eef3a90048a3d8faba88f3af6528c1033742f452bd9e6174d8ae68",
+                "UPIS_C_UQ168_EX.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ168_EX.shx": "b68479381bdcef8c53379c5e418060290496122e92a93770b6234ba4d6f7cdca"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.shp",
+            "sha256": "5fdeb908c13bcbd82703012dcd4add07253eb36bfe98d0fe8592b3b880796e6a",
+            "bytes": 815752,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.dbf",
+                "sha256": "f15cf75cb2de627da5f1adde134d8df914d449e0b47fd1610fc4af7df9f98947",
+                "bytes": 36617,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.fix",
+                "sha256": "40f526398bd25616b75fd115cd75949a98e57026e45ef67ea903cde7e58ab898",
+                "bytes": 7069,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.shp",
+                "sha256": "5fdeb908c13bcbd82703012dcd4add07253eb36bfe98d0fe8592b3b880796e6a",
+                "bytes": 815752,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260929/extracted/UPIS_005_20260901_11000/UPIS_C_UQ169.shx",
+                "sha256": "1baf5e1a5bd4cee8d8950aecda710d67ec87d8b25ef0ea78242ce10a7ba2a8b1",
+                "bytes": 4804,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260929/dup_shp_20260929.zip",
+                "sha256": "d5f1c6f2b4e845dbe0731d2dc8a2557d30190044bf984fa792cf9136025040ba",
+                "bytes": 163970793,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260901_11000.zip",
+              "files": {
+                "UPIS_C_UQ169.shp": "5fdeb908c13bcbd82703012dcd4add07253eb36bfe98d0fe8592b3b880796e6a",
+                "UPIS_C_UQ169.dbf": "f15cf75cb2de627da5f1adde134d8df914d449e0b47fd1610fc4af7df9f98947",
+                "UPIS_C_UQ169.fix": "40f526398bd25616b75fd115cd75949a98e57026e45ef67ea903cde7e58ab898",
+                "UPIS_C_UQ169.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ169.shx": "1baf5e1a5bd4cee8d8950aecda710d67ec87d8b25ef0ea78242ce10a7ba2a8b1"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260929"
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260819/dup_shp_20260819.zip",
+            "kind": "archive",
+            "path": "/data/ace/district-unit-plans/eum-20260819/dup_shp_20260819.zip",
+            "sha256": "3cf7cfadcf462efd471e0684cd88faf293cee7119899bfbba839ed079a4435d4",
+            "bytes": 170644282,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260409/dup_shp_20260409.zip",
+            "kind": "archive",
+            "path": "/data/ace/district-unit-plans/eum-20260409/dup_shp_20260409.zip",
+            "sha256": "716f09503b94cb87ed36f494a766baff29edd5fe0a83ed25b35017f8fa4011c1",
+            "bytes": 295420644,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.shp",
+            "kind": "shapefile",
+            "path": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.shp",
+            "sha256": "a816dee989e795843d798613dd2f762424c8c5114ba3a4ac0705fac19bc4be87",
+            "bytes": 636244,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null,
+            "sidecars": [
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.dbf",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.dbf",
+                "sha256": "e67e59d196f1d303b91535565f90d2e304dde41e007ce68c00209cda3fb5b740",
+                "bytes": 98435,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.fix",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.fix",
+                "sha256": "cf4f83a738ea36dd4c1e4401159c3e3d4ceacd85070e7c873a4167eb45b70a69",
+                "bytes": 9673,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.prj",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.prj",
+                "sha256": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "bytes": 766,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.shp",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.shp",
+                "sha256": "a816dee989e795843d798613dd2f762424c8c5114ba3a4ac0705fac19bc4be87",
+                "bytes": 636244,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              {
+                "source_id": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.shx",
+                "kind": "sidecar",
+                "path": "/data/ace/district-unit-plans/eum-20260409/extracted/UPIS_005_20260401_11000/UPIS_C_UQ165.shx",
+                "sha256": "2a5a88b6c06f88fb462f470a52a001c2d0cc2c641e6e5380ed1e611d424aff61",
+                "bytes": 6540,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              }
+            ],
+            "crs": "EPSG:5174",
+            "installation": "archive_verified",
+            "archive_verification": {
+              "archive": {
+                "source_id": "/data/ace/district-unit-plans/eum-20260409/dup_shp_20260409.zip",
+                "kind": "archive",
+                "path": "/data/ace/district-unit-plans/eum-20260409/dup_shp_20260409.zip",
+                "sha256": "716f09503b94cb87ed36f494a766baff29edd5fe0a83ed25b35017f8fa4011c1",
+                "bytes": 295420644,
+                "effective_date": null,
+                "published_date": null,
+                "acquired_date": null
+              },
+              "member": "UPIS_005_20260401_11000.zip",
+              "files": {
+                "UPIS_C_UQ165.shp": "a816dee989e795843d798613dd2f762424c8c5114ba3a4ac0705fac19bc4be87",
+                "UPIS_C_UQ165.dbf": "e67e59d196f1d303b91535565f90d2e304dde41e007ce68c00209cda3fb5b740",
+                "UPIS_C_UQ165.fix": "cf4f83a738ea36dd4c1e4401159c3e3d4ceacd85070e7c873a4167eb45b70a69",
+                "UPIS_C_UQ165.prj": "d080a4bdc64369b29a16607534bca1b3c91fdb1b7584948d21a827551f5e8baf",
+                "UPIS_C_UQ165.shx": "2a5a88b6c06f88fb462f470a52a001c2d0cc2c641e6e5380ed1e611d424aff61"
+              }
+            },
+            "text_encoding": "cp949",
+            "reader_warnings": [],
+            "release": "eum-20260409"
+          },
+          {
+            "source_id": "/app/agents/SiteContextAgent/data/district-unit-plans/registry.json",
+            "kind": "document_registry",
+            "path": "/app/agents/SiteContextAgent/data/district-unit-plans/registry.json",
+            "sha256": "09eb43e15dca093af7817e2af7644b36462693a6aa27a8220ca5ab8d6aa2b482",
+            "bytes": 4665,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null
+          },
+          {
+            "source_id": "/data/ace/district-unit-plans/eum-20260929/notices_all.csv",
+            "kind": "candidate_index_source",
+            "path": "/data/ace/district-unit-plans/eum-20260929/notices_all.csv",
+            "sha256": "642fb043a90372e5bbde045ff1433c53a64cd5f222324dfb00f5bcb01c284068",
+            "bytes": 89973058,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null
+          },
+          {
+            "source_id": "/data/ace/legal-dong-codes/bjd_codes_20260916.txt",
+            "kind": "candidate_index_source",
+            "path": "/data/ace/legal-dong-codes/bjd_codes_20260916.txt",
+            "sha256": "b0b510551b46e68d58599186c17ef1a02e6ec79f3da59990c8730d51090331e1",
+            "bytes": 3311638,
+            "effective_date": null,
+            "published_date": null,
+            "acquired_date": null
+          }
+        ]
+      },
+      "law_review": {
+        "schema_version": "law.district_plan_review.v1",
+        "pnu": "1168010100106680017",
+        "project": "",
+        "branch": "",
+        "source_hash": "63dd49596062f45d6701cdc668def27953c638a1b0ad08895a0c3e08b549c6bb",
+        "assessment_date": null,
+        "status": "needs_evidence",
+        "permit_ready": false,
+        "constraints": [],
+        "candidates": [],
+        "missing_evidence": [
+          "assessment_date_required",
+          "no spatial candidates in available dataset; legal applicability unknown",
+          "district documents unavailable; applicability and effective version unknown",
+          "district_effective_sources_unverified",
+          "district_provisions_not_established",
+          "district_applicability_unverified",
+          "district_complete_provisions_review_required"
+        ],
+        "scope": "source-bound district provision candidates; applicability and complete legal review unverified",
+        "findings": [
+          {
+            "id": "law.district_review.9f626ecedd122bdcd7a5",
+            "severity": "major",
+            "category": "district_assessment_input",
+            "affected_nodes": [
+              "evaluation.law.district_plan"
+            ],
+            "raised_by": "law",
+            "evidence": {
+              "pnu": "1168010100106680017",
+              "project": "",
+              "branch": "",
+              "source_hash": "63dd49596062f45d6701cdc668def27953c638a1b0ad08895a0c3e08b549c6bb",
+              "assessment_date": null,
+              "missing_evidence": [
+                "assessment_date_required",
+                "no spatial candidates in available dataset; legal applicability unknown",
+                "district documents unavailable; applicability and effective version unknown",
+                "district_effective_sources_unverified",
+                "district_provisions_not_established",
+                "district_applicability_unverified",
+                "district_complete_provisions_review_required"
+              ]
+            },
+            "recommended_agents": [
+              "user"
+            ],
+            "recommended_action": "Supply an explicit valid assessment date; Law cannot choose a date or legal edition on the user behalf.",
+            "assigned_to": "user"
+          }
+        ]
+      }
+    },
+    "front_frontage": "road_context:ngii:도로중심선",
+    "frontage": "road_context:ngii:도로중심선",
+    "district_plan_application": {
+      "status": "needs_evidence",
+      "applied_geometry": [],
+      "unverified_provisions": [],
+      "pending_reviews": [
+        "district plan: complete applicable provisions verification pending"
+      ],
+      "document_extraction_status": null,
+      "all_provisions_verified": false
+    }
+  }
+}

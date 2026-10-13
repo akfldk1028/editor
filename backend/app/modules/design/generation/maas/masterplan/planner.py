@@ -355,6 +355,9 @@ def _plan_site_fixed(request):
         angle=math.degrees(math.atan2(b[1]-a[1],b[0]-a[0]))
     if explicit_angle is not None:
         angle=explicit_angle
+    elif placement_stage:
+        from .layout_axis import planning_axis_angle
+        angle=planning_axis_angle(request)
     def add_parking(plan,level,z):
         feats=[]
         # The entrance is clipped geometry; a clip can leave line or point slivers beside the strip
@@ -370,6 +373,7 @@ def _plan_site_fixed(request):
         # the drive is a union of manoeuvring rectangles; touching edges can leave a
         # self-intersecting ring, which buffer(0) normalises without moving the boundary
         drive=plan["drive"].buffer(0) if not plan["drive"].is_valid else plan["drive"]
+        drive=union_or_empty(parts(drive))
         if not drive.is_empty:
             # How the field was laid out travels with the aisle so the validator can report it
             # without re-deriving it from pixels: how many whole modules were tiled, how many

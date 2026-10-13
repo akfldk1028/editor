@@ -1,5 +1,7 @@
 # Editor backend — memory index (read this first)
 
+- [2026-10-13 default siting search](2026-10-13-default-siting-search.md): real seven-site paired verification, shared-axis search and ground-area preservation.
+
 This folder is the working memory for any AI session that works on the editor **backend**
 (`D:\Data\25_ACE\editor\backend`). Read this index, then open the file for your task. Each
 file is short and factual; facts carry a date. When you learn something durable, update the

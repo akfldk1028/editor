@@ -164,10 +164,8 @@ def select_joint_layout(request, solve):
     straight_entry = opts.get('entry_alignment') == 'straight'
     screen_angle = explicit_angle
     if placement_stage and screen_angle is None:
-        screen_angle = 0
-        if road.geom_type == 'LineString':
-            a, b = road.coords[0], road.coords[-1]
-            screen_angle = math.degrees(math.atan2(b[1]-a[1], b[0]-a[0]))
+        from .layout_axis import planning_axis_angle
+        screen_angle = planning_axis_angle(request)
     host = shape(request.get('buildable') or request['site'])
     pedestrian=pedestrian_reservation(request)
     host=host.difference(pedestrian['reserved'])
@@ -198,8 +196,16 @@ def select_joint_layout(request, solve):
             result['piloti_strip_m']=depth
             layouts.append(result)
     proposals=[]
-    for p in (footprint_candidates(host,target,front,module,angle_deg=explicit_angle)
-              if opts.get('target_surface_stalls') is not None else []):
+    screen_demand = opts.get('target_surface_stalls')
+    demand_source = 'explicit_surface_target'
+    if screen_demand is None and placement_stage:
+        screen_demand = baseline['metrics'].get('planned_parking_stalls')
+        demand_source = 'planned_parking_demand_search_bound'
+        if screen_demand is not None and opts.get('max_surface_stalls') is not None:
+            screen_demand = min(screen_demand, opts['max_surface_stalls'])
+    screen_demand = int(screen_demand or 0)
+    for p in (footprint_candidates(host,target,front,module,angle_deg=screen_angle)
+              if surface_possible and screen_demand > 0 else []):
         variants = [(p, None)]
         if placement_stage and surface_possible:
             variants += [(shape(choice['ground']), choice) for choice in _choices(p, rules)]
@@ -208,7 +214,7 @@ def select_joint_layout(request, solve):
     def screen(p, ground, choice):
         free = site.difference(ground).difference(pedestrian['vehicle_blocked'])
         rows = row_candidates(site,free,p,Polygon(),road,front,rules,
-                                  int(opts['target_surface_stalls']),
+                                  screen_demand,
                                   int(request.get('law',{}).get('required_accessible_spaces') or 0),
                                   step=1 if placement_stage else 2,limit=2,occupied_footprint=ground,
                                   prohibited=prohibited,entry_clearance_m=entry_clearance,
@@ -218,7 +224,7 @@ def select_joint_layout(request, solve):
                                   **({'allowed_angles':[screen_angle] if straight_entry else [screen_angle,screen_angle+90],
                                       'preserve_banks':True} if screen_angle is not None else {}))
         return max((exclude_reserved_stalls(r,pedestrian['reserved'])['provided'] for r in rows),default=0)
-    shortlist, skipped = screen_placements(proposals, screen, int(opts.get('target_surface_stalls') or 0))
+    shortlist, skipped = screen_placements(proposals, screen, screen_demand)
     # Preserve enclosed ground when surface counts tie; this limits programme
     # loss in the shortlist and is not an architectural quality score.
     shortlist.sort(key=lambda v:(-v[0], -round(v[2].area, 6)))
@@ -244,19 +250,29 @@ def select_joint_layout(request, solve):
     surface_target=opts.get('target_surface_stalls')
     def rank(r):
         from .planner_rank import drive_burden
+        from shapely.ops import unary_union
         metrics=r['metrics']
         surface=sum(v['provided_spaces'] for v in r['levels'] if v['level']==0)
+        ground = [shape(f['geometry']) for f in r['features']
+                  if f.get('properties', {}).get('layer') == 'building_ground_footprint'
+                  and f.get('properties', {}).get('level', 0) == 0]
+        if not ground:
+            ground = [shape(f['geometry']) for f in r['features']
+                      if f.get('properties', {}).get('layer') == 'building_footprint']
         return (r['validation']['geometry_status']=='passed',
                 min(metrics['provided_accessible_stalls'],metrics['required_accessible_stalls'] or 0),
                 min(metrics['provided_parking_stalls'],metrics['planned_parking_stalls'] or 0),
                 -abs(surface-surface_target) if surface_target is not None else 0,
+                round(unary_union(ground).area, 6),
                 -drive_burden(r['features'], metrics['provided_parking_stalls']))
     chosen=max(layouts,key=rank)
     chosen['joint_search']={'screened_placements':len(shortlist),'complete_layouts':len(layouts),
+        'screen_demand':screen_demand, 'screen_demand_source':demand_source,
         'proposed_placements':len(proposals),'screens_pruned_by_upper_bound':skipped,
         'selected_index':layouts.index(chosen),'target_footprint_m2':target,
         'scope':'equal-area generated mass alternatives and owner piloti choices; authored mass remains fixed',
         'screen_tie_break':'preserve enclosed ground area among equal surface counts; not architectural quality',
+        'final_tie_break':'preserve enclosed ground area before drive burden at equal feasibility and parking attainment',
         'alternatives':[{'provided':r['metrics']['provided_parking_stalls'],
             'surface':sum(v['provided_spaces'] for v in r['levels'] if v['level']==0),
             'excavation_m2':r['metrics']['excavation_m2'],
