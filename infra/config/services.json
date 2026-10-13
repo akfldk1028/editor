@@ -26,10 +26,10 @@
       "port": 3003,
       "health_url": "{base}/api/health",
       "card_url": null,
-      "start": { "cwd": "editor", "cmd": ["bun", "run", "dev", "--filter", "editor", "--", "--webpack", "--hostname", "127.0.0.1", "--port", "{port}"] },
+      "start": { "cwd": "editor", "cmd": ["bun", "run", "dev", "--filter", "editor", "--", "--hostname", "127.0.0.1", "--port", "{port}"] },
       "depends_on": [],
       "version_source": "git:editor",
-      "notes": "Next app frontend/app/editor, started through turbo (workspace packages first) with `--webpack` (Next 16 defaults to Turbopack, which cannot resolve the dwg workspace's ./x.js -> x.tsx imports; frontend/memory/04-pitfalls.md). Mounted under /editor behind the PLAN frontend in product mode (infra/dev/runtime.mjs, same command); the public app itself in native mode. EDITOR_PUBLIC_URL in the backend's env file must name this port, or the browser's POST doors answer 403."
+      "notes": "Next app frontend/app/editor, started through turbo (workspace packages first) on Next 16's default Turbopack (2026-10-13: the dwg workspace files the editor reaches import by their real .ts/.tsx extension, so Webpack's extensionAlias is no longer needed; first page compiles fell from up to 40 s to under 10 s). Mounted under /editor behind the PLAN frontend in product mode (infra/dev/runtime.mjs, same command); the public app itself in native mode. EDITOR_PUBLIC_URL in the backend's env file must name this port, or the browser's POST doors answer 403."
     },
     {
       "id": "frontend",

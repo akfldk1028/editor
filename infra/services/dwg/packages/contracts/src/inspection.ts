@@ -1,4 +1,4 @@
-import type { CadPointBox } from "./cad.js";
+import type { CadPointBox } from "./cad.ts";
 
 export const MAX_CAD_SEARCH_QUERY_CHARS = 128;
 

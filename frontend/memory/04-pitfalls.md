@@ -12,8 +12,10 @@
   and restarted.
 - **Model keys.** A failing OpenAI key in `/settings` is expected locally (no credits); the
   backend uses the local Claude Code login (oauth) for workspace runs.
-- **Turbopack dev breaks on `@dwg/contracts`** (`./cad.js` not resolved). Run `next dev --webpack`; a
-  compile error from one page is then served for every page until restart.
+- **The dev server runs on Turbopack (2026-10-13).** It once broke on `@dwg/contracts` (`./cad.js` not resolved),
+  so it ran `--webpack` (first compiles up to 40 s). The dwg files the editor reaches (`apps/workspace/src/public.ts`,
+  `packages/contracts/src`) now import by their real `.ts`/`.tsx` extension (dwg tsconfig: `allowImportingTsExtensions`,
+  `rewriteRelativeImportExtensions`); a new `./x.js` import in that graph brings the error back.
 - **Proxy 404 "Unknown platform/PLANM operation"** is the proxy allowlist, not a missing backend route.
 - **CSS edit under `next dev --webpack` drops every stylesheet** in open tabs (page renders unstyled, `styleSheets`
   still 14) until a full reload (seen twice 2026-10-08 editing agent-feed.css). The in-memory agent feed is lost on

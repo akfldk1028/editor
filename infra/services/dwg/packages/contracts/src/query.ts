@@ -1,4 +1,4 @@
-import type { CadEntityMatch, CadPointBox } from "./cad.js";
+import type { CadEntityMatch, CadPointBox } from "./cad.ts";
 
 export const MAX_CAD_SCHEDULE_ROWS = 1_000;
 export const MAX_CAD_SCHEDULE_CELLS_PER_ROW = 1_000;

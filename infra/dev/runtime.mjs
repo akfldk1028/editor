@@ -107,8 +107,8 @@ export function createServiceDefinitions(repositoryRoot, platform = process.plat
       name: "editor",
       command: "bun",
       // Through turbo so the workspace packages it depends on are built first.
-      // `--webpack`: Next 16 defaults to Turbopack, which cannot resolve the dwg workspace's ./x.js -> x.tsx imports.
-      args: ["run", "dev", "--filter", "editor", "--", "--webpack", "--hostname", "127.0.0.1", "--port", String(EDITOR_PORT)],
+      // Next 16's default Turbopack: the dwg files the editor reaches import by their real .ts/.tsx extension.
+      args: ["run", "dev", "--filter", "editor", "--", "--hostname", "127.0.0.1", "--port", String(EDITOR_PORT)],
       cwd: resolve(repositoryRoot),
       // Served as one surface of the product shell, so Next must know it is
       // mounted under a path rather than at the root.
