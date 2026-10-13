@@ -39,10 +39,11 @@ test('a revision answer lists what it asks the person for and a cut record says 
   const described = describeMessage(message({ direction: 'response', from: 'revision', to: 'orchestrator', tool: 'revision_triage', state: 'needs_evidence', text: JSON.stringify(body), truncated: true }))
   expect(described.lines).toEqual(['사용자 입력이 필요함', 'roughly how much floor area? → 사용자 재실행', '기록이 잘렸어요 — 긴 답은 8,000자까지만 남아요'])
   const cut = describeMessage(message({ direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_parcel_limits', text: '{"status":"succeeded","bcr', truncated: true }))
-  expect(cut.lines).toEqual(['{"status":"succeeded","bcr … 기록이 잘렸어요'])
+  // A cut record is never shown as raw JSON.
+  expect(cut.lines).toEqual(['긴 기록이라 다 읽지 못했어요 (26자) — 기록 원문에'])
   const salvaged = describeMessage(message({ direction: 'response', from: 'site_context', to: 'orchestrator', truncated: true,
     text: '{"status": "partial", "summary": "6/9 site facts established", "state_patch": {"site.boundary": {"confidence": "measured", "value": {"geometry": {"coordinates": [[[127.0' }))
-  expect(salvaged.lines).toEqual(['6/9 site facts established', '확인된 사실 1개: 경계(실측) — 잘린 뒤의 사실은 셀 수 없어요', '기록이 잘렸어요 — 긴 답은 8,000자까지만 남아요'])
+  expect(salvaged.lines).toEqual(['6/9 site facts established', '확인된 사실 1개: 경계(실측) — 잘린 뒤의 사실은 셀 수 없어요', '기록이 잘렸어요 — 긴 답은 앞부분만 남아요'])
 })
 
 test('the Orchestrator\'s own bookkeeping in a request is counted, not spelled out', () => {

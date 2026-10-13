@@ -86,12 +86,18 @@ const tools = (entry: CatalogLike | undefined) => Object.values(entry?.tools ?? 
 const GIST_CHARS = 110
 /** The whole message in the user's words: plain text as written; a record as all its described lines. */
 export function fullText(message: CollaborationMessage, names: Readonly<Record<string, string>> = {}): string {
-  try {
-    JSON.parse(message.text)
-  } catch {
-    return message.text.trim()
-  }
+  // Plain text as written; a record — whole or cut — as its described lines, never raw JSON.
+  if (!/^\s*[[{]/.test(message.text)) return message.text.trim()
   return describeMessage(message, names).lines.filter((line) => line && !/기록 원문/.test(line)).join('\n')
+}
+
+/** Every call on one card, oldest first, each under its own tool: a card that stands for several calls reads them all. */
+function fullOf(rows: readonly CollaborationMessage[], names: Readonly<Record<string, string>>): string {
+  if (rows.length === 1) return fullText(rows[0]!, names)
+  return rows.map((row) => {
+    const text = fullText(row, names)
+    return `· ${toolLabel(row.tool)}${text ? `\n${text}` : ''}`
+  }).join('\n\n')
 }
 
 /** The editor's own doors, recorded as the tool of the person's line: their label is the whole caption (`질문`, not `질문 요청`). */
@@ -173,7 +179,7 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
     const what = first.direction === 'request' ? `${toolsUsed.length === 1 ? `${toolLabel(toolsUsed[0])} ` : ''}요청` : '응답'
     const latest = rows[rows.length - 1]!
     const running = latest.state === 'running'
-    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, said: gist(latest, names), full: fullText(latest, names), caption: captionOf(rows, names, running), running })
+    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, said: gist(latest, names), full: fullOf(rows, names), caption: captionOf(rows, names, running), running })
   }
   // An owner that answered the person was reached through the Orchestrator even when that call is not on the record yet:
   // the relay is drawn (dashed, unknown) so the path reads person → Orchestrator → owner, without inventing what was asked.

@@ -134,12 +134,22 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const selectedRef = useRef(selected)
   selectedRef.current = selected
-  // A new record or catalog lays the cards out again (keeping the current selection); a selection only restyles them, so a dragged card stays put.
+  // Cards the user dragged keep where they were dropped.
+  const moved = useRef(new Set<string>())
+  // A live update replaces only the cards whose content changed: a fresh node is hidden until it is measured again,
+  // so replacing every node on each update made cards flicker away under the pointer (clicks fell on the pane,
+  // drags snapped back). A selection only restyles them.
   useEffect(() => {
-    setNodes(graph.nodes.map((node) => ({
-      id: node.id, type: node.kind === 'said' ? 'said' : 'agent', position: node.position, draggable: node.kind !== 'said',
-      data: { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id, said: node.said },
-    })))
+    setNodes((current) => {
+      const known = new Map(current.map((node) => [node.id, node]))
+      return graph.nodes.map((node) => {
+        const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id, said: node.said }
+        const old = known.get(node.id)
+        const position = old && moved.current.has(node.id) ? old.position : node.position
+        if (old && old.position.x === position.x && old.position.y === position.y && JSON.stringify(old.data) === JSON.stringify(data)) return old
+        return { ...old, id: node.id, type: node.kind === 'said' ? 'said' : 'agent', position, draggable: true, data }
+      })
+    })
   }, [graph, setNodes])
   useEffect(() => {
     setNodes((current) => current.map((node) => (node.data.selected === (node.id === selected) ? node : { ...node, data: { ...node.data, selected: node.id === selected } })))
@@ -219,6 +229,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
           nodesDraggable
           onEdgeClick={(_, edge) => onSelect?.(edge.source === ORCHESTRATOR ? edge.target : edge.source)}
           onNodeClick={(_, node) => onSelect?.(selected === node.id ? null : node.id)}
+          onNodeDragStop={(_, node) => { moved.current.add(node.id) }}
           onNodesChange={onNodesChange}
           onPaneClick={() => onSelect?.(null)}
           onMoveStart={(event) => { if (event) userMoved.current = true }}

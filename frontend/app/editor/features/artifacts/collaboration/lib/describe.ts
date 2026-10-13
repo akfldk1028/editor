@@ -183,8 +183,12 @@ export function describeMessage(message: CollaborationMessage, names: Readonly<R
   }
   const headline = message.tool ? `${who} · ${toolLabel(message.tool)} · ${stateLabel(message.state)}` : `${who} · ${stateLabel(message.state)}`
   if (!isRecord(value)) {
-    const salvaged = message.truncated ? salvageLines(message.text) : []
-    const lines = salvaged.length ? [...salvaged, '기록이 잘렸어요 — 긴 답은 8,000자까지만 남아요'] : [message.truncated ? `${message.text.slice(0, PREVIEW_CHARS)} … 기록이 잘렸어요` : message.text.slice(0, PREVIEW_CHARS)]
+    // A record that does not parse is a cut one, whatever the flag says: what can be read from it, never its raw JSON.
+    const record = /^\s*[[{]/.test(message.text)
+    const salvaged = message.truncated || record ? salvageLines(message.text) : []
+    const lines = salvaged.length ? [...salvaged, '기록이 잘렸어요 — 긴 답은 앞부분만 남아요']
+      : record ? [`긴 기록이라 다 읽지 못했어요 (${message.text.length.toLocaleString('ko-KR')}자) — 기록 원문에`]
+        : [message.truncated ? `${message.text.slice(0, PREVIEW_CHARS)} … 기록이 잘렸어요` : message.text.slice(0, PREVIEW_CHARS)]
     return { headline, lines, raw, truncated: message.truncated }
   }
   const lines = responseLines(value)
