@@ -879,6 +879,8 @@ def _plan_site_fixed(request):
                         if f["properties"].get("layer")=="basement_boundary"),
                     "pending_reviews":sorted({r for p in proposals for r in p["pending_reviews"]})}
                 candidates.append(compact)
+    from .road_aisle_generation import generate as generate_road_aisle
+    candidates.extend(generate_road_aisle(request, base, planned))
     from .tandem import expand as expand_tandem
     for original in list(candidates):
         tandem = expand_tandem(request, original, planned)

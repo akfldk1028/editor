@@ -1,5 +1,7 @@
 # Editor backend — memory index (read this first)
 
+- [2026-10-13 road aisle](2026-10-13-road-aisle.md): Law-bound external road geometry, candidate generation and independent per-stall validation; actual CLI comparison and unsupported scope.
+
 - [2026-10-13 five-path review](2026-10-13-five-review.md): required targets, diverse candidates, declared-door routing, source-bound measurements; actual before/after evidence and remaining owner gaps.
 
 - [2026-10-13 siting law](2026-10-13-siting-law.md): source-owned small surface parking criteria, LawAgent frontage criteria, actual count/structure checks; legal road certification remains unverified.

@@ -252,3 +252,12 @@ def facility_criteria(request):
                 "facility_types": sorted({kind for rule in FACILITY_AREA_RULES for kind in rule["facility_types"]}),
                 "permit_ready": False}
     return _passthrough(request, (), call)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def road_aisle_conditions(request):
+    from backend.app.modules.law.reference.road_aisle import evaluate
+    keys = ('pnu', 'total_spaces', 'structure', 'parking_angle', 'facts')
+    return _passthrough(request, keys,
+        lambda body: evaluate(**{key: body[key] for key in keys}, assessment_date=body.get('assessment_date')))

@@ -1,5 +1,7 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-13 Road aisle contract: new Law provider `road-aisle-conditions` and Law A2A/MCP `law_road_aisle_conditions`. MasterPlan forwards source geometry and receipt; Editor validates allowed external extent and per-stall cells. `external_road_aisle` is separate from on-site parking/open-space area. No arbitrary road-use exemption or permit clearance. See [implementation evidence](2026-10-13-road-aisle.md).
+
 - 2026-10-13 MasterPlan review contract: design forwards required parking mode, vehicle maneuver, joint budgets and source-declared entrance. Independent validation adds separate parking_target and conservative vehicle_body_envelope clearance; stale claimed layout hashes are rejected using the canonical geometry digest. Declared-door route measurement remains distinct from full Plan network. Public MasterPlan run accepts ai_intent/siting_brief; no new URL. See [review memory](2026-10-13-five-review.md).
 
 - 2026-10-13 Contract notice for Orchestrator: added law provider `siting-requirements`, exposed as LawAgent `law_siting_requirements`. Explicit total GFA is distinct from parking facility area. Existing parking-design-rules accepts surface structure; independent validation adds `legal_siting` and `parking_rules_applicability`. Missing legal road certification stays unresolved. See [siting law memory](2026-10-13-siting-law.md).

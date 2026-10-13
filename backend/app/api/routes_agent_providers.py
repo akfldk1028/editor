@@ -14,7 +14,7 @@ from backend.app.core.agent_network import token_accepted
 OPERATIONS = {
     'law': frozenset({'review-design-state', 'review-program', 'review-facilities',
         'facility-criteria', 'building-uses', 'fire-requirements', 'use-research-routes',
-        'ordinance-candidates', 'parking-design-rules', 'siting-requirements', 'parking-count', 'parcel-limits', 'audit'}),
+        'ordinance-candidates', 'parking-design-rules', 'road-aisle-conditions', 'siting-requirements', 'parking-count', 'parcel-limits', 'audit'}),
     'land': frozenset({'parcel-geometry', 'roads', 'datum', 'basement-storey'}),
     'design': frozenset({'research-bundle'}),
 }

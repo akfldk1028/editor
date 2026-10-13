@@ -34,6 +34,11 @@ def validate_plan(request, result):
     rules = request.get("rules") or {}
     law = request.get("law") or {}
     features = result.get("features",[])
+    from .road_aisle import certify as certify_road_aisle
+    road_aisle = certify_road_aisle(request, features)
+    checks.extend(road_aisle['checks'])
+    if road_aisle['stall_ids']:
+        pending.append('road_aisle_vehicle_maneuver_review')
     from .tandem import certified_rears
     tandem_rears, tandem_checks = certified_rears(request, features)
     checks.extend(tandem_checks)
@@ -151,6 +156,7 @@ def validate_plan(request, result):
         stalls = grouped[(level,"parking_stall")]
         drive_geoms = [g for g,p in grouped[(level,"parking_aisle")]+grouped[(level,"vehicular_access")]]
         drive = unary_union(drive_geoms)
+        onsite_drive = drive
         forbidden = [*source_obstacles,*[g for g,p in grouped[(level,"building_core")]+grouped[(level,"column")]]]
         for g,p in grouped[(level,"ramp")]:
             forbidden.append(g)
@@ -160,7 +166,9 @@ def validate_plan(request, result):
             elif request.get("options",{}).get("parking_strategy") not in {"piloti","piloti_and_surface"}:
                 forbidden.extend(g for g,p in grouped[(0,"building_footprint")])
         blocked = unary_union(forbidden)
-        check(f"drive_containment:{level}",host.buffer(TOL).covers(drive),outside_m2=drive.difference(host).area)
+        check(f"drive_containment:{level}",drive.is_empty or host.buffer(TOL).covers(drive),outside_m2=drive.difference(host).area)
+        if level == 0:
+            drive = unary_union([drive, road_aisle['exterior']])
         drive_blockers=[*source_obstacles,*[g for g,p in grouped[(level,"building_core")]
             +grouped[(level,"column")]+grouped[(level,"basement_plant_zone")]+grouped[(level,"basement_room")]]]
         if level==0:
@@ -233,8 +241,13 @@ def validate_plan(request, result):
         if level==0:
             road = shape(request["frontage"]) if request.get("frontage") else None
             from .ground_access import certify_ground_access
-            checks.append(certify_ground_access(drive.difference(unary_union(drive_blockers)),
-                                                [g for g,p in stalls if p.get('stall_id') not in tandem_rears], road, rules.get('aisle_width_m')))
+            ground_access = certify_ground_access(onsite_drive.difference(unary_union(drive_blockers)),
+                [g for g,p in stalls if p.get('stall_id') not in tandem_rears | road_aisle['stall_ids']],
+                road, rules.get('aisle_width_m'))
+            checks.append(ground_access)
+            if not road_aisle['exterior'].is_empty:
+                check('road_aisle:remaining_stalls_have_onsite_access',
+                      ground_access['status'] in ('passed', 'not_applicable'))
             if road is not None:
                 check(f"drive_connected:{level}",all(c.distance(road)<=TOL for c in components) if not drive.is_empty else True,
                       components=len(components))
@@ -368,6 +381,9 @@ def validate_plan(request, result):
     if count and profile['status'] != 'matched':
         pending.append('parking_rules_actual_layout_applicability')
     return {"schema_version":"masterplan.validation.v1","geometry_status":status,
+            "external_road_aisle": {"area_m2": road_aisle['area_m2'],
+                                    "certified_stalls": len(road_aisle['stall_ids']),
+                                    "permit_compliance_verified": False},
             "parking_target":design_target_result,
             "vehicle_body_envelope":maneuver if maneuver and maneuver.get('minimum_clearance_m') is not None else None,
             "legal_siting":legal_siting, "parking_rules_applicability":profile,
