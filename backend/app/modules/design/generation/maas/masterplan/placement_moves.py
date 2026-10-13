@@ -94,6 +94,8 @@ def apply_placement_moves(request, moves, parent_ref=None):
     if any(k in applied for k in ('building_side', 'building_proportion', 'piloti')):
         if any(request.get(key) for key in ('footprint', 'ground_footprint', 'core', 'columns')):
             raise ValueError('placement moves cannot modify authored footprint, ground footprint, core or columns')
+        if request.get('building_entrance') is not None:
+            raise ValueError('building entrance needs a new source-bound declaration for replacement mass; no door transform is authorized')
         target = _number(options.get('target_footprint_m2'), 'target_footprint_m2')
         if target <= 0:
             raise ValueError('target_footprint_m2 must be positive')

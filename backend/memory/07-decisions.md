@@ -1,5 +1,7 @@
 # Decisions and contract changes (newest first)
 
+- 2026-10-13 MasterPlan review contract: design forwards required parking mode, vehicle maneuver, joint budgets and source-declared entrance. Independent validation adds separate parking_target and conservative vehicle_body_envelope clearance; stale claimed layout hashes are rejected using the canonical geometry digest. Declared-door route measurement remains distinct from full Plan network. Public MasterPlan run accepts ai_intent/siting_brief; no new URL. See [review memory](2026-10-13-five-review.md).
+
 - 2026-10-13 Contract notice for Orchestrator: added law provider `siting-requirements`, exposed as LawAgent `law_siting_requirements`. Explicit total GFA is distinct from parking facility area. Existing parking-design-rules accepts surface structure; independent validation adds `legal_siting` and `parking_rules_applicability`. Missing legal road certification stays unresolved. See [siting law memory](2026-10-13-siting-law.md).
 
 - 2026-10-13 Rotated ground-contact overlay precision corrected in two drive collision checks. Existing EPS grid prevents a135m2 false overlap at coincident edges; actual0.1m intrusion still fails.56 scoped tests passed; backend reloaded and actual HTTP replan checked. No new API. Parking0/2 still rejected. See [evidence](2026-10-13-rotated-ground-contact.md).

@@ -39,6 +39,8 @@ def certify_ground_access(drive, stalls, road, width):
         offset = max(0, radius - 1e-5)
         cores = parts(component.buffer(-offset))
         rectangle = component.minimum_rotated_rectangle
+        if rectangle.geom_type != 'Polygon' or rectangle.is_empty:
+            continue
         if component.symmetric_difference(rectangle).area <= 1e-9:
             coords = list(rectangle.exterior.coords)
             a, b = coords[:2]
@@ -77,7 +79,10 @@ def certify_ground_access(drive, stalls, road, width):
                 continue
             reachable = core.buffer(radius+1e-5).intersection(component.buffer(1e-5))
             for i, stall in local:
-                coords = list(stall.minimum_rotated_rectangle.exterior.coords)
+                stall_rectangle = stall.minimum_rotated_rectangle
+                if stall_rectangle.geom_type != 'Polygon' or stall_rectangle.is_empty:
+                    continue
+                coords = list(stall_rectangle.exterior.coords)
                 edges = [LineString([a, b]) for a, b in zip(coords, coords[1:])]
                 edge = max(edges, key=lambda e: e.intersection(component.buffer(1e-5)).length)
                 mid = edge.interpolate(.5, normalized=True)

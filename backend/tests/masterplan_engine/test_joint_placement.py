@@ -46,7 +46,8 @@ def _placement_request():
             'frontage': mapping(LineString([(0, 0), (60, 0)])), 'front_frontage': mapping(LineString([(0, 0), (60, 0)])),
             'rules': {'stall_width_m': 2.5, 'stall_length_m': 5.0, 'aisle_width_m': 6.0,
                       'accessible_width_m': 3.3, 'accessible_length_m': 5.0},
-            'options': {'planning_stage': 'placement', 'target_parking_stalls': 50}}
+            'options': {'planning_stage': 'placement', 'target_parking_stalls': 50,
+                        'max_joint_screenings': 4, 'max_joint_layouts': 2}}
 
 
 def _fake_result(footprint, surface, aisle_m2=400):
@@ -137,7 +138,7 @@ def test_equal_area_placement_and_owner_piloti_can_jointly_reach_surface_target(
     if surface_cap == 7:
         assert chosen['validation']['geometry_status'] == 'passed'
     assert request == original
-    assert len(calls) <= 5
+    assert len(calls) <= 9
     assert all(c['options'] == original['options'] and c['rules'] == original['rules'] for c in calls)
     assert abs(chosen['metrics']['building_footprint_m2'] - 135.3) < 1e-6
     if surface_cap == 7:
@@ -192,3 +193,16 @@ def test_shortlist_entries_honor_the_same_constraints_as_complete_solve(monkeypa
     monkeypatch.setattr(rows, 'row_candidates', inspect_rows)
     select_joint_layout(request, lambda candidate: _fake_result(proposed, 12))
     assert examined and any(examined)
+
+
+def test_source_bound_entrance_does_not_authorize_replacement_mass():
+    from shapely.geometry import Point
+    request = _placement_request()
+    request['building_entrance'] = mapping(Point(10, 45))
+    calls = []
+    def solve(candidate):
+        calls.append(candidate)
+        return _fake_result(box(10, 40, 50, 60), 22)
+    result = select_joint_layout(request, solve)
+    assert len(calls) == 1
+    assert 'joint_search' not in result

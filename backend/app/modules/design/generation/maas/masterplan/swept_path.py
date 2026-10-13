@@ -9,6 +9,7 @@ import math
 
 from shapely.geometry import Polygon, mapping, shape
 from shapely.ops import unary_union
+from .geometry import digest
 
 FIELDS = ('wheelbase_m', 'body_width_m', 'front_overhang_m', 'rear_overhang_m', 'track_m')
 SOURCE_FIELDS = ('vehicle_source_id', 'trajectory_source_id', 'coordinate_frame_id')
@@ -115,13 +116,19 @@ def validate_maneuver(*, vehicle, poses, drivable, obstacles, source_binding):
     outside = envelope.difference(drivable).area
     overlap = envelope.intersection(blocked).area
     touches = not blocked.is_empty and envelope.intersects(blocked)
+    clear = drivable.covers(envelope) and not touches
+    clearances = [envelope.distance(drivable.boundary)]
+    if not blocked.is_empty:
+        clearances.append(envelope.distance(blocked))
     payload = {'vehicle': {key: vehicle[key] for key in FIELDS}, 'poses': poses,
                'drivable': mapping(drivable), 'obstacles': [mapping(g) for g in obstacles],
                'source_binding': source_binding, 'interpolation': base['interpolation']}
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':'),
                                       allow_nan=False).encode()).hexdigest()
-    return {**base, 'status': ('clear_conservative_envelope' if drivable.covers(envelope) and not touches
+    return {**base, 'status': ('clear_conservative_envelope' if clear
                               else 'collision_or_clearance_conflict'),
+            'minimum_clearance_m': min(clearances) if clear else 0.0,
+            'clearance_scope': 'Conservative interpolated body envelope to drawn drivable boundary/obstacles; not verified steering trajectory',
             'input_sha256': digest, 'source_binding': source_binding,
             'source_authentication': 'caller_attribution_not_independently_authenticated',
             'outside_drivable_m2': outside, 'obstacle_overlap_m2': overlap,
@@ -163,8 +170,9 @@ def layout_maneuver_result(request, features):
         obstacles += [shape(g) for g in request.get('columns', [])]
         if request.get('core'):
             obstacles.append(shape(request['core']))
-        geometry_hash = hashlib.sha256(json.dumps(features, sort_keys=True, separators=(',', ':'),
-                                                   allow_nan=False).encode()).hexdigest()
+        geometry_hash = digest(features)
+        if binding.get('layout_features_sha256') is not None and binding['layout_features_sha256'] != geometry_hash:
+            return {**refusal, 'missing_or_invalid': ['source_binding.layout_features_sha256_mismatch']}
         return validate_maneuver(vehicle=proposal.get('vehicle'), poses=proposal.get('poses'),
                                  drivable=drive, obstacles=obstacles,
                                  source_binding={**binding, 'layout_features_sha256': geometry_hash})

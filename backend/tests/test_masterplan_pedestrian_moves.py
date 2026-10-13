@@ -62,11 +62,12 @@ def test_route_does_not_overwrite_authored_reservations_or_enable_crossings():
     assert reserve['crossing'].is_empty
 
 
-def test_obstruction_and_boundary_pinching_are_refused():
+def test_obstruction_is_detoured_and_boundary_pinching_is_refused():
     req = request()
     req['columns'] = [mapping(box(19, 5, 21, 7))]
-    with pytest.raises(ValueError):
-        apply_placement_moves(req, moves())
+    route = pedestrian_reservation(apply_placement_moves(req, moves())['request'])['route']
+    assert route['corridor'].intersection(shape(req['columns'][0])).area < 1e-6
+    assert route['centerline'].length > 20
     with pytest.raises(ValueError):
         apply_placement_moves(request(), moves(width=50))
 

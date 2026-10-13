@@ -103,23 +103,54 @@ def piloti_ground_variants(site, footprint, stall_length, aisle_width):
             yield depth, ground
 
 
-def screen_placements(proposals, evaluate, demand):
-    """Keep the exhaustive shortlist while avoiding provably inferior screens.
+def _diverse_order(items, geometry):
+    """Farthest-first geometry sampling, seeded by the existing order, not a quality score."""
+    pending = list(items)
+    if not pending:
+        return []
+    selected = [pending.pop(0)]
+    distances = [float('inf')] * len(pending)
+    while pending:
+        last = geometry(selected[-1])
+        distances = [min(d, geometry(item).symmetric_difference(last).area)
+                     for item, d in zip(pending, distances)]
+        index = max(range(len(pending)), key=lambda i: distances[i])
+        selected.append(pending.pop(index))
+        distances.pop(index)
+    return selected
 
-    Row generation caps count at positive demand. Once two candidates attain
-    it, a lower-area ground plate cannot beat either under the existing key.
-    Original order breaks exact ties, independently of evaluation order.
-    """
-    pending = sorted(enumerate(proposals), key=lambda v: (-round(v[1][1].area, 6), v[0]))
+
+def screen_placements(proposals, evaluate, demand, *, budget=64):
+    """Bound screens across positions and ground occupancies, without demand-hit pruning."""
+    groups = {}
+    for index, proposal in enumerate(proposals):
+        groups.setdefault(proposal[0].wkb, []).append((index, proposal))
+    families = _diverse_order(list(groups.values()), lambda group: group[0][1][0])
+    # Share the budget between upper positions and occupancy choices on each upper.
+    upper_budget = max(1, min(budget, int(2 * math.sqrt(budget))))
+    families = [_diverse_order(group, lambda item: item[1][1]) for group in families[:upper_budget]]
+    pending = [family[i] for i in range(max(map(len, families), default=0))
+               for family in families if i < len(family)]
     evaluated = []
-    for index, (p, ground, choice) in pending:
-        if (demand > 0 and len(evaluated) >= 2 and evaluated[1][0] >= demand
-                and round(ground.area, 6) <= round(evaluated[1][2].area, 6)):
-            break
-        count = evaluate(p, ground, choice)
-        evaluated.append((count, p, ground, choice, index))
-        evaluated.sort(key=lambda v: (-v[0], -round(v[2].area, 6), v[4]))
+    for index, (p, ground, choice) in pending[:budget]:
+        evaluated.append((evaluate(p, ground, choice), p, ground, choice, index))
+    evaluated.sort(key=lambda v: (-v[0], -round(v[2].area, 6), v[4]))
     return [v[:4] for v in evaluated], len(proposals)-len(evaluated)
+
+
+def _complete_shortlist(screened, budget):
+    # Keep exploitation slots, then sample distinct upper geometry before repeating it.
+    selected = list(screened[:max(1, budget // 3)])
+    pending = list(screened[len(selected):])
+    while pending and len(selected) < budget:
+        distances = [min(item[1].symmetric_difference(other[1]).area for other in selected)
+                     for item in pending]
+        if max(distances) <= EPS:
+            distances = [min(item[2].symmetric_difference(other[2]).area for other in selected)
+                         for item in pending]
+        index = max(range(len(pending)), key=lambda i: distances[i])
+        selected.append(pending.pop(index))
+    return selected
 
 
 def select_joint_layout(request, solve):
@@ -141,13 +172,20 @@ def select_joint_layout(request, solve):
     opts = request.get('options', {})
     from .planning_portfolio import policy, retain
     selection_policy, portfolio_limit = policy(opts)
+    screen_budget = opts.get('max_joint_screenings', 64)
+    complete_budget = opts.get('max_joint_layouts', 6)
+    for name, value, maximum in [('max_joint_screenings', screen_budget, 512),
+                                  ('max_joint_layouts', complete_budget, 16)]:
+        if type(value) is not int or not 1 <= value <= maximum:
+            raise ValueError(f'{name} must be an integer in 1..{maximum}')
     explicit_angle = layout_axis_angle(request)
     baseline = solve(copy.deepcopy(request))
     if baseline.get('planner_invoked') is False:
         return baseline
     placement_stage = opts.get('planning_stage') == 'placement'
     if (request.get('footprint') or request.get('ground_footprint') or request.get('core')
-            or request.get('columns') or opts.get('joint_placement_search') is False
+            or request.get('columns') or request.get('building_entrance')
+            or opts.get('joint_placement_search') is False
             or (opts.get('target_surface_stalls') is None and not placement_stage)):
         return baseline
     site = shape(request['site'])
@@ -226,11 +264,12 @@ def select_joint_layout(request, solve):
                                   **({'allowed_angles':[screen_angle] if straight_entry else [screen_angle,screen_angle+90],
                                       'preserve_banks':True} if screen_angle is not None else {}))
         return max((exclude_reserved_stalls(r,pedestrian['reserved'])['provided'] for r in rows),default=0)
-    shortlist, skipped = screen_placements(proposals, screen, screen_demand)
+    shortlist, skipped = screen_placements(proposals, screen, screen_demand, budget=screen_budget)
     # Preserve enclosed ground when surface counts tie; this limits programme
     # loss in the shortlist and is not an architectural quality score.
     shortlist.sort(key=lambda v:(-v[0], -round(v[2].area, 6)))
-    for _, p, ground, choice in shortlist[:2]:
+    selected_proposals = _complete_shortlist(shortlist, complete_budget)
+    for _, p, ground, choice in selected_proposals:
         candidate = copy.deepcopy(request)
         candidate['footprint'] = mapping(p)
         if choice is not None:
@@ -271,7 +310,12 @@ def select_joint_layout(request, solve):
     portfolio = retain(layouts, chosen, limit=portfolio_limit) if selection_policy=='siting_portfolio_v1' else None
     chosen['joint_search']={'screened_placements':len(shortlist),'complete_layouts':len(layouts),
         'screen_demand':screen_demand, 'screen_demand_source':demand_source,
-        'proposed_placements':len(proposals),'screens_pruned_by_upper_bound':skipped,
+        'proposed_placements':len(proposals),'screens_pruned_by_upper_bound':0,
+        'screens_skipped_by_budget':skipped, 'max_joint_screenings':screen_budget,
+        'max_joint_layouts':complete_budget, 'complete_proposals':len(selected_proposals),
+        'screened_upper_footprints':len({v[1].wkb for v in shortlist}),
+        'solved_upper_footprints':len({v[1].wkb for v in selected_proposals}),
+        'selection_scope':'bounded geometry sampling, not architectural quality or exhaustive feasibility',
         'selected_index':layouts.index(chosen),'target_footprint_m2':target,
         'scope':'equal-area generated mass alternatives and owner piloti choices; authored mass remains fixed',
         'screen_tie_break':'preserve enclosed ground area among equal surface counts; not architectural quality',

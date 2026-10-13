@@ -6,6 +6,7 @@ from collections import defaultdict
 from shapely.geometry import shape
 from shapely.ops import unary_union
 from .geometry import digest
+from .declared_route_measurement import measure_declared_route
 
 TOL = 1e-6
 
@@ -70,7 +71,7 @@ def measure_siting(request, features, occupied):
                         'usable_public_space_status': 'unknown'},
             'pedestrian': {'facade_connected': connected, 'route_components': len(route_parts),
                            'vehicle_overlap_m2': round(routes.intersection(vehicle).area, 3) if not routes.is_empty else None,
-                           'actual_door_status': 'unknown'},
+                           **measure_declared_route(request, features)},
             'scope': 'Building disposition, outdoor remainder and declared approach; no universal preferred direction or public-space approval'}
 
 

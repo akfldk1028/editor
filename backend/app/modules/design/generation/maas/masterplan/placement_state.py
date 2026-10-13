@@ -181,6 +181,9 @@ def apply_revision(request, moves, parent_ref):
             if ground is None:
                 raise ValueError('no piloti ground on the fixed parent building')
         applied['unresolved'].append('preliminary piloti: structural support and clear height require Mass review')
+    if (request.get('building_entrance') is not None
+            and (not upper.equals(shape(parent['upper'])) or not ground.equals(shape(parent['ground'])))):
+        raise ValueError('building entrance needs a new source-bound declaration after mass or piloti changes; no door transform is authorized')
     logical_request = applied['request']
     for key in ('footprint', 'ground_footprint'):
         if key in request:

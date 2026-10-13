@@ -265,6 +265,14 @@ def validate_plan(request, result):
                       scope='full-width connection from ramp to every stall manoeuvre cell; not swept path')
             check(f"ramp_to_aisle_connection:{level}",bool(arrivals) and all(g.distance(drive)<=TOL for g in arrivals))
     required = law.get("required_spaces")
+    from .parking_targets import target_mode
+    design_target = (request.get('options') or {}).get('target_parking_stalls')
+    design_target_result = {
+        'mode': target_mode(request), 'required': design_target, 'provided': count,
+        'status': ('not_applicable' if design_target is None else
+                   'reference' if target_mode(request) == 'reference' else
+                   'passed' if count >= design_target else 'failed'),
+        'scope': 'User design requirement, separate from geometry and statutory parking_count'}
     if required is not None:
         check("parking_count",count>=required,required=required,provided=count)
     elif count==0:
@@ -360,6 +368,8 @@ def validate_plan(request, result):
     if count and profile['status'] != 'matched':
         pending.append('parking_rules_actual_layout_applicability')
     return {"schema_version":"masterplan.validation.v1","geometry_status":status,
+            "parking_target":design_target_result,
+            "vehicle_body_envelope":maneuver if maneuver and maneuver.get('minimum_clearance_m') is not None else None,
             "legal_siting":legal_siting, "parking_rules_applicability":profile,
             "relationship_scores": score_relationships(features, checks),
             "relationship_measurements": measure_relationships(grouped, request),
