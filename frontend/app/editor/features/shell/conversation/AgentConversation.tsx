@@ -25,6 +25,12 @@ import { ConversationArtifacts } from './ConversationArtifacts'
 import { ConversationProject, useConversationProject } from './ConversationProject'
 import './agent-conversation.css'
 
+/** When the question a reply answers was asked: the nearest earlier message from the person, or null. */
+function askedAt(messages: readonly { role: string; at: string }[], index: number): number | null {
+  for (let at = index - 1; at >= 0; at--) if (messages[at]!.role === 'user') return Date.parse(messages[at]!.at)
+  return null
+}
+
 const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
 
 /**
@@ -91,8 +97,9 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
       <div className="agent-turn-user"><p>{message.text}</p><time dateTime={message.at}>{time(Date.parse(message.at))}</time></div>
     ) : (
       <article className="agent-turn conversation-message"><Who agent={message.agent ?? 'orchestrator'} at={Date.parse(message.at)} />
-        {/* The first reply after a question carries what the agents were asked for it, folded, as a chat app keeps its tool steps. */}
-        {messages[index - 1]?.role === 'user' && <AskedAgents steps={turnSteps(ledger.messages, {}, { since: Date.parse(messages[index - 1]!.at), until: Date.parse(message.at) })} />}
+        {/* A question's last reply (after any notes sent while it worked) carries what the agents were asked for it, folded. */}
+        {messages[index + 1]?.role !== 'assistant' && askedAt(messages, index) !== null &&
+          <AskedAgents steps={turnSteps(ledger.messages, {}, { since: askedAt(messages, index)!, until: Date.parse(message.at) })} />}
         <p>{message.text}</p></article>
     ) })),
     ...conversation.pending.map((pending) => ({ at: Date.parse(pending.at), key: `pending-${pending.body.message_id}`, node: <div className="agent-turn-user">

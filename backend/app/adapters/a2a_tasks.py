@@ -56,7 +56,8 @@ def _result(task: dict) -> str:
     agent answered on the status message (a text-only caller, or a failure)."""
     out = []
     for artifact in task.get('artifacts') or []:
-        for part in (artifact or {}).get('parts') or [] if isinstance(artifact, dict) else []:
+        parts = artifact.get('parts') if isinstance(artifact, dict) else None
+        for part in parts or []:
             if isinstance(part, dict) and 'data' in part:
                 out.append(json.dumps(_whole(part['data']), ensure_ascii=False))
             elif isinstance(part, dict) and part.get('text'):
