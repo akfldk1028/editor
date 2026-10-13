@@ -12,8 +12,8 @@ import type { ShellApi } from '../../../shell/artifact-types'
 import { compareLaw, differingRows } from '../lib/orchestrator-compare'
 import type { Summary } from '../lib/summary'
 import { useOrchestratorReview } from '../model/useOrchestratorReview'
-import { asksForLot } from '../lib/lot-question'
-import { LotQuestion } from './LotQuestion'
+import { asksForLot } from '@/lib/run-question/lots'
+import { LotQuestion } from '@/lib/run-question/ui/LotQuestion'
 
 interface Props {
   pnu: string

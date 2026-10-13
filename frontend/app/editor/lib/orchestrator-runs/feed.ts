@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react'
 
 import { currentConversation } from '@/lib/design-conversation/session'
+import type { RunQuestion } from './types'
 
 import type { Command } from './commands'
 
@@ -44,6 +45,8 @@ export type FeedCard =
   | { type: 'checks'; items: { label: string; state: 'ok' | 'missing' | 'unread'; note?: string; critical?: boolean }[] }
   | { type: 'findings'; items: { title: string; by: string; category: string; action: string; owners: string }[] }
   | { type: 'links'; items: { label: string; href?: string; note?: string }[] }
+  /** A waiting run asks which district lot the parcel is: the lots Law read, answered in place. */
+  | { type: 'lots'; projectId: string; runId: string; question: RunQuestion }
 
 /** A request in flight between two parties ("Orchestrator Agent ⟶ Law Agent"): drawn as a diagram while the line lives. */
 export interface FeedRelay {
@@ -120,7 +123,7 @@ export function createFeedStore(limit = 200): FeedStore {
         ...(input.agent ? { agent: input.agent } : {}),
         ...(input.tone ? { tone: input.tone } : {}),
         ...(input.relay ? { relay: input.relay } : {}),
-        ...(input.card?.items.length ? { card: input.card } : {}),
+        ...(input.card && (input.card.type === 'lots' || input.card.items.length) ? { card: input.card } : {}),
         ...(input.actions?.length ? { actions: input.actions } : {}),
       }
       entries = [...entries, entry].slice(-limit)

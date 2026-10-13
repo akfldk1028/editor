@@ -1,0 +1,17 @@
+/* A run asking which district lot the parcel is: one card per lot Law read, values as quoted, quotes on demand.
+   Shown in the law panel and in the conversation alike. */
+.run-question { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel-raised); }
+.run-question h3 { margin: 0; font-size: var(--fs-3, 15px); }
+.run-question-sub { margin: 0; color: var(--muted); font-size: var(--fs-2); }
+.run-question-lots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.run-question-lot { display: grid; gap: 8px; align-content: start; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel); }
+.run-question-lot header strong { font-size: var(--fs-3, 15px); }
+.run-question-lot dl { display: grid; gap: 6px; margin: 0; }
+.run-question-lot dl div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
+.run-question-lot dt { color: var(--muted); font-size: var(--fs-1); }
+.run-question-lot dd { display: grid; gap: 4px; margin: 0; font-size: var(--fs-2); overflow-wrap: anywhere; }
+.run-question-lot details summary { cursor: pointer; color: var(--accent); font-size: var(--fs-1); }
+.run-question-lot blockquote { margin: 4px 0 0; padding: 6px 8px; border-inline-start: 2px solid var(--border); background: var(--subtle); color: var(--ink); font-size: var(--fs-1); white-space: pre-wrap; }
+.run-question-lot small { display: block; color: var(--muted); font-size: var(--fs-1); }
+.run-question-note { margin: 0; font-size: var(--fs-2); color: var(--ink); }
+.run-question-note[data-kind="warn"] { color: var(--warning); }

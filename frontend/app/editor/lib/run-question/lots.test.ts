@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import type { RunQuestion } from '@/lib/orchestrator-runs/types'
-import { asksForLot, lotChoices } from './lot-question'
+import { asksForLot, lotChoices } from './lots'
 
 const QUESTION: RunQuestion = {
   kind: 'request_input', code: 'district_lot_required', fields: ['district_lot'], pnu: '4115011300106840001',

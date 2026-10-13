@@ -20,6 +20,7 @@ const cardText = (entry: FeedEntry): string => {
   if (card.type === 'chips') return card.items.join(' · ')
   if (card.type === 'checks') return card.items.map((item) => `${item.label}${item.note ? ` ${item.note}` : ''}`).join(' · ')
   if (card.type === 'findings') return card.items.map((item) => item.title).join(' · ')
+  if (card.type === 'lots') return `획지 후보: ${(card.question.candidates?.lots ?? []).map((lot) => lot.lot).join(' · ')}`
   return card.items.map((item) => item.label).join(' · ')
 }
 

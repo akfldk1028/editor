@@ -10,6 +10,7 @@ import { failureText, type RunFailure } from '@/lib/orchestrator-runs/submit'
 import type { AskAnswer, Capabilities, Communication, OrchestratorConnection, RunResults, RunSummary } from '@/lib/orchestrator-runs/types'
 import { fmt } from '@/lib/orchestrator-runs/format'
 import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
+import { asksForLot } from '@/lib/run-question/lots'
 
 const ORCHESTRATOR = 'orchestrator'
 
@@ -205,6 +206,10 @@ export function resultPrompt(results: RunResults, target: LawTarget): { text: st
   const related: FeedAction = { label: '관련 법규 보기', artifact: 'law', params: lawParams(target, 'articles') }
   const flow: FeedAction = { label: '협업 흐름 보기', artifact: 'collaboration', params: { ...(target.project ? { project: target.project } : {}), ...(results.run_id ? { run: results.run_id } : {}), tab: 'log' } }
   const later: FeedAction = { label: '나중에' }
+  if (results.status === 'waiting_input' && asksForLot(results.pending_request)) {
+    // The lots themselves are the card under this line (useRunFeed): the person answers here, not in a panel.
+    return { text: '이 필지는 지구단위계획구역 안인데, 고시 문서에 어느 획지인지 적혀 있지 않아요. 아래에서 획지를 골라 주시면 그 규정으로 이어서 검토해요.', actions: [later] }
+  }
   if (results.status === 'waiting_input') {
     const asked = askedFieldsLabel(results.pending_fields) || '조건'
     return { text: `${asked}를 고르고 다시 검토를 누르면 대지 → 법규 순서로 이어가요. 법규 패널에서 채우시겠어요?`, actions: [{ ...law, label: '조건 채우기' }, later] }

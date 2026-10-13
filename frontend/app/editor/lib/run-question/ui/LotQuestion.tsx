@@ -5,13 +5,14 @@ import { useState } from 'react'
 import { resumeRun } from '@/lib/orchestrator-runs/api'
 import type { RunQuestion } from '@/lib/orchestrator-runs/types'
 
-import { lotChoices } from '../lib/lot-question'
+import { lotChoices } from '../lots'
+import './run-question.css'
 
 interface Props {
   projectId: string
   runId: string
   question: RunQuestion
-  onAnswered(): void
+  onAnswered?(): void
 }
 
 /**
@@ -22,13 +23,15 @@ interface Props {
 export function LotQuestion({ projectId, runId, question, onAnswered }: Props) {
   const [sending, setSending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [answered, setAnswered] = useState<string | null>(null)
   const choices = lotChoices(question)
   const choose = async (lot: string) => {
     setSending(lot)
     setError(null)
     try {
       await resumeRun(projectId, runId, { district_lot: lot })
-      onAnswered()
+      setAnswered(lot)
+      onAnswered?.()
     } catch {
       setError('답을 보내지 못했어요. 잠시 뒤 다시 골라 주세요.')
     } finally {
@@ -36,12 +39,12 @@ export function LotQuestion({ projectId, runId, question, onAnswered }: Props) {
     }
   }
   return (
-    <section aria-label="획지 선택" className="law-card law-lot-question">
+    <section aria-label="획지 선택" className="run-question">
       <h3>이 필지는 지구단위계획구역 안이에요. 어느 획지인가요?</h3>
-      <p className="law-sub">고시 문서에 이 필지가 어느 획지인지 적혀 있지 않아요. 분양 공고나 토지 서류에서 확인한 획지를 골라 주시면, 그 획지의 규정으로 검토를 이어가요.</p>
-      <div className="law-lot-choices">
+      <p className="run-question-sub">고시 문서에 이 필지가 어느 획지인지 적혀 있지 않아요. 분양 공고나 토지 서류에서 확인한 획지를 골라 주시면, 그 획지의 규정으로 검토를 이어가요.</p>
+      <div className="run-question-lots">
         {choices.map((choice) => (
-          <article className="law-lot" key={choice.lot}>
+          <article className="run-question-lot" key={choice.lot}>
             <header><strong>{choice.lot}</strong></header>
             <dl>
               {choice.rows.map((row) => (
@@ -64,14 +67,15 @@ export function LotQuestion({ projectId, runId, question, onAnswered }: Props) {
                 </div>
               ))}
             </dl>
-            {choice.others > 0 && <p className="law-sub">그 밖에 읽은 항목 {choice.others}개</p>}
-            <button className="artifact-primary" disabled={sending !== null} onClick={() => void choose(choice.lot)} type="button">
+            {choice.others > 0 && <p className="run-question-sub">그 밖에 읽은 항목 {choice.others}개</p>}
+            <button className="artifact-primary" disabled={sending !== null || answered !== null} onClick={() => void choose(choice.lot)} type="button">
               {sending === choice.lot ? '보내는 중…' : '이 획지로 검토 이어가기'}
             </button>
           </article>
         ))}
       </div>
-      {error && <p className="law-note" data-kind="warn" role="alert">{error}</p>}
+      {answered && <p className="run-question-note" role="status">{answered}(으)로 답했어요 — 그 획지의 규정으로 검토를 이어가요.</p>}
+      {error && <p className="run-question-note" data-kind="warn" role="alert">{error}</p>}
     </section>
   )
 }

@@ -388,3 +388,11 @@ test('a question that belongs to a registered agent without a role module is nam
   expect(answerLine({ ...delegated, delegate: { ...delegated.delegate!, available: false, description: null, instruction: null, skills: [] } }, null).text)
     .toBe('이건 StructureAgent의 일이에요 (지금은 응답하지 않아요)')
 })
+
+test('a run waiting for the district lot asks in the conversation, not in a panel', () => {
+  const question = { kind: 'request_input', code: 'district_lot_required', fields: ['district_lot'],
+    candidates: { status: 'parcel_not_tied_to_a_lot_choose_one', lots: [{ lot: '공공1', far_pct_max: [{ value: 250 }] }] } }
+  const prompt = resultPrompt(results({ status: 'waiting_input', pending_fields: ['district_lot'], pending_request: question }), { pnu: '4115011300106840001' })
+  expect(prompt.text).toContain('어느 획지인지')
+  expect(prompt.actions.map((action) => action.label)).toEqual(['나중에'])
+})
