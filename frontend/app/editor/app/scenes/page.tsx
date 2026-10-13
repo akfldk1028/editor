@@ -61,7 +61,7 @@ export default async function ScenesPage() {
         {result.status === 'error' ? (
           <div role="alert" className="rounded-xl border border-destructive/40 p-6">
             <p>Unable to load saved scenes. Please try again.</p>
-            <a href={`${basePath}/scenes`} className="mt-3 inline-block underline">Retry</a>
+            <Link href="/scenes" className="mt-3 inline-block underline">Retry</Link>
           </div>
         ) : scenes.length === 0 ? (
           <div className="rounded-xl border border-border/60 border-dashed bg-background p-12 text-center">

@@ -3,7 +3,7 @@
 import { Check, ExternalLink, Play, RotateCcw, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
-import { actionLabel, agentForTool, agentLabel, askedFieldsLabel, evidenceLabel, isTerminal, stateLabel, statusLabel, toolLabel, traceLabel } from '@/lib/orchestrator-runs/labels'
+import { actionLabel, agentForTool, agentLabel, askedFieldsLabel, evidenceLabel, isTerminal, stateLabel, statusLabel, toolLabel } from '@/lib/orchestrator-runs/labels'
 import { failureText } from '@/lib/orchestrator-runs/submit'
 import type { RunResults, RunStep, RunSummary } from '@/lib/orchestrator-runs/types'
 import { ConditionsRow } from '@/lib/orchestrator-runs/ui/ConditionsRow'
@@ -111,10 +111,8 @@ function RunHead({ run, results, stale, projectId, onReload }: { run: RunSummary
         </p>
       )}
       <p className="law-sub law-orch-ids">
-        run <code title={run.run_id}>{traceLabel(run.run_id)}</code>
-        {run.trace_id && <> · trace <code title={run.trace_id}>{traceLabel(run.trace_id)}</code></>}
-        {results?.request?.building_type && <> · 용도 {results.request.building_type}</>}
-        {results?.request && results.request.parcels.length > 1 && <> · 필지 {results.request.parcels.length}개</>}
+        {[results?.request?.building_type ? `용도 ${results.request.building_type}` : null,
+          results?.request && results.request.parcels.length > 1 ? `필지 ${results.request.parcels.length}개` : null].filter(Boolean).join(' · ')}
         <a href={href} rel="noopener" target="_blank">실행 보기<ExternalLink aria-hidden="true" size={11} /></a>
         <button className="law-link" onClick={onReload} type="button"><RotateCcw aria-hidden="true" size={11} />다시 확인</button>
       </p>
