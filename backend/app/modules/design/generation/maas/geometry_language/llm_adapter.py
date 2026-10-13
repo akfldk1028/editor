@@ -1371,7 +1371,11 @@ def _book_composition_path_slice(
     )
     if not paths:
         return []
-    wanted = min(96, max(16, int(count) * 4))
+    # Every program must bind a distinct offered path, so the offer can never
+    # be smaller than the request: a 120-program request offered 96 paths and
+    # could not pass its own uniqueness check.
+    path_cap = max(96, int(count))
+    wanted = min(path_cap, max(16, int(count) * 4))
     identity = json.dumps({
         "program_id": context.get("program_id") or context.get("building_type"),
         "author_stage": context.get("author_stage"),
@@ -1404,7 +1408,7 @@ def _book_composition_path_slice(
             hashlib.sha256(f"{identity}:{principle_id}".encode("utf-8")).hexdigest(),
             principle_id,
         ))
-        wanted = min(96, len(paths), max(wanted, len(principle_ids)))
+        wanted = min(path_cap, len(paths), max(wanted, len(principle_ids)))
         variant_offsets = {
             principle_id: int(hashlib.sha256(
                 f"{identity}:{principle_id}".encode("utf-8")
@@ -1686,7 +1690,7 @@ NON-NEGOTIABLE MASS MEMORY:
   a minimum FAR share or claim programme compliance. Where supplied, distinguish minimum_utilization from
   target_utilization; only the deterministic contract determines admission. A lower-area alternative must establish
   a visible spatial benefit, not a prose-only exception or an automatic density bonus.
-- For a requested portfolio of 20, all 20 selected candidates must remain LLM-authored, legal, capacity-passing, and
+- For the requested portfolio, every selected candidate must remain LLM-authored, legal, capacity-passing, and
   materially diverse in the combined PNG. Count never authorizes a deterministic fallback or weakened diversity cap.
 
 If mass_execution_agent_context is present, it is the measured causal trace from a prior candidate: preserve

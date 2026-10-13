@@ -524,6 +524,17 @@ def stage(run: str, count: int) -> int:
 # the leading zero ("TILE 7" and "TILE t07" both appear in the ledger).
 _TILE_OPENS = re.compile(r"^\s*TILE\s+t?0*(\d+)\b")
 _WEIGHTED = re.compile(r"WEIGHTED\s+(\S+)")
+_RUBRIC_WEIGHT = re.compile(r"\*\*([A-Z]+)\s*\(weight\s+([0-9.]+)\)\*\*")
+# A juror's WEIGHTED is its own arithmetic over the four counts it scored.
+# Rounded to two decimals by the juror, so a difference up to this is not an
+# error; past it the stated number is not the weighted mean of the stated
+# counts, and the counts - the judgments - are what the round keeps.
+_WEIGHTED_TOLERANCE = 0.011
+
+
+def rubric_weights(prompt_text: str) -> dict[str, float]:
+    """{COUNT: weight} as the staged PROMPT states them, e.g. FEASIBILITY 0.35."""
+    return {name: float(w) for name, w in _RUBRIC_WEIGHT.findall(prompt_text)}
 
 
 class VerdictError(ValueError):
@@ -536,7 +547,7 @@ class VerdictError(ValueError):
     """
 
 
-def read_verdict(path: Path, key_tiles) -> dict[str, float]:
+def read_verdict(path: Path, key_tiles, weights: dict[str, float] | None = None) -> dict[str, float]:
     """One juror's file as {tile: weighted score}, read block by block.
 
     A TILE line opens a block and the next TILE line closes it, so the
@@ -591,6 +602,25 @@ def read_verdict(path: Path, key_tiles) -> dict[str, float]:
                 f"{name}: TILE {tile} has WEIGHTED {value}, outside the "
                 "rubric's 1..5 - a stray number read as a score moves the "
                 "session drift for every other tile")
+        if weights:
+            # The WEIGHTED line was taken on trust; a juror whose arithmetic
+            # slipped published a number its own counts do not give. Recompute
+            # it from the counts in this block when every count is there.
+            counts = {}
+            for line in lines[start:end]:
+                m = re.match(r"^\s*([A-Z]+)\s+([0-9.]+)\s*\|", line)
+                if m and m.group(1) in weights:
+                    counts[m.group(1)] = float(m.group(2))
+            if set(counts) == set(weights):
+                if not all(1.0 <= c <= 5.0 for c in counts.values()):
+                    raise VerdictError(
+                        f"{name}: TILE {tile} has a count outside the rubric's 1..5")
+                computed = round(sum(weights[k] * counts[k] for k in weights)
+                                 / sum(weights.values()), 2)
+                if abs(computed - value) > _WEIGHTED_TOLERANCE:
+                    print(f"   NOTE: {name} {tile} wrote WEIGHTED {value}; its "
+                          f"counts give {computed} - the counts stand")
+                value = computed
         if tile in seen and seen[tile] != value:
             raise VerdictError(
                 f"{name}: TILE {tile} is scored twice and the two disagree "
@@ -613,8 +643,10 @@ def score(run: str, paths: list[str]) -> int:
             if not picture.exists() or hashlib.sha256(picture.read_bytes()).hexdigest() != row['png_sha256']:
                 raise ValueError(f'{tile}: staged image changed; restage and rejudge')
     per_tile: dict[str, list[float]] = {t: [] for t in key}
+    prompt = out / "PROMPT.txt"
+    weights = rubric_weights(prompt.read_text(encoding="utf-8")) if prompt.exists() else None
     for path in paths:
-        seen = read_verdict(Path(path), key)
+        seen = read_verdict(Path(path), key, weights)
         missing = [t for t in key if t not in seen]
         if missing:
             print(f"   WARNING: {Path(path).name} scored no line for "
@@ -726,7 +758,9 @@ if __name__ == "__main__":
         out = ROOT / "runs" / f"vlm-{sys.argv[1]}"
         key_tiles = {r["tile"] for r in json.loads((out / "key.json").read_text(encoding="utf-8"))}
         try:
-            verdict = read_verdict(Path(sys.argv[i + 1]), key_tiles)
+            prompt = out / "PROMPT.txt"
+            weights = rubric_weights(prompt.read_text(encoding="utf-8")) if prompt.exists() else None
+            verdict = read_verdict(Path(sys.argv[i + 1]), key_tiles, weights)
         except VerdictError as exc:
             print(f"REFUSED: {exc}")
             sys.exit(1)
