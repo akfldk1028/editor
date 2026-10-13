@@ -1,6 +1,7 @@
 {
   "extends": "@pascal/typescript-config/nextjs.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "plugins": [
       {
         "name": "next"
