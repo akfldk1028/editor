@@ -1,3 +1,4 @@
+import pytest
 from shapely.geometry import box, LineString
 from backend.app.modules.design.generation.maas.masterplan.joint import footprint_candidates
 from backend.app.modules.design.generation.maas.masterplan.joint import select_joint_layout
@@ -21,14 +22,17 @@ def test_concave_boundary_does_not_silently_drop_floor_area():
     assert all(host.buffer(1e-6).covers(p) and abs(p.area-900)<.01 for p in candidates)
 
 
-def test_authored_mass_is_never_moved_or_resolved_by_search():
-    req = {'footprint': mapping(box(0,0,10,10)), 'options': {'target_surface_stalls':30}}
+@pytest.mark.parametrize('authored_key', ['footprint', 'ground_footprint', 'core', 'columns'])
+def test_authored_mass_is_never_moved_or_resolved_by_search(authored_key):
+    authored = mapping(box(0,0,10,10))
+    req = {authored_key: [authored] if authored_key == 'columns' else authored,
+           'options': {'planning_stage': 'placement', 'target_surface_stalls':30}}
     calls=[]
     def solve(r):
         calls.append(r)
-        return {'authored':r['footprint']}
+        return {'authored':r[authored_key]}
     result=select_joint_layout(req,solve)
-    assert len(calls)==1 and result['authored']==req['footprint']
+    assert len(calls)==1 and result['authored']==req[authored_key]
 
 
 def test_search_budget_keeps_multiple_plate_proportions():
@@ -83,3 +87,91 @@ def test_no_surface_target_outside_placement_stage_keeps_the_single_solve():
         calls.append(r); return _fake_result(box(10, 40, 50, 60), 22)
     select_joint_layout(req, solve)
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize('surface_cap', [5, 7])
+def test_equal_area_placement_and_owner_piloti_can_jointly_reach_surface_target(surface_cap):
+    import copy
+    from shapely.geometry import Polygon, MultiLineString, shape
+    from backend.app.modules.design.generation.maas.masterplan.planner import _plan_site_fixed
+
+    site = Polygon([(17.1839901253, 21.4382114881), (23.0478998980, 4.6205000607),
+                    (9.8472777951, 0), (4.4413813417, 2.5953054512), (0, 15.2820265698)])
+    front = LineString([(4.4413813417, 2.5953054512), (0, 15.2820265698)])
+    request = {'site': mapping(site), 'front_frontage': mapping(front),
+               'frontage': mapping(MultiLineString([
+                   [(23.0478998980, 4.6205000607), (9.8472777951, 0)], list(front.coords)])),
+               'law': {'required_spaces': 7, 'bcr_pct': 60},
+               'rules': _placement_request()['rules'],
+               'options': {'planning_stage': 'placement', 'target_footprint_m2': 135.3,
+                           'target_surface_stalls': surface_cap, 'max_surface_stalls': surface_cap,
+                           'layout_axis': {'frame': 'site_local', 'vector': [-4.4413813417, 12.6867211186],
+                                           'source': 'test front_frontage direction'},
+                           'parking_strategy': 'ground_surface', 'max_basement_levels': 0}}
+    original = copy.deepcopy(request)
+    calls = []
+
+    def solve(candidate):
+        calls.append(copy.deepcopy(candidate))
+        return _plan_site_fixed(candidate)
+
+    chosen = select_joint_layout(request, solve)
+    assert chosen['metrics']['provided_parking_stalls'] == surface_cap
+    if surface_cap == 7:
+        assert chosen['validation']['geometry_status'] == 'passed'
+    assert request == original
+    assert len(calls) <= 5
+    assert all(c['options'] == original['options'] and c['rules'] == original['rules'] for c in calls)
+    assert abs(chosen['metrics']['building_footprint_m2'] - 135.3) < 1e-6
+    if surface_cap == 7:
+        ground = next(shape(f['geometry']) for f in chosen['features']
+                      if f['properties']['layer'] == 'building_ground_footprint')
+        assert ground.area > 60, 'Equal successful screens should preserve more enclosed ground'
+        assert 'generated piloti ground occupancy requires MassAgent/architect acceptance' in chosen['blocking']
+    else:
+        assert any(c['id'] == 'parking_count' and c['status'] == 'failed'
+                   for c in chosen['validation']['checks'])
+
+
+@pytest.mark.parametrize('constraint', ['corner', 'corner_approach', 'prohibited', 'straight'])
+def test_shortlist_entries_honor_the_same_constraints_as_complete_solve(monkeypatch, constraint):
+    from shapely.geometry import Point, shape
+    from backend.app.modules.design.generation.maas.masterplan import joint, rows
+
+    request = _placement_request()
+    request['options'].update(target_surface_stalls=12, max_surface_stalls=12)
+    request['frontage'] = mapping(LineString([(0, 0), (0, 60)]))
+    request['front_frontage'] = request['frontage']
+    request['options']['layout_axis'] = {'frame': 'site_local', 'vector': [1, 0],
+                                         'source': 'test declared design axis'}
+    if constraint == 'corner':
+        request['options']['corner_clearance_m'] = 4
+    elif constraint == 'corner_approach':
+        request['options']['entry_approach'] = 'corner_clear'
+    elif constraint == 'prohibited':
+        request['vehicle_prohibited'] = mapping(LineString([(0, 0), (0, 20)]))
+    else:
+        request['options']['entry_alignment'] = 'straight'
+    proposed = box(25, 20, 45, 40)
+    monkeypatch.setattr(joint, 'footprint_candidates', lambda *a, **k: [proposed])
+    real_rows = rows.row_candidates
+    examined = []
+
+    def inspect_rows(*args, **kwargs):
+        results = real_rows(*args, **kwargs)
+        examined.append(results)
+        for result in results:
+            entrance = result['entrance']
+            if constraint in ('corner', 'corner_approach'):
+                assert min(entrance.distance(Point(c)) for c in [(0, 0), (0, 60)]) >= 4 - 1e-6
+            elif constraint == 'prohibited':
+                assert entrance.distance(shape(request['vehicle_prohibited'])) > 0.05
+        if constraint == 'straight':
+            assert kwargs.get('straight_entry') is True
+            assert kwargs['allowed_angles'] == [0]
+        assert kwargs['preserve_banks'] is True
+        return results
+
+    monkeypatch.setattr(rows, 'row_candidates', inspect_rows)
+    select_joint_layout(request, lambda candidate: _fake_result(proposed, 12))
+    assert examined and any(examined)

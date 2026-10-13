@@ -66,7 +66,7 @@ def score_relationships(features, checks):
                     *[evidence(f'placement_full_width_drive:{level}') for level in sorted(drive) if level < 0]],
                     'Entry width and basement full-width routes; ground full-width routes reported separately'),
                 'ground_drive_width': _group([evidence('placement_full_width_drive:0')] if 0 in drive else [],
-                    'Ground full-width route certificate is not implemented; remains unverified'),
+                    'Conservative road-to-ground-stall width certificate; incomplete certificates stay unknown, not steering proof'),
                 'ramp_kerb_grade': _group(kerbs, 'Kerb grade measurements do not certify applicability or compliance'),
                 'stall_frontage': _group(stall_items, 'Validator boundary contact length with aisle; not confirmed front-edge orientation or bay entry/exit maneuver'),
                 'ramp_geometry': _group(ramp_items, 'Independent containment, width, radius and centreline grade checks against supplied rules'),

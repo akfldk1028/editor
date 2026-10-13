@@ -214,6 +214,9 @@ def validate_plan(request, result):
         components = list(drive.buffer(TOL).geoms) if hasattr(drive.buffer(TOL),"geoms") else [drive]
         if level==0:
             road = shape(request["frontage"]) if request.get("frontage") else None
+            from .ground_access import certify_ground_access
+            checks.append(certify_ground_access(drive.difference(unary_union(drive_blockers)),
+                                                [g for g,p in stalls], road, rules.get('aisle_width_m')))
             if road is not None:
                 check(f"drive_connected:{level}",all(c.distance(road)<=TOL for c in components) if not drive.is_empty else True,
                       components=len(components))
