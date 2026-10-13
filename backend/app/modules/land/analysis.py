@@ -112,6 +112,9 @@ async def analyze_land(body, addresses, attributes, geometry_provider, repositor
         if not geometry:
             boundary = await addresses.fetch_parcel_geometry(pnu_info['pnu'])
             geometry = boundary.get('geometry') if boundary.get('success') else None
+            # The parcel layer's lot address, so a caller can tell the user which lot a PNU is.
+            if boundary.get('success') and boundary.get('address'):
+                pnu_info['address'] = boundary['address']
             if not geometry:
                 errors.append(boundary.get('error') or 'Parcel boundary unavailable')
     if not names:

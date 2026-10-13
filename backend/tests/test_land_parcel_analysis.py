@@ -16,7 +16,7 @@ class Addresses:
     async def resolve_address(self, address):
         return {'success': True, 'pnu': PNU, 'address': address, 'coordinates': {'x':127, 'y':37}}
     async def fetch_parcel_geometry(self, pnu):
-        return {'success': True, 'geometry': GEOMETRY}
+        return {'success': True, 'geometry': GEOMETRY, 'address': '서울특별시 강남구 역삼동 128-3'}
 
 
 class Attributes:
@@ -51,6 +51,7 @@ def test_pnu_and_address_analysis_have_real_geometry_branch(tmp_path, monkeypatc
         assert response.status_code == 200
         result = response.json()
         assert result['pnu']['pnu'] == PNU
+        assert result['pnu']['address'] == '서울특별시 강남구 역삼동 128-3'
         assert result['land_info']['land_area_m2'] == 900
         assert result['setback_lines'] is not None
         assert result['assessment']['permit_compliance_verified'] is False

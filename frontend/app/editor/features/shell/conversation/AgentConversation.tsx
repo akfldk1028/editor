@@ -43,9 +43,8 @@ export function AgentConversationHeading() {
 }
 
 export function AgentConversationActions() {
-  const { projectId } = useConversationSelection()
   return (
-    <button aria-label="새 대화" className="icon-button" disabled={!projectId} onClick={newConversation} title="새 대화 · 이전 대화는 저장됩니다" type="button">
+    <button aria-label="새 대화" className="icon-button" onClick={newConversation} title="새 대화 · 이전 대화는 저장됩니다" type="button">
       <SquarePen size={17} />
     </button>
   )
