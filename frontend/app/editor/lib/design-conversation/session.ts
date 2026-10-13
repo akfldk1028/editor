@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react'
 import { startConversation } from '@/lib/orchestrator-runs/api'
 import { activateConversationContext } from './context'
+import { addProject } from './projects'
 
 interface Selection { projectId: string | null; conversationId: string }
 const initial: Selection = { projectId: null, conversationId: 'main' }
@@ -40,6 +41,7 @@ export async function newConversation() {
   const conversationId = crypto.randomUUID()
   try {
     const workspace = await startConversation(selection.projectId)
+    addProject(workspace)
     write(key(workspace.project_id), conversationId)
     selectConversationProject(workspace.project_id, conversationId)
     return

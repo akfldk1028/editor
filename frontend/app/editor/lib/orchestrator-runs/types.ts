@@ -26,6 +26,31 @@ export interface Communications {
   communications_truncated: boolean
 }
 
+/** One value an owner read for a choice, with where it read it (Law's candidate lot values). */
+export interface QuotedValue {
+  value?: unknown
+  quote?: string
+  article?: string
+  document?: string
+}
+
+/** A lot Law read in the district plan, offered when it could not tie the parcel to one. */
+export interface LotCandidate {
+  lot: string
+  [field: string]: unknown
+}
+
+/** What a waiting run asks, as the owner sent it (`pending_request`); a choice it carries is shown as asked. */
+export interface RunQuestion {
+  kind: string
+  code?: string
+  fields: string[]
+  pnu?: string
+  note?: string
+  candidates?: { status?: string; lots?: LotCandidate[] }
+  parcel_rules_missing?: string | null
+}
+
 export interface RunSummary extends Communications {
   run_id: string
   request_id: string
@@ -38,6 +63,7 @@ export interface RunSummary extends Communications {
   /** What the run asks the person for (door `pending_fields`, e.g. `building_type`); answered by a new run with the condition set. */
   pending_fields?: string[]
   pending_note?: string | null
+  pending_request?: RunQuestion | null
   /** W3C trace id (32 hex) of the submission; only the editor's POST answer carries it. */
   trace_id?: string
 }
@@ -165,6 +191,8 @@ export interface RunResults {
   pending_input: boolean
   /** Fields the run is waiting on (empty when none). */
   pending_fields?: string[]
+  pending_note?: string | null
+  pending_request?: RunQuestion | null
   truncated: boolean
   request: { pnu: string | null; parcels: string[]; building_type: string | null; assessment_date: string | null } | null
   steps: RunStep[]

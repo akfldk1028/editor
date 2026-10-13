@@ -2,41 +2,24 @@
 
 import { Check, ChevronDown, MessagesSquare } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { listProjects } from '@/lib/orchestrator-runs/api'
-import type { ProjectBinding } from '@/lib/orchestrator-runs/types'
 import { restoreConversationProject, selectConversationProject, useConversationSelection } from '@/lib/design-conversation/session'
+import { refreshProjects, useProjects } from '@/lib/design-conversation/projects'
 import { threadGroups, threadOf } from '@/lib/design-conversation/threads'
 import { feedForProject, useFeed } from '@/lib/orchestrator-runs/feed'
 
 export function useConversationProject() {
   const selection = useConversationSelection()
-  const [projects, setProjects] = useState<ProjectBinding[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  useEffect(() => {
-    restoreConversationProject()
-    const controller = new AbortController()
-    listProjects(controller.signal).then((items) => {
-      if (!controller.signal.aborted) { setProjects(items); setLoading(false) }
-    }).catch(() => {
-      if (!controller.signal.aborted) { setError('대화 목록을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.'); setLoading(false) }
-    })
-    return () => controller.abort()
-  }, [])
-  // A new conversation's workspace is a binding the list has not seen yet, and its title comes with its first
-  // message: read the list again when the selection changes, and when this conversation gains a message while untitled.
+  const { items: projects, loading, error } = useProjects()
+  useEffect(() => { restoreConversationProject() }, [])
+  // A conversation's title comes with its first message: read the list again when this conversation, still untitled,
+  // gains a message.
   const said = feedForProject(useFeed(), selection.projectId, selection.conversationId).length
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `projects` is what this effect refreshes; reading it again on its own update would loop.
-  useEffect(() => {
-    if (loading || !selection.projectId) return
-    const chosen = projects.find((project) => project.project_id === selection.projectId)
-    if (chosen && !(chosen.conversation && !chosen.title && said > 0)) return
-    const controller = new AbortController()
-    listProjects(controller.signal).then((items) => { if (!controller.signal.aborted) setProjects(items) }).catch(() => undefined)
-    return () => controller.abort()
-  }, [selection.projectId, said, loading])
   const chosen = projects.find((project) => project.project_id === selection.projectId)
-  return { ...selection, projectId: chosen?.project_id ?? null, projects, loading, error }
+  const untitled = !!chosen?.conversation && !chosen.title
+  useEffect(() => {
+    if (untitled && said > 0) refreshProjects().catch(() => undefined)
+  }, [untitled, said])
+  return { ...selection, projectId: chosen?.project_id ?? null, projects, loading, error: error ? '대화 목록을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.' : null }
 }
 
 /**

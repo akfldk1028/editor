@@ -923,6 +923,11 @@
   {
    "method": "POST",
    "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/runs/{run_id}/resume"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
    "path": "/api/v1/platform/projects/{project_id}/scene-revision"
   },
   {

@@ -124,3 +124,38 @@ def test_run_contract_accepts_the_doors_redacted_flag_on_communications():
     parsed = OrchestratorClient.parse_run(run)
     assert parsed['communications'][0]['redacted'] is True
     assert OrchestratorClient.parse_run({**run, 'communications': [{k: v for k, v in row.items() if k != 'redacted'}]})['communications'][0]['redacted'] is False
+
+
+QUESTION = {'kind': 'request_input', 'code': 'district_lot_required', 'fields': ['district_lot'], 'pnu': '4115011300106840001',
+            'candidates': {'status': 'parcel_not_tied_to_a_lot_choose_one', 'lots': [
+                {'lot': '공공1', 'bcr_pct_max': [{'value': 60, 'quote': '건폐율 ∙ 60퍼센트 이하', 'article': '제23조'}]}]}}
+
+
+def test_a_waiting_runs_question_reaches_the_editor_whole_and_the_answer_goes_back_to_the_owner(tmp_path):
+    from backend.app.adapters.orchestrator import OrchestratorClient
+    from backend.app.modules.platform.run_results.parse import parse_run_results
+    from backend.app.schemas.platform import RunResume
+    owner, projects, binding, runs = setup(tmp_path)
+    request_id = f'editor:{binding.project_id}:k'
+    waiting = OrchestratorClient.parse_run({'run_id': 'r1', 'owner_project_id': 'p', 'branch_id': 'main', 'request_id': request_id,
+        'goal': 'limits', 'status': 'waiting_input', 'receipt_task_ids': [], 'pending_input': True,
+        'pending_fields': ['district_lot'], 'pending_note': 'choose a lot', 'pending_request': QUESTION})
+    assert (waiting['pending_fields'], waiting['pending_note'], waiting['pending_request']) == (['district_lot'], 'choose a lot', QUESTION)
+    assert parse_run_results(waiting)['pending_request'] == QUESTION and parse_run_results(waiting)['pending_note'] == 'choose a lot'
+    answered = []
+
+    async def get_run(run_id, project, branch):
+        return waiting
+
+    async def resume_run(run_id, project, branch, answer):
+        answered.append((run_id, project, branch, answer))
+        return {**waiting, 'status': 'queued', 'pending_input': False, 'pending_request': None}
+    owner.get_run, owner.resume_run = get_run, resume_run
+    resumed = asyncio.run(runs.resume('local', binding.project_id, 'r1', RunResume(input={'district_lot': '공공1'}).input))
+    assert answered == [('r1', 'p', 'main', {'district_lot': '공공1'})] and resumed['status'] == 'queued'
+    # A run of another project is not answered from here.
+    async def foreign(run_id, project, branch):
+        return {**waiting, 'request_id': 'editor:other:k'}
+    owner.get_run = foreign
+    with pytest.raises(LookupError):
+        asyncio.run(runs.resume('local', binding.project_id, 'r1', {'district_lot': '공공1'}))

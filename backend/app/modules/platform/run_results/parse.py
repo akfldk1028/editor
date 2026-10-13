@@ -85,6 +85,9 @@ def parse_run_results(run):
         'pending_input': run.get('pending_input') is True,
         # What the run asks the person for (the door's `pending_fields`, e.g. building_type), empty when nothing.
         'pending_fields': [field for field in (run.get('pending_fields') or []) if isinstance(field, str)],
+        'pending_note': _str(run.get('pending_note')) or None,
+        # A question that carries its own choices (Law's candidate lots with what it quoted), as the owner sent it.
+        'pending_request': run.get('pending_request') if isinstance(run.get('pending_request'), dict) else None,
         'truncated': any(row.get('truncated') is True for row in rows) or run.get('communications_truncated') is True,
         'request': _request(rows, (law_result or {}).get('findings', []), (law_result or {}).get('ordinance')),
         'steps': [_step(row, responses[id(row)]) for row in rows],

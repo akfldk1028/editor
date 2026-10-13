@@ -272,3 +272,17 @@ ol.law-list { list-style: decimal; }
   .law-review-ask { flex-direction: column; }
   .law-source, .law-review-detail { padding: 10px; }
 }
+
+/* A run asking which district lot the parcel is: one card per lot Law read, values as quoted, quotes on demand. */
+.law-lot-question { display: grid; gap: 10px; }
+.law-lot-question h3 { margin: 0; font-size: var(--fs-3, 15px); }
+.law-lot-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.law-lot { display: grid; gap: 8px; align-content: start; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: var(--radius-m); background: var(--panel); }
+.law-lot header strong { font-size: var(--fs-3, 15px); }
+.law-lot dl { display: grid; gap: 6px; margin: 0; }
+.law-lot dl div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px; }
+.law-lot dt { color: var(--muted); font-size: var(--fs-1); }
+.law-lot dd { display: grid; gap: 4px; margin: 0; font-size: var(--fs-2); overflow-wrap: anywhere; }
+.law-lot details summary { cursor: pointer; color: var(--accent); font-size: var(--fs-1); }
+.law-lot blockquote { margin: 4px 0 0; padding: 6px 8px; border-inline-start: 2px solid var(--border); background: var(--subtle); color: var(--ink); font-size: var(--fs-1); white-space: pre-wrap; }
+.law-lot small { display: block; color: var(--muted); font-size: var(--fs-1); }

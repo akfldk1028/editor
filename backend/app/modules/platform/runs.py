@@ -66,6 +66,12 @@ class RunService:
             raise LookupError('run not found in project')
         return run
 
+    async def resume(self, actor, project_id, run_id, answer):
+        """Answers what a run of this project waits for (`pending_request`); the owner checks the answer."""
+        binding = self.binding(actor, project_id)
+        await self.get(actor, project_id, run_id)
+        return await self.owner.resume_run(run_id, binding.owner_project_id, binding.branch_id, answer)
+
     async def results(self, actor, project_id, run_id):
         """The run as `get` returns it, read into the UI shape of run_results.parse."""
         return parse_run_results(await self.get(actor, project_id, run_id))

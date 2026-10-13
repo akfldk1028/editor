@@ -4,7 +4,7 @@ from backend.app.adapters.orchestrator import OwnerUnavailable, OwnerContractErr
 from backend.app.core.tracing import JsonlTraceRecorder
 from backend.app.modules.platform.projects import BindingConflict
 from backend.app.modules.platform.runs import RunService
-from backend.app.schemas.platform import RunCreate
+from backend.app.schemas.platform import RunCreate, RunResume
 from backend.app.schemas.site_run import PNU
 
 
@@ -64,6 +64,14 @@ def create_run_router(projects_service, owner, allowed_origin, trace_recorder=No
         except LookupError:
             raise HTTPException(404, 'Project or run not found') from None
         return recorder.spans_for_run(run_id)
+
+    @router.post('/projects/{project_id}/runs/{run_id}/resume', status_code=202)
+    async def resume(project_id: str, run_id: str, body: RunResume, request: Request):
+        """The person's answer to a waiting run's question (e.g. which district lot the parcel is)."""
+        origin = request.headers.get('origin')
+        if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != allowed_origin):
+            raise HTTPException(403, 'Cross-origin execution is not allowed')
+        return await respond(service().resume('local', project_id, run_id, body.input))
 
     @router.post('/projects/{project_id}/runs', status_code=202)
     async def submit(project_id: str, body: RunCreate, request: Request,

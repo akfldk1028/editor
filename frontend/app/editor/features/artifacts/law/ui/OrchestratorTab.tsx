@@ -12,6 +12,8 @@ import type { ShellApi } from '../../../shell/artifact-types'
 import { compareLaw, differingRows } from '../lib/orchestrator-compare'
 import type { Summary } from '../lib/summary'
 import { useOrchestratorReview } from '../model/useOrchestratorReview'
+import { asksForLot } from '../lib/lot-question'
+import { LotQuestion } from './LotQuestion'
 
 interface Props {
   pnu: string
@@ -105,7 +107,10 @@ function RunHead({ run, results, stale, projectId, onReload }: { run: RunSummary
         {open && <small>3초마다 확인</small>}
         {stale && <small>· 상태 확인 지연</small>}
       </h2>
-      {waiting && (
+      {waiting && asksForLot(run.pending_request) && run.pending_request && (
+        <LotQuestion onAnswered={onReload} projectId={projectId} question={run.pending_request} runId={run.run_id} />
+      )}
+      {waiting && !asksForLot(run.pending_request) && (
         <p className="law-note" data-kind="warn" role="status">
           오케스트레이터가 검토를 시작하기 전에 {asked || '조건'}을 물어요{run.pending_note ? ` — ${run.pending_note}` : ''}. 아래에서 {asked || '조건'}을 고르고 다시 검토를 누르면 대지 → 법규 순서로 이어가요.
         </p>

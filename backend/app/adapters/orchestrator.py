@@ -106,7 +106,31 @@ class OrchestratorClient:
                 raise ValueError('duplicate communication identity')
         except (ValidationError, ValueError, KeyError) as exc:
             raise OwnerContractError() from exc
-        return {**{key:value[key] for key in (*fields,'receipt_task_ids','pending_input')},**communication.model_dump()}
+        # What a waiting run asks (its fields, a note, and a question that carries its own choices) reaches the
+        # editor as the owner wrote it; anything of the wrong shape is dropped, never guessed.
+        pending = {'pending_fields': [f for f in value.get('pending_fields') or [] if isinstance(f, str)],
+                   'pending_note': value['pending_note'] if isinstance(value.get('pending_note'), str) else None,
+                   'pending_request': value['pending_request'] if isinstance(value.get('pending_request'), dict) else None}
+        return {**{key:value[key] for key in (*fields,'receipt_task_ids','pending_input')},**pending,**communication.model_dump()}
+
+    async def resume_run(self, run_id, project, branch, answer):
+        """The person's answer to what a waiting run asked; the owner checks it against the question."""
+        if not self.base_url:
+            raise OwnerUnavailable()
+        try:
+            async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False,
+                                         headers=network_headers()) as client:
+                response = await client.post(self.base_url.rstrip('/') + '/editor/v1/runs/' + quote(run_id, safe='') + '/resume',
+                    json={'project': project, 'branch': branch, 'input': answer}, headers={'X-Editor-Client': 'local'})
+                if response.status_code == 409:
+                    raise OwnerRejected()
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise OwnerUnavailable() from exc
+        run = self.bound_run(self.json(response), project, branch)
+        if run['run_id'] != run_id:
+            raise OwnerContractError()
+        return run
 
     async def list_runs(self, project, branch, prefix, trace=None):
         response = await self.get('/editor/v1/runs?' + urlencode({'project':project,'branch':branch,'prefix':prefix}), trace=trace)

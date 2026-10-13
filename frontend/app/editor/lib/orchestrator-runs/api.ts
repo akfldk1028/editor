@@ -187,6 +187,13 @@ export async function submitRun(projectId: string, context: RunContext, key: str
   )
 }
 
+/** The person's answer to what a waiting run asks (`pending_request`); the Orchestrator checks it against the question. */
+export async function resumeRun(projectId: string, runId: string, input: Record<string, string>, signal?: AbortSignal): Promise<RunSummary> {
+  return parseRun(await request(`/projects/${encodeURIComponent(projectId)}/runs/${encodeURIComponent(runId)}/resume`, {
+    method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ input }),
+  }))
+}
+
 export function submitHealth(projectId: string, context: RunContext, key: string, signal?: AbortSignal): Promise<RunSummary> {
   return submitRun(projectId, context, key, { goal: 'health' }, signal)
 }

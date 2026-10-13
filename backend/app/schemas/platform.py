@@ -59,6 +59,12 @@ class SceneRevisionRefresh(BaseModel):
         return self
 
 
+class RunResume(BaseModel):
+    """The person's answer to a waiting run's question: field -> value (checked by the owner against the question)."""
+    model_config = ConfigDict(strict=True, extra='forbid')
+    input: dict[str, str | int | float | bool] = Field(min_length=1, max_length=8)
+
+
 class RunCreate(BaseModel):
     model_config = ConfigDict(strict=True, extra='forbid')
     request: dict

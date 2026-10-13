@@ -14,7 +14,7 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
 export async function POST(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const route = path.join('/');
-  if (!/^projects\/[A-Za-z0-9_-]{1,200}\/conversation$/.test(route) && !isPlatformDesignOperation('POST', route) && !/^(ask|law-analysis|ordinances|ordinances\/body|host\/(ensure|touch)|projects|projects\/[A-Za-z0-9_-]{1,200}\/(runs|scene-revision|conversations))$/.test(route)) {
+  if (!/^projects\/[A-Za-z0-9_-]{1,200}\/conversation$/.test(route) && !isPlatformDesignOperation('POST', route) && !/^(ask|law-analysis|ordinances|ordinances\/body|host\/(ensure|touch)|projects|projects\/[A-Za-z0-9_-]{1,200}\/(runs|scene-revision|conversations|runs\/[A-Za-z0-9_.:-]{1,200}\/resume))$/.test(route)) {
     return Response.json({ detail: 'Unknown platform operation' }, { status: 404 });
   }
   return backendRequest(request, `/api/v1/platform/${route}`);
