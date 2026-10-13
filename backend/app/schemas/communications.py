@@ -20,8 +20,9 @@ class RunCommunication(BaseModel):
     # Added by the door on 2026-10-12: the A2A task and context the call ran as, so a view can GetTask the agent's own record.
     a2a_task_id: str | None = None
     a2a_context_id: str | None = None
-    # Added by the door on 2026-10-14: why a call failed or was refused (e.g. district_review_incomplete); the state
-    # alone hides it. Without this field every run since then read as an invalid contract (502).
+    # Added by the door on 2026-10-12 (Orchestrator 476a4ab): why a call failed or was refused (e.g.
+    # district_review_incomplete); the state alone hides it. Every row carries it, so until the editor accepted it
+    # (10-14) each run recorded since then read as an invalid contract (502).
     code: str | None = Field(default=None, max_length=200)
 
 
