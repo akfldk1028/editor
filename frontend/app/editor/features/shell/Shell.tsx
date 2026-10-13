@@ -200,7 +200,8 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
               onMaximizedChange={controls.setArtifactMaximized}
               params={params}
               presentation={artifactPresentation}
-              previous={previous && previous.id !== manifest.id ? previous : null}
+              // The way back: the artifact shown before, else (the flow opened straight from a link) the shell's default.
+              previous={previous && previous.id !== manifest.id ? previous : manifest.id !== defaultArtifactId ? { id: defaultArtifactId, params: {} } : null}
               restoreFocusRef={controls.artifactButtonRef}
               shell={shell}
               tab={tab}
