@@ -10,14 +10,25 @@ export type { LiveState } from './catalog'
 /** What the canvas needs of a catalog entry; a test may pass only an id. */
 export type CatalogLike = Pick<CatalogEntry, 'id'> & Partial<Pick<CatalogEntry, 'label' | 'tools' | 'live'>>
 
+/** One message on a card, in the user's words: which call it was, the gist the closed card shows, all of it for the opened one. */
+export interface SaidItem {
+  id: string
+  caption: string
+  text: string
+  full: string
+  running: boolean
+}
+
 export interface GraphNode {
   id: string
   label: string
   /** The last thing this participant said or was asked, in the user's words; what it answers when it did not take part. */
   sub: string
   kind: 'user' | 'hub' | 'agent' | 'said'
-  /** A `said` card (the vertical flow): what was said on one line, and under it which call and how many times. */
-  said?: { text: string; full: string; caption: string; kind: 'request' | 'response'; running: boolean; known: boolean }
+  /** Everything this participant sent or was sent, in call order, to step through on its card; empty when it did not take part. */
+  items: SaidItem[]
+  /** A `said` card: every message on one line in call order (stepped through with ‹ ›), how the line is drawn. */
+  said?: { items: SaidItem[]; kind: 'request' | 'response'; running: boolean; known: boolean }
   /** 1, 2, 3 … in the order the Orchestrator called it; null when it was not called. */
   order: number | null
   selected: boolean
@@ -39,8 +50,8 @@ export interface GraphEdge {
   said: string
   /** The card's small line: who asked whom for what, or whose answer — `사용자 → Orchestrator Agent · 질문`, `Law Agent의 답`. */
   caption?: string
-  /** The whole of what was last said on this edge, for the card opened to read it all. */
-  full?: string
+  /** Every message on this edge in call order, for its card. */
+  items?: SaidItem[]
   /** Every message on this edge was recorded over A2A (always true for user/next edges). */
   known: boolean
   count: number
@@ -63,7 +74,7 @@ export interface GraphOptions {
 }
 
 export const NODE_WIDTH = 176
-export const NODE_HEIGHT = 84
+export const NODE_HEIGHT = 124
 /** Room between cards for what was said to ride on the lines (a card is up to 230 px wide). */
 export const GAP_X = 300
 const USER_GAP = NODE_WIDTH + GAP_X
@@ -74,11 +85,11 @@ const IDLE_GAP_X = 24
 const IDLE_GAP_Y = 24
 /** The vertical flow's cards for what was said, and the room between the stacked items. */
 export const CARD_WIDTH = 230
-export const CARD_HEIGHT = 64
+export const CARD_HEIGHT = 92
 const V_GAP = 26
 const V_IDLE_COLUMNS = 2
-/** The wide flow: room for one card (up to three lines), between an agent's rows, and between columns. */
-export const SLOT = 100
+/** The wide flow: room for one card (a one-line caption, two lines of text, the ‹ › / 전체 보기 row), between an agent's rows, and between columns. */
+export const SLOT = 104
 const ROW_GAP = 28
 const COL_GAP = 56
 
@@ -122,19 +133,35 @@ function numbersLabel(rows: readonly CollaborationMessage[], order: CallOrder): 
   return ` · ${numbers.slice(0, 5).join('·')}${numbers.length > 5 ? ' …' : ''}번째`
 }
 
-/** Every call on one card in the order made, each under its number and tool; an answer says how long its call took. */
-function fullOf(rows: readonly CollaborationMessage[], names: Readonly<Record<string, string>>, order: CallOrder): string {
-  if (rows.length === 1 && !order.number.get(rows[0]!.id)) return fullText(rows[0]!, names)
-  return [...rows].sort((a, b) => (order.number.get(a.id) ?? 0) - (order.number.get(b.id) ?? 0)).map((row) => {
-    const text = fullText(row, names)
-    const n = order.number.get(row.id)
-    // A tool no folder names in words reads as a lookup, never as its id.
-    const label = toolLabel(row.tool)
-    const started = n ? order.startedAt.get(n) : undefined
-    const took = row.direction === 'response' && started && row.at ? ` · ${Math.max(0, Math.round((row.at - started) / 1000))}초` : ''
-    return `${n ? `${n}. ` : '· '}${label !== row.tool && label !== '—' ? label : '조회'}${took}${text ? `\n${text}` : ''}`
-  }).join('\n\n')
+/** A tool in words; one no folder names reads as a lookup, never as its id. */
+function toolWords(tool: string | null | undefined): string {
+  const label = toolLabel(tool)
+  return label !== tool && label !== '—' ? label : '조회'
 }
+
+/** Messages in the order their calls were made (an answer next to its request's number). */
+function inCallOrder(rows: readonly CollaborationMessage[], order: CallOrder): CollaborationMessage[] {
+  return [...rows].sort((a, b) => (order.number.get(a.id) ?? 0) - (order.number.get(b.id) ?? 0) || (a.at ?? 0) - (b.at ?? 0))
+}
+
+/** One message as a card item: who asked whom for what (or whose answer), its call number and how long it took. */
+function itemOf(message: CollaborationMessage, names: Readonly<Record<string, string>>, order: CallOrder): SaidItem {
+  const label = (id: string) => names[id] ?? agentLabel(id)
+  const n = order.number.get(message.id)
+  const numbered = n ? ` · ${n}번째` : ''
+  const running = message.state === 'running'
+  const started = n ? order.startedAt.get(n) : undefined
+  const took = message.direction === 'response' && started && message.at ? ` · ${Math.max(0, Math.round((message.at - started) / 1000))}초` : ''
+  const what = message.tool && DOORS.has(message.tool) ? toolLabel(message.tool) : `${toolWords(message.tool)} 요청`
+  const caption = message.direction === 'response'
+    ? `${label(message.from)}의 답${numbered}${took}`
+    : `${label(message.from)} → ${label(message.to)} · ${what}${numbered}${running ? ' · 답을 기다리는 중' : ''}`
+  const text = gist(message, names)
+  return { id: message.id, caption, text, full: fullText(message, names) || text, running }
+}
+
+export const itemsOf = (rows: readonly CollaborationMessage[], names: Readonly<Record<string, string>>, order: CallOrder): SaidItem[] =>
+  inCallOrder(rows, order).map((row) => itemOf(row, names, order))
 
 /** The editor's own doors, recorded as the tool of the person's line: their label is the whole caption (`질문`, not `질문 요청`). */
 const DOORS = new Set(['ask', 'conversation', 'law-analysis'])
@@ -181,21 +208,23 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
   const lastBy = (id: string) => [...messages].reverse().find((message) => message.from === id)
   const userSaid = lastBy(USER)
   const hubSaid = [...messages].reverse().find((message) => message.from === ORCHESTRATOR && message.to === USER)
-  const user: GraphNode = { id: USER, label: agentLabel(USER), sub: userSaid ? gist(userSaid, names) : '요청을 내고 답을 받습니다', kind: 'user', order: null, selected: selected === USER, idle: false, live: null, position: { x: -USER_GAP, y: 0 } }
+  const order = callNumbers(messages)
+  const involving = (id: string) => itemsOf(messages.filter((message) => message.from === id || message.to === id), names, order)
+  const user: GraphNode = { id: USER, label: agentLabel(USER), sub: userSaid ? gist(userSaid, names) : '요청을 내고 답을 받습니다', kind: 'user', items: involving(USER), order: null, selected: selected === USER, idle: false, live: null, position: { x: -USER_GAP, y: 0 } }
   const hub: GraphNode = {
-    id: ORCHESTRATOR, label: agentLabel(ORCHESTRATOR), kind: 'hub', order: null, selected: selected === ORCHESTRATOR, idle: false,
+    id: ORCHESTRATOR, label: agentLabel(ORCHESTRATOR), kind: 'hub', items: involving(ORCHESTRATOR), order: null, selected: selected === ORCHESTRATOR, idle: false,
     live: liveOf(ORCHESTRATOR), sub: (hubSaid && gist(hubSaid, names)) || `요청 ${requests}건 · 응답 ${messages.length - requests}건`, position: { x: 0, y: 0 },
   }
   const spoken: GraphNode[] = called.map((id, index) => {
     const last = [...messages].reverse().find((message) => message.from === id || message.to === id)
     return {
-      id, label: name(id), kind: 'agent', order: index + 1, selected: selected === id, idle: false, live: liveOf(id),
+      id, label: name(id), kind: 'agent', items: involving(id), order: index + 1, selected: selected === id, idle: false, live: liveOf(id),
       sub: last ? gist(last, names) || describeMessage(last, names).headline.replace(/^.*? · /, '') : '',
       position: { x: (index + 1) * (NODE_WIDTH + GAP_X), y: 0 },
     }
   })
   const waiting: GraphNode[] = rest.map((id, index) => ({
-    id, label: name(id), kind: 'agent', order: null, selected: selected === id, idle: true, live: liveOf(id),
+    id, label: name(id), kind: 'agent', items: [], order: null, selected: selected === id, idle: true, live: liveOf(id),
     sub: tools(entry(id)),
     position: { x: -USER_GAP + (index % IDLE_COLUMNS) * (NODE_WIDTH + IDLE_GAP_X), y: IDLE_TOP + Math.floor(index / IDLE_COLUMNS) * (NODE_HEIGHT + IDLE_GAP_Y) },
   }))
@@ -204,7 +233,6 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
   for (let index = 1; index < called.length; index++) {
     edges.push({ id: `next:${called[index - 1]}→${called[index]}`, source: called[index - 1]!, target: called[index]!, kind: 'next', label: `${index + 1}번째`, said: '', known: true, count: 0 })
   }
-  const order = callNumbers(messages)
   const groups = new Map<string, CollaborationMessage[]>()
   for (const message of messages) {
     const key = `${message.from}→${message.to}`
@@ -217,7 +245,7 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
     const what = first.direction === 'request' ? `${toolsUsed.length === 1 ? `${toolLabel(toolsUsed[0])} ` : ''}요청` : '응답'
     const latest = rows[rows.length - 1]!
     const running = latest.state === 'running'
-    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, said: gist(latest, names), full: fullOf(rows, names, order), caption: captionOf(rows, names, running, order), running })
+    edges.push({ id: key, source: first.from, target: first.to, kind: first.direction, known, count: rows.length, label: `${what} ${rows.length}건${known ? '' : ' · 전송 미확인'}`, said: gist(latest, names), items: itemsOf(rows, names, order), caption: captionOf(rows, names, running, order), running })
   }
   // An owner that answered the person was reached through the Orchestrator even when that call is not on the record yet:
   // the relay is drawn (dashed, unknown) so the path reads person → Orchestrator → owner, without inventing what was asked.
@@ -225,7 +253,8 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
     if (!groups.has(`${id}→${USER}`) || groups.has(`${ORCHESTRATOR}→${id}`)) continue
     const note = '요청 내용은 Orchestrator가 아직 기록으로 남기지 않아요'
     edges.push({ id: `${ORCHESTRATOR}→${id}`, source: ORCHESTRATOR, target: id, kind: 'request', known: false, count: 0, label: '전달 · 요청 내용 미기록',
-      said: note, full: note, caption: `${name(ORCHESTRATOR)} → ${name(id)} · 전달`, running: false })
+      said: note, items: [{ id: `relay:${id}`, caption: `${name(ORCHESTRATOR)} → ${name(id)} · 전달`, text: note, full: note, running: false }],
+      caption: `${name(ORCHESTRATOR)} → ${name(id)} · 전달`, running: false })
   }
   // The person's standing line to the hub is drawn only until the person has actually said something on the record.
   if (!groups.has(`${USER}→${ORCHESTRATOR}`)) edges.unshift({ id: `person:${USER}→${ORCHESTRATOR}`, source: USER, target: ORCHESTRATOR, kind: 'user', label: '', said: '', known: true, count: 0 })
@@ -236,8 +265,8 @@ export function buildGraph(messages: readonly CollaborationMessage[], selected?:
 /** What was said on one line, as a card of its own at (x, y). */
 function saidCard(edge: GraphEdge, x: number, y: number): GraphNode {
   return {
-    id: `said:${edge.id}`, label: '', sub: '', kind: 'said', order: null, selected: false, idle: false, live: null, position: { x, y },
-    said: { text: edge.said, full: edge.full ?? edge.said, caption: edge.caption ?? edge.label, kind: edge.kind as 'request' | 'response', running: !!edge.running, known: edge.known },
+    id: `said:${edge.id}`, label: '', sub: '', kind: 'said', items: [], order: null, selected: false, idle: false, live: null, position: { x, y },
+    said: { items: edge.items ?? [], kind: edge.kind as 'request' | 'response', running: !!edge.running, known: edge.known },
   }
 }
 

@@ -43,7 +43,8 @@ test('a revision answer lists what it asks the person for and a cut record says 
   expect(cut.lines).toEqual(['긴 기록이라 다 읽지 못했어요 (26자) — 기록 원문에'])
   const salvaged = describeMessage(message({ direction: 'response', from: 'site_context', to: 'orchestrator', truncated: true,
     text: '{"status": "partial", "summary": "6/9 site facts established", "state_patch": {"site.boundary": {"confidence": "measured", "value": {"geometry": {"coordinates": [[[127.0' }))
-  expect(salvaged.lines).toEqual(['6/9 site facts established', '확인된 사실 1개: 경계(실측) — 잘린 뒤의 사실은 셀 수 없어요', '기록이 잘렸어요 — 긴 답은 앞부분만 남아요'])
+  // The call completed, but the cut reply's own status says it did not settle everything: that is read and said first.
+  expect(salvaged.lines).toEqual(['근거 부족', '6/9 site facts established', '확인된 사실 1개: 경계(실측) — 잘린 뒤의 사실은 셀 수 없어요', '기록이 잘렸어요 — 긴 답은 앞부분만 남아요'])
 })
 
 test('the Orchestrator\'s own bookkeeping in a request is counted, not spelled out', () => {
@@ -70,4 +71,15 @@ test('an A2A call reads by its args; a catalog lists what the agent offers; a to
   expect(catalog.lines).toEqual(['할 수 있는 일 3가지: 법규 한계, 법령 검색'])
   const limits = describeMessage(message({ direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_parcel_limits', text: JSON.stringify({ pnu: 'x', building_type: '업무시설', bcr_pct: 60, far_pct: 250, max_storeys: 5, parcel_area_m2: 2499.691, policy: {} }) }))
   expect(limits.lines[0]).toBe('용도 업무시설 · 건폐율 60% · 용적률 250% · 최고 5층 · 대지면적 2,499.7㎡')
+})
+
+test('a reply nothing else describes says how it ended and what it holds; a cut request still says what was asked', () => {
+  const review = describeMessage(message({ direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_review_district_plan', state: 'completed',
+    text: JSON.stringify({ status: 'reviewed', candidates: [{}, {}], findings: [{}], extra: [1] }) }))
+  expect(review.lines).toEqual(['검토 완료 · 근거 후보 2건 · 검토 의견 1건 · 그 밖의 목록 1개'])
+  // A long record cut mid-JSON still says how the call ended, read from near its top.
+  const cut = describeMessage(message({ direction: 'response', from: 'law', to: 'orchestrator', state: 'completed', truncated: true, text: '{"schema_version": "x", "status": "reviewed", "candidates": [{"raw' }))
+  expect(cut.lines[0]).toBe('검토 완료')
+  const asked = describeMessage(message({ direction: 'request', text: '{"tool": "law_review_district_plan", "args": {"assessment_date": "2026-10-09", "site_evidence": {"tables": [{"rows' }))
+  expect(asked.lines).toEqual(['기준일 2026-10-09', '대지 근거를 함께 보냄', '긴 요청이라 앞부분만 남았어요 (114자) — 기록 원문에'])
 })

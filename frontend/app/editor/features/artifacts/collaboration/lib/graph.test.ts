@@ -56,8 +56,9 @@ test('a wide canvas fans out from the Orchestrator: one row per agent in call or
     ['orchestrator', 'out', 'said:orchestrator→law', 't-left'], ['said:orchestrator→law', 's-right', 'law', 'in'],
     ['law', 'back', 'said:law→orchestrator', 't-right'], ['said:law→orchestrator', 's-left', 'orchestrator', 'return'],
   ])
-  expect(at('said:law→orchestrator').said).toMatchObject({ text: '60/250', known: false })
-  expect(at('said:orchestrator→revision').said?.caption).toBe('Orchestrator Agent → Revision Agent · 재검토 판정 요청 · 3번째')
+  expect(at('said:law→orchestrator').said).toMatchObject({ known: false })
+  expect(at('said:law→orchestrator').said?.items.at(-1)?.text).toBe('60/250')
+  expect(at('said:orchestrator→revision').said?.items.at(-1)?.caption).toBe('Orchestrator Agent → Revision Agent · 재검토 판정 요청 · 3번째')
 })
 
 test('what was said is on the canvas: the person’s question on their card and on the line to the Orchestrator, the answer on the line back', () => {
@@ -70,7 +71,7 @@ test('what was said is on the canvas: the person’s question on their card and 
   const { nodes, edges } = buildGraph(talk, null, { catalog: [{ id: 'law' }] })
   expect(nodes.find((node) => node.id === 'user')?.sub).toBe('조경 의무 면적은 몇 퍼센트야?')
   expect(nodes.find((node) => node.id === 'orchestrator')?.sub).toBe('조경은 건축법 제42조가 정해요.')
-  const said = (id: string) => nodes.find((node) => node.id === `said:${id}`)?.said?.text
+  const said = (id: string) => nodes.find((node) => node.id === `said:${id}`)?.said?.items.at(-1)?.text
   expect(said('user→orchestrator')).toBe('조경 의무 면적은 몇 퍼센트야?')
   expect(said('orchestrator→law')).toBe('질문 건축법 제42조 조경 기준')
   expect(said('law→orchestrator')).toBe('조문 1건: 건축법 제42조 (대지의 조경)')
@@ -93,10 +94,11 @@ test('a narrow canvas stacks the flow: person, their words, Orchestrator, each c
     ['user', 'user'], ['said:user→orchestrator', 'said'], ['orchestrator', 'hub'], ['said:orchestrator→law', 'said'], ['law', 'agent'], ['said:law→orchestrator', 'said'], ['said:orchestrator→user', 'said'],
   ])
   for (let index = 1; index < column.length; index++) expect(column[index]!.position.y).toBeGreaterThan(column[index - 1]!.position.y)
-  expect(column[1]!.said).toEqual({ text: '조경 의무 면적은 몇 퍼센트야?', full: '조경 의무 면적은 몇 퍼센트야?', caption: '사용자 → Orchestrator Agent · 질문', kind: 'request', running: false, known: true })
-  expect(column[3]!.said?.caption).toBe('Orchestrator Agent → Law Agent · 법령 검색 요청 · 1번째')
-  expect(column[5]!.said?.caption).toBe('Law Agent의 답')
-  expect(column[5]!.said?.text).toBe('조문 1건')
+  expect(column[1]!.said).toMatchObject({ kind: 'request', running: false, known: true })
+  expect(column[1]!.said?.items).toMatchObject([{ text: '조경 의무 면적은 몇 퍼센트야?', full: '조경 의무 면적은 몇 퍼센트야?', caption: '사용자 → Orchestrator Agent · 질문', running: false }])
+  expect(column[3]!.said?.items.at(-1)?.caption).toBe('Orchestrator Agent → Law Agent · 법령 검색 요청 · 1번째')
+  expect(column[5]!.said?.items.at(-1)?.caption).toBe('Law Agent의 답')
+  expect(column[5]!.said?.items.at(-1)?.text).toBe('조문 1건')
   expect(edges.map((edge) => [edge.source, edge.target, edge.lane])).toEqual([
     ['user', 'said:user→orchestrator', 'down'], ['said:user→orchestrator', 'orchestrator', 'down'],
     ['orchestrator', 'said:orchestrator→law', 'left'], ['said:orchestrator→law', 'law', 'down'],
@@ -116,9 +118,9 @@ test('an owner that answered the person directly gets its own card in the column
   ]
   const { nodes, edges } = buildGraph(talk, null, { catalog: [{ id: 'law' }], orientation: 'vertical' })
   expect(nodes.filter((node) => !node.idle).map((node) => node.id)).toEqual(['user', 'said:user→orchestrator', 'orchestrator', 'said:orchestrator→law', 'law', 'said:law→user'])
-  expect(nodes.find((node) => node.id === 'said:law→user')?.said).toMatchObject({ text: '용적률 상한은 250퍼센트입니다.', full: '용적률 상한은 250퍼센트입니다.', caption: 'Law Agent의 답', known: true })
+  expect(nodes.find((node) => node.id === 'said:law→user')?.said).toMatchObject({ known: true, items: [{ text: '용적률 상한은 250퍼센트입니다.', full: '용적률 상한은 250퍼센트입니다.', caption: 'Law Agent의 답' }] })
   // The relay the Orchestrator made but did not record: drawn, marked unknown, nothing invented about what was asked.
-  expect(nodes.find((node) => node.id === 'said:orchestrator→law')?.said).toMatchObject({ caption: 'Orchestrator Agent → Law Agent · 전달', known: false })
+  expect(nodes.find((node) => node.id === 'said:orchestrator→law')?.said).toMatchObject({ known: false, items: [{ caption: 'Orchestrator Agent → Law Agent · 전달' }] })
   expect(edges.filter((edge) => edge.id.startsWith('law→user')).map((edge) => [edge.source, edge.target, edge.lane])).toEqual([['law', 'said:law→user', 'down'], ['said:law→user', 'user', 'left']])
 })
 
@@ -147,7 +149,11 @@ test('every call is numbered in the order it was made; an answer carries the num
   expect([...order.number.entries()]).toEqual([['hop:2:request', 1], ['hop:3:request', 2], ['hop:4:request', 3], ['hop:3:response', 2]])
   const { nodes } = buildGraph(messages, null, { catalog: [{ id: 'law' }, { id: 'site_context' }] })
   const asked = nodes.find((node) => node.id === 'said:orchestrator→law')!.said!
-  expect(asked.caption).toContain('· 2·3번째')
-  expect(asked.full.split('\n\n').map((block) => block.split('\n')[0])).toEqual(['2. 법규 분석', '3. 조문'])
-  expect(nodes.find((node) => node.id === 'said:law→orchestrator')!.said!.full.split('\n')[0]).toBe('2. 법규 분석 · 42초')
+  // One card per line, one item per call in the order made: ‹ › steps from 2 to 3.
+  expect(asked.items.map((item) => item.caption)).toEqual(['Orchestrator Agent → Law Agent · 법규 분석 요청 · 2번째', 'Orchestrator Agent → Law Agent · 조문 요청 · 3번째'])
+  expect(nodes.find((node) => node.id === 'said:law→orchestrator')!.said!.items.map((item) => item.caption)).toEqual(['Law Agent의 답 · 2번째 · 42초'])
+  // The agent's own card steps through everything it was sent and sent back, in the same order.
+  expect(nodes.find((node) => node.id === 'law')!.items.map((item) => item.caption)).toEqual([
+    'Orchestrator Agent → Law Agent · 법규 분석 요청 · 2번째', 'Law Agent의 답 · 2번째 · 42초', 'Orchestrator Agent → Law Agent · 조문 요청 · 3번째',
+  ])
 })

@@ -105,12 +105,37 @@ function requestLines(args: Record<string, unknown>): string[] {
   return lines
 }
 
+/** What can still be read from a request cut mid-JSON (a long site_evidence): the plain inputs and what rode along. */
+function salvageRequestLines(text: string): string[] {
+  const plain = Object.entries(ARG_LABELS).flatMap(([key, label]) => {
+    const value = new RegExp(`"${key}"\\s*:\\s*"([^"]*)"`).exec(text)?.[1]
+    return value === undefined ? [] : [`${label} ${key === 'pnu' ? lotOf(value) : value}`]
+  })
+  const lines = plain.length ? [plain.join(' · ')] : []
+  if (/"site_evidence"\s*:/.test(text)) lines.push('대지 근거를 함께 보냄')
+  return [...lines, `긴 요청이라 앞부분만 남았어요 (${text.length.toLocaleString('ko-KR')}자) — 기록 원문에`]
+}
+
+/** Lists a reply carries, by what they hold; one the screen has no word for is counted, never named by its key. */
+const LIST_LABELS: Record<string, string> = { candidates: '근거 후보', findings: '검토 의견', constraints: '제약', results: '결과', items: '항목', rows: '행', tables: '표', sources: '출처' }
+
+/** What lists a reply holds, by what they hold: `근거 후보 2건 · 검토 의견 1건`; empty when it holds none. */
+function listsHeld(body: Record<string, unknown>): string {
+  const lists = Object.entries(body).filter(([, value]) => Array.isArray(value))
+  const named = lists.filter(([key]) => LIST_LABELS[key]).map(([key, value]) => `${LIST_LABELS[key]} ${(value as unknown[]).length}건`)
+  const others = lists.length - named.length
+  return [...named, others ? `그 밖의 목록 ${others}개` : null].filter(Boolean).join(' · ')
+}
+
 /** What can still be read from a record the 8,000-character cap cut mid-JSON: the headline fields and which facts it carried. */
-function salvageLines(text: string): string[] {
+function salvageLines(text: string, headlineState: string): string[] {
   const lines: string[] = []
   const field = (name: string) => new RegExp(`"${name}"\\s*:\\s*"([^"]*)"`).exec(text)?.[1]
   const summary = field('summary')
   const code = field('code')
+  const status = field('status')
+  // How the call ended is near the top of a record, so even a long cut reply says it (`검토 완료`, `근거 부족`).
+  if (status && ![status, stateLabel('completed'), headlineState].includes(stateLabel(status))) lines.push(stateLabel(status))
   if (summary) lines.push(summary)
   if (code) lines.push(codeNote(code))
   // A fact is a state_patch entry that opens with its confidence; a key merely mentioned elsewhere does not.
@@ -134,8 +159,13 @@ function lawLines(body: Record<string, unknown>): string[] {
   return typeof words === 'string' ? [head, clip(words.replace(/\s+/g, ' ').trim())] : [head]
 }
 
-function responseLines(body: Record<string, unknown>): string[] {
+/** `headlineState`: the state the headline already shows; the reply's own status is a line only when it says more. */
+function responseLines(body: Record<string, unknown>, headlineState: string): string[] {
   const lines: string[] = []
+  // A call that completed can still answer that it did not settle the question (`근거 부족`): that comes before its numbers.
+  const status = typeof body.status === 'string' ? stateLabel(body.status) : null
+  const said = !!status && status !== body.status && status !== stateLabel('completed') && status !== headlineState
+  if (said) lines.push(status!)
   if (typeof body.summary === 'string' && body.summary) lines.push(body.summary)
   const numbers = RESULT_FIELDS.filter(([key]) => body[key] !== undefined && body[key] !== null && typeof body[key] !== 'object').map(([key, label, unit]) => `${label} ${number(body[key])}${unit}`)
   if (numbers.length) lines.push(numbers.join(' · '))
@@ -167,6 +197,12 @@ function responseLines(body: Record<string, unknown>): string[] {
     }
   }
   if (isRecord(body.payload) && typeof body.payload.summary === 'string' && !lines.includes(body.payload.summary)) lines.push(body.payload.summary)
+  // A reply none of the fields above describe still says what it holds, next to how it ended.
+  if (lines.length === (said ? 1 : 0)) {
+    const held = listsHeld(body)
+    if (held && said) lines[0] = `${lines[0]} · ${held}`
+    else if (held) lines.push(held)
+  }
   return lines
 }
 
@@ -179,7 +215,7 @@ export function describeMessage(message: CollaborationMessage, names: Readonly<R
   if (message.direction === 'request') {
     // An A2A call carries `{tool, args}`; what was asked is the args.
     const args = isRecord(value) && typeof value.tool === 'string' ? (isRecord(value.args) ? value.args : {}) : value
-    const lines = isRecord(args) ? requestLines(args) : [message.text.slice(0, PREVIEW_CHARS)]
+    const lines = isRecord(args) ? requestLines(args) : /^\s*[[{]/.test(message.text) ? salvageRequestLines(message.text) : [message.text.slice(0, PREVIEW_CHARS)]
     // A call with nothing to pass reads by its headline alone ("… · 할 수 있는 일 확인 요청").
     return { headline: message.tool ? `${who} · ${toolLabel(message.tool)} 요청` : `${who} · 요청`, lines: lines.slice(0, MAX_LINES), raw, truncated: message.truncated }
   }
@@ -187,13 +223,13 @@ export function describeMessage(message: CollaborationMessage, names: Readonly<R
   if (!isRecord(value)) {
     // A record that does not parse is a cut one, whatever the flag says: what can be read from it, never its raw JSON.
     const record = /^\s*[[{]/.test(message.text)
-    const salvaged = message.truncated || record ? salvageLines(message.text) : []
+    const salvaged = message.truncated || record ? salvageLines(message.text, stateLabel(message.state)) : []
     const lines = salvaged.length ? [...salvaged, '기록이 잘렸어요 — 긴 답은 앞부분만 남아요']
       : record ? [`긴 기록이라 다 읽지 못했어요 (${message.text.length.toLocaleString('ko-KR')}자) — 기록 원문에`]
         : [message.truncated ? `${message.text.slice(0, PREVIEW_CHARS)} … 기록이 잘렸어요` : message.text.slice(0, PREVIEW_CHARS)]
     return { headline, lines, raw, truncated: message.truncated }
   }
-  const lines = responseLines(value)
+  const lines = responseLines(value, stateLabel(message.state))
   if (message.truncated) lines.push('기록이 잘렸어요 — 긴 답은 8,000자까지만 남아요')
   return { headline, lines: lines.slice(0, MAX_LINES), raw, truncated: message.truncated }
 }

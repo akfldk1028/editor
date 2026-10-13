@@ -77,6 +77,8 @@ export function stateLabel(state: string | null | undefined): string {
     case 'completed':
     case 'complete':
       return '성공'
+    case 'reviewed':
+      return '검토 완료'
     case 'needs_evidence':
     case 'partial':
       return '근거 부족'

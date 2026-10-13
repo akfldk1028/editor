@@ -108,7 +108,7 @@
 .collab-said small { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .01em; line-height: 1.3; }
 .collab-said[data-kind="request"] small { color: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
 .collab-said[data-kind="response"] small { color: color-mix(in srgb, var(--success) 70%, var(--ink)); }
-.collab-said p { margin: 0; color: var(--ink); font-size: var(--fs-2); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.collab-said p { margin: 0; color: var(--ink); font-size: var(--fs-2); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .collab-said[data-node="true"] { position: relative; inline-size: 230px; max-inline-size: none; cursor: default; }
 .collab-said[data-node="true"] .react-flow__handle { opacity: 0; inline-size: 1px; block-size: 1px; min-inline-size: 0; min-block-size: 0; pointer-events: none; }
 @keyframes collab-breathe { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); } }
@@ -129,3 +129,17 @@
 .collab-said-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .collab-said[data-kind="response"] .collab-said-toggle { color: color-mix(in srgb, var(--success) 75%, var(--ink)); }
 .collab-graph .react-flow__node-said:has(.collab-said[data-open="true"]) { z-index: 10 !important; }
+
+/* One message at a time on a card: a one-line caption, ‹ n/m › to step through the others, 전체 보기 to read all of it.
+   The closed card keeps a fixed height (lib/graph.ts CARD_HEIGHT, NODE_HEIGHT) so stacked cards never cover each other. */
+.collab-said-caption { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-inline-size: 0; }
+.collab-node .collab-said-caption { color: var(--muted); font-size: 10px; font-weight: 600; line-height: 1.3; }
+.collab-said-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 18px; }
+.collab-said-step { display: inline-flex; align-items: center; gap: 2px; color: var(--muted); font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.collab-said-step button { display: inline-grid; place-items: center; inline-size: 18px; block-size: 18px; padding: 0; border: 1px solid var(--border-soft); border-radius: 999px; background: var(--panel-raised); color: var(--ink); cursor: pointer; }
+.collab-said-step button:disabled { opacity: .35; cursor: default; }
+.collab-said-step button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.collab-said-bar .collab-said-toggle { margin-inline-start: auto; padding: 0; }
+.collab-node[data-open="true"] { inline-size: 340px; position: relative; z-index: 5; box-shadow: 0 8px 24px rgb(0 0 0 / 0.14); }
+.collab-graph .react-flow__node-agent:has(.collab-node[data-open="true"]) { z-index: 10 !important; }
+.collab-node .collab-said-toggle { color: var(--accent); }

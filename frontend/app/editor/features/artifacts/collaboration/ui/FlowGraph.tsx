@@ -11,9 +11,10 @@ import { agentLabel } from '@/lib/orchestrator-runs/labels'
 import type { CatalogEntry, LiveState } from '../lib/catalog'
 import { buildGraph, CARD_HEIGHT, CARD_WIDTH, type GraphNode, NODE_HEIGHT, NODE_WIDTH } from '../lib/graph'
 import type { CollaborationMessage } from '../lib/transcript'
+import { SaidViewer } from './SaidViewer'
 import './collaboration.css'
 
-type FlowNodeData = Pick<GraphNode, 'label' | 'sub' | 'kind' | 'order' | 'selected' | 'idle' | 'live' | 'said'> & { agent: string }
+type FlowNodeData = Pick<GraphNode, 'label' | 'sub' | 'kind' | 'order' | 'selected' | 'idle' | 'live' | 'said' | 'items'> & { agent: string }
 type FlowNode = Node<FlowNodeData, 'agent' | 'said'>
 
 /** Below this width the flow stacks into one column; wider canvases read left to right. */
@@ -22,14 +23,16 @@ const NARROW_PX = 900
 const LIVE_TITLE: Record<LiveState, string> = { up: '지금 응답함', down: '꺼져 있음', unknown: '상태 미확인' }
 
 /**
- * One participant: its mark, name and whether its service answers, and the last thing it said or what it answers.
+ * One participant: its mark, name and whether its service answers, then everything it sent or was sent, one message at a
+ * time (‹ › and 전체 보기), or what it answers when it did not take part.
  * Everything flows left to right: requests, the person's message and the call order enter on the left upper handle
  * and leave on the right upper one; answers go back on the lower pair.
  */
 function AgentNode({ data }: NodeProps<FlowNode>) {
   const Icon = markOf(data.agent).icon
+  const [open, setOpen] = useState(false)
   return (
-    <div className="collab-node" data-hub={data.kind === 'hub' ? 'true' : 'false'} data-idle={data.idle ? 'true' : 'false'} data-kind={data.kind} data-selected={data.selected ? 'true' : 'false'}>
+    <div className={`collab-node${open ? ' nowheel' : ''}`} data-open={open ? 'true' : 'false'} data-hub={data.kind === 'hub' ? 'true' : 'false'} data-idle={data.idle ? 'true' : 'false'} data-kind={data.kind} data-selected={data.selected ? 'true' : 'false'}>
       <Handle id="in" isConnectable={false} position={Position.Left} style={{ top: '40%' }} type="target" />
       <Handle id="back" isConnectable={false} position={Position.Left} style={{ top: '62%' }} type="source" />
       <Handle id="out" isConnectable={false} position={Position.Right} style={{ top: '40%' }} type="source" />
@@ -42,23 +45,21 @@ function AgentNode({ data }: NodeProps<FlowNode>) {
         <span>{data.label}</span>
         {data.live && <span className="collab-live" data-state={data.live} title={LIVE_TITLE[data.live]} />}
       </header>
-      {data.sub && <p>{data.sub}</p>}
+      {data.items.length ? <SaidViewer items={data.items} onToggle={() => setOpen((value) => !value)} open={open} /> : data.sub ? <p>{data.sub}</p> : null}
     </div>
   )
 }
 
-/** What was said, as a card of its own in the vertical flow; lines enter and leave on every side. */
+/** What was said on one line, as a card of its own: every message on it, stepped through with ‹ ›; lines enter and leave on every side. */
 function SaidNode({ data }: NodeProps<FlowNode>) {
   const said = data.said
   const [open, setOpen] = useState(false)
   if (!said) return null
-  const more = said.full.length > said.text.length || said.full.includes('\n')
   return (
     <div
       className={`collab-said${open ? ' nowheel' : ''}`}
       data-known={said.known ? 'true' : 'false'}
       data-kind={said.kind}
-      data-more={more ? 'true' : 'false'}
       data-node="true"
       data-open={open ? 'true' : 'false'}
       data-running={said.running ? 'true' : 'false'}
@@ -69,13 +70,7 @@ function SaidNode({ data }: NodeProps<FlowNode>) {
       <Handle id="s-left" isConnectable={false} position={Position.Left} type="source" />
       <Handle id="t-right" isConnectable={false} position={Position.Right} type="target" />
       <Handle id="s-right" isConnectable={false} position={Position.Right} type="source" />
-      <small>{said.caption}</small>
-      {open ? <p className="collab-said-full">{said.full}</p> : said.text ? <p>{said.text}</p> : null}
-      {more && (
-        <button aria-expanded={open} className="collab-said-toggle nodrag" onClick={(event) => { event.stopPropagation(); setOpen((value) => !value) }} type="button">
-          {open ? '접기 ▲' : '전체 보기 ▼'}
-        </button>
-      )}
+      <SaidViewer items={said.items} onToggle={() => setOpen((value) => !value)} open={open} />
     </div>
   )
 }
@@ -146,7 +141,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
       if (current.some((node) => !ids.has(node.id))) moved.current.clear()
       const known = new Map(current.map((node) => [node.id, node]))
       return graph.nodes.map((node) => {
-        const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id, said: node.said }
+        const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id, said: node.said, items: node.items }
         const old = known.get(node.id)
         const position = old && moved.current.has(node.id) ? old.position : node.position
         if (old && old.position.x === position.x && old.position.y === position.y && JSON.stringify(old.data) === JSON.stringify(data)) return old
