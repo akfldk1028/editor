@@ -56,7 +56,7 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
             settle_turns(ledger, snapshot)
             return snapshot
         except ConversationRejected as exc:
-            raise HTTPException(exc.status_code, 'Conversation request rejected by owner') from None
+            raise HTTPException(exc.status_code, {'message': 'Conversation request rejected by owner', 'code': exc.code}) from None
         except OwnerUnavailable:
             raise HTTPException(503, 'Conversation owner unavailable') from None
         except OwnerContractError:
@@ -116,7 +116,8 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
             snapshot = await exchange(project_id, body.conversation_id, payload)
         except HTTPException as exc:
             if turn is not None:
-                ledger.finish(turn, status='ERROR', error_type=f'http_{exc.status_code}')
+                code = exc.detail.get('code') if isinstance(exc.detail, dict) else None
+                ledger.finish(turn, status='ERROR', error_type=code or f'http_{exc.status_code}')
             raise
         if located is None:
             return snapshot

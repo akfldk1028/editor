@@ -20,6 +20,8 @@ export const CODE_NOTES: Record<string, string> = {
   execution_error: '실행 중 오류',
   connection_failed: '에이전트에 연결하지 못함',
   agent_unauthorized: '에이전트가 호출을 거절함(인증)',
+  conversation_busy: '앞 질문에 아직 답하는 중이라 받지 않음',
+  conversation_rejected: '오케스트레이터가 대화 요청을 받지 않음',
 }
 
 export const codeNote = (code: string): string => CODE_NOTES[code] ?? evidenceLabel(code)

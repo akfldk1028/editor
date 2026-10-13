@@ -42,3 +42,12 @@ test('platform proxy forwards conversation GET/POST and query, rejects extra pat
   expect((await POST(new Request('http://editor.test/api/v1/platform/projects/project-1/conversation', { method: 'POST', headers: { Origin: 'http://editor.test', 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), context)).status).toBe(200)
   expect((await GET(new Request('http://editor.test/api/v1/platform/projects/project-1/conversation/delete'), { params: Promise.resolve({ path: ['projects', 'project-1', 'conversation', 'delete'] }) })).status).toBe(404)
 })
+
+test('a refused message says why in words, never the status number', async () => {
+  fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ detail: { message: 'rejected', code: 'conversation_busy' } }, { status: 409 }))
+  await expect(postConversation('project-1', body)).rejects.toThrow('앞서 보낸 질문에 아직 답하는 중이에요')
+  fetchSpy.mockRestore()
+  fetchSpy = spyOn(globalThis, 'fetch').mockImplementation(async () => new Response('', { status: 500 }))
+  const error = await postConversation('project-1', body).catch((caught: Error) => caught)
+  expect(String(error)).not.toContain('500')
+})

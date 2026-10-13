@@ -7,8 +7,12 @@ from backend.app.schemas.conversation import ConversationSnapshot
 
 
 class ConversationRejected(Exception):
-    def __init__(self, status_code):
+    """The owner refused the request; `code` says why in one word the editor and the ledger can name."""
+    def __init__(self, status_code, reason=''):
         self.status_code = status_code
+        self.reason = reason
+        # The Orchestrator refuses a turn while one is still answering (this conversation or another in the project).
+        self.code = 'conversation_busy' if 'working' in reason else 'conversation_rejected'
 
 
 class OrchestratorConversation:
@@ -27,7 +31,11 @@ class OrchestratorConversation:
                                                     'X-Editor-Client': 'local'}) as client:
                 async with client.stream(method, self.owner.base_url.rstrip('/') + '/editor/v1/conversation', **kwargs) as response:
                     if response.status_code >= 400:
-                        raise ConversationRejected(response.status_code)
+                        try:
+                            reason = str((await response.aread() and response.json()).get('reason') or '')[:300]
+                        except (ValueError, AttributeError):
+                            reason = ''
+                        raise ConversationRejected(response.status_code, reason)
                     if response.status_code != (200 if body is None else 202):
                         raise OwnerContractError()
                     chunks, size = [], 0

@@ -18,8 +18,17 @@ function path(projectId: string) {
   return `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/platform/projects/${encodeURIComponent(projectId)}/conversation`
 }
 
+/** Why a conversation request failed, in the user's words; never the status number. */
+async function failure(response: Response): Promise<Error> {
+  let code: unknown = null
+  try { code = ((await response.json()) as { detail?: { code?: unknown } }).detail?.code } catch { /* no body */ }
+  if (code === 'conversation_busy') return new Error('앞서 보낸 질문에 아직 답하는 중이에요(이 프로젝트의 다른 대화일 수 있어요). 답이 끝나면 다시 보내 주세요.')
+  if (response.status === 503) return new Error('에이전트가 아직 준비 중이에요. 잠시 뒤 같은 메시지로 다시 보내 주세요.')
+  return new Error('대화에 연결하지 못했어요. 같은 메시지로 다시 시도할 수 있어요.')
+}
+
 async function read(response: Response) {
-  if (!response.ok) throw new Error(`대화에 연결하지 못했어요 (${response.status}). 같은 메시지로 다시 시도할 수 있어요.`)
+  if (!response.ok) throw await failure(response)
   return parseConversation(await response.json())
 }
 
@@ -46,7 +55,7 @@ export function parseLocated(value: unknown): ConversationLocated | null {
 export async function postConversation(projectId: string, body: ConversationSubmission): Promise<(ConversationSnapshot & Partial<ConversationLocated>) | ConversationLocated> {
   // Once dispatched, a message belongs to the server even when the user changes projects or sends another.
   const response = await fetch(path(projectId), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-  if (!response.ok) throw new Error(`대화에 연결하지 못했어요 (${response.status}). 같은 메시지로 다시 시도할 수 있어요.`)
+  if (!response.ok) throw await failure(response)
   const value = await response.json()
   if (object(value) && 'located' in value && !('conversation_id' in value)) return parseLocated(value)!
   const snapshot = parseConversation(value)
