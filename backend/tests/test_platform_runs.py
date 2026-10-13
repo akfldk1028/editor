@@ -159,3 +159,13 @@ def test_a_waiting_runs_question_reaches_the_editor_whole_and_the_answer_goes_ba
     owner.get_run = foreign
     with pytest.raises(LookupError):
         asyncio.run(runs.resume('local', binding.project_id, 'r1', {'district_lot': '공공1'}))
+
+
+def test_a_run_started_from_a_conversation_is_linked_to_it_in_the_ledger(tmp_path):
+    from backend.app.modules.ledger import Ledger
+    owner, projects, binding, _ = setup(tmp_path)
+    ledger = Ledger(tmp_path / 'ledger')
+    runs = RunService(projects, owner, JsonlTraceRecorder(tmp_path / 'trace'), ledger)
+    run = asyncio.run(runs.submit('local', binding.project_id, 'key',
+                                  RunCreate(request={'goal': 'health'}, scene_revision=1, source_versions={}, conversation_id='conv-1')))
+    assert ledger.store.runs_of('conv-1') == [run['run_id']]

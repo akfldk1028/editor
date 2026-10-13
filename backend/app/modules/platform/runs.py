@@ -1,3 +1,5 @@
+import json
+
 from backend.app.core.tracing import JsonlTraceRecorder, Span, continue_or_start
 from backend.app.schemas.specialist_review import specialist_items
 from .projects import BindingConflict
