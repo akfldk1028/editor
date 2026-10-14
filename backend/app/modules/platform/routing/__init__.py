@@ -123,10 +123,8 @@ async def decide(text: str, *, assessment_date: str | None = None, role: str | N
     selected_policy = policy or judging.policy()
     if selected_policy not in ('auto', 'llm', 'rules'):
         raise ValueError('unsupported routing policy')
-    if selected_policy == 'auto':
-        scored = _score(text)
-        if len(scored) == 1 and scored[0][0] >= 2:
-            return route(text, assessment_date=assessment_date)
+    # `auto` is the model with the rule table behind it, like `llm`: the keywords never decide ahead of a live
+    # model (the picked role and the explicit patterns above are the only fast paths); they decide when it is off.
     if enabled is None:
         enabled = selected_policy != 'rules'
     if enabled and judge and callable(situation):

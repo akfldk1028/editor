@@ -69,7 +69,8 @@ def test_model_still_receives_current_lazy_context():
     assert result.next_speaker.answer=='plan' and seen==['fetched']
 
 
-def test_auto_uses_specific_uncontested_rules_but_defers_ambiguity():
+def test_auto_asks_the_model_first_and_keywords_only_decide_when_it_gives_nothing():
+    """The rule table is the fallback, never a judge ahead of a live model - even for an uncontested keyword hit."""
     from backend.app.modules.platform.routing import decide
     seen=[]
     async def model(text,situation):
@@ -77,7 +78,8 @@ def test_auto_uses_specific_uncontested_rules_but_defers_ambiguity():
         return None
     async def run():
         specific=await decide('실 배치랑 피난 동선 잡아',judge=model,enabled=True,policy='auto')
-        assert specific.agent=='plan' and specific.fallback_reason is None and seen==[]
+        assert seen==['실 배치랑 피난 동선 잡아']
+        assert specific.agent=='plan' and specific.decided_by=='rules' and specific.fallback_reason=='model_unavailable'
         await decide('배치 입면',judge=model,enabled=True,policy='auto')
-        assert seen==['배치 입면']
+        assert seen[-1]=='배치 입면'
     asyncio.run(run())
