@@ -15,3 +15,12 @@
 .run-question-lot small { display: block; color: var(--muted); font-size: var(--fs-1); }
 .run-question-note { margin: 0; font-size: var(--fs-2); color: var(--ink); }
 .run-question-note[data-kind="warn"] { color: var(--warning); }
+.run-question-form { display: grid; gap: 10px; }
+.run-question-form label { display: grid; gap: 4px; font-size: var(--fs-2); }
+.run-question-form label > span:first-child { color: var(--muted); font-size: var(--fs-1); }
+.run-question-form select, .run-question-input input { min-block-size: 32px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--panel); color: var(--ink); font: inherit; }
+.run-question-input { display: flex; align-items: center; gap: 6px; }
+.run-question-input input { flex: 1; min-inline-size: 0; }
+.run-question-hint { color: var(--muted); font-size: var(--fs-1); }
+.run-question-list { margin: 0; padding-inline-start: 18px; display: grid; gap: 4px; font-size: var(--fs-2); }
+.run-question > .artifact-primary, .run-question-form > .artifact-primary { justify-self: start; }

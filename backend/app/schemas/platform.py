@@ -1,5 +1,5 @@
 from typing import Annotated
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, JsonValue
 from .site_run import is_site_run, validate_site_run
 from .specialist_review import specialist_items, validate_specialist_review
 
@@ -62,7 +62,8 @@ class SceneRevisionRefresh(BaseModel):
 class RunResume(BaseModel):
     """The person's answer to a waiting run's question: field -> value (checked by the owner against the question)."""
     model_config = ConfigDict(strict=True, extra='forbid')
-    input: dict[str, str | int | float | bool] = Field(min_length=1, max_length=8)
+    # A value may be an object (an intent's edits); the owner checks each field against what it asked.
+    input: dict[str, JsonValue] = Field(min_length=1, max_length=8)
 
 
 class RunCreate(BaseModel):

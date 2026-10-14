@@ -49,6 +49,8 @@ export interface RunQuestion {
   note?: string
   candidates?: { status?: string; lots?: LotCandidate[] }
   parcel_rules_missing?: string | null
+  /** Whatever else the question carries (Law's parking reasons, the intent to reconfirm and its context hash). */
+  [extra: string]: unknown
 }
 
 export interface RunSummary extends Communications {

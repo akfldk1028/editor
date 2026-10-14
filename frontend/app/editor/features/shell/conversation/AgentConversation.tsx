@@ -24,7 +24,7 @@ import { AskedAgents, StepList } from './AgentSteps'
 import { ConversationArtifacts } from './ConversationArtifacts'
 import { ConversationProject, useConversationProject } from './ConversationProject'
 import './agent-conversation.css'
-import { LotQuestion } from '@/lib/run-question/ui/LotQuestion'
+import { QuestionCard } from '@/lib/run-question/ui/QuestionCard'
 import { useWaitingQuestions } from '@/lib/run-question/useWaitingQuestions'
 
 /** When the question a reply answers was asked: the nearest earlier message from the person, or null. */
@@ -155,10 +155,10 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
         )}
         {(conversation.error || conversation.snapshot?.error) && <div className="agent-turn-system" role="alert">{conversation.error || conversationErrorText(conversation.snapshot?.error)}<button className="agent-turn-link" onClick={() => void conversation.refresh?.()} title="저장된 대화 상태를 다시 불러옵니다" type="button">상태 새로고침</button></div>}
         <ConversationArtifacts artifacts={conversation.snapshot?.artifacts ?? []} onConfirm={conversation.confirm} disabled={conversation.loading || conversation.snapshot?.status === 'working' || conversation.pending.length > 0} />
-        {/* What a run of this workspace waits on that the person answers here (a district lot), however it was started. */}
+        {/* What a run of this workspace waits on, answered here (a district lot, a building type, …), however it was started. */}
         {project.projectId && waiting.map((item) => (
           // The choice stays in the thread as the person's line, like 대지 선택; the card leaves when the run moves on.
-          <LotQuestion key={item.runId} onAnswered={(lot) => postFeed({ kind: 'user', text: `획지 선택: ${lot}`, run_id: item.runId })}
+          <QuestionCard key={item.runId} onAnswered={(line) => postFeed({ kind: 'user', text: line, run_id: item.runId })}
             projectId={project.projectId!} question={item.question} runId={item.runId} />
         ))}
         <div ref={endRef} />
