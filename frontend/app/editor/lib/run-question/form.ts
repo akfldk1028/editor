@@ -102,3 +102,20 @@ export function intentLines(question: RunQuestion): string[] {
     return text ? [`${label}: ${text}`] : []
   })
 }
+
+/** Why the owner refused an answer, in words: its own reason (`answer_rejected: …`) read as what the person can do. */
+const REJECTIONS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/not waiting/, '이 질문은 이미 지나갔어요 — 실행이 다음 단계로 넘어갔어요.'],
+  [/must be one of the lots/, '후보로 나온 획지 중에서 골라 주세요.'],
+  [/exactly the requested fields/, '질문이 바뀌었어요 — 새로 고친 질문에 다시 답해 주세요.'],
+  [/nonnegative integer/, '0 이상의 정수로 적어 주세요.'],
+  [/finite positive number|finite nonnegative number/, '0보다 큰 숫자로 적어 주세요.'],
+  [/ISO date/, '날짜를 골라 주세요.'],
+  [/finite JSON object/, '이 내용은 대화로 알려 주세요.'],
+  [/confirm must be a boolean/, '확인 버튼으로 답해 주세요.'],
+]
+
+export function rejectionText(detail: string | null | undefined): string {
+  const reason = (detail ?? '').startsWith('answer_rejected:') ? (detail ?? '') : ''
+  return REJECTIONS.find(([pattern]) => pattern.test(reason))?.[1] ?? '답을 보내지 못했어요. 값을 확인하고 다시 보내 주세요.'
+}

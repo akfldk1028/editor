@@ -21,13 +21,13 @@ const stateOf = (hop: Hop): string => {
 export function fromHops(hops: readonly Hop[]): LedgerMessage[] {
   const out: LedgerMessage[] = []
   for (const hop of hops) {
-    const base = { tool: hop.tool ?? '', transport: 'a2a' as const, truncated: false, a2a_task_id: hop.task_id ?? null }
+    const base = { tool: hop.tool ?? '', transport: 'a2a' as const, a2a_task_id: hop.task_id ?? null }
     const input = hopText(hop.input_messages)
     const output = hopText(hop.output_messages)
     const state = stateOf(hop)
-    out.push({ ...base, id: `hop:${hop.id}:request`, step: 0, direction: 'request', from: hop.from_agent, to: hop.to_agent, state, text: input || (hop.operation === 'start_run' ? '실행 시작' : ''), at: Date.parse(hop.ts_start) || 0 })
+    out.push({ ...base, truncated: !!hop.texts_clipped?.input, id: `hop:${hop.id}:request`, step: 0, direction: 'request', from: hop.from_agent, to: hop.to_agent, state, text: input || (hop.operation === 'start_run' ? '실행 시작' : ''), at: Date.parse(hop.ts_start) || 0 })
     if (hop.ts_end && (output || hop.status === 'ERROR')) {
-      out.push({ ...base, id: `hop:${hop.id}:response`, step: 0, direction: 'response', from: hop.to_agent, to: hop.from_agent, state: hop.status === 'ERROR' ? 'failed' : state,
+      out.push({ ...base, truncated: !!hop.texts_clipped?.output, id: `hop:${hop.id}:response`, step: 0, direction: 'response', from: hop.to_agent, to: hop.from_agent, state: hop.status === 'ERROR' ? 'failed' : state,
         text: output || (hop.error_type ? `{"error": ${JSON.stringify(hop.error_type)}}` : ''), at: Date.parse(hop.ts_end) || 0 })
     }
   }

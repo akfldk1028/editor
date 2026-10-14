@@ -169,3 +169,22 @@ def test_a_run_started_from_a_conversation_is_linked_to_it_in_the_ledger(tmp_pat
     run = asyncio.run(runs.submit('local', binding.project_id, 'key',
                                   RunCreate(request={'goal': 'health'}, scene_revision=1, source_versions={}, conversation_id='conv-1')))
     assert ledger.store.runs_of('conv-1') == [run['run_id']]
+
+
+def test_a_refused_answer_says_why_through_the_door(tmp_path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from backend.app.adapters.orchestrator import OwnerRejected
+    from backend.app.modules.platform.routers.platform import create_platform_router
+    owner, projects, binding, runs = setup(tmp_path)
+
+    async def get_run(run_id, project, branch):
+        return {'run_id': run_id, 'request_id': f'editor:{binding.project_id}:k'}
+
+    async def resume_run(run_id, project, branch, answer):
+        raise OwnerRejected('district_lot must be one of the lots Law offered: A11, A12')
+    owner.get_run, owner.resume_run = get_run, resume_run
+    app = FastAPI()
+    app.include_router(create_platform_router(owner, project_service=projects, trace_recorder=runs.recorder))
+    answer = TestClient(app).post(f'/api/v1/platform/projects/{binding.project_id}/runs/r1/resume', json={'input': {'district_lot': 'Z9'}})
+    assert answer.status_code == 409 and answer.json()['detail'] == 'answer_rejected: district_lot must be one of the lots Law offered: A11, A12'

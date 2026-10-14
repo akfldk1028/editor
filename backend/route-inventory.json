@@ -736,6 +736,11 @@
    "path": "/api/v1/platform/ledger/hops/stream"
   },
   {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/ledger/hops/{hop_id}"
+  },
+  {
    "method": "POST",
    "owner": "fastapi",
    "path": "/api/v1/platform/ledger/v1/traces"

@@ -215,3 +215,22 @@ def test_a_stream_from_where_the_client_left_off_still_finishes_the_calls_it_alr
     assert newest  # the client's newest row is the mark
     assert '"to_agent": "site_context"' in events[0] and '"status": "OK"' in events[0]
     assert '"to_agent": "law"' in events[1] and '"status": "OK"' in events[1]
+
+
+def test_a_list_and_a_stream_cut_long_texts_and_say_so_the_whole_call_is_read_by_its_id(tmp_path):
+    from backend.app.modules.ledger.router import LISTED_TEXT_CHARS, listed
+    ledger = Ledger(tmp_path)
+    hop = ledger.begin(from_agent='orchestrator', to_agent='law', tool='law_review_district_plan', conversation_id='c1', input_text='q')
+    long_reply = 'x' * (LISTED_TEXT_CHARS + 10)
+    row = ledger.finish(hop, output_text=long_reply)
+    cut = listed(row)
+    assert cut['texts_clipped'] == {'output': True} and len(message_text(cut['output_messages'])) == LISTED_TEXT_CHARS
+    assert message_text(cut['input_messages']) == 'q' and 'texts_clipped' not in listed({**row, 'output_messages': None})
+    app = FastAPI()
+    app.include_router(create_ledger_router(ledger, 'http://localhost'))
+    client = TestClient(app)
+    listed_rows = client.get('/ledger/hops', params={'conversation_id': 'c1'}).json()['hops']
+    assert listed_rows[0]['texts_clipped'] == {'output': True}
+    whole = client.get(f"/ledger/hops/{row['id']}").json()
+    assert message_text(whole['output_messages']) == long_reply and 'texts_clipped' not in whole
+    assert client.get('/ledger/hops/999999').status_code == 404

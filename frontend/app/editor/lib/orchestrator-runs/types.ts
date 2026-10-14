@@ -369,6 +369,8 @@ export interface Hop {
   source: 'agent' | 'orchestrator' | 'editor'
   input_messages: HopMessage[] | null
   output_messages: HopMessage[] | null
+  /** Which side a list or a stream cut (the whole call is GET /ledger/hops/{id}). */
+  texts_clipped?: { input?: boolean; output?: boolean }
   attrs: Record<string, unknown>
   recorded_at: string
 }

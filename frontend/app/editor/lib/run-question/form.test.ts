@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 import type { RunQuestion } from '@/lib/orchestrator-runs/types'
-import { answerLine, answerOf, fieldsOf, intentLines, questionKey, shapeOf } from './form'
+import { answerLine, answerOf, fieldsOf, intentLines, questionKey, rejectionText, shapeOf } from './form'
 
 test('each question has its shape: a lot, an intent to reconfirm, fields, or an external wait', () => {
   expect(shapeOf({ kind: 'request_input', fields: ['district_lot'], candidates: { lots: [{ lot: 'A11' }] } })).toBe('lot')
@@ -37,4 +37,12 @@ test('an intent to reconfirm reads as its declared parts in words', () => {
   expect(intentLines({ kind: 'request_input', fields: ['confirm', 'context_hash', 'intent'],
     proposed_intent: { parti: '마당 중심', non_negotiables: ['남향 보육실', '안전한 동선'], unknown_key: 'x', precedents: '' } }))
     .toEqual(['파르티: 마당 중심', '양보할 수 없는 것: 남향 보육실, 안전한 동선'])
+})
+
+
+test('a refused answer reads as what the person can do, never in the owner wording', () => {
+  expect(rejectionText('answer_rejected: run is not waiting for input')).toBe('이 질문은 이미 지나갔어요 — 실행이 다음 단계로 넘어갔어요.')
+  expect(rejectionText('answer_rejected: district_lot must be one of the lots Law offered: A11')).toBe('후보로 나온 획지 중에서 골라 주세요.')
+  expect(rejectionText('Owner unavailable')).toBe('답을 보내지 못했어요. 값을 확인하고 다시 보내 주세요.')
+  expect(rejectionText(null)).toBe('답을 보내지 못했어요. 값을 확인하고 다시 보내 주세요.')
 })

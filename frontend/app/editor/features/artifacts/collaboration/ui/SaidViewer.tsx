@@ -3,17 +3,33 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { type MouseEvent, useMemo, useState } from 'react'
 
+import { fullHopText } from '@/lib/ledger'
+
 import type { SaidItem } from '../lib/graph'
 
-/** The recorded text as it is, JSON indented; parsed only when a card is opened. */
-function Recorded({ text, words }: { text: string; words: string }) {
+/** The recorded text as it is, JSON indented; parsed only when a card is opened. A text the ledger list cut is read
+ * whole on request (one call by its id), never sent with every list. */
+function Recorded({ id, text, words, clipped }: { id: string; text: string; words: string; clipped: boolean }) {
+  const [whole, setWhole] = useState<string | null>(null)
+  const [state, setState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const source = whole ?? text
   const shown = useMemo(() => {
-    try { return JSON.stringify(JSON.parse(text), null, 2) } catch { return text }
-  }, [text])
+    try { return JSON.stringify(JSON.parse(source), null, 2) } catch { return source }
+  }, [source])
   if (!shown.trim() || shown.trim() === words.trim()) return null
+  const load = (event: MouseEvent) => {
+    event.stopPropagation()
+    setState('loading')
+    fullHopText(id).then((value) => { setWhole(value ?? text); setState('idle') }).catch(() => setState('error'))
+  }
   return (
     <>
-      <small className="collab-said-caption">기록 원문 · {text.length.toLocaleString('ko-KR')}자</small>
+      <small className="collab-said-caption">기록 원문 · {source.length.toLocaleString('ko-KR')}자{clipped && whole === null ? ' (앞부분)' : ''}</small>
+      {clipped && whole === null && (
+        <button className="collab-said-toggle" disabled={state === 'loading'} onClick={load} type="button">
+          {state === 'loading' ? '불러오는 중…' : state === 'error' ? '다시 불러오기' : '전체 불러오기'}
+        </button>
+      )}
       <pre className="collab-said-raw">{shown}</pre>
     </>
   )
@@ -43,7 +59,7 @@ export function SaidViewer({ items, open, onToggle }: Props) {
       {open ? (
         <div className="collab-said-open">
           <p className="collab-said-full">{item.full}</p>
-          <Recorded text={item.raw} words={item.full} />
+          <Recorded clipped={item.clipped} id={item.id} key={item.id} text={item.raw} words={item.full} />
         </div>
       ) : item.text ? <p>{item.text}</p> : null}
       {(items.length > 1 || more) && (

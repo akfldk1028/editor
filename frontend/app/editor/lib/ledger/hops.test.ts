@@ -31,3 +31,14 @@ test('a finished call is a request and a response; a running one is a running re
   expect(scopeQuery({ conversation_id: 'c 1' })).toBe('conversation_id=c%201')
   expect(scopeQuery({ run_id: 'r' })).toBe('run_id=r')
 })
+
+test('a call the list cut is marked on its side, and its message id names the call to read whole', async () => {
+  const { hopOf } = await import('./api')
+  const hop = { id: 7, ts_start: '2026-10-14T00:00:00Z', ts_end: '2026-10-14T00:00:01Z', operation: 'invoke_agent', from_agent: 'orchestrator', to_agent: 'law',
+    tool: 'law_review_district_plan', status: 'OK', state: 'completed', task_id: null, input_messages: [{ role: 'user', parts: [{ type: 'text', content: 'q' }] }],
+    output_messages: [{ role: 'assistant', parts: [{ type: 'text', content: '{"status":' }] }], texts_clipped: { output: true } } as unknown as Hop
+  const [request, response] = fromHops([hop])
+  expect([request!.truncated, response!.truncated]).toEqual([false, true])
+  expect(hopOf(response!.id)).toEqual({ id: 7, side: 'response' })
+  expect(hopOf('c1:response')).toBeNull()
+})

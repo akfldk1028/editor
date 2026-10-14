@@ -9,7 +9,7 @@
  *     useLedger.ts  one shared tail per scope per page
  *     steps.ts      who the conversation waits on; what each agent was asked in a turn
  */
-export { listHops, openHopStream } from './api'
+export { fullHopText, hopOf, listHops, openHopStream } from './api'
 export { fromHops, hopText, type LedgerScope, scopeQuery } from './hops'
 export { type TurnStep, turnSteps, waitingLine } from './steps'
 export type { Direction, LedgerMessage } from './types'

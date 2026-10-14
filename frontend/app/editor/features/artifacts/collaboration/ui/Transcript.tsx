@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 
+import { fullHopText } from '@/lib/ledger'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 
 import { agentTaskReader, readAgentTask } from '../api/tasks'
@@ -30,6 +31,12 @@ export function Transcript({ transcript, selected, onSelect, names = {} }: Props
   const complete = async (message: CollaborationMessage) => {
     setFull((current) => ({ ...current, [message.id]: { kind: 'loading' } }))
     try {
+      // A ledger call the list cut is read whole from the ledger, which keeps it.
+      const whole = await fullHopText(message.id)
+      if (whole !== null) {
+        setFull((current) => ({ ...current, [message.id]: { kind: 'found', message: { ...message, text: whole, truncated: false } } }))
+        return
+      }
       // The recorded A2A task id is the exact key; without one, the agent's list is matched by the recorded text.
       const task = message.a2a_task_id ? await readAgentTask(message.from, message.a2a_task_id) : fullRecordFor(message, await readTasks(message.from))
       setFull((current) => ({ ...current, [message.id]: task ? { kind: 'found', message: { ...message, text: task.response_text, truncated: false } } : { kind: 'missing' } }))

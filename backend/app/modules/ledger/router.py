@@ -15,6 +15,35 @@ from backend.app.core.agent_network import token_accepted
 from .service import Ledger
 
 HEARTBEAT_S = 15.0
+# A list or a stream sends each request and reply up to this many characters (a district review runs to hundreds of
+# thousands); the whole call is GET /hops/{id}.
+LISTED_TEXT_CHARS = 32_768
+
+
+def listed(row: dict, limit: int = LISTED_TEXT_CHARS) -> dict:
+    """The row with each message text cut at `limit`, saying which side was cut (`texts_clipped`)."""
+    clipped, out = {}, dict(row)
+    for side, key in (('input', 'input_messages'), ('output', 'output_messages')):
+        messages = row.get(key)
+        if not isinstance(messages, list):
+            continue
+        kept = []
+        for message in messages:
+            if not isinstance(message, dict):
+                kept.append(message)
+                continue
+            parts = []
+            for part in message.get('parts') or []:
+                text = part.get('content') if isinstance(part, dict) else None
+                if isinstance(text, str) and len(text) > limit:
+                    part = {**part, 'content': text[:limit]}
+                    clipped[side] = True
+                parts.append(part)
+            kept.append({**message, 'parts': parts})
+        out[key] = kept
+    if clipped:
+        out['texts_clipped'] = clipped
+    return out
 _ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$')
 
 
@@ -28,7 +57,7 @@ def _scope(conversation_id, run_id, trace_id, project, branch) -> dict:
 
 
 def sse(row: dict) -> str:
-    return f'id: {row["id"]}\ndata: {json.dumps(row, ensure_ascii=False, default=str)}\n\n'
+    return f'id: {row["id"]}\ndata: {json.dumps(listed(row), ensure_ascii=False, default=str)}\n\n'
 
 
 async def stream_events(ledger: Ledger, scope: dict, since_id: int, *, heartbeat_s: float = HEARTBEAT_S, stop: asyncio.Event | None = None) -> AsyncIterator[str]:
@@ -120,7 +149,7 @@ def create_ledger_router(ledger: Ledger, allowed_origin: str) -> APIRouter:
     async def get_hops(conversation_id: str | None = None, run_id: str | None = None, trace_id: str | None = None, project: str | None = None,
                        branch: str | None = None, since_id: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1, le=500)):
         scope = _scope(conversation_id, run_id, trace_id, project, branch)
-        return {'hops': ledger.rows(**scope, since_id=since_id, limit=limit), 'latest_id': ledger.latest_id()}
+        return {'hops': [listed(row) for row in ledger.rows(**scope, since_id=since_id, limit=limit)], 'latest_id': ledger.latest_id()}
 
     @router.get('/hops/stream')
     async def stream_hops(request: Request, conversation_id: str | None = None, run_id: str | None = None, trace_id: str | None = None,
@@ -133,5 +162,14 @@ def create_ledger_router(ledger: Ledger, allowed_origin: str) -> APIRouter:
         start = int(last_event) if last_event and last_event.isdigit() else since_id
         return StreamingResponse(stream_events(ledger, scope, start), media_type='text/event-stream',
                                  headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'})
+
+    # After /hops/stream: a path segment that is not a number is never read as a call id.
+    @router.get('/hops/{hop_id}')
+    async def get_hop(hop_id: int):
+        """One call whole: the request and reply the list and the stream cut at LISTED_TEXT_CHARS."""
+        row = ledger.store.get(hop_id)
+        if row is None:
+            raise HTTPException(404, 'call not found')
+        return row
 
     return router

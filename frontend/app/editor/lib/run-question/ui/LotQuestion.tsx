@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 
-import { resumeRun } from '@/lib/orchestrator-runs/api'
+import { RunRequestError, resumeRun } from '@/lib/orchestrator-runs/api'
 import type { RunQuestion } from '@/lib/orchestrator-runs/types'
 
+import { rejectionText } from '../form'
 import { lotChoices } from '../lots'
 import './run-question.css'
 
@@ -33,8 +34,8 @@ export function LotQuestion({ projectId, runId, question, onAnswered }: Props) {
       await resumeRun(projectId, runId, { district_lot: lot })
       setAnswered(lot)
       onAnswered?.(lot)
-    } catch {
-      setError('답을 보내지 못했어요. 잠시 뒤 다시 골라 주세요.')
+    } catch (failure) {
+      setError(rejectionText(failure instanceof RunRequestError ? failure.detail : null))
     } finally {
       setSending(null)
     }
