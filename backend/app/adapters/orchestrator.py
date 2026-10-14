@@ -123,12 +123,15 @@ class OrchestratorClient:
                 response = await client.post(self.base_url.rstrip('/') + '/editor/v1/runs/' + quote(run_id, safe='') + '/resume',
                     json={'project': project, 'branch': branch, 'input': answer}, headers={'X-Editor-Client': 'local'})
                 if response.status_code == 409:
-                    # The owner says why (its own wording, no owner data): the run moved on, or the answer is not one it asked for.
+                    # The owner says why: `message` for the person (written where its rule lives), `reason` for the log.
                     try:
-                        reason = response.json().get('reason')
+                        refusal = response.json()
                     except ValueError:
-                        reason = None
-                    raise OwnerRejected(reason if isinstance(reason, str) else '')
+                        refusal = {}
+                    message = refusal.get('message') if isinstance(refusal, dict) else None
+                    reason = refusal.get('reason') if isinstance(refusal, dict) else None
+                    raise OwnerRejected(message if isinstance(message, str) and message else '',
+                                        reason if isinstance(reason, str) else '')
                 response.raise_for_status()
         except httpx.HTTPError as exc:
             raise OwnerUnavailable() from exc

@@ -182,9 +182,9 @@ def test_a_refused_answer_says_why_through_the_door(tmp_path):
         return {'run_id': run_id, 'request_id': f'editor:{binding.project_id}:k'}
 
     async def resume_run(run_id, project, branch, answer):
-        raise OwnerRejected('district_lot must be one of the lots Law offered: A11, A12')
+        raise OwnerRejected('후보로 나온 획지 중에서 골라 주세요.', 'district_lot must be one of the lots Law offered: A11, A12')
     owner.get_run, owner.resume_run = get_run, resume_run
     app = FastAPI()
     app.include_router(create_platform_router(owner, project_service=projects, trace_recorder=runs.recorder))
     answer = TestClient(app).post(f'/api/v1/platform/projects/{binding.project_id}/runs/r1/resume', json={'input': {'district_lot': 'Z9'}})
-    assert answer.status_code == 409 and answer.json()['detail'] == 'answer_rejected: district_lot must be one of the lots Law offered: A11, A12'
+    assert answer.status_code == 409 and answer.json()['detail'] == 'answer_rejected: 후보로 나온 획지 중에서 골라 주세요.'

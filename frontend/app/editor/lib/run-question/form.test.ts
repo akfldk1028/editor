@@ -40,9 +40,9 @@ test('an intent to reconfirm reads as its declared parts in words', () => {
 })
 
 
-test('a refused answer reads as what the person can do, never in the owner wording', () => {
-  expect(rejectionText('answer_rejected: run is not waiting for input')).toBe('이 질문은 이미 지나갔어요 — 실행이 다음 단계로 넘어갔어요.')
-  expect(rejectionText('answer_rejected: district_lot must be one of the lots Law offered: A11')).toBe('후보로 나온 획지 중에서 골라 주세요.')
-  expect(rejectionText('Owner unavailable')).toBe('답을 보내지 못했어요. 값을 확인하고 다시 보내 주세요.')
+test('a refused answer shows the owner sentence for the person, never a translation of its log wording', () => {
+  expect(rejectionText('answer_rejected: 후보로 나온 획지 중에서 골라 주세요.')).toBe('후보로 나온 획지 중에서 골라 주세요.')
+  expect(rejectionText('answer_rejected: ')).toBe('답을 보내지 못했어요. 값을 확인하고 다시 보내 주세요.')
+  expect(rejectionText('Request identity or source version conflict')).toBe('답을 보내지 못했어요. 값을 확인하고 다시 보내 주세요.')
   expect(rejectionText(null)).toBe('답을 보내지 못했어요. 값을 확인하고 다시 보내 주세요.')
 })

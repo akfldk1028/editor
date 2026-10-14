@@ -22,9 +22,10 @@ def create_run_router(projects_service, owner, allowed_origin, trace_recorder=No
         except LookupError:
             raise HTTPException(404, 'Project or run not found') from None
         except OwnerRejected as exc:
-            # A refused answer says why in the owner's words (the editor shows it in Korean); a refused submission does not.
-            reason = exc.args[0] if exc.args and isinstance(exc.args[0], str) else ''
-            raise HTTPException(409, f'answer_rejected: {reason}' if reason else 'Request identity or source version conflict') from None
+            # A refused answer carries the owner's sentence for the person (`message`), shown as it is; without one the
+            # editor says only that the answer was not taken - it never translates the owner's log wording.
+            message = exc.args[0] if exc.args and isinstance(exc.args[0], str) else ''
+            raise HTTPException(409, f'answer_rejected: {message}' if message else 'Request identity or source version conflict') from None
         except BindingConflict:
             raise HTTPException(409, 'Request identity or source version conflict') from None
         except OwnerUnavailable:
