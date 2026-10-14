@@ -220,7 +220,7 @@ def _plan_site_fixed(request):
     # at 39 and wins by arriving first. So a named field is strict: it either produces a loop or it
     # produces nothing for that slab, and the search moves on. Only the engine's own `auto` may trade.
     strict_field=bool(options.get('basement_parking_field'))
-    def solve_level(*args, level, field, **kwargs):
+    def solve_level(*args, level, field, reserved_solves=0, **kwargs):
         """Solve one basement level; when a loop was ASKED FOR and cannot be built, say so.
 
         Only a caller that names `ring` takes this path - the default decides circulation by
@@ -233,10 +233,13 @@ def _plan_site_fixed(request):
         kwargs['orthogonal_layout'] = common_axis
         kwargs['module_family'] = options.get('basement_module')
         kwargs['module_axis'] = options.get('module_axis', 'both')
-        out=search_budget.run(solve_basement_level,*args,field=field,**kwargs)
+        if kwargs['module_family'] is not None:
+            # Module directions refer to the site frame, not the access row's orientation.
+            kwargs['angle'] = angle
+        out=search_budget.run(solve_basement_level,*args,reserved=reserved_solves,field=field,**kwargs)
         if out is not None or field!='ring' or strict_field:
             return out
-        out=search_budget.run(solve_basement_level,*args,field='auto',**kwargs)
+        out=search_budget.run(solve_basement_level,*args,reserved=reserved_solves,field='auto',**kwargs)
         if out is not None:
             out={**out,'loop_fallback_level':level}
         return out
@@ -548,138 +551,6 @@ def _plan_site_fixed(request):
                     # produce. Sizing may only add options.
                     for slab in [*(sized or [])[:3], basement]:
                         ramp_slabs.append((ramp,slab))
-                # KEEP ONE BASEMENT SOLVE FOR THE ROW-AND-AISLE FAMILY. It runs after this loop on the same
-                # budget, so a capped run (the alternatives door requires max_basement_solves 1..3) used to
-                # spend every solve here: on 고산 the row scheme sharing the surface gate (22 + 28, ramp
-                # off the aisle) was generated and never got a basement, and 0 + 50 won. With a cap of
-                # two or more and a frontage the rows can reach, the last solve is theirs.
-                rows_reserve=1 if (frontage is not None and search_budget.limit is not None
-                                   and search_budget.limit>=2) else 0
-                for rindex,(ramp,basement_plate) in enumerate(ramp_slabs):
-                    if search_budget.limit is not None and search_budget.invoked >= search_budget.limit-rows_reserve:
-                        search_budget.truncated = True
-                        break
-                    feats=list(base)
-                    candidate_reviews=[]
-                    # WHAT IS DUG INCLUDES THE RAMP. The declared boundary is the parking plate;
-                    # the excavation is that plate plus the ramp that reaches it, which is how
-                    # practice draws and prices it. Keeping them equal made the validator reject
-                    # its own ramp (ramp_containment) and the drive that ends on its landing
-                    # (drive_containment). Parking still gets only the declared plate - a ramp is
-                    # not floor area - so area per stall is unaffected by this.
-                    dug=union_or_empty([basement_plate,ramp["polygon"]]).intersection(site).buffer(0)
-                    connector=ramp.get("ground_connector",Polygon())
-                    if not connector.is_empty:
-                        feats.append(feature("vehicular_access",connector,0,z_m=0,
-                                             role="road_to_ramp_connector"))
-                    provided=0
-                    acc=0
-                    levels=[{"level":0,"z_m":0,"provided_spaces":0}]
-                    search_count=0
-                    loop_fallback=[]
-                    # Mixed ground parking must reserve the ramp before packing.
-                    if strategy=="mixed":
-                        free=site.difference(union_or_empty([ground_footprint,obstacles,ramp["polygon"],connector]))
-                        free=free.difference(pedestrian['vehicle_blocked'])
-                        gp=({'stalls':[],'drive':Polygon(),'provided':0,'accessible':0,'search_count':0} if straight_entry else
-                            plan_pack(free,[frontage],rules,surface_quota(),int(accessible),preferred_angle=angle))
-                        # THE SURFACE OF A MIXED SCHEME IS STILL A ROW-AND-AISLE FIELD. Packing it with
-                        # the generic packer put 3 cars on ground that the row engine fills with 23 -
-                        # the same ground, the same ramp already reserved - so "지상 60 %" came back as
-                        # 3 + 37 and the split it names was fiction. The row engine is tried on the
-                        # identical free area and kept only when it carries more; the ramp's road
-                        # connector joins the drive so the level stays one piece, and if it does not
-                        # touch, `drive_connected:0` says so rather than this guessing.
-                        if frontage is not None:
-                            rows_surface=plan_rows(site,free,footprint,obstacles,frontage,front,rules,
-                                surface_quota(),int(accessible),expanded_needed=expanded_total(),
-                                turn_radius_m=turn_radius,turn_lane_m=turn_lane,field=field)
-                            best_rows=max(rows_surface,key=lambda c:c["provided"],default=None)
-                            if best_rows is None and gp["provided"]*4 < surface_quota():
-                                # THE SPLIT DOES NOT FIT THIS FOOTPRINT, AND THAT IS THE ANSWER. A
-                                # surface field needs a contiguous 16.0 m module strip; the ramp has to
-                                # cross the yard to reach the road, and at this coverage the yard is a
-                                # ring that the crossing breaks. Measured on 고산: yard 1,002 m2 carries
-                                # 23 cars, 795 m2 after the ramp carries none, and the packer's 3 is a
-                                # token, not a scheme. The footprint is MassAgent's, so this travels as
-                                # a finding rather than being dressed up as a split.
-                                candidate_reviews.append(
-                                    "surface/basement split does not fit this footprint: the yard is "
-                                    f"{(site.area-ground_footprint.area):.0f} m2 at {100*ground_footprint.area/site.area:.1f} % "
-                                    f"coverage, the ramp corridor takes {ramp['polygon'].intersection(site).area:.0f} m2 of it, "
-                                    f"and the {free.area:.0f} m2 left cannot hold a "
-                                    f"{2*float(rules['stall_length_m'])+float(rules['aisle_width_m']):.1f} m parking module - "
-                                    "a smaller footprint is a design decision, not a statute")
-                            if best_rows is not None and best_rows["provided"]>gp["provided"]:
-                                gp={**gp,"stalls":best_rows["stalls"],"entrance":best_rows.get("entrance"),
-                                    "drive":union_or_empty([best_rows["drive"],best_rows.get("entrance"),connector]).buffer(0),
-                                    "provided":best_rows["provided"],"accessible":best_rows["accessible"],
-                                    "bands":best_rows.get("bands"),"cross_aisles":best_rows.get("cross_aisles")}
-                        gp=exclude_reserved_stalls(gp,pedestrian['reserved'])
-                        feats+=add_parking(gp,0,0)
-                        provided=gp["provided"];acc=gp["accessible"]
-                        levels[0]["provided_spaces"]=provided
-                    for depth in range(1,int(maxlevels)+1):
-                        if provided>=planned:
-                            break
-                        level=-depth
-                        expanded_done=sum(f['properties'].get('type')=='expanded' for f in feats
-                                          if f['properties'].get('layer')=='parking_stall')
-                        solved=solve_level(basement_plate,ramp,obstacles,prog if depth==1 else [],rules,
-                            int(planned-provided),int(max(0,accessible-acc)),angle=angle or 0.,
-                            expanded_needed=max(0,expanded_total()-expanded_done) if expanded_total() is not None else None,
-                            turn_radius_m=turn_radius,turn_lane_m=turn_lane,field=basement_field,level=level)
-                        if solved is not None and depth<int(maxlevels) and provided+solved['parking']['provided']<planned:
-                            # This level falls short, so try again leaving room for a ramp down to the
-                            # NEXT level. THE RETRY MUST NOT DESTROY THE ANSWER WE ALREADY HAVE: it
-                            # was overwriting `solved` unconditionally, so whenever the stacked-ramp
-                            # variant failed the perfectly good level above it was discarded and the
-                            # whole plan came back with zero stalls. Measured on the 38 x 34 m slab:
-                            # solve returned 28 stalls, the retry returned None, and the plan reported
-                            # 0 - which is a large part of why basements were not appearing at all.
-                            stacked=solve_level(basement_plate,ramp,obstacles,prog if depth==1 else [],rules,
-                                int(planned-provided),int(max(0,accessible-acc)),angle=angle or 0.,
-                                expanded_needed=max(0,expanded_total()-expanded_done) if expanded_total() is not None else None,
-                                turn_radius_m=turn_radius,turn_lane_m=turn_lane,field=basement_field,level=level,
-                                departure_landing=ramp['upper_landing'])
-                            if stacked is not None:
-                                solved=stacked
-                        if solved is None:
-                            break
-                        zone,bp=solved['zone'],solved['parking']
-                        if solved.get('loop_fallback_level') is not None:
-                            loop_fallback.append(solved['loop_fallback_level'])
-                        search_count+=bp["search_count"]
-                        feats.append(feature("basement_boundary",dug,level,z_m=level*height))
-                        feats.extend(program_features(zone,level,level*height))
-                        if not core.is_empty:
-                            feats.append(feature("building_core",core,level,z_m=level*height))
-                        feats.extend(feature("column",c,level,z_m=level*height) for c in columns)
-                        profile=[{"distance_m":p["distance_m"],"z_m":p["z_m"]+(level+1)*height} for p in ramp["profile"]]
-                        feats.append(feature("ramp",ramp["polygon"],level,from_level=level+1,to_level=level,
-                            profile=profile,width_m=ramp["width_m"],length_m=ramp["length_m"],
-                            layout_type="curved_arc_with_grade_transitions" if ramp.get("orientation")=="curved"
-                                        else "straight_with_grade_transitions",
-                            **({"radius_m":ramp["radius_m"],"inner_radius_m":ramp["inner_radius_m"],
-                                "turn_deg":ramp["turn_deg"]} if ramp.get("orientation")=="curved" else {})))
-                        center=translate(ramp["centerline"],zoff=(level+1)*height)
-                        feats.append(feature("ramp_centerline",center,level,from_level=level+1,to_level=level))
-                        # Vertical translation preserves the profile's XY start.
-                        # The intermediate floor must actually connect back to it.
-                        departure=ramp["upper_landing"]
-                        feats.append(feature("vehicular_access",departure,level+1,z_m=(level+1)*height,
-                                             role="ramp_departure",from_level=level+1,to_level=level))
-                        feats.append(feature("vehicular_access",ramp["lower_landing"],level,z_m=level*height,
-                                             role="ramp_arrival",from_level=level+1,to_level=level))
-                        feats+=add_parking(bp,level,level*height)
-                        provided+=bp["provided"];acc+=bp["accessible"]
-                        levels.append({"level":level,"z_m":level*height,"provided_spaces":bp["provided"]})
-                        if bp["provided"]==0:
-                            break
-                    candidates.append({"strategy":"mixed" if strategy=="mixed" else "basement",
-                        "ramp_candidate":rindex,"ramp_orientation":ramp.get("orientation"),"features":feats,"levels":levels,"provided":provided,
-                        "accessible":acc,"search_count":search_count,"loop_fallback":loop_fallback,
-                        "pending_reviews":candidate_reviews})
                 # Row-and-aisle candidates with the ramp leaving the aisle; the basement is the plate + ramp hull.
                 # A 'basement' strategy keeps the ground clear: the aisle only carries the entrance to the ramp (quota 0).
                 ground_r=site.difference(union_or_empty([ground_footprint,obstacles]))
@@ -768,6 +639,143 @@ def _plan_site_fixed(request):
                     # A host that cannot carry a sized slab keeps the layouts it already had;
                     # sizing must not be able to empty the candidate set.
                     row_layouts=expanded_rows or row_layouts
+                # KEEP ONE BASEMENT SOLVE FOR THE ROW-AND-AISLE FAMILY. It runs after this loop on the same
+                # budget, so a capped run (the alternatives door requires max_basement_solves 1..3) used to
+                # spend every solve here: on 고산 the row scheme sharing the surface gate (22 + 28, ramp
+                # off the aisle) was generated and never got a basement, and 0 + 50 won. With a cap of
+                # two or more and a frontage the rows can reach, the last solve is theirs.
+                rows_need_solve=any(rc.get('ramp') is not None and rc.get('basement') is not None
+                    and basement.buffer(EPS).covers(rc['basement']) and rc['provided']<planned
+                    for rc in row_layouts)
+                rows_reserve=1 if (rows_need_solve and search_budget.limit is not None
+                                   and search_budget.limit>=2) else 0
+                for rindex,(ramp,basement_plate) in enumerate(ramp_slabs):
+                    if search_budget.limit is not None and search_budget.invoked >= search_budget.limit-rows_reserve:
+                        search_budget.truncated = True
+                        break
+                    feats=list(base)
+                    candidate_reviews=[]
+                    # WHAT IS DUG INCLUDES THE RAMP. The declared boundary is the parking plate;
+                    # the excavation is that plate plus the ramp that reaches it, which is how
+                    # practice draws and prices it. Keeping them equal made the validator reject
+                    # its own ramp (ramp_containment) and the drive that ends on its landing
+                    # (drive_containment). Parking still gets only the declared plate - a ramp is
+                    # not floor area - so area per stall is unaffected by this.
+                    dug=union_or_empty([basement_plate,ramp["polygon"]]).intersection(site).buffer(0)
+                    connector=ramp.get("ground_connector",Polygon())
+                    if not connector.is_empty:
+                        feats.append(feature("vehicular_access",connector,0,z_m=0,
+                                             role="road_to_ramp_connector"))
+                    provided=0
+                    acc=0
+                    levels=[{"level":0,"z_m":0,"provided_spaces":0}]
+                    search_count=0
+                    loop_fallback=[]
+                    # Mixed ground parking must reserve the ramp before packing.
+                    if strategy=="mixed":
+                        free=site.difference(union_or_empty([ground_footprint,obstacles,ramp["polygon"],connector]))
+                        free=free.difference(pedestrian['vehicle_blocked'])
+                        gp=({'stalls':[],'drive':Polygon(),'provided':0,'accessible':0,'search_count':0} if straight_entry else
+                            plan_pack(free,[frontage],rules,surface_quota(),int(accessible),preferred_angle=angle))
+                        # THE SURFACE OF A MIXED SCHEME IS STILL A ROW-AND-AISLE FIELD. Packing it with
+                        # the generic packer put 3 cars on ground that the row engine fills with 23 -
+                        # the same ground, the same ramp already reserved - so "지상 60 %" came back as
+                        # 3 + 37 and the split it names was fiction. The row engine is tried on the
+                        # identical free area and kept only when it carries more; the ramp's road
+                        # connector joins the drive so the level stays one piece, and if it does not
+                        # touch, `drive_connected:0` says so rather than this guessing.
+                        if frontage is not None:
+                            rows_surface=plan_rows(site,free,footprint,obstacles,frontage,front,rules,
+                                surface_quota(),int(accessible),expanded_needed=expanded_total(),
+                                turn_radius_m=turn_radius,turn_lane_m=turn_lane,field=field)
+                            best_rows=max(rows_surface,key=lambda c:c["provided"],default=None)
+                            if best_rows is None and gp["provided"]*4 < surface_quota():
+                                # THE SPLIT DOES NOT FIT THIS FOOTPRINT, AND THAT IS THE ANSWER. A
+                                # surface field needs a contiguous 16.0 m module strip; the ramp has to
+                                # cross the yard to reach the road, and at this coverage the yard is a
+                                # ring that the crossing breaks. Measured on 고산: yard 1,002 m2 carries
+                                # 23 cars, 795 m2 after the ramp carries none, and the packer's 3 is a
+                                # token, not a scheme. The footprint is MassAgent's, so this travels as
+                                # a finding rather than being dressed up as a split.
+                                candidate_reviews.append(
+                                    "surface/basement split does not fit this footprint: the yard is "
+                                    f"{(site.area-ground_footprint.area):.0f} m2 at {100*ground_footprint.area/site.area:.1f} % "
+                                    f"coverage, the ramp corridor takes {ramp['polygon'].intersection(site).area:.0f} m2 of it, "
+                                    f"and the {free.area:.0f} m2 left cannot hold a "
+                                    f"{2*float(rules['stall_length_m'])+float(rules['aisle_width_m']):.1f} m parking module - "
+                                    "a smaller footprint is a design decision, not a statute")
+                            if best_rows is not None and best_rows["provided"]>gp["provided"]:
+                                gp={**gp,"stalls":best_rows["stalls"],"entrance":best_rows.get("entrance"),
+                                    "drive":union_or_empty([best_rows["drive"],best_rows.get("entrance"),connector]).buffer(0),
+                                    "provided":best_rows["provided"],"accessible":best_rows["accessible"],
+                                    "bands":best_rows.get("bands"),"cross_aisles":best_rows.get("cross_aisles")}
+                        gp=exclude_reserved_stalls(gp,pedestrian['reserved'])
+                        feats+=add_parking(gp,0,0)
+                        provided=gp["provided"];acc=gp["accessible"]
+                        levels[0]["provided_spaces"]=provided
+                    for depth in range(1,int(maxlevels)+1):
+                        if provided>=planned:
+                            break
+                        level=-depth
+                        expanded_done=sum(f['properties'].get('type')=='expanded' for f in feats
+                                          if f['properties'].get('layer')=='parking_stall')
+                        solved=solve_level(basement_plate,ramp,obstacles,prog if depth==1 else [],rules,
+                            int(planned-provided),int(max(0,accessible-acc)),angle=angle or 0.,
+                            reserved_solves=rows_reserve,
+                            expanded_needed=max(0,expanded_total()-expanded_done) if expanded_total() is not None else None,
+                            turn_radius_m=turn_radius,turn_lane_m=turn_lane,field=basement_field,level=level)
+                        if solved is not None and depth<int(maxlevels) and provided+solved['parking']['provided']<planned:
+                            # This level falls short, so try again leaving room for a ramp down to the
+                            # NEXT level. THE RETRY MUST NOT DESTROY THE ANSWER WE ALREADY HAVE: it
+                            # was overwriting `solved` unconditionally, so whenever the stacked-ramp
+                            # variant failed the perfectly good level above it was discarded and the
+                            # whole plan came back with zero stalls. Measured on the 38 x 34 m slab:
+                            # solve returned 28 stalls, the retry returned None, and the plan reported
+                            # 0 - which is a large part of why basements were not appearing at all.
+                            stacked=solve_level(basement_plate,ramp,obstacles,prog if depth==1 else [],rules,
+                                int(planned-provided),int(max(0,accessible-acc)),angle=angle or 0.,
+                                reserved_solves=rows_reserve,
+                                expanded_needed=max(0,expanded_total()-expanded_done) if expanded_total() is not None else None,
+                                turn_radius_m=turn_radius,turn_lane_m=turn_lane,field=basement_field,level=level,
+                                departure_landing=ramp['upper_landing'])
+                            if stacked is not None:
+                                solved=stacked
+                        if solved is None:
+                            break
+                        zone,bp=solved['zone'],solved['parking']
+                        if solved.get('loop_fallback_level') is not None:
+                            loop_fallback.append(solved['loop_fallback_level'])
+                        search_count+=bp["search_count"]
+                        feats.append(feature("basement_boundary",dug,level,z_m=level*height))
+                        feats.extend(program_features(zone,level,level*height))
+                        if not core.is_empty:
+                            feats.append(feature("building_core",core,level,z_m=level*height))
+                        feats.extend(feature("column",c,level,z_m=level*height) for c in columns)
+                        profile=[{"distance_m":p["distance_m"],"z_m":p["z_m"]+(level+1)*height} for p in ramp["profile"]]
+                        feats.append(feature("ramp",ramp["polygon"],level,from_level=level+1,to_level=level,
+                            profile=profile,width_m=ramp["width_m"],length_m=ramp["length_m"],
+                            layout_type="curved_arc_with_grade_transitions" if ramp.get("orientation")=="curved"
+                                        else "straight_with_grade_transitions",
+                            **({"radius_m":ramp["radius_m"],"inner_radius_m":ramp["inner_radius_m"],
+                                "turn_deg":ramp["turn_deg"]} if ramp.get("orientation")=="curved" else {})))
+                        center=translate(ramp["centerline"],zoff=(level+1)*height)
+                        feats.append(feature("ramp_centerline",center,level,from_level=level+1,to_level=level))
+                        # Vertical translation preserves the profile's XY start.
+                        # The intermediate floor must actually connect back to it.
+                        departure=ramp["upper_landing"]
+                        feats.append(feature("vehicular_access",departure,level+1,z_m=(level+1)*height,
+                                             role="ramp_departure",from_level=level+1,to_level=level))
+                        feats.append(feature("vehicular_access",ramp["lower_landing"],level,z_m=level*height,
+                                             role="ramp_arrival",from_level=level+1,to_level=level))
+                        feats+=add_parking(bp,level,level*height)
+                        provided+=bp["provided"];acc+=bp["accessible"]
+                        levels.append({"level":level,"z_m":level*height,"provided_spaces":bp["provided"]})
+                        if bp["provided"]==0:
+                            break
+                    candidates.append({"strategy":"mixed" if strategy=="mixed" else "basement",
+                        "ramp_candidate":rindex,"ramp_orientation":ramp.get("orientation"),"features":feats,"levels":levels,"provided":provided,
+                        "accessible":acc,"search_count":search_count,"loop_fallback":loop_fallback,
+                        "pending_reviews":candidate_reviews})
                 _drop={"no_ramp":0,"no_basement":0,"outside_envelope":0,"zone_fail":0,"kept":0}
                 for rc in row_layouts:
                     rc=exclude_reserved_stalls(rc,pedestrian['reserved'])

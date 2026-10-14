@@ -1,3 +1,7 @@
+## 2026-10-14 - Module axis and solve budget review
+
+Explicit underground module axes now use site frame; row solve reservation is conditional and enforced per actual generic/fallback/stacked invocation.73 focused tests pass. Actual cross-axis replay31/39 and budget replay34/39 remain failed; do not claim quality gains. Full engine sweep incomplete. [Details](2026-10-14-module-axis-budget-review.md).
+
 ## 2026-10-14 - Outdoor component precision
 
 Actual rotated-site numerical islands falsely increased fragmentation. Owner and MasterPlan observer fixed; matched HTTP remeasurement on isolated18479. Shared18449 restarted and actual layouts revalidated. Exact building/basement configuration signatures added;19 affected tests pass. [Details](2026-10-14-outdoor-component-precision.md).

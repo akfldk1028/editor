@@ -6,8 +6,8 @@ class BasementSearchBudget:
             raise ValueError('max_basement_solves must be an integer in 1..1000')
         self.limit, self.invoked, self.truncated = limit, 0, False
 
-    def run(self, fn, *args, **kwargs):
-        if self.limit is not None and self.invoked >= self.limit:
+    def run(self, fn, *args, reserved=0, **kwargs):
+        if self.limit is not None and self.invoked >= self.limit-reserved:
             self.truncated = True
             return None
         self.invoked += 1
