@@ -60,9 +60,61 @@ def test_impose_fit_still_permits_explicit_uniform_shrink():
     assert fitted is not None
     whole = _mesh_plan_projection_area(fitted.world_vertices, compiled.triangles)
     kept = _mesh_plan_projection_area(fitted.world_vertices, compiled.triangles, host)
-    assert 0.7 < fitted.matrix4[0][0] < 1.0
+    assert 0.6 < fitted.matrix4[0][0] < 1.0
     assert fitted.matrix4[0][0] == fitted.matrix4[1][1]
-    assert kept / whole >= 0.92
+    assert kept == pytest.approx(whole)
+
+
+def test_impose_fit_continues_past_nearly_retained_upper_band_without_stair_cut():
+    compiled = _mesh(m3d.Manifold.cube((10, 10, 4), center=True))
+    host = box(-10, -10, 10, 10)
+    upper = box(-4.8, -5, 4.8, 5)
+    sections = ((0, 0.5, host), (0.5, 1, upper))
+
+    fitted = _pose_metric_vertices_to_host(
+        compiled, host, clip_to_host=True, clip_sections=sections,
+        impose_fit=True, facing_angle_deg=0,
+    )
+
+    assert fitted is not None
+    posed = mesh_section_solid(fitted.world_vertices, compiled.triangles)
+    clipped = _clip_world_mesh_to_host(fitted.world_vertices, compiled.triangles, host, sections)
+    assert clipped is not None
+    delivered = mesh_section_solid(*clipped)
+    assert delivered.volume() == pytest.approx(posed.volume(), abs=1e-7)
+    assert upper.buffer(1e-7).covers(solid_section_polygon(posed, 0.75))
+    assert solid_section_polygon(delivered, 0.25).symmetric_difference(
+        solid_section_polygon(delivered, 0.75)).area < 1e-7
+
+
+def test_impose_fit_refuses_when_bounded_search_cannot_preserve_whole_body():
+    compiled = _mesh(m3d.Manifold.cube((10, 10, 4), center=True))
+    host = box(-0.5, -0.5, 0.5, 0.5)
+
+    assert _pose_metric_vertices_to_host(
+        compiled, host, clip_to_host=True, impose_fit=True, facing_angle_deg=0,
+    ) is None
+
+
+def test_inherit_fit_keeps_metric_size_and_intentional_height_band_cut():
+    compiled = _mesh(m3d.Manifold.cube((10, 10, 4), center=True))
+    host = box(-10, -10, 10, 10)
+    upper = box(-4.8, -5, 4.8, 5)
+    sections = ((0, 0.5, host), (0.5, 1, upper))
+
+    fitted = _pose_metric_vertices_to_host(
+        compiled, host, clip_to_host=True, clip_sections=sections,
+        impose_fit=False, facing_angle_deg=0,
+    )
+
+    assert fitted is not None
+    assert fitted.matrix4[0][0] == pytest.approx(1)
+    assert fitted.matrix4[1][1] == pytest.approx(1)
+    clipped = _clip_world_mesh_to_host(fitted.world_vertices, compiled.triangles, host, sections)
+    assert clipped is not None
+    delivered = mesh_section_solid(*clipped)
+    assert solid_section_polygon(delivered, 0.25).area == pytest.approx(100)
+    assert solid_section_polygon(delivered, 0.75).area == pytest.approx(96)
 
 
 def test_metric_pose_finds_narrow_upper_legal_translation_domain():

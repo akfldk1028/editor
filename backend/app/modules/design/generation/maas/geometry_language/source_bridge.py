@@ -3838,15 +3838,11 @@ def _pose_metric_vertices_to_host(compilation, host, *, clip_to_host: bool = Fal
                                   clip_sections: tuple | None = None,
                                   facing_angle_deg: float | None = None,
                                   impose_fit: bool = False):
-    """Finite rigid pose search; inability to place is a refusal, never a resize.
+    """Search rigid poses, or explicitly allowed uniform impose plan scales.
 
-    `clip_to_host` does not break that contract - a cut is not a resize. It is
-    the same reading massv2 takes and the one this file's fit was just taught:
-    the legal line removes what stands past it and leaves the rest its own
-    size. Without it a seed authored in the parcel's own metres can never be
-    placed at all, because a mass the size of the parcel does not fit inside
-    an irregular parcel; the four seeds measured 0%, 0%, 2% and 24% of the
-    building-area cap trying.
+    Inherit clipping preserves metric size and takes the legal intersection.
+    Imposed figures must fit intact across every occupied legal height band;
+    a nearly retained pose would acquire new stairs at legal band boundaries.
     """
     vertices = compilation.vertices
     plan = MultiPoint([(x, y) for x, y, _z in vertices]).convex_hull
@@ -3863,13 +3859,7 @@ def _pose_metric_vertices_to_host(compilation, host, *, clip_to_host: bool = Fal
     angles = ([float(facing_angle_deg)] if facing_angle_deg is not None else
               [target_angle - source_angle, target_angle - source_angle + 90.0, 0.0])
     ground_section = clip_sections[0][2] if clip_sections else host
-    # massv2's plot modes, ported (legal_fit._drawn_inside): a scheme that
-    # imposes its own figure is brought *inside* the parcel - scanned down
-    # 6% a step until at least 92% of its plan is legal - and the cut then
-    # removes a trim rather than the design. Cutting every BOOK sentence to
-    # the parcel made comp26's tiles casts of the parcel outline; the
-    # figures the client liked in massv2 were all fitted this way. A scheme
-    # that takes the plot's outline (a 1/1 split, a stack) still inherits it.
+    # Only explicit impose authorizes this bounded uniform plan shrink.
     factors = ([1.0 - step * 0.06 for step in range(IMPOSE_STEPS)]
                if (clip_to_host and impose_fit) else [1.0])
     # Project once: translating one polygon avoids repeating triangle unions
@@ -3929,7 +3919,7 @@ def _pose_metric_vertices_to_host(compilation, host, *, clip_to_host: bool = Fal
                     world = tuple(transform_point3(matrix, vertex) for vertex in vertices)
                     return HostFitTransform(matrix4=matrix, inverse_matrix4=inverse_matrix4(matrix),
                         world_vertices=world, achieved_plan_area_m2=whole)
-                if not clip_to_host:
+                if not clip_to_host or impose_fit:
                     continue
                 retained = [min(float(occupied.area), float(occupied.intersection(legal).area))
                             for occupied, (_local, legal, _weight) in zip(moved, local_constraints)]
