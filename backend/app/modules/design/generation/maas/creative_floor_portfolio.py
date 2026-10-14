@@ -648,9 +648,22 @@ def build_creative_floor_portfolio(
             authored_programs=authored_programs,
         )
         if report.status != "complete":
+            rejection_details = "; ".join(
+                f"input_index={item.input_index} stage={item.stage[:96]} "
+                f"reason={item.reason_code[:96]}"
+                + (f" principle={item.principle_id[:96]}" if item.principle_id else "")
+                + (f" scope={item.scope_label[:32]}" if item.scope_label else "")
+                for item in report.rejections[:12]
+            )
+            if len(report.rejections) > 12:
+                rejection_details += (
+                    f"; {len(report.rejections) - 12} more rejections omitted"
+                )
             raise RuntimeError(
                 "authored creative portfolio incomplete: "
                 f"{report.exploration_count}/{requested_count} explorations"
+                + (f"; rejections (zero-based input_index): {rejection_details}"
+                   if rejection_details else "")
             )
         payload = _creative_portfolio_payload(
             list(report.candidates),
