@@ -91,7 +91,7 @@ def test_no_surface_target_outside_placement_stage_keeps_the_single_solve():
 
 
 @pytest.mark.parametrize('extra_stall', [False, True])
-def test_final_choice_preserves_ground_before_optimizing_drive(monkeypatch, extra_stall):
+def test_a_piloti_that_buys_no_parking_ranks_below_its_enclosed_footprint(monkeypatch, extra_stall):
     from backend.app.modules.design.generation.maas.masterplan import joint
     generated = box(10, 40, 50, 60)
     monkeypatch.setattr(joint, 'footprint_candidates', lambda *a, **k: [])
@@ -206,3 +206,23 @@ def test_source_bound_entrance_does_not_authorize_replacement_mass():
     result = select_joint_layout(request, solve)
     assert len(calls) == 1
     assert 'joint_search' not in result
+
+
+def test_a_piloti_that_buys_surface_bays_is_not_ranked_on_enclosed_area(monkeypatch):
+    """고산 ALT1: same 50 stalls, the piloti strip moves 10 bays to the surface. Enclosed area is not a
+    rank key; the choice between the two is the design loop's, and here drive burden decides."""
+    from backend.app.modules.design.generation.maas.masterplan import joint
+    generated = box(10, 40, 50, 60)
+    monkeypatch.setattr(joint, 'footprint_candidates', lambda *a, **k: [])
+    def solve(request):
+        piloti = request.get('ground_footprint') is not None
+        result = _fake_result(generated, 30 if piloti else 20, 300 if piloti else 400)
+        if piloti:
+            result['features'].append({'properties': {'layer':'building_ground_footprint','level':0},
+                                       'geometry':request['ground_footprint']})
+        return result
+    chosen = select_joint_layout(_placement_request(), solve)
+    assert chosen.get('piloti_strip_m') is not None
+    assert chosen['piloti_parent'] == {'surface': 20, 'provided': 50}
+    kept = [c['layout'].get('piloti_strip_m') for c in chosen['planning_candidates']]
+    assert None in kept and 5.0 in kept, 'enclosed and piloti configurations are distinct portfolio families'

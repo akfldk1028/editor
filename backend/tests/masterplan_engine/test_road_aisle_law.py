@@ -77,7 +77,8 @@ def test_parallel_width_and_edition_are_catalog_owned():
     out = evaluate(parking_angle='parallel')
     assert out['required_combined_aisle_width_m'] == catalog()['small_attached_parking']['road_aisle']['parallel_combined_width_m']
     assert evaluate(assessment_date='2026-07-26')['status'] == 'needs_evidence'
-    assert evaluate(assessment_date='2026-10-14')['status'] == 'needs_evidence'
+    later = evaluate(assessment_date='2026-10-14')      # the day after verified_on: in force, re-verify
+    assert later['status'] == 'applicable_for_preliminary_design' and later['verification_stale'] is True
 
 
 def test_original_input_is_not_mutated_or_aliased():
@@ -127,3 +128,14 @@ def test_known_denial_is_retained_even_with_other_missing_evidence():
     assert out['status'] == 'denied'
     assert 'centreline_presence' in out['missing_evidence']
     assert 'no_legal_road_frontage' in out['denial_reasons']
+
+
+def test_an_assessment_after_the_reference_verification_date_is_flagged_not_blocked():
+    """The feature used to expire by wall clock: the day after verified_on every road-aisle candidate
+    fell to needs_evidence. The edition is in force from effective_from; a stale check is a review flag."""
+    later = evaluate(assessment_date='2030-01-01')
+    assert later['status'] == 'applicable_for_preliminary_design'
+    assert later['verification_stale'] is True
+    assert evaluate()['verification_stale'] is False
+    before = evaluate(assessment_date='2020-01-01')
+    assert before['status'] == 'needs_evidence' and 'applicable_legal_edition' in before['missing_evidence']

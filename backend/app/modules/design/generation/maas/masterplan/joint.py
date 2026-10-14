@@ -173,7 +173,9 @@ def select_joint_layout(request, solve):
     from .planning_portfolio import policy, retain
     selection_policy, portfolio_limit = policy(opts)
     screen_budget = opts.get('max_joint_screenings', 64)
-    complete_budget = opts.get('max_joint_layouts', 6)
+    # Two full solves by default: each is a complete ground+basement solve (~70 s on 고산);
+    # six made a placement solve 614 s, past what the AI loop can afford per candidate.
+    complete_budget = opts.get('max_joint_layouts', 2)
     for name, value, maximum in [('max_joint_screenings', screen_budget, 512),
                                   ('max_joint_layouts', complete_budget, 16)]:
         if type(value) is not int or not 1 <= value <= maximum:
@@ -234,6 +236,8 @@ def select_joint_layout(request, solve):
             result['handoff'].update(input_hash=digest(request),hard_pass=False,
                 status='failed' if result['status']=='needs_revision' else 'needs_evidence')
             result['piloti_strip_m']=depth
+            result['piloti_parent']={'surface':sum(v['provided_spaces'] for v in baseline['levels'] if v['level']==0),
+                                     'provided':baseline['metrics']['provided_parking_stalls']}
             layouts.append(result)
     proposals=[]
     screen_demand = opts.get('target_surface_stalls')
@@ -276,6 +280,7 @@ def select_joint_layout(request, solve):
             candidate['ground_footprint'] = mapping(ground)
         result = solve(candidate)
         result['blocking'].append('generated mass footprint requires MassAgent/architect acceptance')
+        result['generated_zone_relocated'] = True
         if choice is not None:
             for f in result.get('features', []):
                 if f.get('properties', {}).get('layer') == 'building_ground_footprint':
@@ -283,28 +288,39 @@ def select_joint_layout(request, solve):
             result['blocking'].append('generated piloti ground occupancy requires MassAgent/architect acceptance')
             result['piloti_strip_m'] = choice['depth_m']
             result['piloti_choice_id'] = choice['id']
+            enclosed = next((v[0] for v in shortlist if v[3] is None and v[1].equals(p)), None)
+            result['piloti_parent'] = None if enclosed is None else {'surface': enclosed}
         if result['status']=='resolved':
             result['status']='needs_evidence'
         result['handoff'].update(input_hash=digest(request),hard_pass=False,
             status='failed' if result['status']=='needs_revision' else 'needs_evidence')
         layouts.append(result)
     surface_target=opts.get('target_surface_stalls')
+    def piloti_buys_parking(r, surface):
+        # A piloti strip exists to pass cars beneath the building. One that adds no surface
+        # bay and no stall over the enclosed version of the same footprint is a smaller
+        # ground floor for nothing and ranks below it. Which of enclosed and a piloti that
+        # DOES buy parking is better (고산 ALT1 gives up 168 m2 of ground for 10 bays) is an
+        # architectural choice: the engine does not rank enclosed area, the portfolio carries
+        # both and the Mass owner / design loop decides.
+        parent = r.get('piloti_parent')
+        if r.get('piloti_strip_m') is None or parent is None:
+            return True
+        provided = r['metrics']['provided_parking_stalls']
+        return surface > parent['surface'] or provided > parent.get('provided', provided)
     def rank(r):
         from .planner_rank import drive_burden
-        from shapely.ops import unary_union
         metrics=r['metrics']
         surface=sum(v['provided_spaces'] for v in r['levels'] if v['level']==0)
-        ground = [shape(f['geometry']) for f in r['features']
-                  if f.get('properties', {}).get('layer') == 'building_ground_footprint'
-                  and f.get('properties', {}).get('level', 0) == 0]
-        if not ground:
-            ground = [shape(f['geometry']) for f in r['features']
-                      if f.get('properties', {}).get('layer') == 'building_footprint']
+        # Moving the building is the Mass owner's decision; the engine proposes a relocated
+        # zone only when it wins a hard key above (stalls, accessible, surface target). On a
+        # tie the engine's own zone stays and the relocations travel in the portfolio.
         return (r['validation']['geometry_status']=='passed',
                 min(metrics['provided_accessible_stalls'],metrics['required_accessible_stalls'] or 0),
                 min(metrics['provided_parking_stalls'],metrics['planned_parking_stalls'] or 0),
                 -abs(surface-surface_target) if surface_target is not None else 0,
-                round(unary_union(ground).area, 6),
+                not r.get('generated_zone_relocated'),
+                piloti_buys_parking(r, surface),
                 -drive_burden(r['features'], metrics['provided_parking_stalls']))
     chosen=max(layouts,key=rank)
     portfolio = retain(layouts, chosen, limit=portfolio_limit) if selection_policy=='siting_portfolio_v1' else None
@@ -319,7 +335,7 @@ def select_joint_layout(request, solve):
         'selected_index':layouts.index(chosen),'target_footprint_m2':target,
         'scope':'equal-area generated mass alternatives and owner piloti choices; authored mass remains fixed',
         'screen_tie_break':'preserve enclosed ground area among equal surface counts; not architectural quality',
-        'final_tie_break':'preserve enclosed ground area before drive burden at equal feasibility and parking attainment',
+        'final_tie_break':'at equal parking the engine zone beats a relocation and a piloti that buys no parking ranks below its enclosed footprint; enclosed area itself is not ranked; then drive burden',
         'alternatives':[{'provided':r['metrics']['provided_parking_stalls'],
             'surface':sum(v['provided_spaces'] for v in r['levels'] if v['level']==0),
             'excavation_m2':r['metrics']['excavation_m2'],

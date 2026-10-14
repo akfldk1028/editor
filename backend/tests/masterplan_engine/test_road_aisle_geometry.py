@@ -149,7 +149,8 @@ def test_law_assessment_date_must_match_source_request():
     from backend.app.modules.design.generation.maas.masterplan.road_aisle import scope
     request,_=case()
     context=request['road_aisle_context']
-    context['source_context']['assessment_date']='2026-10-14'
+    # the receipt was evaluated today; a different source date must not bind to it on any day
+    context['source_context']['assessment_date']='2030-01-01'
     context['source_context_hash']=digest(context['source_context'])
     request['evidence']['road_aisle_law']['source_context_hash']=context['source_context_hash']
     assert scope(request)['status']!='ready'

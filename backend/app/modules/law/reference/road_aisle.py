@@ -55,8 +55,11 @@ def evaluate(pnu, total_spaces, structure, parking_angle, facts, assessment_date
         missing.append('parking_angle')
     elif parking_angle not in ('perpendicular', 'parallel'):
         denied.append('unsupported_parking_angle')
-    if not date.fromisoformat(small['effective_from']) <= asof <= date.fromisoformat(data['verified_on']):
+    if asof < date.fromisoformat(small['effective_from']):
         missing.append('applicable_legal_edition')
+    # The reference was last checked against law.go.kr on verified_on. An assessment after that
+    # date is not missing evidence (the edition is in force); it is a re-verification to schedule.
+    verification_stale = asof > date.fromisoformat(data['verified_on'])
 
     policy, combined, extent = None, None, None
     maximum = small['max_total_spaces']
@@ -91,6 +94,6 @@ def evaluate(pnu, total_spaces, structure, parking_angle, facts, assessment_date
                 source_snapshot_hash=hashlib.sha256(json.dumps(
                     {'small_attached_parking': small, 'verified_on': data['verified_on']},
                     sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest(),
-                source=deepcopy(small), verified_on=data['verified_on'],
+                source=deepcopy(small), verified_on=data['verified_on'], verification_stale=verification_stale,
                 geometry_requirements=['actual_sourced_road_polygon', 'contiguous_frontage', 'allowed_extent_geometry', 'combined_aisle_width_measurement'],
                 permit_compliance_verified=False)

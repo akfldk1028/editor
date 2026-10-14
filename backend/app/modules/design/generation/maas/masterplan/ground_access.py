@@ -1,10 +1,16 @@
 """Conservative full-width road-to-stall certificates, separately for each ground lot."""
 import math
-from shapely.geometry import LineString, Point, Polygon, box
-from shapely.affinity import rotate, translate
-from shapely.ops import linemerge
+from shapely.geometry import LineString, Polygon
+from shapely.affinity import translate
+from shapely.ops import linemerge, nearest_points, substring
 
 from .geometry import parts
+
+# A drive drawn exactly as wide as the rule (the common case: the generator draws aisle_width_m)
+# eroded by a hair under half its width leaves a 2e-5 m core; floating-point noise then fails
+# every stall and the certificate is always unknown on standard layouts. One centimetre is
+# below any drawing precision and is not a width relaxation: a 5.98 m drive still fails.
+SLACK = 0.01
 
 
 def certify_ground_access(drive, stalls, road, width):
@@ -31,53 +37,65 @@ def certify_ground_access(drive, stalls, road, width):
             if isinstance(line, LineString):
                 coords = list(line.simplify(1e-8).coords)
                 runs.extend(LineString([a, b]) for a, b in zip(coords, coords[1:])
-                            if math.dist(a, b) >= width - 1e-5)
+                            if math.dist(a, b) >= width - SLACK)
+        if not runs:
+            continue
         local = [(i, stall) for i, stall in enumerate(stalls) if stall.distance(component) <= 1e-5]
         radius = width / 2
-        # Every certificate belongs to one eroded component: proximity to a
-        # different core or to a portal endpoint does not establish a route.
-        offset = max(0, radius - 1e-5)
+        offset = max(0, radius - SLACK)
+        # Every certificate belongs to one eroded core: proximity to a different core or to a
+        # portal endpoint does not establish a route. The core is where a full-width body can
+        # be centred inside the drive.
         cores = parts(component.buffer(-offset))
-        rectangle = component.minimum_rotated_rectangle
-        if rectangle.geom_type != 'Polygon' or rectangle.is_empty:
-            continue
-        if component.symmetric_difference(rectangle).area <= 1e-9:
-            coords = list(rectangle.exterior.coords)
-            a, b = coords[:2]
-            angle = math.degrees(math.atan2(b[1]-a[1], b[0]-a[0]))
-            origin = component.centroid
-            aligned = rotate(translate(component, xoff=-origin.x, yoff=-origin.y), -angle, origin=(0, 0))
-            x0, y0, x1, y1 = aligned.bounds
-            if x1-x0 > 2*offset and y1-y0 > 2*offset:
-                core = box(x0+offset, y0+offset, x1-offset, y1-offset)
-                cores = [translate(rotate(core, angle, origin=(0, 0)), xoff=origin.x, yoff=origin.y)]
+        # A car enters across a width-long opening along one of the drive's own edge
+        # directions: the entry strip may meet the road at any angle (고산: the rows run 28 deg
+        # off the road), so a road-normal probe is not required and not sufficient. Its body,
+        # from beyond the road to the core, must lie inside the drive where it is past the
+        # road, and must cross the road line inside the opening.
+        directions = []
+        for polygon in parts(component):
+            for ring in (polygon.exterior, *polygon.interiors):
+                coords = list(ring.coords)
+                for a, b in zip(coords, coords[1:]):
+                    length = math.dist(a, b)
+                    if length <= 1e-6:
+                        continue
+                    d = ((b[0]-a[0])/length, (b[1]-a[1])/length)
+                    if all(abs(d[0]*e[0]+d[1]*e[1]) < math.cos(math.radians(0.5)) for e in directions):
+                        directions.append(d)
+        def served_by(core, run):
+            # the far side of the road near the opening: the body's outside part lives there;
+            # the opening itself is enforced by the crossing test below
+            a, b = run.coords[0], run.coords[-1]
+            tx, ty = (b[0]-a[0])/run.length, (b[1]-a[1])/run.length
+            longer = LineString([(a[0]-tx*width, a[1]-ty*width), (b[0]+tx*width, b[1]+ty*width)])
+            # 2*width deep: the outside body is width long and its corners reach past that
+            sides = [LineString(list(longer.coords)[::step]).buffer(2*width, single_sided=True) for step in (1, -1)]
+            far = min(sides, key=lambda side: side.intersection(component).area)
+            for station in (run.length/2, radius, run.length-radius):
+                portal = run.interpolate(station)
+                for dx, dy in directions:
+                    for sign in (1, -1):
+                        ux, uy = dx*sign, dy*sign
+                        line = LineString([(portal.x-ux*width, portal.y-uy*width),
+                                           (portal.x+ux*2*width, portal.y+uy*2*width)])
+                        hit = line.intersection(core.buffer(SLACK))
+                        if hit.is_empty:
+                            continue
+                        # the body stops where its centre reaches the core: beyond that the
+                        # core itself certifies the width
+                        reach = line.project(nearest_points(line.interpolate(0), hit)[1])
+                        body = substring(line, 0, reach).buffer(offset, cap_style=2)
+                        # area tests: `covers` trips on zero-area slivers that a rotated
+                        # difference leaves on shared boundaries
+                        if (body.difference(far).difference(component.buffer(1e-5)).area <= 1e-6
+                                and body.intersection(road).difference(run.buffer(SLACK)).length <= 1e-6):
+                            return True
+            return False
         for core in cores:
-            served = False
-            for run in runs:
-                a, b = list(run.coords)
-                tx, ty = (b[0]-a[0])/run.length, (b[1]-a[1])/run.length
-                positions = {radius, run.length-radius, run.length/2,
-                             max(radius, min(run.length-radius, run.project(core.centroid)))}
-                for station in positions:
-                    portal = run.interpolate(station)
-                    for sign in (-1, 1):
-                        nx, ny = -ty*sign, tx*sign
-                        left = (portal.x-tx*radius, portal.y-ty*radius)
-                        right = (portal.x+tx*radius, portal.y+ty*radius)
-                        cell = Polygon([left, right,
-                            (right[0]+nx*width, right[1]+ny*width),
-                            (left[0]+nx*width, left[1]+ny*width)])
-                        center = Point(portal.x+nx*radius, portal.y+ny*radius)
-                        if component.buffer(1e-5).covers(cell) and core.buffer(1e-5).covers(center):
-                            served = True
-                            break
-                    if served:
-                        break
-                if served:
-                    break
-            if not served:
+            if not any(served_by(core, run) for run in runs):
                 continue
-            reachable = core.buffer(radius+1e-5).intersection(component.buffer(1e-5))
+            reachable = core.buffer(radius+SLACK, cap_style=3, join_style=2).intersection(component.buffer(1e-5))
             for i, stall in local:
                 stall_rectangle = stall.minimum_rotated_rectangle
                 if stall_rectangle.geom_type != 'Polygon' or stall_rectangle.is_empty:

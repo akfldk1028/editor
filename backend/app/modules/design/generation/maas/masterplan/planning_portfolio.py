@@ -27,8 +27,11 @@ def retain(layouts, primary, *, limit):
             excluded.append({**identity,'reason':'same_geometry'})
             continue
         seen.add(geometry_hash)
+        # Family = upper footprint + enclosed ground: the same building enclosed and with a
+        # piloti strip are two configurations the design loop must see, not one slot.
         upper=[f['geometry'] for f in layout['features'] if f.get('properties',{}).get('layer')=='building_footprint']
-        pending.append({**identity,'family_id':digest(upper),'layout':deepcopy(layout)})
+        ground=[f['geometry'] for f in layout['features'] if f.get('properties',{}).get('layer')=='building_ground_footprint']
+        pending.append({**identity,'family_id':digest([upper,ground]),'layout':deepcopy(layout)})
     pending.sort(key=lambda v:(v['geometry_hash']!=primary_hash,v['source_index']))
     families=set()
     for item in pending:

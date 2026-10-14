@@ -71,3 +71,29 @@ def test_certificate_is_stable_under_rotation_and_translation(angle, case):
         return translate(rotate(geometry, angle, origin=(0, 0)), xoff=200000, yoff=450000)
     result = certify_ground_access(transform(drive), [transform(stall)], transform(road), 6)
     assert result['status'] == ('passed' if case == 'rectangle' else 'unknown')
+
+
+def test_a_drive_exactly_as_wide_as_the_rule_is_full_width():
+    """The generator draws the aisle at aisle_width_m. Eroding by a hair under half the width used to
+    leave a 2e-5 m core that floating-point noise emptied: every standard layout stayed unknown."""
+    drive = box(0, 0, 30, 6)
+    stalls = [box(x, 6, x + 2.5, 11) for x in range(2, 26, 5)]
+    result = certify_ground_access(drive, stalls, LineString([(0, 0), (30, 0)]), 6)
+    assert result['status'] == 'passed' and result['certified_stalls'] == len(stalls)
+    short = certify_ground_access(box(0, 0, 30, 5.98), [box(2, 5.98, 4.5, 10.98)], LineString([(0, 0), (30, 0)]), 6)
+    assert short['status'] == 'unknown' and short['certified_stalls'] == 0
+
+
+def test_an_entry_strip_skewed_to_the_road_is_a_valid_approach():
+    """고산: the rows follow the parcel, the road runs 28 degrees off them. The entry strip meets the
+    road at that angle; a car drives straight along the strip, not normal to the road."""
+    from shapely.geometry import Polygon
+    import math
+    skew = 12 * math.tan(math.radians(28))
+    opening = 6 / math.cos(math.radians(28))                 # 6 m measured across the strip
+    strip = Polygon([(0, 0), (opening, 0), (opening + skew, 12), (skew, 12)])
+    drive = unary_union([box(0, 10, 40, 16), strip]).buffer(0)
+    road = LineString([(-20, 0), (60, 0)])
+    stalls = [box(x, 16, x + 2.5, 21) for x in range(10, 36, 5)]
+    result = certify_ground_access(drive, stalls, road, 6)
+    assert result['status'] == 'passed', result

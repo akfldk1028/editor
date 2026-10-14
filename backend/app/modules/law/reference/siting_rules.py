@@ -42,8 +42,11 @@ def siting_requirements(pnu, building_type, total_floor_area_m2, assessment_date
         missing.append('total_floor_area_m2')
     if use['status'] != 'classified':
         missing.append('legal_building_use')
-    if not date.fromisoformat(rule['effective_from']) <= asof <= date.fromisoformat(data['verified_on']):
+    if asof < date.fromisoformat(rule['effective_from']):
         missing.append('applicable_legal_edition')
+    # The reference was last checked against law.go.kr on verified_on. An assessment after that
+    # date is not missing evidence (the edition is in force); it is a re-verification to schedule.
+    verification_stale = asof > date.fromisoformat(data['verified_on'])
     criteria = None
     if not missing:
         large = rule['large']
@@ -54,5 +57,6 @@ def siting_requirements(pnu, building_type, total_floor_area_m2, assessment_date
             'requested': {'building_type': building_type, 'total_floor_area_m2': total_floor_area_m2},
             'status': 'needs_evidence' if missing else 'criteria_available',
             'criteria': criteria, 'source': deepcopy(rule), 'verified_on': data['verified_on'],
+            'verification_stale': verification_stale,
             'assessment_date': asof.isoformat(), 'missing_evidence': missing + rule['requires'],
             'exceptions_applied': False, 'permit_compliance_verified': False}
