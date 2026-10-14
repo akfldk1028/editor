@@ -88,19 +88,18 @@ test('project and parcel transitions hide the prior run before effects can poll 
   expect(scopedValue(stored, JSON.stringify(['a', 'site-1']), null)).toBe(run)
 })
 
-test('a new conversation hides earlier feed actions and late replies in the same project', async () => {
+test('a new conversation hides earlier feed actions and late replies from the original workspace', async () => {
   feed.clear()
   selectConversationProject('same-project')
   const originalId = currentConversation().conversationId
   const originalPost = projectFeed('same-project')
   originalPost({ kind: 'prompt', text: 'original prompt' })
-  // No workspace can be made here, so the new conversation stays in the same project.
   const realFetch = globalThis.fetch
-  globalThis.fetch = (async () => new Response('{}', { status: 503 })) as unknown as typeof fetch
-  await newConversation()
-  globalThis.fetch = realFetch
+  globalThis.fetch = (async () => Response.json({ project_id: 'new-workspace', conversation_id: 'new-thread',
+    owner_project_id: 'owner', branch_id: 'c-new', scene_id: 's', scene_revision: 1, scene_project_id: null }, { status: 201 })) as unknown as typeof fetch
+  try { await newConversation() } finally { globalThis.fetch = realFetch }
   originalPost({ kind: 'result', text: 'late original result' })
-  expect(feedForProject(feed.get(), 'same-project', currentConversation().conversationId)).toEqual([])
+  expect(feedForProject(feed.get(), currentConversation().projectId, currentConversation().conversationId)).toEqual([])
   expect(feedForProject(feed.get(), 'same-project', originalId)).toHaveLength(2)
   selectConversationProject(null)
   feed.clear()

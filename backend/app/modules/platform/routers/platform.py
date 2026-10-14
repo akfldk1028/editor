@@ -109,7 +109,15 @@ def create_platform_router(
 
     @router.get('/projects', response_model=list[ProjectBinding])
     async def projects():
-        return projects_service().repository.list('local')
+        repository = projects_service().repository
+        bindings = repository.list('local')
+        for binding in bindings:
+            if binding.conversation and binding.conversation_id is None:
+                saved = ledger.store.conversation_for(binding.owner_project_id, binding.branch_id)
+                if saved:
+                    repository.remember_conversation('local', binding.project_id, saved)
+                    binding.conversation_id = saved
+        return bindings
 
     @router.get('/projects/{project_id}', response_model=ProjectBinding)
     async def project(project_id: str):

@@ -2,6 +2,7 @@ import { getConversation, postConversation } from './client'
 import { confirmationFor } from './confirmation'
 import { designConversationContext } from './context'
 import { publishConversation } from './live'
+import { noteConversation } from './projects'
 import type { SiteLocateBody } from '@/lib/orchestrator-runs/types'
 import type { ConversationArtifact, ConversationContext, ConversationSnapshot, ConversationSubmission } from './types'
 
@@ -66,7 +67,8 @@ export class ConversationController {
     const current = this.state.snapshot?.artifacts.find((item) => item.id === artifact.id)
     const confirmation = current && confirmationFor(current)
     if (!confirmation || confirmation.context_hash !== confirmationFor(artifact)?.context_hash) return
-    this.submit('변경된 조건을 기준으로 이 설계 의도를 확인합니다.', designConversationContext(this.projectId), confirmation)
+    const text = current.data.kind === 'layout_selection' ? `${current.title} 안을 선택합니다.` : '변경된 조건을 기준으로 이 설계 의도를 확인합니다.'
+    this.submit(text, designConversationContext(this.projectId), confirmation)
   }
   private submit(text: string, context: ConversationContext, confirmation?: ConversationSubmission['confirmation']) {
     if (!text.trim() || text.length > 8000 || this.state.loading || !this.active) return
@@ -100,6 +102,7 @@ export class ConversationController {
     this.update({ pending: this.state.pending.map((item) => item === pending ? { ...item, error: null, delivery: 'sending' } : item) })
     try {
       const result = await this.transport.post(this.projectId, pending.body)
+      if (!pending.body.confirmation) noteConversation(this.projectId, pending.body.text)
       if (!('conversation_id' in result)) {
         this.update({ pending: this.state.pending.filter((item) => item.body.message_id !== pending.body.message_id) })
         this.onLocated?.(result.located, pending.body.text)

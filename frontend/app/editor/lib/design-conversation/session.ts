@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react'
 import { startConversation } from '@/lib/orchestrator-runs/api'
 import { activateConversationContext } from './context'
-import { addProject } from './projects'
+import { addProject, currentProjects } from './projects'
 
 interface Selection { projectId: string | null; conversationId: string }
 const initial: Selection = { projectId: null, conversationId: 'main' }
@@ -18,14 +18,17 @@ const emit = () => listeners.forEach((listener) => { listener() })
 export const currentConversation = () => selection
 /** Shows a project's conversation: the one named, else the last one kept for it, else its first ('main'). */
 export function selectConversationProject(projectId: string | null, conversationId?: string) {
-  if (projectId === selection.projectId) return
-  selection = { projectId, conversationId: conversationId ?? (projectId ? read(key(projectId)) || 'main' : 'main') }
+  const saved = currentProjects().items.find((item) => item.project_id === projectId)?.conversation_id
+  const nextId = conversationId ?? saved ?? (projectId ? read(key(projectId)) || 'main' : 'main')
+  if (projectId === selection.projectId && selection.conversationId === nextId) return
+  selection = { projectId, conversationId: nextId }
+  if (projectId) write(key(projectId), nextId)
   activateConversationContext(projectId)
   write('design-conversation-project', projectId ?? '')
   emit()
   if (projectId && pendingNew) {
     pendingNew = false
-    void newConversation()
+    void newConversation().catch(() => undefined)
   }
 }
 export function restoreConversationProject() {
@@ -33,26 +36,25 @@ export function restoreConversationProject() {
 }
 /**
  * A new conversation starts in a workspace of its own - the project's scene on a new branch - like a new chat thread:
- * what it records (its parcel, assessment date, brief) never binds another conversation. If the workspace cannot be
- * made, the conversation still starts, in the current one.
+ * what it records (its parcel, assessment date, brief) never binds another conversation.
  */
 let starting = false
-export async function newConversation() {
-  if (!selection.projectId) { pendingNew = true; return }
+export async function newConversation(): Promise<boolean> {
+  if (!selection.projectId) { pendingNew = true; return false }
   // A second press while the workspace is being made would make a second one.
-  if (starting) return
+  if (starting) return false
   starting = true
-  const conversationId = crypto.randomUUID()
+  const source = selection.projectId
   try {
-    const workspace = await startConversation(selection.projectId)
+    const workspace = await startConversation(source)
+    // The workspace exists once the server answered: it joins the list even when its id is missing.
     addProject(workspace)
+    const conversationId = workspace.conversation_id ?? 'main'
     write(key(workspace.project_id), conversationId)
+    // Opened only when the person is still where they pressed; otherwise it waits in the list.
+    if (selection.projectId !== source) return false
     selectConversationProject(workspace.project_id, conversationId)
-    return
-  } catch {
-    selection = { ...selection, conversationId }
-    write(key(selection.projectId!), conversationId)
-    emit()
+    return true
   } finally {
     starting = false
   }

@@ -18,6 +18,8 @@ A `role` the user already chose (the button) skips 2–4 and goes to that role's
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 from backend.app.modules.platform.routing import cards
 from backend.app.modules.platform.routing import judge as judging
 from backend.app.modules.platform.routing.roles import ROLES
@@ -35,11 +37,27 @@ _CHOICES = tuple(Choice(role.agent, role.label) for role in ROLES)
 def _score(text: str) -> list[tuple[int, int, str]]:
     """(hits, longest keyword, agent) per role with at least one hit, best first."""
     lowered = text.lower()
+    matches = []
+    for role in ROLES:
+        for word in role.keywords:
+            offset = 0
+            while (position := lowered.find(word.lower(), offset)) >= 0:
+                matches.append((position, position + len(word), role.agent, word))
+                offset = position + 1
+    # A domain phrase owns its span; its generic substring is not a second vote.
+    specific = []
+    covering_start, covering_end = -1, -1
+    for match in sorted(matches, key=lambda m: (m[0], -m[1])):
+        start, end = match[:2]
+        if end < covering_end or (end == covering_end and start > covering_start):
+            continue
+        specific.append(match)
+        covering_start, covering_end = start, end
     scored = []
     for role in ROLES:
-        hits = [word for word in role.keywords if word.lower() in lowered]
+        hits = {m[3] for m in specific if m[2] == role.agent}
         if hits:
-            scored.append((len(hits), max(len(word) for word in hits), role.agent))
+            scored.append((len(hits), max(map(len, hits)), role.agent))
     scored.sort(key=lambda item: (-item[0], -item[1]))
     return scored
 
@@ -87,7 +105,8 @@ def _delegate(agent: str, text: str, confidence: float, reason: str, decided_by:
 
 
 async def decide(text: str, *, assessment_date: str | None = None, role: str | None = None, judge: judging.Judge | None = None,
-                 enabled: bool | None = None, situation: str = '', extras: list[str] | None = None) -> Route:
+                 enabled: bool | None = None, situation: judging.Situation = '', extras: list[str] | None = None,
+                 policy: str | None = None) -> Route:
     """The product path: a picked role or a pattern decides at once; otherwise the Orchestrator's ledger (the
     model names the next speaker and what to tell it; naming itself means asking the user) — and the rule table
     only when the model is off (`EDITOR_ROUTING_JUDGE=rules`) or never named a participant. `extras` = registered
@@ -101,11 +120,23 @@ async def decide(text: str, *, assessment_date: str | None = None, role: str | N
     claimed = _claimed(text, context)
     if claimed:
         return claimed
+    selected_policy = policy or judging.policy()
+    if selected_policy not in ('auto', 'llm', 'rules'):
+        raise ValueError('unsupported routing policy')
+    if selected_policy == 'auto':
+        scored = _score(text)
+        if len(scored) == 1 and scored[0][0] >= 2:
+            return route(text, assessment_date=assessment_date)
     if enabled is None:
-        enabled = judging.enabled()
-    ledger = await (judge or judging.judge)(text, situation) if enabled else None
+        enabled = selected_policy != 'rules'
+    if enabled and judge and callable(situation):
+        situation = await situation()
+    failures = []
+    ledger = (await judge(text, situation) if judge else
+              await judging.judge(text, situation, on_error=failures.append)) if enabled else None
     if ledger is None:
-        return route(text, assessment_date=assessment_date)
+        result = route(text, assessment_date=assessment_date)
+        return replace(result, fallback_reason=(failures[-1] if failures else 'model_unavailable')) if enabled else result
     speaker, instruction = ledger.next_speaker.answer, ledger.instruction_or_question.answer.strip() or None
     if ledger.is_request_satisfied.answer and instruction:
         # The Orchestrator answers the user itself (Magentic-One: request satisfied -> its final answer).

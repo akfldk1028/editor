@@ -15,3 +15,13 @@ test('every panel reads one list: a new workspace is known at once and refreshes
   addProject(binding('a'))
   expect(currentProjects().items.map((item) => item.project_id)).toEqual(['a', 'c'])
 })
+
+test('a stale list response preserves a conversation created while it was loading', async () => {
+  let finish!: (response: Response) => void
+  globalThis.fetch = (() => new Promise<Response>((resolve) => { finish = resolve })) as typeof fetch
+  const loading = refreshProjects()
+  addProject({ ...binding('new'), conversation: true })
+  finish(new Response(JSON.stringify([binding('old')]), { status: 200 }))
+  await loading
+  expect(currentProjects().items.map((item) => item.project_id)).toEqual(['old', 'new'])
+})

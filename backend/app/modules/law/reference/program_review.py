@@ -36,6 +36,39 @@ def review_facilities(facts, assessment_date):
     return results
 
 
+def _completion(requested, facilities, design, constraints, parking, violations):
+    facility_complete = bool(facilities) and all(
+        result.get("checks") and not result.get("coverage_gaps")
+        and any(c.get("status") == "meets_area_minimum" for c in result["checks"])
+        and all(c.get("status") in {"meets_area_minimum", "not_applicable"}
+                and c.get("source") for c in result["checks"])
+        for result in facilities)
+    comparisons = design.get("checks", [])
+    constraint_complete = bool(comparisons) and len(comparisons) == len(constraints) and not design["coverage"]["uncovered_scopes"] and (
+        any(c.get("status") == "meets_constraint" and c.get("comparisons") for c in comparisons)
+        and all(c.get("status") in {"meets_constraint", "not_applicable"}
+                and c.get("source") for c in comparisons))
+    parking_complete = bool(parking and parking.get("status") == "calculated"
+                            and not parking.get("missing_inputs")
+                            and parking.get("calculation", {}).get("source"))
+    supported = {
+        "facility_area": (facility_complete, "Supplied facility area minima only; other statutory requirements are unassessed."),
+        "parking": (parking_complete, "Single-use parking count for declared qualified sources only; design compliance is unassessed."),
+        "supplied_constraints": (constraint_complete, "Comparison against supplied source-bound constraints only; legal interpretation is unverified."),
+    }
+    checks = []
+    for name in requested:
+        complete, notice = supported.get(name, (False, "Requested legal scope has no complete owner evaluation."))
+        checks.append({"check": name, "status": "satisfied" if complete else "needs_evidence", "scope_notice": notice})
+    completed = [c["check"] for c in checks if c["status"] == "satisfied"]
+    unresolved = [c["check"] for c in checks if c["status"] != "satisfied"]
+    return {"schema_version": "program-law-completion/1", "scope": "requested_checks_only",
+            "requested_checks": deepcopy(requested), "completed_checks": completed,
+            "unresolved_checks": unresolved, "checks": checks,
+            "status": "needs_revision" if violations else "reviewed_scope_only" if requested and not unresolved else "needs_evidence",
+            "full_permit_review": False, "legal_interpretation_verified": False}
+
+
 def review_program(handoff):
     if not isinstance(handoff, dict) or handoff.get("contract_version") != "program-law/2":
         raise ValueError("complete program-law/2 handoff required")
@@ -47,6 +80,11 @@ def review_program(handoff):
     date.fromisoformat(handoff["assessment_date"])
     if handoff.get("request_hash") != fingerprint({k: v for k, v in handoff.items() if k != "request_hash"}):
         raise ValueError("handoff hash mismatch")
+    requested_checks = handoff.get("requested_checks", [])
+    if (not isinstance(requested_checks, list)
+            or any(not isinstance(name, str) or not name.strip() for name in requested_checks)
+            or len(set(requested_checks)) != len(requested_checks)):
+        raise ValueError("requested_checks must be a list of unique nonempty strings")
     requirements = handoff.get("requirements", {})
     if not isinstance(requirements, dict) or not isinstance(handoff.get("input_versions"), dict):
         raise ValueError("requirements and input_versions must be objects")
@@ -110,12 +148,18 @@ def review_program(handoff):
         if result["scoped_rule_result"] in {"prohibit", "conflict"}:
             violations.append({"check": "zoning_use_conditions", "use_unit_id": unit_id, "result": result})
     from backend.app.modules.law.reference.program_parking import review_parking
-    parking = review_parking(handoff) if "parking" in handoff.get("requested_checks", []) else None
+    parking = review_parking(handoff) if "parking" in requested_checks else None
     if parking is not None:
         checks.append({"check": "parking", "status": parking["status"], "result": parking})
+        if parking.get("calculation", {}).get("source"):
+            sources.append(deepcopy(parking["calculation"]["source"]))
+    completion = _completion(requested_checks, facility_results, design_result, constraints, parking, violations)
     represented = {"statutory_area_basis": bool(facility_results), "zoning_use_permission": bool(zoning)}
-    for requested in handoff.get("requested_checks", []):
+    for requested in requested_checks:
         if requested == "parking" and parking is not None:
+            continue
+        if requested in {"facility_area", "supplied_constraints"}:
+            checks.append(deepcopy(next(c for c in completion["checks"] if c["check"] == requested)))
             continue
         checks.append({"check": requested, "status": "partially_evaluated" if represented.get(requested) else "needs_evidence",
                        "reason": "Individual source-bound checks do not establish complete legal applicability."})
@@ -133,7 +177,9 @@ def review_program(handoff):
             "agent": "law", "program_revision": handoff["program_revision"],
             "content_revision": handoff.get("content_revision", handoff["program_revision"]),
             "input_hash": handoff["input_hash"], "input_versions": deepcopy(handoff["input_versions"]),
-            "assessment_date": handoff["assessment_date"], "status": "conflict" if violations else "needs_evidence",
+            "assessment_date": handoff["assessment_date"],
+            "status": "conflict" if violations else "reviewed" if completion["status"] == "reviewed_scope_only" else "needs_evidence",
+            "completion": completion,
             "checks": checks, "sources": sources, "violations": violations, "proposals": proposals,
             "research_routes": research_routes, "research_tasks": list(research_tasks.values()),
             "law_request": deepcopy(handoff), "permit_ready": False, "parking": parking,

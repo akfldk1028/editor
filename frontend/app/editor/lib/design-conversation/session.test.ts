@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'bun:test'
 import { currentConversation, newConversation, selectConversationProject } from './session'
+import { addProject } from './projects'
 
 const realFetch = globalThis.fetch
 afterEach(() => { globalThis.fetch = realFetch; selectConversationProject(null) })
@@ -9,7 +10,7 @@ function serves(status: number) {
   const asked: string[] = []
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     asked.push(`${init?.method ?? 'GET'} ${String(url)}`)
-    const body = { project_id: 'p1-c', owner_project_id: 'owner', branch_id: 'c-0123456789ab', scene_id: 's', scene_revision: 1, scene_project_id: null }
+    const body = { project_id: 'p1-c', conversation_id: 'thread-p1-c', owner_project_id: 'owner', branch_id: 'c-0123456789ab', scene_id: 's', scene_revision: 1, scene_project_id: null }
     return new Response(JSON.stringify(status === 201 ? body : { detail: 'no' }), { status })
   }) as typeof fetch
   return asked
@@ -24,12 +25,20 @@ test('a new conversation moves to a workspace of its own: the same project on it
   expect(currentConversation().conversationId).not.toBe('main')
 })
 
-test('when the workspace cannot be made, the new conversation still starts in the current project', async () => {
+test('a failed creation keeps the previous conversation intact', async () => {
   serves(500)
   selectConversationProject('p1')
-  await newConversation()
+  const before = currentConversation()
+  await expect(newConversation()).rejects.toThrow()
   expect(currentConversation().projectId).toBe('p1')
-  expect(currentConversation().conversationId).not.toBe('main')
+  expect(currentConversation()).toEqual(before)
+})
+
+test('opening a saved conversation uses its server identity without browser storage', () => {
+  addProject({ project_id: 'saved', owner_project_id: 'owner', branch_id: 'c-saved', scene_id: 's', scene_revision: 1, scene_project_id: null,
+    conversation: true, conversation_id: 'persisted-thread' })
+  selectConversationProject('saved')
+  expect(currentConversation().conversationId).toBe('persisted-thread')
 })
 
 test('"새 대화" pressed while the project is still loading starts a new conversation once it is known', async () => {

@@ -1,4 +1,7 @@
 const MESSAGES: Record<string, string> = {
+  conversation_model_usage_limit: '선택한 모델의 사용량 한도에 도달했어요. 한도가 초기화된 뒤 다시 시도해 주세요. 기존 대화와 작업 결과는 저장되어 있어요.',
+  conversation_model_authentication: '모델 로그인 인증을 확인해야 해요. 로그인 상태를 복구한 뒤 다시 시도해 주세요.',
+  conversation_model_rate_limit: '모델 요청이 일시적으로 제한됐어요. 잠시 후 다시 시도해 주세요.',
   conversation_processing_failed: '요청을 처리하다 멈췄어요. 기존 메시지는 저장되어 있어요. 계속하려면 원하는 내용을 새 메시지로 다시 보내 주세요.',
   conversation_model_timeout: '에이전트의 응답이 늦어 대기가 끝났어요. 기존 메시지는 저장되어 있어요. 계속하려면 원하는 내용을 새 메시지로 다시 보내 주세요.',
   conversation_program_reconciliation_required: '공간 구성의 반영 결과를 확인해야 해요. 다음 메시지를 처리하기 전에 이전 반영 결과부터 확인해요. 조건이 바뀌었다면 현재 조건과 결과도 확인해 주세요.',

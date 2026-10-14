@@ -17,7 +17,7 @@ class ProjectRepository:
         with closing(self.connect()) as db, db:
             db.execute('BEGIN IMMEDIATE')
             version = db.execute('PRAGMA user_version').fetchone()[0]
-            if version not in (0, 1, 2, 3):
+            if version not in (0, 1, 2, 3, 4):
                 raise ValueError('unsupported platform database version')
             db.execute('''CREATE TABLE IF NOT EXISTS projects (
                 project_id TEXT PRIMARY KEY, actor TEXT NOT NULL,
@@ -33,7 +33,11 @@ class ProjectRepository:
                 db.execute('ALTER TABLE projects ADD COLUMN title TEXT')
                 db.execute('ALTER TABLE projects ADD COLUMN created_at TEXT')
                 db.execute('ALTER TABLE projects ADD COLUMN conversation INTEGER NOT NULL DEFAULT 0')
-            db.execute('PRAGMA user_version=3')
+            if version < 4:
+                db.execute('ALTER TABLE projects ADD COLUMN conversation_id TEXT')
+                db.execute('ALTER TABLE projects ADD COLUMN updated_at TEXT')
+                db.execute('UPDATE projects SET updated_at=created_at')
+            db.execute('PRAGMA user_version=4')
 
     def connect(self):
         db = sqlite3.connect(self.path, timeout=10)
@@ -81,12 +85,13 @@ class ProjectRepository:
                     if row['scene_revision'] != request.scene_revision or row['scene_project_id'] != request.scene_project_id:
                         raise ValueError('binding already exists at another scene revision')
                     return self.binding(row)
+                now = datetime.now(timezone.utc).isoformat(timespec='microseconds')
                 result = ProjectBinding(project_id=uuid4().hex, **request.model_dump(), conversation=conversation,
-                                        created_at=datetime.now(timezone.utc).isoformat(timespec='seconds'))
+                                        conversation_id=uuid4().hex if conversation else None, created_at=now, updated_at=now)
                 db.execute('INSERT INTO projects (project_id, actor, owner_project_id, branch_id, scene_id, scene_revision, '
-                           'scene_project_id, created_at, conversation) VALUES (?,?,?,?,?,?,?,?,?)',
+                           'scene_project_id, created_at, conversation, conversation_id, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
                            (result.project_id, actor, result.owner_project_id, result.branch_id, result.scene_id,
-                            result.scene_revision, result.scene_project_id, result.created_at, int(conversation)))
+                            result.scene_revision, result.scene_project_id, result.created_at, int(conversation), result.conversation_id, now))
                 return result
         finally:
             db.close()
@@ -96,6 +101,17 @@ class ProjectRepository:
         with closing(self.connect()) as db, db:
             return db.execute('UPDATE projects SET title=? WHERE actor=? AND project_id=? AND conversation=1 AND title IS NULL',
                               (title, actor, project_id)).rowcount == 1
+
+    def touch_conversation(self, actor: str, project_id: str, conversation_id: str):
+        with closing(self.connect()) as db, db:
+            db.execute('UPDATE projects SET conversation_id=COALESCE(conversation_id, ?), updated_at=? '
+                       'WHERE actor=? AND project_id=? AND conversation=1',
+                       (conversation_id, datetime.now(timezone.utc).isoformat(timespec='microseconds'), actor, project_id))
+
+    def remember_conversation(self, actor: str, project_id: str, conversation_id: str):
+        with closing(self.connect()) as db, db:
+            db.execute('UPDATE projects SET conversation_id=? WHERE actor=? AND project_id=? '
+                       'AND conversation=1 AND conversation_id IS NULL', (conversation_id, actor, project_id))
 
     def refresh_scene_revision(self, actor: str, project_id: str, expected: int, revision: int):
         with closing(self.connect()) as db, db:

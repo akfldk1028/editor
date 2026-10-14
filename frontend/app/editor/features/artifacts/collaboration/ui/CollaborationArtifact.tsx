@@ -37,6 +37,7 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
   const [agent, setAgent] = useState<string | null>(null)
   const { entries, live, names } = useAgentCatalog()
   const flow = useLiveFlow(chosen?.project_id ?? null)
+  const workflow = selectedRun ? undefined : flow.workflows.at(-1)
   const scope = useMemo<LedgerScope | null>(
     () => (selectedRun ? { run_id: selectedRun } : chosen ? { conversation_id: flow.conversationId } : null),
     [selectedRun, chosen, flow.conversationId],
@@ -108,7 +109,7 @@ export default function CollaborationArtifact({ tab = 'flow', params, shell }: A
         {effectiveTab === 'runs' && <RunList goals={goals} onSelect={(id) => { select(id); setTab('flow') }} runs={runs} selected={selectedRun} />}
         {effectiveTab === 'flow' && (
           <>
-            <FlowGraph catalog={entries} live={live} messages={transcript.messages.length ? transcript.messages : NO_MESSAGES} onSelect={setAgent} selected={agent} />
+            <FlowGraph workflow={workflow} catalog={entries} live={live} messages={transcript.messages.length ? transcript.messages : NO_MESSAGES} onSelect={setAgent} selected={agent} />
             {agent
               ? <AgentPanel agent={agent} entry={entries.find((entry) => entry.id === agent)} key={agent} names={names} onClose={() => setAgent(null)} transcript={transcript} />
               : <p className="collab-note">{empty ? '이 대화에서는 아직 에이전트를 부르지 않았어요. 물어보거나 검토를 시작하면 여기에 그려져요.' : '에이전트를 누르면 이 대화에서 한 말과 할 수 있는 일이 보이고, 바로 물어볼 수 있어요.'}</p>}

@@ -91,6 +91,8 @@ export interface ProjectBinding {
   conversation?: boolean
   title?: string | null
   created_at?: string | null
+  conversation_id?: string | null
+  updated_at?: string | null
 }
 
 /** One agent step of a run, in communication order. */

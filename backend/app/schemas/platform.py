@@ -41,6 +41,8 @@ class ProjectBinding(ProjectCreate):
     conversation: bool = False
     title: str | None = Field(default=None, max_length=200)
     created_at: str | None = None
+    conversation_id: str | None = None
+    updated_at: str | None = None
 
     def creation(self) -> ProjectCreate:
         """The request that made this binding (its identity fields only)."""

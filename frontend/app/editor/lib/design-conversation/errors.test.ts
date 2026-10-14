@@ -1,6 +1,15 @@
 import { expect, test } from 'bun:test'
 import { conversationErrorText } from './errors'
 
+test('quota and authentication failures have distinct recovery guidance', () => {
+  const quota = conversationErrorText('conversation_model_usage_limit')
+  const auth = conversationErrorText('conversation_model_authentication')
+  expect(quota).toBeTruthy()
+  expect(auth).toBeTruthy()
+  expect(quota).not.toEqual(auth)
+  expect(quota).not.toContain('conversation_')
+})
+
 test('server error codes become user-facing recovery guidance without technical strings', () => {
   const codes = ['conversation_processing_failed', 'conversation_model_timeout', 'conversation_program_reconciliation_required', 'conversation_step_limit', 'conversation_interrupted', 'conversation_scheduling_failed']
   for (const code of codes) {

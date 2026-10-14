@@ -1,11 +1,12 @@
 'use client'
 
-import { Send, SquarePen, Workflow } from 'lucide-react'
+import { Send, Workflow } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { dismissFeed, type FeedEntry, useFeed, feedForProject, postFeed, projectFeed } from '@/lib/orchestrator-runs/feed'
 import { askLines, siteLocateParams, siteLocatedLine } from '@/lib/orchestrator-runs/feed-lines'
-import { newConversation, useConversationSelection } from '@/lib/design-conversation/session'
+import { useConversationSelection } from '@/lib/design-conversation/session'
+import { useProjects } from '@/lib/design-conversation/projects'
 import { turnSteps, useLedger, waitingLine } from '@/lib/ledger'
 import { useConversation } from '@/lib/design-conversation/useConversation'
 import { conversationErrorText } from '@/lib/design-conversation/errors'
@@ -22,7 +23,7 @@ import { AgentMark } from './agentMarks'
 import { FeedCard } from './FeedCard'
 import { AskedAgents, StepList } from './AgentSteps'
 import { ConversationArtifacts } from './ConversationArtifacts'
-import { ConversationProject, useConversationProject } from './ConversationProject'
+import { useConversationProject } from './ConversationProject'
 import './agent-conversation.css'
 import { questionKey } from '@/lib/run-question/form'
 import { QuestionCard } from '@/lib/run-question/ui/QuestionCard'
@@ -42,25 +43,16 @@ const time = (at: number) => new Date(at).toLocaleTimeString('ko-KR', { hour: '2
  */
 export function AgentConversationHeading() {
   const selection = useConversationSelection()
+  const { items } = useProjects()
   const entries = feedForProject(useFeed(), selection.projectId, selection.conversationId)
-  const title = conversationTitle(entries)
+  const saved = items.find((item) => item.project_id === selection.projectId)
+  const title = saved?.title ? { title: saved.title, subtitle: '' } : conversationTitle(entries)
   if (!title) return <div className="agent-heading" />
   return (
     <div className="agent-heading">
       <strong>{title.title}</strong>
       {title.subtitle && <span>{title.subtitle}</span>}
     </div>
-  )
-}
-
-export function AgentConversationActions() {
-  // Until the page is interactive a press would be lost, so the button says so instead of looking ready.
-  const [ready, setReady] = useState(false)
-  useEffect(() => { setReady(true) }, [])
-  return (
-    <button aria-label="새 대화" className="icon-button" disabled={!ready} onClick={newConversation} title="새 대화 · 이전 대화는 저장됩니다" type="button">
-      <SquarePen size={17} />
-    </button>
   )
 }
 
@@ -118,8 +110,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   useEffect(() => onCommand((command) => {
     if (command.kind !== 'compose') return
     setDraftValue((current) => current.key === draftKey && current.text.trim() ? current : { key: draftKey, text: command.draft })
-    if (composerRef.current?.disabled) document.querySelector<HTMLSelectElement>('.conversation-project select')?.focus()
-    else composerRef.current?.focus()
+    composerRef.current?.focus()
   }), [draftKey])
   const submit = () => {
     const text = draft.trim()
@@ -136,7 +127,6 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
   return (
     <section aria-label="에이전트 대화" className="agent-conversation">
       <div aria-live="polite" className="agent-thread">
-        <ConversationProject {...project} />
         {turns.length === 0 && messages.length === 0 && !conversation.pending.length ? (
           <div className="agent-thread-empty">
             <Workflow aria-hidden="true" size={28} />

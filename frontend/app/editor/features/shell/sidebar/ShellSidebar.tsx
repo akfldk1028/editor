@@ -6,6 +6,8 @@ import { useRef, type ReactNode, type RefObject } from 'react'
 import type { ArtifactManifest } from '../artifact-types'
 import { useModalOverlay } from '../layout/useModalOverlay'
 import type { SidebarPresentation } from '../layout/useWorkspaceControls'
+import { ConversationSidebar } from './ConversationSidebar'
+import './conversation-sidebar.css'
 
 export interface ShellBrand {
   mark: string
@@ -19,15 +21,16 @@ interface Props {
   activeArtifactId: string | null
   /** Controls for the heading row, supplied by the page's modules. */
   headingActions?: ReactNode
-  /** The sidebar slot below the artifact list. */
+  /** The preserved CAD navigation module. */
   children?: ReactNode
   restoreFocusRef?: RefObject<HTMLElement | null>
   onOpenArtifact(id: string): void
+  onOpenConversation(): void
   onClose(): void
   onExpandedChange(expanded: boolean): void
 }
 
-/** Sidebar frame: heading, the registry's artifact list, then the page's sidebar slot. */
+/** Conversation history leads; tools and the preserved CAD module have their own sections. */
 export function ShellSidebar({
   brand,
   presentation,
@@ -37,6 +40,7 @@ export function ShellSidebar({
   children,
   restoreFocusRef,
   onOpenArtifact,
+  onOpenConversation,
   onClose,
   onExpandedChange,
 }: Props) {
@@ -50,6 +54,7 @@ export function ShellSidebar({
         <button aria-label="탐색 펼치기" className="icon-button" onClick={() => onExpandedChange(true)} title="탐색 펼치기" type="button">
           <PanelLeftOpen size={16} />
         </button>
+        <ConversationSidebar compact onSelected={onOpenConversation} />
         {artifacts.map(({ id, title, icon: Icon }) => (
           <button
             aria-label={title}
@@ -81,26 +86,34 @@ export function ShellSidebar({
         <span className="sidebar-heading-actions">
           {/* In the drawer, close comes first so the dialog's initial focus lands on it. */}
           {overlay && <button aria-label="탐색 닫기" className="icon-button" onClick={onClose} title="닫기" type="button"><PanelLeftClose size={16} /></button>}
-          {headingActions}
           {!overlay && <button aria-label="탐색 접기" className="icon-button" onClick={() => onExpandedChange(false)} title="탐색 접기" type="button"><PanelLeftClose size={16} /></button>}
         </span>
       </div>
 
-      <nav aria-label="아티팩트" className="artifact-list-nav">
-        {artifacts.map(({ id, title, icon: Icon }) => (
-          <button
-            aria-current={id === activeArtifactId ? 'true' : undefined}
-            className="artifact-entry"
-            key={id}
-            onClick={() => onOpenArtifact(id)}
-            type="button"
-          >
-            <Icon aria-hidden="true" size={16} /><span>{title}</span>
-          </button>
-        ))}
-      </nav>
+      <ConversationSidebar onSelected={onOpenConversation} />
 
-      {children}
+      <details className="sidebar-tools">
+        <summary>도구</summary>
+        <nav aria-label="아티팩트" className="artifact-list-nav">
+          {artifacts.map(({ id, title, icon: Icon }) => (
+            <button
+              aria-current={id === activeArtifactId ? 'true' : undefined}
+              className="artifact-entry"
+              key={id}
+              onClick={() => onOpenArtifact(id)}
+              type="button"
+            >
+              <Icon aria-hidden="true" size={16} /><span>{title}</span>
+            </button>
+          ))}
+        </nav>
+      </details>
+
+      {children && <details className="sidebar-cad-module">
+        <summary>CAD · 도면과 레이어</summary>
+        <div className="sidebar-cad-actions"><button type="button" onClick={() => onOpenArtifact('cad')}>CAD 작업 열기</button>{headingActions}</div>
+        <div className="sidebar-module-body">{children}</div>
+      </details>}
     </aside>
   )
 }

@@ -43,6 +43,7 @@ class LedgerStore:
                 db.execute('CREATE INDEX IF NOT EXISTS agent_calls_conversation ON agent_calls(conversation_id, ts_start)')
                 db.execute('CREATE INDEX IF NOT EXISTS agent_calls_run ON agent_calls(run_id, ts_start)')
                 db.execute('CREATE INDEX IF NOT EXISTS agent_calls_time ON agent_calls(ts_start)')
+                db.execute('CREATE INDEX IF NOT EXISTS agent_calls_scope ON agent_calls(project, branch)')
                 db.execute(f'PRAGMA user_version={SCHEMA_VERSION}')
 
     def connect(self) -> sqlite3.Connection:
@@ -50,6 +51,13 @@ class LedgerStore:
         db.row_factory = sqlite3.Row
         db.execute('PRAGMA busy_timeout=5000')
         return db
+
+    def conversation_for(self, project: str, branch: str) -> str | None:
+        with closing(self.connect()) as db:
+            rows = db.execute('SELECT DISTINCT conversation_id FROM agent_calls '
+                              'WHERE project=? AND branch=? AND conversation_id IS NOT NULL LIMIT 2',
+                              (project, branch)).fetchall()
+        return rows[0]['conversation_id'] if len(rows) == 1 else None
 
     @staticmethod
     def _values(record: HopRecord) -> list:

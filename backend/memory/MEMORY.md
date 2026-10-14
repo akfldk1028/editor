@@ -2,13 +2,27 @@
 
 Explicit underground module axes now use site frame; row solve reservation is conditional and enforced per actual generic/fallback/stacked invocation.73 focused tests pass. Actual cross-axis replay31/39 and budget replay34/39 remain failed; do not claim quality gains. Full engine sweep incomplete. [Details](2026-10-14-module-axis-budget-review.md).
 
+## Latest: comparison workbook and auto routing
+
+See 2026-10-14-auto-routing.md for measured comparison, policies and limits.
+
 ## 2026-10-14 - Outdoor component precision
 
 Actual rotated-site numerical islands falsely increased fragmentation. Owner and MasterPlan observer fixed; matched HTTP remeasurement on isolated18479. Shared18449 restarted and actual layouts revalidated. Exact building/basement configuration signatures added;19 affected tests pass. [Details](2026-10-14-outdoor-component-precision.md).
 
+Latest: [Router speed and accuracy; corrected task ownership](2026-10-14-routing-performance.md).
+
+Latest: [MAS implementation and quota diagnosis](2026-10-14-mas-implementation.md).
+
 # Editor backend — memory index (read this first)
 
+- [2026-10-14 mass geometry](2026-10-14-mass-geometry.md): centroid, concave loft, component/height-band preservation, curved shell thickness and actual external LLM/VLM verification; final cycle status in linked MassAgent report.
+
+- [2026-10-14 MAS evaluation](2026-10-14-mas-evaluation.md): routing scores, model fallback, canonical plan and thesis evidence; design diversity still unmeasured.
+
 - [2026-10-13 road aisle](2026-10-13-road-aisle.md): Law-bound external road geometry, candidate generation and independent per-stall validation; actual CLI comparison and unsupported scope.
+
+- 2026-10-13 Program scoped Law completion: see [contract decision](07-decisions.md). Positive bounded comparisons are separated from broad legal clearance; default full scope remains fail-closed.
 
 - [2026-10-13 five-path review](2026-10-13-five-review.md): required targets, diverse candidates, declared-door routing, source-bound measurements; actual before/after evidence and remaining owner gaps.
 

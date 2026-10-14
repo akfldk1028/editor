@@ -4,6 +4,16 @@ import { ConversationArtifacts } from './ConversationArtifacts'
 
 const artifact = { id: 'intent-review', owner: 'orchestrator', title: '검토', status: 'awaiting_confirmation', data: { kind: 'intent_reconfirmation', context_hash: 'a'.repeat(64), context: { nodes: { requirement: 4 } }, proposed_intent: { description: 'Review this intent' } } }
 
+test('layout candidates have an explicit choice action distinct from intent approval', () => {
+  const choice = { ...artifact, title: '중정안', data: { kind: 'layout_selection', context_hash: 'a'.repeat(64), context: {}, candidate_id: 'a', candidate: { status: 'needs_evidence', metrics: { area: 50 } } } }
+  const html = renderToStaticMarkup(<ConversationArtifacts artifacts={[choice]} onConfirm={() => {}} />)
+  expect(html).toContain('이 안 선택')
+  expect(html).not.toContain('변경된 조건으로 설계 의도 확인')
+  expect(html).toContain('설계 승인')
+  const stale = renderToStaticMarkup(<ConversationArtifacts artifacts={[{ ...choice, status: 'stale' }]} onConfirm={() => {}} />)
+  expect(stale).not.toContain('<button')
+})
+
 test('reviewable server confirmation has one action; ordinary proposals have none', () => {
   const html = renderToStaticMarkup(<ConversationArtifacts artifacts={[artifact]} onConfirm={() => {}} />)
   expect(html).toContain('변경된 조건으로 설계 의도 확인')
@@ -50,4 +60,20 @@ test('confirmation foregrounds intent and hides context/hash inside collapsed re
   expect(html.indexOf('a'.repeat(64))).toBeGreaterThan(evidenceAt)
   expect(html.indexOf('requirement')).toBeGreaterThan(evidenceAt)
   expect(html).not.toContain('intent_reconfirmation')
+})
+
+test('a workflow is one card in the user\'s words: how the owners worked together and each step\'s state, never step ids, tool names or codes', () => {
+  const workflow = { id: 'workflow.abc', owner: 'orchestrator', title: 'mesh', status: 'needs_evidence', data: {
+    protocol: 'mesh', status: 'needs_evidence', revision: 5, selection: { mode: 'auto', rule_id: 'selective_dependencies' },
+    steps: { facility_criteria: { owner: 'law', tool: 'law_facility_criteria', phase: 'verify', status: 'needs_evidence', code: 'law_evidence_only', message: '조례 원문이 필요해요.' },
+             operating_draft: { owner: 'program', tool: 'program_from_brief', phase: 'propose', status: 'succeeded', title: '운영 조건으로 공간 초안을 만든다' } },
+    edges: [{ source: 'facility_criteria', target: 'operating_draft' }],
+  } }
+  const html = renderToStaticMarkup(<ConversationArtifacts artifacts={[workflow]} onConfirm={() => {}} />)
+  expect(html).toContain('함께 작업 · 필요한 것만 이어서')
+  expect(html).toContain('근거 보완 필요')
+  expect(html).toContain('운영 조건으로 공간 초안을 만든다')
+  expect(html).toContain('조례 원문이 필요해요.')
+  expect(html.indexOf('Law Agent')).toBeLessThan(html.indexOf('Program Agent'))
+  for (const raw of ['facility_criteria', 'law_facility_criteria', 'law_evidence_only', 'selective_dependencies', 'mesh', '<button']) expect(html).not.toContain(raw)
 })

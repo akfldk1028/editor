@@ -35,6 +35,12 @@
 .conversation-artifact summary span { margin-inline-start: 10px; color: var(--muted); }
 .conversation-artifact summary .conversation-artifact-status { display: inline-block; padding: 2px 7px; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); background: var(--subtle); }
 .conversation-artifact-status[data-tone="attention"] { border-color: var(--warning); }
+.conversation-workflow-steps { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.conversation-workflow-steps li { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: baseline; padding: 6px 8px; border-radius: var(--radius-s); background: var(--subtle); }
+.conversation-workflow-steps li[data-state="running"] { outline: 1px solid var(--accent); }
+.conversation-workflow-owner { color: var(--muted); white-space: nowrap; }
+.conversation-workflow-title small { margin-inline-start: 6px; color: var(--muted); }
+.conversation-workflow-message { grid-column: 1 / -1; margin: 2px 0 0; color: var(--muted); }
 .conversation-artifact summary .conversation-artifact-status[data-tone="attention"] { color: var(--warning); }
 .conversation-artifact summary .conversation-artifact-status[data-tone="confirmed"] { color: var(--success); }
 .conversation-intent-label { margin-block: 14px 6px; color: var(--ink); font-weight: 600; }

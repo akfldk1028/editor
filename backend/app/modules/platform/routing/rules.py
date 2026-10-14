@@ -56,8 +56,9 @@ class Route:
     decided_by: str = 'rules'
     # What the Orchestrator says to the agent it chose (Magentic-One `instruction_or_question`); None when rules decided.
     instruction: str | None = None
+    fallback_reason: str | None = None
 
     def to_dict(self) -> dict:
         return {'kind': self.kind, 'agent': self.agent, 'skill': self.skill, 'goal': self.goal, 'confidence': self.confidence,
                 'reason': self.reason, 'choices': [{'agent': c.agent, 'label': c.label} for c in self.choices],
-                'decided_by': self.decided_by, 'instruction': self.instruction}
+                'decided_by': self.decided_by, 'instruction': self.instruction, 'fallback_reason': self.fallback_reason}

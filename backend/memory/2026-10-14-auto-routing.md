@@ -1,0 +1,13 @@
+# Comparison workbook and automatic policy - 2026-10-14
+
+User requested visible per-pattern comparison sheet and automatic orchestration based on request characteristics. Session remains routing/conducting only; domain agents own design computation.
+
+Deliverable: editor/outputs/router-comparison-20261014/the generated comparison workbook (.xlsx). Six tabs: routing comparison, cooperation automatic selection, per-owner scores, browser latency, per-case raw observations, paired cooperation observations. Artifact Tool authored/recalculated/exported/reopened; headline counts 53,54,6,7,54 verified; no formula errors. Formula-linked counts/rates/latencies, real zero vs unmeasured preserved. Development labels are not held-out evidence.
+
+Editor policy: EDITOR_ROUTING_JUDGE=auto set in the existing local env file (no credentials logged). Explicit role and deterministic patterns first. Only one uncontested role with at least two non-contained keyword matches gets immediate rules routing; other requests use model judgment, and failures retain declared cooldown fallback. Evaluator supports auto and no longer skips arbitrary later cases with a synthetic circuit. Real quota-mode auto benchmark54/54 with20 fallback decisions and zero successful model decisions; not a model-quality score. Chrome20 direct auto-rule requests all HTTP200/Plan/no fallback.
+
+Central: cooperation auto classifies actual graph as sequential, parallel, star, mesh, debate or evaluator_optimizer. Explicit protocol remains explicit. Full propose/review/revise chain triggers independent review enforcement; correction of an existing artifact does not require a fabricated new proposal cycle. Existing receipt/owner/confirmation/budget guards retained. Selection basis is recorded in workflow artifact. This is an engineering policy, not a learned optimal topology. Star currently means independent spokes feeding one collecting hub; Mesh is a DAG, not cyclic all-to-all communication.
+
+Real paired A2A health probe: same Law/Site reads, 5 randomized-order blocks seed20261014. Sequential p50=5612.954ms, completed5/5; Parallel p50=5065.281ms, completed4/5, needs_evidence1/5 due Law's editor-domain dependency timeout. No causal attribution of that timeout to topology. No design-quality/diversity comparison; those sheet cells remain unmeasured.
+
+Verification: editor40 scoped tests, central36; independent review found standalone-correction regression, fixed and covered. Backend and idle Orchestrator restarted through host supervisor; both healthy after reload. No geometry generation added by this work. User-facing comparison is provisional; broad pattern efficacy needs matched domain tasks, budgets, repetitions, and independent labels.

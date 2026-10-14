@@ -3,6 +3,8 @@ import { confirmationFor } from '@/lib/design-conversation/confirmation'
 import { artifactStatus } from '@/lib/design-conversation/artifact-status'
 import { type RequirementsSheet, requirementsSheet } from '@/lib/agents/requirement/lib/sheet'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
+import { workflowOf } from '@/lib/design-conversation/workflow'
+import { WorkflowCard } from './WorkflowCard'
 
 /** Field names any owner's artifact may carry, in the user's words; unknown keys keep their name. */
 const FIELD_LABELS: Record<string, string> = {
@@ -58,17 +60,24 @@ export function ConversationArtifacts({ artifacts, onConfirm, disabled = false }
   return <section className="conversation-artifacts" aria-label="대화 결과">
     {sheet && <RequirementsCard sheet={sheet} />}
     {rest.map((artifact) => {
+      const flow = workflowOf(artifact)
+      if (flow) return <WorkflowCard flow={flow} key={artifact.id} />
       const confirmation = confirmationFor(artifact)
+      const choice = artifact.data.kind === 'layout_selection'
+      const candidate = choice ? artifact.data.candidate as Record<string, unknown> : null
       const status = artifactStatus(artifact.status)
       const { proposed_intent, kind: _kind, ...evidence } = artifact.data
       return <details className="conversation-artifact" key={artifact.id} open={!!confirmation}>
         <summary><strong>{artifactTitle(artifact)}</strong><span>{agentLabel(artifact.owner)}</span><span className="conversation-artifact-status" data-tone={status.tone}>{status.label}</span></summary>
-        {confirmation ? <>
+        {choice ? <>
+          <p>이 안을 선택해 다음 검토를 진행합니다. 선택은 설계 승인을 의미하지 않습니다.</p>
+          <Value value={candidate?.metrics ?? {}} />
+        </> : confirmation ? <>
           <p className="conversation-intent-label">검토할 설계 의도</p>
           <Value value={proposed_intent} />
           <details className="conversation-review-evidence"><summary>검토 근거</summary><Value value={evidence} /></details>
         </> : <Value value={artifact.data} />}
-        {onConfirm && confirmation && <button className="agent-answer" data-primary="true" disabled={disabled} onClick={() => onConfirm(artifact)} type="button">변경된 조건으로 설계 의도 확인</button>}
+        {onConfirm && confirmation && <button className="agent-answer" data-primary="true" disabled={disabled} onClick={() => onConfirm(artifact)} type="button">{choice ? '이 안 선택' : '변경된 조건으로 설계 의도 확인'}</button>}
       </details>
     })}
   </section>

@@ -41,7 +41,8 @@ def create_ask_router(allowed_origin, trace_recorder=None, agent=None, owner=Non
     @router.post('/ask')
     async def ask(body: AskCreate, request: Request):
         same_origin(request)
-        situation = describe(pnu=body.pnu, address=body.address, assessment_date=body.assessment_date, agents=await agents())
+        async def situation():
+            return describe(pnu=body.pnu, address=body.address, assessment_date=body.assessment_date, agents=await agents())
         return await answer(ask_law(body.text, pnu=body.pnu, assessment_date=body.assessment_date, recorder=recorder,
                                     traceparent=request.headers.get('traceparent'), role=body.role, situation=situation,
                                     clause=body.clause.model_dump() if body.clause else None, ledger=ledger, conversation_id=body.conversation_id, **kwargs))

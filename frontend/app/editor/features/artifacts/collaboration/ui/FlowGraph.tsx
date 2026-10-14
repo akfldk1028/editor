@@ -11,10 +11,11 @@ import { agentLabel } from '@/lib/orchestrator-runs/labels'
 import type { CatalogEntry, LiveState } from '../lib/catalog'
 import { buildGraph, CARD_HEIGHT, CARD_WIDTH, type GraphNode, NODE_HEIGHT, NODE_WIDTH, partyOf } from '../lib/graph'
 import type { CollaborationMessage } from '../lib/transcript'
+import { phaseLabel, protocolLabel, stepStatus, type Workflow } from '@/lib/design-conversation/workflow'
 import { SaidViewer } from './SaidViewer'
 import './collaboration.css'
 
-type FlowNodeData = Pick<GraphNode, 'label' | 'sub' | 'kind' | 'order' | 'selected' | 'idle' | 'live' | 'said' | 'items'> & { agent: string }
+type FlowNodeData = Pick<GraphNode, 'label' | 'sub' | 'kind' | 'order' | 'selected' | 'idle' | 'live' | 'said' | 'items'> & { agent: string; workflowStatus?: string }
 type FlowNode = Node<FlowNodeData, 'agent' | 'said'>
 
 /** Below this width the flow stacks into one column; wider canvases read left to right. */
@@ -43,6 +44,7 @@ function AgentNode({ data }: NodeProps<FlowNode>) {
         {data.order !== null && <b className="collab-order">{data.order}</b>}
         <span className="collab-mark"><Icon aria-hidden="true" size={13} /></span>
         <span>{data.label}</span>
+        {data.workflowStatus && <small>{data.workflowStatus}</small>}
         {data.live && <span className="collab-live" data-state={data.live} title={LIVE_TITLE[data.live]} />}
       </header>
       {data.items.length ? <SaidViewer items={data.items} onToggle={() => setOpen((value) => !value)} open={open} /> : data.sub ? <p>{data.sub}</p> : null}
@@ -94,6 +96,7 @@ function Refit({ when, compact, bounds, size, held }: { when: string; compact: b
 }
 
 interface Props {
+  workflow?: Workflow
   messages: readonly CollaborationMessage[]
   selected?: string | null
   onSelect?: (agent: string | null) => void
@@ -106,7 +109,7 @@ interface Props {
 }
 
 /** The flow as it ran: the person → the Orchestrator → the agents it called, left to right and numbered, what was said on dashed moving edges; every other agent waits below. Cards drag and stay where they are dropped. */
-export default function FlowGraph({ messages, selected = null, onSelect, catalog, live, compact = false }: Props) {
+export default function FlowGraph({ messages, selected = null, onSelect, catalog, live, compact = false, workflow }: Props) {
   // The canvas's own width decides the orientation: a narrow panel stacks the flow, a wide one reads left to right.
   const host = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState<number | null>(null)
@@ -142,18 +145,21 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
       const known = new Map(current.map((node) => [node.id, node]))
       return graph.nodes.map((node) => {
         const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id, said: node.said, items: node.items }
+        const steps = Object.values(workflow?.steps ?? {}).filter(step => step.owner === node.id)
+        // An owner with several steps shows the one furthest from done: running, then waiting, then any trouble.
+        if (steps.length) data.workflowStatus = stepStatus((['running', 'pending', 'failed', 'blocked', 'needs_revision', 'needs_evidence'].find(status => steps.some(step => step.status === status)) ?? 'succeeded')).label
         const old = known.get(node.id)
         const position = old && moved.current.has(node.id) ? old.position : node.position
         if (old && old.position.x === position.x && old.position.y === position.y && JSON.stringify(old.data) === JSON.stringify(data)) return old
         return { ...old, id: node.id, type: node.kind === 'said' ? 'said' : 'agent', position, draggable: true, data }
       })
     })
-  }, [graph, setNodes])
+  }, [graph, setNodes, workflow])
   useEffect(() => {
     setNodes((current) => current.map((node) => (node.data.selected === (node.id === selected) ? node : { ...node, data: { ...node.data, selected: node.id === selected } })))
   }, [selected, setNodes])
 
-  const edges = useMemo<Edge[]>(() => graph.edges.map((edge) => {
+  const communicationEdges = useMemo<Edge[]>(() => graph.edges.map((edge) => {
     const spoken = edge.kind === 'request' || edge.kind === 'response'
     const back = edge.kind === 'response'
     const className = `collab-edge-${edge.kind}${edge.known ? '' : ' collab-edge-unknown'}${edge.running ? ' collab-edge-running' : ''}`
@@ -186,6 +192,25 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
       markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: back ? 'var(--success)' : 'var(--accent)' },
     }
   }), [graph])
+  // A workflow's dependencies drawn between owners: one line per pair of owners (several steps share it, their
+  // phases joined on the label); a step that depends on the same owner's earlier step is that owner's own business.
+  const edges = useMemo<Edge[]>(() => {
+    const pairs = new Map<string, { source: string; target: string; labels: string[]; running: boolean }>()
+    for (const edge of workflow?.edges ?? []) {
+      const from = workflow!.steps[edge.source]!, to = workflow!.steps[edge.target]!
+      if (from.owner === to.owner || !graph.nodes.some(node => node.id === from.owner) || !graph.nodes.some(node => node.id === to.owner)) continue
+      const key = `${from.owner}>${to.owner}`
+      const pair = pairs.get(key) ?? { source: from.owner, target: to.owner, labels: [], running: false }
+      const label = `${phaseLabel(from.phase)} → ${phaseLabel(to.phase)}`
+      if (!pair.labels.includes(label)) pair.labels.push(label)
+      pair.running ||= to.status === 'running'
+      pairs.set(key, pair)
+    }
+    return [...communicationEdges, ...[...pairs.entries()].map(([key, pair]) => ({
+      id: `workflow:${workflow!.id}:${key}`, source: pair.source, target: pair.target, sourceHandle: 's-bottom', targetHandle: 't-top', type: 'smoothstep',
+      label: pair.labels.join(' · '), animated: pair.running, className: 'collab-edge-next', markerEnd: { type: MarkerType.ArrowClosed },
+    }))]
+  }, [communicationEdges, workflow, graph])
 
   // A line runs to and from a card: clicking it, like clicking the card, picks the agent the card is about.
   const partyAt = (source: string, target: string) =>
@@ -216,7 +241,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     )
   }
   return (
-    <div className="collab-graph" data-compact={compact ? 'true' : 'false'} data-edge-count={edges.length} data-node-count={nodes.length} data-orientation={vertical ? 'vertical' : 'horizontal'} ref={host} style={height ? { blockSize: height } : undefined}>
+    <div className="collab-graph" data-workflow-id={workflow?.id} data-workflow-revision={workflow?.revision} data-protocol={workflow?.protocol} data-compact={compact ? 'true' : 'false'} data-edge-count={edges.length} data-node-count={nodes.length} data-orientation={vertical ? 'vertical' : 'horizontal'} ref={host} style={height ? { blockSize: height } : undefined}>
       <ReactFlowProvider>
         <ReactFlow
           edges={edges}
@@ -241,7 +266,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
           <Refit bounds={bounds} compact={compact} held={userMoved} size={height} when={layoutKey} />
         </ReactFlow>
       </ReactFlowProvider>
-      {!compact && <p className="collab-pattern">진행 순서 · {[agentLabel(ORCHESTRATOR), ...order].join(' → ')}</p>}
+      {!compact && <p className="collab-pattern">{workflow ? `함께 작업 · ${protocolLabel(workflow.protocol)} · ` : '진행 순서 · '}{[agentLabel(ORCHESTRATOR), ...order].join(' → ')}</p>}
     </div>
   )
 }

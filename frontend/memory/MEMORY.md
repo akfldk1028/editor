@@ -1,5 +1,9 @@
 # Editor frontend — memory index (read this first)
 
+- [2026-10-14 actual chat/pattern verification](2026-10-14-chat-pattern-verification.md): auto Mesh reaches Program; intent boundary fixed centrally; research step limits and transient502 remain.
+
+- [2026-10-14 conversation sidebar](2026-10-14-conversation-sidebar.md): conversation history in the far-left sidebar, persisted identity, preserved CAD module and browser regression.
+
 Working memory for any AI session on the editor **frontend** (`D:\Data\25_ACE\editor\frontend`,
 the Next app is `frontend/app/editor`). Read this index, then the file for your task. Facts
 carry dates; update the matching file when you learn something durable. Upstream Pascal

@@ -68,3 +68,44 @@ def test_a_conversation_workspace_takes_a_scene_refresh_before_its_branch_has_a_
     refreshed = client.post(f"/api/v1/platform/projects/{made['project_id']}/scene-revision",
                             json={'expected_scene_revision': 2, 'scene_revision': 3})
     assert refreshed.status_code == 200 and refreshed.json()['scene_revision'] == 3
+
+
+def test_conversation_identity_survives_repository_restart(tmp_path):
+    from backend.app.modules.platform.repository import ProjectRepository
+    client, repository, binding, _ = setup(tmp_path)
+    made = client.post(f'/api/v1/platform/projects/{binding.project_id}/conversations').json()
+    assert made['conversation_id']
+    restored = ProjectRepository(tmp_path).get('local', made['project_id'])
+    assert restored.conversation_id == made['conversation_id']
+    assert made['updated_at'] == made['created_at']
+
+
+def test_legacy_conversation_adopts_its_existing_identity_without_overwriting_it(tmp_path):
+    client, repository, binding, _ = setup(tmp_path)
+    made = client.post(f'/api/v1/platform/projects/{binding.project_id}/conversations').json()
+    with repository.connect() as db:
+        db.execute('UPDATE projects SET conversation_id=NULL WHERE project_id=?', (made['project_id'],))
+    repository.touch_conversation('local', made['project_id'], 'legacy-thread')
+    repository.touch_conversation('local', made['project_id'], 'another-thread')
+    assert repository.get('local', made['project_id']).conversation_id == 'legacy-thread'
+
+
+def test_legacy_history_recovers_identity_from_scoped_ledger_without_changing_recency(tmp_path):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from backend.app.modules.ledger import Ledger
+    from backend.app.modules.platform.projects import ProjectService
+    from backend.app.modules.platform.routers.platform import create_platform_router
+    client, repository, binding, sources = setup(tmp_path)
+    made = client.post(f'/api/v1/platform/projects/{binding.project_id}/conversations').json()
+    with repository.connect() as db:
+        db.execute('UPDATE projects SET conversation_id=NULL WHERE project_id=?', (made['project_id'],))
+    ledger = Ledger(tmp_path / 'history')
+    ledger.begin(from_agent='user', to_agent='orchestrator', tool='conversation', conversation_id='old-thread',
+                 project=made['owner_project_id'], branch=made['branch_id'])
+    app = FastAPI()
+    app.include_router(create_platform_router(project_service=ProjectService(repository, sources, sources), ledger=ledger))
+    items = TestClient(app).get('/api/v1/platform/projects').json()
+    restored = next(item for item in items if item['project_id'] == made['project_id'])
+    assert restored['conversation_id'] == 'old-thread'
+    assert restored['updated_at'] == made['updated_at']

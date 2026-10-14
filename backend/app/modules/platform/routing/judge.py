@@ -14,15 +14,17 @@ from __future__ import annotations
 
 import os
 import re
+import time
+from threading import Lock
 from typing import Awaitable, Callable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from backend.app.core.model_auth import model_auth_mode
 from backend.app.modules.platform.routing import cards
 from backend.app.modules.platform.routing.roles import DESCRIPTIONS, ROLES
 
-ENV = 'EDITOR_ROUTING_JUDGE'          # llm | rules; unset = llm when the Claude CLI login is available
+ENV = 'EDITOR_ROUTING_JUDGE'          # auto | llm | rules
 TIMEOUT_S = 45.0
 MAX_JSON_RETRIES = 2                  # Magentic-One retries an invalid ledger / unknown speaker
 ORCHESTRATOR = 'orchestrator'
@@ -49,6 +51,7 @@ class Ledger(BaseModel):
     instruction_or_question: LedgerEntryStringAnswer
 
 
+Situation = str | Callable[[], Awaitable[str]]
 Judge = Callable[[str, str], Awaitable[Ledger | None]]
 
 PROGRESS_LEDGER_PROMPT = """
@@ -63,6 +66,13 @@ What we know right now (the situation; use it, never invent facts beyond it):
 And we have assembled the following team:
 
 {team}
+
+Choose the owner of the requested operation even when its execution needs a missing parcel,
+project, geometry, budget or other parameter. The selected specialist can ask for that evidence;
+missing execution parameters alone do not make the routing intent unclear. Distinguish obtaining
+existing site facts from proposing a new design or checking a legal limit. Route the operation the
+user asks for, not every domain mentioned as context. Ask as Orchestrator only when the responsible
+owner itself is genuinely ambiguous or the user requests several distinct owners' operations.
 
 To make progress on the request, please answer the following questions, including necessary reasoning:
 
@@ -126,37 +136,97 @@ def progress_ledger_prompt(task: str, situation: str = '', live: dict[str, dict 
                                          names=', '.join(participants(extra)), orchestrator=ORCHESTRATOR)
 
 
-def enabled(env=os.environ) -> bool:
+def policy(env=os.environ) -> str:
     value = str(env.get(ENV) or '').strip().lower()
-    if value in ('llm', 'rules'):
-        return value == 'llm'
-    return model_auth_mode(env) == 'oauth'
+    if value in ('auto', 'llm', 'rules'):
+        return value
+    return 'llm' if model_auth_mode(env) == 'oauth' else 'rules'
 
 
-async def judge(text: str, situation: str = '', *, client=None, roster=cards.roster) -> Ledger | None:
+def enabled(env=os.environ) -> bool:
+    return policy(env) != 'rules'
+
+
+def error_code(error: Exception) -> str:
+    text = str(error).lower()
+    if 'limit' in text and ('weekly' in text or 'usage' in text or 'hit your' in text):
+        return 'model_usage_limit'
+    if 'rate limit' in text or 'rate_limit' in text:
+        return 'model_rate_limit'
+    if 'oauth' in text or 'unauthorized' in text or 'authentication' in text or 'not logged in' in text:
+        return 'model_authentication'
+    if isinstance(error, TimeoutError) or 'timed out' in text or 'timeout' in text:
+        return 'model_timeout'
+    return 'model_unavailable'
+
+
+class FailureBackoff:
+    def __init__(self, now=time.monotonic):
+        self.now = now
+        self.until = 0.0
+        self.lock = Lock()
+
+    def blocked(self):
+        with self.lock:
+            return self.now() < self.until
+
+    def failed(self, code):
+        cooldown = 60 if code in ('model_usage_limit', 'model_authentication') else 15
+        with self.lock:
+            self.until = max(self.until, self.now() + cooldown)
+
+
+_backoff = FailureBackoff()
+
+
+async def judge(text: str, situation: Situation = '', *, client=None, roster=cards.roster, on_error=None,
+                on_prompt: Callable[[str], None] | None = None, backoff=_backoff) -> Ledger | None:
     """The ledger for one question in a situation (site, goals, which agents are up: data, not prose written here),
     the team described by the agents' live A2A cards; None when the model is unavailable or never named a
     participant (rules then decide)."""
+    shared_client = client is None
+    if shared_client and backoff.blocked():
+        if on_error:
+            on_error('model_circuit_open')
+        return None
     try:
         from autogen_core.models import UserMessage
 
         from backend.app.adapters.cli_model_client import ClaudeCodeChatCompletionClient
 
         model = client or ClaudeCodeChatCompletionClient(timeout_s=TIMEOUT_S)
-    except Exception:
+    except Exception as error:
+        if on_error:
+            on_error(error_code(error))
         return None
+    if callable(situation):
+        situation = await situation()
     extra = extras()
     try:
         live = await roster([*_ROLE_AGENTS, *extra])
     except Exception:
         live = None
     names = set(participants(extra))
+    prompt = progress_ledger_prompt(text, situation, live, extra)
+    if on_prompt:
+        on_prompt(prompt)
     for _ in range(MAX_JSON_RETRIES + 1):
         try:
-            result = await model.create([UserMessage(content=progress_ledger_prompt(text, situation, live, extra), source=ORCHESTRATOR)], json_output=Ledger)
-            ledger = Ledger.model_validate_json(result.content if isinstance(result.content, str) else '{}')
-        except Exception:
+            result = await model.create([UserMessage(content=prompt, source=ORCHESTRATOR)], json_output=Ledger)
+        except Exception as error:
+            code = error_code(error)
+            if shared_client:
+                backoff.failed(code)
+            if on_error:
+                on_error(code)
             return None
+        try:
+            ledger = Ledger.model_validate_json(result.content if isinstance(result.content, str) else '{}')
+        except ValidationError:
+            # A malformed ledger is the model's answer, not an outage: ask again, never open the circuit.
+            continue
         if ledger.next_speaker.answer in names:
             return ledger
+    if on_error:
+        on_error('model_invalid_speaker')
     return None

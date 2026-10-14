@@ -62,6 +62,8 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
                 raise HTTPException(503, 'Conversation providers unavailable') from None
         try:
             snapshot = await remote.exchange(binding.owner_project_id, binding.branch_id, conversation_id, body)
+            if body is not None or (binding.conversation_id is None and snapshot.messages):
+                projects_service().repository.touch_conversation('local', project_id, conversation_id)
             settle_turns(ledger, snapshot)
             return snapshot
         except ConversationRejected as exc:
@@ -99,7 +101,10 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
             # 200 `{located}` instead of the 202 snapshot; the owner's conversation does not record the address.
             if projects_service().repository.get('local', project_id) is None:
                 raise HTTPException(404, 'Project not found')
-            return JSONResponse({'located': await locate_site(claim['query'])})
+            located = await locate_site(claim['query'])
+            projects_service().repository.name_conversation('local', project_id, conversation_title(body.text))
+            projects_service().repository.touch_conversation('local', project_id, body.conversation_id)
+            return JSONResponse({'located': located})
         # A sentence that names a site ("산곡동 684-1에 어린이집을…") goes to the owner as written, but the editor locates
         # the site first (the model judges whether a site is named — `routing/site_mention`): the message carries that
         # parcel as its context, and the answer carries `located` so the map moves there. Nothing named (or not

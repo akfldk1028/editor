@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 
 import { ArtifactHost } from './artifact-host/ArtifactHost'
 import type { ShellApi } from './artifact-types'
-import { AgentConversation, AgentConversationActions, AgentConversationHeading } from './conversation/AgentConversation'
+import { AgentConversation, AgentConversationHeading } from './conversation/AgentConversation'
 import { AgentFeed } from './conversation/AgentFeed'
 import { ConversationSlot } from './conversation/ConversationSlot'
 import { layout } from './layout/layoutModes'
@@ -75,6 +75,7 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
   })
   const [initial] = useState(initialLocation)
   const [artifactId, setArtifactId] = useState(initial.id)
+  const [showPageConversation, setShowPageConversation] = useState(artifactById(initial.id)?.conversation === 'page')
   const [params, setParams] = useState<Record<string, string>>(initial.params)
   // The artifact shown before this one, so the flow (opened from the map, the law reader, CAD …) can lead back to it.
   const [previous, setPrevious] = useState<{ id: string; params: Record<string, string> } | null>(null)
@@ -86,6 +87,7 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
 
   const openArtifact = useCallback((id: string, next?: Record<string, string>) => {
     if (!artifactById(id)) return
+    setShowPageConversation(artifactById(id)?.conversation === 'page')
     if (id !== artifactId) {
       setPrevious({ id: artifactId, params })
       setTextTitle(null)
@@ -107,7 +109,7 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
 
   const { mode, sidebarPresentation, artifactVisible, artifactMounted, artifactPresentation, artifactMaximized } = controls
   // The centre column: the agent conversation, unless the active artifact brings the page's own (CAD).
-  const pageConversation = manifest.conversation === 'page'
+  const pageConversation = manifest.conversation === 'page' && showPageConversation
 
   // Closing from the artifact's own X sends focus to the button that brings it back, once that button is drawn.
   const focusAfterClose = useRef(false)
@@ -141,6 +143,11 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
             headingActions={sidebarActions}
             onClose={controls.closeSidebar}
             onExpandedChange={controls.setSidebarExpanded}
+            onOpenConversation={() => {
+              setShowPageConversation(false)
+              controls.showNarrowPanel('conversation')
+              if (sidebarPresentation === 'drawer') controls.closeSidebar()
+            }}
             onOpenArtifact={(id) => {
               openArtifact(id)
               if (sidebarPresentation === 'drawer') controls.closeSidebar()
@@ -155,7 +162,7 @@ function ShellContent({ brand, sidebar, sidebarActions, conversation, workspaceW
         {sidebarPresentation === 'inline' && <div className="sidebar-resizer" {...controls.sidebarSeparatorProps} />}
 
         <ConversationSlot
-          actions={pageConversation ? conversation.actions : <AgentConversationActions />}
+          actions={pageConversation ? conversation.actions : undefined}
           artifactButtonRef={controls.artifactButtonRef}
           artifactLabel={manifest.label}
           artifactTitle={manifest.title}

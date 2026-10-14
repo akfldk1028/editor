@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test'
 import { ConversationController } from './controller'
 import { parseConversation } from './client'
 import { confirmationFor } from './confirmation'
+import { addProject, currentProjects } from './projects'
 import type { ConversationSnapshot, ConversationSubmission } from './types'
 
 const snapshot = (revision = 0, status: ConversationSnapshot['status'] = 'idle'): ConversationSnapshot => ({ conversation_id: 'main', revision, status, messages: [], artifacts: [], error: null })
@@ -11,6 +12,16 @@ const create = (...args: ConstructorParameters<typeof ConversationController>) =
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 async function until(check: () => boolean) { for (let n = 0; n < 100 && !check(); n++) await new Promise((resolve) => setTimeout(resolve, 2)); expect(check()).toBe(true) }
 afterEach(() => { controllers.forEach((controller) => { controller.stop() }); controllers.length = 0 })
+
+test('accepted ordinary messages update the sidebar title without a transient feed entry', async () => {
+  addProject({ project_id: 'title-project', owner_project_id: 'owner', branch_id: 'c-title', scene_id: 's', scene_revision: 1,
+    scene_project_id: null, conversation: true })
+  const controller = create('title-project', 'main', { get: async () => snapshot(), post: async () => snapshot(1) })
+  controller.start(); await flush(); controller.send('어린이집 설계', {}); await flush()
+  expect(currentProjects().items.find((item) => item.project_id === 'title-project')?.title).toBe('어린이집 설계')
+  controller.send('다음 질문', {}); await flush()
+  expect(currentProjects().items.find((item) => item.project_id === 'title-project')?.title).toBe('어린이집 설계')
+})
 
 test('switching projects isolates late responses and retains dispatched work for returning to that project', async () => {
   const read = deferred<ConversationSnapshot>()

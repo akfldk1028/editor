@@ -25,7 +25,11 @@ const set = (next: Partial<ProjectsState>) => { state = { ...state, ...next }; e
 /** Reads the list again (one request at a time); the answer reaches every panel. */
 export function refreshProjects(): Promise<ProjectBinding[]> {
   if (inflight) return inflight
+  const before = new Map(state.items.map((item) => [item.project_id, item]))
   inflight = listProjects().then((items) => {
+    const changed = state.items.filter((item) => before.get(item.project_id) !== item)
+    items = items.map((item) => changed.find((local) => local.project_id === item.project_id) ?? item)
+    items.push(...changed.filter((item) => !items.some((remote) => remote.project_id === item.project_id)))
     set({ items, loading: false, error: null })
     return items
   }).catch((error: unknown) => {
@@ -42,6 +46,14 @@ export function addProject(binding: ProjectBinding) {
 }
 
 export const currentProjects = () => state
+
+export function noteConversation(projectId: string, text: string) {
+  const title = text.split('\n', 1)[0]!.trim().replace(/\s+/g, ' ')
+  set({ items: state.items.map((item) => item.project_id === projectId && item.conversation ? {
+    ...item, title: item.title || (title.length > 40 ? `${title.slice(0, 40).replace(/\s+\S*$/, '') || title.slice(0, 40)}…` : title),
+    updated_at: new Date().toISOString(),
+  } : item) })
+}
 const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }
 
 /** The shared list; the first panel to ask loads it. */
