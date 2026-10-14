@@ -548,6 +548,9 @@ def _parameter_issues(node: GeometryNode) -> list[GeometryIssue]:
         "guest_extent": 3,
     }
     for parameter_name, length in vector_lengths.items():
+        # A fraction selects a named side; attachment anchors remain local u/v.
+        if parameter_name == "anchor" and node.operator == "clip_fraction":
+            continue
         if parameter_name in params and not _vector(params[parameter_name], length):
             issues.append(GeometryIssue(
                 "invalid_vector_parameter",
@@ -555,6 +558,7 @@ def _parameter_issues(node: GeometryNode) -> list[GeometryIssue]:
                 node.id,
             ))
     enum_contracts = {
+        ("clip_fraction", "anchor"): {"start", "center", "end", "low", "middle", "high", "negative", "positive"},
         ("cut_corner", "corner"): {"ne", "nw", "se", "sw"},
         ("notch", "corner"): {"ne", "nw", "se", "sw"},
         ("setback", "direction"): {"x", "y"},
