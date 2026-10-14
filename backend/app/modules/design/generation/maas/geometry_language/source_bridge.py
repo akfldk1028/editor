@@ -3670,12 +3670,10 @@ def _clip_host_for_band(host, sections, bottom, top):
 
 
 def _clip_world_mesh_to_host(vertices, triangles, host, sections=None):
-    """Intersect a posed mesh with the host prism; keep the largest piece.
+    """Intersect the exact posed mesh, retaining every legal component.
 
-    Returns (vertices, triangles) in the same world frame, or None when the
-    kernel cannot make a solid of it or nothing is left inside. A cut can
-    leave more than one piece (a wing severed at the boundary); the largest
-    is the building and the rest is what the law took.
+    Connectivity and support remain downstream gates; deleting a severed
+    wing here would misrepresent the mathematical intersection they inspect.
     """
     import numpy as np
     import manifold3d as m3d
@@ -3711,7 +3709,7 @@ def _clip_world_mesh_to_host(vertices, triangles, host, sections=None):
         # overlap by a hair: stacked exactly, the kernel's union kept the
         # coincident face between two bands with the same plan as an internal
         # seam, the cut inherited it, decompose() split the building there,
-        # and the largest-piece rule below threw the ground floor away
+        # and the old largest-piece rule threw the ground floor away
         # (comp21: 18 of 24 sentences refused for "no delivered occupied
         # section" on floor 1, whose legal section was the whole parcel).
         ordered = sorted(sections, key=lambda item: float(item[0]))
@@ -3728,40 +3726,8 @@ def _clip_world_mesh_to_host(vertices, triangles, host, sections=None):
     else:
         envelope = prism_of(host, z_low - 1.0, z_high + 1.0)
     cut = m3d.Manifold.batch_boolean([solid, envelope], m3d.OpType.Intersect)
-    if cut.is_empty():
+    if cut.is_empty() or cut.status() != m3d.Error.NoError:
         return None
-    pieces = cut.decompose() or [cut]
-    if len(pieces) > 1:
-        # Pieces that touch are one building: the kernel's decompose splits
-        # a composition of bars meeting face to face (comp24: an array of
-        # three, the upper two dropped and floors 3-5 read at half their
-        # reference). Touching pieces - bounding boxes meeting within a
-        # hair - are clustered, and the cluster with the most volume is
-        # kept; only what stands apart in space is what the law severed.
-        def _size(piece):
-            try:
-                return float(piece.volume())
-            except Exception:  # older kernels: bounding box stands in
-                lo, hi = piece.bounding_box()
-                return float((hi[0] - lo[0]) * (hi[1] - lo[1]) * (hi[2] - lo[2]))
-        boxes = [np.asarray(piece.bounding_box(), dtype=float).reshape(2, 3) for piece in pieces]
-        eps = max(1e-9, (z_high - z_low) * 1e-6)
-        parent = list(range(len(pieces)))
-        def _find(i):
-            while parent[i] != i:
-                parent[i] = parent[parent[i]]
-                i = parent[i]
-            return i
-        for i in range(len(pieces)):
-            for j in range(i + 1, len(pieces)):
-                if all(boxes[i][0][k] <= boxes[j][1][k] + eps and boxes[j][0][k] <= boxes[i][1][k] + eps
-                       for k in range(3)):
-                    parent[_find(i)] = _find(j)
-        clusters: dict[int, list] = {}
-        for index, piece in enumerate(pieces):
-            clusters.setdefault(_find(index), []).append(piece)
-        kept = max(clusters.values(), key=lambda group: sum(_size(piece) for piece in group))
-        cut = kept[0] if len(kept) == 1 else m3d.Manifold.batch_boolean(kept, m3d.OpType.Add)
     out = cut.to_mesh64()
     out_vertices = np.asarray(out.vert_properties, dtype=float)[:, :3]
     out_triangles = np.asarray(out.tri_verts, dtype=np.int64)
@@ -3799,6 +3765,75 @@ IMPOSED_RETENTION = 0.92   # massv2 legal_fit._IMPOSED_RETENTION
 IMPOSE_STEPS = 14          # massv2 legal_fit._IMPOSE_STEPS: 1.0, 0.94, ... 0.22
 
 
+def _metric_pose_centers(constraints):
+    """Intersect height-specific translation domains, then verify real plans."""
+    domain = None
+    points, regions = [], []
+    for projection, host, _weight in constraints:
+        if host.is_empty:
+            domain = host
+            continue
+        centered_host = translate(host, xoff=-projection.centroid.x, yoff=-projection.centroid.y)
+        points.extend((centered_host.centroid, centered_host.representative_point()))
+        regions.append(centered_host)
+        if domain is not None and domain.is_empty:
+            continue
+        for x, y in list(projection.convex_hull.exterior.coords)[:-1]:
+            shifted = translate(host, xoff=-x, yoff=-y)
+            domain = shifted if domain is None else domain.intersection(shifted)
+            if domain.is_empty:
+                break
+    # Hull vertices are necessary constraints only: no convex hull replaces
+    # the actual occupied plan when checking concavities or courtyards.
+    if domain is not None and not domain.is_empty:
+        regions = [domain, *_polygon_parts(domain), *regions]
+    for region in regions:
+        points.extend((region.centroid, region.representative_point()))
+        min_x, min_y, max_x, max_y = region.bounds
+        points.extend(
+            Point(min_x + (max_x - min_x) * i / 8,
+                  min_y + (max_y - min_y) * j / 8)
+            for i in range(9) for j in range(9)
+        )
+    seen = set()
+    for point in points:
+        key = (round(point.x, 8), round(point.y, 8))
+        if key not in seen:
+            seen.add(key)
+            yield point
+
+
+def _solid_plan_projection(solid):
+    import manifold3d as m3d
+    outline = m3d.CrossSection(solid.project().to_polygons(), m3d.FillRule.Positive)
+    projection = None
+    for contour in outline.to_polygons():
+        polygon = Polygon(contour)
+        projection = polygon if projection is None else projection.symmetric_difference(polygon)
+    return projection
+
+
+def _solid_band_projection(solid, lo, hi):
+    """Project occupied band volume without a zero-volume boundary terrace."""
+    mesh = solid.to_mesh64()
+    tolerance = float(solid.get_tolerance())
+    projected = []
+    for triangle in mesh.tri_verts:
+        points = [mesh.vert_properties[index] for index in triangle]
+        if any(all(abs(float(point[2]) - level) <= tolerance for point in points)
+               for level in (lo, hi)):
+            continue
+        polygon = Polygon([(float(point[0]), float(point[1])) for point in points])
+        if polygon.area > 0:
+            projected.append(polygon)
+    # Interior section fills vertical walls' zero-area XY projection; sloped
+    # walls and internal caps contribute every change outside that section.
+    section = solid_section_polygon(solid, (lo + hi) / 2)
+    if section is not None:
+        projected.append(section)
+    return unary_union(projected) if projected else None
+
+
 def _pose_metric_vertices_to_host(compilation, host, *, clip_to_host: bool = False,
                                   clip_sections: tuple | None = None,
                                   facing_angle_deg: float | None = None,
@@ -3824,7 +3859,7 @@ def _pose_metric_vertices_to_host(compilation, host, *, clip_to_host: bool = Fal
     if span <= 1e-9:
         return None
     # An authored angle is a constraint. Search only translation/allowed fit
-    # at that angle; legacy unrequested poses still maximize ground contact.
+    # at that angle, prioritizing the intact projection over ground contact.
     angles = ([float(facing_angle_deg)] if facing_angle_deg is not None else
               [target_angle - source_angle, target_angle - source_angle + 90.0, 0.0])
     ground_section = clip_sections[0][2] if clip_sections else host
@@ -3837,46 +3872,95 @@ def _pose_metric_vertices_to_host(compilation, host, *, clip_to_host: bool = Fal
     # that takes the plot's outline (a 1/1 split, a stack) still inherits it.
     factors = ([1.0 - step * 0.06 for step in range(IMPOSE_STEPS)]
                if (clip_to_host and impose_fit) else [1.0])
-    best = None
-    for center in (host.centroid, host.representative_point()):
+    # Project once: translating one polygon avoids repeating triangle unions
+    # and 3D CSG for every point in the translation search.
+    solid = mesh_section_solid(vertices, compilation.triangles)
+    projection = _solid_plan_projection(solid)
+    if projection is None or projection.is_empty:
+        return None
+    constraints = [(projection, host, 1.0)]
+    if clip_to_host and clip_sections:
+        import manifold3d as m3d
+        min_x, min_y, max_x, max_y = plan.bounds
+        ordered = sorted(clip_sections, key=lambda item: float(item[0]))
+        bands = [(0.0 if i == 0 else max(0.0, float(lo)),
+                  1.0 if i == len(ordered) - 1 else min(1.0, float(hi)), poly)
+                 for i, (lo, hi, poly) in enumerate(ordered)]
+        boundaries = sorted({0.0, 1.0, *(max(0.0, min(1.0, z))
+                                        for lo, hi, _poly in bands for z in (lo, hi))})
+        for lo, hi in zip(boundaries, boundaries[1:]):
+            # Measure only the actual authored portion of this height band.
+            slab = m3d.Manifold.cube((max_x - min_x + 2, max_y - min_y + 2,
+                                     (hi - lo) * span)).translate(
+                                         (min_x - 1, min_y - 1, minimum_z + lo * span))
+            part = solid ^ slab
+            if part.is_empty():
+                continue
+            occupied = _solid_band_projection(part, minimum_z + lo * span, minimum_z + hi * span)
+            if occupied is None or occupied.is_empty:
+                continue
+            middle = (lo + hi) / 2
+            legal = unary_union([poly for bottom, top, poly in bands if bottom <= middle < top])
+            constraints.append((occupied, legal, hi - lo))
+    shortlist = []
+    for factor in factors:
+        sufficient_retention = False
         for angle in angles:
-            chosen = None
-            for factor in factors:
-                matrix = compose_matrix4(
-                    translation_matrix4((-plan.centroid.x, -plan.centroid.y, -minimum_z)),
-                    rotation_matrix4((0.0, 0.0, angle)),
-                    scale_matrix4((factor, factor, 1.0 / span)),
+            origin_matrix = compose_matrix4(
+                translation_matrix4((-plan.centroid.x, -plan.centroid.y, -minimum_z)),
+                rotation_matrix4((0.0, 0.0, angle)),
+                scale_matrix4((factor, factor, 1.0 / span)))
+            affine = [origin_matrix[0][0], origin_matrix[0][1],
+                      origin_matrix[1][0], origin_matrix[1][1],
+                      origin_matrix[0][3], origin_matrix[1][3]]
+            local_constraints = [(affine_transform(occupied, affine), legal, weight)
+                                 for occupied, legal, weight in constraints]
+            whole = float(local_constraints[0][0].area)
+            if whole <= 1e-9:
+                continue
+            buffered_hosts = [legal.buffer(1e-7) for _occupied, legal, _weight in local_constraints]
+            for center in _metric_pose_centers(local_constraints):
+                moved = [translate(occupied, xoff=center.x, yoff=center.y)
+                         for occupied, _legal, _weight in local_constraints]
+                contained = all(legal.covers(occupied) for occupied, legal in zip(moved, buffered_hosts))
+                matrix = compose_matrix4(origin_matrix,
                     translation_matrix4((center.x, center.y, 0.0)))
-                world = tuple(transform_point3(matrix, vertex) for vertex in vertices)
-                if len(factors) == 1:
-                    chosen = (matrix, world)
-                    break
-                whole = _mesh_plan_projection_area(world, compilation.triangles)
-                if whole <= 1e-9:
-                    continue
-                kept = _mesh_plan_projection_area(world, compilation.triangles, host)
-                chosen = (matrix, world)
-                if kept / whole >= IMPOSED_RETENTION:
-                    break
-            if chosen is None:
-                continue
-            matrix, world = chosen
-            if not clip_to_host:
-                if _mesh_plan_projection_inside_host(world, compilation.triangles, host):
+                if contained:
+                    world = tuple(transform_point3(matrix, vertex) for vertex in vertices)
                     return HostFitTransform(matrix4=matrix, inverse_matrix4=inverse_matrix4(matrix),
-                        world_vertices=world, achieved_plan_area_m2=_mesh_plan_projection_area(world, compilation.triangles))
-                continue
-            clipped = _clip_world_mesh_to_host(world, compilation.triangles, host, sections=clip_sections)
-            if clipped is None:
-                continue
-            score = _ground_contact_area(clipped[0], clipped[1], ground_section)
-            if best is None or score > best[0] + 1e-6:
-                best = (score, matrix, world)
+                        world_vertices=world, achieved_plan_area_m2=whole)
+                if not clip_to_host:
+                    continue
+                retained = [min(float(occupied.area), float(occupied.intersection(legal).area))
+                            for occupied, (_local, legal, _weight) in zip(moved, local_constraints)]
+                retention = min(area / float(occupied.area) for area, occupied in zip(retained, moved))
+                weighted_retention = sum(area * weight for area, (_local, _legal, weight)
+                                         in zip(retained, local_constraints)) / sum(
+                    float(occupied.area) * weight for occupied, _legal, weight in local_constraints)
+                sufficient_retention |= retention >= IMPOSED_RETENTION
+                score = (contained, retention >= IMPOSED_RETENTION, factor,
+                         round(retention, 10), round(weighted_retention, 10))
+                shortlist.append((score, matrix))
+                shortlist.sort(key=lambda item: item[0], reverse=True)
+                del shortlist[8:]
+        if sufficient_retention:
+            break
+    best = None
+    for score, matrix in shortlist:
+        world = tuple(transform_point3(matrix, vertex) for vertex in vertices)
+        clipped = _clip_world_mesh_to_host(world, compilation.triangles, host, sections=clip_sections)
+        if clipped is None:
+            continue
+        score = (*score, _ground_contact_area(clipped[0], clipped[1], ground_section))
+        if best is None or score > best[0]:
+            best = (score, matrix, world)
     if best is None:
         return None
     _score, matrix, world = best
     return HostFitTransform(matrix4=matrix, inverse_matrix4=inverse_matrix4(matrix),
-        world_vertices=world, achieved_plan_area_m2=_mesh_plan_projection_area(world, compilation.triangles))
+        world_vertices=world, achieved_plan_area_m2=float(projection.area) * abs(
+            matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]))
+
 
 
 def _fit_vertices_to_host(

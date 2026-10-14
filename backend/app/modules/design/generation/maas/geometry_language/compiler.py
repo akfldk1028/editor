@@ -655,7 +655,7 @@ def _transform_matrix4(node: GeometryNode, solid):
     parameters = dict(node.parameters)
     pivot_raw = parameters.get("pivot", (0.0, 0.0, 0.0))
     if str(pivot_raw).lower() in {"center", "centroid"}:
-        parameters["pivot"] = _center(solid)
+        parameters["pivot"] = resolve_solid_pivot(solid, pivot_raw, node.id)
     try:
         return matrix4_for_transform(node.operator, parameters)
     except (TypeError, ValueError) as exc:
@@ -974,13 +974,13 @@ def _pattern(node: GeometryNode, solid):
     elif node.operator == "radial_array":
         total = float(p.get("total_angle_degrees", p.get("angle_degrees", 180.0)))
         pivot_raw = p.get("pivot", (0.0, 0.0, 0.0))
-        pivot = _center(solid) if str(pivot_raw).lower() in {"center", "centroid"} else _vector(pivot_raw, 3, node.id)
+        pivot = resolve_solid_pivot(solid, pivot_raw, node.id)
         step = total / max(count - 1, 1)
         copies = [_around_pivot(solid, pivot, lambda item, angle=step * index: item.rotate((0.0, 0.0, angle))) for index in range(count)]
     elif node.operator == "mirror_array":
         normal = _vector(p.get("normal", (1.0, 0.0, 0.0)), 3, node.id)
         pivot_raw = p.get("pivot", (0.0, 0.0, 0.0))
-        pivot = _center(solid) if str(pivot_raw).lower() in {"center", "centroid"} else _vector(pivot_raw, 3, node.id)
+        pivot = resolve_solid_pivot(solid, pivot_raw, node.id)
         copies = [solid, _around_pivot(solid, pivot, lambda item: item.mirror(normal))]
     else:
         raise GeometryCompileError("unsupported_pattern", node.operator, node.id)
@@ -3417,28 +3417,12 @@ def _beam_between(start, end, *, width: float, height: float, node_id: str):
 
 
 def _loft_profiles(raw_profiles: Any, *, node_id: str):
-    if not isinstance(raw_profiles, list) or len(raw_profiles) < 2:
-        raise GeometryCompileError("missing_profile", "loft needs at least two profiles", node_id)
-    profiles: list[tuple[float, list[tuple[float, float]]]] = []
-    for index, raw in enumerate(raw_profiles):
-        if isinstance(raw, dict):
-            z = float(raw.get("z", index))
-            points = _points(raw.get("points"), dimensions=2, minimum=3, node_id=node_id)
-        else:
-            z = float(index)
-            points = _points(raw, dimensions=2, minimum=3, node_id=node_id)
-        profiles.append((z, [(point[0], point[1]) for point in points]))
-    profiles.sort(key=lambda item: item[0])
-    solids = []
-    for (z0, lower), (z1, upper) in zip(profiles, profiles[1:]):
-        if z1 <= z0:
-            raise GeometryCompileError("non_monotonic_loft", "loft profile z values must increase", node_id)
-        points3 = [(x, y, z0) for x, y in lower] + [(x, y, z1) for x, y in upper]
-        segment = m3d.Manifold.hull_points(points3)
-        if segment.is_empty():
-            raise GeometryCompileError("invalid_loft_segment", "loft profiles are degenerate", node_id)
-        solids.append(segment)
-    return m3d.Manifold.batch_boolean(solids, m3d.OpType.Add)
+    from backend.app.modules.design.generation.maas.geometry_language.loft import sectional_loft
+
+    try:
+        return sectional_loft(raw_profiles, m3d)
+    except (TypeError, ValueError) as exc:
+        raise GeometryCompileError("invalid_loft_profile", str(exc), node_id) from exc
 
 
 def _around_pivot(solid, pivot: tuple[float, float, float], operation: Callable[[Any], Any]):
@@ -3452,6 +3436,32 @@ def _bounds(solid) -> tuple[float, float, float, float, float, float]:
 def _center(solid) -> tuple[float, float, float]:
     minx, miny, minz, maxx, maxy, maxz = _bounds(solid)
     return ((minx + maxx) / 2, (miny + maxy) / 2, (minz + maxz) / 2)
+
+
+def resolve_solid_pivot(solid, pivot: Any, node_id: str = "") -> tuple[float, float, float]:
+    if str(pivot).lower() == "center":
+        return _center(solid)
+    if str(pivot).lower() != "centroid":
+        return _vector(pivot, 3, node_id)
+
+    mesh = solid.to_mesh64()
+    # A nearby reference keeps tetrahedral moments stable after translation;
+    # signed volumes include cavities and weight disconnected components.
+    reference = np.asarray(_center(solid), dtype=float)
+    vertices = np.asarray(mesh.vert_properties, dtype=float)[:, :3] - reference
+    triangles = vertices[np.asarray(mesh.tri_verts, dtype=np.int64)]
+    volumes6 = np.einsum("ij,ij->i", triangles[:, 0],
+                         np.cross(triangles[:, 1], triangles[:, 2]))
+    total6 = float(volumes6.sum())
+    if not isfinite(total6) or total6 <= 0.0:
+        raise GeometryCompileError("undefined_volume_centroid",
+            "centroid pivot requires a finite positive-volume solid", node_id)
+    centroid = reference + np.einsum(
+        "i,ij->j", volumes6, triangles.sum(axis=1)) / (4.0 * total6)
+    if not np.isfinite(centroid).all():
+        raise GeometryCompileError("undefined_volume_centroid",
+            "centroid pivot requires finite volume moments", node_id)
+    return tuple(float(value) for value in centroid)
 
 
 def _number(params: dict[str, Any], key: str, default: Any = None) -> float:
@@ -3510,5 +3520,6 @@ __all__ = [
     "CompilationResult",
     "GeometryCompileError",
     "compile_geometry_program",
+    "resolve_solid_pivot",
     "revalidate_compilation_mesh",
 ]

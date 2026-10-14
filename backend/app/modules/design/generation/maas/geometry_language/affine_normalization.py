@@ -8,7 +8,7 @@ from typing import Any
 
 from backend.app.modules.design.generation.maas.geometry_language.affine_matrix import compose_matrix4, identity_matrix4, matrix4_for_transform, matrix4_to_lists
 from backend.app.modules.design.generation.maas.geometry_language.ast import GeometryNode, GeometryProgram
-from backend.app.modules.design.generation.maas.geometry_language.compiler import compile_geometry_program
+from backend.app.modules.design.generation.maas.geometry_language.compiler import compile_geometry_program, resolve_solid_pivot
 from backend.app.modules.design.generation.maas.geometry_language.unitbox_normalization import normalize_unitbox_program
 
 
@@ -56,11 +56,12 @@ def _lower_affine_shorthands(program: GeometryProgram) -> GeometryProgram:
             "center",
             "centroid",
         }:
-            parameters["pivot"] = _resolved_center(
+            parameters["pivot"] = _resolved_pivot(
                 program,
                 converted,
                 converted_by_id,
                 node.inputs[0],
+                parameters["pivot"],
             )
         matrix = matrix4_for_transform(node.operator, parameters)
         lowered = replace(
@@ -80,11 +81,12 @@ def _lower_affine_shorthands(program: GeometryProgram) -> GeometryProgram:
     )
 
 
-def _resolved_center(
+def _resolved_pivot(
     program: GeometryProgram,
     converted: list[GeometryNode],
     converted_by_id: dict[str, GeometryNode],
     input_id: str,
+    pivot: str,
 ) -> tuple[float, float, float]:
     ancestor_ids: set[str] = set()
 
@@ -104,8 +106,12 @@ def _resolved_center(
         name=f"{program.name}__affine_pivot_probe",
     )
     compilation = compile_geometry_program(prefix)
+    if compilation.status != "compiled":
+        raise ValueError(f"cannot resolve affine pivot for {input_id}")
+    if str(pivot).lower() == "centroid":
+        return resolve_solid_pivot(compilation._solid, pivot, input_id)
     bounds = compilation.metrics.get("bounds")
-    if compilation.status != "compiled" or not bounds or len(bounds) != 2:
+    if not bounds or len(bounds) != 2:
         raise ValueError(f"cannot resolve affine pivot for {input_id}")
     return tuple(
         (float(bounds[0][axis]) + float(bounds[1][axis])) / 2.0

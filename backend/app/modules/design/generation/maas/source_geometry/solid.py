@@ -234,6 +234,16 @@ def thickness_bounds(top, bottom, bounds):
         return surface,1,0
     a,scale_a,offset_a = core(top)
     b,scale_b,offset_b = core(bottom)
+    if isinstance(a, (PolynomialSurface, ConstantSurface)) and isinstance(b, (PolynomialSurface, ConstantSurface)):
+        # Separate extrema lose the shared XY coordinate and can reject a
+        # constant-thickness curved plate. Bound its actual difference instead.
+        coefficients = {(0, 0): offset_a - offset_b}
+        for surface, factor in ((a, scale_a), (b, -scale_b)):
+            terms = surface.terms if isinstance(surface, PolynomialSurface) else ((0, 0, surface.height),)
+            for i, j, value in terms:
+                coefficients[i, j] = coefficients.get((i, j), 0.0) + factor * value
+        difference = PolynomialSurface(tuple((i, j, value) for (i, j), value in coefficients.items()))
+        return surface_bounds(difference, bounds)
     if a.signature() == b.signature():
         low,high = surface_bounds(a,bounds)
         values = [(scale_a-scale_b)*v+offset_a-offset_b for v in (low,high)]
