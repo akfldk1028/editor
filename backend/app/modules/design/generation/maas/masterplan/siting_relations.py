@@ -20,7 +20,9 @@ def brief_digest(brief):
 def _parts(g):
     if g.is_empty:
         return []
-    return [g] if g.geom_type == 'Polygon' else [p for p in getattr(g, 'geoms', []) if p.geom_type == 'Polygon']
+    parts = [g] if g.geom_type == 'Polygon' else getattr(g, 'geoms', [])
+    # Boolean operations on rotated edges leave sub-tolerance islands; these are not spatial fragmentation.
+    return [p for p in parts if p.geom_type == 'Polygon' and p.area > TOL * TOL]
 
 
 def measure_siting(request, features, occupied):
@@ -63,7 +65,9 @@ def measure_siting(request, features, occupied):
         coordinates = list(upper.minimum_rotated_rectangle.exterior.coords)
         a, b = max(zip(coordinates, coordinates[1:]), key=lambda pair: math.dist(*pair))
         building['long_axis_deg'] = round(math.degrees(math.atan2(b[1]-a[1], b[0]-a[0])) % 180, 3)
+    from .configuration_signature import configuration_signature
     return {'schema_version': 'masterplan.siting-evidence.v1', 'geometry_hash': digest(features),
+            'configuration_signature': configuration_signature(features, occupied) if not invalid else {'status':'unknown','reason':'invalid_area_features'},
             'invalid_area_features': invalid,
             'building': building,
             'outdoor': {'unoccupied_m2': round(free.area, 3) if not invalid else None, 'components': len(parts) if not invalid else None,

@@ -1,3 +1,7 @@
+## 2026-10-14 - Outdoor component precision
+
+Actual rotated-site numerical islands falsely increased fragmentation. Owner and MasterPlan observer fixed; matched HTTP remeasurement on isolated18479. Shared18449 restarted and actual layouts revalidated. Exact building/basement configuration signatures added;19 affected tests pass. [Details](2026-10-14-outdoor-component-precision.md).
+
 # Editor backend — memory index (read this first)
 
 - [2026-10-13 road aisle](2026-10-13-road-aisle.md): Law-bound external road geometry, candidate generation and independent per-stall validation; actual CLI comparison and unsupported scope.

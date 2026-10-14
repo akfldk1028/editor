@@ -95,3 +95,11 @@ def test_invalid_area_geometry_is_reported_without_crashing_diagnostics():
         feature('building_footprint', LineString([(0, 0), (5, 5)]))], box(0, 0, 5, 5))
     assert result['invalid_area_features']
     assert result['outdoor']['unoccupied_m2'] is None
+
+
+def test_component_count_ignores_sub_tolerance_area_but_keeps_small_real_pockets():
+    from shapely.geometry import MultiPolygon
+    from backend.app.modules.design.generation.maas.masterplan.siting_relations import _parts, TOL
+    ground = MultiPolygon([box(0, 0, 10, 10), box(20, 0, 20.01, .01),
+                           box(30, 0, 30+TOL/10, TOL/10)])
+    assert len(_parts(ground)) == 2
