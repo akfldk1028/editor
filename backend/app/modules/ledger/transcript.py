@@ -5,7 +5,7 @@
                         how it ended, how long, what was sent, what came back), then the answer
         calls.jsonl     the same calls as the ledger holds them, texts in full
 
-The folder is rewritten when a user turn ends, so it always matches the ledger. `render` is pure; a call's status
+The folder is rewritten when a user turn ends (in the background); a call that arrives after that shows at the next turn's end. `render` is pure; a call's status
 is read from its own reply (`status`, `code`, `error`, `missing_evidence`), never judged here.
 """
 from __future__ import annotations
@@ -153,14 +153,14 @@ def folder_name(conversation_id: str, rows: list[dict], user: str) -> str:
 class ConversationLogs:
     """Writes a conversation's folder from the ledger's rows; a write that fails is skipped, never raised."""
 
-    def __init__(self, directory: Path | str, rows: Callable[[str], Iterable[dict]], *, user: str):
+    def __init__(self, directory: Path | str, rows: Callable[..., Iterable[dict]], *, user: str):
         self.directory = Path(directory)
         self._rows = rows
         self.user = user
 
-    def write(self, conversation_id: str) -> Path | None:
+    def write(self, conversation_id: str, project: str | None = None, branch: str | None = None) -> Path | None:
         try:
-            rows = list(self._rows(conversation_id))
+            rows = list(self._rows(conversation_id, project, branch))
             if not rows:
                 return None
             folder = self.directory / folder_name(conversation_id, rows, self.user)

@@ -36,8 +36,12 @@ export function restoreConversationProject() {
  * what it records (its parcel, assessment date, brief) never binds another conversation. If the workspace cannot be
  * made, the conversation still starts, in the current one.
  */
+let starting = false
 export async function newConversation() {
   if (!selection.projectId) { pendingNew = true; return }
+  // A second press while the workspace is being made would make a second one.
+  if (starting) return
+  starting = true
   const conversationId = crypto.randomUUID()
   try {
     const workspace = await startConversation(selection.projectId)
@@ -49,6 +53,8 @@ export async function newConversation() {
     selection = { ...selection, conversationId }
     write(key(selection.projectId!), conversationId)
     emit()
+  } finally {
+    starting = false
   }
 }
 const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }

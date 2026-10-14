@@ -12,6 +12,7 @@ import type { ShellApi } from '../../../shell/artifact-types'
 import { compareLaw, differingRows } from '../lib/orchestrator-compare'
 import type { Summary } from '../lib/summary'
 import { useOrchestratorReview } from '../model/useOrchestratorReview'
+import { questionKey } from '@/lib/run-question/form'
 import { QuestionCard } from '@/lib/run-question/ui/QuestionCard'
 
 interface Props {
@@ -107,7 +108,7 @@ function RunHead({ run, results, stale, projectId, onReload }: { run: RunSummary
         {stale && <small>· 상태 확인 지연</small>}
       </h2>
       {waiting && run.pending_request && (
-        <QuestionCard onAnswered={() => onReload()} projectId={projectId} question={run.pending_request} runId={run.run_id} />
+        <QuestionCard key={questionKey(run.run_id, run.pending_request)} onAnswered={() => onReload()} projectId={projectId} question={run.pending_request} runId={run.run_id} />
       )}
       {waiting && !run.pending_request && (
         <p className="law-note" data-kind="warn" role="status">

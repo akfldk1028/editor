@@ -24,6 +24,9 @@ export function QuestionCard(props: Props) {
   if (shape === 'external') {
     return <p className="run-question-note" role="status">매스 생성 결과를 기다리고 있어요 — 외부 생성기가 결과를 넘기면 이어서 검토해요.</p>
   }
+  if (shape === 'conversation') {
+    return <p className="run-question-note" role="status">검토를 이어가려면 실 구성이나 설계 내용이 더 필요해요. 대화로 원하는 내용을 알려 주시면 정리해서 이어가요.</p>
+  }
   return shape === 'intent' ? <IntentQuestion {...props} /> : <FieldsQuestion {...props} />
 }
 

@@ -59,3 +59,12 @@ def test_a_new_conversation_workspace_is_usable_before_its_branch_has_a_record(t
         raise AssertionError('an unknown branch must still be refused')
     except BindingConflict:
         pass
+
+
+def test_a_conversation_workspace_takes_a_scene_refresh_before_its_branch_has_a_record(tmp_path):
+    client, repository, binding, sources = setup(tmp_path)
+    made = client.post(f'/api/v1/platform/projects/{binding.project_id}/conversations').json()
+    sources.version = 3  # the Orchestrator lists only `main`; the scene moved on
+    refreshed = client.post(f"/api/v1/platform/projects/{made['project_id']}/scene-revision",
+                            json={'expected_scene_revision': 2, 'scene_revision': 3})
+    assert refreshed.status_code == 200 and refreshed.json()['scene_revision'] == 3

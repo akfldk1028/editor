@@ -1,7 +1,6 @@
 import { Check, CircleDashed, ExternalLink, X } from 'lucide-react'
 
 import type { FeedCard as Card } from '@/lib/orchestrator-runs/feed'
-import { LotQuestion } from '@/lib/run-question/ui/LotQuestion'
 
 import './feed-card.css'
 
@@ -24,8 +23,6 @@ export function FeedCard({ card }: { card: Card }) {
           ))}
         </dl>
       )
-    case 'lots':
-      return <LotQuestion projectId={card.projectId} question={card.question} runId={card.runId} />
     case 'chips':
       return <ul className="agent-chips">{card.items.map((item) => <li key={item}>{item}</li>)}</ul>
     case 'checks':

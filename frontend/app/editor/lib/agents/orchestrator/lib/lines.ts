@@ -207,7 +207,7 @@ export function resultPrompt(results: RunResults, target: LawTarget): { text: st
   const flow: FeedAction = { label: '협업 흐름 보기', artifact: 'collaboration', params: { ...(target.project ? { project: target.project } : {}), ...(results.run_id ? { run: results.run_id } : {}), tab: 'log' } }
   const later: FeedAction = { label: '나중에' }
   if (results.status === 'waiting_input' && asksForLot(results.pending_request)) {
-    // The lots themselves are the card under this line (useRunFeed): the person answers here, not in a panel.
+    // The lots are the conversation's waiting-question card (lib/run-question/useWaitingQuestions): answered there.
     return { text: '이 필지는 지구단위계획구역 안인데, 고시 문서에 어느 획지인지 적혀 있지 않아요. 아래에서 획지를 골라 주시면 그 규정으로 이어서 검토해요.', actions: [later] }
   }
   if (results.status === 'waiting_input') {

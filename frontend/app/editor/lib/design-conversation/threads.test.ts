@@ -15,7 +15,7 @@ test('the list shows conversations by title, newest first, per project, and the 
   expect(groups.map((group) => group.project)).toEqual(['gosan', 'r39'])
   expect(groups[0]!.threads.map((thread) => [thread.projectId, thread.label])).toEqual([
     ['new', '새 대화'], ['old', '684-1 건폐율'], ['base', '프로젝트 작업 공간']])
-  expect(groups[0]!.threads[2]!.detail).toBe('main')
+  expect(groups[0]!.threads[2]!.detail).toBe('')
 })
 
 test('a start time reads as month, day and time; an unknown one as nothing', () => {

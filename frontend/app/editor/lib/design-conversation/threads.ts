@@ -27,7 +27,9 @@ export function threadOf(binding: ProjectBinding): Thread {
   if (binding.conversation) {
     return { projectId: binding.project_id, label: binding.title || '새 대화', detail: startedAt(binding.created_at), conversation: true }
   }
-  return { projectId: binding.project_id, label: '프로젝트 작업 공간', detail: binding.branch_id, conversation: false }
+  // A branch someone named (gross-zone-study-20261002) says which workspace this is; the default one says nothing more.
+  const named = binding.branch_id !== 'main' && !binding.branch_id.startsWith('c-')
+  return { projectId: binding.project_id, label: '프로젝트 작업 공간', detail: named ? binding.branch_id : '', conversation: false }
 }
 
 /** The list as a chat app shows it: per project, its conversations newest first, then the project's own workspace. */

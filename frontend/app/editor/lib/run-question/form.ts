@@ -7,13 +7,22 @@ import { asksForLot } from './lots'
  * What a waiting run asks, as something to answer: a district lot (pick one Law read), an intent to reconfirm, fields
  * to fill (용도, 기준일, 시설면적, 주차 대수), or a wait on an external host that nobody answers here.
  */
-export type QuestionShape = 'lot' | 'intent' | 'fields' | 'external'
+export type QuestionShape = 'lot' | 'intent' | 'fields' | 'conversation' | 'external'
+
+/** Answers that are whole documents (a program, an elevation or design brief): written through the conversation. */
+const DOCUMENT_FIELDS = new Set(['program', 'elevation', 'design', 'kmass_design'])
 
 export function shapeOf(question: RunQuestion): QuestionShape {
   if (asksForLot(question)) return 'lot'
   if (question.kind === 'mass_external') return 'external'
   if (question.fields.includes('confirm') && question.fields.includes('context_hash')) return 'intent'
+  if (question.fields.some((field) => DOCUMENT_FIELDS.has(field))) return 'conversation'
   return 'fields'
+}
+
+/** One card per question, not per run: a run that answers and asks again gets a fresh card. */
+export function questionKey(runId: string, question: RunQuestion | null | undefined): string {
+  return `${runId}:${question?.kind ?? ''}:${question?.code ?? ''}:${(question?.fields ?? []).join(',')}:${String(question?.context_hash ?? '')}`
 }
 
 export interface FieldSpec {

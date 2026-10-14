@@ -119,7 +119,9 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
                 context['address'] = located['address']
         # The 협업 장부: the person's message to the Orchestrator is one call of this conversation; it runs until its reply
         # arrives by polling (`settle_turns`, matched by the message id).
+        binding = projects_service().repository.get('local', project_id)
         turn = ledger.begin(from_agent='user', to_agent='orchestrator', tool='conversation', conversation_id=body.conversation_id, input_text=body.text,
+                            project=binding.owner_project_id if binding else None, branch=binding.branch_id if binding else None,
                             attrs={'message_id': body.message_id}) if ledger else None
         try:
             snapshot = await exchange(project_id, body.conversation_id, payload)

@@ -1,12 +1,22 @@
 import { expect, test } from 'bun:test'
 import type { RunQuestion } from '@/lib/orchestrator-runs/types'
-import { answerLine, answerOf, fieldsOf, intentLines, shapeOf } from './form'
+import { answerLine, answerOf, fieldsOf, intentLines, questionKey, shapeOf } from './form'
 
 test('each question has its shape: a lot, an intent to reconfirm, fields, or an external wait', () => {
   expect(shapeOf({ kind: 'request_input', fields: ['district_lot'], candidates: { lots: [{ lot: 'A11' }] } })).toBe('lot')
   expect(shapeOf({ kind: 'request_input', fields: ['confirm', 'context_hash', 'intent'] })).toBe('intent')
   expect(shapeOf({ kind: 'mass_external', fields: ['ready'] })).toBe('external')
   expect(shapeOf({ kind: 'request_input', fields: ['building_type', 'assessment_date'] })).toBe('fields')
+  // A whole document (a program, a design brief) is not typed into a box: it is written through the conversation.
+  expect(shapeOf({ kind: 'request_input', fields: ['program'] })).toBe('conversation')
+})
+
+test('a run that answers and asks again gets a new card, the same question keeps its card', () => {
+  const lot: RunQuestion = { kind: 'request_input', code: 'district_lot_required', fields: ['district_lot'] }
+  const parking: RunQuestion = { kind: 'layout_input', fields: ['parking'] }
+  expect(questionKey('r1', lot)).toBe(questionKey('r1', { ...lot }))
+  expect(questionKey('r1', lot)).not.toBe(questionKey('r1', parking))
+  expect(questionKey('r1', lot)).not.toBe(questionKey('r2', lot))
 })
 
 test('fields read in words with their inputs; the answer is typed and said back as the person line', () => {

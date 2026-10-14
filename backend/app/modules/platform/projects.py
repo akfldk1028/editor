@@ -62,7 +62,8 @@ class ProjectService:
         if binding.scene_revision != request.expected_scene_revision:
             raise BindingConflict('binding revision changed')
         projects = await self.owner.list_projects()
-        if not any(item['owner_project_id'] == binding.owner_project_id and
+        # A conversation's own branch exists in the Orchestrator only after its first record (see create).
+        if not binding.conversation and not any(item['owner_project_id'] == binding.owner_project_id and
                    item['branch_id'] == binding.branch_id for item in projects):
             raise BindingConflict('owner project or branch no longer exists')
         try:

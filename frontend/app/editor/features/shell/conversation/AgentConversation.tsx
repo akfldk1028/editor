@@ -24,6 +24,7 @@ import { AskedAgents, StepList } from './AgentSteps'
 import { ConversationArtifacts } from './ConversationArtifacts'
 import { ConversationProject, useConversationProject } from './ConversationProject'
 import './agent-conversation.css'
+import { questionKey } from '@/lib/run-question/form'
 import { QuestionCard } from '@/lib/run-question/ui/QuestionCard'
 import { useWaitingQuestions } from '@/lib/run-question/useWaitingQuestions'
 
@@ -158,7 +159,7 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
         {/* What a run of this workspace waits on, answered here (a district lot, a building type, …), however it was started. */}
         {project.projectId && waiting.map((item) => (
           // The choice stays in the thread as the person's line, like 대지 선택; the card leaves when the run moves on.
-          <QuestionCard key={item.runId} onAnswered={(line) => postFeed({ kind: 'user', text: line, run_id: item.runId })}
+          <QuestionCard key={questionKey(item.runId, item.question)} onAnswered={(line) => postFeed({ kind: 'user', text: line, run_id: item.runId })}
             projectId={project.projectId!} question={item.question} runId={item.runId} />
         ))}
         <div ref={endRef} />

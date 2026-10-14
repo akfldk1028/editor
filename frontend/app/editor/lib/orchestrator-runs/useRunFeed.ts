@@ -10,7 +10,6 @@ import { dismissFeed, projectFeed } from './feed'
 import { evidenceCard, lawBasisLine, relayLine, resultLine, resultPrompt, stepChanges, stepState, submittedLine } from './feed-lines'
 import { isTerminal } from './labels'
 import type { RunSummary } from './types'
-import { asksForLot } from '@/lib/run-question/lots'
 
 export interface RunFeedContext {
   projectId: string | null
@@ -124,9 +123,7 @@ export function useRunFeed(run: RunSummary | null, context: RunFeedContext): voi
           const failed = results.status === 'failed'
           postFeed({ kind: failed ? 'error' : 'result', key: key('result'), run_id: run.run_id, agent: 'orchestrator', text: resultLine(results), card: evidenceCard(results) ?? undefined })
           const prompt = resultPrompt(results, target)
-          const lots = results.status === 'waiting_input' && asksForLot(results.pending_request) && results.pending_request
-            ? { type: 'lots' as const, projectId, runId: run.run_id, question: results.pending_request } : undefined
-          postFeed({ kind: 'prompt', key: key('prompt'), run_id: run.run_id, agent: 'orchestrator', text: prompt.text, actions: prompt.actions, ...(lots ? { card: lots } : {}) })
+          postFeed({ kind: 'prompt', key: key('prompt'), run_id: run.run_id, agent: 'orchestrator', text: prompt.text, actions: prompt.actions })
         }
       })
       .catch(() => {

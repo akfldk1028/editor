@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -53,8 +54,11 @@ class Ledger:
         row = self.store.get(row_id) or {'id': row_id}
         self.mirror.write(row)
         if row.get('ts_end') and row.get('conversation_id') and is_turn(row, USER):
-            # A turn ended: its folder under conversations/ is rewritten to match the ledger.
-            self.conversations.write(row['conversation_id'])
+            # A turn ended: its folder under conversations/ is rewritten to match the ledger - in the background, so a
+            # long conversation never holds the request that ended its turn; scoped to the turn's project and branch,
+            # so conversations that share an id (the default 'main') in different projects stay apart.
+            threading.Thread(target=self.conversations.write, args=(row['conversation_id'], row.get('project'), row.get('branch')),
+                             name='ledger-transcript', daemon=True).start()
         self._notify(row_id)
         return row
 
@@ -118,12 +122,14 @@ class Ledger:
         return self.store.query(conversation_id=conversation_id, run_ids=run_ids, run_id=run_id, trace_id=trace_id, project=project, branch=branch,
                                 since_id=since_id, limit=limit)
 
-    def conversation_rows(self, conversation_id: str) -> list[dict]:
-        """Every call of a conversation (and of the runs it started), however many."""
+    def conversation_rows(self, conversation_id: str, project: str | None = None, branch: str | None = None) -> list[dict]:
+        """Every call of a conversation (and of the runs it started), however many; within one project and branch when given."""
         rows, since = [], 0
         while True:
             page = self.rows(conversation_id=conversation_id, since_id=since, limit=500)
-            rows += page
+            # A row that names no project (an editor-side call) belongs to the conversation wherever it is.
+            rows += [row for row in page if (project is None or row.get('project') in (None, project))
+                     and (branch is None or row.get('branch') in (None, branch))]
             if len(page) < 500:
                 return rows
             since = int(page[-1]['id'])
