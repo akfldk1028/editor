@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from backend.app.modules.design.generation.maas.floor_viability import DEFAULT_MINIMUM_CLEAR_DEPTH_M, evaluate_floor_section_viability, minimum_usable_floor_area_m2
-from backend.app.modules.design.generation.maas.source_geometry.ir import SourceMass
+from backend.app.modules.design.generation.maas.source_geometry.ir import SourceMass, SourceVolume
 
 from backend.app.modules.design.generation.maas.massv2.structure import BAND_FRACTION_STEP, Standing, assess_standing, bodies_of
 
@@ -250,6 +250,84 @@ def _min_dimension(polygon) -> float:
     return float(min(sides))
 
 
+def _verified_floor_bands(source):
+    """Measure BOOK rooms on actual floors, retaining support semantics.
+
+    Mesh band projections contain every slope in a height interval. They are
+    conservative legal proxies, not additive occupied solids. Reuse the floor
+    owner's validation before replacing them for the occupancy checks.
+    """
+    if not source.metadata.get("book_height_certificate"):
+        return None
+    from shapely.ops import unary_union
+    from backend.app.modules.design.generation.maas.delivered.book_floors import delivered_floor_evidence
+    from backend.app.modules.design.generation.maas.massv2.render_mesh import physical_triangles
+    from backend.app.modules.design.generation.maas.geometry_language.source_bridge import (
+        mesh_section_solid, solid_section_polygon, _polygon_parts, _solid_plan_projection,
+    )
+
+    meta = source.metadata
+    retained = meta.get("book_delivered_floor_evidence")
+    if not retained:
+        raise ValueError("BOOK floor measurement evidence required for room checks")
+    try:
+        height = float(meta["authored_height_m"])
+        matrix = meta["geometry_program_bridge_evidence"]["host_fit_matrix4"]
+        storeys = meta.get("book_original_storey_evidence") or {}
+        storey = storeys.get("typical_storey_height_m") or (
+            float(meta["book_storey_height_m"]) / (matrix[2][2] * height))
+        fresh = delivered_floor_evidence(source, storeys,
+                    floor_count=meta["book_floor_count"], storey_m=storey)
+        if retained != fresh or not fresh["measurement_consistent"]:
+            raise ValueError("measurement mismatch")
+        vertices = [p for triangle in physical_triangles(source) for p in triangle]
+        solid = mesh_section_solid(vertices, [(i, i+1, i+2) for i in range(0, len(vertices), 3)])
+    except (KeyError, TypeError, ValueError, ZeroDivisionError) as exc:
+        raise ValueError("BOOK floor measurement evidence does not match geometry") from exc
+
+    supports = [source.volumes[i] for i in meta.get("structural_bands") or ()]
+    bands, structural = [], set()
+    centers = fresh["delivered_floor_center_elevations_m"]
+    for floor_index, z in enumerate(centers):
+        section = solid_section_polygon(solid, z)
+        if section is None or section.is_empty:
+            continue  # The floor owner verified that the law removed this floor.
+        support = unary_union([v.footprint for v in supports
+                               if v.bottom_fraction <= z / height <= v.top_fraction])
+        for is_support, region in ((False, section.difference(support)),
+                                   (True, section.intersection(support))):
+            for part in _polygon_parts(region):
+                if is_support:
+                    structural.add(len(bands))
+                bands.append(SourceVolume(f"floor_{floor_index}_{len(bands)}", part,
+                    floor_index / len(centers), (floor_index + 1) / len(centers), "mesh_floor"))
+
+    # Floor samples must not erase a real disconnected solid between floors.
+    # Keep exact component mass and extents for the existing crumb/body gates.
+    import manifold3d as m3d
+    from shapely.geometry.polygon import orient
+    support_solids = []
+    for volume in supports:
+        low, high = volume.bottom_fraction * height, volume.top_fraction * height
+        if high <= low:
+            continue
+        for part in _polygon_parts(volume.footprint):
+            polygon = orient(part, sign=1.0)
+            contours = [list(polygon.exterior.coords)[:-1],
+                        *[list(ring.coords)[:-1] for ring in polygon.interiors]]
+            support_solids.append(m3d.CrossSection(contours).extrude(high - low).translate((0, 0, low)))
+    components = []
+    for component in solid.decompose():
+        bounds = component.bounding_box()
+        plan = _solid_plan_projection(component)
+        low, high = bounds[2] / height, bounds[5] / height
+        occupied = component
+        for support in support_solids:
+            occupied = occupied - support
+        components.append((low, high, plan, float(occupied.volume()), occupied.is_empty()))
+    return tuple(bands), structural, components
+
+
 def assess(
     source: SourceMass,
     *,
@@ -270,6 +348,10 @@ def assess(
         return Plausibility(0.0, 0.0, 0.0, False, ("no_bands",))
 
     height = float(source.metadata.get("authored_height_m") or 0.0)
+    exact = _verified_floor_bands(source)
+    structural = set(source.metadata.get("structural_bands") or ())
+    if exact is not None:
+        bands, structural, components = exact
     # Slenderness is a property of a body. Measured against `source.footprint`
     # it was the whole building's height over the widest single grounded body's
     # narrowest dimension - the same field that once reported a brick pile at
@@ -286,7 +368,8 @@ def assess(
     # pair of sticks, and lets the village and the lifted plate through.
     ground = source.footprint
     min_dimension = _min_dimension(ground)
-    bodies = bodies_of(source)
+    bodies = ([(lo, hi, plan) for lo, hi, plan, _mass, _support in components]
+              if exact is not None else bodies_of(source))
     # A fragment is not a body. Boolean cuts leave slivers a few centimetres
     # across, and "the worst body" hands the whole building's verdict to one of
     # them - `i_naseon_tap` reported a slenderness of 5,774 on a spiral that is
@@ -305,8 +388,6 @@ def assess(
             )
     else:
         slenderness = height / min_dimension if min_dimension > 1e-6 else float("inf")
-
-    structural = set(source.metadata.get("structural_bands") or ())
 
     # Crumb gate: per connected body, sum its occupiable mass (bands not
     # marked structural whose plan meets the body's). A body with occupiable
@@ -341,7 +422,16 @@ def assess(
             shards += 1
     if shards:
         crumb_reason = f"crumb_{shards}_shard_volume{'s' if shards > 1 else ''}"
-    if bodies and bands:
+    if exact is not None:
+        total_mass = sum(mass for _lo, _hi, _plan, mass, support in components if not support)
+        for low, high, plan, mass, support in components:
+            if support:
+                continue
+            if float(plan.area) < 9.0 or not holds_a_storey(plan):
+                crumb_reason = crumb_reason or "crumb_1_shard_volume"
+            elif total_mass > 0 and 0 < mass / total_mass < CRUMB_MASS_SHARE:
+                crumb_reason = crumb_reason or f"crumb_body_{mass / total_mass * 100:.0f}%_of_occupiable_mass"
+    elif bodies and bands:
         body_mass = [0.0] * len(bodies)
         total_occ = 0.0
         for index, volume in enumerate(bands):
@@ -383,7 +473,11 @@ def assess(
         #
         # Same correction the storey rule already carries: weigh by how much
         # building each band is.
+        bulk = float(volume.footprint.area) * max(
+            0.0, volume.top_fraction - volume.bottom_fraction
+        )
         if index in structural:
+            holding += bulk
             continue
         verdict = evaluate_floor_section_viability(
             volume.footprint, parcel_area_m2=parcel_area_m2
@@ -397,12 +491,6 @@ def assess(
         # Weighed by how much building each band is, not counted. Counting made
         # one thin terrace among Mountain Dwellings' thirteen bands worth as
         # much as the forty-metre plates beside it, and refused the scheme.
-        bulk = float(volume.footprint.area) * max(
-            0.0, volume.top_fraction - volume.bottom_fraction
-        )
-        if index in structural:
-            holding += bulk
-            continue
         occupied += bulk
         if holds_a_storey(volume.footprint):
             room += bulk
@@ -464,9 +552,10 @@ def assess(
     # structure gate, not by this.
     if floor_height_m > 0.0:
         structural_extents = [
-            (bands[i].footprint, bands[i].bottom_fraction, bands[i].top_fraction)
-            for i in structural
-            if i < len(bands)
+            (source.volumes[i].footprint, source.volumes[i].bottom_fraction,
+             source.volumes[i].top_fraction)
+            for i in source.metadata.get("structural_bands") or ()
+            if i < len(source.volumes)
         ]
         # `bodies` is the floor-filtered list from the slenderness pass above:
         # a boolean-cut sliver is not a body there and is not one here either.
