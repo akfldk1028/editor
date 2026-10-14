@@ -8,8 +8,9 @@ from .geometry import parts
 
 # A drive drawn exactly as wide as the rule (the common case: the generator draws aisle_width_m)
 # eroded by a hair under half its width leaves a 2e-5 m core; floating-point noise then fails
-# every stall and the certificate is always unknown on standard layouts. One centimetre is
-# below any drawing precision and is not a width relaxation: a 5.98 m drive still fails.
+# every stall and the certificate is always unknown on standard layouts. One centimetre in
+# total (half a centimetre a side) is below any drawing precision and is not a width
+# relaxation: a 5.98 m drive or opening still fails.
 SLACK = 0.01
 
 
@@ -35,14 +36,14 @@ def certify_ground_access(drive, stalls, road, width):
         runs = []
         for line in lines:
             if isinstance(line, LineString):
-                coords = list(line.simplify(1e-8).coords)
+                coords = list(line.simplify(1e-5).coords)   # the engine's metric precision; a 1e-6 kink is not a bend
                 runs.extend(LineString([a, b]) for a, b in zip(coords, coords[1:])
                             if math.dist(a, b) >= width - SLACK)
         if not runs:
             continue
         local = [(i, stall) for i, stall in enumerate(stalls) if stall.distance(component) <= 1e-5]
         radius = width / 2
-        offset = max(0, radius - SLACK)
+        offset = max(0, radius - SLACK/2)
         # Every certificate belongs to one eroded core: proximity to a different core or to a
         # portal endpoint does not establish a route. The core is where a full-width body can
         # be centred inside the drive.
@@ -86,10 +87,16 @@ def certify_ground_access(drive, stalls, road, width):
                         # core itself certifies the width
                         reach = line.project(nearest_points(line.interpolate(0), hit)[1])
                         body = substring(line, 0, reach).buffer(offset, cap_style=2)
-                        # area tests: `covers` trips on zero-area slivers that a rotated
-                        # difference leaves on shared boundaries
-                        if (body.difference(far).difference(component.buffer(1e-5)).area <= 1e-6
-                                and body.intersection(road).difference(run.buffer(SLACK)).length <= 1e-6):
+                        # The body must actually cross the road, over its full width and inside
+                        # the opening: a sweep whose start already lies inside the drive (the
+                        # reversed sign, or a core within SLACK of the start) never meets the road
+                        # and would certify a drive reached through a 1 m sliver. Area and
+                        # length tests: `covers` trips on zero-area slivers that a rotated
+                        # difference leaves on shared boundaries.
+                        crossing = body.intersection(road)
+                        if (crossing.length >= 2*offset - 1e-6
+                                and crossing.difference(run.buffer(SLACK)).length <= 1e-6
+                                and body.difference(far).difference(component.buffer(1e-5)).area <= 1e-6):
                             return True
             return False
         for core in cores:

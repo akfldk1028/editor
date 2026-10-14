@@ -281,6 +281,7 @@ def select_joint_layout(request, solve):
         result = solve(candidate)
         result['blocking'].append('generated mass footprint requires MassAgent/architect acceptance')
         result['generated_zone_relocated'] = True
+        result['generated_footprint'] = candidate['footprint']
         if choice is not None:
             for f in result.get('features', []):
                 if f.get('properties', {}).get('layer') == 'building_ground_footprint':
@@ -288,13 +289,21 @@ def select_joint_layout(request, solve):
             result['blocking'].append('generated piloti ground occupancy requires MassAgent/architect acceptance')
             result['piloti_strip_m'] = choice['depth_m']
             result['piloti_choice_id'] = choice['id']
-            enclosed = next((v[0] for v in shortlist if v[3] is None and v[1].equals(p)), None)
-            result['piloti_parent'] = None if enclosed is None else {'surface': enclosed}
         if result['status']=='resolved':
             result['status']='needs_evidence'
         result['handoff'].update(input_hash=digest(request),hard_pass=False,
             status='failed' if result['status']=='needs_revision' else 'needs_evidence')
         layouts.append(result)
+    for r in layouts:
+        # a relocated piloti is measured against the SOLVED enclosed layout of the same
+        # footprint (a screen estimate is not comparable to a complete solve); without one
+        # it is not penalised
+        if r.get('piloti_strip_m') is not None and r.get('generated_zone_relocated'):
+            enclosed = next((e for e in layouts if e.get('generated_zone_relocated') and e.get('piloti_strip_m') is None
+                             and e.get('generated_footprint') == r['generated_footprint']), None)
+            r['piloti_parent'] = None if enclosed is None else {
+                'surface': sum(v['provided_spaces'] for v in enclosed['levels'] if v['level']==0),
+                'provided': enclosed['metrics']['provided_parking_stalls']}
     surface_target=opts.get('target_surface_stalls')
     def piloti_buys_parking(r, surface):
         # A piloti strip exists to pass cars beneath the building. One that adds no surface

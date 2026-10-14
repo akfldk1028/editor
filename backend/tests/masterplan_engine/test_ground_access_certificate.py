@@ -80,8 +80,25 @@ def test_a_drive_exactly_as_wide_as_the_rule_is_full_width():
     stalls = [box(x, 6, x + 2.5, 11) for x in range(2, 26, 5)]
     result = certify_ground_access(drive, stalls, LineString([(0, 0), (30, 0)]), 6)
     assert result['status'] == 'passed' and result['certified_stalls'] == len(stalls)
-    short = certify_ground_access(box(0, 0, 30, 5.98), [box(2, 5.98, 4.5, 10.98)], LineString([(0, 0), (30, 0)]), 6)
-    assert short['status'] == 'unknown' and short['certified_stalls'] == 0
+    def through_strip(strip_width):
+        strip = box(15 - strip_width/2, 0, 15 + strip_width/2, 4)       # entry strip into a full-depth drive
+        drive = unary_union([strip, box(0, 4, 30, 10)])
+        return certify_ground_access(drive, [box(14, 10, 16.5, 15)], LineString([(0, 0), (30, 0)]), 6)['status']
+    assert through_strip(6.0) == 'passed' and through_strip(5.995) == 'passed'
+    assert through_strip(5.98) == 'unknown', 'the slack is 1 cm in total, not a width relaxation'
+
+
+@pytest.mark.parametrize('neck', [1.0, 2.0])
+def test_a_drive_reached_only_through_a_narrow_neck_from_a_shallow_ledge_is_not_served(neck):
+    """A width-long road contact on a 0.5 m ledge, a neck up to the real drive: no full-width body can
+    cross the road into the drive. The reversed sweep used to start inside the drive and never meet the
+    road; a core within the slack of the start made the body empty. Both certified 3/3."""
+    road = LineString([(0, 0), (30, 0)])
+    for depth in (2.0, 3.0):      # 3.0 puts the core exactly a body length from the portal
+        drive = unary_union([box(0, 0, 30, 0.5), box(15 - neck/2, 0.5, 15 + neck/2, depth), box(0, depth, 30, depth + 6)])
+        stalls = [box(x, depth + 6, x + 2.5, depth + 11) for x in (5, 14, 23)]
+        result = certify_ground_access(drive, stalls, road, 6)
+        assert result['status'] == 'unknown' and result['certified_stalls'] == 0, (neck, depth, result)
 
 
 def test_an_entry_strip_skewed_to_the_road_is_a_valid_approach():

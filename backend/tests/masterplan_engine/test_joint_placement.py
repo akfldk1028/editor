@@ -226,3 +226,30 @@ def test_a_piloti_that_buys_surface_bays_is_not_ranked_on_enclosed_area(monkeypa
     assert chosen['piloti_parent'] == {'surface': 20, 'provided': 50}
     kept = [c['layout'].get('piloti_strip_m') for c in chosen['planning_candidates']]
     assert None in kept and 5.0 in kept, 'enclosed and piloti configurations are distinct portfolio families'
+
+
+def test_a_relocated_piloti_is_measured_against_its_solved_enclosed_layout(monkeypatch):
+    """The screen count is a row estimate; only the complete enclosed solve of the same footprint is a
+    parent. Two solves of one relocated footprint: enclosed 20 surface, piloti 30 surface, same total."""
+    from shapely.geometry import shape
+    from backend.app.modules.design.generation.maas.masterplan import joint
+    generated, moved = box(10, 40, 50, 60), box(10, 0, 50, 20)
+    monkeypatch.setattr(joint, 'footprint_candidates', lambda *a, **k: [moved])
+    monkeypatch.setattr(joint, 'piloti_ground_variants', lambda *a, **k: iter(()))
+    from backend.app.modules.design.generation.maas.masterplan import placement_state
+    monkeypatch.setattr(placement_state, '_choices', lambda p, rules: [
+        {'id': 'e0_stall', 'depth_m': 5.0, 'edge': [], 'ground': mapping(box(10, 5, 50, 20))}])
+    def solve(request):
+        fp = shape(request['footprint']) if request.get('footprint') else generated
+        piloti = request.get('ground_footprint') is not None
+        result = _fake_result(fp, 30 if piloti else 20, 300 if piloti else 400)
+        if fp.equals(generated):
+            result['validation'] = {'geometry_status': 'failed'}        # the baseline family loses on key 1
+        if piloti:
+            result['features'].append({'properties': {'layer':'building_ground_footprint','level':0},
+                                       'geometry':request['ground_footprint']})
+        return result
+    request = _placement_request(); request['options']['max_joint_layouts'] = 2
+    chosen = select_joint_layout(request, solve)
+    assert chosen['generated_zone_relocated'] and chosen.get('piloti_strip_m') == 5.0
+    assert chosen['piloti_parent'] == {'surface': 20, 'provided': 50}
