@@ -114,6 +114,7 @@
     },
     {
       "id": "masterplan",
+      "capabilities": ["design-conversation/v1"],
       "kind": "agent",
       "idle_timeout_s": 1800,
       "memory_mb": 90,
