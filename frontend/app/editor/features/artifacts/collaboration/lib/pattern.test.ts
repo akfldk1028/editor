@@ -19,20 +19,23 @@ test('without a declared workflow the pattern is the calls as timed: one column 
   ]
   const pattern = patternOf(turn, null, 9000)
   expect(pattern.declared).toBe(false)
-  expect(pattern.steps).toEqual([
-    { id: 'call:0:0', owner: 'site_context', title: '주변 현황', status: 'succeeded', column: 0 },
-    { id: 'call:0:1', owner: 'site_context', title: '용도지역', status: 'succeeded', column: 0 },
-    { id: 'call:1:0', owner: 'law', title: '법규 분석', status: 'running', column: 1 },
+  expect(pattern.steps.map(({ messages, ...step }) => [step, messages.map((message) => message.id)])).toEqual([
+    [{ id: 'call:0:0', owner: 'site_context', title: '주변 현황', status: 'succeeded', column: 0 }, ['hop:1:request', 'hop:1:response']],
+    [{ id: 'call:0:1', owner: 'site_context', title: '용도지역', status: 'succeeded', column: 0 }, ['hop:2:request', 'hop:2:response']],
+    [{ id: 'call:1:0', owner: 'law', title: '법규 분석', status: 'running', column: 1 }, ['hop:3:request']],
   ])
   expect(pattern.edges).toEqual([{ source: 'call:0:0', target: 'call:1:0' }, { source: 'call:0:1', target: 'call:1:0' }])
-  const nodes = patternNodes(pattern, { law: 'Law Agent' })
-  expect(nodes.map((node) => [node.id, node.agent, node.label, node.sub, node.order, node.position.x])).toEqual([
-    ['user', 'user', '사용자', '요청을 내고 답을 받습니다', null, 0],
-    ['orchestrator', 'orchestrator', 'Orchestrator Agent', '', null, PATTERN_COLUMN],
-    ['call:0:0', 'site_context', 'Site Agent', '주변 현황 · 완료', 1, PATTERN_COLUMN * 2],
-    ['call:0:1', 'site_context', 'Site Agent', '용도지역 · 완료', 1, PATTERN_COLUMN * 2],
-    ['call:1:0', 'law', 'Law Agent', '법규 분석 · 진행 중', 2, PATTERN_COLUMN * 3],
+  const nodes = patternNodes(pattern, { law: 'Law Agent' }, [], turn)
+  expect(nodes.map((node) => [node.id, node.agent, node.label, node.sub, node.status, node.order, node.position.x])).toEqual([
+    ['user', 'user', '사용자', '요청을 내고 답을 받습니다', undefined, null, 0],
+    ['orchestrator', 'orchestrator', 'Orchestrator Agent', '', undefined, null, PATTERN_COLUMN],
+    ['call:0:0', 'site_context', 'Site Agent', '주변 현황', '완료', 1, PATTERN_COLUMN * 2],
+    ['call:0:1', 'site_context', 'Site Agent', '용도지역', '완료', 1, PATTERN_COLUMN * 2],
+    ['call:1:0', 'law', 'Law Agent', '법규 분석', '진행 중', 2, PATTERN_COLUMN * 3],
   ])
+  // A step's card steps through what it exchanged: the request, then the answer, as the 에이전트 view's cards do.
+  expect(nodes[2]!.items.map((item) => item.id)).toEqual(['hop:1:request', 'hop:1:response'])
+  expect(nodes[4]!.items.map((item) => item.id)).toEqual(['hop:3:request'])
   // Same-time calls share a column, one above the other, centred on the row.
   expect(nodes[2]!.position.y).toBe(-nodes[3]!.position.y)
   // The same edge records the 에이전트 view draws: the person's line, request lines from the hub, dotted order lines.
@@ -57,10 +60,19 @@ test('a declared workflow is drawn by its own steps and dependencies; an evidenc
     },
     edges: [{ source: 'a', target: 'b' }, { source: 'b', target: 'c' }],
   }
-  const pattern = patternOf([], workflow)
+  // The record of the turn: the workflow's steps are matched to the calls to their owner for their tool, in order.
+  const record = [
+    timed('1', 'request', 'site_context', 'site_zoning', 1000), timed('1', 'response', 'site_context', 'site_zoning', 1500),
+    timed('2', 'request', 'law', 'law_ordinance', 2000, 'needs_evidence'), timed('2', 'response', 'law', 'law_ordinance', 2300, 'needs_evidence'),
+    timed('3', 'request', 'law', 'law_parcel_limits', 3000, 'running'),
+  ]
+  const pattern = patternOf(record, workflow)
   expect(pattern.declared).toBe(true)
-  expect(pattern.steps.map((step) => [step.id, step.column, step.title])).toEqual([['a', 0, '용도지역 확인'], ['b', 1, 'ordinance'], ['c', 2, 'parcel limits']])
-  expect(patternNodes(pattern).map((node) => node.sub)).toEqual(['요청을 내고 답을 받습니다', '', '용도지역 확인 · 완료', 'ordinance · 원문 확인', 'parcel limits · 진행 중'])
+  expect(pattern.steps.map((step) => [step.id, step.column, step.title, step.messages.map((message) => message.id)])).toEqual([
+    ['a', 0, '용도지역 확인', ['hop:1:request', 'hop:1:response']], ['b', 1, 'ordinance', ['hop:2:request', 'hop:2:response']], ['c', 2, 'parcel limits', ['hop:3:request']]])
+  const nodes = patternNodes(pattern, {}, [], record)
+  expect(nodes.map((node) => [node.sub, node.status])).toEqual([['요청을 내고 답을 받습니다', undefined], ['', undefined], ['용도지역 확인', '완료'], ['ordinance', '원문 확인'], ['parcel limits', '진행 중']])
+  expect(nodes[3]!.items.map((item) => item.id)).toEqual(['hop:2:request', 'hop:2:response'])
   expect(patternLinks(pattern).map((link) => [link.id, link.kind, link.label, !!link.running])).toEqual([
     ['person:user→orchestrator', 'user', '', false], ['orchestrator→a', 'request', '용도지역 확인 요청', false], ['next:a→b', 'next', '검토', false], ['next:b→c', 'next', '검증', true],
   ])

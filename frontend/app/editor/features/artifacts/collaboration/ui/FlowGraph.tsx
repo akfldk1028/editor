@@ -136,7 +136,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     })
   }, [messages, catalog, live, compact, vertical])
   // The pattern view keeps the person's and the Orchestrator's cards as the 에이전트 view drew them; its lines are the same records.
-  const graph = useMemo(() => (view === 'pattern' && !compact ? { nodes: patternNodes(pattern, names, agents.nodes), edges: patternLinks(pattern) } : agents), [agents, view, compact, pattern, names])
+  const graph = useMemo(() => (view === 'pattern' && !compact ? { nodes: patternNodes(pattern, names, agents.nodes, messages), edges: patternLinks(pattern) } : agents), [agents, view, compact, pattern, names, messages])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const selectedRef = useRef(selected)
@@ -156,8 +156,9 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
         const agent = node.agent ?? node.id
         const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: agent === selectedRef.current, idle: node.idle, live: node.live, agent, said: node.said, items: node.items }
         const steps = node.agent ? [] : Object.values(workflow?.steps ?? {}).filter(step => step.owner === node.id)
-        // An owner with several steps shows the one furthest from done: running, then waiting, then any trouble.
-        if (steps.length) data.workflowStatus = stepStatus((['running', 'pending', 'failed', 'blocked', 'needs_revision', 'needs_evidence'].find(status => steps.some(step => step.status === status && !stepDone(step))) ?? 'succeeded')).label
+        // A step card says where it stands; an owner with several steps shows the one furthest from done: running, then waiting, then any trouble.
+        if (node.status) data.workflowStatus = node.status
+        else if (steps.length) data.workflowStatus = stepStatus((['running', 'pending', 'failed', 'blocked', 'needs_revision', 'needs_evidence'].find(status => steps.some(step => step.status === status && !stepDone(step))) ?? 'succeeded')).label
         const old = known.get(node.id)
         const position = old && moved.current.has(node.id) ? old.position : node.position
         if (old && old.position.x === position.x && old.position.y === position.y && JSON.stringify(old.data) === JSON.stringify(data)) return old

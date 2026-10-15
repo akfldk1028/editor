@@ -7,7 +7,7 @@ import { USER } from '@/lib/agents'
 import { phaseLabel, stepStatus, stepTitle, type Workflow } from '@/lib/design-conversation/workflow'
 import { agentLabel, toolLabel } from '@/lib/orchestrator-runs/labels'
 
-import { callWaves, type GraphEdge, type GraphNode, NODE_HEIGHT, NODE_WIDTH } from './graph'
+import { callNumbers, callWaves, type GraphEdge, type GraphNode, itemsOf, NODE_HEIGHT, NODE_WIDTH } from './graph'
 import { type CollaborationMessage, ORCHESTRATOR } from './transcript'
 
 export interface PatternStep {
@@ -21,12 +21,16 @@ export interface PatternStep {
   code?: string
   /** 0 for the steps that start first; a step's column is one past the furthest column it waited for. */
   column: number
+  /** What this step exchanged: its request and its answer, as recorded (empty when the record has none yet). */
+  messages: CollaborationMessage[]
 }
 export interface PatternEdge { source: string; target: string; label?: string }
 export interface Pattern { steps: PatternStep[]; edges: PatternEdge[]; declared: boolean }
 
 /** The steps as they ran this turn: the declared workflow when there is one, else the calls' waves. */
 export function patternOf(messages: readonly CollaborationMessage[], workflow?: Workflow | null, now = Date.now()): Pattern {
+  // A call's record: its request and the answer the ledger paired with it (`hop:7:request` ↔ `hop:7:response`).
+  const exchange = (requestId: string) => messages.filter((message) => message.id === requestId || message.id === requestId.replace(/:request$/, ':response'))
   if (workflow) {
     const columns = new Map<string, number>()
     const column = (id: string): number => {
@@ -36,11 +40,19 @@ export function patternOf(messages: readonly CollaborationMessage[], workflow?: 
       columns.set(id, value)
       return value
     }
-    const steps = Object.entries(workflow.steps).map(([id, step]) => ({ id, owner: step.owner, title: stepTitle(step), phase: step.phase, status: step.status, code: step.code, column: column(id) }))
+    // The workflow record does not name the ledger's calls: a step's call is the next request to its owner for its
+    // tool not yet claimed by an earlier step (steps of one tool are matched in their recorded order).
+    const claimed = new Set<string>()
+    const requestFor = (owner: string, tool: string) => messages.find((message) => message.direction === 'request' && message.to === owner && message.tool === tool && message.at && !claimed.has(message.id))
+    const steps = Object.entries(workflow.steps).map(([id, step]) => {
+      const request = requestFor(step.owner, step.tool)
+      if (request) claimed.add(request.id)
+      return { id, owner: step.owner, title: stepTitle(step), phase: step.phase, status: step.status, code: step.code, column: column(id), messages: request ? exchange(request.id) : [] }
+    })
     return { steps, edges: workflow.edges.map((edge) => ({ source: edge.source, target: edge.target })), declared: true }
   }
   const waves = callWaves(messages, now)
-  const steps: PatternStep[] = waves.flatMap((wave, column) => wave.map((call, index) => ({ id: `call:${column}:${index}`, owner: call.to, title: toolLabel(call.tool), status: call.state, column })))
+  const steps: PatternStep[] = waves.flatMap((wave, column) => wave.map((call, index) => ({ id: `call:${column}:${index}`, owner: call.to, title: toolLabel(call.tool), status: call.state, column, messages: exchange(call.id) })))
   // Every call of a wave began after the whole wave before it had answered: each earlier call leads to each later one.
   const edges: PatternEdge[] = waves.flatMap((wave, column) => (column ? wave.flatMap((_, index) => waves[column - 1]!.map((_, parent) => ({ source: `call:${column - 1}:${parent}`, target: `call:${column}:${index}` }))) : []))
   return { steps, edges, declared: false }
@@ -51,11 +63,13 @@ export const PATTERN_ROW = NODE_HEIGHT + 36
 
 /**
  * The pattern on the canvas: the person and the Orchestrator exactly as the 에이전트 view draws them (their cards,
- * what they said), then one column per wave of steps (centred on the row), each card its owner with what it did
- * and where it stands. Step nodes carry `agent` so a click picks the owner.
+ * what they said), then one column per wave of steps (centred on the row), each card its owner, where it stands on
+ * the header, and what it exchanged — its request and its answer, stepped through like any card of the 에이전트
+ * view. Step nodes carry `agent` so a click picks the owner.
  */
-export function patternNodes(pattern: Pattern, names: Readonly<Record<string, string>> = {}, from: readonly GraphNode[] = []): GraphNode[] {
+export function patternNodes(pattern: Pattern, names: Readonly<Record<string, string>> = {}, from: readonly GraphNode[] = [], messages: readonly CollaborationMessage[] = []): GraphNode[] {
   const name = (id: string) => names[id] ?? agentLabel(id)
+  const order = callNumbers(messages)
   const base: Pick<GraphNode, 'items' | 'selected' | 'idle' | 'live' | 'order'> = { items: [], selected: false, idle: false, live: null, order: null }
   const given = (id: string) => from.find((node) => node.id === id)
   const user = given(USER) ?? { ...base, id: USER, label: agentLabel(USER), sub: '요청을 내고 답을 받습니다', kind: 'user' as const, position: { x: 0, y: 0 } }
@@ -69,7 +83,8 @@ export function patternNodes(pattern: Pattern, names: Readonly<Record<string, st
     const wave = pattern.steps.filter((step) => step.column === column)
     wave.forEach((step, index) => {
       const state = stepStatus(step.status, step.code)
-      nodes.push({ ...base, id: step.id, agent: step.owner, label: name(step.owner), sub: `${step.title} · ${state.label}`, kind: 'agent', order: column + 1,
+      nodes.push({ ...base, id: step.id, agent: step.owner, label: name(step.owner), status: state.label, sub: step.title, kind: 'agent', order: column + 1,
+        items: itemsOf(step.messages, names, order),
         position: { x: PATTERN_COLUMN * (column + 2), y: (index - (wave.length - 1) / 2) * PATTERN_ROW } })
     })
   }
