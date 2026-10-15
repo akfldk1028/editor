@@ -3,7 +3,7 @@ import { confirmationFor } from '@/lib/design-conversation/confirmation'
 import { artifactStatus } from '@/lib/design-conversation/artifact-status'
 import { type RequirementsSheet, requirementsSheet } from '@/lib/agents/requirement/lib/sheet'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
-import { splitArtifacts } from '@/lib/design-conversation/artifact-view'
+import { chatArtifacts } from '@/lib/design-conversation/artifact-view'
 import { workflowOf } from '@/lib/design-conversation/workflow'
 import { WorkflowCard } from './WorkflowCard'
 
@@ -186,8 +186,8 @@ export function ConversationArtifacts({
   // The design intent's slices (parti, exterior relationship, non-negotiables) are one card, like the requirements.
   const intent = afterSheet.filter((artifact) => artifact.id.startsWith('design_intent.'))
   const rest = afterSheet.filter((artifact) => !artifact.id.startsWith('design_intent.'))
-  // In front: the work in progress and what waits for the person. Every earlier record folds under one line.
-  const { live, past } = splitArtifacts(rest)
+  // The chat shows what the person acts on and the newest proposal; workflow records live in the collaboration panel.
+  const live = chatArtifacts(rest)
   return (
     <section className="conversation-artifacts" aria-label="대화 결과">
       {sheet && <RequirementsCard sheet={sheet} />}
@@ -200,25 +200,6 @@ export function ConversationArtifacts({
           onConfirm={onConfirm}
         />
       ))}
-      {past.length > 0 && (
-        <details className="conversation-artifact conversation-past">
-          <summary>
-            <strong>이전 작업 {past.length}개</strong>
-            <span>{agentLabel('orchestrator')}</span>
-            <span className="conversation-artifact-status" data-tone="neutral">
-              접힘
-            </span>
-          </summary>
-          {past.map((artifact) => (
-            <ArtifactCard
-              artifact={artifact}
-              disabled={disabled}
-              key={artifact.id}
-              onConfirm={onConfirm}
-            />
-          ))}
-        </details>
-      )}
     </section>
   )
 }
