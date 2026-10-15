@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { workflowOf } from '@/lib/design-conversation/workflow'
 import { ConversationArtifacts } from './ConversationArtifacts'
+import { WorkflowCard } from './WorkflowCard'
 
 const artifact = { id: 'intent-review', owner: 'orchestrator', title: '검토', status: 'awaiting_confirmation', data: { kind: 'intent_reconfirmation', context_hash: 'a'.repeat(64), context: { nodes: { requirement: 4 } }, proposed_intent: { description: 'Review this intent' } } }
 
@@ -40,13 +42,15 @@ test('the requirement brief is one card in the user\'s words that fills in, neve
   expect(html.indexOf('요구사항')).toBeLessThan(html.indexOf('Review this intent'))
 })
 
-test('artifact status distinguishes proposals, stale evidence and confirmed results with a neutral fallback', () => {
-  const cases = { proposed: '제안', stale: '이전 조건 기준', needs_evidence: '근거 보완 필요', confirmed: '확인됨', awaiting_confirmation: '확인 대기', valid: '현재 조건에 유효', future_status: '상태 미확인' }
-  for (const [status, label] of Object.entries(cases)) {
+test('the chat shows a card the person acts on and the newest proposal; stale, confirmed and finished cards stay out of it', () => {
+  const shown = { proposed: '제안', awaiting_confirmation: '확인 대기' }
+  for (const [status, label] of Object.entries(shown)) {
     const html = renderToStaticMarkup(<ConversationArtifacts artifacts={[{ ...artifact, status }]} />)
     expect(html).toContain(`>${label}</span>`)
     expect(html).toContain('conversation-artifact-status')
-    if (status === 'future_status') expect(html).toContain('data-tone="neutral"')
+  }
+  for (const status of ['stale', 'confirmed', 'needs_evidence', 'valid', 'future_status']) {
+    expect(renderToStaticMarkup(<ConversationArtifacts artifacts={[{ ...artifact, status }]} />)).not.toContain('conversation-artifact-status')
   }
 })
 
@@ -69,7 +73,9 @@ test('a workflow is one card in the user\'s words: how the owners worked togethe
              operating_draft: { owner: 'program', tool: 'program_from_brief', phase: 'propose', status: 'succeeded', title: '운영 조건으로 공간 초안을 만든다' } },
     edges: [{ source: 'facility_criteria', target: 'operating_draft' }],
   } }
-  const html = renderToStaticMarkup(<ConversationArtifacts artifacts={[workflow]} onConfirm={() => {}} />)
+  // The chat never shows a workflow record (the collaboration panel does); the card itself reads in the user's words.
+  expect(renderToStaticMarkup(<ConversationArtifacts artifacts={[workflow]} onConfirm={() => {}} />)).not.toContain('함께 작업')
+  const html = renderToStaticMarkup(<WorkflowCard flow={workflowOf(workflow)!} />)
   expect(html).toContain('함께 작업 · 필요한 것만 이어서')
   expect(html).toContain('근거 보완 필요')
   expect(html).toContain('운영 조건으로 공간 초안을 만든다')
