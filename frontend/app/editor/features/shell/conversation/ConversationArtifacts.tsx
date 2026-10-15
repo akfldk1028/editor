@@ -145,6 +145,33 @@ function RequirementsCard({ sheet }: { sheet: RequirementsSheet }) {
   )
 }
 
+/** The design intent's slices in the user's words, on one card. */
+const INTENT_LABELS: Record<string, string> = { parti: '핵심 개념(파르티)', exterior_relationship: '외부와의 관계', non_negotiables: '양보할 수 없는 조건', massing: '매스', circulation: '동선', materials: '재료' }
+
+function IntentCard({ slices }: { slices: ConversationArtifact[] }) {
+  const stale = slices.some((slice) => slice.status === 'stale')
+  return (
+    <details className="conversation-artifact conversation-sheet" open={!stale}>
+      <summary>
+        <strong>설계 의도</strong>
+        <span>{agentLabel('design_intent')}</span>
+        <span className="conversation-artifact-status" data-tone={stale ? 'attention' : 'confirmed'}>{stale ? '이전 조건 기준' : '현재 조건에 유효'}</span>
+      </summary>
+      <dl>
+        {slices.map((slice) => {
+          const key = slice.id.replace(/^design_intent\./, '').replace(/\.r\d+$/, '')
+          return (
+            <div key={slice.id} data-filled={empty(slice.data) ? 'false' : 'true'}>
+              <dt>{INTENT_LABELS[key] ?? label(key)}</dt>
+              <dd><Value value={slice.data} /></dd>
+            </div>
+          )
+        })}
+      </dl>
+    </details>
+  )
+}
+
 export function ConversationArtifacts({
   artifacts,
   onConfirm,
@@ -155,12 +182,16 @@ export function ConversationArtifacts({
   disabled?: boolean
 }) {
   if (!artifacts.length) return null
-  const { sheet, rest } = requirementsSheet(artifacts)
+  const { sheet, rest: afterSheet } = requirementsSheet(artifacts)
+  // The design intent's slices (parti, exterior relationship, non-negotiables) are one card, like the requirements.
+  const intent = afterSheet.filter((artifact) => artifact.id.startsWith('design_intent.'))
+  const rest = afterSheet.filter((artifact) => !artifact.id.startsWith('design_intent.'))
   // In front: the work in progress and what waits for the person. Every earlier record folds under one line.
   const { live, past } = splitArtifacts(rest)
   return (
     <section className="conversation-artifacts" aria-label="대화 결과">
       {sheet && <RequirementsCard sheet={sheet} />}
+      {intent.length > 0 && <IntentCard slices={intent} />}
       {live.map((artifact) => (
         <ArtifactCard
           artifact={artifact}
