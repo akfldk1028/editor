@@ -247,6 +247,13 @@ def _tile_bands_at(g_ground, blocked, y, aisle, stall_w, stall_l, acc_w, acc_l, 
     aisles, kept, runs = [], [], []
     for yk in offsets:
         band = box(minx - 1, yk, maxx + 1, yk + aisle).intersection(g_ground)
+        if blocked is not None and not blocked.is_empty:
+            # Cut the full aisle width at obstacles; subtracting only a shallow
+            # obstacle leaves a connected but too-narrow passage around it.
+            for obstruction in parts(band.intersection(blocked)):
+                if obstruction.area > EPS:
+                    left, _, right, _ = obstruction.bounds
+                    band = band.difference(box(left, yk, right, yk + aisle))
         best_part = None
         for part in parts(band):
             px0, _, px1, _ = part.bounds
