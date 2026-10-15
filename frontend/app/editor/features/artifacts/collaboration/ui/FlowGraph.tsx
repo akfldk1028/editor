@@ -2,6 +2,7 @@
 
 import '@xyflow/react/dist/style.css'
 import { Background, BackgroundVariant, Controls, type Edge, Handle, MarkerType, type Node, type NodeProps, type NodeTypes, Position, ReactFlow, ReactFlowProvider, type Rect, useNodesState, useReactFlow } from '@xyflow/react'
+import { toFlowEdge } from './edges'
 import { MessagesSquare } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -127,14 +128,15 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
   const [view, setView] = useState<'agents' | 'pattern'>('agents')
   const pattern = useMemo(() => patternOf(messages, workflow), [messages, workflow])
   const names = useMemo(() => Object.fromEntries((catalog ?? []).filter((entry) => entry.label).map((entry) => [entry.id, entry.label!])), [catalog])
-  const graph = useMemo(() => {
-    if (view === 'pattern' && !compact) return { nodes: patternNodes(pattern, names), edges: [] }
+  const agents = useMemo(() => {
     const spoken = new Set(messages.flatMap((message) => [message.from, message.to]))
     return buildGraph(messages, null, {
       live, orientation: vertical ? 'vertical' : 'horizontal',
       ...(compact ? { catalog: [...spoken].filter((id) => id !== ORCHESTRATOR && id !== USER).map((id) => catalog?.find((entry) => entry.id === id) ?? { id }) } : catalog ? { catalog } : {}),
     })
-  }, [messages, catalog, live, compact, vertical, view, pattern, names])
+  }, [messages, catalog, live, compact, vertical])
+  // The pattern view keeps the person's and the Orchestrator's cards as the 에이전트 view drew them; its lines are the same records.
+  const graph = useMemo(() => (view === 'pattern' && !compact ? { nodes: patternNodes(pattern, names, agents.nodes), edges: patternLinks(pattern) } : agents), [agents, view, compact, pattern, names])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const selectedRef = useRef(selected)
@@ -167,50 +169,12 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     setNodes((current) => current.map((node) => (node.data.selected === (node.data.agent === selected) ? node : { ...node, data: { ...node.data, selected: node.data.agent === selected } })))
   }, [selected, setNodes])
 
-  const communicationEdges = useMemo<Edge[]>(() => graph.edges.map((edge) => {
-    const spoken = edge.kind === 'request' || edge.kind === 'response'
-    const back = edge.kind === 'response'
-    const className = `collab-edge-${edge.kind}${edge.known ? '' : ' collab-edge-unknown'}${edge.running ? ' collab-edge-running' : ''}`
-    if (edge.sourceHandle && edge.targetHandle) {
-      // The wide flow: each line names the handles it leaves and enters by.
-      return {
-        id: edge.id, source: edge.source, target: edge.target, sourceHandle: edge.sourceHandle, targetHandle: edge.targetHandle, type: 'smoothstep', pathOptions: { borderRadius: 12, offset: 18 }, animated: spoken, className,
-        ...(spoken ? { markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: back ? 'var(--success)' : 'var(--accent)' } } : {}),
-      }
-    }
-    if (edge.lane) {
-      // The vertical flow: cards are nodes, so a line only needs the right handles for its lane.
-      const isCard = (id: string) => id.startsWith('said:')
-      const sourceHandle = edge.lane === 'down' ? 's-bottom' : isCard(edge.source) ? `s-${edge.lane}` : edge.lane === 'left' ? 'back' : 'out'
-      const targetHandle = edge.lane === 'down' ? 't-top' : isCard(edge.target) ? `t-${edge.lane}` : edge.lane === 'left' ? 'in' : 'return'
-      return {
-        id: edge.id, source: edge.source, target: edge.target, sourceHandle, targetHandle, type: 'smoothstep', pathOptions: { borderRadius: 12, offset: 28 }, animated: spoken, className,
-        ...(spoken ? { markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: back ? 'var(--success)' : 'var(--accent)' } } : {}),
-      }
-    }
-    const base = {
-      id: edge.id, source: edge.source, target: edge.target,
-      sourceHandle: back ? 'back' : 'out', targetHandle: back ? 'return' : 'in',
-      animated: spoken, className,
-    }
-    if (!spoken) return { ...base, label: edge.label || undefined, type: 'smoothstep', pathOptions: { borderRadius: 10 } }
-    // What was said rides on the line as a card; the call and its count sit under it.
-    return {
-      ...base, type: 'said', data: { said: edge.said, caption: edge.caption ?? edge.label, kind: edge.kind, running: !!edge.running },
-      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: back ? 'var(--success)' : 'var(--accent)' },
-    }
-  }), [graph])
+  const communicationEdges = useMemo<Edge[]>(() => graph.edges.map(toFlowEdge), [graph])
   // A workflow's dependencies drawn between owners: one line per pair of owners (several steps share it, their
   // phases joined on the label); a step that depends on the same owner's earlier step is that owner's own business.
   const edges = useMemo<Edge[]>(() => {
-    if (view === 'pattern' && !compact) {
-      // The pattern's lines: each one leads from a finished (or running) step to the step that waited for it.
-      return patternLinks(pattern).map((link) => ({
-        id: `pattern:${link.id}`, source: link.source, target: link.target, sourceHandle: 'out', targetHandle: 'in', type: 'smoothstep', pathOptions: { borderRadius: 12 },
-        animated: link.running, className: `collab-edge-pattern${link.running ? ' collab-edge-running' : ''}${link.done ? ' collab-edge-done' : ''}`,
-        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: link.done ? 'var(--success)' : 'var(--accent)' },
-      }))
-    }
+    // The pattern view draws the workflow's own steps; the owner-pair lines below belong to the agent view.
+    if (view === 'pattern' && !compact) return communicationEdges
     const pairs = new Map<string, { source: string; target: string; labels: string[]; running: boolean }>()
     for (const edge of workflow?.edges ?? []) {
       const from = workflow!.steps[edge.source]!, to = workflow!.steps[edge.target]!
@@ -226,7 +190,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
       id: `workflow:${workflow!.id}:${key}`, source: pair.source, target: pair.target, sourceHandle: 's-bottom', targetHandle: 't-top', type: 'smoothstep',
       label: pair.labels.join(' · '), animated: pair.running, className: 'collab-edge-next', markerEnd: { type: MarkerType.ArrowClosed },
     }))]
-  }, [communicationEdges, workflow, graph, view, compact, pattern])
+  }, [communicationEdges, workflow, graph, view, compact])
 
   // A line runs to and from a card: clicking it, like clicking the card, picks the agent the card is about.
   const partyAt = (source: string, target: string) =>

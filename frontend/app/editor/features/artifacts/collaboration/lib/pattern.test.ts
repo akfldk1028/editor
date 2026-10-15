@@ -27,17 +27,24 @@ test('without a declared workflow the pattern is the calls as timed: one column 
   expect(pattern.edges).toEqual([{ source: 'call:0:0', target: 'call:1:0' }, { source: 'call:0:1', target: 'call:1:0' }])
   const nodes = patternNodes(pattern, { law: 'Law Agent' })
   expect(nodes.map((node) => [node.id, node.agent, node.label, node.sub, node.order, node.position.x])).toEqual([
-    ['user', 'user', '사용자', '요청', null, 0],
-    ['orchestrator', 'orchestrator', 'Orchestrator Agent', '순서를 정함', null, PATTERN_COLUMN],
+    ['user', 'user', '사용자', '요청을 내고 답을 받습니다', null, 0],
+    ['orchestrator', 'orchestrator', 'Orchestrator Agent', '', null, PATTERN_COLUMN],
     ['call:0:0', 'site_context', 'Site Agent', '주변 현황 · 완료', 1, PATTERN_COLUMN * 2],
     ['call:0:1', 'site_context', 'Site Agent', '용도지역 · 완료', 1, PATTERN_COLUMN * 2],
     ['call:1:0', 'law', 'Law Agent', '법규 분석 · 진행 중', 2, PATTERN_COLUMN * 3],
   ])
   // Same-time calls share a column, one above the other, centred on the row.
   expect(nodes[2]!.position.y).toBe(-nodes[3]!.position.y)
-  expect(patternLinks(pattern).map((link) => [link.id, link.running])).toEqual([
-    ['user>hub', false], ['hub>call:0:0', false], ['hub>call:0:1', false], ['call:0:0>call:1:0', true], ['call:0:1>call:1:0', true],
+  // The same edge records the 에이전트 view draws: the person's line, request lines from the hub, dotted order lines.
+  expect(patternLinks(pattern).map((link) => [link.id, link.kind, link.label, !!link.running])).toEqual([
+    ['person:user→orchestrator', 'user', '', false],
+    ['orchestrator→call:0:0', 'request', '주변 현황 요청', false], ['orchestrator→call:0:1', 'request', '용도지역 요청', false],
+    ['next:call:0:0→call:1:0', 'next', '다음', true], ['next:call:0:1→call:1:0', 'next', '다음', true],
   ])
+  // The person and the Orchestrator keep the cards the 에이전트 view gave them (what they said), moved into place.
+  const said = { id: 'orchestrator', label: 'Orchestrator Agent', sub: '순서를 정했어요', kind: 'hub' as const, items: [], order: null, selected: false, idle: false, live: null, position: { x: 500, y: 9 } }
+  const reused = patternNodes(pattern, {}, [said])
+  expect(reused[1]).toMatchObject({ id: 'orchestrator', agent: 'orchestrator', sub: '순서를 정했어요', position: { x: PATTERN_COLUMN, y: 0 } })
 })
 
 test('a declared workflow is drawn by its own steps and dependencies; an evidence-only reading counts as done', () => {
@@ -53,9 +60,9 @@ test('a declared workflow is drawn by its own steps and dependencies; an evidenc
   const pattern = patternOf([], workflow)
   expect(pattern.declared).toBe(true)
   expect(pattern.steps.map((step) => [step.id, step.column, step.title])).toEqual([['a', 0, '용도지역 확인'], ['b', 1, 'ordinance'], ['c', 2, 'parcel limits']])
-  expect(patternNodes(pattern).map((node) => node.sub)).toEqual(['요청', '함께 작업을 계획함', '용도지역 확인 · 완료', 'ordinance · 원문 확인', 'parcel limits · 진행 중'])
-  expect(patternLinks(pattern).map((link) => [link.id, link.done, link.running])).toEqual([
-    ['user>hub', true, false], ['hub>a', true, false], ['a>b', true, false], ['b>c', false, true],
+  expect(patternNodes(pattern).map((node) => node.sub)).toEqual(['요청을 내고 답을 받습니다', '', '용도지역 확인 · 완료', 'ordinance · 원문 확인', 'parcel limits · 진행 중'])
+  expect(patternLinks(pattern).map((link) => [link.id, link.kind, link.label, !!link.running])).toEqual([
+    ['person:user→orchestrator', 'user', '', false], ['orchestrator→a', 'request', '용도지역 확인 요청', false], ['next:a→b', 'next', '검토', false], ['next:b→c', 'next', '검증', true],
   ])
   expect(patternOf([], null)).toEqual({ steps: [], edges: [], declared: false })
 })

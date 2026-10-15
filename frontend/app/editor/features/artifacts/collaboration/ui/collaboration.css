@@ -100,8 +100,6 @@
 .collab-view { position: absolute; inset-block-start: 8px; inset-inline-start: 12px; z-index: 5; display: inline-flex; padding: 2px; border-radius: 999px; background: var(--panel-raised); border: 1px solid var(--border-soft); }
 .collab-view button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: var(--fs-1); padding: 3px 10px; border-radius: 999px; cursor: pointer; }
 .collab-view button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-.collab-graph .react-flow__edge.collab-edge-pattern .react-flow__edge-path { stroke: var(--accent); stroke-width: 1.8px; }
-.collab-graph .react-flow__edge.collab-edge-pattern.collab-edge-done .react-flow__edge-path { stroke: var(--success); }
 .collab-order { inline-size: 18px; block-size: 18px; display: inline-grid; place-items: center; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 10px; font-weight: 700; flex: none; }
 .collab-graph .react-flow__edge.collab-edge-running .react-flow__edge-path { stroke-width: 2.6px; animation-duration: 0.45s; }
 

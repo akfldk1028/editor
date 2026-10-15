@@ -3,10 +3,11 @@
  * one — the Orchestrator's own calls as the ledger timed them (same-time calls in one column, columns in order).
  * Pure: the flow draws what this returns.
  */
-import { stepDone, stepStatus, stepTitle, type Workflow } from '@/lib/design-conversation/workflow'
+import { USER } from '@/lib/agents'
+import { phaseLabel, stepStatus, stepTitle, type Workflow } from '@/lib/design-conversation/workflow'
 import { agentLabel, toolLabel } from '@/lib/orchestrator-runs/labels'
 
-import { callWaves, type GraphNode, NODE_HEIGHT, NODE_WIDTH } from './graph'
+import { callWaves, type GraphEdge, type GraphNode, NODE_HEIGHT, NODE_WIDTH } from './graph'
 import { type CollaborationMessage, ORCHESTRATOR } from './transcript'
 
 export interface PatternStep {
@@ -14,6 +15,8 @@ export interface PatternStep {
   owner: string
   /** What the step does, in the user's words: the workflow step's own title or the tool's name. */
   title: string
+  /** 조회 · 제안 · 검토 … for a declared workflow's step; none for a plain call. */
+  phase?: string
   status: string
   code?: string
   /** 0 for the steps that start first; a step's column is one past the furthest column it waited for. */
@@ -33,7 +36,7 @@ export function patternOf(messages: readonly CollaborationMessage[], workflow?: 
       columns.set(id, value)
       return value
     }
-    const steps = Object.entries(workflow.steps).map(([id, step]) => ({ id, owner: step.owner, title: stepTitle(step), status: step.status, code: step.code, column: column(id) }))
+    const steps = Object.entries(workflow.steps).map(([id, step]) => ({ id, owner: step.owner, title: stepTitle(step), phase: step.phase, status: step.status, code: step.code, column: column(id) }))
     return { steps, edges: workflow.edges.map((edge) => ({ source: edge.source, target: edge.target })), declared: true }
   }
   const waves = callWaves(messages, now)
@@ -47,15 +50,19 @@ export const PATTERN_COLUMN = NODE_WIDTH + 110
 export const PATTERN_ROW = NODE_HEIGHT + 36
 
 /**
- * The pattern on the canvas: the person, the Orchestrator, then one column per wave of steps (centred on the row),
- * each card its owner with what it did and where it stands. Nodes carry `agent` so a click picks the owner.
+ * The pattern on the canvas: the person and the Orchestrator exactly as the 에이전트 view draws them (their cards,
+ * what they said), then one column per wave of steps (centred on the row), each card its owner with what it did
+ * and where it stands. Step nodes carry `agent` so a click picks the owner.
  */
-export function patternNodes(pattern: Pattern, names: Readonly<Record<string, string>> = {}): GraphNode[] {
+export function patternNodes(pattern: Pattern, names: Readonly<Record<string, string>> = {}, from: readonly GraphNode[] = []): GraphNode[] {
   const name = (id: string) => names[id] ?? agentLabel(id)
   const base: Pick<GraphNode, 'items' | 'selected' | 'idle' | 'live' | 'order'> = { items: [], selected: false, idle: false, live: null, order: null }
+  const given = (id: string) => from.find((node) => node.id === id)
+  const user = given(USER) ?? { ...base, id: USER, label: agentLabel(USER), sub: '요청을 내고 답을 받습니다', kind: 'user' as const, position: { x: 0, y: 0 } }
+  const hub = given(ORCHESTRATOR) ?? { ...base, id: ORCHESTRATOR, label: name(ORCHESTRATOR), sub: '', kind: 'hub' as const, position: { x: 0, y: 0 } }
   const nodes: GraphNode[] = [
-    { ...base, id: 'user', agent: 'user', label: '사용자', sub: '요청', kind: 'user', position: { x: 0, y: 0 } },
-    { ...base, id: ORCHESTRATOR, agent: ORCHESTRATOR, label: name(ORCHESTRATOR), sub: pattern.declared ? '함께 작업을 계획함' : '순서를 정함', kind: 'hub', position: { x: PATTERN_COLUMN, y: 0 } },
+    { ...user, agent: USER, position: { x: 0, y: 0 } },
+    { ...hub, agent: ORCHESTRATOR, position: { x: PATTERN_COLUMN, y: 0 } },
   ]
   const columns = Math.max(-1, ...pattern.steps.map((step) => step.column)) + 1
   for (let column = 0; column < columns; column += 1) {
@@ -69,15 +76,22 @@ export function patternNodes(pattern: Pattern, names: Readonly<Record<string, st
   return nodes
 }
 
-/** The lines of the pattern: the person to the Orchestrator, the Orchestrator to the first wave, then the dependencies. */
-export function patternLinks(pattern: Pattern): { id: string; source: string; target: string; running: boolean; done: boolean }[] {
+/**
+ * The lines of the pattern, in the canvas's one theme: the person's line to the Orchestrator, a request line from
+ * the Orchestrator to each step of the first wave (moving while it runs), and the order line (dotted) from a step
+ * to each step that waited for it, labelled with the later step's phase.
+ */
+export function patternLinks(pattern: Pattern): GraphEdge[] {
   const byId = new Map(pattern.steps.map((step) => [step.id, step]))
   const running = (id: string) => byId.get(id)?.status === 'running'
-  const done = (id: string) => { const step = byId.get(id); return !!step && stepDone(step) }
+  const wide = { sourceHandle: 'out', targetHandle: 'in', said: '', known: true } as const
   const first = pattern.steps.filter((step) => step.column === 0)
   return [
-    { id: 'user>hub', source: 'user', target: ORCHESTRATOR, running: false, done: true },
-    ...first.map((step) => ({ id: `hub>${step.id}`, source: ORCHESTRATOR, target: step.id, running: running(step.id), done: done(step.id) })),
-    ...pattern.edges.map((edge) => ({ id: `${edge.source}>${edge.target}`, source: edge.source, target: edge.target, running: running(edge.target), done: done(edge.target) })),
+    { id: `person:${USER}→${ORCHESTRATOR}`, source: USER, target: ORCHESTRATOR, kind: 'user', label: '', count: 0, ...wide },
+    ...first.map((step): GraphEdge => ({ id: `${ORCHESTRATOR}→${step.id}`, source: ORCHESTRATOR, target: step.id, kind: 'request', label: `${step.title} 요청`, count: 1, running: running(step.id), ...wide })),
+    ...pattern.edges.map((edge): GraphEdge => {
+      const phase = byId.get(edge.target)?.phase
+      return { id: `next:${edge.source}→${edge.target}`, source: edge.source, target: edge.target, kind: 'next', label: phase ? phaseLabel(phase) : '다음', count: 0, running: running(edge.target), ...wide }
+    }),
   ]
 }
