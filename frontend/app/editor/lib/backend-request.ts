@@ -1,4 +1,7 @@
-export async function backendRequest(request: Request, path: string, options: { stream?: boolean } = {}) {
+/** How long a plain (non-stream) request may take; an agent door that does real work (a law analysis) asks for more. */
+export const DEFAULT_TIMEOUT_MS = 60_000
+
+export async function backendRequest(request: Request, path: string, options: { stream?: boolean; timeoutMs?: number } = {}) {
   const origin = request.headers.get('origin')
   const publicUrl = new URL(request.url)
   // Next can reconstruct request.url with its internal hostname. Host retains
@@ -25,7 +28,7 @@ export async function backendRequest(request: Request, path: string, options: { 
         ...(request.headers.has('last-event-id') ? { 'Last-Event-ID': request.headers.get('last-event-id')! } : {}),
         ...(request.headers.has('idempotency-key') ? { 'Idempotency-Key': request.headers.get('idempotency-key')! } : {}) },
       body: request.method === 'GET' ? undefined : await request.text(),
-      cache: 'no-store', signal: options.stream ? request.signal : AbortSignal.any([request.signal, AbortSignal.timeout(60_000)]), redirect: 'error',
+      cache: 'no-store', signal: options.stream ? request.signal : AbortSignal.any([request.signal, AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS)]), redirect: 'error',
     })
     return new Response(upstream.body, { status: upstream.status, headers: {
       'Content-Type': upstream.headers.get('content-type') || 'application/json',

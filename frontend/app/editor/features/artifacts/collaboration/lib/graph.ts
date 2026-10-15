@@ -25,6 +25,8 @@ export interface SaidItem {
 
 export interface GraphNode {
   id: string
+  /** The participant this node stands for when its id is not one (a step card in the pattern view). */
+  agent?: string
   label: string
   /** The last thing this participant said or was asked, in the user's words; what it answers when it did not take part. */
   sub: string
@@ -197,7 +199,7 @@ const isLookup = (tool: string) => tool.endsWith('_tool_catalog') || tool.endsWi
  * a call that began after the wave's last answer starts the next. The ledger times every call (request `at` = start,
  * its answer's `at` = end); a call still without an answer runs to now. Lookups (catalogs, contracts) are left out.
  */
-export function callWaves(messages: readonly CollaborationMessage[], now = Date.now()): { to: string; tool: string }[][] {
+export function callWaves(messages: readonly CollaborationMessage[], now = Date.now()): { to: string; tool: string; state: string }[][] {
   const ends = new Map<string, number>()
   for (const message of messages) {
     if (message.direction === 'response' && message.at) ends.set(message.id.replace(/:response$/, ':request'), message.at)
@@ -205,13 +207,13 @@ export function callWaves(messages: readonly CollaborationMessage[], now = Date.
   const calls = messages
     .filter((message) => message.direction === 'request' && message.from !== USER && message.at && !isLookup(message.tool))
     .sort((a, b) => (a.at ?? 0) - (b.at ?? 0))
-  const waves: { to: string; tool: string }[][] = []
+  const waves: { to: string; tool: string; state: string }[][] = []
   let until = -1
   for (const call of calls) {
     const start = call.at ?? 0
     const end = ends.get(call.id) ?? now
     if (!waves.length || start >= until) { waves.push([]); until = end } else until = Math.max(until, end)
-    waves[waves.length - 1]!.push({ to: call.to, tool: call.tool })
+    waves[waves.length - 1]!.push({ to: call.to, tool: call.tool, state: ends.has(call.id) ? call.state : 'running' })
   }
   return waves
 }

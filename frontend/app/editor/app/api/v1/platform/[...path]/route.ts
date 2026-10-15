@@ -17,5 +17,6 @@ export async function POST(request: Request, context: { params: Promise<{ path: 
   if (!/^projects\/[A-Za-z0-9_-]{1,200}\/conversation$/.test(route) && !isPlatformDesignOperation('POST', route) && !/^(ask|law-analysis|ordinances|ordinances\/body|host\/(ensure|touch)|projects|projects\/[A-Za-z0-9_-]{1,200}\/(runs|scene-revision|conversations|runs\/[A-Za-z0-9_.:-]{1,200}\/resume))$/.test(route)) {
     return Response.json({ detail: 'Unknown platform operation' }, { status: 404 });
   }
-  return backendRequest(request, `/api/v1/platform/${route}`);
+  // A law analysis asks the Law Agent for the whole parcel (42 regulations, lines, caps): a minute is not enough on a cold agent.
+  return backendRequest(request, `/api/v1/platform/${route}`, route === 'law-analysis' || route === 'ask' ? { timeoutMs: 240_000 } : {});
 }

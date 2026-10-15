@@ -10,6 +10,7 @@ import { agentLabel } from '@/lib/orchestrator-runs/labels'
 
 import type { CatalogEntry, LiveState } from '../lib/catalog'
 import { buildGraph, CARD_HEIGHT, CARD_WIDTH, callWaves, type GraphNode, NODE_HEIGHT, NODE_WIDTH, partyOf, wavesLabel } from '../lib/graph'
+import { patternLinks, patternNodes, patternOf } from '../lib/pattern'
 import type { CollaborationMessage } from '../lib/transcript'
 import { phaseLabel, protocolLabel, stepDone, stepStatus, type Workflow } from '@/lib/design-conversation/workflow'
 import { SaidViewer } from './SaidViewer'
@@ -121,13 +122,19 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     return () => observer.disconnect()
   })
   const vertical = width !== null && width < NARROW_PX
+  // 에이전트: who talked to whom (every agent of the network on the canvas). 패턴: the steps this turn ran, in the
+  // order and at the same time they ran — the declared workflow when there is one, else the calls as the ledger timed them.
+  const [view, setView] = useState<'agents' | 'pattern'>('agents')
+  const pattern = useMemo(() => patternOf(messages, workflow), [messages, workflow])
+  const names = useMemo(() => Object.fromEntries((catalog ?? []).filter((entry) => entry.label).map((entry) => [entry.id, entry.label!])), [catalog])
   const graph = useMemo(() => {
+    if (view === 'pattern' && !compact) return { nodes: patternNodes(pattern, names), edges: [] }
     const spoken = new Set(messages.flatMap((message) => [message.from, message.to]))
     return buildGraph(messages, null, {
       live, orientation: vertical ? 'vertical' : 'horizontal',
       ...(compact ? { catalog: [...spoken].filter((id) => id !== ORCHESTRATOR && id !== USER).map((id) => catalog?.find((entry) => entry.id === id) ?? { id }) } : catalog ? { catalog } : {}),
     })
-  }, [messages, catalog, live, compact, vertical])
+  }, [messages, catalog, live, compact, vertical, view, pattern, names])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const selectedRef = useRef(selected)
@@ -144,8 +151,9 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
       if (current.some((node) => !ids.has(node.id))) moved.current.clear()
       const known = new Map(current.map((node) => [node.id, node]))
       return graph.nodes.map((node) => {
-        const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id, said: node.said, items: node.items }
-        const steps = Object.values(workflow?.steps ?? {}).filter(step => step.owner === node.id)
+        const agent = node.agent ?? node.id
+        const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: agent === selectedRef.current, idle: node.idle, live: node.live, agent, said: node.said, items: node.items }
+        const steps = node.agent ? [] : Object.values(workflow?.steps ?? {}).filter(step => step.owner === node.id)
         // An owner with several steps shows the one furthest from done: running, then waiting, then any trouble.
         if (steps.length) data.workflowStatus = stepStatus((['running', 'pending', 'failed', 'blocked', 'needs_revision', 'needs_evidence'].find(status => steps.some(step => step.status === status && !stepDone(step))) ?? 'succeeded')).label
         const old = known.get(node.id)
@@ -156,7 +164,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     })
   }, [graph, setNodes, workflow])
   useEffect(() => {
-    setNodes((current) => current.map((node) => (node.data.selected === (node.id === selected) ? node : { ...node, data: { ...node.data, selected: node.id === selected } })))
+    setNodes((current) => current.map((node) => (node.data.selected === (node.data.agent === selected) ? node : { ...node, data: { ...node.data, selected: node.data.agent === selected } })))
   }, [selected, setNodes])
 
   const communicationEdges = useMemo<Edge[]>(() => graph.edges.map((edge) => {
@@ -195,6 +203,14 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
   // A workflow's dependencies drawn between owners: one line per pair of owners (several steps share it, their
   // phases joined on the label); a step that depends on the same owner's earlier step is that owner's own business.
   const edges = useMemo<Edge[]>(() => {
+    if (view === 'pattern' && !compact) {
+      // The pattern's lines: each one leads from a finished (or running) step to the step that waited for it.
+      return patternLinks(pattern).map((link) => ({
+        id: `pattern:${link.id}`, source: link.source, target: link.target, sourceHandle: 'out', targetHandle: 'in', type: 'smoothstep', pathOptions: { borderRadius: 12 },
+        animated: link.running, className: `collab-edge-pattern${link.running ? ' collab-edge-running' : ''}${link.done ? ' collab-edge-done' : ''}`,
+        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: link.done ? 'var(--success)' : 'var(--accent)' },
+      }))
+    }
     const pairs = new Map<string, { source: string; target: string; labels: string[]; running: boolean }>()
     for (const edge of workflow?.edges ?? []) {
       const from = workflow!.steps[edge.source]!, to = workflow!.steps[edge.target]!
@@ -210,7 +226,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
       id: `workflow:${workflow!.id}:${key}`, source: pair.source, target: pair.target, sourceHandle: 's-bottom', targetHandle: 't-top', type: 'smoothstep',
       label: pair.labels.join(' · '), animated: pair.running, className: 'collab-edge-next', markerEnd: { type: MarkerType.ArrowClosed },
     }))]
-  }, [communicationEdges, workflow, graph])
+  }, [communicationEdges, workflow, graph, view, compact, pattern])
 
   // A line runs to and from a card: clicking it, like clicking the card, picks the agent the card is about.
   const partyAt = (source: string, target: string) =>
@@ -258,7 +274,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
           nodesConnectable={false}
           nodesDraggable
           onEdgeClick={(_, edge) => onSelect?.(partyAt(edge.source, edge.target))}
-          onNodeClick={(_, node) => { const party = node.data.said?.party ?? node.id; onSelect?.(selected === party ? null : party) }}
+          onNodeClick={(_, node) => { const party = node.data.said?.party ?? node.data.agent; onSelect?.(selected === party ? null : party) }}
           onNodeDragStop={(_, node) => { moved.current.add(node.id) }}
           onNodesChange={onNodesChange}
           onPaneClick={() => onSelect?.(null)}
@@ -270,6 +286,12 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
           <Refit bounds={bounds} compact={compact} held={userMoved} size={height} when={layoutKey} />
         </ReactFlow>
       </ReactFlowProvider>
+      {!compact && (
+        <div className="collab-view" role="group" aria-label="보기">
+          <button aria-pressed={view === 'agents'} onClick={() => setView('agents')} type="button">에이전트</button>
+          <button aria-pressed={view === 'pattern'} onClick={() => setView('pattern')} type="button">패턴{pattern.steps.length ? ` ${Math.max(...pattern.steps.map((step) => step.column)) + 1}단계` : ''}</button>
+        </div>
+      )}
       {!compact && (
         <p className="collab-pattern">
           {workflow ? `함께 작업 · ${protocolLabel(workflow.protocol)} · ${[agentLabel(ORCHESTRATOR), ...order].join(' → ')}`

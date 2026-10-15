@@ -27,9 +27,9 @@ test('calls whose time spans overlap form one wave; a call that starts after the
     message({ id: 'u', from: 'user', to: 'orchestrator', tool: '', at: 500 }),
   ]
   expect(callWaves(turn, 80000)).toEqual([
-    [{ to: 'site_context', tool: 'site_surroundings' }, { to: 'site_context', tool: 'site_zoning' }],
-    [{ to: 'law', tool: 'law_land_analyze' }],
-    [{ to: 'site_context', tool: 'site_resolve' }],
+    [{ to: 'site_context', tool: 'site_surroundings', state: 'succeeded' }, { to: 'site_context', tool: 'site_zoning', state: 'succeeded' }],
+    [{ to: 'law', tool: 'law_land_analyze', state: 'succeeded' }],
+    [{ to: 'site_context', tool: 'site_resolve', state: 'running' }],
   ])
   expect(wavesLabel(callWaves(turn, 80000))).toBe('[주변 현황 ‖ 용도지역] → 법규 분석 → 대지 사실 확인')
   // A call still running spans to now: the next call that starts meanwhile joins its wave.
