@@ -14,7 +14,7 @@ export const PROTOCOLS: Record<string, string> = {
   sequential: '순서대로', parallel: '동시에', star: '모아서 종합', mesh: '필요한 것만 이어서', debate: '제안 → 독립 검토 → 수정',
   evaluator_optimizer: '제안 → 검토 → 수정 → 재검증',
 }
-export const PHASES: Record<string, string> = { propose: '제안', review: '검토', revise: '수정', verify: '검증' }
+export const PHASES: Record<string, string> = { lookup: '조회', propose: '제안', review: '검토', revise: '수정', verify: '검증' }
 export const protocolLabel = (protocol: string) => PROTOCOLS[protocol] ?? '협업'
 export const phaseLabel = (phase: string) => PHASES[phase] ?? phase
 

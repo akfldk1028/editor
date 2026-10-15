@@ -39,6 +39,7 @@ test('protocols, phases and states read in the user\'s words; a step keeps its o
   expect(protocolLabel('mesh')).toBe('필요한 것만 이어서')
   expect(protocolLabel('evaluator_optimizer')).toBe('제안 → 검토 → 수정 → 재검증')
   expect(phaseLabel('verify')).toBe('검증')
+  expect(phaseLabel('lookup')).toBe('조회')
   expect(stepStatus('needs_evidence')).toEqual({ label: '근거 필요', tone: 'attention' })
   // A reading that could only hand back text (the Orchestrator's law_evidence_only) did its work.
   expect(stepStatus('needs_evidence', 'law_evidence_only')).toEqual({ label: '원문 확인', tone: 'confirmed' })
