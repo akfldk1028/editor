@@ -367,7 +367,7 @@
       "port": 8310,
       "health_url": "{base}/health",
       "card_url": "{base}/.well-known/agent-card.json",
-      "start": { "cwd": "agents/SceneAgent", "cmd": ["bash", "scripts/serve-a2a.sh"], "env_file": "config/sceneagent.env" },
+      "start": { "cwd": "agents/SceneAgent", "cmd": [".venv-scene/Scripts/python.exe", "-X", "utf8", "a2a_service/server.py", "--port", "{port}"], "env_file": "config/sceneagent.env" },
       "launcher": { "directory": "SceneAgent", "catalog": "scene_agent.json", "name": "SceneAgent", "skill": "scene_health" },
       "depends_on": ["site-context"],
       "version_source": "card:version",
