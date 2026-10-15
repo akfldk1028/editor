@@ -98,8 +98,8 @@ const V_GAP = 26
 const V_IDLE_COLUMNS = 2
 /** The wide flow: room for one card (a one-line caption, two lines of text, the ‹ › / 전체 보기 row), between an agent's rows, and between columns. */
 export const SLOT = 104
-const ROW_GAP = 28
-const COL_GAP = 56
+export const ROW_GAP = 28
+export const COL_GAP = 56
 
 const tools = (entry: CatalogLike | undefined) => Object.values(entry?.tools ?? {}).join(' · ')
 const GIST_CHARS = 110
@@ -309,7 +309,7 @@ export const partyOf = (source: string, target: string): string =>
   [source, target].find((id) => id !== ORCHESTRATOR && id !== USER) ?? ORCHESTRATOR
 
 /** What was said on one line, as a card of its own at (x, y). */
-function saidCard(edge: GraphEdge, x: number, y: number): GraphNode {
+export function saidCard(edge: GraphEdge, x: number, y: number): GraphNode {
   return {
     id: `said:${edge.id}`, label: '', sub: '', kind: 'said', items: [], order: null, selected: false, idle: false, live: null, position: { x, y },
     said: { items: edge.items ?? [], kind: edge.kind as 'request' | 'response', running: !!edge.running, known: edge.known, party: partyOf(edge.source, edge.target) },

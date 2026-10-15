@@ -7,7 +7,7 @@ import { USER } from '@/lib/agents'
 import { phaseLabel, stepStatus, stepTitle, type Workflow } from '@/lib/design-conversation/workflow'
 import { agentLabel, toolLabel } from '@/lib/orchestrator-runs/labels'
 
-import { callNumbers, callWaves, type GraphEdge, type GraphNode, itemsOf, NODE_HEIGHT, NODE_WIDTH } from './graph'
+import { callNumbers, callWaves, CARD_WIDTH, COL_GAP, gist, type GraphEdge, type GraphNode, itemsOf, NODE_HEIGHT, NODE_WIDTH, ROW_GAP, saidCard, SLOT } from './graph'
 import { type CollaborationMessage, ORCHESTRATOR } from './transcript'
 
 export interface PatternStep {
@@ -58,55 +58,95 @@ export function patternOf(messages: readonly CollaborationMessage[], workflow?: 
   return { steps, edges, declared: false }
 }
 
-export const PATTERN_COLUMN = NODE_WIDTH + 110
-export const PATTERN_ROW = NODE_HEIGHT + 36
+/** One column of the pattern: the request card over the answer card, then the step's card — as the 에이전트 view spaces them. */
+export const PATTERN_COLUMN = CARD_WIDTH + COL_GAP + NODE_WIDTH + COL_GAP
+export const PATTERN_ROW = 2 * SLOT + ROW_GAP
 
 /**
- * The pattern on the canvas: the person and the Orchestrator exactly as the 에이전트 view draws them (their cards,
- * what they said), then one column per wave of steps (centred on the row), each card its owner, where it stands on
- * the header, and what it exchanged — its request and its answer, stepped through like any card of the 에이전트
- * view. Step nodes carry `agent` so a click picks the owner.
+ * The pattern on the canvas, in the 에이전트 view's own language: the person and the Orchestrator exactly as that view
+ * draws them (their cards, what they said), then one column per wave of steps. Each step is its owner's card with
+ * where it stands on the header, and — when the record has them — the orange request card and the green answer card
+ * on its lines, stepped through like any card of the 에이전트 view: what came in from the step before, what went out.
+ * Step nodes carry `agent` so a click picks the owner.
  */
-export function patternNodes(pattern: Pattern, names: Readonly<Record<string, string>> = {}, from: readonly GraphNode[] = [], messages: readonly CollaborationMessage[] = []): GraphNode[] {
+export function patternGraph(pattern: Pattern, names: Readonly<Record<string, string>> = {}, from: readonly GraphNode[] = [], messages: readonly CollaborationMessage[] = []): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const name = (id: string) => names[id] ?? agentLabel(id)
   const order = callNumbers(messages)
   const base: Pick<GraphNode, 'items' | 'selected' | 'idle' | 'live' | 'order'> = { items: [], selected: false, idle: false, live: null, order: null }
   const given = (id: string) => from.find((node) => node.id === id)
   const user = given(USER) ?? { ...base, id: USER, label: agentLabel(USER), sub: '요청을 내고 답을 받습니다', kind: 'user' as const, position: { x: 0, y: 0 } }
   const hub = given(ORCHESTRATOR) ?? { ...base, id: ORCHESTRATOR, label: name(ORCHESTRATOR), sub: '', kind: 'hub' as const, position: { x: 0, y: 0 } }
+  const hubX = NODE_WIDTH + COL_GAP
   const nodes: GraphNode[] = [
-    { ...user, agent: USER, position: { x: 0, y: 0 } },
-    { ...hub, agent: ORCHESTRATOR, position: { x: PATTERN_COLUMN, y: 0 } },
+    { ...user, agent: USER, position: { x: 0, y: -NODE_HEIGHT / 2 } },
+    { ...hub, agent: ORCHESTRATOR, position: { x: hubX, y: -NODE_HEIGHT / 2 } },
   ]
+  const edges: GraphEdge[] = []
+  const wide = { said: '', known: true } as const
+  const line = (edge: GraphEdge, source: string, sourceHandle: string, target: string, targetHandle: string) =>
+    edges.push({ ...edge, id: `${edge.id}:${source}→${target}`, source, target, sourceHandle, targetHandle })
+  edges.push({ id: `person:${USER}→${ORCHESTRATOR}`, source: USER, target: ORCHESTRATOR, kind: 'user', label: '', count: 0, sourceHandle: 'out', targetHandle: 'in', ...wide })
+
+  const byId = new Map(pattern.steps.map((step) => [step.id, step]))
+  const parentsOf = (id: string) => pattern.edges.filter((edge) => edge.target === id).map((edge) => edge.source)
+  // Where a step's lines start and end: its request card and its answer card when the record has them, else the step itself.
+  const requestCard = new Map<string, string>()
+  const answerCard = new Map<string, string>()
   const columns = Math.max(-1, ...pattern.steps.map((step) => step.column)) + 1
   for (let column = 0; column < columns; column += 1) {
     const wave = pattern.steps.filter((step) => step.column === column)
+    const colX = hubX + NODE_WIDTH + COL_GAP + column * PATTERN_COLUMN
     wave.forEach((step, index) => {
+      const centerY = (index - (wave.length - 1) / 2) * PATTERN_ROW
+      const top = centerY - SLOT
       const state = stepStatus(step.status, step.code)
       nodes.push({ ...base, id: step.id, agent: step.owner, label: name(step.owner), status: state.label, sub: step.title, kind: 'agent', order: column + 1,
-        items: itemsOf(step.messages, names, order),
-        position: { x: PATTERN_COLUMN * (column + 2), y: (index - (wave.length - 1) / 2) * PATTERN_ROW } })
+        items: itemsOf(step.messages, names, order), position: { x: colX + CARD_WIDTH + COL_GAP, y: centerY - NODE_HEIGHT / 2 } })
+      const request = step.messages.find((message) => message.direction === 'request')
+      const answer = step.messages.find((message) => message.direction === 'response')
+      const running = step.status === 'running'
+      if (request) {
+        const edge: GraphEdge = { id: `${step.id}:request`, source: ORCHESTRATOR, target: step.id, kind: 'request', label: `${step.title} 요청`, count: 1, known: request.transport === 'a2a', said: gist(request, names), items: itemsOf([request], names, order), running }
+        const card = saidCard(edge, colX, top)
+        card.said!.party = step.owner
+        nodes.push(card)
+        requestCard.set(step.id, card.id)
+        line(edge, card.id, 's-right', step.id, 'in')
+      }
+      if (answer) {
+        const edge: GraphEdge = { id: `${step.id}:answer`, source: step.id, target: ORCHESTRATOR, kind: 'response', label: `${step.title} 응답`, count: 1, known: answer.transport === 'a2a', said: gist(answer, names), items: itemsOf([answer], names, order), running }
+        const card = saidCard(edge, colX, top + SLOT)
+        card.said!.party = step.owner
+        nodes.push(card)
+        answerCard.set(step.id, card.id)
+        line(edge, step.id, 'back', card.id, 't-right')
+      }
     })
   }
-  return nodes
+  // What leads into a step: the Orchestrator for the first wave (its request line), the steps it waited for after that
+  // (the dotted order line, from their answer cards, labelled with the step's phase).
+  for (const step of pattern.steps) {
+    const into = requestCard.get(step.id) ?? step.id
+    const intoHandle = requestCard.has(step.id) ? 't-left' : 'in'
+    const running = step.status === 'running'
+    if (step.column === 0) {
+      edges.push({ id: `${ORCHESTRATOR}→${step.id}`, source: ORCHESTRATOR, target: into, kind: 'request', label: `${step.title} 요청`, count: 1, running, sourceHandle: 'out', targetHandle: intoHandle, ...wide })
+      continue
+    }
+    for (const parent of parentsOf(step.id)) {
+      const parentStep = byId.get(parent)
+      const source = answerCard.get(parent) ?? parent
+      const sourceHandle = answerCard.has(parent) ? 's-right' : 'out'
+      edges.push({ id: `next:${parent}→${step.id}`, source, target: into, kind: 'next', label: step.phase ? phaseLabel(step.phase) : '다음', count: 0, running, sourceHandle, targetHandle: intoHandle, ...wide, known: !!parentStep })
+    }
+  }
+  return { nodes, edges }
 }
 
-/**
- * The lines of the pattern, in the canvas's one theme: the person's line to the Orchestrator, a request line from
- * the Orchestrator to each step of the first wave (moving while it runs), and the order line (dotted) from a step
- * to each step that waited for it, labelled with the later step's phase.
- */
-export function patternLinks(pattern: Pattern): GraphEdge[] {
-  const byId = new Map(pattern.steps.map((step) => [step.id, step]))
-  const running = (id: string) => byId.get(id)?.status === 'running'
-  const wide = { sourceHandle: 'out', targetHandle: 'in', said: '', known: true } as const
-  const first = pattern.steps.filter((step) => step.column === 0)
-  return [
-    { id: `person:${USER}→${ORCHESTRATOR}`, source: USER, target: ORCHESTRATOR, kind: 'user', label: '', count: 0, ...wide },
-    ...first.map((step): GraphEdge => ({ id: `${ORCHESTRATOR}→${step.id}`, source: ORCHESTRATOR, target: step.id, kind: 'request', label: `${step.title} 요청`, count: 1, running: running(step.id), ...wide })),
-    ...pattern.edges.map((edge): GraphEdge => {
-      const phase = byId.get(edge.target)?.phase
-      return { id: `next:${edge.source}→${edge.target}`, source: edge.source, target: edge.target, kind: 'next', label: phase ? phaseLabel(phase) : '다음', count: 0, running: running(edge.target), ...wide }
-    }),
-  ]
-}
+/** The pattern's cards alone (see patternGraph). */
+export const patternNodes = (pattern: Pattern, names: Readonly<Record<string, string>> = {}, from: readonly GraphNode[] = [], messages: readonly CollaborationMessage[] = []): GraphNode[] =>
+  patternGraph(pattern, names, from, messages).nodes
+
+/** The pattern's lines alone (see patternGraph). */
+export const patternLinks = (pattern: Pattern, names: Readonly<Record<string, string>> = {}, from: readonly GraphNode[] = [], messages: readonly CollaborationMessage[] = []): GraphEdge[] =>
+  patternGraph(pattern, names, from, messages).edges

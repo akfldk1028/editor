@@ -11,7 +11,7 @@ import { agentLabel } from '@/lib/orchestrator-runs/labels'
 
 import type { CatalogEntry, LiveState } from '../lib/catalog'
 import { buildGraph, CARD_HEIGHT, CARD_WIDTH, callWaves, type GraphNode, NODE_HEIGHT, NODE_WIDTH, partyOf, wavesLabel } from '../lib/graph'
-import { patternLinks, patternNodes, patternOf } from '../lib/pattern'
+import { patternGraph, patternOf } from '../lib/pattern'
 import type { CollaborationMessage } from '../lib/transcript'
 import { phaseLabel, protocolLabel, stepDone, stepStatus, type Workflow } from '@/lib/design-conversation/workflow'
 import { SaidViewer } from './SaidViewer'
@@ -136,7 +136,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
     })
   }, [messages, catalog, live, compact, vertical])
   // The pattern view keeps the person's and the Orchestrator's cards as the 에이전트 view drew them; its lines are the same records.
-  const graph = useMemo(() => (view === 'pattern' && !compact ? { nodes: patternNodes(pattern, names, agents.nodes, messages), edges: patternLinks(pattern) } : agents), [agents, view, compact, pattern, names, messages])
+  const graph = useMemo(() => (view === 'pattern' && !compact ? patternGraph(pattern, names, agents.nodes, messages) : agents), [agents, view, compact, pattern, names, messages])
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([])
   const selectedRef = useRef(selected)
