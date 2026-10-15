@@ -18,8 +18,15 @@ export const PHASES: Record<string, string> = { propose: '제안', review: '검�
 export const protocolLabel = (protocol: string) => PROTOCOLS[protocol] ?? '협업'
 export const phaseLabel = (phase: string) => PHASES[phase] ?? phase
 
+/** The Orchestrator's mark on a Law reading that only fetched statute or ordinance text: the text is real, no legal determination was asked. */
+const EVIDENCE_ONLY = 'law_evidence_only'
+
+/** A step that did its work: it succeeded, or it was a reading that could only ever hand back text. */
+export const stepDone = (step: Pick<WorkflowStep, 'status' | 'code'>) => step.status === 'succeeded' || (step.status === 'needs_evidence' && step.code === EVIDENCE_ONLY)
+
 /** A step's state as a word and a tone; the owner's own sentence, when it sent one, is `message`. */
-export function stepStatus(status: string): { label: string; tone: 'neutral' | 'attention' | 'confirmed' | 'running' } {
+export function stepStatus(status: string, code?: string): { label: string; tone: 'neutral' | 'attention' | 'confirmed' | 'running' } {
+  if (stepDone({ status, code })) return status === 'succeeded' ? { label: '완료', tone: 'confirmed' } : { label: '원문 확인', tone: 'confirmed' }
   switch (status) {
     case 'pending': return { label: '대기', tone: 'neutral' }
     case 'running': return { label: '진행 중', tone: 'running' }
@@ -35,7 +42,7 @@ export function stepStatus(status: string): { label: string; tone: 'neutral' | '
 /** The workflow as a whole: what the person sees on the card's edge. */
 export function workflowStatus(flow: Workflow): { label: string; tone: 'neutral' | 'attention' | 'confirmed' } {
   const steps = Object.values(flow.steps)
-  const done = steps.filter((step) => step.status === 'succeeded').length
+  const done = steps.filter(stepDone).length
   switch (flow.status) {
     case 'running': return { label: `${done}/${steps.length} 진행 중`, tone: 'neutral' }
     case 'completed': return { label: '완료', tone: 'confirmed' }

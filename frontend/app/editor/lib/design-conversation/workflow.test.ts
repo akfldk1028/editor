@@ -40,10 +40,14 @@ test('protocols, phases and states read in the user\'s words; a step keeps its o
   expect(protocolLabel('evaluator_optimizer')).toBe('제안 → 검토 → 수정 → 재검증')
   expect(phaseLabel('verify')).toBe('검증')
   expect(stepStatus('needs_evidence')).toEqual({ label: '근거 필요', tone: 'attention' })
+  // A reading that could only hand back text (the Orchestrator's law_evidence_only) did its work.
+  expect(stepStatus('needs_evidence', 'law_evidence_only')).toEqual({ label: '원문 확인', tone: 'confirmed' })
+  expect(stepStatus('succeeded', 'law_evidence_only')).toEqual({ label: '완료', tone: 'confirmed' })
   expect(workflowStatus({ ...flow, status: 'needs_evidence' })).toEqual({ label: '근거 보완 필요', tone: 'attention' })
   expect(flow.steps.a).toMatchObject({ title: '시설 기준 확인', code: 'law_evidence_only', message: '조례 원문이 필요해요.' })
   expect(stepTitle(flow.steps.a!)).toBe('시설 기준 확인')
   expect(stepTitle({ ...flow.steps.b!, title: undefined, tool: 'law_facility_criteria' })).toBe('facility criteria')
   expect(stepOrder(flow)).toEqual(['a', 'b'])
-  expect(workflowStatus({ ...flow, status: 'running' })).toEqual({ label: '0/2 진행 중', tone: 'neutral' })
+  // Step a only fetched text (law_evidence_only): it counts as done while b still runs.
+  expect(workflowStatus({ ...flow, status: 'running' })).toEqual({ label: '1/2 진행 중', tone: 'neutral' })
 })

@@ -189,6 +189,40 @@ export function gist(message: CollaborationMessage, names: Readonly<Record<strin
   return flat.length > GIST_CHARS ? `${flat.slice(0, GIST_CHARS - 1)}…` : flat
 }
 
+/** The lookups every agent answers for the Orchestrator's conversation engine: not steps of the work. */
+const isLookup = (tool: string) => tool.endsWith('_tool_catalog') || tool.endsWith('_conversation_contract')
+
+/**
+ * How the Orchestrator's calls actually ran, as waves: calls whose time spans overlap ran at the same time (one wave),
+ * a call that began after the wave's last answer starts the next. The ledger times every call (request `at` = start,
+ * its answer's `at` = end); a call still without an answer runs to now. Lookups (catalogs, contracts) are left out.
+ */
+export function callWaves(messages: readonly CollaborationMessage[], now = Date.now()): { to: string; tool: string }[][] {
+  const ends = new Map<string, number>()
+  for (const message of messages) {
+    if (message.direction === 'response' && message.at) ends.set(message.id.replace(/:response$/, ':request'), message.at)
+  }
+  const calls = messages
+    .filter((message) => message.direction === 'request' && message.from !== USER && message.at && !isLookup(message.tool))
+    .sort((a, b) => (a.at ?? 0) - (b.at ?? 0))
+  const waves: { to: string; tool: string }[][] = []
+  let until = -1
+  for (const call of calls) {
+    const start = call.at ?? 0
+    const end = ends.get(call.id) ?? now
+    if (!waves.length || start >= until) { waves.push([]); until = end } else until = Math.max(until, end)
+    waves[waves.length - 1]!.push({ to: call.to, tool: call.tool })
+  }
+  return waves
+}
+
+/** The waves in the user's words: "대지 주변 현황 ‖ 용도지역 → 법규 분석 → 대지 사실 확인" (same-time calls joined with ‖). */
+export const wavesLabel = (waves: readonly { to: string; tool: string }[][]): string =>
+  waves.map((wave) => {
+    const names = wave.map((call) => toolLabel(call.tool))
+    return names.length > 1 ? `[${names.join(' ‖ ')}]` : names[0]!
+  }).join(' → ')
+
 /** The agents in the order the Orchestrator first spoke to them. */
 export const callOrder = (messages: readonly CollaborationMessage[]): string[] =>
   [...new Set(messages.map((message) => (message.direction === 'request' ? message.to : message.from)))].filter((id) => id !== ORCHESTRATOR && id !== USER)

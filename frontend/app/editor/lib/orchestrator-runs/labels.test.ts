@@ -1,6 +1,14 @@
 import { expect, test } from 'bun:test'
 
-import { actionLabel, agentLabel, evidenceLabel, isTerminal, shortEvidence, stateLabel, statusLabel, toolLabel, traceLabel, verdictLabel } from './labels'
+import { actionLabel, agentLabel, evidenceLabel, isTerminal, lawRefusalLabel, shortEvidence, stateLabel, statusLabel, toolLabel, traceLabel, verdictLabel } from './labels'
+
+test('why Law caps were not adopted reads as a sentence; any other code has no sentence', () => {
+  expect(lawRefusalLabel('limits_zoning_mismatch')).toBe('Law가 계산한 용도지역 분할이 Site의 읽기와 달라 그 상한은 채택하지 않았어요')
+  expect(lawRefusalLabel('site_zoning_not_current')).toBe('Site의 현재 용도지역 읽기가 없어 조례 상한을 계산하지 않았어요')
+  expect(lawRefusalLabel('limits_needs_evidence')).toBe('상한을 정할 근거가 아직 부족해요')
+  expect(lawRefusalLabel('other')).toBeNull()
+  expect(lawRefusalLabel(null)).toBeNull()
+})
 
 test('statuses: queued/running/queued_input stay open, the rest end, labels are Korean', () => {
   expect(isTerminal('queued')).toBe(false)

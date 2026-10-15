@@ -9,9 +9,9 @@ import { markOf, ORCHESTRATOR, USER } from '@/lib/agents'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
 
 import type { CatalogEntry, LiveState } from '../lib/catalog'
-import { buildGraph, CARD_HEIGHT, CARD_WIDTH, type GraphNode, NODE_HEIGHT, NODE_WIDTH, partyOf } from '../lib/graph'
+import { buildGraph, CARD_HEIGHT, CARD_WIDTH, callWaves, type GraphNode, NODE_HEIGHT, NODE_WIDTH, partyOf, wavesLabel } from '../lib/graph'
 import type { CollaborationMessage } from '../lib/transcript'
-import { phaseLabel, protocolLabel, stepStatus, type Workflow } from '@/lib/design-conversation/workflow'
+import { phaseLabel, protocolLabel, stepDone, stepStatus, type Workflow } from '@/lib/design-conversation/workflow'
 import { SaidViewer } from './SaidViewer'
 import './collaboration.css'
 
@@ -147,7 +147,7 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
         const data: FlowNodeData = { label: node.label, sub: node.sub, kind: node.kind, order: node.order, selected: node.id === selectedRef.current, idle: node.idle, live: node.live, agent: node.id, said: node.said, items: node.items }
         const steps = Object.values(workflow?.steps ?? {}).filter(step => step.owner === node.id)
         // An owner with several steps shows the one furthest from done: running, then waiting, then any trouble.
-        if (steps.length) data.workflowStatus = stepStatus((['running', 'pending', 'failed', 'blocked', 'needs_revision', 'needs_evidence'].find(status => steps.some(step => step.status === status)) ?? 'succeeded')).label
+        if (steps.length) data.workflowStatus = stepStatus((['running', 'pending', 'failed', 'blocked', 'needs_revision', 'needs_evidence'].find(status => steps.some(step => step.status === status && !stepDone(step))) ?? 'succeeded')).label
         const old = known.get(node.id)
         const position = old && moved.current.has(node.id) ? old.position : node.position
         if (old && old.position.x === position.x && old.position.y === position.y && JSON.stringify(old.data) === JSON.stringify(data)) return old
@@ -216,6 +216,10 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
   const partyAt = (source: string, target: string) =>
     [source, target].map((id) => nodes.find((node) => node.id === id)?.data.said?.party).find(Boolean) ?? partyOf(source, target)
   const order = useMemo(() => graph.nodes.filter((node) => node.order !== null).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((node) => node.label), [graph])
+  // How the calls actually ran, from the ledger's times: same-time calls as one wave, waves in order. A declared
+  // workflow names its pattern instead; without one this is the turn's pattern as it happened.
+  const waves = useMemo(() => (workflow ? [] : callWaves(messages)), [messages, workflow])
+  const parallel = waves.filter((wave) => wave.length > 1).length
   // The flow that ran, with room above and below the cards for what was said; the waiting agents stay below, reachable by scrolling.
   const bounds = useMemo<Rect | null>(() => {
     const active = graph.nodes.filter((node) => !node.idle)
@@ -266,7 +270,13 @@ export default function FlowGraph({ messages, selected = null, onSelect, catalog
           <Refit bounds={bounds} compact={compact} held={userMoved} size={height} when={layoutKey} />
         </ReactFlow>
       </ReactFlowProvider>
-      {!compact && <p className="collab-pattern">{workflow ? `함께 작업 · ${protocolLabel(workflow.protocol)} · ` : '진행 순서 · '}{[agentLabel(ORCHESTRATOR), ...order].join(' → ')}</p>}
+      {!compact && (
+        <p className="collab-pattern">
+          {workflow ? `함께 작업 · ${protocolLabel(workflow.protocol)} · ${[agentLabel(ORCHESTRATOR), ...order].join(' → ')}`
+            : waves.length ? `진행 순서${parallel ? ` · 동시에 ${parallel}묶음` : ''} · ${wavesLabel(waves)}`
+            : `진행 순서 · ${[agentLabel(ORCHESTRATOR), ...order].join(' → ')}`}
+        </p>
+      )}
     </div>
   )
 }

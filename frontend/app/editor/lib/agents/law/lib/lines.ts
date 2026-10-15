@@ -3,7 +3,7 @@
  * its land analysis, and its answers to typed questions (statute passages, ordinance articles). Pure.
  */
 import type { FeedAction, FeedCard, FeedInput, FeedTone } from '@/lib/orchestrator-runs/feed'
-import { agentLabel, evidenceLabel, frontageLabel, heightLabel, limitationLabel } from '@/lib/orchestrator-runs/labels'
+import { DISTRICT_PLAN_NOTE, agentLabel, evidenceLabel, frontageLabel, heightLabel, lawRefusalLabel, limitationLabel } from '@/lib/orchestrator-runs/labels'
 import type { AskAnswer, LandAnalysisAnswer, LegalEvidence, RunLaw, RunResults } from '@/lib/orchestrator-runs/types'
 import { excerpt, fmt, isoDate } from '@/lib/orchestrator-runs/format'
 import { type LawTarget, lawParams } from '@/lib/orchestrator-runs/law-target'
@@ -14,7 +14,10 @@ const ORCHESTRATOR = 'orchestrator'
 
 const LAW = 'law'
 
-/** "법규 한계 (자연녹지지역): 건폐 20% · 용적 80% · 5층" — null until its numbers arrive. */
+/**
+ * "법규 한계 (자연녹지지역): 건폐 20% · 용적 80% · 5층" — null until its numbers arrive. Inside a 지구단위계획구역 with no lot
+ * rule applied the note follows; when the Orchestrator refused Law's caps and no number stands, the refusal is the line.
+ */
 export function lawLine(results: RunResults): string | null {
   const law = results.law
   if (!law) return null
@@ -23,8 +26,9 @@ export function lawLine(results: RunResults): string | null {
     law.far_pct !== null ? `용적 ${fmt(law.far_pct, 2)}%` : null,
     law.max_floors !== null ? `${law.max_floors}층` : law.height.limit_m !== null ? `높이 ${law.height.limit_m} m` : null,
   ].filter((part): part is string => part !== null)
-  if (!parts.length) return null
-  return `법규 한계${law.zones.length ? ` (${law.zones.join(' · ')})` : ''}: ${parts.join(' · ')}`
+  if (!parts.length) return lawRefusalLabel(law.code)
+  const note = law.district_plan_review_needed ? `\n${DISTRICT_PLAN_NOTE}` : ''
+  return `법규 한계${law.zones.length ? ` (${law.zones.join(' · ')})` : ''}: ${parts.join(' · ')}${note}`
 }
 
 /** Law's numbers as stat tiles under the law line, each with where it comes from. */
@@ -172,7 +176,8 @@ export function landAnalysisLine(answer: LandAnalysisAnswer, target: LawTarget):
   const missing = summary.missing_evidence.map(evidenceLabel)
   // A hair of another zone excluded from the 제84조 split is said here, next to the caps it would have changed.
   const split = (limits?.zone_split ?? summary.zone_split)?.notes ?? []
-  const text = `법규 요약${zones}: ${caps} · 제한 ${summary.restrictions.length}건${missing.length ? `\n확인 필요: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` 외 ${missing.length - 3}` : ''}` : ''}${split.length ? `\n${split.join('\n')}` : ''}`
+  const district = limits?.district_plan_review_needed ? `\n${DISTRICT_PLAN_NOTE}` : ''
+  const text = `법규 요약${zones}: ${caps} · 제한 ${summary.restrictions.length}건${district}${missing.length ? `\n확인 필요: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? ` 외 ${missing.length - 3}` : ''}` : ''}${split.length ? `\n${split.join('\n')}` : ''}`
   const tone: FeedTone = limits && limits.bcr_pct !== null && summary.permit_compliance_verified ? 'ok' : 'warn'
   return {
     kind: 'progress',
@@ -195,5 +200,7 @@ export function askFailedLine(status: number | null, detail: string | null): Fee
 /** The Law Agent's detailed turn for its `law_parcel_limits` step, once results are parsed. */
 export function detail(results: RunResults): FeedInput | null {
   const text = lawLine(results)
-  return text ? { kind: 'progress', agent: LAW, text, tone: 'ok', card: lawCard(results) ?? undefined } : null
+  if (!text) return null
+  const refused = results.law?.bcr_pct === null && results.law?.far_pct === null && lawRefusalLabel(results.law?.code) !== null
+  return { kind: 'progress', agent: LAW, text, tone: refused ? 'warn' : 'ok', card: lawCard(results) ?? undefined }
 }

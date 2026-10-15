@@ -169,6 +169,16 @@ export interface RunLaw {
   truncated: boolean
   /** The 용도지역 split behind the caps; null for a single zone or when Law sent none. */
   zone_split?: ZoneSplit | null
+  /** Why the Orchestrator did not adopt Law's caps (its check against Site's zoning reading); null when it did. */
+  code?: string | null
+  /** Where the caps came from: 'ordinance' or 'district_plan'. */
+  limits_from?: string | null
+  district_plan_applied?: boolean
+  /** The parcel sits in a 지구단위계획구역 and no lot rule was applied: these are ordinance ceilings, the lot's values come from the district review. */
+  district_plan_review_needed?: boolean
+  /** Law's own sentences about the caps (a lot value above the ordinance, a relaxation to verify). */
+  disclosures?: string[]
+  missing_evidence?: string[]
 }
 
 export interface ReviewAction {

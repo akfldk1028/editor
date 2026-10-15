@@ -71,6 +71,13 @@ def test_single_parcel_run_reads_law_numbers_site_facts_and_review(single):
     assert results['raw']['communications'] == 3 and results['raw']['keys']['law_parcel_limits'] >= 8
 
 
+def test_the_orchestrators_refusal_of_laws_caps_is_read_from_the_communication_row(single):
+    law = next(row for row in single['communications'] if row['tool'] == 'law_parcel_limits')
+    law['state'], law['code'] = 'failed', 'limits_zoning_mismatch'
+    results = parse_run_results(single)
+    assert (results['law']['status'], results['law']['code']) == ('failed', 'limits_zoning_mismatch')
+
+
 def test_bundle_run_keeps_both_parcels_and_the_failed_bundle_names_its_code():
     bundle = parse_run_results(fixture('limits-bundle-684-1-684-3'))
     assert bundle['request']['parcels'] == [PNU, PNU_2]
@@ -89,8 +96,12 @@ def test_ordinance_receipt_is_read_when_the_law_answer_is_whole(single):
     law['response_text'] = json.dumps({'pnu': PNU, 'parcel_area_m2': 2499.691, 'bcr_pct': 59.92, 'far_pct': 249.67, 'max_storeys': 5,
         'policy': {'policy_id': 'p'}, 'ordinance': {'status': 'complete', 'assessment_date': '2026-10-08',
         'bcr_article': '의정부시 도시계획 조례 제55조', 'far_article': '의정부시 도시계획 조례 제56조', 'height_article': None,
-        'municipal_coverage': {'sources': [{'name': '의정부시 도시계획 조례', 'effective_date': '20250101'}]}}})
+        'municipal_coverage': {'sources': [{'name': '의정부시 도시계획 조례', 'effective_date': '20250101'}]}},
+        'limits_from': 'ordinance', 'district_plan_applied': False, 'district_plan_review_needed': True,
+        'disclosures': ['지구단위계획 획지 FAR 300%는 조례 값 250%보다 크다'], 'missing_evidence': []})
     results = parse_run_results(single)
+    assert (results['law']['limits_from'], results['law']['district_plan_applied'], results['law']['district_plan_review_needed']) == ('ordinance', False, True)
+    assert results['law']['disclosures'] == ['지구단위계획 획지 FAR 300%는 조례 값 250%보다 크다'] and results['law']['code'] is None
     assert results['law']['ordinance'] == {'articles': ['의정부시 도시계획 조례 제55조', '의정부시 도시계획 조례 제56조'],
         'edition_id': '의정부시 도시계획 조례', 'effective_date': '20250101', 'assessment_date': '2026-10-08',
         'sources': [{'name': '의정부시 도시계획 조례', 'ordinance_id': None, 'edition_id': None, 'effective_date': '20250101', 'url': None}],

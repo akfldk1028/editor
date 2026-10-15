@@ -187,7 +187,11 @@ def settle_caps(review, caps) -> None:
         source = 'Law Agent 한도 산정: ' + ' · '.join(p for p in (article, f'지구단위 정책 {policy}' if policy else None) if p)
         # 지구단위계획·공공주택 지구계획 can set their own caps; while they are not in hand the ordinance cap is not final.
         pending = [i['title'] for i in review.get('items') or [] if i.get('group') == 'district' and i.get('status') == 'needs_source']
-        if pending and not policy:
+        if caps.get('district_plan_review_needed') is True:
+            # Law says so itself: the parcel is inside a 지구단위계획구역 and no lot rule was applied to these caps.
+            item.update({'status': 'needs_check', 'value': f'{value:g}%',
+                         'basis': f'{source} — 지구단위계획구역 안이라 이 값은 조례 상한이고, 획지 값은 지구단위 검토에서 정해져요'})
+        elif pending and not policy:
             item.update({'status': 'needs_check', 'value': f'{value:g}%',
                          'basis': f"{source} — {'·'.join(pending)} 확보 전이라 이 계획이 따로 정한 상한이 있으면 그 값이 우선해요"})
         else:

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { buildGraph, CARD_WIDTH, callNumbers, callOrder, type GraphNode, NODE_WIDTH, SLOT } from './graph'
+import { buildGraph, CARD_WIDTH, callNumbers, callOrder, callWaves, type GraphNode, NODE_WIDTH, SLOT, wavesLabel } from './graph'
 import type { CollaborationMessage } from './transcript'
 
 const message = (over: Partial<CollaborationMessage>): CollaborationMessage => ({
@@ -14,6 +14,28 @@ const run = [
   message({ id: 'd', step: 4, direction: 'response', from: 'law', to: 'orchestrator', tool: 'law_parcel_limits', state: 'succeeded', transport: 'unknown', text: '{"summary":"60/250"}' }),
   message({ id: 'e', step: 5, to: 'revision', tool: 'revision_triage' }),
 ]
+
+test('calls whose time spans overlap form one wave; a call that starts after the last answer starts the next; lookups are left out', () => {
+  const timed = (id: string, direction: 'request' | 'response', to: string, tool: string, at: number): CollaborationMessage =>
+    message({ id: `hop:${id}:${direction}`, direction, from: direction === 'request' ? 'orchestrator' : to, to: direction === 'request' ? to : 'orchestrator', tool, at })
+  const turn = [
+    timed('1', 'request', 'site_context', 'site_tool_catalog', 1000), timed('1', 'response', 'site_context', 'site_tool_catalog', 1010),
+    timed('2', 'request', 'site_context', 'site_surroundings', 2000), timed('2', 'response', 'site_context', 'site_surroundings', 3300),
+    timed('3', 'request', 'site_context', 'site_zoning', 2100), timed('3', 'response', 'site_context', 'site_zoning', 4600),
+    timed('4', 'request', 'law', 'law_land_analyze', 5000), timed('4', 'response', 'law', 'law_land_analyze', 69000),
+    timed('5', 'request', 'site_context', 'site_resolve', 70000),
+    message({ id: 'u', from: 'user', to: 'orchestrator', tool: '', at: 500 }),
+  ]
+  expect(callWaves(turn, 80000)).toEqual([
+    [{ to: 'site_context', tool: 'site_surroundings' }, { to: 'site_context', tool: 'site_zoning' }],
+    [{ to: 'law', tool: 'law_land_analyze' }],
+    [{ to: 'site_context', tool: 'site_resolve' }],
+  ])
+  expect(wavesLabel(callWaves(turn, 80000))).toBe('[주변 현황 ‖ 용도지역] → 법규 분석 → 대지 사실 확인')
+  // A call still running spans to now: the next call that starts meanwhile joins its wave.
+  expect(callWaves([timed('6', 'request', 'law', 'law_land_analyze', 1000), timed('7', 'request', 'site_context', 'site_zoning', 2000)], 3000).length).toBe(1)
+  expect(callWaves([], 0)).toEqual([])
+})
 
 test('an empty catalog with no records draws nothing; the call order is the order the Orchestrator first spoke to each agent', () => {
   expect(buildGraph([], null, { catalog: [] })).toEqual({ nodes: [], edges: [] })

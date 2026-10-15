@@ -115,6 +115,22 @@ const EVIDENCE: Record<string, string> = {
   missing_ordinance_snapshot: '조례 스냅숏 없음',
 }
 
+/** Caps inside a 지구단위계획구역 with no lot rule applied: what the person must know next to the numbers. */
+export const DISTRICT_PLAN_NOTE = '지구단위계획구역 안 — 이 값은 조례 상한이며 획지 값은 지구단위 검토에서 정해집니다'
+
+/** Why the Orchestrator did not adopt Law's caps (its check of the answer against Site's 용도지역 reading). */
+const LAW_REFUSALS: Record<string, string> = {
+  site_zoning_not_current: 'Site의 현재 용도지역 읽기가 없어 조례 상한을 계산하지 않았어요',
+  limits_zoning_not_applied: 'Law가 보낸 용도지역 읽기 대신 PNU 표로 답해서 그 상한은 채택하지 않았어요',
+  limits_zoning_mismatch: 'Law가 계산한 용도지역 분할이 Site의 읽기와 달라 그 상한은 채택하지 않았어요',
+  limits_needs_evidence: '상한을 정할 근거가 아직 부족해요',
+}
+
+/** The refusal as a sentence, or null when the code is not one of those (nothing to say beyond the state). */
+export function lawRefusalLabel(code: string | null | undefined): string | null {
+  return code ? (LAW_REFUSALS[code] ?? null) : null
+}
+
 /** A missing-evidence code in Korean; a `finding: sentence` entry keeps the sentence; unknown codes stay. */
 export function evidenceLabel(code: string): string {
   if (EVIDENCE[code]) return EVIDENCE[code]!

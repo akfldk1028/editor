@@ -17,7 +17,7 @@ export function WorkflowCard({ flow }: { flow: Workflow }) {
     <ol className="conversation-workflow-steps">
       {order.map((id) => {
         const step = flow.steps[id]!
-        const state = stepStatus(step.status)
+        const state = stepStatus(step.status, step.code)
         return <li key={id} data-state={state.tone}>
           <span className="conversation-workflow-owner">{agentLabel(step.owner)}</span>
           <span className="conversation-workflow-title">{stepTitle(step)}<small>{phaseLabel(step.phase)}</small></span>

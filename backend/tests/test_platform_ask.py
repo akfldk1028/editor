@@ -290,6 +290,11 @@ def test_a_question_about_a_review_item_goes_to_the_law_agent_about_exactly_that
                          {'id': 'district-지구단위계획구역', 'group': 'district', 'title': '지구단위계획구역', 'status': 'needs_source'}]}
     settle_caps(pending, {'bcr_pct': 60.0, 'articles': {}, 'policy_id': None})
     assert pending['items'][0]['status'] == 'needs_check' and pending['items'][0]['value'] == '60%' and '지구단위계획구역 확보 전' in pending['items'][0]['basis']
+    # Law itself says the parcel is inside a 지구단위계획구역 and applied no lot rule: the ordinance value is shown as a ceiling.
+    inside = {'items': [{'id': 'far-cap', 'status': 'needs_check', 'value': None, 'basis': 'x'}]}
+    settle_caps(inside, {'far_pct': 250.0, 'articles': {'far': '의정부시 도시계획 조례 제46조'}, 'policy_id': None, 'district_plan_review_needed': True})
+    assert inside['items'][0]['status'] == 'needs_check' and inside['items'][0]['value'] == '250%'
+    assert inside['items'][0]['basis'] == 'Law Agent 한도 산정: 의정부시 도시계획 조례 제46조 — 지구단위계획구역 안이라 이 값은 조례 상한이고, 획지 값은 지구단위 검토에서 정해져요'
     ordinance = {'item_id': 'x', 'title': 't', 'refs': [{'instrument': '의정부시 도시계획 조례', 'kind': 'ordinance', 'article': '제42조', 'clause': None, 'edition_id': '2072835'}]}
     assert 'edition_id' not in clause_route('q', ordinance, None).args
 

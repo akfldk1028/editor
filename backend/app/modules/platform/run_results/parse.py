@@ -11,14 +11,14 @@ Contract (every key always present):
   steps:   [{task_id, agent, tool, state, summary, truncated}]           (communication order)
   site:    {status, code, facts_known, facts_total, facts_missing[],
             facts: [{key, confidence, source, as_of, summary}]} | null       (the readable `state_patch` facts)
-  law:     {status, site_area_m2, bcr_pct, far_pct, max_floors, ground_capacity_m2, far_capacity_m2, zones[],
+  law:     {status, code, site_area_m2, bcr_pct, far_pct, max_floors, ground_capacity_m2, far_capacity_m2, zones[],
             national_bcr_ceiling_pct, national_far_ceiling_pct, articles: {bcr, far, height},
             height: {status, limit_m}, policy_id, parcel_label, building_type,
             ordinance: {articles[], edition_id, effective_date, assessment_date,
                         sources: [{name, ordinance_id, edition_id, effective_date, url}], limitations[]} | null,
             evidence: {floor_height_m, datum_measured, frontage_grade, legal_floor_section_count},
             sources: [{title, date}], findings: [{finding, recommended_action, missing_evidence[]}],
-            truncated} | null
+            truncated, limits_from, district_plan_applied, district_plan_review_needed, disclosures[], missing_evidence[]} | null
   review:  {status, code, missing_evidence[], actions: [{finding, raised_by, category,
             recommended_action, recommended_agents[], evidence}]} | null
   missing_evidence_all: [str]   notes: [str]   raw: {communications, keys: {tool: n}}

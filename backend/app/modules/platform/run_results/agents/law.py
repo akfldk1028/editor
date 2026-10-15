@@ -36,6 +36,8 @@ def parse(row, response, rationale, notes):
     receipt = _dict(response.get('ordinance'))
     evidence = _dict(response.get('evidence'))
     return {'status': _str(row.get('state')) or 'unknown',
+            # Why the Orchestrator did not adopt Law's caps (its check of the answer against Site's zoning reading), when it did not.
+            'code': _str(row.get('code')),
             'site_area_m2': _num(response.get('parcel_area_m2')), 'bcr_pct': _num(response.get('bcr_pct')),
             'far_pct': _num(response.get('far_pct')), 'max_floors': _int(response.get('max_storeys')) or _int(policy.get('max_storeys')),
             'ground_capacity_m2': _num(response.get('ground_capacity_m2')), 'far_capacity_m2': _num(response.get('far_capacity_m2')),
@@ -53,6 +55,13 @@ def parse(row, response, rationale, notes):
             'sources': [{'title': _str(_dict(s).get('title')), 'date': _str(_dict(s).get('date'))}
                         for s in policy.get('sources') or [] if isinstance(s, dict)],
             'findings': findings, 'truncated': row.get('truncated') is True,
+            # Where the caps came from (ordinance | district_plan), and whether the parcel sits in a 지구단위계획구역 whose lot
+            # rules were not applied: then these are ordinance ceilings and the lot's own values come from the district review.
+            'limits_from': _str(response.get('limits_from')),
+            'district_plan_applied': response.get('district_plan_applied') is True,
+            'district_plan_review_needed': response.get('district_plan_review_needed') is True,
+            'disclosures': _strings(response.get('disclosures')),
+            'missing_evidence': _strings(response.get('missing_evidence')),
             # The 용도지역 split behind the caps: excluded boundary strips, disclosed (null for a single zone).
             'zone_split': _dict(response.get('zone_split')) or None}
 

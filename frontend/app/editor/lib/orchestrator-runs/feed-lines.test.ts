@@ -330,6 +330,13 @@ test('the law line carries the caps and floors as the UI shows them (the area li
   expect(lawLine(results())).toBe('법규 한계: 건폐 59.92% · 용적 249.67% · 5층')
   expect(lawLine(results({ law: null }))).toBeNull()
   expect(lawLine(results({ law: { ...results().law!, site_area_m2: null, max_floors: null } }))).toBe('법규 한계: 건폐 59.92% · 용적 249.67%')
+  // Inside a 지구단위계획구역 with no lot rule applied: the numbers are ordinance ceilings, and the line says so.
+  expect(lawLine(results({ law: { ...results().law!, district_plan_review_needed: true } })))
+    .toBe('법규 한계: 건폐 59.92% · 용적 249.67% · 5층\n지구단위계획구역 안 — 이 값은 조례 상한이며 획지 값은 지구단위 검토에서 정해집니다')
+  // The Orchestrator refused Law's caps and no number stands: the refusal is the line.
+  const refused = { ...results().law!, bcr_pct: null, far_pct: null, max_floors: null, height: { status: null, limit_m: null }, code: 'limits_zoning_mismatch' }
+  expect(lawLine(results({ law: refused }))).toBe('Law가 계산한 용도지역 분할이 Site의 읽기와 달라 그 상한은 채택하지 않았어요')
+  expect(lawLine(results({ law: { ...refused, code: 'something_else' } }))).toBeNull()
 })
 
 test('the verdict line says 보류 with the short missing-evidence list, or the failure code', () => {

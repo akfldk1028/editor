@@ -3,7 +3,7 @@
 import { Check, ExternalLink, Play, RotateCcw, Workflow } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
-import { actionLabel, agentForTool, agentLabel, askedFieldsLabel, evidenceLabel, isTerminal, stateLabel, statusLabel, toolLabel } from '@/lib/orchestrator-runs/labels'
+import { DISTRICT_PLAN_NOTE, actionLabel, agentForTool, agentLabel, askedFieldsLabel, evidenceLabel, isTerminal, lawRefusalLabel, stateLabel, statusLabel, toolLabel } from '@/lib/orchestrator-runs/labels'
 import { failureText } from '@/lib/orchestrator-runs/submit'
 import type { RunResults, RunStep, RunSummary } from '@/lib/orchestrator-runs/types'
 import { ConditionsRow } from '@/lib/orchestrator-runs/ui/ConditionsRow'
@@ -136,6 +136,8 @@ function stepDetail(tool: string, step: RunStep | undefined, results: RunResults
   }
   if (tool === 'law_parcel_limits' && results?.law) {
     const law = results.law
+    const refusal = lawRefusalLabel(law.code)
+    if (refusal) return refusal
     const parts = [law.bcr_pct !== null ? `건폐율 ${law.bcr_pct}%` : null, law.far_pct !== null ? `용적률 ${law.far_pct}%` : null, law.max_floors !== null ? `${law.max_floors}층` : null].filter(Boolean)
     return parts.join(' · ') || step.summary
   }
@@ -195,6 +197,13 @@ function LawCard({ results, editor }: { results: RunResults | null; editor: Summ
         </tbody>
       </table>
       {!editor && <p className="law-sub">에디터 분석은 요약 탭의 분석이 끝나면 함께 보여요.</p>}
+      {law?.district_plan_review_needed && <p className="law-note" data-kind="warn">{DISTRICT_PLAN_NOTE}</p>}
+      {law && lawRefusalLabel(law.code) && (
+        <p className="law-note" data-kind="error" role="alert">
+          {lawRefusalLabel(law.code)}{law.missing_evidence?.length ? ` — 부족: ${law.missing_evidence.map(evidenceLabel).join(', ')}` : ''}
+        </p>
+      )}
+      {law && (law.disclosures?.length ?? 0) > 0 && <ul className="law-list">{law.disclosures!.map((sentence) => <li key={sentence}>{sentence}</li>)}</ul>}
       {law && (
         <dl className="law-kv">
           <div><dt>정책</dt><dd>{law.policy_id ?? '—'}{law.parcel_label ? ` · ${law.parcel_label}` : ''}</dd></div>
