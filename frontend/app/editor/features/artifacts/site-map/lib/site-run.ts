@@ -22,39 +22,54 @@ export function siteRunRequest(site: SavedSite, conditions: RunConditions): RunR
   }
 }
 
-/** What a 배치 설계 asks beyond the 조건: the floor area wanted and the intent in the person's own words. */
+/**
+ * What a 배치 설계 asks beyond the 조건: the floor area wanted, the ground footprint wanted (the building-zone target the
+ * placement engine searches with; the legal coverage ceiling is never used as one) and the intent in the person's own words.
+ */
 export interface LayoutInputs {
   floorAreaM2: string
+  footprintM2: string
   intent: string
 }
 
 export const LAYOUT_STORAGE_KEY = 'site-layout-inputs'
-export const defaultLayoutInputs = (): LayoutInputs => ({ floorAreaM2: '', intent: '' })
+export const defaultLayoutInputs = (): LayoutInputs => ({ floorAreaM2: '', footprintM2: '', intent: '' })
+
+const area = (text: string): number | null => {
+  const value = Number(text.replace(/,/g, '').trim())
+  return Number.isFinite(value) && value >= 1 && value <= 10_000_000 ? value : null
+}
 
 /** The floor area as a number the door accepts (1 ~ 10,000,000 ㎡), else null. */
-export function floorArea(inputs: LayoutInputs): number | null {
-  const value = Number(inputs.floorAreaM2.replace(/,/g, '').trim())
-  return Number.isFinite(value) && value >= 1 && value <= 10_000_000 ? value : null
+export const floorArea = (inputs: LayoutInputs): number | null => area(inputs.floorAreaM2)
+
+/** The ground footprint wanted as a number the door accepts (1 ㎡ up to the floor area), else null. */
+export function footprintArea(inputs: LayoutInputs): number | null {
+  const value = area(inputs.footprintM2)
+  const total = floorArea(inputs)
+  return value !== null && total !== null && value <= total ? value : null
 }
 
 /** Why a 배치 설계 cannot be sent yet, in Korean; null when it can. */
 export function layoutBlocker(conditions: RunConditions, inputs: LayoutInputs): string | null {
   if (!conditions.buildingType.trim()) return '용도를 골라 주세요 — 배치는 용도가 있어야 그려요'
   if (floorArea(inputs) === null) return '연면적(㎡)을 숫자로 적어 주세요'
+  if (area(inputs.footprintM2) === null) return '건물 바닥면적(㎡)을 숫자로 적어 주세요 — 건물이 땅에 닿는 면적이에요'
+  if (footprintArea(inputs) === null) return '바닥면적은 연면적보다 클 수 없어요'
   if (inputs.intent.trim().length > 2000) return '설계 의도는 2,000자 안으로 적어 주세요'
   return null
 }
 
 /**
- * The Orchestrator's `masterplan` request (배치 설계): the same parcel bundle and 조건 as `limits`, the floor area
- * wanted, and the intent exactly as typed — the door turns the sentence into the intent owner's declaration.
+ * The Orchestrator's `masterplan` request (배치 설계): the same parcel bundle and 조건 as `limits`, the floor area and
+ * ground footprint wanted, and the intent exactly as typed — the door turns the sentence into the intent owner's declaration.
  */
 export function layoutRunRequest(site: SavedSite, conditions: RunConditions, inputs: LayoutInputs): RunRequest {
   const parcels = site.parcels.map((parcel) => parcel.pnu)
   const intent = inputs.intent.trim()
   return {
     goal: 'masterplan', pnu: parcels[0]!, parcels, assessment_date: conditions.assessmentDate,
-    building_type: conditions.buildingType.trim(), floor_area_m2: floorArea(inputs) ?? 0,
+    building_type: conditions.buildingType.trim(), floor_area_m2: floorArea(inputs) ?? 0, footprint_m2: footprintArea(inputs) ?? 0,
     ...(intent ? { intent } : {}),
   }
 }
@@ -67,6 +82,7 @@ export function loadLayoutInputs(storage?: Store): LayoutInputs {
     const saved = raw ? (JSON.parse(raw) as Partial<LayoutInputs> | null) : null
     return {
       floorAreaM2: typeof saved?.floorAreaM2 === 'string' ? saved.floorAreaM2.slice(0, 20) : '',
+      footprintM2: typeof saved?.footprintM2 === 'string' ? saved.footprintM2.slice(0, 20) : '',
       intent: typeof saved?.intent === 'string' ? saved.intent.slice(0, 2000) : '',
     }
   } catch {

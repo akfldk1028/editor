@@ -12,8 +12,10 @@ ISO_DATE = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}')
 REQUIRED = {'goal', 'pnu'}
 OPTIONAL = {'building_type', 'assessment_date', 'parcels'}
 # What a 배치 설계 run adds: the floor area the person wants (the Orchestrator asks for one of floor_area_m2 / brief /
-# program) and the intent in their own words (the door turns the sentence into the intent owner's declaration).
-LAYOUT_OPTIONAL = {'floor_area_m2', 'intent'}
+# program), the ground footprint wanted (the building-zone target the placement engine searches with; Law's coverage
+# ceiling is never promoted to one) and the intent in their own words (the door turns the sentence into the intent
+# owner's declaration).
+LAYOUT_OPTIONAL = {'floor_area_m2', 'footprint_m2', 'intent'}
 MAX_PARCELS = 50
 MAX_INTENT_CHARS = 2000
 
@@ -26,13 +28,16 @@ def validate_site_run(request):
     allowed = REQUIRED | OPTIONAL | (LAYOUT_OPTIONAL if request.get('goal') == 'masterplan' else set())
     if not REQUIRED <= set(request) <= allowed:
         raise ValueError('A site run takes goal and pnu, optionally building_type, assessment_date and parcels'
-                         + (' (and floor_area_m2, intent for masterplan)' if request.get('goal') == 'masterplan' else ''))
+                         + (' (and floor_area_m2, footprint_m2, intent for masterplan)' if request.get('goal') == 'masterplan' else ''))
     if request.get('goal') == 'masterplan':
         if not isinstance(request.get('building_type'), str) or not request['building_type'].strip():
             raise ValueError('A masterplan run needs the building_type')
         area = request.get('floor_area_m2')
         if area is None or isinstance(area, bool) or not isinstance(area, (int, float)) or not 1 <= area <= 10_000_000:
             raise ValueError('A masterplan run needs floor_area_m2 between 1 and 10,000,000')
+        footprint = request.get('footprint_m2')
+        if 'footprint_m2' in request and (isinstance(footprint, bool) or not isinstance(footprint, (int, float)) or not 1 <= footprint <= area):
+            raise ValueError('footprint_m2 is the ground footprint wanted, between 1 and floor_area_m2')
         if 'intent' in request and (not isinstance(request['intent'], str) or not 1 <= len(request['intent'].strip()) <= MAX_INTENT_CHARS):
             raise ValueError(f'intent is a sentence of at most {MAX_INTENT_CHARS} characters')
     if not isinstance(request['pnu'], str) or not PNU.fullmatch(request['pnu']):

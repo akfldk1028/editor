@@ -15,7 +15,7 @@ def test_catalog_marks_what_the_door_takes_and_what_the_conversation_offers():
                                'inputs': ['pnu', 'assessment_date'], 'optional': ['building_type', 'parcels'], 'offer': True, 'available': True}
     assert by_id['health']['available'] is True and by_id['health']['offer'] is False
     assert by_id['mass']['available'] is False and by_id['mass']['offer'] is True
-    assert [g['id'] for g in body['goals'] if g['available'] and g['offer']] == ['limits']
+    assert [g['id'] for g in body['goals'] if g['available'] and g['offer']] == ['limits', 'masterplan']
     assert SITE_GOALS <= DOOR_GOALS
     assert body['conversation'] == {'ask': True, 'law_analysis': True}
     assert goal('mass')['owners'] == ['program', 'masterplan', 'mass', 'revision'] and goal('nope') is None

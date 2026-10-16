@@ -112,3 +112,18 @@ def test_invalid_site_run_never_reaches_owner(tmp_path, request_):
     payload = {'request': request_, 'scene_revision': 1, 'source_versions': {}}
     assert api.post(path, json=payload, headers={'Idempotency-Key': 'bad'}).status_code == 422
     assert owner.requests == {}
+
+
+LAYOUT = {'goal': 'masterplan', 'pnu': PNU, 'building_type': '제2종근린생활시설', 'floor_area_m2': 3000}
+
+
+@pytest.mark.parametrize('extra', [{}, {'footprint_m2': 600}, {'footprint_m2': 3000}, {'footprint_m2': 1},
+                                   {'footprint_m2': 600, 'intent': '1층은 상가로 열고, 외장은 커튼월로'}])
+def test_a_layout_run_may_carry_the_footprint_wanted(extra):
+    assert run_create({**LAYOUT, **extra}).request == {**LAYOUT, **extra}
+
+
+@pytest.mark.parametrize('footprint', [0, -1, 3001, True, '600', None, float('nan')])
+def test_a_footprint_outside_one_to_the_floor_area_is_rejected(footprint):
+    with pytest.raises(ValidationError):
+        run_create({**LAYOUT, 'footprint_m2': footprint})
