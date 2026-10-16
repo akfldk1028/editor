@@ -183,12 +183,22 @@ class OrchestratorClient:
         except (ValueError, KeyError, TypeError) as exc:
             raise OwnerContractError() from exc
 
-    async def get(self, path, *, missing=False, trace=None):
+    async def whole_call(self, run_id, row_id, project, branch):
+        """A recorded owner reply whole (its parsed payload) from the Orchestrator, for readers that need more than the
+        8000-character row once the agent no longer holds its task. A layout runs to tens of MB: a longer wait."""
+        response = await self.get('/editor/v1/runs/' + quote(run_id, safe='') + '/calls/' + quote(str(row_id), safe='')
+                                  + '?' + urlencode({'project': project, 'branch': branch}), missing=True, timeout=240)
+        value = self.json(response)
+        if not isinstance(value, dict) or value.get('run_id') != run_id or not isinstance(value.get('payload'), dict):
+            raise OwnerContractError()
+        return value
+
+    async def get(self, path, *, missing=False, trace=None, timeout=8):
         """Reads carry `traceparent` too; outside a submission that is a short-lived trace, not recorded."""
         if not self.base_url:
             raise OwnerUnavailable()
         try:
-            async with httpx.AsyncClient(timeout=8, transport=self.transport, follow_redirects=False,
+            async with httpx.AsyncClient(timeout=timeout, transport=self.transport, follow_redirects=False,
                                          headers=network_headers()) as client:
                 response = await client.get(self.base_url.rstrip('/') + path, headers=self.trace_headers(trace))
                 if missing and response.status_code == 404:

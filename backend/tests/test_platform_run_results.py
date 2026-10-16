@@ -290,6 +290,20 @@ def test_the_service_fetches_the_whole_layout_task_when_the_row_was_cut():
 
     async def gone(agent, task_id):
         raise LookupError('no task')
+    async def unrecorded(run, row):
+        raise LookupError('no call')
     cut_again = _row('masterplan_layout_synthesize', 'masterplan', 'succeeded', '{"status": "ok", "features": [{"type": "Fea', task_id='t-m', truncated=True)
-    kept = asyncio.run(service.whole_rows({'communications': [cut_again]}, task=gone))
+    kept = asyncio.run(service.whole_rows({'communications': [cut_again]}, task=gone, call=unrecorded))
     assert kept['communications'][0]['truncated'] is True
+    # the agent restarted and forgot the task: the reply the Orchestrator recorded is read instead, and kept for the next poll
+    from backend.app.modules.platform import runs as runs_module
+    runs_module._WHOLE_TEXT.clear()
+    recorded = []
+    async def from_orchestrator(run, row):
+        recorded.append((run['run_id'], row['id']))
+        return {'response_text': json.dumps(LAYOUT)}
+    run2 = {'run_id': 'r2', 'owner_project_id': 'op', 'branch_id': 'b', 'communications': [{**cut_again, 'id': '7', 'a2a_task_id': 'gone-1'}]}
+    whole2 = asyncio.run(service.whole_rows(run2, task=gone, call=from_orchestrator))
+    assert whole2['communications'][0]['truncated'] is False and recorded == [('r2', '7')]
+    again = asyncio.run(service.whole_rows({**run2, 'communications': [{**cut_again, 'id': '7'}]}, task=gone, call=unrecorded))
+    assert again['communications'][0]['truncated'] is False and parse_run_results(again)['masterplan']['layout']['layers'] == ['building_footprint', 'parking_stall', 'site_boundary']

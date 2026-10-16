@@ -9,6 +9,21 @@ from .run_results import parse_run_results, request_pnu
 LATEST_CANDIDATES = 10
 
 
+# Whole replies read for a run, by (run id, row id): a layout runs to tens of MB and the 3D view polls every 20 s.
+_WHOLE_TEXT: dict[tuple, str] = {}
+_WHOLE_MAX = 6
+
+
+async def _whole_text(fetch):
+    """The non-empty `response_text` of what `fetch` returns, else None; a fetch that fails reads as nothing."""
+    try:
+        whole = await fetch()
+    except Exception:
+        return None
+    text = whole.get('response_text') if isinstance(whole, dict) else None
+    return text if isinstance(text, str) and text.strip() else None
+
+
 class RunService:
     def __init__(self, projects, owner, recorder=None, ledger=None):
         self.projects, self.owner = projects, owner
@@ -78,29 +93,41 @@ class RunService:
         """The run as `get` returns it, read into the UI shape of run_results.parse."""
         return parse_run_results(await self.whole_rows(await self.get(actor, project_id, run_id)))
 
-    async def whole_rows(self, run, *, task=None):
-        """A communication row the Orchestrator cut at 8000 characters is replaced by the agent's whole A2A task reply
-        for the tools the UI must read whole (run_results.parse.WHOLE_TOOLS: the layout the 3D view draws). An agent
-        that no longer holds the task leaves the row as it was; nothing here raises."""
+    async def whole_rows(self, run, *, task=None, call=None):
+        """A communication row the Orchestrator cut at 8000 characters is replaced by the whole reply for the tools the UI
+        must read whole (run_results.parse.WHOLE_TOOLS: the layout the 3D view draws, Site's facts): the agent's own A2A
+        task first, else the reply the Orchestrator recorded (an agent restart empties its task memory). A reply read
+        whole is kept for the next poll; nothing here raises."""
         from backend.app.adapters import a2a_tasks
         from backend.app.modules.platform.run_results.parse import WHOLE_TOOLS
         fetch = task or a2a_tasks.get_task
+        fetch_call = call or self._whole_call
         rows = run.get('communications') if isinstance(run, dict) else None
         if not isinstance(rows, list):
             return run
         for row in rows:
-            # `a2a_task_id` is the agent's own id (what GetTask takes); `task_id` is the Orchestrator's node key.
-            task_id = row.get('a2a_task_id') or row.get('task_id') if isinstance(row, dict) else None
-            if not isinstance(row, dict) or row.get('truncated') is not True or row.get('tool') not in WHOLE_TOOLS or not task_id:
+            if not isinstance(row, dict) or row.get('truncated') is not True or row.get('tool') not in WHOLE_TOOLS:
                 continue
-            try:
-                whole = await fetch(WHOLE_TOOLS[row['tool']], str(task_id))
-            except Exception:
-                continue
-            text = whole.get('response_text') if isinstance(whole, dict) else None
-            if isinstance(text, str) and text.strip():
+            key = (run.get('run_id'), row.get('id')) if isinstance(run.get('run_id'), str) and isinstance(row.get('id'), str) else None
+            text = _WHOLE_TEXT.get(key) if key else None
+            if text is None:
+                # `a2a_task_id` is the agent's own id (what GetTask takes); `task_id` is the Orchestrator's node key.
+                task_id = row.get('a2a_task_id') or row.get('task_id')
+                text = await _whole_text(lambda: fetch(WHOLE_TOOLS[row['tool']], str(task_id))) if task_id else None
+                if text is None:
+                    text = await _whole_text(lambda: fetch_call(run, row))
+                if text is not None and key:
+                    while len(_WHOLE_TEXT) >= _WHOLE_MAX:
+                        _WHOLE_TEXT.pop(next(iter(_WHOLE_TEXT)))
+                    _WHOLE_TEXT[key] = text
+            if text is not None:
                 row['response_text'], row['truncated'] = text, False
         return run
+
+    async def _whole_call(self, run, row):
+        """The Orchestrator's recorded reply as the text the readers parse (its payload is the owner's answer)."""
+        value = await self.owner.whole_call(run['run_id'], str(row['id']), run['owner_project_id'], run['branch_id'])
+        return {'response_text': json.dumps(value['payload'], ensure_ascii=False)} if value.get('payload') else None
 
     async def latest(self, actor, project_id, goal, pnu=None, cap=LATEST_CANDIDATES):
         """The newest run of `goal` (the owner lists newest first), for `pnu` when given: the list carries no
