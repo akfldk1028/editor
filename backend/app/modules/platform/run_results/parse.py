@@ -21,13 +21,19 @@ Contract (every key always present):
             truncated, limits_from, district_plan_applied, district_plan_review_needed, disclosures[], missing_evidence[]} | null
   review:  {status, code, missing_evidence[], actions: [{finding, raised_by, category,
             recommended_action, recommended_agents[], evidence}]} | null
+  masterplan: {status, code, task_id, truncated, layout: {crs, features[], layers[], footprint_m2, site_area_m2,
+            coverage_pct, storeys, storey_height_m, height_m, height_basis} | null, intent: {parti, …} | null} | null
+            (the layout the 3D view draws; agents/masterplan.py)
   missing_evidence_all: [str]   notes: [str]   raw: {communications, keys: {tool: n}}
 """
-from backend.app.modules.platform.run_results.agents import law, review, site
+from backend.app.modules.platform.run_results.agents import law, masterplan, review, site
 from backend.app.modules.platform.run_results.common import _dict, _str, _strings, _unique, loads_tolerant
 
 SITE_TOOL, LAW_TOOL, REVIEW_TOOL = site.TOOL, law.TOOL, review.TOOL
 law_from_response = law.law_from_response
+# Tools whose whole answer the UI needs when the Orchestrator's 8000-character row cut it: the service fetches the
+# A2A task itself (`whole_rows`) before parsing.
+WHOLE_TOOLS = {masterplan.TOOL: masterplan.AGENT}
 
 
 def _communications(run):
@@ -79,6 +85,13 @@ def parse_run_results(run):
     law_result = law.parse(law_row, responses.get(id(law_row), {}), rationale, notes)
     site_result = site.parse(site_row, responses.get(id(site_row), {}), rationale)
     review_result = review.parse(review_row, responses.get(id(review_row), {}), rationale)
+    # The newest layout and the newest declared intent (a run may declare twice: once, then reconciled).
+    plan_row = next((row for row in reversed(rows) if row.get('tool') == masterplan.TOOL), None)
+    intent_row = next((row for row in reversed(rows) if row.get('tool') == masterplan.INTENT_TOOL and _str(row.get('state')) == 'succeeded'), None)
+    masterplan_result = masterplan.parse(plan_row, responses.get(id(plan_row), {}), responses.get(id(intent_row), {}) if intent_row else None,
+                                         max_floors=(law_result or {}).get('max_floors'))
+    if masterplan_result and masterplan_result['truncated'] and not masterplan_result['layout']:
+        notes.append('masterplan_response_truncated: the layout was cut off by the 8000-character communication cap and the whole task could not be fetched')
     law_missing = [code for finding in (law_result or {}).get('findings', []) for code in finding['missing_evidence']]
     return {
         'run_id': _str(run.get('run_id')), 'status': _str(run.get('status')) or 'unknown', 'goal': _str(run.get('goal')),
@@ -91,7 +104,7 @@ def parse_run_results(run):
         'truncated': any(row.get('truncated') is True for row in rows) or run.get('communications_truncated') is True,
         'request': _request(rows, (law_result or {}).get('findings', []), (law_result or {}).get('ordinance')),
         'steps': [_step(row, responses[id(row)]) for row in rows],
-        'site': site_result, 'law': law_result, 'review': review_result,
+        'site': site_result, 'law': law_result, 'review': review_result, 'masterplan': masterplan_result,
         'missing_evidence_all': _unique((site_result or {}).get('facts_missing', []) + law_missing + (review_result or {}).get('missing_evidence', [])),
         'notes': notes,
         'raw': {'communications': len(rows), 'keys': {row.get('tool'): len(responses[id(row)]) for row in rows if _str(row.get('tool'))}},

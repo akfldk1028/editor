@@ -140,7 +140,7 @@ def test_whole_law_answer_reads_capacities_ceilings_articles_sources_and_site_fa
     {'run_id': 'r', 'status': 'running', 'communications': [{'tool': 'law_parcel_limits', 'state': 'running', 'response_text': None}]}])
 def test_parsing_never_raises(run):
     results = parse_run_results(run)
-    assert set(results) == {'run_id', 'status', 'goal', 'pending_input', 'pending_fields', 'pending_note', 'pending_request', 'truncated', 'request', 'steps', 'site', 'law',
+    assert set(results) == {'run_id', 'status', 'goal', 'pending_input', 'pending_fields', 'pending_note', 'pending_request', 'truncated', 'request', 'steps', 'site', 'law', 'masterplan',
                             'review', 'missing_evidence_all', 'notes', 'raw'}
     assert request_pnu(run) is None
 
@@ -221,3 +221,69 @@ def test_latest_service_caps_candidates(tmp_path):
     with pytest.raises(LookupError):
         asyncio.run(service.latest('local', binding.project_id, 'limits', PNU))
     assert fetched == [f'r{n}' for n in range(10)]
+
+
+def _row(tool, agent, state, text, task_id='t-1', truncated=False):
+    return {'task_id': task_id, 'agent': agent, 'tool': tool, 'state': state, 'request_text': '{}', 'response_text': text, 'truncated': truncated}
+
+
+LAYOUT = {'schema_version': 'masterplan.layout.v1', 'type': 'FeatureCollection', 'coordinate_crs': 'EPSG:4326', 'status': 'ok',
+          'features': [
+              {'type': 'Feature', 'geometry': {'type': 'Polygon', 'coordinates': [[[127.1, 37.7], [127.1004, 37.7], [127.1004, 37.7003], [127.1, 37.7003], [127.1, 37.7]]]}, 'properties': {'layer': 'building_footprint', 'level': 0, 'area_m2': 999.88}},
+              {'type': 'Feature', 'geometry': {'type': 'Polygon', 'coordinates': [[[127.1005, 37.7], [127.1006, 37.7], [127.1006, 37.7001], [127.1005, 37.7001], [127.1005, 37.7]]]}, 'properties': {'layer': 'parking_stall', 'level': 0, 'area_m2': 12.5, 'extra': 'dump'}},
+              {'type': 'Feature', 'geometry': {'type': 'Polygon', 'coordinates': [[[127.1, 37.7], [127.101, 37.7], [127.101, 37.701], [127.1, 37.701], [127.1, 37.7]]]}, 'properties': {'layer': 'site_boundary', 'level': 0}},
+              {'type': 'Feature', 'geometry': {'type': 'Point', 'coordinates': [127.1, 37.7]}, 'properties': {'layer': 'building_footprint'}},
+              {'type': 'Feature', 'geometry': {'type': 'Polygon', 'coordinates': [[[0, 0], [1, 0], [1, 1], [0, 0]]]}, 'properties': {'layer': 'something_else'}}],
+          'metrics': {'building_footprint_m2': 999.88, 'site_area_m2': 2499.69, 'coverage_ratio_pct': 40.0},
+          'provenance': {'brief': {'programme': {'building_type': '제2종근린생활시설', 'floor_area_m2': 3000}}}}
+INTENT = {'status': 'success', 'state_patch': {'design_intent.parti': '1층은 상가로 열고, 외장은 커튼월로', 'design_intent.exterior_relationship': '도로변 개방', 'decisions.rationale': 'x'}}
+
+
+def test_a_masterplan_layout_is_read_for_the_3d_view_with_the_storeys_as_a_named_assumption():
+    run = {'run_id': 'r', 'status': 'succeeded', 'goal': 'masterplan', 'communications': [
+        _row('law_parcel_limits', 'law', 'succeeded', json.dumps({'pnu': PNU, 'max_storeys': 5, 'bcr_pct': 60, 'far_pct': 250, 'zones': []})),
+        _row('intent_declare', 'design_intent', 'succeeded', json.dumps(INTENT, ensure_ascii=False), task_id='t-i'),
+        _row('masterplan_layout_synthesize', 'masterplan', 'succeeded', json.dumps(LAYOUT, ensure_ascii=False), task_id='t-m')]}
+    plan = parse_run_results(run)['masterplan']
+    assert (plan['status'], plan['task_id'], plan['truncated']) == ('ok', 't-m', False)
+    layout = plan['layout']
+    # only drawable layers with a polygon/line geometry, properties reduced to layer/level/area
+    assert layout['layers'] == ['building_footprint', 'parking_stall', 'site_boundary']
+    assert layout['features'][1]['properties'] == {'layer': 'parking_stall', 'level': 0, 'area_m2': 12.5}
+    # 3000 / 999.88 = 3.0004 -> 4 storeys wanted, within Law's 5
+    assert (layout['storeys'], layout['height_m'], layout['storey_height_m']) == (4, 14.0, 3.5) and '4층' in layout['height_basis']
+    assert (layout['footprint_m2'], layout['site_area_m2'], layout['coverage_pct']) == (999.88, 2499.69, 40.0)
+    assert plan['intent'] == {'parti': '1층은 상가로 열고, 외장은 커튼월로', 'exterior_relationship': '도로변 개방'}
+    # Law's floor limit caps the wanted storeys; no floor area at all leaves the storeys to Law's limit, else unknown
+    capped = parse_run_results({**run, 'communications': [run['communications'][0], _row('masterplan_layout_synthesize', 'masterplan', 'succeeded',
+                               json.dumps({**LAYOUT, 'provenance': {'brief': {'programme': {'floor_area_m2': 9000}}}}))]})['masterplan']['layout']
+    assert capped['storeys'] == 5 and 'Law 상한 5층' in capped['height_basis']
+    bare = parse_run_results({**run, 'communications': [_row('masterplan_layout_synthesize', 'masterplan', 'succeeded', json.dumps({**LAYOUT, 'provenance': {}}))]})['masterplan']['layout']
+    assert bare['storeys'] is None and bare['height_m'] is None and '층수 미정' in bare['height_basis']
+    # a run without a layout call has no masterplan result; a cut layout without features says so in notes
+    assert parse_run_results({**run, 'communications': run['communications'][:2]})['masterplan'] is None
+    cut = parse_run_results({**run, 'communications': [_row('masterplan_layout_synthesize', 'masterplan', 'succeeded', '{"status": "ok", "features": [{"type": "Fea', truncated=True)]})
+    assert cut['masterplan']['layout'] is None and cut['masterplan']['truncated'] and any(n.startswith('masterplan_response_truncated') for n in cut['notes'])
+
+
+def test_the_service_fetches_the_whole_layout_task_when_the_row_was_cut():
+    from backend.app.modules.platform.runs import RunService
+    run = {'run_id': 'r', 'status': 'succeeded', 'goal': 'masterplan', 'communications': [
+        _row('masterplan_layout_synthesize', 'masterplan', 'succeeded', '{"status": "ok", "features": [{"type": "Fea', task_id='t-m', truncated=True),
+        _row('law_parcel_limits', 'law', 'succeeded', '{"cut', task_id='t-l', truncated=True)]}
+    asked = []
+
+    async def task(agent, task_id):
+        asked.append((agent, task_id))
+        return {'id': task_id, 'response_text': json.dumps(LAYOUT)}
+    service = RunService.__new__(RunService)
+    whole = asyncio.run(service.whole_rows(run, task=task))
+    assert asked == [('masterplan', 't-m')]           # only the tools the UI must read whole, by their agent id
+    assert whole['communications'][0]['truncated'] is False and whole['communications'][1]['truncated'] is True
+    assert parse_run_results(whole)['masterplan']['layout']['layers'] == ['building_footprint', 'parking_stall', 'site_boundary']
+
+    async def gone(agent, task_id):
+        raise LookupError('no task')
+    cut_again = _row('masterplan_layout_synthesize', 'masterplan', 'succeeded', '{"status": "ok", "features": [{"type": "Fea', task_id='t-m', truncated=True)
+    kept = asyncio.run(service.whole_rows({'communications': [cut_again]}, task=gone))
+    assert kept['communications'][0]['truncated'] is True

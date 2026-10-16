@@ -15,6 +15,7 @@ import { SETBACK_COLORS, SETBACK_DS_NAME } from '../../land-map/lib/vworld-3d-sc
 import { acquireCesium } from '../lib/cesium-loader'
 import { CELL_RADIUS_M, MAX_ALTITUDE_M, MAX_CELLS, cellsIn, visibleBox } from '../lib/context-cells'
 import { type Ground, type HeightCounts, drawContextGround, drawContextMasses, fetchContextBuildings, fetchContextGround } from '../lib/context-masses'
+import { clearLayout as clearLayoutEntities, drawLayout as drawLayoutEntities, type IntentView, type LayoutView } from '../lib/layout-masses'
 import { demTerrain } from '../lib/terrain'
 
 const PARALLEL = 3
@@ -40,7 +41,7 @@ function inside(lon: number, lat: number, ring: number[][]): boolean {
 export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivElement | null>; onClick?: (lng: number, lat: number) => void }) {
   const viewerRef = useRef<any>(null)
   const cesiumRef = useRef<any>(null)
-  const layers = useRef<{ buildings: any; ground: any; cover: any } | null>(null)
+  const layers = useRef<{ buildings: any; ground: any; cover: any; layout: any } | null>(null)
   const asked = useRef(new Set<string>())
   const queue = useRef<{ key: string; lat: number; lon: number }[]>([])
   const running = useRef(0)
@@ -220,6 +221,18 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     viewerRef.current?.entities.removeById('world-parcel')
   }, [])
 
+  /** Our building from the MasterPlan layout (the `masterplan` run's result), over the parcel; null clears it. */
+  const drawLayout = useCallback((layout: LayoutView | null, intent?: IntentView | null): number => {
+    const Cesium = cesiumRef.current
+    if (!Cesium || !layers.current) return 0
+    if (!layout) {
+      clearLayoutEntities(layers.current.layout.entities)
+      return 0
+    }
+    const z: Ground = terrainOn.current ? 'terrain' : level.current
+    return drawLayoutEntities(layers.current.layout.entities, Cesium, layout, intent, z)
+  }, [])
+
   /** VWorld semantics: false = "existing buildings make way for the project" — here, the ones on the site hide. */
   const setBuildingsVisible = useCallback((visible: boolean) => {
     hideOnSite.current = !visible
@@ -273,7 +286,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
       if (scene.sun) scene.sun.show = false
       scene.fog.enabled = false
       layers.current = { ground: new Cesium.CustomDataSource('ground'), cover: new Cesium.CustomDataSource('cover'),
-        buildings: new Cesium.CustomDataSource('buildings') }
+        buildings: new Cesium.CustomDataSource('buildings'), layout: new Cesium.CustomDataSource('layout') }
       for (const l of Object.values(layers.current)) viewer.dataSources.add(l)
       // Same opening view as the VWorld engine; pages that know their site move the camera themselves.
       const [lon0, lat0] = MAP_CONFIG_3D.center
@@ -335,7 +348,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
 
   return {
     ready, loading: !ready && !error, error, viewerRef, cesiumRef,
-    highlightParcel, clearHighlight, setSite, flyTo, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines,
+    highlightParcel, clearHighlight, setSite, flyTo, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines, drawLayout,
     base, setBase, show, setShow, terrain, setTerrain, status, setStatus, stats: { buildings, counts, pending },
   }
 }

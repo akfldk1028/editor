@@ -22,6 +22,66 @@ export function siteRunRequest(site: SavedSite, conditions: RunConditions): RunR
   }
 }
 
+/** What a 배치 설계 asks beyond the 조건: the floor area wanted and the intent in the person's own words. */
+export interface LayoutInputs {
+  floorAreaM2: string
+  intent: string
+}
+
+export const LAYOUT_STORAGE_KEY = 'site-layout-inputs'
+export const defaultLayoutInputs = (): LayoutInputs => ({ floorAreaM2: '', intent: '' })
+
+/** The floor area as a number the door accepts (1 ~ 10,000,000 ㎡), else null. */
+export function floorArea(inputs: LayoutInputs): number | null {
+  const value = Number(inputs.floorAreaM2.replace(/,/g, '').trim())
+  return Number.isFinite(value) && value >= 1 && value <= 10_000_000 ? value : null
+}
+
+/** Why a 배치 설계 cannot be sent yet, in Korean; null when it can. */
+export function layoutBlocker(conditions: RunConditions, inputs: LayoutInputs): string | null {
+  if (!conditions.buildingType.trim()) return '용도를 골라 주세요 — 배치는 용도가 있어야 그려요'
+  if (floorArea(inputs) === null) return '연면적(㎡)을 숫자로 적어 주세요'
+  if (inputs.intent.trim().length > 2000) return '설계 의도는 2,000자 안으로 적어 주세요'
+  return null
+}
+
+/**
+ * The Orchestrator's `masterplan` request (배치 설계): the same parcel bundle and 조건 as `limits`, the floor area
+ * wanted, and the intent exactly as typed — the door turns the sentence into the intent owner's declaration.
+ */
+export function layoutRunRequest(site: SavedSite, conditions: RunConditions, inputs: LayoutInputs): RunRequest {
+  const parcels = site.parcels.map((parcel) => parcel.pnu)
+  const intent = inputs.intent.trim()
+  return {
+    goal: 'masterplan', pnu: parcels[0]!, parcels, assessment_date: conditions.assessmentDate,
+    building_type: conditions.buildingType.trim(), floor_area_m2: floorArea(inputs) ?? 0,
+    ...(intent ? { intent } : {}),
+  }
+}
+
+type Store = Pick<Storage, 'getItem' | 'setItem'>
+
+export function loadLayoutInputs(storage?: Store): LayoutInputs {
+  try {
+    const raw = (storage ?? globalThis.localStorage)?.getItem(LAYOUT_STORAGE_KEY)
+    const saved = raw ? (JSON.parse(raw) as Partial<LayoutInputs> | null) : null
+    return {
+      floorAreaM2: typeof saved?.floorAreaM2 === 'string' ? saved.floorAreaM2.slice(0, 20) : '',
+      intent: typeof saved?.intent === 'string' ? saved.intent.slice(0, 2000) : '',
+    }
+  } catch {
+    return defaultLayoutInputs()
+  }
+}
+
+export function saveLayoutInputs(inputs: LayoutInputs, storage?: Store): void {
+  try {
+    (storage ?? globalThis.localStorage)?.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(inputs))
+  } catch {
+    // nothing remembered: the next 배치 설계 starts from empty fields
+  }
+}
+
 /** Shown before the button: a bundle the map found not touching will be refused by Site. */
 export function bundleNotice(site: SavedSite): string | null {
   return site.contiguous === false ? `서로 붙어 있지 않은 묶음은 합필 검토가 거절돼요 (${NOT_CONTIGUOUS})` : null

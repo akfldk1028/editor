@@ -76,7 +76,29 @@ class RunService:
 
     async def results(self, actor, project_id, run_id):
         """The run as `get` returns it, read into the UI shape of run_results.parse."""
-        return parse_run_results(await self.get(actor, project_id, run_id))
+        return parse_run_results(await self.whole_rows(await self.get(actor, project_id, run_id)))
+
+    async def whole_rows(self, run, *, task=None):
+        """A communication row the Orchestrator cut at 8000 characters is replaced by the agent's whole A2A task reply
+        for the tools the UI must read whole (run_results.parse.WHOLE_TOOLS: the layout the 3D view draws). An agent
+        that no longer holds the task leaves the row as it was; nothing here raises."""
+        from backend.app.adapters import a2a_tasks
+        from backend.app.modules.platform.run_results.parse import WHOLE_TOOLS
+        fetch = task or a2a_tasks.get_task
+        rows = run.get('communications') if isinstance(run, dict) else None
+        if not isinstance(rows, list):
+            return run
+        for row in rows:
+            if not isinstance(row, dict) or row.get('truncated') is not True or row.get('tool') not in WHOLE_TOOLS or not row.get('task_id'):
+                continue
+            try:
+                whole = await fetch(WHOLE_TOOLS[row['tool']], str(row['task_id']))
+            except Exception:
+                continue
+            text = whole.get('response_text') if isinstance(whole, dict) else None
+            if isinstance(text, str) and text.strip():
+                row['response_text'], row['truncated'] = text, False
+        return run
 
     async def latest(self, actor, project_id, goal, pnu=None, cap=LATEST_CANDIDATES):
         """The newest run of `goal` (the owner lists newest first), for `pnu` when given: the list carries no
@@ -88,11 +110,11 @@ class RunService:
             if not candidates:
                 raise LookupError('no run for goal')
             run = await self.owner.get_run(candidates[0]['run_id'], binding.owner_project_id, binding.branch_id)
-            return {**run, 'results': parse_run_results(run)}
+            return {**run, 'results': parse_run_results(await self.whole_rows(run))}
         for candidate in candidates:
             run = await self.owner.get_run(candidate['run_id'], binding.owner_project_id, binding.branch_id)
             if request_pnu(run) == pnu:
-                return {**run, 'results': parse_run_results(run)}
+                return {**run, 'results': parse_run_results(await self.whole_rows(run))}
         raise LookupError('no run for parcel')
 
     async def review_request(self, actor, project_id, run_id):

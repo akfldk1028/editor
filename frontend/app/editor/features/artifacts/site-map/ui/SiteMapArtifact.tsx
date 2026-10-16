@@ -15,6 +15,7 @@ import { type SavedSite, selectionScope } from '../lib/picks'
 import { defaultSite, type Site, siteFromSelection, siteParam } from '../lib/site'
 import { usePicker } from '../model/usePicker'
 import { SiteCard } from './SiteCard'
+import { useLatestLayout } from '../model/useLatestLayout'
 import './site-map.css'
 
 /** Loaded the first time 3D is chosen; it stays mounted (hidden) after that. */
@@ -68,6 +69,8 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     void announceSiteSelected(saved)
   }, [])
   const picker = usePicker(engineRef, onSaved, scope)
+  // The newest 배치 설계 of the site's first parcel, drawn by the 3D view over the parcel.
+  const overlay = useLatestLayout(params.project, picker.card?.kind === 'ready' ? picker.card.site.parcels[0]?.pnu ?? null : (/^\d{19}$/.test(site.query) ? site.query : null), view === '3d')
   const { showSearched } = picker
   // The engine is built once per mount; it reaches the latest handlers through this ref, so
   // picking (which changes state) never rebuilds the map or moves the view.
@@ -221,7 +224,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       {/* Providers restyle their target (Naver makes it position: relative), so they get an inner element. */}
       <div aria-label="대지 지도 — 클릭으로 필지 선택" className="site-map-canvas" role="application"><div ref={mapRef} /></div>
 
-      {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} />}
+      {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} overlay={overlay} />}
 
       <div aria-label="보기" className="site-map-views" role="group">
         {(['2d', '3d'] as const).map((option) => (

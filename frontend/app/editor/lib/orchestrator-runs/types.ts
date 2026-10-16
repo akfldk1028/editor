@@ -79,6 +79,8 @@ export interface RunContext {
 export type RunRequest =
   | { goal: 'health' }
   | { goal: 'limits'; pnu: string; building_type?: string; assessment_date?: string; parcels?: string[] }
+  /** 배치 설계: the layout the 3D view draws; `intent` is the design intent in the person's own words. */
+  | { goal: 'masterplan'; pnu: string; building_type: string; floor_area_m2: number; assessment_date?: string; parcels?: string[]; intent?: string }
 
 export interface ProjectBinding {
   project_id: string
@@ -213,9 +215,42 @@ export interface RunResults {
   site: RunSite | null
   law: RunLaw | null
   review: RunReview | null
+  /** The MasterPlan Agent's layout and the declared intent (goal `masterplan`); null when the run made none. */
+  masterplan: RunMasterplan | null
   missing_evidence_all: string[]
   notes: string[]
   raw: { communications: number; keys: Record<string, number> }
+}
+
+/** One drawn thing of the layout: WGS84 GeoJSON with the owner's layer name (building_footprint, parking_stall, …). */
+export interface RunLayoutFeature {
+  type: 'Feature'
+  geometry: { type: string; coordinates: unknown }
+  properties: { layer: string; level: number; area_m2: number | null }
+}
+
+/** The layout as the 3D view draws it; the storeys are the editor's named assumption, not the owner's measurement. */
+export interface RunLayout {
+  crs: string
+  features: RunLayoutFeature[]
+  layers: string[]
+  footprint_m2: number | null
+  site_area_m2: number | null
+  coverage_pct: number | null
+  storeys: number | null
+  storey_height_m: number
+  height_m: number | null
+  height_basis: string | null
+}
+
+export interface RunMasterplan {
+  status: string
+  code: string | null
+  task_id: string | null
+  truncated: boolean
+  layout: RunLayout | null
+  /** The declared intent as the owner recorded it (parti, material_attitude, …), the person's words kept. */
+  intent: Record<string, unknown> | null
 }
 
 /** `GET /projects/{id}/runs/latest`: the run as `GET /runs/{id}` gives it, plus its parsed results. */

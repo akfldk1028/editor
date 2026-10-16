@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { WorldControls } from '../../../world/components/WorldControls'
 import { useWorld3D } from '../../../world/hooks/use-world-3d'
+import type { IntentView, LayoutView } from '../../../world/lib/layout-masses'
 import type { LngLat, ParcelSet } from '../lib/engine'
 import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
 
@@ -18,7 +19,14 @@ import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOut
  * The camera moves when this view is switched to, and when a different site
  * is searched or restored while it is shown; never on a click preview.
  */
-export default function World3D({ active, drawn, onPick }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void }) {
+export interface LayoutOverlay {
+  layout: LayoutView
+  intent: IntentView | null
+  /** One line for the status corner: which run, how many storeys, on what basis. */
+  caption: string
+}
+
+export default function World3D({ active, drawn, onPick, overlay = null }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay?: LayoutOverlay | null }) {
   // The world draws one outline: the merged boundary of a bundle, else the single parcel.
   const shape = drawn.outline ?? drawn.geometries[0] ?? null
   const [known, setKnown] = useState(shape !== null)
@@ -29,7 +37,7 @@ export default function World3D({ active, drawn, onPick }: { active: boolean; dr
   return (
     <div className="site-map-3d" data-active={active}>
       {known
-        ? <SiteWorld active={active} drawn={drawn} onPick={onPick} shape={shape} />
+        ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} />
         : <span className="site-map-3d-status">대지 불러오는 중</span>}
     </div>
   )
@@ -40,11 +48,17 @@ function metres([lng1, lat1]: LngLat, [lng2, lat2]: LngLat): number {
   return Math.hypot((lat1 - lat2) * 111_000, (lng1 - lng2) * 88_000)
 }
 
-function SiteWorld({ active, drawn, onPick, shape }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; shape: object | null }) {
+function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay: LayoutOverlay | null; shape: object | null }) {
   const target = useRef<HTMLDivElement>(null)
   const onClick = useCallback((lng: number, lat: number) => onPick([lng, lat]), [onPick])
   const world = useWorld3D({ target, onClick })
-  const { ready, error, viewerRef, cesiumRef, highlightParcel, clearHighlight, flyTo } = world
+  const { ready, error, viewerRef, cesiumRef, highlightParcel, clearHighlight, flyTo, drawLayout } = world
+
+  // The planned building (the newest 배치 설계 of this site) stands on the parcel; it follows the ground setting.
+  useEffect(() => {
+    if (!ready) return
+    drawLayout(overlay?.layout ?? null, overlay?.intent ?? null)
+  }, [ready, overlay, drawLayout, world.terrain])
   /** The site the camera was last placed on in this activation; null = not yet. */
   const placed = useRef<string | null>(null)
 
@@ -102,6 +116,7 @@ function SiteWorld({ active, drawn, onPick, shape }: { active: boolean; drawn: P
     <>
       <div className="site-map-world" ref={target} />
       <WorldControls world={world} title="주변 맥락" compact className="site-map-world-controls" />
+      {overlay && <span className="site-map-3d-layout">{overlay.caption}</span>}
       {!ready && <span className="site-map-3d-status">{error ?? '3D 불러오는 중'}</span>}
     </>
   )
