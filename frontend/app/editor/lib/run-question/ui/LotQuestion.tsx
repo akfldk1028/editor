@@ -13,7 +13,7 @@ interface Props {
   projectId: string
   runId: string
   question: RunQuestion
-  /** The lot chosen, once the run took it (the card itself leaves when the run moves on). */
+  /** The lot chosen (or the words for none of them), once the run took it (the card leaves when the run moves on). */
   onAnswered?(lot: string): void
 }
 
@@ -22,18 +22,22 @@ interface Props {
  * Law read is a card with what Law quoted for it, as quoted; choosing one answers the run, which continues with
  * that lot's rules on the person's word.
  */
+const NONE = '해당 획지 없음'
+
 export function LotQuestion({ projectId, runId, question, onAnswered }: Props) {
   const [sending, setSending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [answered, setAnswered] = useState<string | null>(null)
   const choices = lotChoices(question)
-  const choose = async (lot: string) => {
-    setSending(lot)
+  /** `null` = none of these lots (a facility site such as a 공공청사 용지): the review goes on without lot rules. */
+  const choose = async (lot: string | null) => {
+    const label = lot ?? NONE
+    setSending(label)
     setError(null)
     try {
       await resumeRun(projectId, runId, { district_lot: lot })
-      setAnswered(lot)
-      onAnswered?.(lot)
+      setAnswered(label)
+      onAnswered?.(label)
     } catch (failure) {
       setError(rejectionText(failure instanceof RunRequestError ? failure.detail : null))
     } finally {
@@ -85,7 +89,10 @@ export function LotQuestion({ projectId, runId, question, onAnswered }: Props) {
           </article>
         ))}
       </div>
-      {answered && <p className="run-question-note" role="status">{answered}(으)로 답했어요 — 그 획지의 규정으로 검토를 이어가요.</p>}
+      <button className="artifact-secondary" disabled={sending !== null || answered !== null} onClick={() => void choose(null)} type="button">
+        {sending === NONE ? '보내는 중…' : '이 중에 없어요 (획지가 아닌 땅, 예: 공공청사 용지)'}
+      </button>
+      {answered && <p className="run-question-note" role="status">{answered === NONE ? '해당 획지가 없다고 답했어요 — 획지 규정 없이 검토를 이어가요.' : `${answered}(으)로 답했어요 — 그 획지의 규정으로 검토를 이어가요.`}</p>}
       {error && <p className="run-question-note" data-kind="warn" role="alert">{error}</p>}
     </section>
   )
