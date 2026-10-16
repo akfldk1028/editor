@@ -286,6 +286,7 @@ def test_the_service_fetches_the_whole_layout_task_when_the_row_was_cut():
     asyncio.run(service.whole_rows({'communications': [site_cut]}, task=task))
     assert asked == [('site_context', 'aed24d96')]
     assert whole['communications'][0]['truncated'] is False and whole['communications'][1]['truncated'] is True
+    assert run['communications'][0]['truncated'] is True   # the run given stays as the owner sent it: the whole text is for parsing, not the wire
     assert parse_run_results(whole)['masterplan']['layout']['layers'] == ['building_footprint', 'parking_stall', 'site_boundary']
 
     async def gone(agent, task_id):

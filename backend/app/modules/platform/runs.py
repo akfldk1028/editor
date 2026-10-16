@@ -105,6 +105,9 @@ class RunService:
         rows = run.get('communications') if isinstance(run, dict) else None
         if not isinstance(rows, list):
             return run
+        # A copy: the whole text feeds the parser only; what goes back over the wire stays the cut row (143 MB otherwise).
+        rows = [dict(row) if isinstance(row, dict) else row for row in rows]
+        run = {**run, 'communications': rows}
         for row in rows:
             if not isinstance(row, dict) or row.get('truncated') is not True or row.get('tool') not in WHOLE_TOOLS:
                 continue
