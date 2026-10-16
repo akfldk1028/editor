@@ -160,7 +160,10 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
 
     calls = [hop('law_land_analyze', land_args), hop('law_parcel_limits', limits_args)]
     if site is not None:
-        calls.append(hop('site_planned_facilities', {'pnu': pnu}, to='site_context', ask=site))
+        # Two Site facts: the planned facility polygons touching the outline, and the outline's own road frontage
+        # (cadastral 도로 lots along each edge with the width across them, NGII centrelines) from `site_zoning`.
+        calls += [hop('site_planned_facilities', {'pnu': pnu}, to='site_context', ask=site),
+                  hop('site_zoning', {'pnu': pnu}, to='site_context', ask=site)]
     land, limits, *rest = await asyncio.gather(*calls, return_exceptions=True)
     if isinstance(land, BaseException):
         raise land
@@ -175,7 +178,7 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
     bind_ordinance_sources(analysis.get('review'), caps)
     settle_caps(analysis.get('review'), caps)
     if site is not None:
-        facts = road_facts(rest[0])
+        facts = road_facts(rest[0], rest[1])
         judgement = None
         if facts['status'] == 'ok':
             try:
@@ -200,18 +203,32 @@ ROAD_QUESTION = ('이 대지는 건축법 제44조(대지와 도로의 관계)�
                  'centrelines는 그 결정 도형 안을 지나는 NGII 도로중심선의 폭 속성(실측)이다. 답(reason·open_conditions)은 한국어로 쓴다.')
 
 
-def road_facts(raw) -> dict:
-    """Site's `site_planned_facilities` answer as the facts the judge reads: status, source, rule, and each touching
-    polygon's name, class, decision, shared edge and width band — never its full property dump."""
+LOT_FACT_KEYS = ('bearing_deg', 'frontage_m', 'road_width_m', 'road_width_min_m', 'road_width_max_m', 'beyond_land_category', 'samples')
+
+
+def road_facts(raw, zoning=None) -> dict:
+    """Site's answers as the facts the judge reads: from `site_planned_facilities` each touching polygon's name, class,
+    decision, shared edge, width band and centrelines — never its full property dump; from `site_zoning` the outline's
+    road frontage (cadastral 도로 lots along each edge with the width across them, NGII centrelines nearby)."""
     if isinstance(raw, BaseException):
         return {'status': 'unavailable', 'reason': f'{type(raw).__name__}: {raw}'}
     payload = raw.get('payload') or {}
     if payload.get('status') != 'ok':
         return {'status': 'unavailable', 'reason': str(payload.get('reason') or payload.get('status') or 'no answer')}
-    return {'status': 'ok', 'source': payload.get('source'), 'rule': payload.get('rule'), 'note': payload.get('note'),
-            'touch_tolerance_m': payload.get('touch_tolerance_m'), 'centrelines_status': payload.get('centrelines_status'),
-            'centrelines_source': payload.get('centrelines_source'),
-            'planned_facilities_touching_parcel': [{key: item.get(key) for key in ROAD_FACT_KEYS} for item in payload.get('items') or [] if isinstance(item, dict)]}
+    facts = {'status': 'ok', 'source': payload.get('source'), 'rule': payload.get('rule'), 'note': payload.get('note'),
+             'touch_tolerance_m': payload.get('touch_tolerance_m'), 'centrelines_status': payload.get('centrelines_status'),
+             'centrelines_source': payload.get('centrelines_source'),
+             'planned_facilities_touching_parcel': [{key: item.get(key) for key in ROAD_FACT_KEYS} for item in payload.get('items') or [] if isinstance(item, dict)]}
+    frontage = ((zoning.get('payload') or {}).get('road_frontage') if isinstance(zoning, dict) else None) or {}
+    if isinstance(zoning, BaseException):
+        facts['cadastre_status'] = f'unavailable: {type(zoning).__name__}: {zoning}'
+    elif frontage:
+        ngii = frontage.get('ngii_roads') or {}
+        facts.update({'cadastre_status': frontage.get('cadastre_status'), 'cadastre_basis': frontage.get('basis'),
+                      'cadastral_road_lots': [{key: lot.get(key) for key in LOT_FACT_KEYS} for lot in frontage.get('items') or [] if isinstance(lot, dict)],
+                      'ngii_roads': {'status': ngii.get('status'), 'source': ngii.get('source'),
+                                     'roads': [{key: road.get(key) for key in ('id', 'width_m', 'distance_to_parcel_m')} for road in (ngii.get('roads') or [])[:8] if isinstance(road, dict)]}})
+    return facts
 
 
 ROAD_DEFINITION_QUERY = '건축법 제2조 제1항 제11호 도로의 정의 고시된 도로 자동차만의 통행'
@@ -249,13 +266,30 @@ def settle_road(review, facts: dict, judgement: dict | None) -> None:
         item['basis'] = f"{item.get('basis') or ''} — Site 접도 사실을 받지 못했어요({facts['reason']}); 도시계획시설 도로 접촉은 확인하지 못함".strip(' —')
         return
     roads = facts['planned_facilities_touching_parcel']
-    said = ' · '.join(_road_line(r) for r in roads) if roads else '대지 경계에 닿는 도시·군계획시설 결정 도형 없음(지적 도로·현황 도로 확인 필요)'
+    lots = facts.get('cadastral_road_lots') or []
+    parts = [_road_line(r) for r in roads] or ['대지 경계에 닿는 도시·군계획시설 결정 도형 없음']
+    if lots:
+        parts.append(_lots_line(lots))
+    elif facts.get('cadastre_status') == 'ok':
+        parts.append('지목 도로 필지가 닿는 변 없음')
+    nearest = next((r for r in (facts.get('ngii_roads') or {}).get('roads') or [] if isinstance(r.get('width_m'), (int, float))), None)
+    if nearest:
+        parts.append(f"NGII 중심선 폭 {nearest['width_m']:g} m(대지에서 {nearest.get('distance_to_parcel_m')} m)")
+    said = ' · '.join(parts)
     verdict = (judgement or {}).get('verdict')
     status = {'applies': 'applies', 'conditional': 'conditional'}.get(verdict, 'needs_check')
     reason = (judgement or {}).get('reason') or ''
     conditions = (judgement or {}).get('open_conditions') or []
     law_said = ' · '.join(p for p in (reason, ('확인할 것: ' + '; '.join(map(str, conditions))) if conditions else '') if p)
-    item.update({'status': status if roads else 'needs_check', 'basis': f"Site: {said}" + (f" — Law: {law_said}" if law_said else '')})
+    item.update({'status': status if (roads or lots) else 'needs_check', 'basis': f"Site: {said}" + (f" — Law: {law_said}" if law_said else '')})
+
+
+def _lots_line(lots: list[dict]) -> str:
+    """The cadastral 도로 lots along the outline: how many edges, the frontage they add up to, the width across them."""
+    length = sum(float(l['frontage_m']) for l in lots if isinstance(l.get('frontage_m'), (int, float)))
+    widths = [float(l[k]) for l in lots for k in ('road_width_min_m', 'road_width_max_m') if isinstance(l.get(k), (int, float))]
+    span = f"지적 폭 {min(widths):g}~{max(widths):g} m" if widths and min(widths) != max(widths) else f"지적 폭 {widths[0]:g} m" if widths else '지적 폭 미측정'
+    return f"지목 도로 필지 {len(lots)}변(접한 길이 합 {length:.1f} m, {span}; 설계·법정 폭 아님)"
 
 
 def _road_line(road: dict) -> str:

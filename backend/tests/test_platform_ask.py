@@ -240,7 +240,7 @@ def test_analyze_land_settles_the_road_item_from_site_facts_and_the_law_judge():
     recorder = Recorder()
     answer = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date='2026-10-16', recorder=recorder, agent=agent, site=site))
     tools = dict(calls)
-    assert tools['site_planned_facilities'] == {'pnu': '4115011300106840001'}
+    assert tools['site_planned_facilities'] == {'pnu': '4115011300106840001'} and tools['site_zoning'] == {'pnu': '4115011300106840001'}
     judge = tools['law_judge']
     # The judge reads the item's own article first, then the definition article Law's search found for the question
     # (whole article ids, once each), the facts without Site's property dump, and the date.
@@ -253,7 +253,7 @@ def test_analyze_land_settles_the_road_item_from_site_facts_and_the_law_judge():
     assert item['status'] == 'applies'
     assert item['basis'] == 'Site: 중로2-5호선(중로2류, 결정 폭 15~20 m, 공유 변 50.72 m, 결정 2018-0816) — Law: 국토계획법 결정 도로라 제2조제1항제11호 도로이고 50.72 m 접함'
     assert item['evidence']['law']['verdict'] == 'applies' and item['evidence']['site']['status'] == 'ok'
-    assert [row['name'] for row in recorder.rows] == ['invoke_agent law', 'invoke_agent law', 'invoke_agent site_context', 'invoke_agent law', 'invoke_agent law']
+    assert [row['name'] for row in recorder.rows] == ['invoke_agent law', 'invoke_agent law', 'invoke_agent site_context', 'invoke_agent site_context', 'invoke_agent law', 'invoke_agent law']
 
 
 def test_analyze_land_says_when_site_facts_are_missing_and_transcribes_an_undecided_judge():
@@ -277,7 +277,26 @@ def test_analyze_land_says_when_site_facts_are_missing_and_transcribes_an_undeci
 
     item = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=agent, site=nothing_touches))['analysis']['review']['items'][0]
     assert item['status'] == 'needs_check' and 'law_judge' in calls
-    assert item['basis'] == 'Site: 대지 경계에 닿는 도시·군계획시설 결정 도형 없음(지적 도로·현황 도로 확인 필요) — Law: 지적 도로 자료 없음 · 확인할 것: 현황 도로 폭'
+    assert item['basis'] == 'Site: 대지 경계에 닿는 도시·군계획시설 결정 도형 없음 — Law: 지적 도로 자료 없음 · 확인할 것: 현황 도로 폭'
+
+    # No planned polygon, but the outline's cadastral 도로 lots and NGII centrelines (site_zoning) are facts too — 부산 거제동 1054.
+    frontage = {'cadastre_status': 'ok', 'basis': '연속지적도의 도로 지목 필지가 …',
+                'items': [{'bearing_deg': 159.6, 'frontage_m': 6.84, 'road_width_m': 2.0, 'road_width_min_m': 2.0, 'road_width_max_m': 2.0, 'beyond_land_category': '구거', 'samples': 7, 'extra': 'x'},
+                          {'bearing_deg': 70.1, 'frontage_m': 12.0, 'road_width_m': 4.0, 'road_width_min_m': 3.5, 'road_width_max_m': 4.5, 'beyond_land_category': '대', 'samples': 9}],
+                'ngii_roads': {'status': 'ok', 'source': 'NGII 1:5,000 road centrelines', 'roads': [{'id': 'r', 'width_m': 3.0, 'distance_to_parcel_m': 0.0, 'geometry': 'dump'}]}}
+
+    async def lots_only(tool, args, *, trace=None):
+        payload = {'road_frontage': frontage} if tool == 'site_zoning' else {**SITE_ROADS, 'items': []}
+        return {'tool': tool, 'payload': payload, 'task_id': 's', 'version': 'v1'}
+
+    calls.clear()
+    item = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=agent, site=lots_only))['analysis']['review']['items'][0]
+    assert item['basis'] == ('Site: 대지 경계에 닿는 도시·군계획시설 결정 도형 없음 · 지목 도로 필지 2변(접한 길이 합 18.8 m, 지적 폭 2~4.5 m; 설계·법정 폭 아님) · '
+                             'NGII 중심선 폭 3 m(대지에서 0.0 m) — Law: 지적 도로 자료 없음 · 확인할 것: 현황 도로 폭')
+    assert item['status'] == 'needs_check'   # the judge said undecided; with lots the verdict is transcribed, not forced
+    site_facts = item['evidence']['site']
+    assert site_facts['cadastral_road_lots'][0] == {'bearing_deg': 159.6, 'frontage_m': 6.84, 'road_width_m': 2.0, 'road_width_min_m': 2.0, 'road_width_max_m': 2.0, 'beyond_land_category': '구거', 'samples': 7}
+    assert site_facts['ngii_roads']['roads'] == [{'id': 'r', 'width_m': 3.0, 'distance_to_parcel_m': 0.0}] and site_facts['cadastre_status'] == 'ok'
     # A classless polygon (서울's '도로') has no band; the centrelines inside it carry the measured widths.
     classless = {**SITE_ROADS['items'][0], 'name': '도로', 'kind': None, 'width_m_rule': None,
                  'centrelines': {'widths_m': [25.0, 8.0], 'nearest_width_m': 25.0, 'segments': [{'width_m': 25.0}], 'source': 'NGII'}}
