@@ -193,7 +193,7 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
 
 
 ROAD_ITEM = 'road-frontage'
-ROAD_FACT_KEYS = ('name', 'kind', 'ucode', 'decision', 'shared_edge_m', 'overlap_m2', 'width_m_rule', 'jurisdiction')
+ROAD_FACT_KEYS = ('name', 'kind', 'ucode', 'decision', 'shared_edge_m', 'overlap_m2', 'width_m_rule', 'centrelines', 'jurisdiction')
 ROAD_QUESTION = ('이 대지는 건축법 제44조(대지와 도로의 관계)에 따라 도로에 접하는가? 대지 경계에 닿는 도시·군계획시설 도로(국토의 계획 및 '
                  '이용에 관한 법률에 따른 결정)가 건축법 제2조제1항제11호의 도로에 해당하는지, 접한 길이와 결정 폭 범위가 제44조의 요건을 '
                  '채우는지 판단하라. 폭 범위는 도시·군계획시설의 결정·구조 및 설치기준에 관한 규칙 제9조의 등급별 범위이지 실측 폭이 아니다.')
@@ -208,7 +208,8 @@ def road_facts(raw) -> dict:
     if payload.get('status') != 'ok':
         return {'status': 'unavailable', 'reason': str(payload.get('reason') or payload.get('status') or 'no answer')}
     return {'status': 'ok', 'source': payload.get('source'), 'rule': payload.get('rule'), 'note': payload.get('note'),
-            'touch_tolerance_m': payload.get('touch_tolerance_m'),
+            'touch_tolerance_m': payload.get('touch_tolerance_m'), 'centrelines_status': payload.get('centrelines_status'),
+            'centrelines_source': payload.get('centrelines_source'),
             'planned_facilities_touching_parcel': [{key: item.get(key) for key in ROAD_FACT_KEYS} for item in payload.get('items') or [] if isinstance(item, dict)]}
 
 
@@ -263,7 +264,10 @@ def _road_line(road: dict) -> str:
         f"결정 폭 {high:g} m 미만" if isinstance(high, (int, float)) else f"결정 폭 {low:g} m 이상" if isinstance(low, (int, float)) else '폭 등급 없음')
     decision = road.get('decision') or {}
     when = f", 결정 {decision.get('year')}-{decision.get('no')}" if decision.get('year') and decision.get('no') else ''
-    return f"{road.get('name') or '이름 없음'}({road.get('kind') or '등급 없음'}, {width}, 공유 변 {road.get('shared_edge_m')} m{when})"
+    # The centrelines inside the polygon carry the measured widths (NGII): the only width where the class is missing.
+    measured = ((road.get('centrelines') or {}).get('widths_m')) or []
+    lines = f", 중심선 폭 {'·'.join(f'{w:g}' for w in measured)} m(NGII)" if measured else ''
+    return f"{road.get('name') or '이름 없음'}({road.get('kind') or '등급 없음'}, {width}{lines}, 공유 변 {road.get('shared_edge_m')} m{when})"
 
 
 def settle_caps(review, caps) -> None:

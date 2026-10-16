@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.app.adapters import law_agent
-from backend.app.modules.platform.ask import analyze_land, ask_law, normalize, ROAD_DEFINITION_QUERY, found_ids
+from backend.app.modules.platform.ask import analyze_land, ask_law, normalize, ROAD_DEFINITION_QUERY, found_ids, _road_line, road_facts
 from backend.app.modules.platform.routers.ask import create_ask_router
 from backend.app.schemas.ask import AskCreate
 
@@ -248,7 +248,7 @@ def test_analyze_land_settles_the_road_item_from_site_facts_and_the_law_judge():
     assert judge['article_ids'] == ['건축법::제5장::제44조', '건축법(법률)::제1장::제2조', '건축법(법률)::제4장::제44조']
     assert judge['assessment_date'] == '2026-10-16' and '제44조' in judge['question']
     assert judge['facts']['planned_facilities_touching_parcel'] == [{'name': '중로2-5호선', 'kind': '중로2류', 'ucode': 'x', 'decision': {'year': '2018', 'no': '0816'},
-                                                                     'shared_edge_m': 50.72, 'overlap_m2': 1.2, 'width_m_rule': {'min_m': 15, 'max_m': 20}, 'jurisdiction': '의정부시'}]
+                                                                     'shared_edge_m': 50.72, 'overlap_m2': 1.2, 'width_m_rule': {'min_m': 15, 'max_m': 20}, 'centrelines': None, 'jurisdiction': '의정부시'}]
     item = answer['analysis']['review']['items'][0]
     assert item['status'] == 'applies'
     assert item['basis'] == 'Site: 중로2-5호선(중로2류, 결정 폭 15~20 m, 공유 변 50.72 m, 결정 2018-0816) — Law: 국토계획법 결정 도로라 제2조제1항제11호 도로이고 50.72 m 접함'
@@ -278,6 +278,11 @@ def test_analyze_land_says_when_site_facts_are_missing_and_transcribes_an_undeci
     item = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=agent, site=nothing_touches))['analysis']['review']['items'][0]
     assert item['status'] == 'needs_check' and 'law_judge' in calls
     assert item['basis'] == 'Site: 대지 경계에 닿는 도시·군계획시설 결정 도형 없음(지적 도로·현황 도로 확인 필요) — Law: 지적 도로 자료 없음 · 확인할 것: 현황 도로 폭'
+    # A classless polygon (서울's '도로') has no band; the centrelines inside it carry the measured widths.
+    classless = {**SITE_ROADS['items'][0], 'name': '도로', 'kind': None, 'width_m_rule': None,
+                 'centrelines': {'widths_m': [25.0, 8.0], 'nearest_width_m': 25.0, 'segments': [{'width_m': 25.0}], 'source': 'NGII'}}
+    assert _road_line(classless) == '도로(등급 없음, 폭 등급 없음, 중심선 폭 25·8 m(NGII), 공유 변 50.72 m, 결정 2018-0816)'
+    assert road_facts({'payload': {**SITE_ROADS, 'items': [classless]}})['planned_facilities_touching_parcel'][0]['centrelines']['widths_m'] == [25.0, 8.0]
     # A search answer without usable ids leaves the judge with the item's own article only.
     assert found_ids({'payload': LIMITS}) == [] and found_ids(None) == []
     # Without `site` (the default) nothing about roads is asked: the item stays as the Law Agent wrote it.
