@@ -151,7 +151,9 @@ class OrchestratorClient:
         return runs
 
     async def get_run(self, run_id, project, branch):
-        response = await self.get('/editor/v1/runs/' + quote(run_id,safe='') + '?' + urlencode({'project':project,'branch':branch}), missing=True)
+        # The first read of a run after the Orchestrator restarts cuts its replies into previews (30 s for a layout
+        # run of 2026-10-16); later reads are instant. Eight seconds made that first read an outage.
+        response = await self.get('/editor/v1/runs/' + quote(run_id,safe='') + '?' + urlencode({'project':project,'branch':branch}), missing=True, timeout=60)
         run = self.bound_run(self.json(response),project,branch)
         if run['run_id'] != run_id:
             raise OwnerContractError()
