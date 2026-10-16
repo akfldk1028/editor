@@ -64,14 +64,17 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
             raise HTTPException(422, 'lat/lon must be in Korea and radius_m 10..1000')
         # SceneAgent is stopped by the host when idle: the map's call brings it up first (lazy activation, the same
         # door the law analysis uses) instead of reporting it unreachable. A missing host is not an error here.
-        try:
-            await host.ensure(['scene'])
-        except (host.HostUnavailable, host.HostRefused):
-            pass
-        try:
-            return await asyncio.to_thread(ask, lat, lon, radius_m)
-        except scene_agent.SceneAgentError as error:
-            raise HTTPException(502, str(error)) from None
+        # Right after a stop the host can still answer "up" from its last tick, so one refused call is asked again.
+        for attempt in (1, 2):
+            try:
+                await host.ensure(['scene'])
+            except (host.HostUnavailable, host.HostRefused):
+                pass
+            try:
+                return await asyncio.to_thread(ask, lat, lon, radius_m)
+            except scene_agent.SceneAgentError as error:
+                if attempt == 2:
+                    raise HTTPException(502, str(error)) from None
 
     @router.get('/terrain-heights')
     async def terrain_heights(west: float, south: float, east: float, north: float, size: int = 17):
