@@ -89,10 +89,12 @@ class RunService:
         if not isinstance(rows, list):
             return run
         for row in rows:
-            if not isinstance(row, dict) or row.get('truncated') is not True or row.get('tool') not in WHOLE_TOOLS or not row.get('task_id'):
+            # `a2a_task_id` is the agent's own id (what GetTask takes); `task_id` is the Orchestrator's node key.
+            task_id = row.get('a2a_task_id') or row.get('task_id') if isinstance(row, dict) else None
+            if not isinstance(row, dict) or row.get('truncated') is not True or row.get('tool') not in WHOLE_TOOLS or not task_id:
                 continue
             try:
-                whole = await fetch(WHOLE_TOOLS[row['tool']], str(row['task_id']))
+                whole = await fetch(WHOLE_TOOLS[row['tool']], str(task_id))
             except Exception:
                 continue
             text = whole.get('response_text') if isinstance(whole, dict) else None

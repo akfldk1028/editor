@@ -269,7 +269,7 @@ def test_a_masterplan_layout_is_read_for_the_3d_view_with_the_storeys_as_a_named
 def test_the_service_fetches_the_whole_layout_task_when_the_row_was_cut():
     from backend.app.modules.platform.runs import RunService
     run = {'run_id': 'r', 'status': 'succeeded', 'goal': 'masterplan', 'communications': [
-        _row('masterplan_layout_synthesize', 'masterplan', 'succeeded', '{"status": "ok", "features": [{"type": "Fea', task_id='t-m', truncated=True),
+        {**_row('masterplan_layout_synthesize', 'masterplan', 'succeeded', '{"status": "ok", "features": [{"type": "Fea', task_id='masterplan_layout_synthesize', truncated=True), 'a2a_task_id': '18faf6f4'},
         _row('law_parcel_limits', 'law', 'succeeded', '{"cut', task_id='t-l', truncated=True)]}
     asked = []
 
@@ -278,7 +278,8 @@ def test_the_service_fetches_the_whole_layout_task_when_the_row_was_cut():
         return {'id': task_id, 'response_text': json.dumps(LAYOUT)}
     service = RunService.__new__(RunService)
     whole = asyncio.run(service.whole_rows(run, task=task))
-    assert asked == [('masterplan', 't-m')]           # only the tools the UI must read whole, by their agent id
+    # only the tools the UI must read whole, by their agent id and the agent's own A2A task id (the row's task_id is the Orchestrator's node key)
+    assert asked == [('masterplan', '18faf6f4')]
     assert whole['communications'][0]['truncated'] is False and whole['communications'][1]['truncated'] is True
     assert parse_run_results(whole)['masterplan']['layout']['layers'] == ['building_footprint', 'parking_stall', 'site_boundary']
 
