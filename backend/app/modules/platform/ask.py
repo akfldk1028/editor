@@ -126,23 +126,28 @@ def _summary(analysis: dict) -> dict:
 
 
 async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: float | None, assessment_date: str | None, recorder,
-                       traceparent: str | None = None, agent=law_agent.ask, ledger=None, conversation_id: str | None = None) -> dict:
+                       traceparent: str | None = None, agent=law_agent.ask, site=None, ledger=None, conversation_id: str | None = None) -> dict:
     """The law artifact's analysis, from the Law Agent: `law_land_analyze` (the 42 regulations, lines, articles —
     the whole answer) and `law_parcel_limits` (the parcel's caps: district policy / ordinance, area-weighted),
-    asked together; each hop is one span. `limits` is null when that call failed (the analysis still answers)."""
+    asked together; each hop is one span. `limits` is null when that call failed (the analysis still answers).
+
+    With `site` (the Site Context Agent's A2A door), the review's road item is also settled from facts: Site's
+    도시·군계획시설 polygons touching the parcel (`site_planned_facilities`) go to the Law Agent's `law_judge` with the
+    item's own articles, and the item carries both — the facts and the judgement — as `evidence`. Without `site`
+    (tests, a network without Site) the item stays as `law_land_analyze` wrote it."""
     parent = continue_or_start(traceparent)
     dated = {'assessment_date': assessment_date} if assessment_date else {}
     land_args = {'input': pnu, 'input_type': 'pnu', 'full': True, 'include_law': True, 'building_type': building_type or '',
                  'floor_area_m2': floor_area_m2, **dated}
     limits_args = {'pnu': pnu, **({'building_type': building_type} if building_type else {}), **dated}
 
-    async def hop(tool, args):
-        span = Span.start(recorder, parent, agent='law', conversation_id=f'editor:law-analysis:{pnu}')
+    async def hop(tool, args, *, to='law', ask=agent):
+        span = Span.start(recorder, parent, agent=to, conversation_id=f'editor:law-analysis:{pnu}')
         trace = {'caller': 'editor', 'trace_id': span.context.trace_id, 'span_id': span.context.span_id, 'hop': 1, 'tool': tool}
-        hop = ledger.begin(from_agent='orchestrator', to_agent='law', tool=tool, conversation_id=conversation_id, input_text=json.dumps(args, ensure_ascii=False),
+        hop = ledger.begin(from_agent='orchestrator', to_agent=to, tool=tool, conversation_id=conversation_id, input_text=json.dumps(args, ensure_ascii=False),
                            trace=span.context) if ledger else None
         try:
-            raw = await agent(tool, args, trace=trace)
+            raw = await ask(tool, args, trace=trace)
         except Exception as exc:
             span.end('error', error_type=type(exc).__name__)
             if hop is not None:
@@ -153,7 +158,10 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
             ledger.finish(hop, output_text=json.dumps(raw.get('payload') or {}, ensure_ascii=False), status='OK', task_id=raw.get('task_id'))
         return raw
 
-    land, limits = await asyncio.gather(hop('law_land_analyze', land_args), hop('law_parcel_limits', limits_args), return_exceptions=True)
+    calls = [hop('law_land_analyze', land_args), hop('law_parcel_limits', limits_args)]
+    if site is not None:
+        calls.append(hop('site_planned_facilities', {'pnu': pnu}, to='site_context', ask=site))
+    land, limits, *rest = await asyncio.gather(*calls, return_exceptions=True)
     if isinstance(land, BaseException):
         raise land
     payload = land.get('payload') or {}
@@ -166,10 +174,96 @@ async def analyze_land(pnu: str, *, building_type: str | None, floor_area_m2: fl
     from backend.app.modules.platform.law_sources import bind_ordinance_sources
     bind_ordinance_sources(analysis.get('review'), caps)
     settle_caps(analysis.get('review'), caps)
+    if site is not None:
+        facts = road_facts(rest[0])
+        judgement = None
+        if facts['status'] == 'ok':
+            try:
+                # The judge reads the road item's own article and the definition article the question names
+                # (건축법 제2조제1항제11호 — which article that is, Law's search says; no article path is written here).
+                found = await hop('law_search', {'query': ROAD_DEFINITION_QUERY, 'limit': 5, **dated})
+                judgement = (await hop('law_judge', road_question(facts, analysis.get('review'), assessment_date, found_ids(found)))).get('payload') or {}
+            except Exception as exc:
+                judgement = {'verdict': 'undecided', 'status': 'unavailable', 'reason': f'Law Agent 판단 실패: {type(exc).__name__}: {exc}'}
+        settle_road(analysis.get('review'), facts, judgement)
     return {'pnu': pnu, 'agent': 'law', 'trace_id': parent.trace_id, 'version': land.get('version'),
             'analysis': analysis, 'findings': [f for f in payload.get('findings') or [] if isinstance(f, dict)],
             'limits': caps, 'limits_error': limits_error,
             'summary': _summary(analysis)}
+
+
+ROAD_ITEM = 'road-frontage'
+ROAD_FACT_KEYS = ('name', 'kind', 'ucode', 'decision', 'shared_edge_m', 'overlap_m2', 'width_m_rule', 'jurisdiction')
+ROAD_QUESTION = ('이 대지는 건축법 제44조(대지와 도로의 관계)에 따라 도로에 접하는가? 대지 경계에 닿는 도시·군계획시설 도로(국토의 계획 및 '
+                 '이용에 관한 법률에 따른 결정)가 건축법 제2조제1항제11호의 도로에 해당하는지, 접한 길이와 결정 폭 범위가 제44조의 요건을 '
+                 '채우는지 판단하라. 폭 범위는 도시·군계획시설의 결정·구조 및 설치기준에 관한 규칙 제9조의 등급별 범위이지 실측 폭이 아니다.')
+
+
+def road_facts(raw) -> dict:
+    """Site's `site_planned_facilities` answer as the facts the judge reads: status, source, rule, and each touching
+    polygon's name, class, decision, shared edge and width band — never its full property dump."""
+    if isinstance(raw, BaseException):
+        return {'status': 'unavailable', 'reason': f'{type(raw).__name__}: {raw}'}
+    payload = raw.get('payload') or {}
+    if payload.get('status') != 'ok':
+        return {'status': 'unavailable', 'reason': str(payload.get('reason') or payload.get('status') or 'no answer')}
+    return {'status': 'ok', 'source': payload.get('source'), 'rule': payload.get('rule'), 'note': payload.get('note'),
+            'touch_tolerance_m': payload.get('touch_tolerance_m'),
+            'planned_facilities_touching_parcel': [{key: item.get(key) for key in ROAD_FACT_KEYS} for item in payload.get('items') or [] if isinstance(item, dict)]}
+
+
+ROAD_DEFINITION_QUERY = '건축법 제2조 제1항 제11호 도로의 정의 고시된 도로 자동차만의 통행'
+
+
+def found_ids(search) -> list[str]:
+    """Whole-article ids from a `law_search` answer, in order, once each (the search names the unit; the judge reads the article)."""
+    payload = (search or {}).get('payload') or {}
+    rows = payload.get('results') if isinstance(payload.get('results'), list) else payload.get('items') if isinstance(payload.get('items'), list) else []
+    return list(dict.fromkeys(article_id(row['hang_id']) for row in rows if isinstance(row, dict) and isinstance(row.get('hang_id'), str)))
+
+
+def road_question(facts: dict, review, assessment_date: str | None, more_ids: list[str] | None = None) -> dict:
+    """`law_judge` args: the question, Site's facts, and the articles to read — the road item's own (제44조) first, then
+    the ones the search found for the definition the question names."""
+    ids = []
+    for item in (review or {}).get('items') or [] if isinstance(review, dict) else []:
+        if item.get('id') == ROAD_ITEM:
+            ids = list(dict.fromkeys(article_id(h) for ref in item.get('refs') or [] for h in ref.get('hang_ids') or []))
+    ids = list(dict.fromkeys(ids + list(more_ids or [])))
+    return {'question': ROAD_QUESTION, 'facts': facts, **({'article_ids': ids} if ids else {}),
+            **({'assessment_date': assessment_date} if assessment_date else {})}
+
+
+def settle_road(review, facts: dict, judgement: dict | None) -> None:
+    """The road item meets the facts: what touches the parcel (Site) and what that means (Law). Status is the judge's
+    verdict transcribed, never the editor's reading; both answers stay on the item as `evidence`."""
+    if not isinstance(review, dict):
+        return
+    item = next((i for i in review.get('items') or [] if i.get('id') == ROAD_ITEM), None)
+    if item is None:
+        return
+    item['evidence'] = {'site': facts, 'law': judgement}
+    if facts['status'] != 'ok':
+        item['basis'] = f"{item.get('basis') or ''} — Site 접도 사실을 받지 못했어요({facts['reason']}); 도시계획시설 도로 접촉은 확인하지 못함".strip(' —')
+        return
+    roads = facts['planned_facilities_touching_parcel']
+    said = ' · '.join(_road_line(r) for r in roads) if roads else '대지 경계에 닿는 도시·군계획시설 결정 도형 없음(지적 도로·현황 도로 확인 필요)'
+    verdict = (judgement or {}).get('verdict')
+    status = {'applies': 'applies', 'conditional': 'conditional'}.get(verdict, 'needs_check')
+    reason = (judgement or {}).get('reason') or ''
+    conditions = (judgement or {}).get('open_conditions') or []
+    law_said = ' · '.join(p for p in (reason, ('확인할 것: ' + '; '.join(map(str, conditions))) if conditions else '') if p)
+    item.update({'status': status if roads else 'needs_check', 'basis': f"Site: {said}" + (f" — Law: {law_said}" if law_said else '')})
+
+
+def _road_line(road: dict) -> str:
+    band = road.get('width_m_rule') or {}
+    low, high = band.get('min_m'), band.get('max_m')
+    width = f"결정 폭 {low:g}~{high:g} m" if isinstance(low, (int, float)) and isinstance(high, (int, float)) else (
+        f"결정 폭 {high:g} m 미만" if isinstance(high, (int, float)) else f"결정 폭 {low:g} m 이상" if isinstance(low, (int, float)) else '폭 등급 없음')
+    decision = road.get('decision') or {}
+    when = f", 결정 {decision.get('year')}-{decision.get('no')}" if decision.get('year') and decision.get('no') else ''
+    return f"{road.get('name') or '이름 없음'}({road.get('kind') or '등급 없음'}, {width}, 공유 변 {road.get('shared_edge_m')} m{when})"
 
 
 def settle_caps(review, caps) -> None:

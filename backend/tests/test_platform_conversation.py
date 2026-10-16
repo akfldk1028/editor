@@ -292,7 +292,9 @@ def test_address_message_is_located_by_the_editor_and_never_reaches_owner(tmp_pa
 
 def test_a_sentence_naming_a_site_goes_to_the_owner_with_that_site_as_context_and_comes_back_located(tmp_path, monkeypatch):
     from backend.app.modules.platform.routers import conversation as module
-    async def named(text):
+    seen = []
+    async def named(text, *, current=None):
+        seen.append(current)
         return '산곡동 684-1' if '산곡동' in text else None
     async def locate(query):
         assert query == '산곡동 684-1'
@@ -312,6 +314,8 @@ def test_a_sentence_naming_a_site_goes_to_the_owner_with_that_site_as_context_an
     assert response.json()['status'] == 'working' and response.json()['revision'] == 1
     assert forwarded[0]['text'] == '산곡동 684-1에 어린이집을 지으려고 해요'
     assert forwarded[0]['context'] == {'assessment_date': '2026-10-06', 'pnu': '4115011300106840001', 'address': '경기도 의정부시 산곡동 684-1'}
+    # The judge hears which site the conversation is already about (none here), so "이 대지(684-1)" is not a new site.
+    assert seen == [{'pnu': None, 'address': None}]
     # No site named: the message goes through untouched and the answer is the plain snapshot.
     plain = client.post(url, json={'message_id': 'm-2', 'text': '어린이집을 지으려고 해요'})
     assert plain.status_code == 202 and 'located' not in plain.json()
@@ -320,7 +324,7 @@ def test_a_sentence_naming_a_site_goes_to_the_owner_with_that_site_as_context_an
 
 def test_a_named_site_the_geocoder_cannot_find_changes_nothing(tmp_path, monkeypatch):
     from backend.app.modules.platform.routers import conversation as module
-    async def named(text):
+    async def named(text, *, current=None):
         return '없는동 1'
     async def locate(query):
         return {'kind': 'site', 'query': query, 'pnu': None, 'address': None, 'coordinates': None, 'error': 'no result'}

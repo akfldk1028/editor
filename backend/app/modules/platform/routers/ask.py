@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 
+from backend.app.adapters import site_context
 from backend.app.adapters.law_agent import LawAgentError, LawAgentUnavailable
 from backend.app.core.tracing import JsonlTraceRecorder
 from backend.app.modules.law.ordinances import service as ordinances
@@ -50,7 +51,7 @@ def create_ask_router(allowed_origin, trace_recorder=None, agent=None, owner=Non
     @router.post('/law-analysis')
     async def law_analysis(body: LawAnalysisCreate, request: Request):
         same_origin(request)
-        return await answer(analyze_land(body.pnu, ledger=ledger, conversation_id=body.conversation_id, building_type=body.building_type, floor_area_m2=body.floor_area_m2,
+        return await answer(analyze_land(body.pnu, ledger=ledger, conversation_id=body.conversation_id, building_type=body.building_type, floor_area_m2=body.floor_area_m2, site=site_context.ask,
                                          assessment_date=body.assessment_date, recorder=recorder,
                                          traceparent=request.headers.get('traceparent'), **kwargs))
 

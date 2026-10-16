@@ -10,7 +10,7 @@ import { useProjects } from '@/lib/design-conversation/projects'
 import { turnSteps, useLedger, waitingLine } from '@/lib/ledger'
 import { useConversation } from '@/lib/design-conversation/useConversation'
 import { conversationErrorText } from '@/lib/design-conversation/errors'
-import { designConversationContext } from '@/lib/design-conversation/context'
+import { designConversationContext, rememberConversationSite } from '@/lib/design-conversation/context'
 import { loadRunConditions } from '@/lib/orchestrator-runs/conditions'
 import { onCommand } from '@/lib/orchestrator-runs/commands'
 import { agentLabel } from '@/lib/orchestrator-runs/labels'
@@ -82,6 +82,9 @@ export function AgentConversation({ shell }: { shell: ShellApi }) {
     const postFeed = projectFeed(project.projectId, project.conversationId)
     if (text) postFeed(askLines(text)[0]!)
     postFeed(siteLocatedLine(located))
+    // The site a message located is the site this conversation is about: later messages carry it as context, so
+    // "이 대지(684-1)" is read against it instead of being geocoded nationwide.
+    if (located.pnu && project.projectId) rememberConversationSite(project.projectId, { pnu: located.pnu, address: located.address ?? '' })
     const params = siteLocateParams(located)
     if (params) shell.openArtifact('site-map', params)
   })

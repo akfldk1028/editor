@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from backend.app.adapters import law_agent
-from backend.app.modules.platform.ask import analyze_land, ask_law, normalize
+from backend.app.modules.platform.ask import analyze_land, ask_law, normalize, ROAD_DEFINITION_QUERY, found_ids
 from backend.app.modules.platform.routers.ask import create_ask_router
 from backend.app.schemas.ask import AskCreate
 
@@ -206,6 +206,84 @@ def test_analyze_land_keeps_the_analysis_when_only_the_limits_call_fails_and_fai
 
     with pytest.raises(law_agent.LawAgentUnavailable):
         run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=land_down))
+
+
+ROAD_REVIEW = {'items': [{'id': 'road-frontage', 'group': 'road_setback', 'title': '대지와 도로의 관계', 'status': 'applies', 'basis': '폭 4m 이상 도로에 2m 이상',
+                          'refs': [{'kind': 'act', 'instrument': '건축법', 'article': '제44조', 'hang_ids': ['건축법::제5장::제44조::1', '건축법::제5장::제44조::2']}]}]}
+SITE_ROADS = {'status': 'ok', 'source': 'Vworld WFS lt_c_uq161', 'rule': '규칙 제9조', 'note': 'n', 'touch_tolerance_m': 0.3,
+              'items': [{'name': '중로2-5호선', 'kind': '중로2류', 'ucode': 'x', 'decision': {'year': '2018', 'no': '0816'}, 'shared_edge_m': 50.72,
+                         'overlap_m2': 1.2, 'width_m_rule': {'min_m': 15, 'max_m': 20}, 'jurisdiction': '의정부시', 'properties': {'big': 'dump'}}]}
+
+
+def _land_with_review():
+    return {**LAND, 'raw': {**LAND['raw'], 'review': {'items': [dict(ROAD_REVIEW['items'][0])]}}}
+
+
+def test_analyze_land_settles_the_road_item_from_site_facts_and_the_law_judge():
+    calls = []
+    land = _land_with_review()
+
+    async def agent(tool, args, *, trace=None):
+        calls.append((tool, args))
+        if tool == 'law_judge':
+            return {'tool': tool, 'payload': {'verdict': 'applies', 'status': 'judged', 'reason': '국토계획법 결정 도로라 제2조제1항제11호 도로이고 50.72 m 접함',
+                                              'open_conditions': [], 'findings': [{'unit': 'u', 'claim': 'c', 'quote': 'q'}]}, 'task_id': 'j', 'version': 'v1'}
+        if tool == 'law_search':
+            return {'tool': tool, 'payload': {'results': [{'hang_id': '건축법(법률)::제1장::제2조::1::제11호', 'content': '도로란…'}, {'hang_id': '건축법(법률)::제1장::제2조::1'},
+                                                          {'hang_id': '건축법(법률)::제4장::제44조::1'}]}, 'task_id': 'q', 'version': 'v1'}
+        return {'tool': tool, 'payload': land if tool == 'law_land_analyze' else LIMITS, 'task_id': 't', 'version': 'v1'}
+
+    async def site(tool, args, *, trace=None):
+        calls.append((tool, args))
+        return {'tool': tool, 'payload': SITE_ROADS, 'task_id': 's', 'version': 'v1'}
+
+    recorder = Recorder()
+    answer = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date='2026-10-16', recorder=recorder, agent=agent, site=site))
+    tools = dict(calls)
+    assert tools['site_planned_facilities'] == {'pnu': '4115011300106840001'}
+    judge = tools['law_judge']
+    # The judge reads the item's own article first, then the definition article Law's search found for the question
+    # (whole article ids, once each), the facts without Site's property dump, and the date.
+    assert tools['law_search'] == {'query': ROAD_DEFINITION_QUERY, 'limit': 5, 'assessment_date': '2026-10-16'}
+    assert judge['article_ids'] == ['건축법::제5장::제44조', '건축법(법률)::제1장::제2조', '건축법(법률)::제4장::제44조']
+    assert judge['assessment_date'] == '2026-10-16' and '제44조' in judge['question']
+    assert judge['facts']['planned_facilities_touching_parcel'] == [{'name': '중로2-5호선', 'kind': '중로2류', 'ucode': 'x', 'decision': {'year': '2018', 'no': '0816'},
+                                                                     'shared_edge_m': 50.72, 'overlap_m2': 1.2, 'width_m_rule': {'min_m': 15, 'max_m': 20}, 'jurisdiction': '의정부시'}]
+    item = answer['analysis']['review']['items'][0]
+    assert item['status'] == 'applies'
+    assert item['basis'] == 'Site: 중로2-5호선(중로2류, 결정 폭 15~20 m, 공유 변 50.72 m, 결정 2018-0816) — Law: 국토계획법 결정 도로라 제2조제1항제11호 도로이고 50.72 m 접함'
+    assert item['evidence']['law']['verdict'] == 'applies' and item['evidence']['site']['status'] == 'ok'
+    assert [row['name'] for row in recorder.rows] == ['invoke_agent law', 'invoke_agent law', 'invoke_agent site_context', 'invoke_agent law', 'invoke_agent law']
+
+
+def test_analyze_land_says_when_site_facts_are_missing_and_transcribes_an_undecided_judge():
+    calls = []
+
+    async def agent(tool, args, *, trace=None):
+        calls.append(tool)
+        if tool == 'law_judge':
+            return {'tool': tool, 'payload': {'verdict': 'undecided', 'status': 'needs_evidence', 'reason': '지적 도로 자료 없음', 'open_conditions': ['현황 도로 폭']}, 'task_id': 'j', 'version': 'v1'}
+        return {'tool': tool, 'payload': _land_with_review() if tool == 'law_land_analyze' else LIMITS, 'task_id': 't', 'version': 'v1'}
+
+    async def down(tool, args, *, trace=None):
+        raise RuntimeError('site off')
+
+    item = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=agent, site=down))['analysis']['review']['items'][0]
+    assert item['status'] == 'applies' and 'Site 접도 사실을 받지 못했어요(RuntimeError: site off)' in item['basis'] and 'law_judge' not in calls
+    assert item['evidence'] == {'site': {'status': 'unavailable', 'reason': 'RuntimeError: site off'}, 'law': None}
+
+    async def nothing_touches(tool, args, *, trace=None):
+        return {'tool': tool, 'payload': {**SITE_ROADS, 'items': []}, 'task_id': 's', 'version': 'v1'}
+
+    item = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=agent, site=nothing_touches))['analysis']['review']['items'][0]
+    assert item['status'] == 'needs_check' and 'law_judge' in calls
+    assert item['basis'] == 'Site: 대지 경계에 닿는 도시·군계획시설 결정 도형 없음(지적 도로·현황 도로 확인 필요) — Law: 지적 도로 자료 없음 · 확인할 것: 현황 도로 폭'
+    # A search answer without usable ids leaves the judge with the item's own article only.
+    assert found_ids({'payload': LIMITS}) == [] and found_ids(None) == []
+    # Without `site` (the default) nothing about roads is asked: the item stays as the Law Agent wrote it.
+    calls.clear()
+    item = run(analyze_land('4115011300106840001', building_type=None, floor_area_m2=None, assessment_date=None, recorder=Recorder(), agent=agent))['analysis']['review']['items'][0]
+    assert 'evidence' not in item and calls == ['law_land_analyze', 'law_parcel_limits']
 
 
 def test_law_analysis_route_validates_and_answers():

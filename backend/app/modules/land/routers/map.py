@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 import asyncio
 
 from backend.app.adapters import scene_agent, site_context
+from backend.app.modules.platform import host
 from backend.app.modules.land.vworld.map import MapUnavailable, VworldMapClient
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,12 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
     async def context(ask, lat, lon, radius_m):
         if not (33 <= lat <= 39 and 124 <= lon <= 132) or not 10 <= radius_m <= 1000:
             raise HTTPException(422, 'lat/lon must be in Korea and radius_m 10..1000')
+        # SceneAgent is stopped by the host when idle: the map's call brings it up first (lazy activation, the same
+        # door the law analysis uses) instead of reporting it unreachable. A missing host is not an error here.
+        try:
+            await host.ensure(['scene'])
+        except (host.HostUnavailable, host.HostRefused):
+            pass
         try:
             return await asyncio.to_thread(ask, lat, lon, radius_m)
         except scene_agent.SceneAgentError as error:

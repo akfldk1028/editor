@@ -29,6 +29,23 @@ def test_the_model_names_the_site_inside_a_sentence_and_says_no_when_none_is_wri
     assert asyncio.run(site_named('테헤란로 152', client=FakeModel({'reason': '', 'names_site': False, 'address': '테헤란로 152'}), enabled=True)) is None
 
 
+def test_a_lot_number_of_the_current_site_is_not_a_new_site_and_the_judge_hears_which_site_that_is():
+    current = {'pnu': '4115011300106840001', 'address': '경기도 의정부시 산곡동 684-1'}
+    # The model, told the current site, says the message refers back to it.
+    model = FakeModel({'reason': '이 대지를 가리켜요', 'names_site': False, 'address': None})
+    assert asyncio.run(site_named('이 대지(684-1)가 접한 도로 폭 근거는?', current=current, client=model, enabled=True)) is None
+    assert '경기도 의정부시 산곡동 684-1' in model.prompts[0] and '4115011300106840001' in model.prompts[0]
+    # Even when it answers the bare lot number, that number is the current site's own: not a move to the first 684-1 nationwide.
+    bare = FakeModel({'reason': '번지가 있어요', 'names_site': True, 'address': '684-1'})
+    assert asyncio.run(site_named('이 대지(684-1)가 접한 도로는?', current=current, client=bare, enabled=True)) is None
+    assert asyncio.run(site_named('이 대지(684-1)가 접한 도로는?', current=current, enabled=False)) is None
+    # A different site named in full still moves the conversation.
+    other = FakeModel({'reason': '다른 주소예요', 'names_site': True, 'address': '강릉시 상시동리 684-1'})
+    assert asyncio.run(site_named('강릉시 상시동리 684-1은 어때요', current=current, client=other, enabled=True)) == '강릉시 상시동리 684-1'
+    # Without a current site the prompt carries no site line and the answer is the model's.
+    assert asyncio.run(site_named('이 대지(684-1)', client=FakeModel({'reason': '', 'names_site': True, 'address': '684-1'}), enabled=True)) == '684-1'
+
+
 def test_rules_decide_when_the_model_is_off_or_fails():
     assert asyncio.run(site_named('산곡동 684-1에 어린이집을 지으려고 해요', enabled=False)) == '산곡동 684-1'
     assert asyncio.run(site_named('서울 테헤란로 152번지 근처요', enabled=False)) == '서울 테헤란로 152'

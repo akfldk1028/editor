@@ -19,7 +19,7 @@ PROMPT = """You read one message a user typed to a Korean architectural design s
 Message:
 
 {text}
-
+{current}
 Does this message name a specific site — a Korean address (지번: 동/리 + 번지, e.g. 산곡동 684-1; 도로명: 로/길 + 번호,
 e.g. 테헤란로 152), or a 19-digit PNU? Answer in JSON:
 
@@ -30,6 +30,12 @@ e.g. 테헤란로 152), or a 19-digit PNU? Answer in JSON:
       drop particles like 에/의/쪽), or null when names_site is false. Never invent or complete an address.
 """
 
+CURRENT = """
+The conversation is already about one site: {address} (PNU {pnu}). "이 대지", "여기", "우리 땅", or a lot number alone
+that is this site's ("684-1", "이 대지(684-1)") refer to it — then names_site is false. names_site is true only when
+the message names a different site completely (its own 동/리 or 로/길 name with the number, or a PNU).
+"""
+
 
 class SiteMention(BaseModel):
     reason: str
@@ -37,18 +43,30 @@ class SiteMention(BaseModel):
     address: str | None = None
 
 
-async def site_named(text: str, *, client=None, enabled: bool | None = None) -> str | None:
-    """The address or PNU the message names, or None. Model first, rules when the model is off or answers nothing usable."""
+async def site_named(text: str, *, current: dict | None = None, client=None, enabled: bool | None = None) -> str | None:
+    """The address or PNU the message names, or None. Model first, rules when the model is off or answers nothing usable.
+
+    `current` = {pnu, address} of the site the conversation is already about: a message that refers back to it
+    ("이 대지(684-1)") names no new site, so the map is not sent to the first 684-1 the geocoder finds nationwide."""
     if enabled is None:
         enabled = judging.enabled()
+    found = None
     if enabled:
-        found = await _ask_model(text, client)
-        if found is not None:
-            return found or None
-    return site.find(text)
+        found = await _ask_model(text, client, current=current)
+    if found is None:
+        found = site.find(text) or ''
+    return None if same_site(found, current) else (found or None)
 
 
-async def _ask_model(text: str, client) -> str | None:
+def same_site(named: str | None, current: dict | None) -> bool:
+    """The named text is a part of the current site's own address or PNU ("684-1" of "의정부시 산곡동 684-1"): the same site."""
+    if not named or not current:
+        return False
+    key = named.replace(' ', '')
+    return any(key and key in str(value).replace(' ', '') for value in (current.get('address'), current.get('pnu')) if value)
+
+
+async def _ask_model(text: str, client, *, current: dict | None = None) -> str | None:
     """The model's answer: '' for "no site", the address for a named one, None when the model was unavailable."""
     try:
         from autogen_core.models import UserMessage
@@ -56,7 +74,8 @@ async def _ask_model(text: str, client) -> str | None:
         from backend.app.adapters.cli_model_client import ClaudeCodeChatCompletionClient
 
         model = client or ClaudeCodeChatCompletionClient(timeout_s=TIMEOUT_S)
-        result = await model.create([UserMessage(content=PROMPT.format(text=text.strip()), source='editor')], json_output=SiteMention)
+        known = CURRENT.format(address=current.get('address') or '-', pnu=current.get('pnu') or '-') if current and (current.get('address') or current.get('pnu')) else ''
+        result = await model.create([UserMessage(content=PROMPT.format(text=text.strip(), current=known), source='editor')], json_output=SiteMention)
         mention = SiteMention.model_validate_json(result.content if isinstance(result.content, str) else '{}')
     except Exception:
         return None

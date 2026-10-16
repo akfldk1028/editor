@@ -15,8 +15,20 @@ import httpx
 from backend.app.core.agent_network import network_headers
 
 SITE_CONTEXT_AGENT_URL_ENV = 'SITE_CONTEXT_AGENT_URL'
+SITE_CONTEXT_A2A_URL_ENV = 'SITE_CONTEXT_A2A_URL'     # the registry's name for the same door (infra/config/services.json)
 DEFAULT_URL = 'http://127.0.0.1:8304'
 PROVIDER = 'sitecontext_ngii'
+
+
+def site_a2a_url(env=os.environ) -> str:
+    return (env.get(SITE_CONTEXT_A2A_URL_ENV) or env.get(SITE_CONTEXT_AGENT_URL_ENV) or DEFAULT_URL).rstrip('/')
+
+
+async def ask(tool: str, args: dict, *, trace: dict | None = None, base_url: str | None = None, transport=None, timeout: float = 120.0) -> dict:
+    """One Site tool over A2A — the same JSON-RPC door the Law Agent answers at (`adapters/law_agent.ask`):
+    `{tool, payload, task_id, version}`, the tool's JSON verbatim; raises LawAgentUnavailable / LawAgentError."""
+    from backend.app.adapters.law_agent import ask as send
+    return await send(tool, args, trace=trace, base_url=base_url or site_a2a_url(), transport=transport, timeout=timeout)
 
 
 class SiteHeightsError(RuntimeError):
