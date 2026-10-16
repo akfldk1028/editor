@@ -280,6 +280,11 @@ def test_the_service_fetches_the_whole_layout_task_when_the_row_was_cut():
     whole = asyncio.run(service.whole_rows(run, task=task))
     # only the tools the UI must read whole, by their agent id and the agent's own A2A task id (the row's task_id is the Orchestrator's node key)
     assert asked == [('masterplan', '18faf6f4')]
+    # Site's facts are read whole the same way: the 대지 사실 card must not say half the facts were cut off
+    site_cut = {**_row('site_resolve', 'site_context', 'needs_evidence', '{"status": "partial", "facts": [{"key": "boundary"', task_id='site_resolve', truncated=True), 'a2a_task_id': 'aed24d96'}
+    asked.clear()
+    asyncio.run(service.whole_rows({'communications': [site_cut]}, task=task))
+    assert asked == [('site_context', 'aed24d96')]
     assert whole['communications'][0]['truncated'] is False and whole['communications'][1]['truncated'] is True
     assert parse_run_results(whole)['masterplan']['layout']['layers'] == ['building_footprint', 'parking_stall', 'site_boundary']
 

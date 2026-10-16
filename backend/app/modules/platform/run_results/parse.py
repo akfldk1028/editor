@@ -32,8 +32,9 @@ from backend.app.modules.platform.run_results.common import _dict, _str, _string
 SITE_TOOL, LAW_TOOL, REVIEW_TOOL = site.TOOL, law.TOOL, review.TOOL
 law_from_response = law.law_from_response
 # Tools whose whole answer the UI needs when the Orchestrator's 8000-character row cut it: the service fetches the
-# A2A task itself (`whole_rows`) before parsing.
-WHOLE_TOOLS = {masterplan.TOOL: masterplan.AGENT}
+# A2A task itself (`whole_rows`) before parsing. Site's facts (the chat's 대지 사실 card) sit past the cut for a real
+# parcel (400 KB for 684-1), so without the whole answer the card said "응답이 잘려 읽지 못함" for half of them.
+WHOLE_TOOLS = {masterplan.TOOL: masterplan.AGENT, site.TOOL: site.AGENT}
 
 
 def _communications(run):
