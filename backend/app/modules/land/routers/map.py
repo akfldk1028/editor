@@ -90,6 +90,16 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
             raise HTTPException(502, str(error)) from None
         return {'size': size, 'heights': [round(h, 2) for h in heights], 'dataset': dataset}
 
+    @router.get('/context-tiles')
+    async def context_tiles():
+        try:
+            activation = await host.ensure(['scene'])
+            if activation.get('failed'):
+                raise scene_agent.SceneAgentError(str(activation['failed']))
+            return await asyncio.to_thread(scene_agent.context_tiles)
+        except (host.HostUnavailable, host.HostRefused, scene_agent.SceneAgentError) as error:
+            raise HTTPException(502, str(error)) from None
+
     @router.get('/context-buildings')
     async def context_buildings(lat: float, lon: float, radius_m: float = 300.0):
         """White context masses around a point (SceneAgent: SiteContext footprints + height rule) - no VWorld SDK needed."""

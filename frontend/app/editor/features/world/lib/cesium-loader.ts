@@ -51,6 +51,10 @@ function load(): Promise<any> {
 let holders = 0
 let saved: { Cesium: any; base: any } | null = null
 
+export function prepareCesium(): Promise<void> {
+  return load().then(() => {})
+}
+
 /** Our Cesium, put on the globals until the last `release()` (the design view's renderers read window.Cesium). */
 export async function acquireCesium(): Promise<{ Cesium: any; release: () => void }> {
   const C = await load()

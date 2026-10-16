@@ -41,6 +41,7 @@ const CLIENTS: Record<string, Client> = {
   'features/artifacts/law/api/ordinances.ts': {},
   'features/artifacts/law/api/site.ts': {},
   'features/world/lib/context-masses.ts': {},
+  'features/world/lib/building-tiles.ts': {},
   'features/world/hooks/use-world-3d.ts': {},
   'features/world/lib/terrain.ts': {},
   'features/law/lib/law-api-client.ts': { tokens: { '${apiRoot}': '/api/v1' } },

@@ -22,9 +22,9 @@ export function WorldControls({ world, title, children, className, compact }: {
       <label><input type="checkbox" checked={show.cover} onChange={(e) => setShow((v) => ({ ...v, cover: e.target.checked }))} /> 대지 안 피복</label>
       <label><input type="checkbox" checked={terrain} onChange={(e) => setTerrain(e.target.checked)} /> 지형</label>
     </div>
-    {compact ? <div className="text-neutral-500">건물 {stats.buildings}동{stats.pending ? ` · 칸 ${stats.pending}개 불러오는 중` : ''}</div> : <>
+    {compact ? <div className="text-neutral-500">건물 {stats.buildings}동{stats.pending ? ` · ${stats.pending}건 불러오는 중` : ''}</div> : <>
     <div className="text-xs text-neutral-500">
-      건물 {stats.buildings}동{stats.pending ? ` · 불러오는 칸 ${stats.pending}개` : ''} — 화면을 움직이면 보이는 곳이 채워집니다
+      건물 {stats.buildings}동{stats.pending ? ` · ${stats.pending}건 불러오는 중` : ''} — 화면을 움직이면 보이는 곳이 채워집니다
     </div>
     <div className="text-xs text-neutral-500">
       높이: 실측 {stats.counts.measured} · 층수로 추정 {stats.counts.estimated} · 모름 {stats.counts.unknown}(옅게)

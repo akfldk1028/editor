@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { WorldControls } from '../../../world/components/WorldControls'
 import { useWorld3D } from '../../../world/hooks/use-world-3d'
+import { prepareCesium } from '../../../world/lib/cesium-loader'
+import { prepareBuildingTiles } from '../../../world/lib/building-tiles'
 import type { IntentView, LayoutView } from '../../../world/lib/layout-masses'
 import type { LngLat, ParcelSet } from '../lib/engine'
 import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
@@ -27,6 +29,12 @@ export interface LayoutOverlay {
 }
 
 export default function World3D({ active, drawn, onPick, overlay = null }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay?: LayoutOverlay | null }) {
+  useEffect(() => {
+    if (!active) return
+    // Fetch the engine and archive while the parcel is located; the viewer still waits for its actual site.
+    void prepareCesium().catch(() => {})
+    void prepareBuildingTiles().catch(() => {})
+  }, [active])
   // The world draws one outline: the merged boundary of a bundle, else the single parcel.
   const shape = drawn.outline ?? drawn.geometries[0] ?? null
   const [known, setKnown] = useState(shape !== null)

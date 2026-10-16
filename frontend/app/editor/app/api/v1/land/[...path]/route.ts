@@ -4,7 +4,7 @@ import { backendRequest } from '@/lib/backend-request'
 const methods: Record<string, string> = {
   zones: 'GET', stats: 'GET', analyze: 'POST', resolve: 'POST', reverse: 'POST', 'parcel-geometry': 'POST',
   selections: 'GET,POST', 'selections/preview': 'POST', 'selections/outlines': 'POST', 'selections/latest': 'GET',
-  wms: 'GET', 'map-config': 'GET', 'agent-analyze/stream': 'GET', 'context-buildings': 'GET', 'context-ground': 'GET', 'terrain-heights': 'GET',
+  wms: 'GET', 'map-config': 'GET', 'agent-analyze/stream': 'GET', 'context-buildings': 'GET', 'context-ground': 'GET', 'terrain-heights': 'GET', 'context-tiles': 'GET',
 }
 
 async function handle(request: Request, { params }: { params: Promise<{ path: string[] }> }) {

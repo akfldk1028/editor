@@ -20,6 +20,23 @@ class SceneAgentError(RuntimeError):
     pass
 
 
+def context_tiles(*, base_url=None, transport=None, timeout=10.0):
+    base = (base_url or os.environ.get(SCENE_AGENT_URL_ENV) or DEFAULT_URL).rstrip('/')
+    try:
+        with httpx.Client(timeout=httpx.Timeout(timeout, connect=5), transport=transport,
+                          headers=network_headers(), follow_redirects=False) as client:
+            response = client.get(base + '/scene/tiles/buildings/latest')
+        payload = response.json()
+    except (httpx.HTTPError, ValueError) as error:
+        raise SceneAgentError(f'SceneAgent tiles unavailable: {error}') from None
+    if not response.is_success:
+        reason = payload.get('detail', response.status_code) if isinstance(payload, dict) else response.status_code
+        raise SceneAgentError(f'SceneAgent tiles unavailable: {reason}')
+    if not isinstance(payload, dict) or not payload.get('href') or payload.get('layer') != 'buildings':
+        raise SceneAgentError('SceneAgent returned an invalid building tile manifest')
+    return payload
+
+
 def context_buildings(lat, lon, radius_m, **kw):
     """White masses: {status: ok, features, counts, record} or needs_evidence."""
     return _ask('/scene/context-buildings', lat, lon, radius_m, **kw)
