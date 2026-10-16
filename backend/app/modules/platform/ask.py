@@ -196,7 +196,8 @@ ROAD_ITEM = 'road-frontage'
 ROAD_FACT_KEYS = ('name', 'kind', 'ucode', 'decision', 'shared_edge_m', 'overlap_m2', 'width_m_rule', 'centrelines', 'jurisdiction')
 ROAD_QUESTION = ('이 대지는 건축법 제44조(대지와 도로의 관계)에 따라 도로에 접하는가? 대지 경계에 닿는 도시·군계획시설 도로(국토의 계획 및 '
                  '이용에 관한 법률에 따른 결정)가 건축법 제2조제1항제11호의 도로에 해당하는지, 접한 길이와 결정 폭 범위가 제44조의 요건을 '
-                 '채우는지 판단하라. 폭 범위는 도시·군계획시설의 결정·구조 및 설치기준에 관한 규칙 제9조의 등급별 범위이지 실측 폭이 아니다.')
+                 '채우는지 판단하라. 폭 범위는 도시·군계획시설의 결정·구조 및 설치기준에 관한 규칙 제9조의 등급별 범위이지 실측 폭이 아니다. '
+                 'centrelines는 그 결정 도형 안을 지나는 NGII 도로중심선의 폭 속성(실측)이다. 답(reason·open_conditions)은 한국어로 쓴다.')
 
 
 def road_facts(raw) -> dict:
@@ -263,7 +264,9 @@ def _road_line(road: dict) -> str:
     width = f"결정 폭 {low:g}~{high:g} m" if isinstance(low, (int, float)) and isinstance(high, (int, float)) else (
         f"결정 폭 {high:g} m 미만" if isinstance(high, (int, float)) else f"결정 폭 {low:g} m 이상" if isinstance(low, (int, float)) else '폭 등급 없음')
     decision = road.get('decision') or {}
-    when = f", 결정 {decision.get('year')}-{decision.get('no')}" if decision.get('year') and decision.get('no') else ''
+    # Vworld writes 2000-0000 where no decision record is kept: that is "none", not a decision.
+    recorded = decision.get('year') and decision.get('no') and set(str(decision['no'])) != {'0'}
+    when = f", 결정 {decision.get('year')}-{decision.get('no')}" if recorded else ''
     # The centrelines inside the polygon carry the measured widths (NGII): the only width where the class is missing.
     measured = ((road.get('centrelines') or {}).get('widths_m')) or []
     lines = f", 중심선 폭 {'·'.join(f'{w:g}' for w in measured)} m(NGII)" if measured else ''

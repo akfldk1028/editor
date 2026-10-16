@@ -283,6 +283,8 @@ def test_analyze_land_says_when_site_facts_are_missing_and_transcribes_an_undeci
                  'centrelines': {'widths_m': [25.0, 8.0], 'nearest_width_m': 25.0, 'segments': [{'width_m': 25.0}], 'source': 'NGII'}}
     assert _road_line(classless) == '도로(등급 없음, 폭 등급 없음, 중심선 폭 25·8 m(NGII), 공유 변 50.72 m, 결정 2018-0816)'
     assert road_facts({'payload': {**SITE_ROADS, 'items': [classless]}})['planned_facilities_touching_parcel'][0]['centrelines']['widths_m'] == [25.0, 8.0]
+    # Vworld's 2000-0000 placeholder is no decision record
+    assert _road_line({**classless, 'centrelines': None, 'decision': {'year': '2000', 'no': '0000'}}) == '도로(등급 없음, 폭 등급 없음, 공유 변 50.72 m)'
     # A search answer without usable ids leaves the judge with the item's own article only.
     assert found_ids({'payload': LIMITS}) == [] and found_ids(None) == []
     # Without `site` (the default) nothing about roads is asked: the item stays as the Law Agent wrote it.
