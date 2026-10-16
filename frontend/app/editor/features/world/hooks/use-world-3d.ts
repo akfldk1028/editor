@@ -147,6 +147,9 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     applyOnSite()
   }, [applyOnSite])
 
+  /** The planned building last drawn, so a redraw of the context (the ground moved) puts it back at the new ground. */
+  const lastLayout = useRef<{ layout: LayoutView; intent: IntentView | null | undefined } | null>(null)
+
   /** Throw the drawn context away and load what the camera sees again (the ground under it changed). */
   const redraw = useCallback(() => {
     generation.current++
@@ -157,6 +160,10 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     setCounts({ measured: 0, estimated: 0, unknown: 0 })
     drawOutline()
     loadVisible()
+    const Cesium = cesiumRef.current
+    if (Cesium && layers.current && lastLayout.current) {
+      drawLayoutEntities(layers.current.layout.entities, Cesium, lastLayout.current.layout, lastLayout.current.intent, terrainOn.current ? 'terrain' : level.current)
+    }
   }, [loadVisible, drawOutline])
 
   /** The ground: the DEM terrain, or flat at level.current. An old Cesium (from the VWorld SDK in this tab) stays flat at 0. */
@@ -225,6 +232,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   const drawLayout = useCallback((layout: LayoutView | null, intent?: IntentView | null): number => {
     const Cesium = cesiumRef.current
     if (!Cesium || !layers.current) return 0
+    lastLayout.current = layout ? { layout, intent } : null
     if (!layout) {
       clearLayoutEntities(layers.current.layout.entities)
       return 0
