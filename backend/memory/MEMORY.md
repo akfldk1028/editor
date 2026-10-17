@@ -1,3 +1,11 @@
+## 2026-10-17 - Mass multi-operation grammar search
+
+[Implementation, limits and validation](2026-10-17-mass-grammar-search.md): bounded
+append/prepend beam derivations with full baseline parameter lattice, actual delivery
+feedback and honest operation lineage.67 related tests pass; matched exploration
+delivery3→4, originals preserved, all10 final records freshly accepted. Production
+rerun pending. KMass owns residential types/core/corridor/unit composition.
+
 ## 2026-10-17 - Mass delivery-guided parameter search
 
 [Implementation and evidence](2026-10-17-mass-delivery-search.md): actual parameter
