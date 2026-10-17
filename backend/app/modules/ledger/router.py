@@ -145,8 +145,10 @@ def create_ledger_router(ledger: Ledger, allowed_origin: str) -> APIRouter:
             raise HTTPException(422, f'invalid trace export: {type(exc).__name__}') from None
         return {'partialSuccess': {}, 'accepted': count}
 
+    # A plain def: FastAPI runs it in its thread pool. Reading and listing a conversation's hops (2 MB, 2 s) on the
+    # event loop held every other request of the page - the map's tiles and parcel waited behind it (2026-10-17).
     @router.get('/hops')
-    async def get_hops(conversation_id: str | None = None, run_id: str | None = None, trace_id: str | None = None, project: str | None = None,
+    def get_hops(conversation_id: str | None = None, run_id: str | None = None, trace_id: str | None = None, project: str | None = None,
                        branch: str | None = None, since_id: int = Query(default=0, ge=0), limit: int = Query(default=200, ge=1, le=500)):
         scope = _scope(conversation_id, run_id, trace_id, project, branch)
         return {'hops': [listed(row) for row in ledger.rows(**scope, since_id=since_id, limit=limit)], 'latest_id': ledger.latest_id()}
