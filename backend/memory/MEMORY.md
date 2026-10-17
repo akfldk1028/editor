@@ -1,3 +1,9 @@
+## 2026-10-17 - Mass delivery-guided parameter search
+
+[Implementation and evidence](2026-10-17-mass-delivery-search.md): actual parameter
+regeneration, shared UCB1 selection, final-import probe, bounded extra retries and
+explicit partial supply. 65 relevant tests pass; production comparison in progress.
+
 ## 2026-10-14 - Module axis and solve budget review
 
 Explicit underground module axes now use site frame; row solve reservation is conditional and enforced per actual generic/fallback/stacked invocation.73 focused tests pass. Actual cross-axis replay31/39 and budget replay34/39 remain failed; do not claim quality gains. Full engine sweep incomplete. [Details](2026-10-14-module-axis-budget-review.md).

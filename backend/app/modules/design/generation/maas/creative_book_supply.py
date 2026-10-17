@@ -119,13 +119,16 @@ def creative_book_schedule(
 def project_creative_book_program(
     program: GeometryProgram,
     assignment: CreativeBookAssignment,
+    *, variation_index: int | None = None,
 ) -> GeometryProgram:
     """Materialize one scheduled BOOK scope and principle in the AST."""
 
-    operations = book_sentence_variants(
-        assignment.execution_verbs,
-        count=1,
-    )[0]
+    from backend.app.modules.design.generation.maas.book_language.corpus_contract import BOOK_VARIATION_COUNT
+    if variation_index is not None and not 0 <= variation_index < BOOK_VARIATION_COUNT:
+        raise ValueError('BOOK variation index outside the canonical lattice')
+    operations = (book_sentence_variants(assignment.execution_verbs, count=1)[0]
+                  if variation_index is None else
+                  book_sentence_variants(assignment.execution_verbs, count=BOOK_VARIATION_COUNT)[variation_index])
     sequence = compose_program_with_book_operations(
         VerbSequence(
             name=f"creative-{program.name}-source",

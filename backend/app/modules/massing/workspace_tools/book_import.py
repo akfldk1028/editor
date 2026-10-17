@@ -113,57 +113,64 @@ def records_of(book_dir: Path) -> list[dict]:
             print(f"  skip {entry.get('candidate_id')}: no floor areas",
                   file=_sys.stderr)
             continue
-        # The portfolio's own words for what this candidate is: the family it
-        # came from and the BOOK principle it was assigned. That is the thesis
-        # a juror reads, and without it the tile carries a hash.
-        assignment = (program.get("metadata") or {}).get(
-            "creative_book_assignment") or {}
-        principle = str(assignment.get("principle_id") or "")
-        verbs = ", ".join(str(v) for v in (assignment.get("execution_verbs") or ()))
-        family = str(candidate.get("family") or entry.get("family") or "")
-        records.append({
-            # The run id is part of the identity. Candidate ids restart at
-            # creative-001 every exploration, so without it two runs mint the
-            # same sixty keys and the registry - a flat merge of every
-            # runs/books/*.json - hands the baker whichever sorted last.
-            "trace_sequence_name":
-                f"{book_dir.name}:{family}:{entry.get('candidate_id')}",
-            "thesis": (
-                f"{family.replace('_', ' ')} - "
-                f"{verbs or 'base'}"
-                + (f" ({principle.split(':')[-1]})" if principle else "")
-            ),
-            "geometry_artifact": {
-                'storeyEvidence': dict(candidate.get('storey_evidence') or {}),
-                "authoredGeometryProgram": program,
-                # The portfolio states the physical height as the top of the
-                # mesh bounds and the storeys it was cut into; the older
-                # artifact carried a certificate instead. Both are the book's
-                # own account of how tall it is, which is what the height
-                # dialect below needs - without one every book mass measured
-                # 0.0 m and drew flat.
-                "projectedVisualCertificate": {
-                    "physical_height_m": float(
-                        ((candidate.get("mesh_evidence") or {}).get("bounds")
-                         or [[0, 0, 0], [0, 0, 0]])[1][2] or 0.0),
-                },
-                "hardGates": {"projectedMetrics": {
-                    "footprint_area_m2": float(
-                        ((candidate.get("storey_evidence") or {}).get(
-                            "actual_floor_areas_m2") or [0.0])[0] or 0.0),
-                    # The book's own gross, summed over its own floors at its
-                    # own storey height. Left unset, the caption fell back to
-                    # measuring the delivered bands at the parcel's storey -
-                    # the very reading the height dialect below exists to
-                    # avoid - and all sixty tiles went to the jury with a
-                    # 용적률 taken on the wrong ruler.
-                    "floor_area_m2": float(sum(
-                        (candidate.get("storey_evidence") or {}).get(
-                            "actual_floor_areas_m2") or ())),
-                }},
-            },
-        })
+        records.append(candidate_record(candidate, run_id=book_dir.name, candidate_id=entry.get('candidate_id')))
     return records
+
+
+def candidate_record(candidate: dict, *, run_id: str, candidate_id=None) -> dict:
+    """Shared in-memory mapping for search probes and final BOOK import."""
+    entry = {**candidate, 'candidate_id': candidate_id or candidate.get('candidate_id')}
+    program = candidate['geometry_program']
+    # The portfolio's own words for what this candidate is: the family it
+    # came from and the BOOK principle it was assigned. That is the thesis
+    # a juror reads, and without it the tile carries a hash.
+    assignment = (program.get("metadata") or {}).get(
+        "creative_book_assignment") or {}
+    principle = str(assignment.get("principle_id") or "")
+    verbs = ", ".join(str(v) for v in (assignment.get("execution_verbs") or ()))
+    family = str(candidate.get("family") or entry.get("family") or "")
+    return {
+        # The run id is part of the identity. Candidate ids restart at
+        # creative-001 every exploration, so without it two runs mint the
+        # same sixty keys and the registry - a flat merge of every
+        # runs/books/*.json - hands the baker whichever sorted last.
+        "trace_sequence_name":
+            f"{run_id}:{family}:{entry.get('candidate_id')}",
+        "thesis": (
+            f"{family.replace('_', ' ')} - "
+            f"{verbs or 'base'}"
+            + (f" ({principle.split(':')[-1]})" if principle else "")
+        ),
+        "geometry_artifact": {
+            'storeyEvidence': dict(candidate.get('storey_evidence') or {}),
+            "authoredGeometryProgram": program,
+            # The portfolio states the physical height as the top of the
+            # mesh bounds and the storeys it was cut into; the older
+            # artifact carried a certificate instead. Both are the book's
+            # own account of how tall it is, which is what the height
+            # dialect below needs - without one every book mass measured
+            # 0.0 m and drew flat.
+            "projectedVisualCertificate": {
+                "physical_height_m": float(
+                    ((candidate.get("mesh_evidence") or {}).get("bounds")
+                     or [[0, 0, 0], [0, 0, 0]])[1][2] or 0.0),
+            },
+            "hardGates": {"projectedMetrics": {
+                "footprint_area_m2": float(
+                    ((candidate.get("storey_evidence") or {}).get(
+                        "actual_floor_areas_m2") or [0.0])[0] or 0.0),
+                # The book's own gross, summed over its own floors at its
+                # own storey height. Left unset, the caption fell back to
+                # measuring the delivered bands at the parcel's storey -
+                # the very reading the height dialect below exists to
+                # avoid - and all sixty tiles went to the jury with a
+                # 용적률 taken on the wrong ruler.
+                "floor_area_m2": float(sum(
+                    (candidate.get("storey_evidence") or {}).get(
+                        "actual_floor_areas_m2") or ())),
+            }},
+        },
+    }
 
 
 # What share of the parcel's 용적률 capacity a book mass is brought to. Not the

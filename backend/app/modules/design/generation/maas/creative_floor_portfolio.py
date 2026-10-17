@@ -179,6 +179,8 @@ def build_creative_floor_portfolio_report(
     authored_programs: Iterable[
         GeometryProgram | CreativeAuthoredProgram
     ],
+    delivery_probe=None,
+    delivery_search_budget: int = 96,
 ) -> CreativeFloorPortfolioReport:
     """Keep up to target originals plus target explicitly derived BOOK options.
 
@@ -404,10 +406,7 @@ def build_creative_floor_portfolio_report(
     pair_cache: dict[tuple[int, int], tuple] = {}
     pairs_tried: Counter[int] = Counter()
 
-    def pair(e_index: int, slot_index: int) -> tuple:
-        key = (e_index, slot_index)
-        if key in pair_cache:
-            return pair_cache[key]
+    def attempt_pair(e_index: int, slot_index: int, variation_index=None) -> tuple:
         pairs_tried[e_index] += 1
         input_index, authored, source_program_hash = eligible[e_index]
         assignment = book_schedule[slot_index]
@@ -415,6 +414,7 @@ def build_creative_floor_portfolio_report(
             projected = project_creative_book_program(
                 authored.program,
                 assignment,
+                **({"variation_index": variation_index} if variation_index is not None else {}),
             )
         except BookProjectionFailure as exc:
             result = ("fail", assignment, "book_projection_pass",
@@ -466,6 +466,41 @@ def build_creative_floor_portfolio_report(
                             result = ("fail", assignment, "book_projection_pass", "book_duplicates_original", projected_hash, compilation.geometry_hash)
                         else:
                             result = ("ok", assignment, projected, evidence, compilation, physical_candidate)
+        return result
+
+    from backend.app.modules.design.generation.maas.book_language.delivery_search import DeliveryVariantSearch
+    from backend.app.modules.design.generation.maas.book_language.corpus_contract import BOOK_VARIATION_COUNT
+    delivery_search = (DeliveryVariantSearch(variant_count=BOOK_VARIATION_COUNT,
+        baseline_variant=BOOK_VARIATION_COUNT // 2, max_retries=delivery_search_budget)
+        if delivery_probe is not None else None)
+
+    def pair(e_index: int, slot_index: int) -> tuple:
+        key = (e_index, slot_index)
+        if key in pair_cache:
+            return pair_cache[key]
+        if delivery_search is None:
+            result = attempt_pair(e_index, slot_index)
+        else:
+            failures = []
+            def evaluate(variant):
+                trial = attempt_pair(e_index, slot_index, variant)
+                if trial[0] != "ok":
+                    failures.append(trial)
+                    return False, None, trial[3]
+                candidate = trial[5]
+                decision = delivery_probe(candidate)
+                candidate["delivery_search_evidence"] = {**decision, "variation_index": variant}
+                if decision['accepted']:
+                    return True, trial, ''
+                failure = ("fail", trial[1], "site_delivery_pass", decision['reason'],
+                           trial[2].program_hash(), candidate['geometry_hash'])
+                failures.append(failure)
+                return False, None, decision['reason']
+            result = delivery_search.find(key, evaluate)
+            if result is None:
+                result = failures[-1] if failures else (
+                    "fail", book_schedule[slot_index], "site_delivery_pass", "delivery_search_budget_exhausted",
+                    eligible[e_index][2], None)
         pair_cache[key] = result
         return result
 
@@ -635,6 +670,8 @@ def build_creative_floor_portfolio_report(
         explorations.append(candidate)
         stage_counts["morphology_retained"] += 1
 
+    if delivery_search is not None:
+        schedule_evidence["delivery_search"] = delivery_search.evidence()
     language_coverage = _book_language_coverage(explorations)
     # Command writers already persist this evidence field. Keep offered supply
     # explicit and separate from the materialized coverage counters above.
@@ -670,6 +707,8 @@ def build_creative_floor_portfolio(
     authored_programs: Iterable[
         GeometryProgram | CreativeAuthoredProgram
     ] | None = None,
+    delivery_probe=None,
+    delivery_search_budget: int = 96,
 ) -> dict[str, Any]:
     """Return a deterministic compiled choice pool with no legal approval."""
 
@@ -685,8 +724,10 @@ def build_creative_floor_portfolio(
             target_count=requested_count,
             capacity_ceiling_m2=ceiling,
             authored_programs=authored_programs,
+            delivery_probe=delivery_probe,
+            delivery_search_budget=delivery_search_budget,
         )
-        if report.status != "complete":
+        if report.status != "complete" and delivery_probe is None:
             rejection_details = "; ".join(
                 f"input_index={item.input_index} stage={item.stage[:96]} "
                 f"reason={item.reason_code[:96]}"
@@ -709,6 +750,8 @@ def build_creative_floor_portfolio(
             capacity_ceiling_m2=ceiling,
             author_mode="authored_programs",
         )
+        if report.status != "complete":
+            payload.update(status="partial", deficit=report.deficit, target_count=requested_count)
         payload["book_language_coverage"] = report.language_coverage
         evidence = report.evidence()
         for key in ("exploration_count", "original_count", "target_count_scope", "book_schedule"):

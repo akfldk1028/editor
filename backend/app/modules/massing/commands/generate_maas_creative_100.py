@@ -151,6 +151,7 @@ class Command(BaseCommand):
         }
         author_supply = None
         portfolio_report = None
+        delivery_probe = None
         try:
             if author_mode == "hybrid":
                 cached = cached_authored_programs(
@@ -229,12 +230,21 @@ class Command(BaseCommand):
                         count=count,
                         context=context,
                     )
+                    delivery_probe = None
+                    if author_mode in {'payload', 'llm'}:
+                        from backend.app.modules.massing.workspace_tools.book_delivery_probe import BookDeliveryProbe
+                        from backend.app.modules.design.generation.maas.massv2.legal import load_legal_site
+                        from backend.app.modules.design.generation.maas.massv2.parcel_policy import default_building_type
+                        import os
+                        site = load_legal_site(pnu, building_type=default_building_type(pnu, os.environ.get('BUILDING_TYPE')))
+                        delivery_probe = BookDeliveryProbe(site, run_id=run_id)
                     portfolio = build_creative_floor_portfolio(
                         count=count,
                         capacity_ceiling_m2=float(
                             options["capacity_ceiling_m2"]
                         ),
                         authored_programs=authored_programs,
+                        delivery_probe=delivery_probe,
                     )
         except (
             GeometryAuthorError,
@@ -245,7 +255,7 @@ class Command(BaseCommand):
         ) as exc:
             raise CommandError(str(exc)) from exc
         candidates = portfolio.get("candidates")
-        _validate_candidate_supply(candidates, count=count, hybrid=author_mode == 'hybrid')
+        _validate_candidate_supply(candidates, count=count, hybrid=author_mode == 'hybrid', allow_partial=delivery_probe is not None)
 
         persisted_candidates: list[dict[str, Any]] = []
         preview_items: list[tuple[str, Path]] = []
@@ -272,7 +282,7 @@ class Command(BaseCommand):
         board = _write_board(
             preview_items,
             board_path,
-            target_count=count if author_mode == "hybrid" else None,
+            target_count=count if author_mode == "hybrid" or delivery_probe is not None else None,
         )
         graph = _frontend_graph(
             persisted_candidates,
@@ -432,6 +442,10 @@ class Command(BaseCommand):
             ),
             "paid_author_request_count": paid_author_request_count,
             "legal_review_status": payload["legal_review_status"],
+            "status": payload.get("status"),
+            "exploration_count": payload.get("exploration_count"),
+            "original_count": payload.get("original_count"),
+            "deficit": payload.get("deficit", 0),
         }
         if portfolio_report is not None:
             summary.update(portfolio_report.stage_counts)
@@ -490,7 +504,7 @@ def _affine_authority_counts(
     }
 
 
-def _validate_candidate_supply(candidates, *, count, hybrid):
+def _validate_candidate_supply(candidates, *, count, hybrid, allow_partial=False):
     """Bound exploration separately from preserved author originals."""
     error = 'creative portfolio candidate count or lineage does not match request'
     if not isinstance(candidates, list) or any(not isinstance(c, dict) for c in candidates):
@@ -529,7 +543,7 @@ def _validate_candidate_supply(candidates, *, count, hybrid):
                 raise CommandError(error)
         else:
             raise CommandError(error)
-    if originals > count or explored > count or (not hybrid and explored != count):
+    if originals > count or explored > count or (not hybrid and not allow_partial and explored != count):
         raise CommandError(error)
 
 
