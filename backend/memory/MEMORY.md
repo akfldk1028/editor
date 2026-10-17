@@ -1,3 +1,10 @@
+## 2026-10-17 - Mass numerical impose fitting
+
+[Algorithm, REA source and limits](2026-10-17-mass-numeric-impose.md): bounded
+rank-aware fitting plus translation-domain refinement, actual occupied-band gates.
+Independent archived replay6/6 accepted, retained GFA +0.34–13.84%;101 combined
+Mass regression tests pass. More computation; no global or aesthetic guarantee.
+
 ## 2026-10-17 - Mass multi-operation grammar search
 
 [Implementation, limits and validation](2026-10-17-mass-grammar-search.md): bounded

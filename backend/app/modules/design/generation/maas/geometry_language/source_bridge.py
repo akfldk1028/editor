@@ -231,6 +231,7 @@ class HostFitTransform:
     inverse_matrix4: Matrix4
     world_vertices: tuple[Point3, ...]
     achieved_plan_area_m2: float
+    constraint_evidence: dict[str, Any] | None = None
 
 
 def derive_host_fit_transform(
@@ -2641,6 +2642,7 @@ def _compile_geometry_program_to_source_mass(
     if compilation.status != "compiled" or compilation_gate(compilation, source_gate_policy):
         return None
     base_seed_plan_fraction = _base_seed_plan_occupancy_fraction(program)
+    constraint_fit_evidence = None
     if identity_export:
         effective_target_plan_area = None
         # Both identity exports normalize Z. The certificate layer compares a
@@ -2690,6 +2692,7 @@ def _compile_geometry_program_to_source_mass(
         if transformed is None:
             return None
         world_vertices = transformed.world_vertices
+        constraint_fit_evidence = transformed.constraint_evidence
         host_fit_matrix4 = transformed.matrix4
         host_fit_matrix4_exact = True
         legal_fit_mode = POLICY if placement_policy == POLICY else "principal_frame_bounded"
@@ -2980,6 +2983,7 @@ def _compile_geometry_program_to_source_mass(
             "surface_coordinate_frame": "source_footprint_centroid_local",
             "host_fit_matrix4": matrix4_to_lists(host_fit_matrix4),
             "host_fit_matrix4_exact": host_fit_matrix4_exact,
+            **({"numeric_constraint_fit": constraint_fit_evidence} if constraint_fit_evidence is not None else {}),
             "host_contains_all_proxy_volumes": all(host.covers(volume.footprint) for volume in volumes),
             "parcel_coordinates_in_program": site_bound_export,
             "legal_fit_mode": legal_fit_mode,
@@ -3762,7 +3766,7 @@ def _ground_contact_area(vertices, triangles, host=None) -> float:
 
 
 IMPOSED_RETENTION = 0.92   # massv2 legal_fit._IMPOSED_RETENTION
-IMPOSE_STEPS = 14          # massv2 legal_fit._IMPOSE_STEPS: 1.0, 0.94, ... 0.22
+MIN_IMPOSE_SCALE = 0.22  # Existing explicit-impose lower bound; not a legal limit.
 
 
 def _metric_pose_centers(constraints):
@@ -3860,8 +3864,7 @@ def _pose_metric_vertices_to_host(compilation, host, *, clip_to_host: bool = Fal
               [target_angle - source_angle, target_angle - source_angle + 90.0, 0.0])
     ground_section = clip_sections[0][2] if clip_sections else host
     # Only explicit impose authorizes this bounded uniform plan shrink.
-    factors = ([1.0 - step * 0.06 for step in range(IMPOSE_STEPS)]
-               if (clip_to_host and impose_fit) else [1.0])
+    factors = [1.0]
     # Project once: translating one polygon avoids repeating triangle unions
     # and 3D CSG for every point in the translation search.
     solid = mesh_section_solid(vertices, compilation.triangles)
@@ -3892,6 +3895,72 @@ def _pose_metric_vertices_to_host(compilation, host, *, clip_to_host: bool = Fal
             middle = (lo + hi) / 2
             legal = unary_union([poly for bottom, top, poly in bands if bottom <= middle < top])
             constraints.append((occupied, legal, hi - lo))
+    if clip_to_host and impose_fit:
+        from backend.app.modules.design.generation.maas.geometry_language.constraint_fit import solve_imposed_pose
+        remaining_evaluations = 192
+        pose_attempts = []
+        best_pose = None
+        for angle_index, angle in enumerate(angles):
+            origin_matrix = compose_matrix4(
+                translation_matrix4((-plan.centroid.x, -plan.centroid.y, -minimum_z)),
+                rotation_matrix4((0.0, 0.0, angle)),
+                scale_matrix4((1.0, 1.0, 1.0 / span)))
+            affine = [origin_matrix[0][0], origin_matrix[0][1],
+                      origin_matrix[1][0], origin_matrix[1][1], origin_matrix[0][3], origin_matrix[1][3]]
+            local_constraints = [(affine_transform(occupied, affine), legal, weight)
+                                 for occupied, legal, weight in constraints]
+            # Affine rounding can turn coincident band edges into a microscopic
+            # self-crossing. Repair only numerical debris, never material area.
+            original_local_constraints = local_constraints
+            repaired_constraints = []
+            for occupied, legal, weight in local_constraints:
+                if not occupied.is_valid:
+                    try:
+                        repaired = occupied.buffer(0)
+                        resolution = max(1e-10, occupied.area * 1e-10)
+                        if (not repaired.is_valid or repaired.is_empty
+                                or abs(repaired.area - occupied.area) > resolution
+                                or repaired.symmetric_difference(occupied).area > resolution):
+                            break
+                    except GEOSException:
+                        break
+                    occupied = repaired
+                repaired_constraints.append((occupied, legal, weight))
+            if len(repaired_constraints) != len(local_constraints):
+                continue
+            local_constraints = repaired_constraints
+            solved = solve_imposed_pose(local_constraints, minimum_scale=MIN_IMPOSE_SCALE,
+                max_evaluations=max(1, remaining_evaluations // (len(angles) - angle_index)))
+            remaining_evaluations -= solved.evidence['evaluation_count']
+            pose_attempts.append({'angle_degrees': angle, **solved.evidence})
+            if not solved.evidence['accepted']:
+                continue
+            # Repair aids residual construction only; final acceptance still
+            # checks every original transformed occupied polygon.
+            pose_affine = [solved.scale, 0, 0, solved.scale, solved.x, solved.y]
+            try:
+                contained = all(legal.buffer(1e-7).covers(affine_transform(occupied, pose_affine))
+                                for occupied, legal, _weight in original_local_constraints)
+            except GEOSException:
+                continue
+            if not contained:
+                continue
+            matrix = compose_matrix4(origin_matrix,
+                scale_matrix4((solved.scale, solved.scale, 1.0)),
+                translation_matrix4((solved.x, solved.y, 0.0)))
+            world = tuple(transform_point3(matrix, vertex) for vertex in vertices)
+            fitted = HostFitTransform(matrix4=matrix, inverse_matrix4=inverse_matrix4(matrix),
+                world_vertices=world, achieved_plan_area_m2=float(projection.area) * solved.scale ** 2,
+                constraint_evidence={**solved.evidence, 'total_evaluation_count': 192 - remaining_evaluations,
+                                     'pose_attempts': pose_attempts})
+            if best_pose is None or solved.scale > best_pose[0]:
+                best_pose = (solved.scale, fitted)
+            if solved.scale >= 1.0:
+                break
+        if best_pose is not None:
+            best_pose[1].constraint_evidence['total_evaluation_count'] = 192 - remaining_evaluations
+            return best_pose[1]
+        return None
     shortlist = []
     for factor in factors:
         sufficient_retention = False
