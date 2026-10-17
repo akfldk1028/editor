@@ -2,7 +2,7 @@
 
 import { Layers, Minus, Plus, Search } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { announceSiteSelected } from '@/lib/orchestrator-runs/connection'
 
@@ -15,7 +15,8 @@ import { type SavedSite, selectionScope } from '../lib/picks'
 import { defaultSite, type Site, siteFromSelection, siteParam } from '../lib/site'
 import { usePicker } from '../model/usePicker'
 import { SiteCard } from './SiteCard'
-import { useLatestLayout } from '../model/useLatestLayout'
+import { defaultForm, useLatestLayout, withForm } from '../model/useLatestLayout'
+import MassFormsPanel from './MassFormsPanel'
 import './site-map.css'
 
 /** Loaded the first time 3D is chosen; it stays mounted (hidden) after that. */
@@ -70,7 +71,11 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   }, [])
   const picker = usePicker(engineRef, onSaved, scope)
   // The newest 배치 설계 of the site's first parcel, drawn by the 3D view over the parcel.
-  const overlay = useLatestLayout(params.project, picker.card?.kind === 'ready' ? picker.card.site.parcels[0]?.pnu ?? null : (/^\d{19}$/.test(site.query) ? site.query : null), view === '3d')
+  const latestOverlay = useLatestLayout(params.project, picker.card?.kind === 'ready' ? picker.card.site.parcels[0]?.pnu ?? null : (/^\d{19}$/.test(site.query) ? site.query : null), view === '3d')
+  // The Mass form standing on the zone: the person's pick for this run, else the first that reaches the target.
+  const [picked, setPicked] = useState<{ runId: string; formId: string } | null>(null)
+  const chosenForm = picked && picked.runId === latestOverlay?.runId ? picked.formId : defaultForm(latestOverlay?.forms)
+  const overlay = useMemo(() => withForm(latestOverlay, chosenForm), [latestOverlay, chosenForm])
   const { showSearched } = picker
   // The engine is built once per mount; it reaches the latest handlers through this ref, so
   // picking (which changes state) never rebuilds the map or moves the view.
@@ -225,6 +230,10 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       <div aria-label="대지 지도 — 클릭으로 필지 선택" className="site-map-canvas" role="application"><div ref={mapRef} /></div>
 
       {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} overlay={overlay} />}
+      {view === '3d' && latestOverlay?.forms && (
+        <MassFormsPanel chosen={chosenForm} forms={latestOverlay.forms}
+          onChoose={(formId) => latestOverlay.runId && setPicked({ runId: latestOverlay.runId, formId })} />
+      )}
 
       <div aria-label="보기" className="site-map-views" role="group">
         {(['2d', '3d'] as const).map((option) => (

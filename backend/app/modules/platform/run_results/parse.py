@@ -24,9 +24,12 @@ Contract (every key always present):
   masterplan: {status, code, task_id, truncated, layout: {crs, features[], layers[], footprint_m2, site_area_m2,
             coverage_pct, storeys, storey_height_m, height_m, height_basis} | null, intent: {parti, …} | null} | null
             (the layout the 3D view draws; agents/masterplan.py)
+  mass_forms: {status, revised, first_verdict, verdict, zone_m2, gfa_target_m2, alternatives[{id, label, gfa_m2,
+            storeys, height_m, reaches_target, volumes[], thumbnail_svg}], pattern[{role, owner, state}]} | null
+            (Mass's forms on MasterPlan's zone; agents/mass_forms.py)
   missing_evidence_all: [str]   notes: [str]   raw: {communications, keys: {tool: n}}
 """
-from backend.app.modules.platform.run_results.agents import law, masterplan, review, site
+from backend.app.modules.platform.run_results.agents import law, masterplan, review, site, mass_forms
 from backend.app.modules.platform.run_results.common import _dict, _str, _strings, _unique, loads_tolerant
 
 SITE_TOOL, LAW_TOOL, REVIEW_TOOL = site.TOOL, law.TOOL, review.TOOL
@@ -34,7 +37,7 @@ law_from_response = law.law_from_response
 # Tools whose whole answer the UI needs when the Orchestrator's 8000-character row cut it: the service fetches the
 # A2A task itself (`whole_rows`) before parsing. Site's facts (the chat's 대지 사실 card) sit past the cut for a real
 # parcel (400 KB for 684-1), so without the whole answer the card said "응답이 잘려 읽지 못함" for half of them.
-WHOLE_TOOLS = {masterplan.TOOL: masterplan.AGENT, site.TOOL: site.AGENT}
+WHOLE_TOOLS = {masterplan.TOOL: masterplan.AGENT, site.TOOL: site.AGENT, mass_forms.TOOL: mass_forms.AGENT}
 
 
 def _communications(run):
@@ -106,6 +109,8 @@ def parse_run_results(run):
         'request': _request(rows, (law_result or {}).get('findings', []), (law_result or {}).get('ordinance')),
         'steps': [_step(row, responses[id(row)]) for row in rows],
         'site': site_result, 'law': law_result, 'review': review_result, 'masterplan': masterplan_result,
+        # Mass's forms on MasterPlan's zone, and the order the two took (agents/mass_forms.py); None without Mass.
+        'mass_forms': mass_forms.parse(rows, responses),
         'missing_evidence_all': _unique((site_result or {}).get('facts_missing', []) + law_missing + (review_result or {}).get('missing_evidence', [])),
         'notes': notes,
         'raw': {'communications': len(rows), 'keys': {row.get('tool'): len(responses[id(row)]) for row in rows if _str(row.get('tool'))}},

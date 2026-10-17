@@ -16,6 +16,8 @@ export interface LayoutFeature {
 
 export interface LayoutView {
   features: LayoutFeature[]
+  /** The Mass form chosen to stand on the zone (volumes from base to top); the footprint box is drawn without one. */
+  mass?: { label: string | null; volumes: { ring: number[][]; base_m: number; top_m: number }[] } | null
   storeys: number | null
   storey_height_m: number
   height_m: number | null
@@ -79,6 +81,28 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
   entities.suspendEvents()
   layout.features.forEach((f, index) => {
     const layer = f.properties.layer
+    if (layer === 'building_footprint' && layout.mass?.volumes.length) {
+      if (index !== layout.features.findIndex((g) => g.properties.layer === 'building_footprint')) return
+      layout.mass.volumes.forEach((v, i) => {
+        const ring = v.ring.flatMap((c) => [c[0]!, c[1]!])
+        entities.add({
+          id: `${PREFIX}building-mass-${i}`,
+          name: `계획 건물 · ${layout.mass!.label ?? 'Mass 안'}`,
+          description: `${Math.round(v.base_m * 10) / 10}~${Math.round(v.top_m * 10) / 10} m`,
+          polygon: {
+            hierarchy: Cesium.Cartesian3.fromDegreesArray(ring),
+            ...(onTerrain
+              ? { height: v.base_m, extrudedHeight: v.top_m, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, extrudedHeightReference: Cesium.HeightReference.RELATIVE_TO_GROUND }
+              : { height: ground + v.base_m, extrudedHeight: ground + v.top_m }),
+            material: wall,
+            outline: true,
+            outlineColor: wallEdge,
+          },
+        })
+        n++
+      })
+      return
+    }
     if (layer === 'building_footprint') {
       const height = layout.height_m ?? UNKNOWN_STOREY_M
       rings(f.geometry).forEach((ring, i) => {

@@ -217,6 +217,8 @@ export interface RunResults {
   review: RunReview | null
   /** The MasterPlan Agent's layout and the declared intent (goal `masterplan`); null when the run made none. */
   masterplan: RunMasterplan | null
+  /** Mass's forms on the layout's zone and the order MasterPlan and Mass took; null when Mass took no part. */
+  mass_forms?: MassForms | null
   missing_evidence_all: string[]
   notes: string[]
   raw: { communications: number; keys: Record<string, number> }
@@ -251,6 +253,50 @@ export interface RunMasterplan {
   layout: RunLayout | null
   /** The declared intent as the owner recorded it (parti, material_attitude, …), the person's words kept. */
   intent: Record<string, unknown> | null
+}
+
+/** One volume of a Mass form: a WGS84 ring standing from `base_m` to `top_m` above the ground. */
+export interface MassVolume {
+  ring: number[][]
+  base_m: number
+  top_m: number
+}
+
+/** One form Mass stood on MasterPlan's zone (backend run_results/agents/mass_forms.py). */
+export interface MassForm {
+  id: string | null
+  form: string | null
+  label: string | null
+  footprint_m2: number | null
+  coverage_of_zone: number | null
+  gfa_m2: number | null
+  height_m: number | null
+  storeys: number | null
+  /** Does it reach the requested floor area (null when no target was asked). */
+  reaches_target: boolean | null
+  volumes: MassVolume[]
+  /** A small axonometric drawing; null when Mass sent none (or not an SVG). */
+  thumbnail_svg: string | null
+}
+
+export interface MassVerdict {
+  status: string | null
+  reason: string | null
+  needed_footprint_m2: number | null
+  shortfall_m2: number | null
+}
+
+/** MasterPlan proposes, Mass reviews, MasterPlan revises once if the zone was too small, Mass reviews again. */
+export interface MassForms {
+  status: string
+  truncated: boolean
+  revised: boolean
+  first_verdict: MassVerdict | null
+  verdict: MassVerdict | null
+  zone_m2: number | null
+  gfa_target_m2: number | null
+  alternatives: MassForm[]
+  pattern: { role: 'propose' | 'review' | 'revise' | 're_review'; owner: 'masterplan' | 'mass'; state: string }[]
 }
 
 /** `GET /projects/{id}/runs/latest`: the run as `GET /runs/{id}` gives it, plus its parsed results. */

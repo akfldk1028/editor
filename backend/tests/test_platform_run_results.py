@@ -140,7 +140,7 @@ def test_whole_law_answer_reads_capacities_ceilings_articles_sources_and_site_fa
     {'run_id': 'r', 'status': 'running', 'communications': [{'tool': 'law_parcel_limits', 'state': 'running', 'response_text': None}]}])
 def test_parsing_never_raises(run):
     results = parse_run_results(run)
-    assert set(results) == {'run_id', 'status', 'goal', 'pending_input', 'pending_fields', 'pending_note', 'pending_request', 'truncated', 'request', 'steps', 'site', 'law', 'masterplan',
+    assert set(results) == {'run_id', 'status', 'goal', 'pending_input', 'pending_fields', 'pending_note', 'pending_request', 'truncated', 'request', 'steps', 'site', 'law', 'masterplan', 'mass_forms',
                             'review', 'missing_evidence_all', 'notes', 'raw'}
     assert request_pnu(run) is None
 
@@ -308,3 +308,25 @@ def test_the_service_fetches_the_whole_layout_task_when_the_row_was_cut():
     assert whole2['communications'][0]['truncated'] is False and recorded == [('r2', '7')]
     again = asyncio.run(service.whole_rows({**run2, 'communications': [{**cut_again, 'id': '7'}]}, task=gone, call=unrecorded))
     assert again['communications'][0]['truncated'] is False and parse_run_results(again)['masterplan']['layout']['layers'] == ['building_footprint', 'parking_stall', 'site_boundary']
+
+
+def test_mass_forms_read_the_newest_review_the_first_verdict_and_the_pattern():
+    svg = '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0L1 1"/></svg>'
+    def review(verdict, gfa):
+        return json.dumps({'status': 'succeeded', 'zone_m2': 600, 'gfa_target_m2': 3000, 'verdict': verdict,
+                           'alternatives': [{'id': 'inscribe', 'form': 'inscribe', 'label': '중정형', 'gfa_m2': gfa, 'storeys': 5,
+                                             'height_m': 17.5, 'reaches_target': gfa >= 2900, 'thumbnail_svg': svg,
+                                             'volumes': [{'ring': [[127.1, 37.7], [127.1002, 37.7], [127.1002, 37.7002]], 'base_m': 0, 'top_m': 17.5}]},
+                                            {'id': 'plain', 'label': '기본 매스', 'gfa_m2': gfa + 500, 'thumbnail_svg': '<script>x</script>'}]})
+    run = {'run_id': 'r', 'status': 'blocked', 'communications': [
+        _row('masterplan_layout_synthesize', 'masterplan', 'succeeded', json.dumps(LAYOUT), task_id='masterplan_layout_synthesize'),
+        _row('mass_footprint_alternatives', 'mass', 'succeeded', review({'status': 'footprint_too_small', 'needed_footprint_m2': 620.0, 'reason': '구역이 작습니다'}, 2000), task_id='mass_footprint_alternatives'),
+        _row('masterplan_layout_synthesize', 'masterplan', 'succeeded', json.dumps(LAYOUT), task_id='masterplan_layout_synthesize/mass_revision'),
+        _row('mass_footprint_alternatives', 'mass', 'succeeded', review({'status': 'fits'}, 3000), task_id='mass_footprint_alternatives/mass_revision')]}
+    forms = parse_run_results(run)['mass_forms']
+    assert forms['revised'] is True and forms['first_verdict']['needed_footprint_m2'] == 620.0 and forms['verdict']['status'] == 'fits'
+    assert [p['role'] for p in forms['pattern']] == ['propose', 'review', 'revise', 're_review']
+    first, plain = forms['alternatives']
+    assert first['label'] == '중정형' and first['gfa_m2'] == 3000 and first['reaches_target'] is True and first['thumbnail_svg'] == svg
+    assert first['volumes'][0]['top_m'] == 17.5 and plain['thumbnail_svg'] is None      # not an <svg>: left out
+    assert parse_run_results({'run_id': 'r', 'status': 'ok', 'communications': []})['mass_forms'] is None

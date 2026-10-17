@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { latestRun } from '@/lib/orchestrator-runs/api'
 import { isTerminal } from '@/lib/orchestrator-runs/labels'
-import type { RunMasterplan } from '@/lib/orchestrator-runs/types'
+import type { MassForms, RunMasterplan } from '@/lib/orchestrator-runs/types'
 import { useProjectBinding } from '@/lib/design-conversation/useProjectBinding'
 import type { LayoutOverlay } from '../ui/World3D'
 import { SITE_RUN_EVENT } from './useSiteRun'
@@ -21,9 +21,28 @@ export function layoutCaption(plan: RunMasterplan, runId: string): string {
 }
 
 /** What the 3D view draws from a masterplan result: null when it holds no layout. */
-export function overlayOf(plan: RunMasterplan | null | undefined, runId: string): LayoutOverlay | null {
+export function overlayOf(plan: RunMasterplan | null | undefined, runId: string, forms: MassForms | null = null): LayoutOverlay | null {
   if (!plan?.layout) return null
-  return { layout: plan.layout, intent: plan.intent as LayoutOverlay['intent'], caption: layoutCaption(plan, runId) }
+  return { layout: plan.layout, intent: plan.intent as LayoutOverlay['intent'], caption: layoutCaption(plan, runId), forms, runId }
+}
+
+/** The form a run opens with: the first that reaches the floor-area target, else the first. */
+export function defaultForm(forms: MassForms | null | undefined): string | null {
+  const list = forms?.alternatives ?? []
+  return (list.find((f) => f.reaches_target) ?? list[0])?.id ?? null
+}
+
+/** The overlay with the chosen Mass form standing on the zone, and the caption naming it. */
+export function withForm(overlay: LayoutOverlay | null, formId: string | null): LayoutOverlay | null {
+  const form = overlay?.forms?.alternatives.find((f) => f.id === formId)
+  if (!overlay || !form?.volumes.length) return overlay
+  const storeys = form.storeys ? `${form.storeys}층` : ''
+  const area = form.gfa_m2 != null ? ` · 연면적 ${Math.round(form.gfa_m2).toLocaleString()}㎡` : ''
+  return {
+    ...overlay,
+    layout: { ...overlay.layout, mass: { label: form.label, volumes: form.volumes } },
+    caption: `배치 ${overlay.runId?.slice(0, 8) ?? ''} · ${form.label ?? 'Mass 안'} ${storeys}${area}`,
+  }
 }
 
 /**
@@ -52,7 +71,7 @@ export function useLatestLayout(projectParam: string | undefined, pnu: string | 
       .then((found) => {
         if (controller.signal.aborted) return
         setOpen(found ? !isTerminal(found.status) : false)
-        setOverlay(found ? overlayOf(found.results.masterplan, found.run_id) : null)
+        setOverlay(found ? overlayOf(found.results.masterplan, found.run_id, found.results.mass_forms ?? null) : null)
       })
       .catch(() => { if (!controller.signal.aborted) setOpen(false) })
     return () => controller.abort()

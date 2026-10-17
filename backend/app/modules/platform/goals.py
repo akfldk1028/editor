@@ -18,7 +18,7 @@ GOALS = (
     {'id': 'specialist_review', 'label': '전문 검토', 'owners': ['domain_expert'], 'inputs': ['review'], 'optional': [], 'offer': False},
     # Flows the Orchestrator has but does not open to the editor door yet.
     {'id': 'program', 'label': '프로그램 번역', 'owners': ['requirement', 'program'], 'inputs': ['brief'], 'optional': [], 'offer': True},
-    {'id': 'masterplan', 'label': '배치 설계', 'owners': ['program', 'masterplan', 'revision'], 'inputs': ['pnu', 'program'], 'optional': [], 'offer': True},
+    {'id': 'masterplan', 'label': '배치 설계', 'owners': ['program', 'masterplan', 'mass', 'revision'], 'inputs': ['pnu', 'program'], 'optional': [], 'offer': True},
     {'id': 'mass', 'label': '매스 생성', 'owners': ['program', 'masterplan', 'mass', 'revision'], 'inputs': ['pnu', 'program'], 'optional': [], 'offer': True},
     {'id': 'elevation', 'label': '입면 설계', 'owners': ['elevation'], 'inputs': ['mass'], 'optional': [], 'offer': True},
     {'id': 'kmass', 'label': '한국형 주거 매스', 'owners': ['program', 'kmass', 'revision'], 'inputs': ['pnu', 'brief'], 'optional': [], 'offer': True},
