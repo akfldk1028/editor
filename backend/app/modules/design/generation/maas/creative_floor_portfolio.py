@@ -513,6 +513,45 @@ def build_creative_floor_portfolio_report(
             scope_label=assignment.scope_label,
         )
 
+    from backend.app.modules.design.generation.maas.book_language.compatible_search import search_compatible_assignment
+
+    def compatible_candidate(e_index: int, slot_index: int):
+        result = pair(e_index, slot_index)
+        return result[5] if result[0] == "ok" else None
+
+    def compatibility_failure(candidate, retained):
+        if any(candidate["geometry_hash"] == row["geometry_hash"] for row in retained):
+            return "duplicate_geometry_hash"
+        if any(candidate["normalized_authored_mesh_hash"] == row["normalized_authored_mesh_hash"]
+               for row in retained):
+            return "duplicate_normalized_authored_mesh_hash"
+        if not accept_morphology(candidate, retained):
+            return "morphology_distance"
+        return None
+
+    def compatible_with_portfolio(candidate, retained):
+        return compatibility_failure(candidate, retained) is None
+
+    # Preserve initial admission failures even when a retry recovers the slot.
+    initial_retained = []
+    for slot_index, e_index in sorted(slot_owner.items()):
+        candidate = compatible_candidate(e_index, slot_index)
+        reason = compatibility_failure(candidate, initial_retained)
+        if reason:
+            input_index, _, source_hash = eligible[e_index]
+            reject(input_index, "book_matching_compatibility", reason,
+                   program_hash=source_hash, geometry_hash=candidate["geometry_hash"])
+        else:
+            initial_retained.append(candidate)
+    cached_pairs_before_retry = len(pair_cache)
+    selection = search_compatible_assignment(
+        source_count=len(eligible), slot_count=target, incumbent=slot_owner,
+        candidate=compatible_candidate, compatible=compatible_with_portfolio,
+    )
+    selection.evidence["additional_pairs_evaluated"] = len(pair_cache) - cached_pairs_before_retry
+    slot_owner = selection.assignment
+    schedule_evidence["compatibility_search"] = selection.evidence
+
     # Phase C: the matched pairs, in slot order, through the stages that
     # depend on what came before them - exactly as the single pass ran them.
     explorations: list[dict[str, Any]] = []
