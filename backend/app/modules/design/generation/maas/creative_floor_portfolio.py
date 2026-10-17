@@ -181,6 +181,7 @@ def build_creative_floor_portfolio_report(
     ],
     delivery_probe=None,
     delivery_search_budget: int = 96,
+    delivery_search_algorithm: str = 'beam',
 ) -> CreativeFloorPortfolioReport:
     """Keep up to target originals plus target explicitly derived BOOK options.
 
@@ -470,8 +471,16 @@ def build_creative_floor_portfolio_report(
         return result
 
     from backend.app.modules.design.generation.maas.book_language.grammar_search import GrammarBeamSearch, GrammarFeedback
-    delivery_search = (GrammarBeamSearch(max_retries=delivery_search_budget)
-        if delivery_probe is not None else None)
+    if delivery_search_algorithm not in ('beam', 'mcts'):
+        raise ValueError('unknown delivery search algorithm')
+    delivery_search = None
+    if delivery_probe is not None:
+        if delivery_search_algorithm == 'mcts':
+            from backend.app.modules.design.generation.maas.book_language.grammar_mcts import GrammarMCTSSearch
+            delivery_search = GrammarMCTSSearch(max_retries=delivery_search_budget,
+                pair_budget=max(1, delivery_search_budget // max(1, min(target, len(eligible)))))
+        else:
+            delivery_search = GrammarBeamSearch(max_retries=delivery_search_budget)
 
     def pair(e_index: int, slot_index: int) -> tuple:
         key = (e_index, slot_index)
@@ -493,7 +502,8 @@ def build_creative_floor_portfolio_report(
                 candidate["grammar_search_evidence"] = proposal.evidence()
                 decision = delivery_probe(candidate)
                 candidate["delivery_search_evidence"] = {**decision, "variation_index": proposal.variation_index,
-                    "algorithm": "delivery_guided_grammar_beam.v1", "grammar_node_id": proposal.node_id}
+                    "algorithm": ('delivery_guided_grammar_mcts.v1' if delivery_search_algorithm == 'mcts'
+                                  else 'delivery_guided_grammar_beam.v1'), "grammar_node_id": proposal.node_id}
                 novelty = float(accept_morphology(candidate, originals).nearest_distance)
                 if decision['accepted']:
                     return GrammarFeedback(True, trial, '', 6, novelty, trial[2].program_hash(), candidate['geometry_hash'])
@@ -530,6 +540,12 @@ def build_creative_floor_portfolio_report(
             program_slot[e_index] = slot_index
             return True
         return False
+
+    if delivery_search is not None and delivery_search_algorithm == 'mcts':
+        # Reserve the first round for different sources; augmenting one source
+        # across all slots would otherwise spend the shared budget before its peers.
+        for e_index in range(min(target, len(eligible))):
+            pair(e_index, e_index % target)
 
     for e_index, (input_index, authored, source_program_hash) in enumerate(eligible):
         if len(slot_owner) >= target:
@@ -715,6 +731,7 @@ def build_creative_floor_portfolio(
     ] | None = None,
     delivery_probe=None,
     delivery_search_budget: int = 96,
+    delivery_search_algorithm: str = 'beam',
 ) -> dict[str, Any]:
     """Return a deterministic compiled choice pool with no legal approval."""
 
@@ -732,6 +749,7 @@ def build_creative_floor_portfolio(
             authored_programs=authored_programs,
             delivery_probe=delivery_probe,
             delivery_search_budget=delivery_search_budget,
+            delivery_search_algorithm=delivery_search_algorithm,
         )
         if report.status != "complete" and delivery_probe is None:
             rejection_details = "; ".join(

@@ -1,3 +1,10 @@
+## 2026-10-17 - Optional Mass grammar MCTS
+
+[Implementation and measured decision](2026-10-17-mass-grammar-mcts.md): genuine
+UCB/expansion/retained rollout/backprop through compiler and delivery. Matched
+beam4 vs MCTS3 explorations: retain beam default, keep explicit MCTS API option.
+Originals preserved;10/10 and9/9 final probes pass;101 combined tests pass.
+
 ## 2026-10-17 - Mass numerical impose fitting
 
 [Algorithm, REA source and limits](2026-10-17-mass-numeric-impose.md): bounded
