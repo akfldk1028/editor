@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from backend.app.core.tracing import JsonlTraceRecorder, Span, continue_or_start
@@ -7,6 +8,31 @@ from .run_results import parse_run_results, request_pnu
 
 # `latest` fetches at most this many runs whole to find the one for a parcel.
 LATEST_CANDIDATES = 10
+
+
+# Parsed results by the run's state: (run id, status, each row's id/state/cut). Parsing a layout run reads tens of
+# MB of JSON; on the event loop it held every other request of the editor (the map's tile and parcel requests
+# waited 7-8 s behind it, 2026-10-17), so it runs in a thread and once per run state.
+_PARSED: dict[tuple, dict] = {}
+_PARSED_MAX = 32
+
+
+def _run_state(run):
+    rows = run.get('communications') if isinstance(run, dict) else None
+    return (run.get('run_id'), run.get('status'), run.get('pending_input'),
+            tuple((r.get('id'), r.get('state'), r.get('truncated')) for r in rows if isinstance(r, dict)) if isinstance(rows, list) else None)
+
+
+async def _parsed(run):
+    key = _run_state(run) if isinstance(run, dict) and isinstance(run.get('run_id'), str) else None
+    if key is not None and key in _PARSED:
+        return _PARSED[key]
+    results = await asyncio.to_thread(parse_run_results, run)
+    if key is not None:
+        while len(_PARSED) >= _PARSED_MAX:
+            _PARSED.pop(next(iter(_PARSED)))
+        _PARSED[key] = results
+    return results
 
 
 # Whole replies read for a run, by (run id, row id): a layout runs to tens of MB and the 3D view polls every 20 s.
@@ -91,7 +117,7 @@ class RunService:
 
     async def results(self, actor, project_id, run_id):
         """The run as `get` returns it, read into the UI shape of run_results.parse."""
-        return parse_run_results(await self.whole_rows(await self.get(actor, project_id, run_id)))
+        return await _parsed(await self.whole_rows(await self.get(actor, project_id, run_id)))
 
     async def whole_rows(self, run, *, task=None, call=None):
         """A communication row the Orchestrator cut at 8000 characters is replaced by the whole reply for the tools the UI
@@ -142,11 +168,11 @@ class RunService:
             if not candidates:
                 raise LookupError('no run for goal')
             run = await self.owner.get_run(candidates[0]['run_id'], binding.owner_project_id, binding.branch_id)
-            return {**run, 'results': parse_run_results(await self.whole_rows(run))}
+            return {**run, 'results': await _parsed(await self.whole_rows(run))}
         for candidate in candidates:
             run = await self.owner.get_run(candidate['run_id'], binding.owner_project_id, binding.branch_id)
             if request_pnu(run) == pnu:
-                return {**run, 'results': parse_run_results(await self.whole_rows(run))}
+                return {**run, 'results': await _parsed(await self.whole_rows(run))}
         raise LookupError('no run for parcel')
 
     async def review_request(self, actor, project_id, run_id):

@@ -90,13 +90,33 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
             raise HTTPException(502, str(error)) from None
         return {'size': size, 'heights': [round(h, 2) for h in heights], 'dataset': dataset}
 
+    tiles = {'manifest': None}
+
+    async def lease_scene():
+        try:
+            await host.ensure(['scene'])
+        except (host.HostUnavailable, host.HostRefused):
+            logger.warning('scene lease not renewed', exc_info=True)
+
     @router.get('/context-tiles')
     async def context_tiles():
+        """The building tile manifest. Waiting on the host CLI to wake Scene took 1-4 s on every map open even when
+        Scene was up: a live Scene answers at once (the manifest kept from its last answer, re-read when it fails)
+        and its lease is renewed in the background; a Scene that is down is woken first."""
+        try:
+            if tiles['manifest'] is not None:
+                manifest = await asyncio.to_thread(scene_agent.context_tiles, timeout=1.5)
+                tiles['manifest'] = manifest
+                asyncio.get_running_loop().create_task(lease_scene())
+                return manifest
+        except scene_agent.SceneAgentError:
+            tiles['manifest'] = None
         try:
             activation = await host.ensure(['scene'])
             if activation.get('failed'):
                 raise scene_agent.SceneAgentError(str(activation['failed']))
-            return await asyncio.to_thread(scene_agent.context_tiles)
+            tiles['manifest'] = await asyncio.to_thread(scene_agent.context_tiles)
+            return tiles['manifest']
         except (host.HostUnavailable, host.HostRefused, scene_agent.SceneAgentError) as error:
             raise HTTPException(502, str(error)) from None
 
