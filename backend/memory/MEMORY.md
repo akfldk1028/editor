@@ -2,7 +2,8 @@
 
 [Implementation and evidence](2026-10-17-mass-delivery-search.md): actual parameter
 regeneration, shared UCB1 selection, final-import probe, bounded extra retries and
-explicit partial supply. 65 relevant tests pass; production comparison in progress.
+explicit partial supply. 65 tests pass; matched delivery1→3 with original hashes
+preserved. Full rerun and exact development comparison completed; see limits in record.
 
 ## 2026-10-14 - Module axis and solve budget review
 
