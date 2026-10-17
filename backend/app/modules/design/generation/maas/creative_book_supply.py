@@ -120,15 +120,17 @@ def project_creative_book_program(
     program: GeometryProgram,
     assignment: CreativeBookAssignment,
     *, variation_index: int | None = None,
+    execution_verbs: tuple[str, ...] | None = None,
 ) -> GeometryProgram:
     """Materialize one scheduled BOOK scope and principle in the AST."""
 
     from backend.app.modules.design.generation.maas.book_language.corpus_contract import BOOK_VARIATION_COUNT
     if variation_index is not None and not 0 <= variation_index < BOOK_VARIATION_COUNT:
         raise ValueError('BOOK variation index outside the canonical lattice')
-    operations = (book_sentence_variants(assignment.execution_verbs, count=1)[0]
+    verbs = assignment.execution_verbs if execution_verbs is None else tuple(execution_verbs)
+    operations = (book_sentence_variants(verbs, count=1)[0]
                   if variation_index is None else
-                  book_sentence_variants(assignment.execution_verbs, count=BOOK_VARIATION_COUNT)[variation_index])
+                  book_sentence_variants(verbs, count=BOOK_VARIATION_COUNT)[variation_index])
     sequence = compose_program_with_book_operations(
         VerbSequence(
             name=f"creative-{program.name}-source",
@@ -142,11 +144,21 @@ def project_creative_book_program(
         orientation=assignment.orientation,
     )
     projected = apply_book_projection_to_geometry_program(program, sequence)
+    derived = verbs != assignment.execution_verbs
+    derivation_id = hashlib.sha256(json.dumps([assignment.principle_id, verbs], separators=(",", ":")).encode()).hexdigest()[:20]
     assigned = replace(
         projected,
         metadata={
             **projected.metadata,
-            "creative_book_assignment": assignment.evidence(),
+            "creative_book_assignment": {
+                **assignment.evidence(),
+                "principle_id": f"grammar:composition:{derivation_id}" if derived else assignment.principle_id,
+                "principle_kind": "grammar_composition" if derived else assignment.principle_kind,
+                "scheduled_principle_id": assignment.principle_id,
+                "execution_verbs": list(verbs),
+                "scheduled_execution_verbs": list(assignment.execution_verbs),
+                "derivation_kind": "scheduled_sentence" if verbs == assignment.execution_verbs else "grammar_composition",
+            },
         },
     )
     return normalize_affine_basevolume_program(assigned)
@@ -194,6 +206,9 @@ def creative_book_evidence(
         "aggregation_methods": list(
             assignment.get("aggregation_methods") or ()
         ),
+        "scheduled_execution_verbs": list(assignment.get("scheduled_execution_verbs") or assignment.get("execution_verbs") or ()),
+        "derivation_kind": str(assignment.get("derivation_kind") or "scheduled_sentence"),
+        "scheduled_principle_id": str(assignment.get("scheduled_principle_id") or assignment.get("principle_id") or ""),
         "scope_label": str(assignment.get("scope_label") or ""),
         "orientation": str(assignment.get("orientation") or ""),
         "selector_node_id": selector.id,

@@ -406,7 +406,7 @@ def build_creative_floor_portfolio_report(
     pair_cache: dict[tuple[int, int], tuple] = {}
     pairs_tried: Counter[int] = Counter()
 
-    def attempt_pair(e_index: int, slot_index: int, variation_index=None) -> tuple:
+    def attempt_pair(e_index: int, slot_index: int, variation_index=None, execution_verbs=None) -> tuple:
         pairs_tried[e_index] += 1
         input_index, authored, source_program_hash = eligible[e_index]
         assignment = book_schedule[slot_index]
@@ -415,6 +415,7 @@ def build_creative_floor_portfolio_report(
                 authored.program,
                 assignment,
                 **({"variation_index": variation_index} if variation_index is not None else {}),
+                **({"execution_verbs": execution_verbs} if execution_verbs is not None else {}),
             )
         except BookProjectionFailure as exc:
             result = ("fail", assignment, "book_projection_pass",
@@ -468,10 +469,8 @@ def build_creative_floor_portfolio_report(
                             result = ("ok", assignment, projected, evidence, compilation, physical_candidate)
         return result
 
-    from backend.app.modules.design.generation.maas.book_language.delivery_search import DeliveryVariantSearch
-    from backend.app.modules.design.generation.maas.book_language.corpus_contract import BOOK_VARIATION_COUNT
-    delivery_search = (DeliveryVariantSearch(variant_count=BOOK_VARIATION_COUNT,
-        baseline_variant=BOOK_VARIATION_COUNT // 2, max_retries=delivery_search_budget)
+    from backend.app.modules.design.generation.maas.book_language.grammar_search import GrammarBeamSearch, GrammarFeedback
+    delivery_search = (GrammarBeamSearch(max_retries=delivery_search_budget)
         if delivery_probe is not None else None)
 
     def pair(e_index: int, slot_index: int) -> tuple:
@@ -482,21 +481,28 @@ def build_creative_floor_portfolio_report(
             result = attempt_pair(e_index, slot_index)
         else:
             failures = []
-            def evaluate(variant):
-                trial = attempt_pair(e_index, slot_index, variant)
+            def evaluate(proposal):
+                trial = attempt_pair(e_index, slot_index, proposal.variation_index, proposal.verbs)
                 if trial[0] != "ok":
                     failures.append(trial)
-                    return False, None, trial[3]
+                    progress = {"book_projection_pass": 0, "book_authority_pass": 1,
+                                "book_compile_pass": 2, "book_structural_pass": 3,
+                                "physical_candidate_pass": 4}.get(trial[2], 0)
+                    return GrammarFeedback(False, None, trial[3], progress, 0.0, str(trial[4] or ''), str(trial[5] or ''))
                 candidate = trial[5]
+                candidate["grammar_search_evidence"] = proposal.evidence()
                 decision = delivery_probe(candidate)
-                candidate["delivery_search_evidence"] = {**decision, "variation_index": variant}
+                candidate["delivery_search_evidence"] = {**decision, "variation_index": proposal.variation_index,
+                    "algorithm": "delivery_guided_grammar_beam.v1", "grammar_node_id": proposal.node_id}
+                novelty = float(accept_morphology(candidate, originals).nearest_distance)
                 if decision['accepted']:
-                    return True, trial, ''
+                    return GrammarFeedback(True, trial, '', 6, novelty, trial[2].program_hash(), candidate['geometry_hash'])
                 failure = ("fail", trial[1], "site_delivery_pass", decision['reason'],
                            trial[2].program_hash(), candidate['geometry_hash'])
                 failures.append(failure)
-                return False, None, decision['reason']
-            result = delivery_search.find(key, evaluate)
+                return GrammarFeedback(False, None, decision['reason'], 5, novelty, trial[2].program_hash(), candidate['geometry_hash'])
+            search_key = f"{eligible[e_index][2]}:{slot_index}"
+            result = delivery_search.find(search_key, book_schedule[slot_index].execution_verbs, evaluate)
             if result is None:
                 result = failures[-1] if failures else (
                     "fail", book_schedule[slot_index], "site_delivery_pass", "delivery_search_budget_exhausted",
