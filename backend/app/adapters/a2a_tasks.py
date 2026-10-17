@@ -7,6 +7,7 @@ of a reply when the record was cut. An agent that restarted holds nothing — th
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from uuid import uuid4
@@ -93,7 +94,7 @@ async def _rpc(agent: str, method: str, params: dict, *, registry: Registry, tra
         async with httpx.AsyncClient(timeout=httpx.Timeout(TIMEOUT_S, connect=3), transport=transport,
                                      headers={**network_headers(env), 'Content-Type': 'application/json'}, follow_redirects=False) as client:
             response = await client.post(url, content=json.dumps(body).encode('utf-8'))
-        reply = response.json()
+        reply = await asyncio.to_thread(response.json)   # a task's reply may be tens of MB: off the event loop
     except (httpx.HTTPError, ValueError) as error:
         raise AgentTasksUnavailable(f'{agent} unreachable: {type(error).__name__}') from None
     if not isinstance(reply, dict):

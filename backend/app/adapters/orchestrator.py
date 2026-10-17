@@ -1,3 +1,4 @@
+import asyncio
 import httpx
 from urllib.parse import urlencode, quote
 from pydantic import TypeAdapter, ValidationError
@@ -190,7 +191,7 @@ class OrchestratorClient:
         8000-character row once the agent no longer holds its task. A layout runs to tens of MB: a longer wait."""
         response = await self.get('/editor/v1/runs/' + quote(run_id, safe='') + '/calls/' + quote(str(row_id), safe='')
                                   + '?' + urlencode({'project': project, 'branch': branch}), missing=True, timeout=240)
-        value = self.json(response)
+        value = await asyncio.to_thread(self.json, response)   # tens of MB: off the event loop
         if not isinstance(value, dict) or value.get('run_id') != run_id or not isinstance(value.get('payload'), dict):
             raise OwnerContractError()
         return value

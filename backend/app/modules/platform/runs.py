@@ -1,7 +1,10 @@
 import asyncio
+import hashlib
 import json
+import os
+from pathlib import Path
 
-from backend.app.core.tracing import JsonlTraceRecorder, Span, continue_or_start
+from backend.app.core.tracing import EDITOR_ROOT, JsonlTraceRecorder, Span, continue_or_start
 from backend.app.schemas.specialist_review import specialist_items
 from .projects import BindingConflict
 from .run_results import parse_run_results, request_pnu
@@ -10,11 +13,20 @@ from .run_results import parse_run_results, request_pnu
 LATEST_CANDIDATES = 10
 
 
-# Parsed results by the run's state: (run id, status, each row's id/state/cut). Parsing a layout run reads tens of
-# MB of JSON; on the event loop it held every other request of the editor (the map's tile and parcel requests
-# waited 7-8 s behind it, 2026-10-17), so it runs in a thread and once per run state.
+# Parsed results by the run's state: (run id, status, each row's id/state/cut), in memory and on disk. Parsing a
+# layout run means fetching and reading tens of MB of replies; on the event loop it held every other request of the
+# editor (the map's tile and parcel requests waited 7-20 s behind it, 2026-10-17). It runs in a thread, once per run
+# state, and the result (a few hundred KB) is kept on disk so a backend restart does not fetch the replies again.
 _PARSED: dict[tuple, dict] = {}
 _PARSED_MAX = 32
+
+
+def _results_dir():
+    explicit = os.environ.get('EDITOR_RUN_RESULTS_DIR')
+    if explicit:
+        return Path(explicit)
+    data_dir = os.environ.get('EDITOR_PLATFORM_DATA_DIR')
+    return Path(data_dir) / 'run-results' if data_dir else EDITOR_ROOT / 'runtime' / 'run-results'
 
 
 def _run_state(run):
@@ -23,15 +35,48 @@ def _run_state(run):
             tuple((r.get('id'), r.get('state'), r.get('truncated')) for r in rows if isinstance(r, dict)) if isinstance(rows, list) else None)
 
 
-async def _parsed(run):
+def _disk_path(key):
+    return _results_dir() / (hashlib.sha256(repr(key).encode('utf-8')).hexdigest() + '.json')
+
+
+def _read_disk(key):
+    try:
+        return json.loads(_disk_path(key).read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return None
+
+
+def _write_disk(key, results):
+    try:
+        path = _disk_path(key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        part = path.with_suffix('.part')
+        part.write_text(json.dumps(results, ensure_ascii=False), encoding='utf-8')
+        part.replace(path)
+    except (OSError, TypeError, ValueError):
+        pass   # a cache: the results are recomputed next time
+
+
+def _remember(key, results):
+    while len(_PARSED) >= _PARSED_MAX:
+        _PARSED.pop(next(iter(_PARSED)))
+    _PARSED[key] = results
+
+
+async def _parsed(run, whole=None):
+    """The run's parsed results. `whole` (async run -> run) completes cut rows; it runs only when nothing is kept."""
     key = _run_state(run) if isinstance(run, dict) and isinstance(run.get('run_id'), str) else None
-    if key is not None and key in _PARSED:
-        return _PARSED[key]
-    results = await asyncio.to_thread(parse_run_results, run)
     if key is not None:
-        while len(_PARSED) >= _PARSED_MAX:
-            _PARSED.pop(next(iter(_PARSED)))
-        _PARSED[key] = results
+        if key in _PARSED:
+            return _PARSED[key]
+        kept = await asyncio.to_thread(_read_disk, key)
+        if kept is not None:
+            _remember(key, kept)
+            return kept
+    results = await asyncio.to_thread(parse_run_results, await whole(run) if whole else run)
+    if key is not None:
+        _remember(key, results)
+        await asyncio.to_thread(_write_disk, key, results)
     return results
 
 
@@ -117,7 +162,7 @@ class RunService:
 
     async def results(self, actor, project_id, run_id):
         """The run as `get` returns it, read into the UI shape of run_results.parse."""
-        return await _parsed(await self.whole_rows(await self.get(actor, project_id, run_id)))
+        return await _parsed(await self.get(actor, project_id, run_id), self.whole_rows)
 
     async def whole_rows(self, run, *, task=None, call=None):
         """A communication row the Orchestrator cut at 8000 characters is replaced by the whole reply for the tools the UI
@@ -156,7 +201,7 @@ class RunService:
     async def _whole_call(self, run, row):
         """The Orchestrator's recorded reply as the text the readers parse (its payload is the owner's answer)."""
         value = await self.owner.whole_call(run['run_id'], str(row['id']), run['owner_project_id'], run['branch_id'])
-        return {'response_text': json.dumps(value['payload'], ensure_ascii=False)} if value.get('payload') else None
+        return {'response_text': await asyncio.to_thread(json.dumps, value['payload'], ensure_ascii=False)} if value.get('payload') else None
 
     async def latest(self, actor, project_id, goal, pnu=None, cap=LATEST_CANDIDATES):
         """The newest run of `goal` (the owner lists newest first), for `pnu` when given: the list carries no
@@ -168,11 +213,11 @@ class RunService:
             if not candidates:
                 raise LookupError('no run for goal')
             run = await self.owner.get_run(candidates[0]['run_id'], binding.owner_project_id, binding.branch_id)
-            return {**run, 'results': await _parsed(await self.whole_rows(run))}
+            return {**run, 'results': await _parsed(run, self.whole_rows)}
         for candidate in candidates:
             run = await self.owner.get_run(candidate['run_id'], binding.owner_project_id, binding.branch_id)
             if request_pnu(run) == pnu:
-                return {**run, 'results': await _parsed(await self.whole_rows(run))}
+                return {**run, 'results': await _parsed(run, self.whole_rows)}
         raise LookupError('no run for parcel')
 
     async def review_request(self, actor, project_id, run_id):

@@ -15,3 +15,12 @@ def _model_auth_is_api_key(monkeypatch):
 def _ledger_in_tmp(monkeypatch, tmp_path_factory):
     # The 협업 장부 defaults to runtime/ledger; a test suite must never write there.
     monkeypatch.setenv('EDITOR_LEDGER_DIR', str(tmp_path_factory.mktemp('ledger')))
+
+
+@pytest.fixture(autouse=True)
+def isolated_run_results(tmp_path, monkeypatch):
+    """Parsed run results are kept per run state, in memory and on disk; each test starts with none."""
+    from backend.app.modules.platform import runs
+    monkeypatch.setenv('EDITOR_RUN_RESULTS_DIR', str(tmp_path / 'run-results'))
+    runs._PARSED.clear()
+    runs._WHOLE_TEXT.clear()
