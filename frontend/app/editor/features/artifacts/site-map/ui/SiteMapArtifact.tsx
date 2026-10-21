@@ -2,7 +2,7 @@
 
 import { Layers, Minus, Plus, Search } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 import { announceSiteSelected } from '@/lib/orchestrator-runs/connection'
 
@@ -15,8 +15,8 @@ import { type SavedSite, selectionScope } from '../lib/picks'
 import { defaultSite, type Site, siteFromSelection, siteParam } from '../lib/site'
 import { usePicker } from '../model/usePicker'
 import { SiteCard } from './SiteCard'
-import { defaultForm, useLatestLayout, withForm } from '../model/useLatestLayout'
-import MassFormsPanel from './MassFormsPanel'
+import { useLatestLayout } from '../model/useLatestLayout'
+import LayoutPortfolio from './LayoutPortfolio'
 import './site-map.css'
 
 /** Loaded the first time 3D is chosen; it stays mounted (hidden) after that. */
@@ -40,6 +40,13 @@ const initialView = { center: [127.1084, 37.7301] as LngLat, zoom: 17 }
 const engineLabels: Record<MapEngineKind, string> = { naver: 'NAVER 지도', openlayers: 'VWorld (임시)' }
 
 type Status = { kind: 'idle' } | { kind: 'busy'; text: string } | { kind: 'error'; text: string }
+
+/** One phrase for the 매스안 heading while Mass has not yet offered its forms. */
+function massStatusLabel(status: string): string {
+  if (status === 'succeeded' || status === 'completed') return '골랐어요'
+  if (status === 'failed' || status === 'blocked') return '만들지 못했어요'
+  return 'Mass가 만드는 중…'
+}
 
 /** The default artifact: the site's parcels on a 2D cadastral map; click to pick, Shift+click to add. */
 export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
@@ -70,12 +77,9 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     void announceSiteSelected(saved)
   }, [])
   const picker = usePicker(engineRef, onSaved, scope)
-  // The newest 배치 설계 of the site's first parcel, drawn by the 3D view over the parcel.
-  const latestOverlay = useLatestLayout(params.project, picker.card?.kind === 'ready' ? picker.card.site.parcels[0]?.pnu ?? null : (/^\d{19}$/.test(site.query) ? site.query : null), view === '3d')
-  // The Mass form standing on the zone: the person's pick for this run, else the first that reaches the target.
-  const [picked, setPicked] = useState<{ runId: string; formId: string } | null>(null)
-  const chosenForm = picked && picked.runId === latestOverlay?.runId ? picked.formId : defaultForm(latestOverlay?.forms)
-  const overlay = useMemo(() => withForm(latestOverlay, chosenForm), [latestOverlay, chosenForm])
+  // The newest 배치 설계 of the site's first parcel (its candidates, the pick) and 매스 설계, drawn by the 3D view over the parcel.
+  const choice = useLatestLayout(params.project, picker.card?.kind === 'ready' ? picker.card.site.parcels[0]?.pnu ?? null : (/^\d{19}$/.test(site.query) ? site.query : null), view === '3d')
+  const overlay = choice.overlay
   const { showSearched } = picker
   // The engine is built once per mount; it reaches the latest handlers through this ref, so
   // picking (which changes state) never rebuilds the map or moves the view.
@@ -230,9 +234,11 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       <div aria-label="대지 지도 — 클릭으로 필지 선택" className="site-map-canvas" role="application"><div ref={mapRef} /></div>
 
       {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} overlay={overlay} />}
-      {view === '3d' && latestOverlay?.forms && (
-        <MassFormsPanel chosen={chosenForm} forms={latestOverlay.forms}
-          onChoose={(formId) => latestOverlay.runId && setPicked({ runId: latestOverlay.runId, formId })} />
+      {view === '3d' && (choice.alternatives || choice.massRun) && (
+        <LayoutPortfolio alternatives={choice.alternatives} choosing={choice.choosing} error={choice.error}
+          massBusy={choice.massBusy} massCandidates={choice.massCandidates}
+          massStatus={choice.massRun && !choice.massCandidates.length ? massStatusLabel(choice.massRun.status) : null}
+          onChoose={(id) => void choice.choose(id)} onChooseMass={(id) => void choice.chooseMass(id)} onPreview={choice.setPreview} preview={choice.preview} />
       )}
 
       <div aria-label="보기" className="site-map-views" role="group">

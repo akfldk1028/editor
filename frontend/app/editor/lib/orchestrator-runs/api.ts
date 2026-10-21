@@ -5,6 +5,8 @@
  */
 import type { AskClause } from './commands'
 import type {
+  LayoutAlternatives,
+  RunMasterplan,
   AgentSummary,
   AgentTask,
   Hop,
@@ -157,6 +159,38 @@ export async function latestRun(projectId: string, goal: string, pnu?: string, s
     if (error instanceof RunRequestError && error.status === 404) return null
     throw error
   }
+}
+
+/** MasterPlan's candidates for a 배치 설계 and the pick so far; null when the run has no selection set. */
+export async function getAlternatives(projectId: string, runId: string, signal?: AbortSignal): Promise<LayoutAlternatives | null> {
+  try {
+    const value = await request(`/runs/${encodeURIComponent(runId)}/alternatives?project_id=${encodeURIComponent(projectId)}`, { signal })
+    return parseAlternatives(value)
+  } catch (error) {
+    if (error instanceof RunRequestError && (error.status === 404 || error.status === 409)) return null
+    throw error
+  }
+}
+
+export function parseAlternatives(value: unknown): LayoutAlternatives {
+  const v = value as Record<string, unknown>
+  if (!v || typeof v.run_id !== 'string' || !Array.isArray(v.candidates)) throw new RunRequestError('선택 세트의 모양이 맞지 않아요', 502, null)
+  return {
+    run_id: v.run_id, index_revision: Number(v.index_revision ?? 0), selection_revision: Number(v.selection_revision ?? 0),
+    chosen_candidate_id: typeof v.chosen_candidate_id === 'string' ? v.chosen_candidate_id : null,
+    candidates: (v.candidates as Record<string, unknown>[]).filter((c) => typeof c?.candidate_id === 'string').map((c) => ({
+      candidate_id: c.candidate_id as string, label: typeof c.label === 'string' ? c.label : null, status: typeof c.status === 'string' ? c.status : null,
+      preview_svg: typeof c.preview_svg === 'string' ? c.preview_svg : null,
+      masterplan: c.masterplan && typeof c.masterplan === 'object' ? (c.masterplan as RunMasterplan) : null,
+    })),
+  }
+}
+
+/** The person's pick of a candidate: the Orchestrator records it and continues it as this project's newest 배치 설계. */
+export async function selectAlternative(projectId: string, runId: string, candidateId: string, signal?: AbortSignal): Promise<{ continuation_request_id: string }> {
+  return (await request(`/projects/${encodeURIComponent(projectId)}/runs/${encodeURIComponent(runId)}/select`, {
+    method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ candidate_id: candidateId }),
+  })) as { continuation_request_id: string }
 }
 
 export async function getRunContext(projectId: string, signal?: AbortSignal): Promise<RunContext> {

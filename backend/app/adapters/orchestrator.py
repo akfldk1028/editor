@@ -112,7 +112,10 @@ class OrchestratorClient:
         pending = {'pending_fields': [f for f in value.get('pending_fields') or [] if isinstance(f, str)],
                    'pending_note': value['pending_note'] if isinstance(value.get('pending_note'), str) else None,
                    'pending_request': value['pending_request'] if isinstance(value.get('pending_request'), dict) else None}
-        return {**{key:value[key] for key in (*fields,'receipt_task_ids','pending_input')},**pending,**communication.model_dump()}
+        # The parcel the run was asked about, when the door names it (a continuation of a chosen layout has no
+        # site call of its own to read it from).
+        pnu = {'pnu': value['pnu']} if isinstance(value.get('pnu'), str) and value['pnu'] else {}
+        return {**{key:value[key] for key in (*fields,'receipt_task_ids','pending_input')},**pending,**pnu,**communication.model_dump()}
 
     async def resume_run(self, run_id, project, branch, answer):
         """The person's answer to what a waiting run asked; the owner checks it against the question."""
@@ -185,6 +188,51 @@ class OrchestratorClient:
             return value
         except (ValueError, KeyError, TypeError) as exc:
             raise OwnerContractError() from exc
+
+    async def alternatives(self, run_id, project, branch):
+        """The run's selection set: MasterPlan's candidates (each with its drawing and reduced layout) and the pick so far."""
+        response = await self.get('/editor/v1/runs/' + quote(run_id, safe='') + '/alternatives?' + urlencode({'project': project, 'branch': branch}),
+                                  missing=True, timeout=60)
+        value = await asyncio.to_thread(self.json, response)
+        if (not isinstance(value, dict) or value.get('run_id') != run_id or not isinstance(value.get('candidates'), list)
+                or type(value.get('index_revision')) is not int or type(value.get('selection_revision')) is not int
+                or not all(isinstance(c, dict) and isinstance(c.get('candidate_id'), str) for c in value['candidates'])):
+            raise OwnerContractError()
+        return value
+
+    async def select_alternative(self, run_id, project, branch, candidate_id):
+        """The person's pick of a candidate; the owner records the choice and queues its continuation run."""
+        if not self.base_url:
+            raise OwnerUnavailable()
+        try:
+            async with httpx.AsyncClient(timeout=30, transport=self.transport, follow_redirects=False,
+                                         headers=network_headers()) as client:
+                response = await client.post(self.base_url.rstrip('/') + '/editor/v1/runs/' + quote(run_id, safe='') + '/select',
+                    json={'project': project, 'branch': branch, 'candidate_id': candidate_id}, headers={'X-Editor-Client': 'local'})
+                if response.status_code == 404:
+                    raise LookupError('run not found')
+                if response.status_code in (400, 409, 422):
+                    try:
+                        refusal = response.json()
+                    except ValueError:
+                        refusal = {}
+                    raise OwnerRejected(refusal.get('message') or refusal.get('reason') or refusal.get('error') or '')
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise OwnerUnavailable() from exc
+        value = self.json(response)
+        if not isinstance(value, dict) or value.get('candidate_id') != candidate_id or not isinstance(value.get('continuation_request_id'), str):
+            raise OwnerContractError()
+        return value
+
+    async def layout(self, run_id, project, branch):
+        """The branch's current layout (the chosen candidate), reduced to the drawn layers."""
+        response = await self.get('/editor/v1/runs/' + quote(run_id, safe='') + '/layout?' + urlencode({'project': project, 'branch': branch}),
+                                  missing=True, timeout=60)
+        value = await asyncio.to_thread(self.json, response)
+        if not isinstance(value, dict) or value.get('run_id') != run_id or not isinstance(value.get('layout'), dict):
+            raise OwnerContractError()
+        return value
 
     async def whole_call(self, run_id, row_id, project, branch):
         """A recorded owner reply whole (its parsed payload) from the Orchestrator, for readers that need more than the

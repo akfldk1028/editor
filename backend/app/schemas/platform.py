@@ -68,6 +68,12 @@ class RunResume(BaseModel):
     input: dict[str, JsonValue] = Field(min_length=1, max_length=8)
 
 
+class RunSelect(BaseModel):
+    """The person's pick among a run's layout candidates (the Orchestrator's candidate id)."""
+    model_config = ConfigDict(strict=True, extra='forbid')
+    candidate_id: str = Field(min_length=1, max_length=200)
+
+
 class RunCreate(BaseModel):
     model_config = ConfigDict(strict=True, extra='forbid')
     request: dict

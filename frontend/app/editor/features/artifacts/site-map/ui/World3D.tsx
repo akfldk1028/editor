@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { MassForms } from '@/lib/orchestrator-runs/types'
 
 import { WorldControls } from '../../../world/components/WorldControls'
 import { useWorld3D } from '../../../world/hooks/use-world-3d'
@@ -27,8 +26,6 @@ export interface LayoutOverlay {
   intent: IntentView | null
   /** One line for the status corner: which run, how many storeys, on what basis. */
   caption: string
-  /** Mass's forms on the zone and the MasterPlan <-> Mass pattern, when Mass took part. */
-  forms?: MassForms | null
   runId?: string
 }
 

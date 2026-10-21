@@ -18,7 +18,7 @@ import type { RunSummary } from '@/lib/orchestrator-runs/types'
 import { useRunFeed } from '@/lib/orchestrator-runs/useRunFeed'
 
 import type { SavedSite } from '../lib/picks'
-import { idempotencyKey, type LayoutInputs, layoutBlocker, layoutRunRequest, loadLayoutInputs, siteRunRequest } from '../lib/site-run'
+import { idempotencyKey, type LayoutInputs, layoutBlocker, layoutRunRequest, loadLayoutInputs, massRunRequest, siteRunRequest } from '../lib/site-run'
 
 export type RunPhase =
   | { kind: 'idle' }
@@ -28,10 +28,12 @@ export type RunPhase =
 
 export type Projects = { kind: 'loading' } | { kind: 'error'; text: string } | ProjectChoice
 
-/** The goals the site card submits: 법규·한계 검토 (`siteRunRequest`) and 배치 설계 (`layoutRunRequest`). */
+/** The goals the site card submits: 법규·한계 검토 (`siteRunRequest`), 배치 설계 (`layoutRunRequest`) and 매스 설계 (`massRunRequest`). */
 const SITE_GOAL = 'limits'
 const LAYOUT_GOAL = 'masterplan'
-export type SiteGoal = typeof SITE_GOAL | typeof LAYOUT_GOAL
+const MASS_GOAL = 'mass'
+export type SiteGoal = typeof SITE_GOAL | typeof LAYOUT_GOAL | typeof MASS_GOAL
+const DESIGN_GOALS: readonly string[] = [LAYOUT_GOAL, MASS_GOAL]
 /** The window event a finished (or newly submitted) site run announces, so the 3D view fetches the newest layout. */
 export const SITE_RUN_EVENT = 'ace:site-run'
 
@@ -84,7 +86,7 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
 
   const start = useCallback(async (goal: SiteGoal = SITE_GOAL, layout?: LayoutInputs) => {
     if (!chosen || !ready || state.kind === 'submitting') return
-    if (goal === LAYOUT_GOAL && (!layout || layoutBlocker(conditions, layout))) return
+    if (DESIGN_GOALS.includes(goal) && (!layout || layoutBlocker(conditions, layout))) return
     const postFeed = projectFeed(chosen.project_id)
     rememberConversationSite(chosen.project_id, { pnu: site.parcels[0]!.pnu, address: site.parcels[0]!.address || site.label }, conditions.assessmentDate)
     active.current?.abort()
@@ -116,7 +118,8 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
         pending = postFeed(busy!)
       }
       const context = await getRunContext(chosen.project_id, controller.signal)
-      const request = goal === LAYOUT_GOAL && layout ? layoutRunRequest(site, conditions, layout) : siteRunRequest(site, conditions)
+      const request = goal === MASS_GOAL && layout ? massRunRequest(site, conditions, layout)
+        : goal === LAYOUT_GOAL && layout ? layoutRunRequest(site, conditions, layout) : siteRunRequest(site, conditions)
       const submitted = await submitRun(chosen.project_id, context, key, request, controller.signal, conversationId)
       if (!controller.signal.aborted) onRun(submitted)
     } catch (error) {
@@ -133,14 +136,14 @@ export function useSiteRun(site: SavedSite, projectParam: string | undefined) {
   // The conversation's 법규·한계 검토 시작 answer lands here; what the card cannot do yet, it says so.
   useEffect(() => onCommand((command) => {
     if (command.kind !== 'start-review') return
-    if (command.goal !== SITE_GOAL && command.goal !== LAYOUT_GOAL) {
-      // The card submits `limits` and `masterplan`; another goal the catalog offers needs its own door first (fail closed).
+    if (command.goal !== SITE_GOAL && !DESIGN_GOALS.includes(command.goal)) {
+      // The card submits `limits`, `masterplan` and `mass`; another goal the catalog offers needs its own door first (fail closed).
       postFeed({ kind: 'error', agent: 'orchestrator', text: `'${command.goal}' 목표는 아직 대지 카드에서 보낼 수 없어요` })
       return
     }
     if (chosen && ready) {
       // A 배치 설계 asked from the conversation uses the card's remembered floor area and intent (the person's words).
-      void start(command.goal as SiteGoal, command.goal === LAYOUT_GOAL ? loadLayoutInputs() : undefined)
+      void start(command.goal as SiteGoal, DESIGN_GOALS.includes(command.goal) ? loadLayoutInputs() : undefined)
       return
     }
     postFeed({

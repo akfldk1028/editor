@@ -63,6 +63,15 @@ def parse_intent(response):
     return intent or None
 
 
+def from_layout(layout, *, floor_area_m2=None, max_floors=None, status='succeeded', code=None):
+    """The same shape from a layout the door serves whole (a chosen candidate: no synthesis call of its own). The
+    storeys come from the floor area the run asked for over the drawn footprint, as in `parse`."""
+    layout = _dict(layout)
+    if floor_area_m2 is not None and 'provenance' not in layout:
+        layout = {**layout, 'provenance': {'brief': {'programme': {'floor_area_m2': floor_area_m2}}}}
+    return parse({'task_id': None, 'truncated': False}, {'status': status, 'code': code, 'payload': layout}, max_floors=max_floors)
+
+
 def parse(row, response, intent_response=None, *, max_floors=None):
     if row is None:
         return None

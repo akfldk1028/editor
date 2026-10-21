@@ -81,6 +81,8 @@ export type RunRequest =
   | { goal: 'limits'; pnu: string; building_type?: string; assessment_date?: string; parcels?: string[] }
   /** 배치 설계: the layout the 3D view draws; `intent` is the design intent in the person's own words. */
   | { goal: 'masterplan'; pnu: string; building_type: string; floor_area_m2: number; footprint_m2: number; assessment_date?: string; parcels?: string[]; intent?: string }
+  /** 매스 설계: MassAgent's own cycle on the chosen layout; the same inputs, the run then asks which form to keep. */
+  | { goal: 'mass'; pnu: string; building_type: string; floor_area_m2: number; footprint_m2: number; assessment_date?: string; parcels?: string[]; intent?: string }
 
 export interface ProjectBinding {
   project_id: string
@@ -251,6 +253,8 @@ export interface RunMasterplan {
   task_id: string | null
   truncated: boolean
   layout: RunLayout | null
+  /** The candidate this layout is (a continuation of the person's pick); absent on a synthesis of its own. */
+  candidate_id?: string | null
   /** The declared intent as the owner recorded it (parti, material_attitude, …), the person's words kept. */
   intent: Record<string, unknown> | null
 }
@@ -297,6 +301,32 @@ export interface MassForms {
   gfa_target_m2: number | null
   alternatives: MassForm[]
   pattern: { role: 'propose' | 'review' | 'revise' | 're_review'; owner: 'masterplan' | 'mass'; state: string }[]
+}
+
+/** One of MasterPlan's layout candidates (`GET /runs/{id}/alternatives`): its drawing, and its layout in the 3D view's shape. */
+export interface LayoutCandidate {
+  candidate_id: string
+  label: string | null
+  status: string | null
+  preview_svg: string | null
+  masterplan: RunMasterplan | null
+}
+
+/** The selection set a 배치 설계 ends with: up to three candidates and the person's pick so far. */
+export interface LayoutAlternatives {
+  run_id: string
+  index_revision: number
+  selection_revision: number
+  chosen_candidate_id: string | null
+  candidates: LayoutCandidate[]
+}
+
+/** One form Mass offers when a `mass` run asks `mass_selection`: its PNG and whether the jury recommended it. */
+export interface MassCandidate {
+  selected_mass_id: string
+  shape_id?: string
+  jury_recommended?: boolean
+  preview?: { mime_type?: string; data_url?: string } | null
 }
 
 /** `GET /projects/{id}/runs/latest`: the run as `GET /runs/{id}` gives it, plus its parsed results. */

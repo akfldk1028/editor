@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 
+from backend.app.adapters.orchestrator import OwnerContractError, OwnerUnavailable
 from backend.app.core.tracing import EDITOR_ROOT, JsonlTraceRecorder, Span, continue_or_start
 from backend.app.schemas.specialist_review import specialist_items
 from .projects import BindingConflict
@@ -61,6 +62,16 @@ def _remember(key, results):
     while len(_PARSED) >= _PARSED_MAX:
         _PARSED.pop(next(iter(_PARSED)))
     _PARSED[key] = results
+
+
+def requested_floor_area(run):
+    """The floor area the run asked for (its first call naming `floor_area_m2`), for the storeys the 3D view assumes."""
+    from backend.app.modules.platform.run_results.common import _dict, _num, loads_tolerant
+    for row in run.get('communications') or []:
+        value = _num(_dict(loads_tolerant(_dict(row).get('request_text'))).get('floor_area_m2'))
+        if value:
+            return value
+    return None
 
 
 async def _parsed(run, whole=None):
@@ -162,7 +173,59 @@ class RunService:
 
     async def results(self, actor, project_id, run_id):
         """The run as `get` returns it, read into the UI shape of run_results.parse."""
-        return await _parsed(await self.get(actor, project_id, run_id), self.whole_rows)
+        run = await self.get(actor, project_id, run_id)
+        return await self.with_chosen_layout(run, await _parsed(run, self.whole_rows))
+
+    async def with_chosen_layout(self, run, results):
+        """A continuation of a chosen candidate has no synthesis call: its layout is the branch's current one, read
+        from the Orchestrator's layout door (never guessed from another run). Any failure leaves the results as parsed."""
+        from backend.app.modules.platform.run_results.agents import masterplan
+        if run.get('goal') != 'masterplan' or (results.get('masterplan') or {}).get('layout'):
+            return results
+        tools = {row.get('tool') for row in run.get('communications') or [] if isinstance(row, dict)}
+        # A continuation checks the chosen layout (validate) without drawing one (synthesize); any other run keeps its own parse.
+        if 'masterplan_layout_validate' not in tools or 'masterplan_layout_synthesize' in tools:
+            return results
+        try:
+            value = await self.owner.layout(run['run_id'], run['owner_project_id'], run['branch_id'])
+        except (LookupError, OwnerUnavailable, OwnerContractError):
+            return results
+        floor_area = (results.get('request') or {}).get('floor_area_m2') if isinstance(results.get('request'), dict) else None
+        parsed = masterplan.from_layout(value['layout'], floor_area_m2=floor_area, max_floors=(results.get('law') or {}).get('max_floors'),
+                                        code='chosen_candidate')
+        if not parsed or not parsed.get('layout'):
+            return results
+        return {**results, 'masterplan': {**parsed, 'candidate_id': value.get('candidate_id')}}
+
+    async def alternatives(self, actor, project_id, run_id):
+        """MasterPlan's candidates for this run and the pick so far (the Orchestrator's selection set). Each
+        candidate's layout reaches the browser in the 3D view's masterplan shape (not as the owner's raw GeoJSON)."""
+        from backend.app.modules.platform.run_results.agents import masterplan
+        binding = self.binding(actor, project_id)
+        run = await self.get(actor, project_id, run_id)
+        value = await self.owner.alternatives(run_id, binding.owner_project_id, binding.branch_id)
+        floor_area = requested_floor_area(run)
+        candidates = []
+        for candidate in value['candidates']:
+            layout = candidate.get('layout')
+            parsed = masterplan.from_layout(layout, floor_area_m2=floor_area, status=candidate.get('status') or 'unknown') if isinstance(layout, dict) else None
+            candidates.append({**{k: v for k, v in candidate.items() if k != 'layout'}, 'masterplan': parsed})
+        return {**value, 'candidates': candidates}
+
+    async def select(self, actor, project_id, run_id, candidate_id):
+        """The person's pick: recorded by the Orchestrator and continued as a run of this project."""
+        binding = self.binding(actor, project_id)
+        await self.get(actor, project_id, run_id)
+        return await self.owner.select_alternative(run_id, binding.owner_project_id, binding.branch_id, candidate_id)
+
+    async def layout(self, actor, project_id, run_id):
+        """The chosen layout a run stands for, in the run_results masterplan shape (for the 3D view)."""
+        from backend.app.modules.platform.run_results.agents import masterplan
+        binding = self.binding(actor, project_id)
+        await self.get(actor, project_id, run_id)
+        value = await self.owner.layout(run_id, binding.owner_project_id, binding.branch_id)
+        return {'run_id': run_id, 'candidate_id': value.get('candidate_id'), 'revision': value.get('revision'),
+                'masterplan': masterplan.from_layout(value['layout'], code='chosen_candidate')}
 
     async def whole_rows(self, run, *, task=None, call=None):
         """A communication row the Orchestrator cut at 8000 characters is replaced by the whole reply for the tools the UI
@@ -213,11 +276,12 @@ class RunService:
             if not candidates:
                 raise LookupError('no run for goal')
             run = await self.owner.get_run(candidates[0]['run_id'], binding.owner_project_id, binding.branch_id)
-            return {**run, 'results': await _parsed(run, self.whole_rows)}
+            return {**run, 'results': await self.with_chosen_layout(run, await _parsed(run, self.whole_rows))}
         for candidate in candidates:
             run = await self.owner.get_run(candidate['run_id'], binding.owner_project_id, binding.branch_id)
-            if request_pnu(run) == pnu:
-                return {**run, 'results': await _parsed(run, self.whole_rows)}
+            # The door names the parcel of a continuation run (no site call to read it from).
+            if (request_pnu(run) or run.get('pnu')) == pnu:
+                return {**run, 'results': await self.with_chosen_layout(run, await _parsed(run, self.whole_rows))}
         raise LookupError('no run for parcel')
 
     async def review_request(self, actor, project_id, run_id):

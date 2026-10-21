@@ -36,12 +36,13 @@ export function SiteRunPanel({ site, project, shell }: Props) {
   }
   const blocker = layoutBlocker(conditions, inputs)
   const busy = run.phase.kind === 'submitting' || (run.phase.kind === 'submitted' && !run.phase.stale && !['succeeded', 'failed', 'blocked', 'completed', 'rejected'].includes(run.phase.run.status))
-  const layout = () => {
+  const layout = (goal: 'masterplan' | 'mass' = 'masterplan') => {
     if (!first || blocker || !run.ready) return
     saveRunConditions(conditions)
     saveLayoutInputs(inputs)
-    void run.start('masterplan', inputs)
+    void run.start(goal, inputs)
   }
+  const running = busy && run.phase.kind === 'submitted' ? run.phase.run.goal : busy ? 'masterplan' : null
   return (
     <div aria-label="법규 검토" className="site-card-run" role="group">
       <ConditionsRow onChange={setConditions} value={conditions} />
@@ -61,9 +62,14 @@ export function SiteRunPanel({ site, project, shell }: Props) {
           <span>설계 의도</span>
           <textarea maxLength={2000} onChange={(event) => setInputs({ ...inputs, intent: event.target.value })} placeholder="예: 1층은 상가로 도로 쪽에 열고, 2~5층 사무실, 외장은 커튼월로" rows={2} value={inputs.intent} />
         </label>
-        <button className="artifact-primary site-card-select" disabled={!first || !!blocker || !run.ready || !run.chosen || busy} onClick={layout} title={blocker ?? (run.chosen ? undefined : '프로젝트를 먼저 골라 주세요')} type="button">
-          {busy ? '배치 설계 중…' : '배치 설계'}
-        </button>
+        <div className="site-card-layout-actions">
+          <button className="artifact-primary site-card-select" disabled={!first || !!blocker || !run.ready || !run.chosen || busy} onClick={() => layout('masterplan')} title={blocker ?? (run.chosen ? undefined : '프로젝트를 먼저 골라 주세요')} type="button">
+            {running === 'masterplan' ? '배치 설계 중…' : '배치 설계'}
+          </button>
+          <button className="artifact-primary site-card-select" disabled={!first || !!blocker || !run.ready || !run.chosen || busy} onClick={() => layout('mass')} title={blocker ?? '고른 배치안 위에 Mass가 매스 안을 만들어요'} type="button">
+            {running === 'mass' ? '매스 설계 중…' : '매스 설계'}
+          </button>
+        </div>
         {blocker && <small className="site-card-layout-note">{blocker}</small>}
         {run.phase.kind === 'failed' && <small className="site-card-layout-note" data-kind="error">{run.phase.failure.kind === 'unavailable' ? 'Orchestrator에 연결할 수 없어요' : run.phase.failure.text}</small>}
       </div>

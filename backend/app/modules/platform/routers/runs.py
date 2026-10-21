@@ -4,7 +4,7 @@ from backend.app.adapters.orchestrator import OwnerUnavailable, OwnerContractErr
 from backend.app.core.tracing import JsonlTraceRecorder
 from backend.app.modules.platform.projects import BindingConflict
 from backend.app.modules.platform.runs import RunService
-from backend.app.schemas.platform import RunCreate, RunResume
+from backend.app.schemas.platform import RunCreate, RunResume, RunSelect
 from backend.app.schemas.site_run import PNU
 
 
@@ -60,6 +60,24 @@ def create_run_router(projects_service, owner, allowed_origin, trace_recorder=No
     @router.get('/runs/{run_id}/request')
     async def review_request(run_id: str, project_id: str):
         return await respond(service().review_request('local', project_id, run_id))
+
+    @router.get('/runs/{run_id}/alternatives')
+    async def alternatives(run_id: str, project_id: str):
+        """MasterPlan's candidates for this 배치 설계 (drawing, reduced layout) and which one was picked, if any."""
+        return await respond(service().alternatives('local', project_id, run_id))
+
+    @router.get('/runs/{run_id}/layout')
+    async def layout(run_id: str, project_id: str):
+        """The layout a continuation run stands for (the chosen candidate), in the run_results masterplan shape."""
+        return await respond(service().layout('local', project_id, run_id))
+
+    @router.post('/projects/{project_id}/runs/{run_id}/select', status_code=202)
+    async def select(project_id: str, run_id: str, body: RunSelect, request: Request):
+        """The person's pick of a layout candidate: the Orchestrator records it and continues it as a run of this project."""
+        origin = request.headers.get('origin')
+        if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != allowed_origin):
+            raise HTTPException(403, 'Cross-origin execution is not allowed')
+        return await respond(service().select('local', project_id, run_id, body.candidate_id))
 
     @router.get('/runs/{run_id}/trace')
     async def trace(run_id: str, project_id: str):

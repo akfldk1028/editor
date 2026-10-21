@@ -2,9 +2,12 @@
 import re
 from datetime import date
 
-# `limits` (법규·한계 검토) and `masterplan` (배치 설계: the layout the 3D view draws, with the design intent said in
-# plain words); the other Orchestrator goals need profile fields the editor does not collect yet.
-SITE_GOALS = {'limits', 'masterplan'}
+# `limits` (법규·한계 검토), `masterplan` (배치 설계: the layout the 3D view draws, with the design intent said in
+# plain words) and `mass` (매스 설계: MassAgent's own cycle on the chosen layout, which asks the person to pick one of
+# its forms); the other Orchestrator goals need profile fields the editor does not collect yet.
+SITE_GOALS = {'limits', 'masterplan', 'mass'}
+# The goals that carry a floor area and an intent (the Orchestrator's one_of floor_area_m2/brief/program).
+DESIGN_GOALS = {'masterplan', 'mass'}
 # The same 19-digit rule as modules.land.pnu.normalize_pnu; schemas sit below modules in the layer
 # contract (pyproject [tool.importlinter]), so the rule is restated here instead of imported.
 PNU = re.compile(r'[0-9]{19}')
@@ -25,16 +28,17 @@ def is_site_run(request) -> bool:
 
 
 def validate_site_run(request):
-    allowed = REQUIRED | OPTIONAL | (LAYOUT_OPTIONAL if request.get('goal') == 'masterplan' else set())
+    design = request.get('goal') in DESIGN_GOALS
+    allowed = REQUIRED | OPTIONAL | (LAYOUT_OPTIONAL if design else set())
     if not REQUIRED <= set(request) <= allowed:
         raise ValueError('A site run takes goal and pnu, optionally building_type, assessment_date and parcels'
-                         + (' (and floor_area_m2, footprint_m2, intent for masterplan)' if request.get('goal') == 'masterplan' else ''))
-    if request.get('goal') == 'masterplan':
+                         + (' (and floor_area_m2, footprint_m2, intent for masterplan and mass)' if design else ''))
+    if design:
         if not isinstance(request.get('building_type'), str) or not request['building_type'].strip():
-            raise ValueError('A masterplan run needs the building_type')
+            raise ValueError('A masterplan or mass run needs the building_type')
         area = request.get('floor_area_m2')
         if area is None or isinstance(area, bool) or not isinstance(area, (int, float)) or not 1 <= area <= 10_000_000:
-            raise ValueError('A masterplan run needs floor_area_m2 between 1 and 10,000,000')
+            raise ValueError('A masterplan or mass run needs floor_area_m2 between 1 and 10,000,000')
         footprint = request.get('footprint_m2')
         if 'footprint_m2' in request and (isinstance(footprint, bool) or not isinstance(footprint, (int, float)) or not 1 <= footprint <= area):
             raise ValueError('footprint_m2 is the ground footprint wanted, between 1 and floor_area_m2')

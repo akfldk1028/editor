@@ -74,6 +74,12 @@ export function layoutRunRequest(site: SavedSite, conditions: RunConditions, inp
   }
 }
 
+/** 매스 설계 (`mass`): the same inputs; the Orchestrator builds on the layout the person chose and asks which form to keep. */
+export function massRunRequest(site: SavedSite, conditions: RunConditions, inputs: LayoutInputs): RunRequest {
+  const layout = layoutRunRequest(site, conditions, inputs) as Extract<RunRequest, { goal: 'masterplan' }>
+  return { ...layout, goal: 'mass' }
+}
+
 type Store = Pick<Storage, 'getItem' | 'setItem'>
 
 export function loadLayoutInputs(storage?: Store): LayoutInputs {
