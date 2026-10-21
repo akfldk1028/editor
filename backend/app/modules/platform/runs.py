@@ -182,9 +182,15 @@ class RunService:
         from backend.app.modules.platform.run_results.agents import masterplan
         if run.get('goal') != 'masterplan' or (results.get('masterplan') or {}).get('layout'):
             return results
-        tools = {row.get('tool') for row in run.get('communications') or [] if isinstance(row, dict)}
-        if 'masterplan_layout_alternatives' in tools and 'masterplan_layout_synthesize' not in tools and not results.get('masterplan'):
+        rows = [row for row in run.get('communications') or [] if isinstance(row, dict)]
+        tools = {row.get('tool') for row in rows}
+        alternatives = [row for row in rows if row.get('tool') == 'masterplan_layout_alternatives']
+        if alternatives and 'masterplan_layout_synthesize' not in tools and not results.get('masterplan'):
             # The 배치 설계 ended as a selection set: nothing is drawn until the person picks (the map's portfolio).
+            # Only when the owner's answer actually arrived: a step still running, failed or whose answer was lost
+            # (reconciling) has no set to pick from, and saying so would send the person to an empty portfolio.
+            if all(row.get('state') in ('running', 'failed', 'reconciling', 'superseded') for row in alternatives):
+                return results
             return {**results, 'masterplan': {'status': 'needs_evidence', 'code': 'masterplan_alternative_selection_required',
                                               'task_id': None, 'truncated': False, 'layout': None, 'intent': None}}
         # A continuation checks the chosen layout (validate) without drawing one (synthesize); any other run keeps its own parse.

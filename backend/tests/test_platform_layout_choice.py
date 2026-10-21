@@ -23,6 +23,7 @@ class ChoosingOwner:
         self.chosen = None
         self.project = 'proj'
         self.selections = []
+        self.alternatives_state = 'completed'   # what the alternatives row of r1 says happened
 
     async def list_projects(self): return [{'owner_project_id': 'p', 'branch_id': 'main'}]
     async def get_scene(self, scene_id): return {'id': scene_id, 'projectId': None, 'version': 1, 'ownerId': None}
@@ -33,7 +34,7 @@ class ChoosingOwner:
             return {'run_id': 'r1', 'owner_project_id': 'p', 'branch_id': 'main', 'request_id': f'editor:{self.project}:site-1', 'goal': 'masterplan',
                     'status': 'blocked', 'receipt_task_ids': [], 'pending_input': False, 'pnu': PNU,
                     'communications': [{'id': '1', 'task_id': 'masterplan_layout_alternatives', 'tool': 'masterplan_layout_alternatives', 'agent': 'masterplan',
-                                        'state': 'completed', 'request_text': '{"pnu": "%s", "floor_area_m2": 3000}' % PNU,
+                                        'state': self.alternatives_state, 'request_text': '{"pnu": "%s", "floor_area_m2": 3000}' % PNU,
                                         'response_text': '{"status": "succeeded"}', 'truncated': False}],
                     'communications_available': True, 'communications_truncated': False}
         if run_id == 'r2' and self.chosen:
@@ -126,3 +127,13 @@ def test_the_continuation_run_draws_the_chosen_layout(tmp_path):
     # The 배치 설계 that produced the set draws nothing itself: it says a pick is wanted (nothing is guessed across runs).
     parent = api.get('/api/v1/platform/runs/r1/results', params={'project_id': project}).json()['masterplan']
     assert parent['layout'] is None and parent['code'] == 'masterplan_alternative_selection_required'
+
+
+def test_a_lost_or_failed_alternatives_answer_is_not_announced_as_a_set_to_pick_from(tmp_path):
+    api, owner, project, service = client(tmp_path)
+    told = api.get('/api/v1/platform/runs/r1/results', params={'project_id': project}).json()
+    assert told['masterplan']['code'] == 'masterplan_alternative_selection_required'
+    for state in ('reconciling', 'failed', 'running'):
+        owner.alternatives_state = state
+        told = api.get('/api/v1/platform/runs/r1/results', params={'project_id': project}).json()
+        assert not told.get('masterplan'), state
