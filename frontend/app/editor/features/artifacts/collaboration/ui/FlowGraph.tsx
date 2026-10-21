@@ -21,7 +21,9 @@ type FlowNodeData = Pick<GraphNode, 'label' | 'sub' | 'kind' | 'order' | 'select
 type FlowNode = Node<FlowNodeData, 'agent' | 'said'>
 
 /** Below this width the flow stacks into one column; wider canvases read left to right. */
-const NARROW_PX = 900
+// The flow reads left to right (person → Orchestrator → each agent) even in the half-screen artifact panel; only a
+// phone-width canvas stacks it (the person asked for the horizontal reading, 2026-10-21).
+const NARROW_PX = 560
 
 const LIVE_TITLE: Record<LiveState, string> = { up: '지금 응답함', down: '꺼져 있음', unknown: '상태 미확인' }
 
