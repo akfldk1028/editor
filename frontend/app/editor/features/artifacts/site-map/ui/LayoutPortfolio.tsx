@@ -2,6 +2,8 @@
 
 import type { LayoutAlternatives, MassCandidate } from '@/lib/orchestrator-runs/types'
 
+import { planSketch } from '../lib/plan-sketch'
+
 /** An SVG MasterPlan drew, shown as an image: an <img> runs no script the drawing might carry. */
 function svgUrl(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
@@ -67,8 +69,8 @@ export default function LayoutPortfolio({
                   role="option"
                   type="button"
                 >
-                  {candidate.preview_svg ? (
-                    <img alt="" src={svgUrl(candidate.preview_svg)} />
+                  {(candidate.preview_svg ?? planSketch(candidate.masterplan?.layout)) ? (
+                    <img alt="" src={svgUrl(candidate.preview_svg ?? planSketch(candidate.masterplan?.layout)!)} />
                   ) : (
                     <span className="layout-portfolio-blank" />
                   )}
