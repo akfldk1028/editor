@@ -192,6 +192,10 @@ export function resultLine(results: RunResults): string {
     const code = results.site?.code
     return `검토 결과: 실패${code ? ` — ${evidenceLabel(code)}` : ''}`
   }
+  if (results.masterplan?.code === 'masterplan_alternative_selection_required') {
+    // The 배치 설계 ended as a selection set: the map's portfolio is where the person picks.
+    return '배치안이 나왔어요 — 대지 지도의 3D 보기에서 하나를 골라 주세요'
+  }
   const missing = shortEvidence(results.missing_evidence_all)
   return `검토 결과: ${verdict}${verdict.includes('근거') && missing ? `: ${missing}` : ''}`
 }

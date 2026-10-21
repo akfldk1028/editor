@@ -183,6 +183,10 @@ class RunService:
         if run.get('goal') != 'masterplan' or (results.get('masterplan') or {}).get('layout'):
             return results
         tools = {row.get('tool') for row in run.get('communications') or [] if isinstance(row, dict)}
+        if 'masterplan_layout_alternatives' in tools and 'masterplan_layout_synthesize' not in tools and not results.get('masterplan'):
+            # The 배치 설계 ended as a selection set: nothing is drawn until the person picks (the map's portfolio).
+            return {**results, 'masterplan': {'status': 'needs_evidence', 'code': 'masterplan_alternative_selection_required',
+                                              'task_id': None, 'truncated': False, 'layout': None, 'intent': None}}
         # A continuation checks the chosen layout (validate) without drawing one (synthesize); any other run keeps its own parse.
         if 'masterplan_layout_validate' not in tools or 'masterplan_layout_synthesize' in tools:
             return results

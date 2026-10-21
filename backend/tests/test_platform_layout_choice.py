@@ -32,9 +32,9 @@ class ChoosingOwner:
         if run_id == 'r1':
             return {'run_id': 'r1', 'owner_project_id': 'p', 'branch_id': 'main', 'request_id': f'editor:{self.project}:site-1', 'goal': 'masterplan',
                     'status': 'blocked', 'receipt_task_ids': [], 'pending_input': False, 'pnu': PNU,
-                    'communications': [{'id': '1', 'task_id': 'masterplan_layout_synthesize', 'tool': 'masterplan_layout_synthesize', 'agent': 'masterplan',
+                    'communications': [{'id': '1', 'task_id': 'masterplan_layout_alternatives', 'tool': 'masterplan_layout_alternatives', 'agent': 'masterplan',
                                         'state': 'completed', 'request_text': '{"pnu": "%s", "floor_area_m2": 3000}' % PNU,
-                                        'response_text': '{"status": "needs_evidence", "code": "masterplan_alternative_selection_required"}', 'truncated': False}],
+                                        'response_text': '{"status": "succeeded"}', 'truncated': False}],
                     'communications_available': True, 'communications_truncated': False}
         if run_id == 'r2' and self.chosen:
             return {'run_id': 'r2', 'owner_project_id': 'p', 'branch_id': 'main', 'request_id': f'editor:{self.project}:selection-editor-1', 'goal': 'masterplan',
@@ -123,5 +123,6 @@ def test_the_continuation_run_draws_the_chosen_layout(tmp_path):
     assert latest['run_id'] == 'r2' and latest['results']['masterplan']['candidate_id'] == 'a'
     shown = api.get('/api/v1/platform/runs/r2/layout', params={'project_id': project})
     assert shown.status_code == 200 and shown.json()['masterplan']['layout']['footprint_m2'] == 800
-    # The 배치 설계 that produced the set keeps its own (empty) parse: nothing is guessed across runs.
-    assert api.get('/api/v1/platform/runs/r1/results', params={'project_id': project}).json()['masterplan']['layout'] is None
+    # The 배치 설계 that produced the set draws nothing itself: it says a pick is wanted (nothing is guessed across runs).
+    parent = api.get('/api/v1/platform/runs/r1/results', params={'project_id': project}).json()['masterplan']
+    assert parent['layout'] is None and parent['code'] == 'masterplan_alternative_selection_required'

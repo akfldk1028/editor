@@ -344,6 +344,9 @@ test('the verdict line says 보류 with the short missing-evidence list, or the 
   expect(resultLine(results({ status: 'failed', site: { status: 'failed', code: 'parcels_not_contiguous', facts_known: null, facts_total: null, facts_missing: [] } })))
     .toBe('검토 결과: 실패 — 필지가 서로 붙어 있지 않음')
   expect(resultLine(results({ status: 'completed', review: null, missing_evidence_all: [] }))).toBe('검토 결과: 완료')
+  // a 배치 설계 that ended as a selection set asks for the pick, whatever its status says
+  expect(resultLine(results({ status: 'blocked', goal: 'masterplan', masterplan: { status: 'needs_evidence', code: 'masterplan_alternative_selection_required', task_id: null, truncated: false, layout: null, intent: null } })))
+    .toBe('배치안이 나왔어요 — 대지 지도의 3D 보기에서 하나를 골라 주세요')
 })
 
 test('a run waiting on the person names the condition it asks for and says no agent was called yet', () => {
