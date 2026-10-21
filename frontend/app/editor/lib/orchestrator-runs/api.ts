@@ -6,6 +6,7 @@
 import type { AskClause } from './commands'
 import type {
   LayoutAlternatives,
+  LayoutCandidateAI,
   RunMasterplan,
   AgentSummary,
   AgentTask,
@@ -182,6 +183,7 @@ export function parseAlternatives(value: unknown): LayoutAlternatives {
       candidate_id: c.candidate_id as string, label: typeof c.label === 'string' ? c.label : null, status: typeof c.status === 'string' ? c.status : null,
       preview_svg: typeof c.preview_svg === 'string' ? c.preview_svg : null,
       masterplan: c.masterplan && typeof c.masterplan === 'object' ? (c.masterplan as RunMasterplan) : null,
+      ai: c.ai && typeof c.ai === 'object' ? (c.ai as LayoutCandidateAI) : null,
     })),
   }
 }

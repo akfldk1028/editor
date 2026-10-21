@@ -125,7 +125,7 @@
       "port": 18312,
       "health_url": "{base}/health",
       "card_url": "{base}/.well-known/agent-card.json",
-      "start": { "cwd": "agents/MasterPlanagent", "cmd": [".venv-masterplan/Scripts/python.exe", "-X", "utf8", "a2a_service/server.py", "--port", "{port}"] },
+      "start": { "cwd": "agents/MasterPlanagent", "cmd": [".venv-masterplan/Scripts/python.exe", "-X", "utf8", "a2a_service/server.py", "--port", "{port}"], "env_file": "config/masterplanagent.env" },
       "launcher": { "directory": "MasterPlanagent", "catalog": "masterplan_agent.json", "name": "MasterPlanAgent", "skill": "masterplan_health" },
       "depends_on": ["law"],
       "version_source": "card:version",

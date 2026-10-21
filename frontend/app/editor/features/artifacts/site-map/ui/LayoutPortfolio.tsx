@@ -1,12 +1,24 @@
 'use client'
 
-import type { LayoutAlternatives, MassCandidate } from '@/lib/orchestrator-runs/types'
+import type {
+  LayoutAlternatives,
+  LayoutCandidateAI,
+  MassCandidate,
+} from '@/lib/orchestrator-runs/types'
 
 import { planSketch } from '../lib/plan-sketch'
 
 /** An SVG MasterPlan drew, shown as an image: an <img> runs no script the drawing might carry. */
 function svgUrl(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+/** Jev's judgement of an AI placement in one short chip: the mean clause score as a percentage, or none. */
+export function jevLine(ai: LayoutCandidateAI): string {
+  const scores = Object.values(ai.judgement?.scores ?? {}).filter((v) => typeof v === 'number')
+  if (!scores.length) return 'AI 제안'
+  const mean = scores.reduce((a, b) => a + b, 0) / scores.length
+  return `AI 제안 · 의도 부합 ${Math.round(mean * 100)}%`
 }
 
 interface Props {
@@ -77,8 +89,15 @@ export default function LayoutPortfolio({
                   <strong>
                     {candidate.label ?? `배치안 ${index + 1}`}
                     {candidate.candidate_id === chosen ? ' ✓' : ''}
+                    {candidate.ai?.shortlisted ? ' · 심사 추천' : ''}
                   </strong>
                   <small>{facts || '치수 미상'}</small>
+                  {candidate.ai && (
+                    <small className="layout-portfolio-reason">
+                      {jevLine(candidate.ai)}
+                      {candidate.ai.reason ? ` ${candidate.ai.reason}` : ''}
+                    </small>
+                  )}
                 </button>
               )
             })}

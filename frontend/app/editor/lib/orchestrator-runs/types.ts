@@ -304,15 +304,26 @@ export interface MassForms {
 }
 
 /** One of MasterPlan's layout candidates (`GET /runs/{id}/alternatives`): its drawing, and its layout in the 3D view's shape. */
+/** An AI-authored placement: the model's reason for its moves and Jev's judgement of it against the intent. */
+export interface LayoutCandidateAI {
+  id?: string
+  reason?: string | null
+  moves?: Record<string, unknown> | null
+  judgement?: { status?: string; scores?: Record<string, number> } | null
+  shortlisted?: boolean
+}
+
 export interface LayoutCandidate {
   candidate_id: string
   label: string | null
   status: string | null
   preview_svg: string | null
   masterplan: RunMasterplan | null
+  /** Set when MasterPlan's AI authored this placement; null for the owner's own retained placements. */
+  ai?: LayoutCandidateAI | null
 }
 
-/** The selection set a 배치 설계 ends with: up to three candidates and the person's pick so far. */
+/** The selection set a 배치 설계 ends with: up to six candidates and the person's pick so far. */
 export interface LayoutAlternatives {
   run_id: string
   index_revision: number

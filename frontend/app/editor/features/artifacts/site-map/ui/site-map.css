@@ -384,6 +384,7 @@
 .layout-portfolio-card:disabled { cursor: progress; opacity: 0.7; }
 .layout-portfolio-card img, .layout-portfolio-blank { inline-size: 100%; aspect-ratio: 6 / 5; object-fit: contain; background: #fff; border-radius: 4px; }
 .layout-portfolio-card small { color: var(--muted); }
+.layout-portfolio-reason { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
 .layout-portfolio-confirm { justify-content: center; }
 .layout-portfolio-note { margin: 0; color: var(--muted); line-height: 1.4; }
 .layout-portfolio-note[data-kind="warn"] { color: #b45309; }
