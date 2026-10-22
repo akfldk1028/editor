@@ -127,3 +127,17 @@ def test_a_layout_run_may_carry_the_footprint_wanted(extra):
 def test_a_footprint_outside_one_to_the_floor_area_is_rejected(footprint):
     with pytest.raises(ValidationError):
         run_create({**LAYOUT, 'footprint_m2': footprint})
+
+
+
+@pytest.mark.parametrize('extra', [{'parking_stalls': 50}, {'parking_stalls': 50, 'max_surface_stalls': 30},
+                                   {'parking_stalls': 50, 'max_surface_stalls': 0}])
+def test_a_layout_run_may_carry_the_parking_planned(extra):
+    assert run_create({**LAYOUT, **extra}).request == {**LAYOUT, **extra}
+
+
+@pytest.mark.parametrize('extra', [{'parking_stalls': -1}, {'parking_stalls': 50.5}, {'parking_stalls': True},
+                                   {'parking_stalls': '50'}, {'parking_stalls': 20, 'max_surface_stalls': 30}])
+def test_a_parking_plan_that_is_not_a_stall_count_is_rejected(extra):
+    with pytest.raises(ValidationError):
+        run_create({**LAYOUT, **extra})

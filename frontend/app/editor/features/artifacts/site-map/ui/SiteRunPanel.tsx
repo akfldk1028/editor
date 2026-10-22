@@ -59,6 +59,14 @@ export function SiteRunPanel({ site, project, shell }: Props) {
           <input inputMode="decimal" onChange={(event) => setInputs({ ...inputs, footprintM2: event.target.value })} placeholder="예: 600 (건물이 땅에 닿는 면적)" value={inputs.footprintM2} />
         </label>
         <label>
+          <span>주차 대수</span>
+          <input inputMode="numeric" onChange={(event) => setInputs({ ...inputs, parkingStalls: event.target.value })} placeholder="예: 50 (비우면 법정 대수)" value={inputs.parkingStalls} />
+        </label>
+        <label>
+          <span>지상 최대</span>
+          <input inputMode="numeric" onChange={(event) => setInputs({ ...inputs, maxSurfaceStalls: event.target.value })} placeholder="예: 30 (나머지는 지하)" value={inputs.maxSurfaceStalls} />
+        </label>
+        <label>
           <span>설계 의도</span>
           <textarea maxLength={2000} onChange={(event) => setInputs({ ...inputs, intent: event.target.value })} placeholder="예: 1층은 상가로 도로 쪽에 열고, 2~5층 사무실, 외장은 커튼월로" rows={2} value={inputs.intent} />
         </label>

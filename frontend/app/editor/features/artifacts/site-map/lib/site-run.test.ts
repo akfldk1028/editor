@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test'
 import type { ProjectBinding } from '../../../agent-dialogue/projects'
 import { RunRequestError } from '../../../agent-dialogue/runs'
 import type { SavedSite } from './picks'
-import { bundleNotice, describeFailure, idempotencyKey, isTerminal, resolveProject, runNotice, siteRunRequest, statusLabel, traceLabel, LAYOUT_STORAGE_KEY, layoutBlocker, layoutRunRequest, loadLayoutInputs, saveLayoutInputs } from './site-run'
+import { bundleNotice, describeFailure, idempotencyKey, isTerminal, resolveProject, runNotice, siteRunRequest, statusLabel, traceLabel, LAYOUT_STORAGE_KEY, layoutBlocker, layoutRunRequest, loadLayoutInputs, massRunRequest, saveLayoutInputs } from './site-run'
 
 const binding = (project_id: string): ProjectBinding =>
   ({ project_id, owner_project_id: 'owner-' + project_id, branch_id: 'main', scene_id: 's', scene_revision: 1, scene_project_id: null })
@@ -39,26 +39,41 @@ test('a site run sends the whole bundle led by its first parcel, the 기준일, 
 })
 
 test('a 배치 설계 request carries the bundle, the 용도, the floor area, the footprint wanted and the intent exactly as typed', () => {
-  const inputs = { floorAreaM2: '3,000', footprintM2: '600', intent: ' 1층은 상가로 열고, 외장은 커튼월로 ' }
+  const inputs = { floorAreaM2: '3,000', footprintM2: '600', intent: ' 1층은 상가로 열고, 외장은 커튼월로 ', parkingStalls: '', maxSurfaceStalls: '' }
+  const bare = { parkingStalls: '', maxSurfaceStalls: '' }
   expect(layoutRunRequest(site(parcel('4115011300106840001', '산곡동 684-1')), { assessmentDate: '2026-10-16', buildingType: '제2종근린생활시설' }, inputs)).toEqual({
     goal: 'masterplan', pnu: '4115011300106840001', parcels: ['4115011300106840001'], assessment_date: '2026-10-16',
     building_type: '제2종근린생활시설', floor_area_m2: 3000, footprint_m2: 600, intent: '1층은 상가로 열고, 외장은 커튼월로',
   })
-  expect(layoutRunRequest(site(parcel('4115011300106840001', 'x')), { assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '500', footprintM2: '100', intent: '   ' })).not.toHaveProperty('intent')
+  expect(layoutRunRequest(site(parcel('4115011300106840001', 'x')), { assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '500', footprintM2: '100', intent: '   ', ...bare })).not.toHaveProperty('intent')
   // what blocks the button, in Korean: no 용도, a floor area or footprint that is not a number, a footprint above the floor area, an intent too long
   expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '' }, inputs)).toMatch(/용도/)
-  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: 'abc', footprintM2: '5', intent: '' })).toMatch(/연면적/)
-  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '10', footprintM2: '', intent: '' })).toMatch(/바닥면적/)
-  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '10', footprintM2: '20', intent: '' })).toMatch(/연면적보다/)
-  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '10', footprintM2: '10', intent: 'x'.repeat(2001) })).toMatch(/2,000/)
-  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '10', footprintM2: '4', intent: '' })).toBeNull()
+  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: 'abc', footprintM2: '5', intent: '', ...bare })).toMatch(/연면적/)
+  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '10', footprintM2: '', intent: '', ...bare })).toMatch(/바닥면적/)
+  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '10', footprintM2: '20', intent: '', ...bare })).toMatch(/연면적보다/)
+  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '10', footprintM2: '10', intent: 'x'.repeat(2001), ...bare })).toMatch(/2,000/)
+  expect(layoutBlocker({ assessmentDate: '2026-10-16', buildingType: '업무시설' }, { floorAreaM2: '10', footprintM2: '4', intent: '', ...bare })).toBeNull()
   // the inputs round-trip through storage; junk falls back to empty fields
   const map = new Map<string, string>()
   const store = { getItem: (key: string) => map.get(key) ?? null, setItem: (key: string, value: string) => void map.set(key, value) }
   saveLayoutInputs(inputs, store)
   expect(loadLayoutInputs(store)).toEqual(inputs)
   store.setItem(LAYOUT_STORAGE_KEY, '{"floorAreaM2": 3, "intent": null}')
-  expect(loadLayoutInputs(store)).toEqual({ floorAreaM2: '', footprintM2: '', intent: '' })
+  expect(loadLayoutInputs(store)).toEqual({ floorAreaM2: '', footprintM2: '', intent: '', ...bare })
+})
+
+test('the parking planned rides on a 배치 설계 (so a basement and ramp are planned), never on a 매스 설계', () => {
+  const where = site(parcel('4115011300106840001', 'x'))
+  const when = { assessmentDate: '2026-10-22', buildingType: '업무시설' }
+  const inputs = { floorAreaM2: '3,926', footprintM2: '1074', intent: '', parkingStalls: '50', maxSurfaceStalls: '30' }
+  expect(layoutRunRequest(where, when, inputs)).toMatchObject({ parking_stalls: 50, max_surface_stalls: 30 })
+  expect(massRunRequest(where, when, inputs)).not.toHaveProperty('parking_stalls')
+  expect(massRunRequest(where, when, inputs)).not.toHaveProperty('max_surface_stalls')
+  expect(layoutRunRequest(where, when, { ...inputs, parkingStalls: '', maxSurfaceStalls: '' })).not.toHaveProperty('parking_stalls')
+  expect(layoutBlocker(when, { ...inputs, parkingStalls: '50.5' })).toMatch(/정수/)
+  expect(layoutBlocker(when, { ...inputs, parkingStalls: '20' })).toMatch(/클 수 없어요/)
+  expect(layoutBlocker(when, { ...inputs, parkingStalls: '' })).toMatch(/주차 대수도/)
+  expect(layoutBlocker(when, inputs)).toBeNull()
 })
 
 test('only a bundle the map found not touching gets a notice', () => {

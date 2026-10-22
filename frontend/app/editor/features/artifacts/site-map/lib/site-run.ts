@@ -30,10 +30,22 @@ export interface LayoutInputs {
   floorAreaM2: string
   footprintM2: string
   intent: string
+  /** The parking planned (대수) and at most this many on the ground; both optional. Without them the engine plans the
+   * legal minimum, which usually fits on the ground — no basement, no ramp. */
+  parkingStalls: string
+  maxSurfaceStalls: string
 }
 
 export const LAYOUT_STORAGE_KEY = 'site-layout-inputs'
-export const defaultLayoutInputs = (): LayoutInputs => ({ floorAreaM2: '', footprintM2: '', intent: '' })
+export const defaultLayoutInputs = (): LayoutInputs => ({ floorAreaM2: '', footprintM2: '', intent: '', parkingStalls: '', maxSurfaceStalls: '' })
+
+/** A stall count typed (0 ~ 10,000, whole); '' is "not given" (undefined); anything else is null (blocked). */
+const stalls = (text: string): number | null | undefined => {
+  const trimmed = text.replace(/,/g, '').trim()
+  if (!trimmed) return undefined
+  const value = Number(trimmed)
+  return Number.isInteger(value) && value >= 0 && value <= 10_000 ? value : null
+}
 
 const area = (text: string): number | null => {
   const value = Number(text.replace(/,/g, '').trim())
@@ -57,6 +69,11 @@ export function layoutBlocker(conditions: RunConditions, inputs: LayoutInputs): 
   if (area(inputs.footprintM2) === null) return '건물 바닥면적(㎡)을 숫자로 적어 주세요 — 건물이 땅에 닿는 면적이에요'
   if (footprintArea(inputs) === null) return '바닥면적은 연면적보다 클 수 없어요'
   if (inputs.intent.trim().length > 2000) return '설계 의도는 2,000자 안으로 적어 주세요'
+  const total = stalls(inputs.parkingStalls)
+  const ground = stalls(inputs.maxSurfaceStalls)
+  if (total === null || ground === null) return '주차 대수는 0 이상의 정수로 적어 주세요'
+  if (ground !== undefined && total === undefined) return '지상 최대 대수를 쓰려면 주차 대수도 적어 주세요'
+  if (ground !== undefined && total !== undefined && ground > total) return '지상 최대 대수는 주차 대수보다 클 수 없어요'
   return null
 }
 
@@ -71,6 +88,8 @@ export function layoutRunRequest(site: SavedSite, conditions: RunConditions, inp
     goal: 'masterplan', pnu: parcels[0]!, parcels, assessment_date: conditions.assessmentDate,
     building_type: conditions.buildingType.trim(), floor_area_m2: floorArea(inputs) ?? 0, footprint_m2: footprintArea(inputs) ?? 0,
     ...(intent ? { intent } : {}),
+    ...(typeof stalls(inputs.parkingStalls) === 'number' ? { parking_stalls: stalls(inputs.parkingStalls)! } : {}),
+    ...(typeof stalls(inputs.maxSurfaceStalls) === 'number' ? { max_surface_stalls: stalls(inputs.maxSurfaceStalls)! } : {}),
   }
 }
 
@@ -79,7 +98,7 @@ export function massRunRequest(site: SavedSite, conditions: RunConditions, input
   const layout = layoutRunRequest(site, conditions, inputs) as Extract<RunRequest, { goal: 'masterplan' }>
   // The footprint target steers the layout search only; a 매스 설계 stands on the layout already chosen, and the
   // Orchestrator's `mass` goal refuses inputs it does not read (run submit 409, 2026-10-22).
-  const { footprint_m2: _footprint, ...rest } = layout
+  const { footprint_m2: _footprint, parking_stalls: _parking, max_surface_stalls: _surface, ...rest } = layout
   return { ...rest, goal: 'mass' }
 }
 
@@ -93,6 +112,8 @@ export function loadLayoutInputs(storage?: Store): LayoutInputs {
       floorAreaM2: typeof saved?.floorAreaM2 === 'string' ? saved.floorAreaM2.slice(0, 20) : '',
       footprintM2: typeof saved?.footprintM2 === 'string' ? saved.footprintM2.slice(0, 20) : '',
       intent: typeof saved?.intent === 'string' ? saved.intent.slice(0, 2000) : '',
+      parkingStalls: typeof saved?.parkingStalls === 'string' ? saved.parkingStalls.slice(0, 8) : '',
+      maxSurfaceStalls: typeof saved?.maxSurfaceStalls === 'string' ? saved.maxSurfaceStalls.slice(0, 8) : '',
     }
   } catch {
     return defaultLayoutInputs()

@@ -18,7 +18,9 @@ OPTIONAL = {'building_type', 'assessment_date', 'parcels'}
 # program), the ground footprint wanted (the building-zone target the placement engine searches with; Law's coverage
 # ceiling is never promoted to one) and the intent in their own words (the door turns the sentence into the intent
 # owner's declaration).
-LAYOUT_OPTIONAL = {'floor_area_m2', 'footprint_m2', 'intent'}
+# and the parking planned (total, and at most this many on the ground): without it the engine plans the legal minimum,
+# which usually fits on the ground, so the layout has no basement and no ramp.
+LAYOUT_OPTIONAL = {'floor_area_m2', 'footprint_m2', 'intent', 'parking_stalls', 'max_surface_stalls'}
 MAX_PARCELS = 50
 MAX_INTENT_CHARS = 2000
 
@@ -42,6 +44,11 @@ def validate_site_run(request):
         footprint = request.get('footprint_m2')
         if 'footprint_m2' in request and (isinstance(footprint, bool) or not isinstance(footprint, (int, float)) or not 1 <= footprint <= area):
             raise ValueError('footprint_m2 is the ground footprint wanted, between 1 and floor_area_m2')
+        for key in ('parking_stalls', 'max_surface_stalls'):
+            if key in request and (type(request[key]) is not int or not 0 <= request[key] <= 10_000):
+                raise ValueError(f'{key} is a whole number of stalls (0 to 10,000)')
+        if request.get('max_surface_stalls', 0) > request.get('parking_stalls', 10_001):
+            raise ValueError('max_surface_stalls cannot exceed parking_stalls')
         if 'intent' in request and (not isinstance(request['intent'], str) or not 1 <= len(request['intent'].strip()) <= MAX_INTENT_CHARS):
             raise ValueError(f'intent is a sentence of at most {MAX_INTENT_CHARS} characters')
     if not isinstance(request['pnu'], str) or not PNU.fullmatch(request['pnu']):

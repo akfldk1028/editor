@@ -80,7 +80,7 @@ export type RunRequest =
   | { goal: 'health' }
   | { goal: 'limits'; pnu: string; building_type?: string; assessment_date?: string; parcels?: string[] }
   /** 배치 설계: the layout the 3D view draws; `intent` is the design intent in the person's own words. */
-  | { goal: 'masterplan'; pnu: string; building_type: string; floor_area_m2: number; footprint_m2: number; assessment_date?: string; parcels?: string[]; intent?: string }
+  | { goal: 'masterplan'; pnu: string; building_type: string; floor_area_m2: number; footprint_m2: number; assessment_date?: string; parcels?: string[]; intent?: string; parking_stalls?: number; max_surface_stalls?: number }
   /** 매스 설계: MassAgent's own cycle on the chosen layout; the same inputs, the run then asks which form to keep. */
   | { goal: 'mass'; pnu: string; building_type: string; floor_area_m2: number; assessment_date?: string; parcels?: string[]; intent?: string }
 
