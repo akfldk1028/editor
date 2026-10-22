@@ -82,7 +82,7 @@ export type RunRequest =
   /** 배치 설계: the layout the 3D view draws; `intent` is the design intent in the person's own words. */
   | { goal: 'masterplan'; pnu: string; building_type: string; floor_area_m2: number; footprint_m2: number; assessment_date?: string; parcels?: string[]; intent?: string }
   /** 매스 설계: MassAgent's own cycle on the chosen layout; the same inputs, the run then asks which form to keep. */
-  | { goal: 'mass'; pnu: string; building_type: string; floor_area_m2: number; footprint_m2: number; assessment_date?: string; parcels?: string[]; intent?: string }
+  | { goal: 'mass'; pnu: string; building_type: string; floor_area_m2: number; assessment_date?: string; parcels?: string[]; intent?: string }
 
 export interface ProjectBinding {
   project_id: string

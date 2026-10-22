@@ -77,7 +77,10 @@ export function layoutRunRequest(site: SavedSite, conditions: RunConditions, inp
 /** 매스 설계 (`mass`): the same inputs; the Orchestrator builds on the layout the person chose and asks which form to keep. */
 export function massRunRequest(site: SavedSite, conditions: RunConditions, inputs: LayoutInputs): RunRequest {
   const layout = layoutRunRequest(site, conditions, inputs) as Extract<RunRequest, { goal: 'masterplan' }>
-  return { ...layout, goal: 'mass' }
+  // The footprint target steers the layout search only; a 매스 설계 stands on the layout already chosen, and the
+  // Orchestrator's `mass` goal refuses inputs it does not read (run submit 409, 2026-10-22).
+  const { footprint_m2: _footprint, ...rest } = layout
+  return { ...rest, goal: 'mass' }
 }
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>
