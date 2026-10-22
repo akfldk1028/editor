@@ -225,6 +225,19 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     })
   }, [])
 
+  /** Frames a site: the camera stands where the site map's fit of the parcel says (its size sets the distance). */
+  const frameSite = useCallback((lng: number, lat: number, pose: { lng: number; lat: number; height: number; pitchDeg: number }) => {
+    const viewer = viewerRef.current, Cesium = cesiumRef.current
+    if (!viewer || !Cesium) return
+    void tileBuildings.current?.supplementNear(lng, lat).finally(() => pumpRef.current())
+    supplementStarted.current = true
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(pose.lng, pose.lat, level.current + pose.height),
+      orientation: { heading: 0, pitch: Cesium.Math.toRadians(pose.pitchDeg), roll: 0 },
+      duration: 1.2,
+    })
+  }, [])
+
   const highlightParcel = useCallback((geometry: object) => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
     const ring = ringOf(geometry)
@@ -393,7 +406,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
 
   return {
     ready, loading: !ready && !error, error, viewerRef, cesiumRef,
-    highlightParcel, clearHighlight, setSite, flyTo, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines, drawLayout,
+    highlightParcel, clearHighlight, setSite, flyTo, frameSite, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines, drawLayout,
     base, setBase, show, setShow, terrain, setTerrain, status: [status, buildingStatus].filter(Boolean).join(' · '), setStatus, stats: { buildings, counts, pending: pending + tilePending },
   }
 }

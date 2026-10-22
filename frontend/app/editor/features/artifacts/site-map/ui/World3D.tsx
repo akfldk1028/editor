@@ -9,6 +9,7 @@ import { prepareBuildingTiles } from '../../../world/lib/building-tiles'
 import type { IntentView, LayoutView } from '../../../world/lib/layout-masses'
 import type { LngLat, ParcelSet } from '../lib/engine'
 import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
+import { sitePose } from '../lib/site-pose'
 
 /**
  * The 3D view of the same site: the world feature's Cesium engine (read-only
@@ -61,7 +62,7 @@ function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean;
   const target = useRef<HTMLDivElement>(null)
   const onClick = useCallback((lng: number, lat: number) => onPick([lng, lat]), [onPick])
   const world = useWorld3D({ target, onClick })
-  const { ready, error, viewerRef, cesiumRef, highlightParcel, clearHighlight, flyTo, drawLayout } = world
+  const { ready, error, viewerRef, cesiumRef, highlightParcel, clearHighlight, flyTo, frameSite, drawLayout } = world
 
   // The planned building (the newest 배치 설계 of this site) stands on the parcel; it follows the ground setting.
   useEffect(() => {
@@ -70,6 +71,8 @@ function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean;
   }, [ready, overlay, drawLayout, world.terrain])
   /** The site the camera was last placed on in this activation; null = not yet. */
   const placed = useRef<string | null>(null)
+  /** The parcels' look when the camera was last placed: a site confirmed again (look turns 'saved') moves it again. */
+  const placedLook = useRef<string | null>(null)
 
   /** The camera's ground point under the screen centre's pose: where flyTo leaves it, as [lng, lat]. */
   const cameraAt = useCallback((): LngLat | null => {
@@ -80,12 +83,14 @@ function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean;
   }, [viewerRef, cesiumRef])
 
   /** The engine's own site pose (flyTo), completed at once; true when the camera is there. */
-  const place = useCallback(([lng, lat]: LngLat): boolean => {
-    flyTo(lng, lat)
+  const place = useCallback(([lng, lat]: LngLat, bounds?: readonly [number, number, number, number]): boolean => {
+    // The camera frames the parcel itself (its size sets the distance), not a fixed wide pose over its centre.
+    if (bounds) frameSite(lng, lat, sitePose(bounds))
+    else flyTo(lng, lat)
     viewerRef.current?.camera.completeFlight()
     const at = cameraAt()
     return at !== null && metres(at, [lng, lat]) < 1500
-  }, [flyTo, viewerRef, cameraAt])
+  }, [flyTo, frameSite, viewerRef, cameraAt])
 
   useEffect(() => {
     if (!active) placed.current = null
@@ -110,13 +115,16 @@ function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean;
     if (!active || !bounds) return
     const center = boundsCenter(bounds)
     const key = center.map((v) => v.toFixed(6)).join(',')
-    // Once per activation; afterwards only a searched or restored site moves the camera, never a click preview.
-    if (placed.current !== null && (drawn.look === 'picked' || placed.current === key)) return
+    // Once per activation; afterwards a searched, restored or newly confirmed site moves the camera (confirming the
+    // same parcel again from the conversation included), never a click preview.
+    const confirmed = drawn.look === 'saved' && placedLook.current !== 'saved'
+    if (placed.current !== null && (drawn.look === 'picked' || (placed.current === key && !confirmed))) return
     placed.current = key
-    if (place(center)) return
+    placedLook.current = drawn.look
+    if (place(center, bounds)) return
     // Not there (the viewer was not ready to move): try once more on the next frame.
     const frame = requestAnimationFrame(() => {
-      if (!place(center)) console.warn('[site-map] 3D camera did not reach the site', center, cameraAt())
+      if (!place(center, bounds)) console.warn('[site-map] 3D camera did not reach the site', center, cameraAt())
     })
     return () => cancelAnimationFrame(frame)
   }, [ready, active, shape, drawn.geometries, drawn.look, highlightParcel, clearHighlight, place, cameraAt])
