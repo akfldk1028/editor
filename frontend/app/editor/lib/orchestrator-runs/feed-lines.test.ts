@@ -352,6 +352,14 @@ test('the verdict line says 보류 with the short missing-evidence list, or the 
     .toBe('법규 에이전트가 주차 대수를 아직 내지 못해 배치를 멈췄어요 — 사용자가 넣을 값은 없어요')
 })
 
+test('a run waiting for the intent to be reconfirmed says so in words, never the field names', () => {
+  const waiting = results({ status: 'waiting_input', pending_input: true, pending_fields: ['confirm', 'context_hash', 'intent'], steps: [], review: null, missing_evidence_all: [] })
+  expect(resultLine(waiting)).toBe('요구나 대지 조건이 바뀌어서 설계 의도를 그대로 이어갈지 확인을 기다려요 — 아직 에이전트를 부르지 않았어요')
+  const prompt = resultPrompt(waiting, { pnu: '4115011300106840001', address: '산곡동 684-1' })
+  expect(prompt.text).not.toContain('context_hash')
+  expect(prompt.actions.map((a) => a.label)).toEqual(['나중에'])
+})
+
 test('a run waiting on the person names the condition it asks for and says no agent was called yet', () => {
   const waiting = results({ status: 'waiting_input', pending_input: true, pending_fields: ['building_type'], steps: [], review: null, missing_evidence_all: [] })
   expect(resultLine(waiting)).toBe('검토를 시작하기 전에 용도를 물어요 — 아직 에이전트를 부르지 않았어요')

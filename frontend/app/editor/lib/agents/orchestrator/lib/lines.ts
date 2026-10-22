@@ -181,9 +181,18 @@ export function evidenceCard(results: RunResults): FeedCard | null {
   return items.length ? { type: 'chips', items } : null
 }
 
+/** The run asks the person to reconfirm the declared intent against changed upstream statements (the Orchestrator's
+ *  intent_reconfirmation): the same test lib/run-question/form.ts uses to show its card. */
+export function asksToReconfirmIntent(fields: readonly string[] | null | undefined): boolean {
+  return !!fields && fields.includes('confirm') && fields.includes('context_hash')
+}
+
 /** "검토 결과: 보류 — 근거 보충 필요: 기준일, 대지 접근·재해·설비" */
 export function resultLine(results: RunResults): string {
   const verdict = verdictLabel(results.status, results.review?.code)
+  if (results.status === 'waiting_input' && asksToReconfirmIntent(results.pending_fields)) {
+    return '요구나 대지 조건이 바뀌어서 설계 의도를 그대로 이어갈지 확인을 기다려요 — 아직 에이전트를 부르지 않았어요'
+  }
   if (results.status === 'waiting_input') {
     const asked = askedFieldsLabel(results.pending_fields)
     return asked ? `검토를 시작하기 전에 ${asked}를 물어요 — 아직 에이전트를 부르지 않았어요` : '검토를 시작하기 전에 조건을 물어요 — 아직 에이전트를 부르지 않았어요'
@@ -217,6 +226,10 @@ export function resultPrompt(results: RunResults, target: LawTarget): { text: st
   if (results.status === 'waiting_input' && asksForLot(results.pending_request)) {
     // The lots are the conversation's waiting-question card (lib/run-question/useWaitingQuestions): answered there.
     return { text: '이 필지는 지구단위계획구역 안인데, 고시 문서에 어느 획지인지 적혀 있지 않아요. 아래에서 획지를 골라 주시면 그 규정으로 이어서 검토해요.', actions: [later] }
+  }
+  if (results.status === 'waiting_input' && asksToReconfirmIntent(results.pending_fields)) {
+    // The intent card is the conversation's waiting-question card (lib/run-question/form.ts kind 'intent'): answered there.
+    return { text: '요구나 대지 조건이 바뀌었어요. 아래 카드에서 설계 의도를 그대로 이어갈지 확인해 주시면 배치를 이어가요.', actions: [later] }
   }
   if (results.status === 'waiting_input') {
     const asked = askedFieldsLabel(results.pending_fields) || '조건'
