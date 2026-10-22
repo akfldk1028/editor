@@ -192,6 +192,10 @@ export function resultLine(results: RunResults): string {
     const code = results.site?.code
     return `검토 결과: 실패${code ? ` — ${evidenceLabel(code)}` : ''}`
   }
+  if (results.masterplan?.code === 'law_parking_count_missing') {
+    // Law was asked twice and gave no parking count: Law's to settle, never the person's to type in.
+    return '법규 에이전트가 주차 대수를 아직 내지 못해 배치를 멈췄어요 — 사용자가 넣을 값은 없어요'
+  }
   if (results.masterplan?.code === 'masterplan_alternative_selection_required') {
     // The 배치 설계 ended as a selection set: the map's portfolio is where the person picks.
     return '배치안이 나왔어요 — 대지 지도의 3D 보기에서 하나를 골라 주세요'

@@ -71,8 +71,9 @@ function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean;
   }, [ready, overlay, drawLayout, world.terrain])
   /** The site the camera was last placed on in this activation; null = not yet. */
   const placed = useRef<string | null>(null)
-  /** The parcels' look when the camera was last placed: a site confirmed again (look turns 'saved') moves it again. */
-  const placedLook = useRef<string | null>(null)
+  /** The parcels' look on the previous pass (every pass, placed or not): a site confirmed again turns 'saved' from
+   *  'site' or 'picked', and that turn moves the camera even onto the same parcel. */
+  const lastLook = useRef<string | null>(null)
 
   /** The camera's ground point under the screen centre's pose: where flyTo leaves it, as [lng, lat]. */
   const cameraAt = useCallback((): LngLat | null => {
@@ -111,16 +112,17 @@ function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean;
       return
     }
     highlightParcel(shape)
+    const previousLook = lastLook.current
+    lastLook.current = drawn.look
     const bounds = parcelBounds(drawn.geometries.flatMap(parcelRings))
     if (!active || !bounds) return
     const center = boundsCenter(bounds)
     const key = center.map((v) => v.toFixed(6)).join(',')
     // Once per activation; afterwards a searched, restored or newly confirmed site moves the camera (confirming the
     // same parcel again from the conversation included), never a click preview.
-    const confirmed = drawn.look === 'saved' && placedLook.current !== 'saved'
+    const confirmed = drawn.look === 'saved' && previousLook !== 'saved'
     if (placed.current !== null && (drawn.look === 'picked' || (placed.current === key && !confirmed))) return
     placed.current = key
-    placedLook.current = drawn.look
     if (place(center, bounds)) return
     // Not there (the viewer was not ready to move): try once more on the next frame.
     const frame = requestAnimationFrame(() => {

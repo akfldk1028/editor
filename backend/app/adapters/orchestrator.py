@@ -115,7 +115,11 @@ class OrchestratorClient:
         # The parcel the run was asked about, when the door names it (a continuation of a chosen layout has no
         # site call of its own to read it from).
         pnu = {'pnu': value['pnu']} if isinstance(value.get('pnu'), str) and value['pnu'] else {}
-        return {**{key:value[key] for key in (*fields,'receipt_task_ids','pending_input')},**pending,**pnu,**communication.model_dump()}
+        # Each step's conclusion as the Orchestrator recorded it ({tool: {status, code, owner}}); only string values.
+        outcomes = {'outcomes': {tool: {k: v for k, v in item.items() if k in ('status', 'code', 'owner') and isinstance(v, str)}
+                                 for tool, item in value['outcomes'].items() if isinstance(tool, str) and isinstance(item, dict)}
+                    } if isinstance(value.get('outcomes'), dict) else {}
+        return {**{key:value[key] for key in (*fields,'receipt_task_ids','pending_input')},**pending,**pnu,**outcomes,**communication.model_dump()}
 
     async def resume_run(self, run_id, project, branch, answer):
         """The person's answer to what a waiting run asked; the owner checks it against the question."""

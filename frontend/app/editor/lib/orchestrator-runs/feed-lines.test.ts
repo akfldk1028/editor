@@ -347,6 +347,9 @@ test('the verdict line says 보류 with the short missing-evidence list, or the 
   // a 배치 설계 that ended as a selection set asks for the pick, whatever its status says
   expect(resultLine(results({ status: 'blocked', goal: 'masterplan', masterplan: { status: 'needs_evidence', code: 'masterplan_alternative_selection_required', task_id: null, truncated: false, layout: null, intent: null } })))
     .toBe('배치안이 나왔어요 — 대지 지도의 3D 보기에서 하나를 골라 주세요')
+  // Law gave no parking count twice: the line says so and asks the person for nothing
+  expect(resultLine(results({ status: 'blocked', goal: 'masterplan', masterplan: { status: 'needs_evidence', code: 'law_parking_count_missing', task_id: null, truncated: false, layout: null, intent: null } })))
+    .toBe('법규 에이전트가 주차 대수를 아직 내지 못해 배치를 멈췄어요 — 사용자가 넣을 값은 없어요')
 })
 
 test('a run waiting on the person names the condition it asks for and says no agent was called yet', () => {

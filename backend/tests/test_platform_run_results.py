@@ -330,3 +330,13 @@ def test_mass_forms_read_the_newest_review_the_first_verdict_and_the_pattern():
     assert first['label'] == '중정형' and first['gfa_m2'] == 3000 and first['reaches_target'] is True and first['thumbnail_svg'] == svg
     assert first['volumes'][0]['top_m'] == 17.5 and plain['thumbnail_svg'] is None      # not an <svg>: left out
     assert parse_run_results({'run_id': 'r', 'status': 'ok', 'communications': []})['mass_forms'] is None
+
+
+def test_a_stop_the_orchestrator_decided_itself_is_read_from_its_outcomes():
+    """Law gave no parking count twice: no MasterPlan call row exists, the door's outcome carries the stop."""
+    run = {'run_id': 'r', 'status': 'blocked', 'goal': 'masterplan', 'communications': [],
+           'outcomes': {'masterplan_layout_synthesize': {'status': 'needs_evidence', 'code': 'law_parking_count_missing',
+                                                        'owner': 'law'}}}
+    parsed = parse_run_results(run)
+    assert parsed['masterplan']['code'] == 'law_parking_count_missing' and parsed['masterplan']['owner'] == 'law'
+    assert parsed['masterplan']['layout'] is None

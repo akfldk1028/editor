@@ -94,6 +94,12 @@ def parse_run_results(run):
     intent_row = next((row for row in reversed(rows) if row.get('tool') == masterplan.INTENT_TOOL and _str(row.get('state')) == 'succeeded'), None)
     masterplan_result = masterplan.parse(plan_row, responses.get(id(plan_row), {}), responses.get(id(intent_row), {}) if intent_row else None,
                                          max_floors=(law_result or {}).get('max_floors'))
+    stopped = _dict(_dict(run.get('outcomes')).get(masterplan.TOOL))
+    if masterplan_result is None and _str(stopped.get('code')):
+        # The Orchestrator decided this step itself (no call row), e.g. Law gave no parking count twice.
+        masterplan_result = {'status': _str(stopped.get('status')) or 'unknown', 'code': _str(stopped.get('code')),
+                             'owner': _str(stopped.get('owner')), 'task_id': None, 'truncated': False,
+                             'layout': None, 'intent': None}
     if masterplan_result and masterplan_result['truncated'] and not masterplan_result['layout']:
         notes.append('masterplan_response_truncated: the layout was cut off by the 8000-character communication cap and the whole task could not be fetched')
     law_missing = [code for finding in (law_result or {}).get('findings', []) for code in finding['missing_evidence']]
