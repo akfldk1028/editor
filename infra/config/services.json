@@ -258,7 +258,7 @@
       "port": 18331,
       "health_url": "{base}/health",
       "card_url": "{base}/.well-known/agent-card.json",
-      "start": { "cwd": "agents/MassAgent", "cmd": ["bash", "scripts/serve-a2a.sh"], "env_file": "config/massagent.env" },
+      "start": { "cwd": "agents/MassAgent", "cmd": ["bash", "scripts/serve-a2a.sh", "fg"], "env_file": "config/massagent.env" },
       "launcher": { "directory": "MassAgent", "catalog": "mass_agent.json", "name": "MassAgent", "skill": "mass_health" },
       "depends_on": [],
       "version_source": "card:version",

@@ -51,7 +51,10 @@ test('(b) a2a.ps1 and the registry name the same agents, start them the same way
       agent.launcher, `${directory}: launcher keys`);
     assert.equal(agent.start.cwd, `agents/${directory}`, `${directory}: cwd`);
     if (entry.Serve) {
-      assert.deepEqual(agent.start.cmd, ['bash', entry.Serve], `${directory}: serve script`);
+      // The host may add a mode for itself (MassAgent's `fg`: a script that backgrounds its server and exits read
+      // as a crash to the supervisor); the script it runs is the launcher's.
+      assert.deepEqual(agent.start.cmd.slice(0, 2), ['bash', entry.Serve], `${directory}: serve script`);
+      assert.ok(agent.start.cmd.slice(2).every(arg => arg === 'fg'), `${directory}: serve mode`);
       if (entry.Config) assert.equal(agent.start.env_file, entry.Config, `${directory}: env file`);
     } else {
       const command = [entry.Entrypoint.replace(`${directory}/`, ''), ...entry.Arguments.replace(/--port \d+$/, '--port {port}').split(' ')];
