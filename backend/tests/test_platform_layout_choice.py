@@ -53,7 +53,8 @@ class ChoosingOwner:
         return self.run(run_id)
 
     async def alternatives(self, run_id, project, branch):
-        if run_id != 'r1':
+        # As the door does: a continuation (r2) answers with its parent's set under the parent's run id.
+        if run_id != 'r1' and not (run_id == 'r2' and self.chosen):
             raise LookupError('run not found')
         return {'run_id': 'r1', 'index_revision': 1, 'selection_revision': 1 if self.chosen else 0, 'chosen_candidate_id': self.chosen,
                 'candidates': [{'candidate_id': 'a', 'label': '도로 쪽 배치', 'status': 'needs_evidence', 'layout': LAYOUT, 'preview_svg': '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>'},
@@ -137,3 +138,46 @@ def test_a_lost_or_failed_alternatives_answer_is_not_announced_as_a_set_to_pick_
         owner.alternatives_state = state
         told = api.get('/api/v1/platform/runs/r1/results', params={'project_id': project}).json()
         assert not told.get('masterplan'), state
+
+
+def test_the_continuation_serves_its_parents_whole_set_under_the_parents_run_id(tmp_path):
+    """After a pick the newest 배치 설계 is the continuation; asking it for the set used to fail (502) because the
+    door answers with the parent's run id, and the map showed only the chosen layout."""
+    api, owner, project, service = client(tmp_path)
+    owner.chosen = 'a'
+    found = api.get('/api/v1/platform/runs/r2/alternatives', params={'project_id': project})
+    assert found.status_code == 200, found.text
+    assert found.json()['run_id'] == 'r1', 'a pick is posted to the run that owns the set'
+    assert [c['candidate_id'] for c in found.json()['candidates']] == ['a', 'b'] and found.json()['chosen_candidate_id'] == 'a'
+
+
+def test_the_basement_plate_stalls_and_sloped_ramp_reach_the_3d_view():
+    from backend.app.modules.platform.run_results.agents import masterplan
+    profile = [{'distance_m': 0, 'z_m': 0.0}, {'distance_m': 6, 'z_m': 0.0}, {'distance_m': 30, 'z_m': -3.3}]
+    poly = {'type': 'Polygon', 'coordinates': [RING]}
+    layout = {**LAYOUT, 'features': LAYOUT['features'] + [
+        {'type': 'Feature', 'geometry': poly, 'properties': {'layer': 'basement_boundary', 'level': -1, 'area_m2': 900}},
+        {'type': 'Feature', 'geometry': poly, 'properties': {'layer': 'parking_stall', 'level': -1, 'area_m2': 12.5}},
+        {'type': 'Feature', 'geometry': poly, 'properties': {'layer': 'ramp', 'level': -1, 'profile': profile}},
+        {'type': 'Feature', 'geometry': {'type': 'LineString', 'coordinates': RING[:2]}, 'properties': {'layer': 'ramp_centerline', 'level': -1}}]}
+    drawn = masterplan.from_layout(layout)['layout']
+    assert drawn['layers'] == ['basement_boundary', 'building_footprint', 'parking_stall', 'ramp', 'ramp_centerline']
+    by_layer = {f['properties']['layer']: f['properties'] for f in drawn['features']}
+    assert by_layer['parking_stall']['level'] == -1 and by_layer['ramp']['profile'] == profile
+    assert 'profile' not in by_layer['basement_boundary']
+
+
+def test_the_adapter_takes_the_parents_run_id_a_continuation_answers_with():
+    """The real Orchestrator door answers a continuation with the parent's run id; the adapter refused it as a broken
+    contract, so the editor answered 502 for every set once something was picked."""
+    import httpx
+    from backend.app.adapters.orchestrator import OrchestratorClient, OwnerContractError
+    import pytest
+    def reply(body):
+        return OrchestratorClient('http://door', transport=httpx.MockTransport(lambda request: httpx.Response(200, json=body)))
+    body = {'run_id': 'parent', 'index_revision': 2, 'selection_revision': 2, 'chosen_candidate_id': 'a',
+            'candidates': [{'candidate_id': 'a'}, {'candidate_id': 'b'}]}
+    value = asyncio.run(reply(body).alternatives('child', 'p', 'main'))
+    assert value['run_id'] == 'parent' and len(value['candidates']) == 2
+    with pytest.raises(OwnerContractError):
+        asyncio.run(reply({**body, 'run_id': None}).alternatives('child', 'p', 'main'))

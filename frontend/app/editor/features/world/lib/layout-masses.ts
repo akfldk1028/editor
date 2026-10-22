@@ -3,6 +3,9 @@
  * parcel in the 3D view — the footprint extruded to the storeys the result names (an assumption the result states),
  * parking stalls and the aisle flat on the ground, the buildable boundary as a dashed line. The declared intent
  * colours the facade: words for glass (커튼월, 유리, curtain wall, glass) give a glazed tint, otherwise a warm wall.
+ * A feature below the ground (level < 0) is drawn at its level's depth: the basement plate, its stalls and aisle, and
+ * the ramp sloping down along its own height profile. The ground over the basement is made see-through
+ * (`showUnderground`), otherwise the terrain hides all of it.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -11,7 +14,7 @@ import type { Ground } from './context-masses'
 export interface LayoutFeature {
   type: 'Feature'
   geometry: { type: string; coordinates: any }
-  properties: { layer: string; level: number; area_m2: number | null }
+  properties: { layer: string; level: number; area_m2: number | null; profile?: { distance_m: number; z_m: number }[] }
 }
 
 export interface LayoutView {
@@ -37,6 +40,81 @@ const PREFIX = 'layout-'
 const GLAZED = /커튼월|유리|curtain\s*wall|glass|glazed/i
 /** A footprint whose storeys are not known is shown one storey high and pale, never given a made-up height. */
 const UNKNOWN_STOREY_M = 3.5
+/** Depth of one basement level, as MasterPlan's ramps descend (their profile ends at -3.3 m per level). */
+export const BASEMENT_STOREY_M = 3.3
+
+/** The depth (m, negative) a feature of `level` is drawn at; 0 for the ground and above. */
+export function levelDepth(level: number): number {
+  return level < 0 ? level * BASEMENT_STOREY_M : 0
+}
+
+type Profile = { distance_m: number; z_m: number }[]
+
+/** Height of each ramp vertex: its distance along the centreline (local metres) read on the ramp's profile. */
+export function rampHeights(ring: number[], centreline: number[] | null, profile: Profile): number[] {
+  const pts: [number, number][] = []
+  for (let i = 0; i < ring.length; i += 2) pts.push([ring[i]!, ring[i + 1]!])
+  const lowest = Math.min(0, ...profile.map((p) => p.z_m))
+  if (!centreline || centreline.length < 4 || profile.length < 2) return pts.map(() => lowest / 2)
+  const lat0 = (centreline[1]! * Math.PI) / 180
+  const toM = (lon: number, lat: number): [number, number] => [lon * 111_320 * Math.cos(lat0), lat * 110_540]
+  const line: [number, number][] = []
+  for (let i = 0; i < centreline.length; i += 2) line.push(toM(centreline[i]!, centreline[i + 1]!))
+  const along = (q: [number, number]): number => {
+    let best = Infinity
+    let at = 0
+    let run = 0
+    for (let i = 0; i + 1 < line.length; i++) {
+      const a = line[i]!
+      const b = line[i + 1]!
+      const dx = b[0] - a[0]
+      const dy = b[1] - a[1]
+      const len = Math.hypot(dx, dy) || 1e-9
+      const t = Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / (len * len)))
+      const d = Math.hypot(q[0] - a[0] - t * dx, q[1] - a[1] - t * dy)
+      if (d < best) {
+        best = d
+        at = run + t * len
+      }
+      run += len
+    }
+    return at
+  }
+  const z = (d: number): number => {
+    if (d <= profile[0]!.distance_m) return profile[0]!.z_m
+    for (let i = 0; i + 1 < profile.length; i++) {
+      const a = profile[i]!
+      const b = profile[i + 1]!
+      if (d <= b.distance_m) return a.z_m + (b.z_m - a.z_m) * ((d - a.distance_m) / Math.max(b.distance_m - a.distance_m, 1e-9))
+    }
+    return profile[profile.length - 1]!.z_m
+  }
+  return pts.map(([lon, lat]) => z(along(toM(lon, lat))))
+}
+
+/**
+ * Lets the basement be seen: the globe turns see-through over the layout's below-ground features only (Cesium's
+ * translucency rectangle), and back to opaque when the layout has none. `globe` is the viewer's scene.globe.
+ */
+export function showUnderground(Cesium: any, globe: any, layout: LayoutView | null): boolean {
+  if (!globe?.translucency) return false
+  const below = (layout?.features ?? []).filter((f) => f.properties.level < 0)
+  const coords = below.flatMap((f) => [...rings(f.geometry), ...lines(f.geometry)])
+  if (!coords.length) {
+    globe.translucency.enabled = false
+    return false
+  }
+  const lons = coords.flatMap((r) => r.filter((_, k) => k % 2 === 0))
+  const lats = coords.flatMap((r) => r.filter((_, k) => k % 2 === 1))
+  const pad = 0.0002
+  globe.translucency.enabled = true
+  globe.translucency.frontFaceAlpha = 0.35
+  globe.translucency.backFaceAlpha = 0.35
+  globe.translucency.rectangle = Cesium.Rectangle.fromDegrees(
+    Math.min(...lons) - pad, Math.min(...lats) - pad, Math.max(...lons) + pad, Math.max(...lats) + pad)
+  globe.undergroundColor = Cesium.Color.fromCssColorString('#3b3f45').withAlpha(0.6)
+  return true
+}
 
 /** Does the intent read as a glazed facade? Any intent text (parti, material attitude, massing) is searched. */
 export function glazedFacade(intent: IntentView | null | undefined): boolean {
@@ -72,6 +150,13 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
   const aisle = Cesium.Color.fromCssColorString('#cfd4da').withAlpha(0.6)
   const access = Cesium.Color.fromCssColorString('#f59e0b').withAlpha(0.6)
   const buildable = Cesium.Color.fromCssColorString('#d14343')
+  const plate = Cesium.Color.fromCssColorString('#64748b').withAlpha(0.35)
+  const plateEdge = Cesium.Color.fromCssColorString('#334155')
+  const lowStall = Cesium.Color.fromCssColorString('#93c5fd').withAlpha(0.7)
+  const lowAisle = Cesium.Color.fromCssColorString('#fde68a').withAlpha(0.7)
+  const rampColour = Cesium.Color.fromCssColorString('#ef4444').withAlpha(0.7)
+  const centreline = layout.features.find((f) => f.properties.layer === 'ramp_centerline')
+  const centrelineCoords = centreline ? (lines(centreline.geometry)[0] ?? null) : null
   const onTerrain = base === 'terrain'
   const ground = onTerrain ? 0 : base
   const flat = (z: number) => onTerrain
@@ -124,13 +209,53 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       })
       return
     }
+    const level = f.properties.level
+    const depth = levelDepth(level)
     if (layer === 'parking_stall' || layer === 'parking_aisle' || layer === 'vehicular_access') {
-      const material = layer === 'parking_stall' ? stall : layer === 'parking_aisle' ? aisle : access
+      const below = level < 0
+      const material = layer === 'parking_stall' ? (below ? lowStall : stall) : layer === 'parking_aisle' ? (below ? lowAisle : aisle) : access
+      const where = below ? `지하 ${-level}층 ` : ''
       rings(f.geometry).forEach((ring, i) => {
         entities.add({
           id: `${PREFIX}${layer}-${index}-${i}`,
-          name: layer === 'parking_stall' ? '주차 구획' : layer === 'parking_aisle' ? '차로' : '차량 진입',
-          polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), ...flat(0.25), material, outline: layer === 'parking_stall', outlineColor: stallEdge },
+          name: where + (layer === 'parking_stall' ? '주차 구획' : layer === 'parking_aisle' ? '차로' : '차량 진입'),
+          polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), ...flat(depth + 0.25), material, outline: layer === 'parking_stall', outlineColor: stallEdge },
+        })
+        n++
+      })
+      return
+    }
+    if (layer === 'basement_boundary') {
+      rings(f.geometry).forEach((ring, i) => {
+        entities.add({
+          id: `${PREFIX}basement-${index}-${i}`,
+          name: `지하 ${-level}층 바닥`,
+          description: f.properties.area_m2 != null ? `${Math.round(f.properties.area_m2)}㎡` : undefined,
+          polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), ...flat(depth), material: plate, outline: true, outlineColor: plateEdge },
+        })
+        n++
+      })
+      return
+    }
+    if (layer === 'ramp') {
+      const profile: Profile = f.properties.profile && f.properties.profile.length >= 2
+        ? f.properties.profile
+        : [{ distance_m: 0, z_m: 0 }, { distance_m: 1, z_m: depth }]
+      rings(f.geometry).forEach((ring, i) => {
+        const heights = rampHeights(ring, centrelineCoords, profile)
+        // Flat ground: each vertex at its own height (a sloped surface). On terrain a polygon cannot follow both the
+        // terrain and its own slope, so the ramp is drawn level at its mean depth there.
+        const mean = heights.reduce((a, b) => a + b, 0) / Math.max(heights.length, 1)
+        entities.add({
+          id: `${PREFIX}ramp-${index}-${i}`,
+          name: '램프',
+          polygon: onTerrain
+            ? { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), ...flat(mean), material: rampColour }
+            : {
+                hierarchy: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((v, k) => (k % 2 ? [v, ground + heights[(k - 1) / 2]!] : [v]))),
+                perPositionHeight: true,
+                material: rampColour,
+              },
         })
         n++
       })

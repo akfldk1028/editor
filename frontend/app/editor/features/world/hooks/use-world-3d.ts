@@ -15,7 +15,7 @@ import { SETBACK_COLORS, SETBACK_DS_NAME } from '../../land-map/lib/vworld-3d-sc
 import { acquireCesium } from '../lib/cesium-loader'
 import { CELL_RADIUS_M, MAX_ALTITUDE_M, MAX_CELLS, cellsIn, visibleBox } from '../lib/context-cells'
 import { type Ground, type HeightCounts, drawContextGround, fetchContextGround } from '../lib/context-masses'
-import { clearLayout as clearLayoutEntities, drawLayout as drawLayoutEntities, type IntentView, type LayoutView } from '../lib/layout-masses'
+import { clearLayout as clearLayoutEntities, drawLayout as drawLayoutEntities, showUnderground, type IntentView, type LayoutView } from '../lib/layout-masses'
 import { demTerrain } from '../lib/terrain'
 import { BuildingTiles, prepareBuildingTiles } from '../lib/building-tiles'
 
@@ -250,6 +250,8 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     const Cesium = cesiumRef.current
     if (!Cesium || !layers.current) return 0
     lastLayout.current = layout ? { layout, intent } : null
+    // The ground over a basement turns see-through, else the terrain hides the basement drawn below it.
+    showUnderground(Cesium, viewerRef.current?.scene?.globe, layout)
     if (!layout) {
       clearLayoutEntities(layers.current.layout.entities)
       return 0

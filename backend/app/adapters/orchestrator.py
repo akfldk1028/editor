@@ -194,7 +194,9 @@ class OrchestratorClient:
         response = await self.get('/editor/v1/runs/' + quote(run_id, safe='') + '/alternatives?' + urlencode({'project': project, 'branch': branch}),
                                   missing=True, timeout=60)
         value = await asyncio.to_thread(self.json, response)
-        if (not isinstance(value, dict) or value.get('run_id') != run_id or not isinstance(value.get('candidates'), list)
+        # A continuation of a pick answers with its parent's set and the parent's run id (the run a pick is posted
+        # to); demanding the asked id refused every set once a candidate was chosen (502, one layout on the map).
+        if (not isinstance(value, dict) or not isinstance(value.get('run_id'), str) or not isinstance(value.get('candidates'), list)
                 or type(value.get('index_revision')) is not int or type(value.get('selection_revision')) is not int
                 or not all(isinstance(c, dict) and isinstance(c.get('candidate_id'), str) for c in value['candidates'])):
             raise OwnerContractError()

@@ -15,7 +15,8 @@ TOOL = 'masterplan_layout_synthesize'
 INTENT_TOOL = 'intent_declare'
 AGENT = 'masterplan'
 STOREY_M = 3.5            # floor-to-floor assumed for the massing view until Mass gives the real section
-LAYERS = ('building_footprint', 'parking_stall', 'parking_aisle', 'vehicular_access', 'road_frontage', 'site_boundary', 'buildable_boundary')
+LAYERS = ('building_footprint', 'parking_stall', 'parking_aisle', 'vehicular_access', 'road_frontage', 'site_boundary', 'buildable_boundary',
+          'basement_boundary', 'ramp', 'ramp_centerline')   # level < 0 is drawn below the ground; the ramp keeps its height profile
 INTENT_FIELDS = ('parti', 'massing_strategy', 'material_attitude', 'exterior_relationship', 'interior_atmosphere', 'ordering_principles')
 
 
@@ -29,9 +30,13 @@ def _features(layout):
         layer = _str(props.get('layer'))
         if layer not in LAYERS:
             continue
-        out.append({'type': 'Feature', 'geometry': geometry,
-                    'properties': {'layer': layer, 'level': props.get('level') if isinstance(props.get('level'), int) else 0,
-                                   'area_m2': _num(props.get('area_m2'))}})
+        kept = {'layer': layer, 'level': props.get('level') if isinstance(props.get('level'), int) else 0,
+                'area_m2': _num(props.get('area_m2'))}
+        if layer == 'ramp':
+            profile = [(_num(_dict(p).get('distance_m')), _num(_dict(p).get('z_m'))) for p in props.get('profile') or []]
+            if profile and all(d is not None and z is not None for d, z in profile):
+                kept['profile'] = [{'distance_m': d, 'z_m': z} for d, z in profile]
+        out.append({'type': 'Feature', 'geometry': geometry, 'properties': kept})
     return out
 
 

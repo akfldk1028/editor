@@ -184,11 +184,13 @@ export function useLatestLayout(
       setChoosing(true)
       setError(null)
       try {
-        await selectAlternative(chosen.project_id, run.run_id, candidateId)
+        // A continuation shows its parent's set: the pick goes to the run that owns the set.
+        const owner = alternatives?.run_id ?? run.run_id
+        await selectAlternative(chosen.project_id, owner, candidateId)
         setPreview(candidateId)
         window.dispatchEvent(
           new CustomEvent(SITE_RUN_EVENT, {
-            detail: { run_id: run.run_id, goal: 'masterplan', status: 'selected' },
+            detail: { run_id: owner, goal: 'masterplan', status: 'selected' },
           }),
         )
       } catch (failure) {
@@ -197,7 +199,7 @@ export function useLatestLayout(
         setChoosing(false)
       }
     },
-    [chosen, run, choosing],
+    [chosen, run, alternatives, choosing],
   )
 
   const chooseMass = useCallback(
