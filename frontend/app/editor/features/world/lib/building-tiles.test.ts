@@ -9,7 +9,7 @@ function fixture(archive: any, failure?: Error, firstFrame?: () => void) {
   }
   const primitives: any[] = []
   const viewer = { scene: { postRender: event(), postUpdate: event(), requestRender: () => {},
-    frameState: { creditDisplay: { addStaticCredit: () => {} } }, globe: { getHeight: () => 0 },
+    frameState: { creditDisplay: { addStaticCredit: () => {} } }, globe: { getHeight: () => 0, tileLoadProgressEvent: event() },
     primitives: { add: (p: any) => { primitives.push(p); return p }, remove: (p: any) => { const i = primitives.indexOf(p); if (i >= 0) primitives.splice(i, 1) } } } }
   class Holder { constructor(options: any) { Object.assign(this, options) } }
   const C = { Credit: Holder, GeometryInstance: Holder, Primitive: Holder,

@@ -57,6 +57,8 @@ export class BuildingTiles {
   private supplement: Entry = { tile: { x: 0, y: 0, key: 'supplement' }, features: [], primitives: [], heights: [], visible: [] }
   private removeRender: () => void
   private lastRefresh = 0
+  // Set when the globe finished loading terrain tiles: only then can the drawn ground under a building have moved.
+  private groundChanged = true
   private tileError = ''
   private supplementError = ''
   private firstRendered = false
@@ -89,12 +91,17 @@ export class BuildingTiles {
         return false
       })
     })
+    // Re-seating every building on the drawn ground reads globe.getHeight at each footprint vertex (~0.5 s on 684-1).
+    // Run on every rendered frame it held the main thread ~70% of the time while DEM tiles streamed in (one every
+    // 5-12 s, each rendering): it runs only after terrain tiles finished loading, and at most once a second.
+    const removeProgress = viewer.scene.globe.tileLoadProgressEvent.addEventListener(() => { this.groundChanged = true })
     const removeUpdate = viewer.scene.postUpdate.addEventListener(() => {
-      if (performance.now() - this.lastRefresh < 300) return
+      if (!this.groundChanged || performance.now() - this.lastRefresh < 1000) return
       this.lastRefresh = performance.now()
+      this.groundChanged = false
       if (this.base === 'terrain') this.refreshHeights()
     })
-    this.removeRender = () => { removeRendered(); removeUpdate() }
+    this.removeRender = () => { removeRendered(); removeUpdate(); removeProgress() }
     // Cesium's credit container keeps attribution on every surface sharing this viewer.
     viewer.scene.frameState.creditDisplay.addStaticCredit(new C.Credit('건물: 국토교통부 GIS건물통합정보 (공공누리 제1유형)', true))
     void this.open()
