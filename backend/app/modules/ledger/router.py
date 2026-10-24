@@ -16,8 +16,9 @@ from .service import Ledger
 
 HEARTBEAT_S = 15.0
 # A list or a stream sends each request and reply up to this many characters (a district review runs to hundreds of
-# thousands); the whole call is GET /hops/{id}.
-LISTED_TEXT_CHARS = 32_768
+# thousands); the whole call is GET /hops/{id}, which the transcript fetches when a clipped row is opened. At 32 KB a
+# conversation's first read was 2.5 MB and took 7 s on 684-1 (2026-10-24); 2 KB is a readable preview.
+LISTED_TEXT_CHARS = 2_048
 
 
 def listed(row: dict, limit: int = LISTED_TEXT_CHARS) -> dict:
