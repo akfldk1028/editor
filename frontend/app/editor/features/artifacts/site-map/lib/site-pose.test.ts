@@ -18,9 +18,26 @@ describe('the camera pose for a parcel', () => {
     expect(pose.lng).toBeCloseTo((parcel[0] + parcel[2]) / 2, 9)
   })
 
-  it('backs off for a larger site and never past the ceiling', () => {
+  it('backs off enough to fit a large site instead of clipping at a fixed altitude', () => {
     const large = sitePose([127.1, 37.72, 127.11, 37.73])
     expect(large.height).toBeGreaterThan(sitePose(parcel).height)
-    expect(large.height).toBeLessThanOrEqual(700)
+    const pitch = Math.abs(large.pitchDeg) * Math.PI / 180
+    const nearCornerDepth = large.height / Math.sin(pitch) - 557 * Math.cos(pitch)
+    expect(nearCornerDepth * Math.tan(Math.PI / 6)).toBeGreaterThan(441)
+  })
+
+  it('fits an east-west parcel inside a narrow viewport', () => {
+    const bounds = [127.1, 37.72, 127.11, 37.7202] as const
+    const pose = sitePose(bounds, { aspectRatio: 0.4, fovy: Math.PI / 3 })
+    const range = pose.height / Math.sin(Math.abs(pose.pitchDeg) * Math.PI / 180)
+    const halfWidth = 440
+    const halfViewWidth = range * Math.tan(Math.PI / 6) * 0.4
+    expect(halfViewWidth).toBeGreaterThan(halfWidth)
+  })
+
+  it('backs away when the camera uses a narrower field of view', () => {
+    const normal = sitePose(parcel, { aspectRatio: 1.5, fovy: Math.PI / 3 })
+    const narrow = sitePose(parcel, { aspectRatio: 1.5, fovy: Math.PI / 9 })
+    expect(narrow.height).toBeGreaterThan(normal.height * 2)
   })
 })

@@ -14,10 +14,19 @@ import { MAP_CONFIG_3D } from '../../land-map/lib/constants'
 import { SETBACK_COLORS, SETBACK_DS_NAME } from '../../land-map/lib/vworld-3d-scene'
 import { acquireCesium } from '../lib/cesium-loader'
 import { CELL_RADIUS_M, MAX_ALTITUDE_M, MAX_CELLS, cellsIn, visibleBox } from '../lib/context-cells'
-import { type Ground, type HeightCounts, drawContextGround, fetchContextGround } from '../lib/context-masses'
+import { type Ground, type HeightCounts, createGroundStages, drawGroundIncrementally } from '../lib/context-masses'
+import { cachedGround, refreshGroundBoundaries, type GroundDetail } from '../lib/ground-cache'
+import { type GroundStages, nextGroundRequest } from '../lib/ground-stages'
 import { clearLayout as clearLayoutEntities, drawLayout as drawLayoutEntities, showUnderground, type IntentView, type LayoutView } from '../lib/layout-masses'
 import { demTerrain } from '../lib/terrain'
-import { BuildingTiles, prepareBuildingTiles } from '../lib/building-tiles'
+import { prepareWorldBuildingRenderer, type WorldBuildingRenderer } from '../lib/world-building-renderer'
+import { defaultMapReleaseReader } from '../lib/map-release'
+import { placeSiteCamera } from '../lib/site-camera'
+import { GroundLayer } from '../lib/ground-layer'
+import { GroundResidency } from '../lib/ground-residency'
+import { CameraMotion } from '../lib/camera-motion'
+import { addCurrentSetback } from '../lib/setback-load'
+import { prewarmTerrainAt } from '../lib/terrain-prewarm'
 
 const PARALLEL = 3
 export type WorldBase = 'white' | 'vworld2d'
@@ -39,17 +48,26 @@ function inside(lon: number, lat: number, ring: number[][]): boolean {
   return hit
 }
 
-export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivElement | null>; onClick?: (lng: number, lat: number) => void }) {
+export function useWorld3D({ target, onClick, initialLocation, initializeCamera }: { target: RefObject<HTMLDivElement | null>; onClick?: (lng: number, lat: number) => void; initialLocation?: readonly [number, number]; initializeCamera?: (viewer: any, C: any, sample: (lon: number, lat: number) => Promise<number>, live: () => boolean) => Promise<unknown> | void }) {
+  const openingLocation = useRef(initialLocation)
+  const openingCamera = useRef(initializeCamera)
   const viewerRef = useRef<any>(null)
   const cesiumRef = useRef<any>(null)
   const layers = useRef<{ buildings: any; ground: any; cover: any; layout: any } | null>(null)
   const asked = useRef(new Set<string>())
-  const queue = useRef<{ key: string; lat: number; lon: number }[]>([])
+  const queue = useRef<{ key: string; cellKey: string; lat: number; lon: number; detail: GroundDetail }[]>([])
   const running = useRef(0)
-  const groundRequests = useRef(new Set<AbortController>())
+  const cameraMoving = useRef(false)
+  const groundRequests = useRef(new Map<AbortController, { cellKey: string; key: string; detail: GroundDetail }>())
+  const roadsReady = useRef(new Set<string>())
+  const groundGaps = useRef(new Set<string>())
+  const groundStages = useRef<GroundStages | null>(null)
+  const groundResidency = useRef(new GroundResidency(MAX_CELLS))
+  const placement = useRef(0)
+  const setbackGeneration = useRef(0)
   const pumpRef = useRef<() => void>(() => {})
   const level = useRef(0)
-  const tileBuildings = useRef<BuildingTiles | null>(null)
+  const tileBuildings = useRef<WorldBuildingRenderer | null>(null)
   const supplementStarted = useRef(false)
   const terrainOn = useRef(true)
   const generation = useRef(0)   // bumped whenever the drawn context is thrown away
@@ -63,20 +81,23 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState('3D 엔진 불러오는 중…')
   const [base, setBase] = useState<WorldBase>('white')
-  const [show, setShow] = useState<WorldLayers>({ buildings: true, ground: true, cover: false })
+  const [show, setShow] = useState<WorldLayers>({ buildings: true, ground: true, cover: true })
   const [terrain, setTerrain] = useState(true)
   const [buildings, setBuildings] = useState(0)
   const [counts, setCounts] = useState<HeightCounts>({ measured: 0, estimated: 0, unknown: 0 })
   const [pending, setPending] = useState(0)
   const [tilePending, setTilePending] = useState(0)
   const [buildingStatus, setBuildingStatus] = useState('')
+  const [terrainStatus, setTerrainStatus] = useState('')
+  const [terrainSnapshotStatus, setTerrainSnapshotStatus] = useState('')
+  const [groundStatus, setGroundStatus] = useState('')
 
   /** Hide (or show again) the context buildings standing on the highlighted parcel — the project makes way for them. */
   const applyOnSite = useCallback(() => {
     const Cesium = cesiumRef.current, ring = site.current
     if (!Cesium || !layers.current) return
     tileBuildings.current?.setSite(ring, hideOnSite.current)
-    if (ring?.length) {
+    if (ring?.length && tileBuildings.current?.backgroundReady) {
       supplementStarted.current = true
       void tileBuildings.current?.supplementNear(ring.reduce((s, p) => s + p[0]!, 0) / ring.length, ring.reduce((s, p) => s + p[1]!, 0) / ring.length).finally(() => pumpRef.current())
     }
@@ -91,24 +112,50 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
 
   const pump = useCallback(() => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
-    if (!viewer || !Cesium || !layers.current || tileBuildings.current?.supplementPending) return
+    if (!viewer || !Cesium || !layers.current) return
     while (running.current < PARALLEL && queue.current.length) {
-      const cell = queue.current.shift()!
+      const next = nextGroundRequest(queue.current, groundRequests.current.values(), roadsReady.current,
+        !cameraMoving.current, !cameraMoving.current)
+      if (next < 0) break
+      const cell = queue.current.splice(next, 1)[0]!
       const gen = generation.current
       const z: Ground = terrainOn.current ? 'terrain' : level.current
       running.current++
-      const live = () => !viewer.isDestroyed() && gen === generation.current && layers.current
+      const live = () => !viewer.isDestroyed() && gen === generation.current && Boolean(layers.current)
       const controller = new AbortController()
-      groundRequests.current.add(controller)
-      const ground = fetchContextGround(cell.lat, cell.lon, CELL_RADIUS_M, controller.signal).then((reply) => {
-        if (reply.status === 'ok' && live())
-          drawContextGround({ blocks: layers.current!.ground, cover: layers.current!.cover }, Cesium, reply, z)
+      groundRequests.current.set(controller, cell)
+      const ground = cachedGround(cell.lat, cell.lon, CELL_RADIUS_M, cell.detail,
+        AbortSignal.any([controller.signal, AbortSignal.timeout(45_000)])).then(async (reply) => {
+        if (live() && !controller.signal.aborted && groundStages.current) {
+          if (cell.detail === 'full') {
+            if (reply.gaps?.length) groundGaps.current.add(cell.cellKey)
+            else groundGaps.current.delete(cell.cellKey)
+            setGroundStatus(groundGaps.current.size ? '일부 지표면·도로 자료 부족' : '')
+          }
+          if (cell.detail === 'roads') roadsReady.current.add(cell.cellKey)
+          await drawGroundIncrementally({ blocks: layers.current!.ground.forCell(cell.cellKey), cover: layers.current!.cover.forCell(cell.cellKey) }, Cesium, reply, z,
+            () => live() && !controller.signal.aborted, () => viewer.scene.requestRender(),
+            { state: groundStages.current, cellKey: cell.cellKey, detail: cell.detail })
+          if (!live() || controller.signal.aborted) return
+          // Keep the cached fill visible while upgrading old boundary metadata.
+          // This stays in the same PARALLEL slot and cannot revive a retired cell.
+          try {
+            const fresh = await refreshGroundBoundaries(cell.lat, cell.lon, CELL_RADIUS_M, cell.detail, reply,
+              AbortSignal.any([controller.signal, AbortSignal.timeout(45_000)]))
+            if (fresh && live() && !controller.signal.aborted && groundStages.current) {
+              await drawGroundIncrementally({ blocks: layers.current!.ground.forCell(cell.cellKey), cover: layers.current!.cover.forCell(cell.cellKey) }, Cesium, fresh, z,
+                () => live() && !controller.signal.aborted, () => viewer.scene.requestRender(),
+                undefined, true)
+            }
+          } catch { /* A boundary-only refresh must not discard the installed fill or retry forever. */ }
+        }
       })
       Promise.allSettled([ground]).then((results) => {
         groundRequests.current.delete(controller)
         const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
-        if (failed) {
+        if (failed && live() && !controller.signal.aborted) {
           asked.current.delete(cell.key)
+          if (cell.detail === 'roads') roadsReady.current.add(cell.cellKey)
           if (!viewer.isDestroyed()) setStatus(failed.reason instanceof Error ? failed.reason.message : String(failed.reason))
         }
         running.current--
@@ -124,21 +171,65 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   const loadVisible = useCallback(() => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
     if (!viewer || !Cesium) return
-    if (viewer.camera.positionCartographic.height - level.current > MAX_ALTITUDE_M) {
-      setStatus('더 가까이 오면 주변 건물을 불러옵니다')
-      return
+    const retireGround = () => {
+      groundGaps.current.clear()
+      setGroundStatus('')
+      for (const cell of queue.current) asked.current.delete(cell.key)
+      queue.current = []
+      for (const [controller, cell] of groundRequests.current) {
+        asked.current.delete(cell.key)
+        controller.abort()
+      }
+      setPending(running.current)
     }
     const seen = visibleBox(viewer, Cesium)
-    if (!seen) return
-    tileBuildings.current?.load(seen.box, seen.focus)
+    if (!seen) { retireGround(); return }
+    const camera = viewer.camera.positionCartographic
+    tileBuildings.current?.load(seen.box, seen.focus, { lon: Cesium.Math.toDegrees(camera.longitude),
+      lat: Cesium.Math.toDegrees(camera.latitude), height: Math.max(1, camera.height - level.current),
+      pixels: viewer.canvas.clientHeight, fov: viewer.camera.frustum.fovy ?? Math.PI / 3 })
+    setStatus('')
+    // Reserve the first HTTP connections for geometry; slow context APIs otherwise
+    // queue static tiles/worker scripts behind them on HTTP/1.1 development hosts.
     if (!tileBuildings.current?.backgroundReady) return
+    // Detailed parcel/road requests stay local; the building archive streams at every altitude.
+    if (viewer.camera.positionCartographic.height - level.current > MAX_ALTITUDE_M) { retireGround(); return }
     if (!supplementStarted.current) {
       supplementStarted.current = true
       void tileBuildings.current?.supplementNear(seen.focus.lon, seen.focus.lat).finally(pump)
     }
-    const fresh = cellsIn(seen.box, seen.focus).filter((c) => !asked.current.has(c.key)).slice(0, MAX_CELLS)
+    const { lon, lat } = seen.focus
+    const local: [number, number, number, number] = [Math.max(seen.box[0], lon - 0.012), Math.max(seen.box[1], lat - 0.012),
+      Math.min(seen.box[2], lon + 0.012), Math.min(seen.box[3], lat + 0.012)]
+    const nearby = cellsIn(local, seen.focus).slice(0, MAX_CELLS)
+    const wanted = new Set(nearby.map(c => c.key))
+    for (const key of groundGaps.current) if (!wanted.has(key)) groundGaps.current.delete(key)
+    setGroundStatus(groundGaps.current.size ? '일부 지표면·도로 자료 부족' : '')
+    for (const [controller, cell] of groundRequests.current) if (!wanted.has(cell.cellKey)) {
+      asked.current.delete(cell.key)
+      controller.abort()
+    }
+    for (const c of queue.current) if (!wanted.has(c.cellKey)) asked.current.delete(c.key)
+    queue.current = queue.current.filter(c => wanted.has(c.cellKey))
+    // Current cells are protected; recent views remain ready for zoom-out/in.
+    // Abort obsolete work above before removing its ownership below.
+    for (const key of groundResidency.current.visit(wanted)) {
+      groundStages.current?.retire(key)
+      layers.current?.ground.retireCell(key)
+      layers.current?.cover.retireCell(key)
+      asked.current.delete(`roads/${key}`)
+      asked.current.delete(`full/${key}`)
+      roadsReady.current.delete(key)
+    }
+    const candidates = nearby.slice(0, MAX_CELLS).flatMap(c => ([
+      { ...c, cellKey: c.key, key: `roads/${c.key}`, detail: 'roads' as const },
+      { ...c, cellKey: c.key, key: `full/${c.key}`, detail: 'full' as const },
+    ]))
+    const fresh = candidates.filter(c => !asked.current.has(c.key))
     for (const c of fresh) asked.current.add(c.key)
-    queue.current = [...fresh, ...queue.current] // what the camera sees now goes first
+    const rank = new Map(nearby.map((cell, index) => [cell.key, index]))
+    queue.current = [...fresh, ...queue.current].sort((a, b) => Number(a.detail === 'full') - Number(b.detail === 'full')
+      || rank.get(a.cellKey)! - rank.get(b.cellKey)!)
     setStatus('')
     pump()
   }, [pump])
@@ -168,8 +259,14 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   /** Throw the drawn context away and load what the camera sees again (the ground under it changed). */
   const redraw = useCallback(() => {
     generation.current++
+    for (const controller of groundRequests.current.keys()) controller.abort()
     for (const l of Object.values(layers.current ?? {})) l.entities.removeAll()
     asked.current.clear()
+    roadsReady.current.clear()
+    groundGaps.current.clear()
+    setGroundStatus('')
+    groundStages.current?.clear()
+    groundResidency.current.clear()
     queue.current = []
     tileBuildings.current?.setGround(terrainOn.current ? 'terrain' : level.current, level.current)
     drawOutline()
@@ -186,6 +283,8 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     if (!viewer || !Cesium) return
     terrainProvider.current?.dispose?.()
     terrainProvider.current = null
+    setTerrainStatus('')
+    setTerrainSnapshotStatus('')
     if (!Cesium.CustomHeightmapTerrainProvider) {   // cannot happen with our own 1.122; never draw on a ground we cannot make
       terrainOn.current = false
       level.current = 0
@@ -196,7 +295,8 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     viewer.scene.globe.depthTestAgainstTerrain = terrainOn.current
     if (terrainOn.current) {
       terrainProvider.current = demTerrain(Cesium, () => level.current,
-        () => (viewer.isDestroyed() ? null : visibleBox(viewer, Cesium)?.focus ?? null))
+        () => (viewer.isDestroyed() ? null : visibleBox(viewer, Cesium)?.focus ?? null), setTerrainStatus,
+        undefined, undefined, () => setTerrainSnapshotStatus('준비된 지형 스냅샷 표시'))
       viewer.terrainProvider = terrainProvider.current
     } else {
       viewer.terrainProvider = new Cesium.CustomHeightmapTerrainProvider({ width: 2, height: 2, callback: () => new Float32Array([z, z, z, z]) })
@@ -214,10 +314,13 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   }, [applyGround, redraw])
 
   const flyTo = useCallback((lng: number, lat: number) => {
+    placement.current++
     const viewer = viewerRef.current, Cesium = cesiumRef.current
     if (!viewer || !Cesium) return
-    void tileBuildings.current?.supplementNear(lng, lat).finally(() => pumpRef.current())
-    supplementStarted.current = true
+    if (tileBuildings.current?.backgroundReady) {
+      void tileBuildings.current.supplementNear(lng, lat).finally(() => pumpRef.current())
+      supplementStarted.current = true
+    }
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(lng, lat - 0.0032, level.current + 520),
       orientation: { heading: 0, pitch: Cesium.Math.toRadians(-42), roll: 0 },
@@ -226,16 +329,23 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   }, [])
 
   /** Frames a site: the camera stands where the site map's fit of the parcel says (its size sets the distance). */
-  const frameSite = useCallback((lng: number, lat: number, pose: { lng: number; lat: number; height: number; pitchDeg: number }) => {
+  const frameSite = useCallback(async (lng: number, lat: number, pose: { lng: number; lat: number; height: number; pitchDeg: number; range: number }) => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
-    if (!viewer || !Cesium) return
-    void tileBuildings.current?.supplementNear(lng, lat).finally(() => pumpRef.current())
-    supplementStarted.current = true
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(pose.lng, pose.lat, level.current + pose.height),
-      orientation: { heading: 0, pitch: Cesium.Math.toRadians(pose.pitchDeg), roll: 0 },
-      duration: 1.2,
-    })
+    if (!viewer || !Cesium) return false
+    const request = ++placement.current
+    if (tileBuildings.current?.backgroundReady) {
+      void tileBuildings.current.supplementNear(lng, lat).finally(() => pumpRef.current())
+      supplementStarted.current = true
+    }
+    try {
+      const provider = terrainProvider.current
+      const sample = terrainOn.current ? (lon: number, latitude: number) => provider.sampleHeight(lon, latitude) : async () => level.current
+      return await placeSiteCamera(viewer, Cesium, lng, lat, pose, sample,
+        () => request === placement.current, (lon, latitude) => tileBuildings.current?.heightAt(lon, latitude))
+    } catch (error) {
+      if (request === placement.current && !viewer.isDestroyed()) setStatus(`대지 카메라: ${error instanceof Error ? error.message : String(error)}`)
+      return false
+    }
   }, [])
 
   const highlightParcel = useCallback((geometry: object) => {
@@ -254,6 +364,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   }, [applyOnSite, flyTo, drawOutline])
 
   const clearHighlight = useCallback(() => {
+    placement.current++
     outline.current = null
     viewerRef.current?.entities.removeById('world-parcel')
   }, [])
@@ -281,6 +392,7 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
 
   /** Regulation lines from a land analysis (same colours and layer name as the VWorld view), on the ground. */
   const clearSetbackLines = useCallback(() => {
+    setbackGeneration.current++
     const viewer = viewerRef.current
     if (!viewer) return
     for (let i = viewer.dataSources.length - 1; i >= 0; i--) {
@@ -293,25 +405,28 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
     const viewer = viewerRef.current, Cesium = cesiumRef.current
     if (!viewer || !Cesium || !lines) return
     clearSetbackLines()
+    const request = setbackGeneration.current
     for (const [key, geojson] of Object.entries(lines)) {
       if (!geojson || key === 'sunlight_envelope' || key === 'daylight_diagonal_envelope') continue
       const colors = SETBACK_COLORS[key] || SETBACK_COLORS.adjacent_setback!
-      Cesium.GeoJsonDataSource.load(geojson, {
+      void addCurrentSetback(Cesium.GeoJsonDataSource.load(geojson, {
         stroke: Cesium.Color.fromCssColorString(colors.stroke), fill: Cesium.Color.fromCssColorString(colors.fill),
         strokeWidth: colors.width, clampToGround: true,
-      }).then((ds: any) => {
-        ds.name = SETBACK_DS_NAME
-        if (!viewer.isDestroyed()) viewer.dataSources.add(ds)
-      }).catch((e: unknown) => console.warn(`Setback ${key} 렌더 실패:`, e))
+      }), viewer, () => request === setbackGeneration.current, SETBACK_DS_NAME)
+        .catch((e: unknown) => console.warn(`Setback ${key} 렌더 실패:`, e))
     }
   }, [clearSetbackLines])
 
   useEffect(() => {
     let disposed = false
     let release = () => {}
-    const tileResources = prepareBuildingTiles()
-    void tileResources.catch(() => {})
-    acquireCesium().then(({ Cesium, release: give }) => {
+    let removeCamera = () => {}
+    const rendererReady = prepareWorldBuildingRenderer(defaultMapReleaseReader)
+    void rendererReady.catch(() => {})
+    const warmPlacement = placement.current, warmGeneration = generation.current
+    void prewarmTerrainAt(openingLocation.current,
+      () => !disposed && warmPlacement === placement.current && warmGeneration === generation.current)
+    acquireCesium().then(async ({ Cesium, release: give }) => {
       release = give
       if (disposed || !target.current) return give()
       cesiumRef.current = Cesium
@@ -319,35 +434,75 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
         baseLayer: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
         navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
         infoBox: true, selectionIndicator: true, terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-        requestRenderMode: true, maximumRenderTimeChange: Infinity,
+        requestRenderMode: true, maximumRenderTimeChange: Infinity, targetFrameRate: 60,
+        useDefaultRenderLoop: false,
       })
       const scene = viewer.scene
+      // Navigation targets the terrain, like parcel selection. GPU depth picking
+      // synchronously reads pixels on every wheel/inertia update and stalls input.
+      scene.useDepthPicking = false
       scene.globe.baseColor = Cesium.Color.fromCssColorString('#f2f2f0')
+      // Screen-space refinement is for display; fixed-resolution building and
+      // camera height sampling still uses the level-17 source grids.
+      scene.globe.maximumScreenSpaceError = 4
       scene.backgroundColor = Cesium.Color.fromCssColorString('#f7f7f5')
       if (scene.skyBox) scene.skyBox.show = false
       if (scene.skyAtmosphere) scene.skyAtmosphere.show = false
       if (scene.sun) scene.sun.show = false
       scene.fog.enabled = false
-      layers.current = { ground: new Cesium.CustomDataSource('ground'), cover: new Cesium.CustomDataSource('cover'),
+      layers.current = { ground: new GroundLayer(viewer, Cesium, 'ground'), cover: new GroundLayer(viewer, Cesium, 'cover'),
         buildings: new Cesium.CustomDataSource('buildings'), layout: new Cesium.CustomDataSource('layout') }
-      for (const l of Object.values(layers.current)) viewer.dataSources.add(l)
+      groundStages.current = createGroundStages({ blocks: layers.current.ground, cover: layers.current.cover }, Cesium,
+        () => terrainOn.current ? 'terrain' : level.current)
+      viewer.dataSources.add(layers.current.buildings)
+      viewer.dataSources.add(layers.current.layout)
       // Same opening view as the VWorld engine; pages that know their site move the camera themselves.
-      const [lon0, lat0] = MAP_CONFIG_3D.center
+      const [lon0, lat0] = openingLocation.current ?? MAP_CONFIG_3D.center
       viewer.camera.setView({
         destination: Cesium.Cartesian3.fromDegrees(lon0, lat0 - 0.008, MAP_CONFIG_3D.defaultAltitude),
         orientation: { heading: 0, pitch: Cesium.Math.toRadians(MAP_CONFIG_3D.defaultPitch), roll: 0 },
       })
       viewerRef.current = viewer
-      tileBuildings.current = new BuildingTiles(viewer, Cesium, (got, waiting, reason) => {
+      applyGround()
+      // Resolve the actual site's camera before the globe starts requesting the
+      // broad default view. Its terrain samples then have uncontended connections.
+      try {
+        await openingCamera.current?.(viewer, Cesium, (lon, lat) => terrainProvider.current.sampleHeight(lon, lat), () => !disposed)
+      } catch (e) {
+        if (!disposed) setStatus(`대지 카메라: ${e instanceof Error ? e.message : String(e)}`)
+      }
+      if (disposed) return
+      viewer.useDefaultRenderLoop = true
+      const renderer = await rendererReady
+      if (disposed || viewerRef.current !== viewer || viewer.isDestroyed()) return
+      tileBuildings.current = renderer.create({ viewer, C: Cesium, changed: (got, waiting, reason) => {
         if (disposed) return
         setCounts(got)
         setBuildings(got.measured + got.estimated + got.unknown)
         setTilePending(waiting)
         setBuildingStatus(reason)
-      }, tileResources, () => { applyGround(); loadVisible() })
+      }, firstFrame: loadVisible })
       ;(viewer as any).buildingTiles = tileBuildings.current
       ;(target.current as any).__worldViewer = viewer
-      viewer.camera.moveEnd.addEventListener(loadVisible)
+      let lastView = 0
+      const motion = new CameraMotion()
+      const updateMotion = () => {
+        const c = viewer.camera, p = c.positionWC, d = c.directionWC, u = c.upWC
+        const wasMoving = cameraMoving.current
+        cameraMoving.current = motion.update(performance.now(), [p.x, p.y, p.z, d.x, d.y, d.z, u.x, u.y, u.z])
+        if (wasMoving && !cameraMoving.current) loadVisible()
+      }
+      const moving = () => {
+        updateMotion()
+        if (performance.now() - lastView < 50) return
+        lastView = performance.now()
+        loadVisible()
+      }
+      viewer.camera.percentageChanged = 0.01
+      const removeMotion = scene.preUpdate.addEventListener(updateMotion)
+      const removeChanged = viewer.camera.changed.addEventListener(moving)
+      removeCamera = () => { removeMotion(); removeChanged(); cameraMoving.current = false }
+      loadVisible()
       viewer.screenSpaceEventHandler.setInputAction((click: any) => {
         const ray = viewer.camera.getPickRay(click.position)
         const at = ray && scene.globe.pick(ray, scene)
@@ -357,13 +512,21 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
       setReady(true)
       setStatus('')
-    }).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    }).catch((e) => { if (!disposed) setError(e instanceof Error ? e.message : String(e)) })
     return () => {
       disposed = true
+      placement.current++
+      removeCamera()
       queue.current = []
       generation.current++
-      for (const request of groundRequests.current) request.abort()
+      for (const request of groundRequests.current.keys()) request.abort()
       groundRequests.current.clear()
+      groundStages.current?.clear()
+      groundStages.current = null
+      groundResidency.current.clear()
+      asked.current.clear()
+      roadsReady.current.clear()
+      groundGaps.current.clear()
       tileBuildings.current?.dispose()
       tileBuildings.current = null
       supplementStarted.current = false
@@ -407,6 +570,6 @@ export function useWorld3D({ target, onClick }: { target: RefObject<HTMLDivEleme
   return {
     ready, loading: !ready && !error, error, viewerRef, cesiumRef,
     highlightParcel, clearHighlight, setSite, flyTo, frameSite, setBuildingsVisible, setGroundLevel, loadVisible, drawSetbackLines, clearSetbackLines, drawLayout,
-    base, setBase, show, setShow, terrain, setTerrain, status: [status, buildingStatus].filter(Boolean).join(' · '), setStatus, stats: { buildings, counts, pending: pending + tilePending },
+    base, setBase, show, setShow, terrain, setTerrain, status: [status, buildingStatus, terrainStatus, terrainSnapshotStatus, groundStatus].filter(Boolean).join(' · '), setStatus, stats: { buildings, counts, pending: pending + tilePending },
   }
 }

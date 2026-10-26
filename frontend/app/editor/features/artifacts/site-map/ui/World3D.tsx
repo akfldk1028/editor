@@ -1,15 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
 import { WorldControls } from '../../../world/components/WorldControls'
 import { useWorld3D } from '../../../world/hooks/use-world-3d'
 import { prepareCesium } from '../../../world/lib/cesium-loader'
-import { prepareBuildingTiles } from '../../../world/lib/building-tiles'
+import { prepareWorldBuildingRenderer } from '../../../world/lib/world-building-renderer'
+import { defaultMapReleaseReader } from '../../../world/lib/map-release'
+import { placeSiteCamera } from '../../../world/lib/site-camera'
 import type { IntentView, LayoutView } from '../../../world/lib/layout-masses'
 import type { LngLat, ParcelSet } from '../lib/engine'
 import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
 import { sitePose } from '../lib/site-pose'
+import { readSceneCamera, restoreSceneCamera, type SceneCamera } from '../lib/scene-camera'
+import VworldSiteWorld from './VworldSiteWorld'
 
 /**
  * The 3D view of the same site: the world feature's Cesium engine (read-only
@@ -31,12 +35,29 @@ export interface LayoutOverlay {
 }
 
 export default function World3D({ active, drawn, onPick, overlay = null }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay?: LayoutOverlay | null }) {
+  const [mode, setMode] = useState<'mass' | 'lod1' | 'textured'>('mass')
+  const viewer = useRef<any>(null)
+  const camera = useRef<SceneCamera | null>(null)
+  const onViewer = useCallback((value: any) => { viewer.current = value }, [])
+  const chooseMode = useCallback(async (next: typeof mode) => {
+    // Finish the shared-global Cesium preload before mounting the SDK's own build.
+    await prepareCesium().catch(() => {})
+    camera.current = readSceneCamera(viewer.current)
+    setMode(next)
+  }, [])
+  const controls = <label className="flex items-center gap-2">건물 표시
+    <select aria-label="건물 표시 방식" value={mode} onChange={e => void chooseMode(e.target.value as typeof mode)}>
+      <option value="mass">흰 매스</option>
+      <option value="lod1">브이월드 LoD1</option>
+      <option value="textured">브이월드 텍스처 모델</option>
+    </select>
+  </label>
   useEffect(() => {
-    if (!active) return
+    if (!active || mode !== 'mass') return
     // Fetch the engine and archive while the parcel is located; the viewer still waits for its actual site.
     void prepareCesium().catch(() => {})
-    void prepareBuildingTiles().catch(() => {})
-  }, [active])
+    void prepareWorldBuildingRenderer(defaultMapReleaseReader).catch(() => {})
+  }, [active, mode])
   // The world draws one outline: the merged boundary of a bundle, else the single parcel.
   const shape = drawn.outline ?? drawn.geometries[0] ?? null
   const [known, setKnown] = useState(shape !== null)
@@ -47,22 +68,38 @@ export default function World3D({ active, drawn, onPick, overlay = null }: { act
   return (
     <div className="site-map-3d" data-active={active}>
       {known
-        ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} />
+        ? mode === 'mass'
+          ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} controls={controls} camera={camera.current} onViewer={onViewer} />
+          : <VworldSiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} mode={mode} controls={controls} camera={camera.current} onViewer={onViewer} />
         : <span className="site-map-3d-status">대지 불러오는 중</span>}
     </div>
   )
 }
 
-/** Metres between two lon/lat points (flat, good enough within a city). */
-function metres([lng1, lat1]: LngLat, [lng2, lat2]: LngLat): number {
-  return Math.hypot((lat1 - lat2) * 111_000, (lng1 - lng2) * 88_000)
-}
-
-function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay: LayoutOverlay | null; shape: object | null }) {
+function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, onViewer }: {
+  active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay: LayoutOverlay | null; shape: object | null
+  controls: ReactNode; camera: SceneCamera | null; onViewer(viewer: any): void
+}) {
   const target = useRef<HTMLDivElement>(null)
   const onClick = useCallback((lng: number, lat: number) => onPick([lng, lat]), [onPick])
-  const world = useWorld3D({ target, onClick })
-  const { ready, error, viewerRef, cesiumRef, highlightParcel, clearHighlight, flyTo, frameSite, drawLayout } = world
+  const openingBounds = parcelBounds(drawn.geometries.flatMap(parcelRings))
+  const initialCamera = useRef(camera)
+  const initialized = useRef<string | null>(null)
+  const world = useWorld3D({ target, onClick, initialLocation: openingBounds ? boundsCenter(openingBounds) : undefined,
+    initializeCamera: async (viewer, C, sample, live) => {
+      if (initialCamera.current) {
+        restoreSceneCamera(viewer, C, initialCamera.current)
+        initialCamera.current = null
+        initialized.current = openingBounds ? boundsCenter(openingBounds).map(v => v.toFixed(6)).join(',') : null
+      } else if (openingBounds) {
+        const [lon, lat] = boundsCenter(openingBounds)
+        if (await placeSiteCamera(viewer, C, lon, lat, sitePose(openingBounds, viewer.camera.frustum), sample, live, () => undefined, true)) {
+          initialized.current = [lon, lat].map(v => v.toFixed(6)).join(',')
+        }
+      }
+    } })
+  const { ready, error, viewerRef, highlightParcel, clearHighlight, frameSite, drawLayout } = world
+  useEffect(() => { if (ready) onViewer(viewerRef.current) }, [ready, onViewer, viewerRef])
 
   // The planned building (the newest 배치 설계 of this site) stands on the parcel; it follows the ground setting.
   useEffect(() => {
@@ -75,23 +112,18 @@ function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean;
    *  'site' or 'picked', and that turn moves the camera even onto the same parcel. */
   const lastLook = useRef<string | null>(null)
 
-  /** The camera's ground point under the screen centre's pose: where flyTo leaves it, as [lng, lat]. */
-  const cameraAt = useCallback((): LngLat | null => {
-    const viewer = viewerRef.current, Cesium = cesiumRef.current
-    if (!viewer || !Cesium || viewer.isDestroyed()) return null
-    const p = viewer.camera.positionCartographic
-    return [Cesium.Math.toDegrees(p.longitude), Cesium.Math.toDegrees(p.latitude)]
-  }, [viewerRef, cesiumRef])
-
-  /** The engine's own site pose (flyTo), completed at once; true when the camera is there. */
-  const place = useCallback(([lng, lat]: LngLat, bounds?: readonly [number, number, number, number]): boolean => {
-    // The camera frames the parcel itself (its size sets the distance), not a fixed wide pose over its centre.
-    if (bounds) frameSite(lng, lat, sitePose(bounds))
-    else flyTo(lng, lat)
-    viewerRef.current?.camera.completeFlight()
-    const at = cameraAt()
-    return at !== null && metres(at, [lng, lat]) < 1500
-  }, [flyTo, frameSite, viewerRef, cameraAt])
+  const place = useCallback(([lng, lat]: LngLat, bounds: readonly [number, number, number, number]) => {
+    const initializedSite = initialized.current
+    initialized.current = null
+    if (initializedSite === [lng, lat].map(v => v.toFixed(6)).join(',')) return
+    if (initialCamera.current && world.cesiumRef.current) {
+      restoreSceneCamera(viewerRef.current, world.cesiumRef.current, initialCamera.current)
+      initialCamera.current = null
+      return
+    }
+    const frustum = viewerRef.current?.camera.frustum
+    return frameSite(lng, lat, sitePose(bounds, { aspectRatio: frustum?.aspectRatio, fovy: frustum?.fovy }))
+  }, [frameSite, viewerRef, world.cesiumRef])
 
   useEffect(() => {
     if (!active) placed.current = null
@@ -123,18 +155,13 @@ function SiteWorld({ active, drawn, onPick, overlay, shape }: { active: boolean;
     const confirmed = drawn.look === 'saved' && previousLook !== 'saved'
     if (placed.current !== null && (drawn.look === 'picked' || (placed.current === key && !confirmed))) return
     placed.current = key
-    if (place(center, bounds)) return
-    // Not there (the viewer was not ready to move): try once more on the next frame.
-    const frame = requestAnimationFrame(() => {
-      if (!place(center, bounds)) console.warn('[site-map] 3D camera did not reach the site', center, cameraAt())
-    })
-    return () => cancelAnimationFrame(frame)
-  }, [ready, active, shape, drawn.geometries, drawn.look, highlightParcel, clearHighlight, place, cameraAt])
+    void place(center, bounds)
+  }, [ready, active, shape, drawn.geometries, drawn.look, highlightParcel, clearHighlight, place])
 
   return (
     <>
       <div className="site-map-world" ref={target} />
-      <WorldControls world={world} title="주변 맥락" compact className="site-map-world-controls" />
+      <WorldControls world={world} title="주변 맥락" compact className="site-map-world-controls">{controls}</WorldControls>
       {overlay && <span className="site-map-3d-layout">{overlay.caption}</span>}
       {!ready && <span className="site-map-3d-status">{error ?? '3D 불러오는 중'}</span>}
     </>

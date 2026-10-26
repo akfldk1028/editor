@@ -8,6 +8,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { settleVworldScript } from '../../land-map/lib/vworld-3d-loader'
 export const CESIUM_VERSION = '1.122.0'
 const BASE = `https://cdn.jsdelivr.net/npm/cesium@${CESIUM_VERSION}/Build/Cesium/`
 
@@ -51,12 +52,14 @@ function load(): Promise<any> {
 let holders = 0
 let saved: { Cesium: any; base: any } | null = null
 
-export function prepareCesium(): Promise<void> {
-  return load().then(() => {})
+export async function prepareCesium(): Promise<void> {
+  await settleVworldScript()
+  await load()
 }
 
 /** Our Cesium, put on the globals until the last `release()` (the design view's renderers read window.Cesium). */
 export async function acquireCesium(): Promise<{ Cesium: any; release: () => void }> {
+  await settleVworldScript()
   const C = await load()
   const w = window as any
   if (holders === 0) saved = { Cesium: w.Cesium === C ? undefined : w.Cesium, base: w.CESIUM_BASE_URL === BASE ? undefined : w.CESIUM_BASE_URL }

@@ -25,7 +25,7 @@ export function cellsIn(box: [number, number, number, number], focus: { lat: num
   return out.sort((a, b) => d(a) - d(b))
 }
 
-/** The ground box the camera sees, clipped around the screen centre so a low, tilted view does not reach the horizon. */
+/** Sample the screen edges, including the horizon when the upper part of the screen is sky. */
 export function visibleBox(viewer: any, Cesium: any): { box: [number, number, number, number]; focus: { lat: number; lon: number } } | null {
   const canvas = viewer.canvas
   const pick = (x: number, y: number) => {
@@ -34,12 +34,26 @@ export function visibleBox(viewer: any, Cesium: any): { box: [number, number, nu
     const c = Cesium.Cartographic.fromCartesian(p)
     return { lat: Cesium.Math.toDegrees(c.latitude), lon: Cesium.Math.toDegrees(c.longitude) }
   }
-  const centre = pick(canvas.clientWidth / 2, canvas.clientHeight / 2)
+  const centre = pick(canvas.clientWidth / 2, canvas.clientHeight / 2) ?? pick(canvas.clientWidth / 2, canvas.clientHeight * 0.98)
   if (!centre) return null
-  const pts = ([[0.1, 0.3], [0.9, 0.3], [0.1, 0.98], [0.9, 0.98], [0.5, 0.5]] as [number, number][])
-    .map(([x, y]) => pick(canvas.clientWidth * x, canvas.clientHeight * y)).filter(Boolean) as { lat: number; lon: number }[]
-  const lim = 0.012 // never more than ~1.3 km from the centre
-  const lats = pts.map((p) => Math.min(Math.max(p.lat, centre.lat - lim), centre.lat + lim))
-  const lons = pts.map((p) => Math.min(Math.max(p.lon, centre.lon - lim), centre.lon + lim))
+  const pts = [centre]
+  for (const x of [0, 0.5, 1]) {
+    let sky: number | null = null
+    for (const y of [0, 0.25, 0.5, 0.75, 1]) {
+      const p = pick(canvas.clientWidth * x, canvas.clientHeight * y)
+      if (!p) { sky = y; continue }
+      pts.push(p)
+      if (sky !== null) {
+        let lo = sky, hi = y
+        for (let i = 0; i < 10; i++) {
+          const mid = (lo + hi) / 2
+          const edge = pick(canvas.clientWidth * x, canvas.clientHeight * mid)
+          if (edge) { hi = mid; pts.push(edge) } else lo = mid
+        }
+        sky = null
+      }
+    }
+  }
+  const lats = pts.map(p => p.lat), lons = pts.map(p => p.lon)
   return { box: [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)], focus: centre }
 }

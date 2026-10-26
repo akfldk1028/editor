@@ -26,6 +26,10 @@ export const getCesium = (): any => (window as any).Cesium
 // ---------------------------------------------------------------------------
 
 let scriptPromise: Promise<void> | null = null
+/** Dynamic SDK scripts cannot be cancelled after injection; let their global writes finish before switching engines. */
+export async function settleVworldScript(): Promise<void> {
+  await scriptPromise?.catch(() => {})
+}
 export const sdkStyles = new Set<HTMLLinkElement>()
 
 export function canCreateWebGLContext(): boolean {
