@@ -27,6 +27,7 @@ import { GroundResidency } from '../lib/ground-residency'
 import { CameraMotion } from '../lib/camera-motion'
 import { addCurrentSetback } from '../lib/setback-load'
 import { prewarmTerrainAt } from '../lib/terrain-prewarm'
+import { prepareGroundImagery } from '../lib/ground-imagery'
 
 const PARALLEL = 3
 export type WorldBase = 'white' | 'vworld2d'
@@ -82,6 +83,9 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
   const [status, setStatus] = useState('3D 엔진 불러오는 중…')
   const [base, setBase] = useState<WorldBase>('white')
   const [show, setShow] = useState<WorldLayers>({ buildings: true, ground: true, cover: true })
+  const shown = useRef(show)
+  shown.current = show
+  const coarseGround = useRef<{ kind: 'roads' | 'landcover'; layer: any }[]>([])
   const [terrain, setTerrain] = useState(true)
   const [buildings, setBuildings] = useState(0)
   const [counts, setCounts] = useState<HeightCounts>({ measured: 0, estimated: 0, unknown: 0 })
@@ -551,11 +555,37 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     const viewer = viewerRef.current, Cesium = cesiumRef.current
     if (!viewer || !Cesium) return
     viewer.imageryLayers.removeAll()
+    const controller = new AbortController()
+    let prepared: Awaited<ReturnType<typeof prepareGroundImagery>> | undefined
+    const added: { kind: 'roads' | 'landcover'; layer: any }[] = []
     if (base === 'vworld2d') {
       viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
         url: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/tiles/{z}/{y}/{x}.png`,
         maximumLevel: 19, credit: 'VWorld',
       }))
+    } else {
+      void prepareGroundImagery(Cesium, { signal: controller.signal }).then(result => {
+        if (controller.signal.aborted || viewerRef.current !== viewer || viewer.isDestroyed()) {
+          result.dispose()
+          return
+        }
+        prepared = result
+        for (const item of result.layers) {
+          const layer = viewer.imageryLayers.addImageryProvider(item.provider)
+          layer.show = item.kind === 'roads' ? shown.current.ground : shown.current.cover
+          added.push({ kind: item.kind, layer })
+        }
+        coarseGround.current = added
+        viewer.scene.requestRender()
+      }).catch(error => {
+        if (!controller.signal.aborted) console.warn('Ground imagery unavailable', error)
+      })
+    }
+    return () => {
+      controller.abort()
+      prepared?.dispose()
+      if (!viewer.isDestroyed()) for (const item of added) viewer.imageryLayers.remove(item.layer, true)
+      if (coarseGround.current === added) coarseGround.current = []
     }
   }, [base, ready])
 
@@ -565,6 +595,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     layers.current.buildings.show = show.buildings
     layers.current.ground.show = show.ground
     layers.current.cover.show = show.cover
+    for (const item of coarseGround.current) item.layer.show = item.kind === 'roads' ? show.ground : show.cover
   }, [show, ready])
 
   return {
