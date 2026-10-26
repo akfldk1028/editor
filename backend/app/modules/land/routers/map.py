@@ -12,7 +12,7 @@ from backend.app.adapters import scene_agent
 from backend.app.adapters.elevation import ElevationFetchError, ElevationMissingSamples
 from backend.app.modules.platform import host
 from backend.app.modules.land.vworld.map import MapUnavailable, VworldMapClient
-from backend.app.modules.land import building_tiles, map_terrain, map_roads, map_ground
+from backend.app.modules.land import building_tiles, map_terrain, map_roads, map_ground, map_ground_imagery, map_road_imagery
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,34 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
     router = APIRouter(prefix=prefix, tags=['land-map'])
     roads = map_roads.RoadDisplay()
     ground = map_ground.GroundDisplay(roads)
+    ground_imagery = map_ground_imagery.GroundImagery()
+    road_imagery = map_road_imagery.RoadImagery()
     if os.environ.get('VWORLD_BROWSER_API_KEY') and os.environ.get('VWORLD_BROWSER_API_KEY') == os.environ.get('VWORLD_API_KEY'):
         # map-config hands this key to every browser; it must not be the server key.
         logger.warning('VWORLD_BROWSER_API_KEY equals VWORLD_API_KEY; issue a separate key restricted to the editor origin')
+
+    @router.get('/ground-imagery/{z}/{x}/{y}.png')
+    async def detail_ground_imagery(z: int, x: int, y: int):
+        try:
+            raw = await ground_imagery.get(z, x, y)
+        except ValueError:
+            raise HTTPException(422, 'Invalid ground imagery tile coordinates') from None
+        except map_ground_imagery.ImageryUnavailable:
+            raise HTTPException(503, 'Ground imagery unavailable') from None
+        return Response(raw, media_type='image/png', headers={'Cache-Control': 'public, max-age=86400'})
+
+    @router.get('/road-imagery/{style}/{z}/{x}/{y}.png')
+    @router.get('/road-imagery/{z}/{x}/{y}.png')
+    async def detail_road_imagery(z: int, x: int, y: int, style: str | None = None):
+        if style is not None and style != map_road_imagery.STYLE_SHA:
+            raise HTTPException(404, 'Road imagery style unavailable')
+        try:
+            raw = await road_imagery.get(z, x, y)
+        except ValueError:
+            raise HTTPException(422, 'Invalid road imagery tile coordinates') from None
+        except map_ground_imagery.ImageryUnavailable:
+            raise HTTPException(503, 'Road imagery unavailable') from None
+        return Response(raw, media_type='image/png', headers={'Cache-Control': 'public, max-age=86400'})
 
     @router.get('/map-config')
     async def map_config():

@@ -43,6 +43,7 @@ dev = ["import-linter>=2.15,<3"]
 include = ["backend*"]
 
 [tool.setuptools.package-data]
+"backend.app.modules.land" = ["resources/*.sld"]
 "backend.app.modules.regulations" = ["data/*.json", "data/ordinance_overrides/*.json"]
 "backend.app.modules.design.generation" = ["*.json", "**/*.json", "**/*.yaml", "**/*.yml", "**/*.md", "**/*.csv"]
 "backend.app.modules.land.reference" = ["data/*.json", "data/ordinance_overrides/*.json"]
