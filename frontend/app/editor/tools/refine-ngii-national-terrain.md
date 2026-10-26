@@ -1,0 +1,15 @@
+# Adaptive native terrain candidate
+
+Run `bun tools/refine-ngii-national-terrain.ts` with `--data-root`, `--work`, `--snapshot`, `--plan`, `--regions`, `--queue-inputs`, `--base`, `--base-receipt`, `--dem`, `--python`. Use `--region 14/13885/6539` for the first failing-region probe. Omitting region/sample switches selects the entire pinned inventory. `--below-normal` lowers the owned Python sampler priority.
+
+Inputs are immutable. Choose a fresh work directory under DATA_ROOT. The overlay holds only new native 33x33 detail tiles. A native finite error over 0.5m triggers missing level16 through20 tiles, with all regional anchors rechecked after each level. Native NoData is retained, never replaced with zero. Existing base tiles cannot be overwritten. Each region commits its tiles and proof atomically; restart with exactly the same inputs and implementation. STOP is honored at region boundaries. A changed source/recipe or a failed max-level region requires review, not automatic retries.
+
+After first pass the entire selected cohort is resampled again to detect neighbour changes. Such a failure leaves the candidate unpublished and requires a further refinement pass/design review. Per-region passes alone cannot establish completion. Current service files are never edited.
+
+Packing is separate: `python tools/adaptive_terrain_refinement.py --base BASE --work WORK --output WORK/terrain.packing.pmtiles`. Sample proofs require explicit `--allow-sample`. The sorted merge preserves old compressed bytes and rejects duplicate IDs. Packing reserves space for temporary payload plus final archive, in addition to 20GiB. Output exists/alias is refused. No source deletion occurs.
+
+Packing now uses `streaming_pmtiles_writer.py`: SQLite directory/dedup metadata, bounded 4096-entry serialization, at most four lookup directories, and a single compressed payload spool. Existing committed packing checkpoints resume only with identical base/overlay/proof/writer-code identity. Uncommitted payload tails are truncated; source aliases and unknown spool directories are refused. Writer retains its own SQLite exclusive lock. Final output is written to a part file, read back for SHA comparison, then atomically renamed. Temporary spools remain owned candidate caches, not source data.
+
+A 100,000-unique-entry fixture passed complete standard Reader byte comparison with Python traced peak2.84MB (entire pytest process peak128.5MB including imported native packages). Nested directory, dedup runs, cancellation/resume, hardlink protection and space guards are tested. Nationwide packing has not been run. Independently verify the final packed archive across the complete canonical cohort before rebaking buildings; the packing receipt alone is not publication approval. No service activation is part of these tools.
+
+First real probe: `C:/Data/25_ACE/terrain-adaptive-candidates/first14-v1/refinement-verification.json`, 14 native finite anchors, four additional tiles, maximum error0.30829107558m; sampleOnly=true, complete=false. Native 0.5m and datum0.01m thresholds unchanged.
