@@ -37,6 +37,7 @@ export interface IntentView {
 }
 
 const PREFIX = 'layout-'
+const drawnLayouts = new WeakMap<object, { signature: string; count: number; entities: any[] }>()
 const GLAZED = /커튼월|유리|curtain\s*wall|glass|glazed/i
 /** A footprint whose storeys are not known is shown one storey high and pale, never given a made-up height. */
 const UNKNOWN_STOREY_M = 3.5
@@ -135,16 +136,22 @@ function lines(geometry: any): number[][] {
 }
 
 export function clearLayout(entities: any): void {
+  drawnLayouts.delete(entities)
   for (const e of [...entities.values]) if (String(e.id).startsWith(PREFIX)) entities.remove(e)
 }
 
 /** Draws the layout; returns how many entities were added. `base` is the ground the context masses stand on. */
 export function drawLayout(entities: any, Cesium: any, layout: LayoutView, intent: IntentView | null | undefined, base: Ground = 0): number {
+  const signature = JSON.stringify([layout, intent ?? null, base])
+  const previous = drawnLayouts.get(entities)
+  const current = entities.values.filter((e: any) => String(e.id).startsWith(PREFIX))
+  if (previous?.signature === signature && current.length === previous.entities.length
+    && current.every((e: any, i: number) => e === previous.entities[i])) return previous.count
   clearLayout(entities)
   const glazed = glazedFacade(intent)
-  const wall = Cesium.Color.fromCssColorString(glazed ? '#8fc3e8' : '#e8d9c2').withAlpha(glazed ? 0.75 : 0.96)
+  const wall = Cesium.Color.fromCssColorString(glazed ? '#8fc3e8' : '#e8d9c2')
   const wallEdge = Cesium.Color.fromCssColorString(glazed ? '#2f6f9f' : '#8a6d4b')
-  const unknown = Cesium.Color.fromCssColorString('#f1e7d8').withAlpha(0.6)
+  const unknown = Cesium.Color.fromCssColorString('#f1e7d8')
   const stall = Cesium.Color.fromCssColorString('#ffffff').withAlpha(0.5)
   const stallEdge = Cesium.Color.fromCssColorString('#6b7280')
   const aisle = Cesium.Color.fromCssColorString('#cfd4da').withAlpha(0.6)
@@ -279,5 +286,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
     }
   })
   entities.resumeEvents()
+  drawnLayouts.set(entities, { signature, count: n,
+    entities: entities.values.filter((e: any) => String(e.id).startsWith(PREFIX)) })
   return n
 }

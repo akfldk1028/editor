@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { BASEMENT_STOREY_M, drawLayout, levelDepth, rampHeights, showUnderground, type LayoutFeature, type LayoutView } from './layout-masses'
+import { BASEMENT_STOREY_M, clearLayout, drawLayout, levelDepth, rampHeights, showUnderground, type LayoutFeature, type LayoutView } from './layout-masses'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const colour = { withAlpha: () => colour }
@@ -35,6 +35,45 @@ const EAST_30M = 30 / (111_320 * Math.cos((LAT * Math.PI) / 180))
 function view(features: LayoutFeature[]): LayoutView {
   return { features, storeys: 4, storey_height_m: 3.5, height_m: 14, height_basis: null, footprint_m2: 800, coverage_pct: 32 }
 }
+
+test('planned building masses remain opaque for unknown floors and glazed facade intents', () => {
+  const color = (css: string, alpha = 1): any => ({ css, alpha, withAlpha: (next: number) => color(css, next) })
+  const C = { ...Cesium, Color: { fromCssColorString: color } }
+  for (const storeys of [null, 5]) for (const intent of [null, { material_attitude: '커튼월' }]) {
+    const e = entities()
+    drawLayout(e, C, { ...view([feature('building_footprint', 0, square(LON, LAT))]), storeys }, intent, 60)
+    expect(e.added[0].polygon.material.alpha).toBe(1)
+  }
+  const e = entities()
+  drawLayout(e, C, { ...view([feature('building_footprint', 0, square(LON, LAT))]),
+    mass: { label: 'test', volumes: [{ ring: square(LON, LAT).coordinates[0]!, base_m: 0, top_m: 17.5 }] } },
+    { material_attitude: 'glass' }, 60)
+  expect(e.added[0].polygon.material.alpha).toBe(1)
+})
+
+test('identical polled layouts retain live entities while design, ground and clear changes redraw', () => {
+  const e = entities()
+  let removals = 0
+  e.remove = (entity?: any) => { removals++; const i = e.values.indexOf(entity); if (i >= 0) e.values.splice(i, 1) }
+  const layout = view([feature('building_footprint', 0, square(LON, LAT))])
+  drawLayout(e, Cesium, layout, null, 60)
+  const original = e.values[0]
+  expect(drawLayout(e, Cesium, structuredClone(layout), null, 60)).toBe(1)
+  expect(e.values[0]).toBe(original)
+  expect(e.values).toHaveLength(1)
+  expect(removals).toBe(0)
+  drawLayout(e, Cesium, { ...layout, height_m: 21 }, null, 60)
+  expect(e.values[0]).not.toBe(original)
+  expect(e.values[0].polygon.extrudedHeight).toBe(81)
+  const updated = e.values[0]
+  drawLayout(e, Cesium, { ...layout, height_m: 21 }, null, 'terrain')
+  expect(e.values[0]).not.toBe(updated)
+  expect(e.values[0].polygon.extrudedHeightReference).toBe('rel')
+  clearLayout(e)
+  expect(e.values).toHaveLength(0)
+  drawLayout(e, Cesium, { ...layout, height_m: 21 }, null, 'terrain')
+  expect(e.values).toHaveLength(1)
+})
 
 describe('basement in the 3D layout', () => {
   test('a basement level is drawn one storey down; the ground stays at 0', () => {
