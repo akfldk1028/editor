@@ -233,6 +233,25 @@ class NationalBakeMonitor:
         return result
 
 
+def release_building_url(root, release):
+    if release.get('schema') == 'ace-map-release-v2':
+        url = release['nationalBuildings']['url']
+        if not isinstance(url, str) or not url.startswith('/api/map-data/world-buildings/'):
+            raise ValueError('Invalid national building URL')
+        return url
+    index = read(root / 'world-buildings' / release['buildingCatalog']['index'])
+    shard = read(root / 'world-buildings' / index['shards'][0]['href'])
+    return building_url(shard['regions'][0]['url'])
+
+
+def height_verification_status(path):
+    result = read(path)
+    return {key: result.get(key) for key in (
+        'state', 'complete', 'passed', 'sampleOnly', 'pendingRegions', 'compared',
+        'nativeFinite', 'nativeNoData', 'nativeEvidence', 'absoluteErrorMetres',
+        'publishedBuildingDatumCheck', 'terrainArchiveSHA256', 'buildingCatalogSHA256')}
+
+
 def snapshot(args):
     row = {'at': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'pid': os.getpid(), 'intervalSeconds': args.interval, 'alerts': [], 'browserPerformanceMeasured': False, 'automaticAgentWake': False}
     for name, action in [
@@ -260,6 +279,14 @@ def snapshot(args):
         except Exception as exc:
             row['candidateNationalBake'] = {'publicationStatus': 'candidate-only not published', 'error': str(exc)}
             row['alerts'].append('national_bake_read_failed')
+    if getattr(args, 'height_verification', None):
+        try:
+            row['heightVerification'] = height_verification_status(args.height_verification)
+            if row['heightVerification'].get('state') == 'quality_failed':
+                row['alerts'].append('national_height_quality_failed')
+        except (OSError, ValueError) as exc:
+            row['heightVerification'] = {'error': str(exc)}
+            row['alerts'].append('national_height_verification_read_failed')
     row['alerts'].extend(terrain.get('alerts', []))
     if terrain.get('errors') or terrain.get('rejectedCohortResults'):
         row['alerts'].append('candidate_evidence_mismatch')
@@ -275,11 +302,8 @@ def snapshot(args):
     try:
         release = read(args.data_root / 'releases/current.json')
         row['currentRelease'] = release
-        index = read(args.data_root / 'world-buildings' / release['buildingCatalog']['index'])
-        shard = read(args.data_root / 'world-buildings' / index['shards'][0]['href'])
-        region = shard['regions'][0]
         with httpx.Client(base_url=args.base_url, trust_env=False, timeout=8) as client:
-            url = building_url(region['url'])
+            url = release_building_url(args.data_root, release)
             response = client.get(url)
             row['delivery'] = {'building': {'url': url, 'status': response.status_code, 'validTileset': response.status_code == 200 and 'root' in response.json()}, 'terrain': range_probe(client, release['terrain']['url'])}
         if not row['delivery']['building']['validTileset'] or not row['delivery']['terrain']['range206']:
@@ -298,6 +322,7 @@ def main():
     parser.add_argument('--active-candidate', type=Path, required=True)
     parser.add_argument('--national-bake', type=Path)
     parser.add_argument('--national-regions', type=Path)
+    parser.add_argument('--height-verification', type=Path)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--base-url', default='http://127.0.0.1:3003')
     parser.add_argument('--drive', action='append')

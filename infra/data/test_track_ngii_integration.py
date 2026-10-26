@@ -12,6 +12,26 @@ spec.loader.exec_module(m)
 
 
 class MonitorTests(unittest.TestCase):
+    def test_v2_delivery_probes_national_root_without_legacy_catalog(self):
+        url='/api/map-data/world-buildings/national/version/tileset.json'
+        with patch.object(m, 'read', side_effect=AssertionError('Legacy catalog must not be read')):
+            self.assertEqual(m.release_building_url(pathlib.Path('unused'),
+                {'schema':'ace-map-release-v2','nationalBuildings':{'url':url}}),url)
+        with self.assertRaisesRegex(ValueError,'national building URL'):
+            m.release_building_url(pathlib.Path('unused'),
+                {'schema':'ace-map-release-v2','nationalBuildings':{'url':'https://untrusted.invalid/a'}})
+
+    def test_quality_failure_is_preserved_as_failure(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=pathlib.Path(folder)/'height-verification.json'
+            report={'state':'quality_failed','complete':False,'passed':False,'pendingRegions':25937,
+                    'nativeFinite':14,'absoluteErrorMetres':{'maximum':2.3704846379762756}}
+            path.write_text(json.dumps(report))
+            result=m.height_verification_status(path)
+            self.assertEqual(result['state'],'quality_failed')
+            self.assertFalse(result['passed'])
+            self.assertEqual(result['absoluteErrorMetres'],report['absoluteErrorMetres'])
+
     def test_national_completed_receipts_cached_and_staging_excluded(self):
         with tempfile.TemporaryDirectory() as folder:
             root=pathlib.Path(folder); regions=root/'regions.json'
