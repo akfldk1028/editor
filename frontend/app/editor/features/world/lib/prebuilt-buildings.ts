@@ -7,7 +7,7 @@ import { mapAssetUrl } from './map-asset-url'
 import { buildingColor } from './building-palette'
 
 type Region = BuildingRegion
-type Loaded = { region: Region; tileset: any; ready: boolean; settled?: boolean; failed: boolean; fallbackReady?: boolean; features: Footprint[]; drawnKeys?: Set<string>; index?: FootprintIndex; controller: AbortController; metadataTimer?: ReturnType<typeof setTimeout>; metadataController?: AbortController; metadataRequested?: boolean }
+type Loaded = { region: Region; tileset: any; ready: boolean; committed?: boolean; settled?: boolean; failed: boolean; fallbackReady?: boolean; features: Footprint[]; drawnKeys?: Set<string>; committedKeys?: Set<string>; index?: FootprintIndex; controller: AbortController; metadataTimer?: ReturnType<typeof setTimeout>; metadataController?: AbortController; metadataRequested?: boolean }
 const KEEP_REGIONS = 16
 const GPU_BUDGET = 256 * 1024 * 1024
 
@@ -95,7 +95,7 @@ export class PrebuiltBuildings {
           tileset.imageBasedLighting.sphericalHarmonicCoefficients = Array.from({ length: 9 }, (_, i) =>
             new this.C.Cartesian3(i === 0 ? 1 : 0, i === 0 ? 1 : 0, i === 0 ? 1 : 0))
         }
-        const loaded: Loaded = { region, tileset, ready: false, failed: false, features: [], controller: new AbortController() }
+        const loaded: Loaded = { region, tileset, ready: false, committed: false, failed: false, features: [], controller: new AbortController() }
         if (region.partialCoverage?.length) loaded.drawnKeys = new Set()
         this.loaded.push(loaded)
         tileset.show = this.enabled && this.shown
@@ -140,7 +140,7 @@ export class PrebuiltBuildings {
                   this.coverageChanged = true
                 }
               }
-              f.show = !(this.hide && this.site && inside([f.getProperty('lon'), f.getProperty('lat')], this.site))
+              f.show = Boolean(loaded.committed) && (!loaded.drawnKeys || Boolean(loaded.committedKeys?.has(f.getProperty('key')))) && !(this.hide && this.site && inside([f.getProperty('lon'), f.getProperty('lat')], this.site))
               f.color = this.C.Color.fromCssColorString(buildingColor(f.getProperty('status'))).withAlpha(1)
               if (f.show) counts[f.getProperty('status') === 'm' ? 'measured' : f.getProperty('status') === 'e' ? 'estimated' : 'unknown']++
             }
@@ -148,7 +148,7 @@ export class PrebuiltBuildings {
             this.styled.set(content, this.revision)
           }
           this.visible.set(content, content.__worldCounts)
-          this.rendered = true
+          if (counts.measured + counts.estimated + counts.unknown > 0) this.rendered = true
         })
         this.viewer.scene.primitives.add(tileset)
         this.trim()
@@ -272,23 +272,36 @@ export class PrebuiltBuildings {
   get needsFallback() { return this.loaded.some(l => l.failed && !l.fallbackReady) }
 
   retireFailed(wanted: BuildingTile[], drawable: BuildingTile[]) {
+    let retired = false
     const ready = new Set(drawable.map(tile => `${tile.z}/${tile.x}/${tile.y}`))
     for (const loaded of this.loaded) {
       if (!loaded.failed || loaded.fallbackReady) continue
       const targets = wanted.filter(tile => tilesOverlap({ ...loaded.region, key: loaded.region.id }, tile))
       if (!targets.length || !targets.every(tile => ready.has(`${tile.z}/${tile.x}/${tile.y}`))) continue
-      loaded.fallbackReady = true
+      loaded.fallbackReady = true; retired = true
       loaded.tileset.show = false
       this.viewer.scene.requestRender()
     }
+    return retired
   }
 
   owns(tile: BuildingTile) { return this.enabled && this.loaded.some(l => l.tileset.show && l.ready && !l.failed && coversTile(l.region, tile)) }
-  contains(f: Footprint) {
+  get ownershipSignature() { return this.loaded.map(l => `${l.region.url}/${l.tileset.show}/${l.ready}/${l.committed}/${l.failed}/${l.fallbackReady}/${l.drawnKeys?.size ?? 0}/${l.committedKeys?.size ?? 0}`).join('|') }
+  get hasOfferedCoverage() { return this.loaded.some(l => l.ready && !l.failed && (!l.committed || (l.drawnKeys?.size ?? 0) > (l.committedKeys?.size ?? 0)) && l.tileset.show) }
+  commitReadyCoverage() {
+    let changed = false
+    for (const loaded of this.loaded) if (loaded.ready && !loaded.failed && (!loaded.committed || (loaded.drawnKeys?.size ?? 0) > (loaded.committedKeys?.size ?? 0)) && loaded.tileset.show) {
+      loaded.committed = true; if (loaded.drawnKeys) loaded.committedKeys = new Set(loaded.drawnKeys); changed = true
+    }
+    if (changed) { this.revision++; this.viewer.scene.requestRender() }
+    return changed
+  }
+  contains(f: Footprint, displayed = false) {
     const [x, y] = tileXY(f.ring[0]![0]!, f.ring[0]![1]!, 16)
     const zoom = Number(f.key.split('/')[0]), overview = zoom >= 13 && zoom < 16
-    return this.owns({ z: 16, x, y, key: '' })
-      || this.enabled && this.loaded.some(l => l.tileset.show && l.ready && !l.failed && (l.drawnKeys?.has(f.key)
+    return this.enabled && this.loaded.some(l => l.tileset.show
+      && (displayed ? l.committed && !l.fallbackReady : l.ready && !l.failed)
+      && (coversTile(l.region, { z: 16, x, y, key: '' }) || (displayed ? l.committedKeys : l.drawnKeys)?.has(f.key)
         // Archive feature indexes differ across zoom levels; use prepared detail instead of overlapping overview masses.
         || overview && l.region.partialCoverage?.includes(`16/${x}/${y}`)))
   }

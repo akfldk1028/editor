@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 import { BuildingTiles } from './building-tiles'
-import { tilesIn } from './building-geometry'
+import { PrebuiltBuildings } from './prebuilt-buildings'
+import { tileXY, tilesIn } from './building-geometry'
 
 function fixture(archive: any, failure?: Error, firstFrame?: () => void) {
   const event = () => {
@@ -554,6 +555,7 @@ test('changing detail level keeps old geometry until all replacement tiles are r
   const focus = { lon: 127, lat: 37.5 }
   const near = tilesIn([127, 37.5, 127.001, 37.501], focus)[0]!
   const old = { ready: true, show: true }
+  manager.maskedRevision.set(old, manager.ownershipRevision) // Already rendered GPU batch.
   manager.entries.set(near.key, { tile: near, features: [], primitives: [old], visible: [], heights: [] })
   manager.desired.add(near.key)
   manager.load([126.95, 37.45, 127.15, 37.65], focus)
@@ -735,7 +737,7 @@ test('roof height lookup uses fixed datums and ignores unloaded or hidden footpr
 })
 
 
-test('failed baked coverage is released only after vector fallback is actually drawable', async () => {
+test('failed baked coverage may commit a GPU-ready masked fallback without showing both sources', async () => {
   const { manager, viewer } = fixture({ getZxy: () => Promise.resolve(undefined) })
   await flush()
   manager.firstRendered = true
@@ -749,7 +751,8 @@ test('failed baked coverage is released only after vector fallback is actually d
     expect(drawable).toEqual([])
     entry.primitives[0].ready = true; entry.primitives[0].show = false
     viewer.scene.postRender.emit()
-    expect(drawable).toEqual([])
+    expect(drawable).toEqual([entry.tile])
+    expect(entry.primitives[0].show).toBe(true)
     entry.primitives[0].show = true; entry.needsBuild = true
     viewer.scene.postRender.emit()
     expect(drawable).toEqual([])
@@ -856,4 +859,56 @@ test('retiring terrain consumers releases admission for cached buildings at the 
     expect(oldRequests).toHaveLength(8)
     expect(manager.datumRunning).toBe(0)
   } finally { manager.dispose() }
+})
+
+
+test('source ownership masks the live GPU batch before revealing prebuilt and reverses only when fallback is ready',async()=>{
+ const {manager,viewer}=fixture({getZxy:async()=>undefined});await flush();manager.firstRendered=true
+ const f=buildings(1)[0]!,[x,y]=tileXY(f.ring[0]![0]!,f.ring[0]![1]!),tile={z:16,x,y,key:`16/${x}/${y}`}
+ const events:string[]=[],attributes:any={}
+ let mask:Uint8Array=new Uint8Array([1]);Object.defineProperty(attributes,'show',{get:()=>mask,set:(v:Uint8Array)=>{mask=v;events.push(v[0]?'vector-visible':'vector-hidden')}})
+ const primitive={ready:true,show:true,getGeometryInstanceAttributes:()=>attributes}
+ const entry={tile,features:[f],visible:[f],heights:[0],primitives:[primitive],needsBuild:false}
+ manager.entries.set(tile.key,entry);manager.desired.add(tile.key);manager.instanceFeatures.set(primitive,[{id:'one',feature:f}]);manager.maskedRevision.set(primitive,0)
+ const baked:any=Object.create(PrebuiltBuildings.prototype);baked.enabled=true;baked.viewer=viewer;baked.revision=0;baked.counts={measured:0,estimated:0,unknown:0};baked.dispose=()=>{};baked.setShow=()=>{}
+ let show=true;const tileset:any={};Object.defineProperty(tileset,'show',{get:()=>show,set:(v:boolean)=>{show=v;events.push(v?'prebuilt-visible':'prebuilt-hidden')}})
+ const loaded={region:{z:14,x:Math.floor(x/4),y:Math.floor(y/4)},tileset,ready:false,committed:false,failed:false,fallbackReady:false};baked.loaded=[loaded]
+ const commit=baked.commitReadyCoverage.bind(baked);baked.commitReadyCoverage=()=>{events.push('commit-prebuilt');return commit()};manager.baked=baked
+ try{
+  viewer.scene.postRender.emit();expect(mask[0]).toBe(1);expect(loaded.committed).toBe(false)
+  loaded.ready=true;manager.ownershipRevision++;events.length=0;viewer.scene.postRender.emit()
+  expect(events.indexOf('vector-hidden')).toBeLessThan(events.indexOf('commit-prebuilt'));expect(loaded.committed).toBe(true);expect(mask[0]).toBe(0)
+  events.length=0;viewer.scene.postRender.emit();expect(events).toEqual([])
+  baked.setView=()=>{}
+  const [lon,lat]=f.ring[0]!,box:[number,number,number,number]=[lon!,lat!,lon!+.000001,lat!+.000001]
+  tileset.show=false;manager.load(box,{lon:lon!,lat:lat!});expect(mask[0]).toBe(1)
+  tileset.show=true;manager.load(box,{lon:lon!,lat:lat!});expect(mask[0]).toBe(0)
+  manager.desired.add(tile.key);manager.previous.delete(tile.key)
+  loaded.failed=true;entry.needsBuild=true;manager.ownershipRevision++;viewer.scene.postRender.emit()
+  expect(show).toBe(true);expect(mask[0]).toBe(0)
+  entry.needsBuild=false;events.length=0;viewer.scene.postRender.emit()
+  expect(show).toBe(false);expect(mask[0]).toBe(1);expect(events.indexOf('prebuilt-hidden')).toBeLessThan(events.indexOf('vector-visible'))
+ }finally{manager.dispose()}
+})
+
+test('replacement primitives stay hidden until ready and retired batches are removed before reveal',async()=>{
+ const {manager,viewer,primitives}=fixture({getZxy:async()=>undefined});await flush();manager.firstRendered=true
+ const old={ready:true,show:true},replacement={ready:false,show:false}
+ const tile={z:16,x:1,y:1,key:'16/1/1'},entry={tile,features:[],visible:[],heights:[],primitives:[replacement]}
+ manager.entries.set(tile.key,entry);manager.desired.add(tile.key);manager.retired=[{primitives:[old],replacement:entry}];primitives.push(old,replacement)
+ try{
+  viewer.scene.postRender.emit();expect(old.show).toBe(true);expect(replacement.show).toBe(false);expect(primitives).toContain(old)
+  replacement.ready=true;viewer.scene.postRender.emit();expect(primitives).not.toContain(old);expect(replacement.show).toBe(true)
+ }finally{manager.dispose()}
+})
+
+
+test('GPU ownership preflight never partially hides an old batch when another instance is unavailable',async()=>{
+ const {manager}=fixture({getZxy:async()=>undefined});await flush();manager.firstRendered=true
+ const [a,b]=buildings(2),attributes={show:new Uint8Array([1])}
+ const primitive={ready:true,show:true,getGeometryInstanceAttributes:(id:string)=>{if(id==='b')throw Error('not accessible');return attributes}}
+ const tile={z:16,x:1,y:1,key:'16/1/1'}
+ manager.entries.set(tile.key,{tile,features:[a,b],visible:[a,b],heights:[],primitives:[primitive]})
+ manager.instanceFeatures.set(primitive,[{id:'a',feature:a},{id:'b',feature:b}]);manager.baked={contains:()=>true,dispose(){}}
+ try{expect(manager.prepareOwnershipMasks()).toBe(false);expect(attributes.show[0]).toBe(1)}finally{manager.dispose()}
 })

@@ -278,9 +278,13 @@ test('a partially baked leaf suppresses only buildings actually present in its d
     baked.setView([127,37,128,38], { lon:127.1,lat:37.1 })
     await new Promise(resolve => setTimeout(resolve,0))
     expect(baked.contains(known)).toBe(false)
+    tileset.tileVisible.emit(tile);expect(feature.show).toBe(false)
     tileset.allTilesLoaded.emit(); tileset.tileVisible.emit(tile); scene.postRender.emit()
     await Promise.resolve()
     expect(baked.contains(known)).toBe(true)
+    expect(feature.show).toBe(false);expect(baked.contains(known,true)).toBe(false)
+    expect(baked.commitReadyCoverage()).toBe(true);tileset.tileVisible.emit(tile)
+    expect(feature.show).toBe(true);expect(baked.contains(known,true)).toBe(true)
     expect(baked.contains({ ...known, key: 'unbaked' })).toBe(false)
     expect(baked.owns({ z:16,x,y,key:'' })).toBe(false)
     expect(baked.contains({ ...known, key: `14/${Math.floor(x / 4)}/${Math.floor(y / 4)}/0` })).toBe(true)
@@ -288,7 +292,15 @@ test('a partially baked leaf suppresses only buildings actually present in its d
     const count = changes.filter(Boolean).length
     tileset.tileVisible.emit(tile); scene.postRender.emit(); await Promise.resolve()
     expect(changes.filter(Boolean)).toHaveLength(count)
+    const nextFeature:any={getProperty:(name:string)=>name==='key'?'unbaked':properties[name]}
+    const nextTile={content:{featuresLength:1,getFeature:()=>nextFeature}}
+    tileset.tileVisible.emit(nextTile)
+    expect(nextFeature.show).toBe(false);expect(baked.hasOfferedCoverage).toBe(true)
+    expect(baked.contains({...known,key:'unbaked'},true)).toBe(false)
+    baked.commitReadyCoverage();tileset.tileVisible.emit(nextTile)
+    expect(nextFeature.show).toBe(true);expect(baked.contains({...known,key:'unbaked'},true)).toBe(true)
     tileset.tileFailed.emit({ message:'offline' })
     expect(baked.contains(known)).toBe(false)
+    expect(baked.contains(known,true)).toBe(true) // Hold displayed ownership until vector commit.
   } finally { baked.dispose(); globalThis.fetch = original }
 })

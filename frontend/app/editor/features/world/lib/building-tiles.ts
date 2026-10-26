@@ -94,6 +94,10 @@ export class BuildingTiles {
   private preview: Entry | null = null
   private backgroundTimer: ReturnType<typeof setTimeout>
   private retired: { primitives: any[]; replacement: Entry }[] = []
+  private instanceFeatures = new WeakMap<object, { id: string; feature: Footprint }[]>()
+  private maskedRevision = new WeakMap<object, number>()
+  private ownershipRevision = 0
+  private bakedSignature = ''
   private reportedGeometry: Footprint[][] = []
   private reportedCounts = emptyCounts()
   readonly startedAt = performance.now()
@@ -103,8 +107,10 @@ export class BuildingTiles {
     private prepared?: ReturnType<typeof prepareBuildingTiles>, private firstFrame?: () => void) {
     this.backgroundTimer = setTimeout(() => { if (!this.disposed) this.startBackground() }, 1000)
     const removeRendered = viewer.scene.postRender.addEventListener(() => {
+      const masksReady = this.prepareOwnershipMasks()
+      if (masksReady && this.baked?.hasOfferedCoverage) this.baked.commitReadyCoverage()
       let switched = false
-      for (const key of this.previous) {
+      for (const key of masksReady ? this.previous : []) {
         const old = this.entries.get(key)
         const replacements = [...this.desired].filter(k => {
           const [z, x, y] = k.split('/').map(Number)
@@ -122,7 +128,7 @@ export class BuildingTiles {
         this.reconcileSupplement()
         this.report()
       }
-      if (!this.firstRendered && (this.baked?.rendered || [...this.entries.values()].some(e => e.primitives.some(p => p.ready)))) {
+      if (!this.firstRendered && (this.baked?.rendered || [...this.entries.values()].some(e => e.primitives.some(p => p.ready && p.show)))) {
         this.firstRendered = true
         this.firstRenderedAt = performance.now()
         performance.mark('world-buildings-first-render')
@@ -132,21 +138,25 @@ export class BuildingTiles {
         }
         this.report()
       }
-      if (this.baked?.needsFallback) {
+      if (masksReady && this.baked?.needsFallback) {
         const wanted = [...this.desired].map(key => {
           const [z, x, y] = key.split('/').map(Number)
           return { key, z: z!, x: x!, y: y! }
         })
         const drawable = [...this.entries.values()].filter(e => this.desired.has(e.tile.key)
           && this.inView(e) && !e.loading && !e.needsBuild && !this.work.has(e) && !this.datumJobs.has(e)
-          && e.primitives.every(p => p.ready && p.show)).map(e => e.tile)
-        this.baked.retireFailed(wanted, drawable)
+          && e.primitives.every(p => p.ready)).map(e => e.tile)
+        if (this.baked.retireFailed(wanted, drawable)) {
+          this.ownershipRevision++
+          this.prepareOwnershipMasks()
+        }
       }
       this.retired = this.retired.filter(old => {
-        if (this.work.has(old.replacement) || old.replacement.primitives.some(p => !p.ready)) return true
+        if (!masksReady || this.work.has(old.replacement) || old.replacement.primitives.some(p => !p.ready)) return true
         for (const p of old.primitives) this.viewer.scene.primitives.remove(p)
         return false
       })
+      if (this.syncPrimitiveVisibility()) this.viewer.scene.requestRender()
     })
     // With requestRenderMode, async primitive stages otherwise wait for an unrelated
     // camera/network event. Keep frames alive only while visible replacements upload.
@@ -164,6 +174,7 @@ export class BuildingTiles {
       this.baked = new PrebuiltBuildings(viewer, C, coverage => {
         if (this.disposed) return
         if (coverage) {
+          this.ownershipRevision++
           for (const e of this.entries.values()) if (!e.loading) this.build(e)
           if (this.lastView) this.load(this.lastView.box, this.lastView.focus, this.lastView.view)
         }
@@ -194,6 +205,13 @@ export class BuildingTiles {
     if (this.disposed) return
     this.lastView = { box, focus, view }
     this.baked?.setView(box, focus)
+    const signature = this.baked?.ownershipSignature ?? ''
+    if (signature !== this.bakedSignature) {
+      this.bakedSignature = signature; this.ownershipRevision++
+      // Cached prepared regions can change visibility without new network data.
+      // Reconcile only committed ownership here; offers commit after the frame.
+      this.prepareOwnershipMasks(false)
+    }
     this.focus = tileXY(focus.lon, focus.lat)
     this.focusDegrees = focus
     this.requestedView = true
@@ -504,12 +522,14 @@ export class BuildingTiles {
       return f === e.visible[i] && e.heights[i] === z && e.bottoms?.[i] === bottom
     })) { e.needsBuild = needsBuild; return }
     const heights: number[] = [], bottoms: number[] = [], instances: any[] = []
+    const instancesForMask: {id:string;feature:Footprint}[] = []
     for (const [i, f] of visible.entries()) {
       const ground = yield* this.ground(f)
       if (!ground) continue
       const { z, bottom } = ground
       heights[i] = z
       bottoms[i] = bottom
+      instancesForMask.push({id:`${f.key}/${i}`,feature:f})
       instances.push(new this.C.GeometryInstance({ id: `${f.key}/${i}`,
           geometry: f.mesh && f.mesh.bottom === bottom && f.mesh.top === z + f.h ? preparedGeometry(this.C, f.mesh)
             : new this.C.PolygonGeometry({ polygonHierarchy: new this.C.PolygonHierarchy(
@@ -517,22 +537,26 @@ export class BuildingTiles {
               (f.holes ?? []).map(hole => new this.C.PolygonHierarchy(this.C.Cartesian3.fromDegreesArray(hole.flat())))),
             height: bottom, extrudedHeight: z + f.h, vertexFormat: this.C.PerInstanceColorAppearance.VERTEX_FORMAT,
             offsetAttribute: this.C.GeometryOffsetAttribute.ALL }),
-          attributes: { offset: new this.C.OffsetGeometryInstanceAttribute(0, 0, 0),
+          attributes: { show: this.C.ShowGeometryInstanceAttribute
+              ? new this.C.ShowGeometryInstanceAttribute(true) : { value: new Uint8Array([1]) }, offset: new this.C.OffsetGeometryInstanceAttribute(0, 0, 0),
             color: this.C.ColorGeometryInstanceAttribute.fromColor(this.C.Color.fromCssColorString(buildingColor(f.s)).withAlpha(1)) } }))
       yield
     }
     if (e.primitives.length) this.retired.push({ primitives: e.primitives, replacement: e })
     e.primitives = []
     e.visible = visible; e.heights = heights; e.bottoms = bottoms; e.applied = [...heights]
-    if (instances.length) e.primitives.push(this.viewer.scene.primitives.add(new this.C.Primitive({ geometryInstances: instances,
-      asynchronous: !immediate, show: this.shown && this.inView(e), appearance: new this.C.PerInstanceColorAppearance({ closed: true, translucent: false }) })))
+    if (instances.length) {
+      const primitive = this.viewer.scene.primitives.add(new this.C.Primitive({ geometryInstances: instances,
+        asynchronous: !immediate, show: false, appearance: new this.C.PerInstanceColorAppearance({ closed: true, translucent: false }) }))
+      e.primitives.push(primitive); this.instanceFeatures.set(primitive, instancesForMask)
+    }
     e.needsBuild = needsBuild
     this.viewer.scene.requestRender()
   }
 
   setGround(base: Ground, level: number) {
     if (this.base === base && this.level === level) return
-    this.base = base; this.level = level
+    this.base = base; this.level = level; this.ownershipRevision++
     this.baked?.setGround(base === 'terrain')
     for (const e of this.entries.values()) this.build(e)
     this.reconcileSupplement(true)
@@ -560,14 +584,44 @@ export class BuildingTiles {
     })
   }
 
+  /** Prepare every GPU mask before committing a source; no partially applied ownership. */
+  private prepareOwnershipMasks(includeOffers = true): boolean {
+    const maskRevision = this.ownershipRevision * 2 + Number(includeOffers)
+    const primitives = [...this.entries.values(), this.supplement].flatMap(e => e.primitives)
+      .concat(this.retired.flatMap(old => old.primitives))
+    const writes: {attributes:any;visible:number}[] = [], prepared:any[] = []
+    for (const primitive of primitives) {
+      if (!primitive.ready || this.maskedRevision.get(primitive) === maskRevision) continue
+      const features = this.instanceFeatures.get(primitive) ?? []
+      if (features.length && this.baked && typeof primitive.getGeometryInstanceAttributes !== 'function') return false
+      for (const {id,feature} of features) {
+        if (!primitive.getGeometryInstanceAttributes) continue
+        let attributes:any
+        try { attributes = primitive.getGeometryInstanceAttributes(id) } catch { return false }
+        if (!attributes?.show) return false
+        const covered = this.baked?.contains(feature, true) || includeOffers && this.baked?.contains(feature)
+        writes.push({attributes,visible:covered?0:1})
+      }
+      prepared.push(primitive)
+    }
+    for (const {attributes,visible} of writes) if (attributes.show[0] !== visible) attributes.show = new Uint8Array([visible])
+    for (const primitive of prepared) this.maskedRevision.set(primitive, maskRevision)
+    return true
+  }
+
+  private syncPrimitiveVisibility() {
+    let changed = false
+    const set = (p:any,visible:boolean) => { if (p.show !== visible) {p.show=visible;changed=true} }
+    for (const e of [...this.entries.values(), this.supplement]) for (const p of e.primitives) {
+      set(p,this.shown && this.inView(e) && p.ready !== false && this.maskedRevision.has(p))
+    }
+    for (const old of this.retired) for (const p of old.primitives) set(p,this.shown && this.inView(old.replacement))
+    return changed
+  }
   setShow(show: boolean) {
     this.shown = show
     this.baked?.setShow(show)
-    for (const e of [...this.entries.values(), this.supplement]) for (const p of e.primitives) {
-      const visible = show && this.inView(e)
-      p.show = visible
-    }
-    for (const old of this.retired) for (const p of old.primitives) p.show = show && this.inView(old.replacement)
+    this.syncPrimitiveVisibility()
     this.viewer.scene.requestRender()
   }
 
