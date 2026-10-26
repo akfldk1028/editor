@@ -1,0 +1,31 @@
+# Verify national NGII building ground heights
+
+Run with Bun from the editor app or repository root. This tool writes only its separate `--work` directory; it does not edit terrain work, source rasters, candidate files, catalogs, or the active release.
+
+```powershell
+bun frontend/app/editor/tools/verify-ngii-national-heights.ts --data-root C:/Data/25_ACE --snapshot <completed-canonical-snapshot.json> --plan C:/Data/25_ACE/ngii-canonical/3cde8dc9444747b7/plan.json --regions C:/Data/25_ACE/ngii-canonical/3cde8dc9444747b7/regions-gzip-v1.json --regional-root C:/Data/25_ACE/world-buildings/national-regions-gzip-v1 --terrain C:/Data/25_ACE/world-terrain/terrain-5c2f8cf2f24e1540fac1.pmtiles --terrain-receipt C:/Data/25_ACE/terrain-layered-next7adf-update/archive-receipt.json --dem C:/Data/25_ACE/management/ground-layers/7adfcb237c21936130f63c0c0d524b296ca3d63858675cb9765a2b2abe4c75f8/layered.vrt --python C:/Python313/python.exe --work C:/Data/25_ACE/management/ngii-height-probe-gosan-v2 --region 14/13976/6335
+```
+
+`--region` or `--sample-regions N` always produces `complete:false`, `sampleOnly:true`, `passed:false`; `samplePassed` reports only selected evidence. Omit both for the entire pinned inventory, using a different work directory. Every requested candidate must already exist; missing regions are an error, never silently skipped. The full inventory count is verified from the source snapshot, not a hardcoded region count.
+
+Checks:
+- Completed canonical snapshot and source manifests; coordinator queue-inputs.json binds the exact snapshot/plan/inventory hashes and paths. This avoids recounting the nationwide database for a selected-region probe; only selected canonical rows are read, with exact region/component counts and original input SHA. Use --queue-inputs to name the explicit immutable coordinator pin if it is elsewhere.
+- Every regional receipt's encoded and decoded payload SHA, current packing, terrain and source pins.
+- Independent archived terrain sampling at canonical original anchors using `resolved-ancestor-grid-v1`; every component's published datum must agree within 0.01m.
+- Persistent read-only Python native DEM worker (OPENBLAS/OMP/MKL threads fixed to 1), with source fingerprints on ready/batch/close. Native-finite vs archived display error must be <=0.5m. Native NoData stays null and is recorded per canonical ID as ancestor-supported or declared ellipsoid zero; it never counts as native accuracy evidence or recovered ground.
+- Zero native-finite points gives `nativeEvidence:insufficient`, never an accuracy pass. Threshold violations remain in region receipts and make the summary fail; source/response inconsistencies abort.
+
+`regions/*.json` holds complete per-region proof and checksum. Resume revalidates candidate payloads, then reuses sampling only when run implementation/source/terrain/inventory hashes, candidate receipt SHA and proof checksum match. Failed quality evidence is reused as a failure rather than hidden. A live writer lock prevents concurrent verification in the same work directory. After a process crash, investigate the recorded lock PID before removing that lock; no automatic stale-owner override.
+
+Final `height-verification.json` computes `buildingCatalogSHA256` from the publisher-compatible sorted `{owner,receiptSHA256,uri}` pins. For full mode `publishedBuildingDatumCheck.expected/compared` covers every component. This report does not itself prove mesh vertex geometry, HLOD coverage, actual browser performance or authorize activation; the publisher and runtime preview remain required.
+
+
+## Verify alongside the ongoing bake (do not activate)
+
+Use the same command with a NEW full-evidence `--work`, remove `--region`, and append `--watch --poll-seconds 30 --below-normal`. The `--below-normal` flag explicitly lowers only this verifier's Bun process and its own native Python child on Windows. It never changes the baker or another process. Full verification has not been launched by this change.
+
+The full inventory is pinned before watching. Missing candidates remain pending, while completed atomic candidate folders are validated once and saved. `height-verification.json` remains `complete:false,passed:false` until all pinned regions and components are verified. `progress.json` records per-region progress and Bun RSS. A malformed completed candidate, changed source pin or numerical quality failure stops the job with evidence; no automatic retry or threshold relaxation occurs. With no `--watch`, missing candidates still fail immediately.
+
+Create a `STOP` file in the verification work directory to stop at the next region boundary (or the next poll, <=60 seconds). An active region's proof is completed first. Remove STOP yourself before resuming the same command; identical per-region receipts are reused. The verifier never removes STOP or overrides a live lock. A 20GiB free-space reserve applies before proof writes and polling.
+
+Memory is one region's decoded metadata plus bounded terrain/native caches, with compact nationwide counters; full per-key NoData and error lists remain in regional receipts. Native block cache is configured at64MiB and BLAS/OMP/MKL threads at1. Current largest inventory region is17643 components. Estimated combined Bun/Python RSS is0.5?1.5GiB, not a hard guarantee; monitor actual RSS and the machine's concurrent baker load before starting. No full-country verifier run was performed for this change.

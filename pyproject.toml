@@ -34,7 +34,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-terrain = ["rasterio>=1.4,<2"]
+terrain = ["rasterio>=1.4,<2", "pmtiles>=3.7,<4"]
 map-roads = ["geopandas>=1,<2", "pyogrio>=0.11,<1", "pandas>=2.2,<4"]
 design-reference-models = ["torch>=2.5", "torchvision>=0.20", "opencv-python>=4.10,<5"]
 dev = ["import-linter>=2.15,<3"]
