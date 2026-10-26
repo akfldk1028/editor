@@ -1,0 +1,17 @@
+# Candidate global NGII HLOD
+
+`ngii-global-hlod.ts` builds a candidate-only hierarchy above the existing immutable regional v3 tilesets. It never modifies a regional payload, runtime hook, active catalog, terrain source, or release pointer.
+
+Input JSON specifies pinned `sourcePlanSHA256`, `terrainSHA256`, and `regions: [{ owner: "14/x/y", folder, uri }]`. `folder` is a local input; `uri` is the deployment-relative or HTTP(S) regional tileset URL. All source receipts, footprint/tileset bytes, component counts, absolute ENU frames and full-shape bounds are verified. The output lives under `DATA_ROOT/world-buildings/national/<identity>/` with an immutable receipt. The CLI requires `--input` and `--data-root`; 20GiB reserve is enforced before writes.
+
+For each ancestor, source components are grouped into at most 16×16 occupied cells. Each cell preserves its complete source bounds, minimum source ground and maximum source roof. `componentCount` records all represented polygon components; `buildingAnchorCount` counts only component0, so multi-part buildings are not double-counted. These counts are summaries, not new buildings. Existing leaf geometry retains every component and hole. The coarse B3DM reuses the exact mesh baker and neutral glTF material, adding only batch-table count metadata.
+
+The builder processes one quadtree group at a time. Intermediate summaries are stored separately; it does not retain all nationwide footprint vertices or embed thousands of leaves in the initial JSON. Every external node has renderable coarse content, `REPLACE` refinement, at most four child references, and error at least its cell diagonal plus vertical span and twice the child error. The initial manifest references the lowest common ancestor; missing child payloads must leave coarse parent content available to a conforming renderer. Runtime integration is deliberately not enabled here.
+
+Each external root uses an absolute ECEF ENU frame. Its parent's reference carries the inverse parent frame, making `parentENU × inverse(parentENU) × childENU = childENU`. Bounds use conservative ECEF spheres, represented in the node's ENU coordinates; reference bounds are ECEF because the inverse resets accumulated transforms. Spheres include child spheres and all coarse vertices, and therefore triangle interiors—even long chords below the ellipsoid. A geographical min-height box alone would not safely cover those chords.
+
+Specification references: [OGC 3D Tiles transforms and external tilesets](https://docs.ogc.org/cs/18-053r2/18-053r2.html), [Cesium refinement reference](https://raw.githubusercontent.com/CesiumGS/3d-tiles/main/3d-tiles-reference-card.pdf).
+
+Validation: `bun test tools/ngii-global-hlod.test.ts` checks real-world transform composition, full component/count preservation, crossed-owner bounds, B3DM count extensions without GLB/material changes, parent/child containment, small external manifests, retained parent content, and byte SHA readback failure. Candidate sample coverage must be reported separately from nationwide source completion.
+
+The regional input packing must be `gzip6-mesh-and-metadata-v1`. Footprint metadata is decompressed only after encoded/decoded size and SHA verification. Ancestor meshes are deterministic gzip `.b3dm.gz` payloads with the same geometry; summaries and tile JSON remain plain. The service route supplies `Content-Encoding: gzip` for meshes and retains byte ranges for PMTiles.
