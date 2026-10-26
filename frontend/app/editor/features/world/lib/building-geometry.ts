@@ -1,7 +1,24 @@
-export type Footprint = { key: string; pnu: string; ring: number[][]; h: number; s: 'm' | 'e' | 'u'; z?: number }
+import type { BuildingMesh } from './building-mesh'
+
+export type Footprint = { key: string; pnu: string; ring: number[][]; holes?: number[][][]; h: number; s: 'm' | 'e' | 'u'; z?: number; mesh?: BuildingMesh }
 export type BuildingTile = { x: number; y: number; key: string }
 export const BUILDING_ZOOM = 16
 const N = 2 ** BUILDING_ZOOM
+
+export type FootprintBounds = [number, number, number, number]
+const boundsCache = new WeakMap<Footprint, FootprintBounds>()
+export function footprintBounds(f: Footprint): FootprintBounds {
+  const cached = boundsCache.get(f)
+  if (cached) return cached
+  const bounds: FootprintBounds = [Infinity, Infinity, -Infinity, -Infinity]
+  for (const p of f.ring) {
+    bounds[0] = Math.min(bounds[0], p[0]!); bounds[1] = Math.min(bounds[1], p[1]!)
+    bounds[2] = Math.max(bounds[2], p[0]!); bounds[3] = Math.max(bounds[3], p[1]!)
+  }
+  // Decoded footprints are immutable; weak keys release cached bounds with their evicted tile.
+  boundsCache.set(f, bounds)
+  return bounds
+}
 
 export function tileXY(lon: number, lat: number): [number, number] {
   const r = Math.max(-85, Math.min(85, lat)) * Math.PI / 180
