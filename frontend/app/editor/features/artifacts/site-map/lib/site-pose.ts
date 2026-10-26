@@ -9,6 +9,11 @@ const PITCH_DEG = -42
 const FILL = 0.65
 const MIN_HEIGHT_M = 90
 
+/** Saving the current parcel changes its status, not the user's camera intent. */
+export function shouldFrameSite(placed: string | null, next: string, look: string): boolean {
+  return placed === null || (look !== 'picked' && placed !== next)
+}
+
 export interface SitePose {
   /** Camera position: the parcel centre moved south, so a north-facing oblique view looks at it. */
   lng: number

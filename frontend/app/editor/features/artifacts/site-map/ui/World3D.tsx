@@ -11,7 +11,7 @@ import { placeSiteCamera } from '../../../world/lib/site-camera'
 import type { IntentView, LayoutView } from '../../../world/lib/layout-masses'
 import type { LngLat, ParcelSet } from '../lib/engine'
 import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
-import { sitePose } from '../lib/site-pose'
+import { shouldFrameSite, sitePose } from '../lib/site-pose'
 import { readSceneCamera, restoreSceneCamera, type SceneCamera } from '../lib/scene-camera'
 import VworldSiteWorld from './VworldSiteWorld'
 
@@ -23,8 +23,8 @@ import VworldSiteWorld from './VworldSiteWorld'
  * The engine is created only once the site is known, and the camera is placed
  * on the site at once (no flight), so the world never starts loading cells
  * around its default opening view (Seoul) — they queue ahead of the site's.
- * The camera moves when this view is switched to, and when a different site
- * is searched or restored while it is shown; never on a click preview.
+ * The camera frames the initial site and a different searched or restored site.
+ * Returning to this view or confirming the same site preserves the user's pose.
  */
 export interface LayoutOverlay {
   layout: LayoutView
@@ -106,11 +106,8 @@ function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, on
     if (!ready) return
     drawLayout(overlay?.layout ?? null, overlay?.intent ?? null)
   }, [ready, overlay, drawLayout, world.terrain])
-  /** The site the camera was last placed on in this activation; null = not yet. */
+  /** The last framed site survives hiding the view so returning preserves a user's pose. */
   const placed = useRef<string | null>(null)
-  /** The parcels' look on the previous pass (every pass, placed or not): a site confirmed again turns 'saved' from
-   *  'site' or 'picked', and that turn moves the camera even onto the same parcel. */
-  const lastLook = useRef<string | null>(null)
 
   const place = useCallback(([lng, lat]: LngLat, bounds: readonly [number, number, number, number]) => {
     const initializedSite = initialized.current
@@ -124,10 +121,6 @@ function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, on
     const frustum = viewerRef.current?.camera.frustum
     return frameSite(lng, lat, sitePose(bounds, { aspectRatio: frustum?.aspectRatio, fovy: frustum?.fovy }))
   }, [frameSite, viewerRef, world.cesiumRef])
-
-  useEffect(() => {
-    if (!active) placed.current = null
-  }, [active])
 
   // Hidden, the 3D view must not keep rendering frames: its render loop stops and restarts on return.
   useEffect(() => {
@@ -144,16 +137,13 @@ function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, on
       return
     }
     highlightParcel(shape)
-    const previousLook = lastLook.current
-    lastLook.current = drawn.look
     const bounds = parcelBounds(drawn.geometries.flatMap(parcelRings))
     if (!active || !bounds) return
     const center = boundsCenter(bounds)
     const key = center.map((v) => v.toFixed(6)).join(',')
-    // Once per activation; afterwards a searched, restored or newly confirmed site moves the camera (confirming the
-    // same parcel again from the conversation included), never a click preview.
-    const confirmed = drawn.look === 'saved' && previousLook !== 'saved'
-    if (placed.current !== null && (drawn.look === 'picked' || (placed.current === key && !confirmed))) return
+    // A delayed save acknowledgement must not undo zoom/pan on the same site.
+    // Explicit searches or confirmations of a different site still frame it.
+    if (!shouldFrameSite(placed.current, key, drawn.look)) return
     placed.current = key
     void place(center, bounds)
   }, [ready, active, shape, drawn.geometries, drawn.look, highlightParcel, clearHighlight, place])
