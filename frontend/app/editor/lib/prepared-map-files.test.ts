@@ -1,8 +1,48 @@
 import { expect, test } from 'bun:test'
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises'
+import { gzipSync, gunzipSync } from 'node:zlib'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { preparedMapFile } from './prepared-map-files'
+
+test('gzip building tiles preserve encoded bytes and ignore all ranges with consistent HEAD metadata', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'map-gzip-'))
+  const parts = ['world-buildings', 'tile.b3dm.gz']
+  const raw = Buffer.from('b3dm' + 'geometry-data'.repeat(100))
+  const compressed = gzipSync(raw)
+  try {
+    await mkdir(join(root, parts[0]!))
+    await writeFile(join(root, ...parts), compressed)
+    const info = await stat(join(root, ...parts))
+    for (const range of [undefined, 'bytes=2-5', 'bytes=-3', 'bytes=999999-', 'invalid', 'bytes=0-1,3-4']) {
+      const response = await preparedMapFile(parts, root, false, undefined, range)
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-encoding')).toBe('gzip')
+      expect(response.headers.get('content-type')).toBe('application/octet-stream')
+      expect(response.headers.get('content-length')).toBe(String(compressed.length))
+      expect(response.headers.get('etag')).toBe(`"${info.size.toString(16)}-${Math.trunc(info.mtimeMs).toString(16)}"`)
+      expect(response.headers.get('accept-ranges')).toBe('none')
+      expect(response.headers.has('content-range')).toBe(false)
+      const body = Buffer.from(await response.arrayBuffer())
+      expect(body).toEqual(compressed)
+      expect(gunzipSync(body)).toEqual(raw)
+      const head = await preparedMapFile(parts, root, true, undefined, range)
+      expect(head.status).toBe(200)
+      expect(head.body).toBeNull()
+      expect([...head.headers]).toEqual([...response.headers])
+    }
+    for (const name of ['tile.pmtiles.gz', 'tile.json.gz', 'tile.glb.gz', 'tile.b3dm.gz.gz']) {
+      await writeFile(join(root, parts[0]!, name), compressed)
+      expect((await preparedMapFile([parts[0]!, name], root)).status).toBe(404)
+    }
+    await writeFile(join(root, parts[0]!, 'tile.b3dm'), raw)
+    const uncompressed = await preparedMapFile([parts[0]!, 'tile.b3dm'], root, false, undefined, 'bytes=0-3')
+    expect(uncompressed.status).toBe(206)
+    expect(uncompressed.headers.has('content-encoding')).toBe(false)
+    expect(uncompressed.headers.get('accept-ranges')).toBe('bytes')
+    expect(await uncompressed.text()).toBe('b3dm')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
 
 test('terrain archives serve exact byte ranges, suffixes and unsatisfiable requests', async () => {
   const root=await mkdtemp(join(tmpdir(),'terrain-range-'))
