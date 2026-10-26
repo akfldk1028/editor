@@ -34,6 +34,8 @@ export function createTerrainHeightContract(
     || !Number.isInteger(policy.minLevel) || !Number.isInteger(policy.maxLevel)
     || policy.minLevel < 0 || policy.maxLevel > 20 || policy.minLevel > policy.maxLevel || keep < 1) throw new Error('Invalid terrain contract policy')
   const cache = new Map<string, Promise<ResolvedTerrainGrid>>()
+  const pointSources = new Map<string, Float32Array | null>()
+  const pointPending = new Map<string, Promise<Float32Array | null>>()
   const identity = `${policy.archiveSha256}/${TERRAIN_HEIGHT_CONTRACT}`
   const resolve = (key: TerrainGridKey): Promise<ResolvedTerrainGrid> => {
     const { level, x, y } = key
@@ -78,14 +80,56 @@ export function createTerrainHeightContract(
       const level = policy.maxLevel, width = 180 / 2 ** level
       const x = Math.min(2 ** (level + 1) - 1, Math.floor((lon + 180) / width))
       const y = Math.min(2 ** level - 1, Math.floor((90 - lat) / width))
-      const grid = await resolve({ level, x, y })
       const gx = Math.max(0, Math.min(last, (lon + 180 - x * width) / width * last))
       const gy = Math.max(0, Math.min(last, (90 - lat - y * width) / width * last))
       const col = Math.min(last - 1, Math.floor(gx)), row = Math.min(last - 1, Math.floor(gy)), u = gx - col, v = gy - row
       const indices = [row*size+col, row*size+col+1, (row+1)*size+col, (row+1)*size+col+1]
       const weights = [(1-u)*(1-v),u*(1-v),(1-u)*v,u*v]
-      const sourceLevels = [...new Set(indices.filter((_, i) => weights[i]! > 0).map(index => grid.sourceLevels[index]!))].sort((a,b) => a-b)
-      return { height: sample(grid, gx, gy), sourceLevels, ellipsoidZero: sourceLevels.includes(-1),
+      const cached = cache.get(`${identity}/${level}/${x}/${y}`)
+      if (cached) {
+        const grid = await resolve({ level, x, y })
+        const sourceLevels = [...new Set(indices.filter((_, i) => weights[i]! > 0).map(index => grid.sourceLevels[index]!))].sort((a,b) => a-b)
+        return { height: sample(grid, gx, gy), sourceLevels, ellipsoidZero: sourceLevels.includes(-1),
+          archiveSha256: policy.archiveSha256, contract: TERRAIN_HEIGHT_CONTRACT }
+      }
+      const heights = new Float32Array(4), levels = new Int8Array(4).fill(-1)
+      const columns = [col, col+1, col, col+1], rows = [row, row, row+1, row+1]
+      let unresolved = weights.filter(weight => weight > 0).length
+      for (let source = level; source >= policy.minLevel && unresolved; source--) {
+        const scale = 2 ** (level-source), ax = Math.floor(x/scale), ay = Math.floor(y/scale)
+        const key = `${source}/${ax}/${ay}`
+        let grid: Float32Array | null
+        if (pointSources.has(key)) {
+          grid=pointSources.get(key)!; pointSources.delete(key); pointSources.set(key,grid)
+        } else {
+          let pending=pointPending.get(key)
+          if (!pending) {
+            pending=Promise.resolve().then(() => raw({ level: source, x: ax, y: ay })).then(value => {
+              if (value && value.length !== size*size) throw new Error('Invalid raw terrain grid size')
+              pointSources.set(key,value)
+              while (pointSources.size > keep) pointSources.delete(pointSources.keys().next().value!)
+              return value
+            }).finally(() => { if (pointPending.get(key)===pending) pointPending.delete(key) })
+            pointPending.set(key,pending)
+          }
+          grid=await pending
+        }
+        if (!grid) continue
+        if (grid.length !== size*size) throw new Error('Invalid raw terrain grid size')
+        for (let i=0; i<4; i++) {
+          if (weights[i]! <= 0 || levels[i] !== -1) continue
+          const value = supportedGridHeight(grid, ((x-ax*scale)+columns[i]!/last)/scale*last,
+            ((y-ay*scale)+rows[i]!/last)/scale*last, size)
+          // Float32 assignment matches resolve(), including rounding before the final interpolation.
+          if (value !== undefined) { heights[i]=value; levels[i]=source; unresolved-- }
+        }
+      }
+      let height=0, weight=0
+      for (let i=0; i<4; i++) if (weights[i]! > 0 && Number.isFinite(heights[i])) {
+        weight+=weights[i]!; height+=weights[i]!*heights[i]!
+      }
+      const sourceLevels=[...new Set(Array.from(levels).filter((_,i)=>weights[i]!>0))].sort((a,b)=>a-b)
+      return { height: height/weight, sourceLevels, ellipsoidZero: sourceLevels.includes(-1),
         archiveSha256: policy.archiveSha256, contract: TERRAIN_HEIGHT_CONTRACT }
     },
   }
