@@ -48,7 +48,7 @@ def test_pack_stream_roundtrip_and_immutable_base(tmp_path,monkeypatch):
     original=gzip.compress(b'base-preserved',mtime=0)
     with write(str(base)) as w:
         w.write_tile(zxy_to_tileid(1,0,0),original)
-        w.finalize(dict(tile_type=TileType.UNKNOWN,tile_compression=Compression.GZIP,min_lon_e7=-1800000000,min_lat_e7=-900000000,max_lon_e7=1800000000,max_lat_e7=900000000),{'maxLevel':20})
+        w.finalize(dict(tile_type=TileType.UNKNOWN,tile_compression=Compression.GZIP,min_lon_e7=-1800000000,min_lat_e7=-900000000,max_lon_e7=1800000000,max_lat_e7=900000000),{'maxLevel':20,'vrt_sha256':'a'*64,'sourceFilesSHA256':'b'*64})
     checksum=hashlib.sha256(base.read_bytes()).hexdigest()
     db=sqlite3.connect(work/'refinement-spool.sqlite')
     db.executescript('CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT);CREATE TABLE tiles(id INTEGER PRIMARY KEY,data BLOB);')
@@ -61,6 +61,8 @@ def test_pack_stream_roundtrip_and_immutable_base(tmp_path,monkeypatch):
         rows=list(all_tiles(read));assert rows==[((1,0,0),original),((17,1,1),extra)]
         assert Reader(read).metadata()['maxLevel']==20
     assert result['tiles']==2 and result['published'] is False
+    assert result['vrt_sha256']=='a'*64
+    assert result['metadata']['sourceFilesSHA256']=='b'*64
     assert hashlib.sha256(base.read_bytes()).hexdigest()==checksum
     with pytest.raises(ValueError):module.pack_candidate(base,work,base,allow_sample=True)
 

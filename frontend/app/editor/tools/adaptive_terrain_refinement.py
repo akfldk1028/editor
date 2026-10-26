@@ -135,7 +135,7 @@ def pack_candidate(base, work, output, *, allow_sample=False):
             finally:writer.close()
     if any(p.stat().st_size!=size or p.stat().st_mtime_ns!=mtime for p,size,mtime in before):raise ValueError('Packing input changed; output unverified')
     checksum=sha(output)
-    receipt={'archive':str(output),'sha256':checksum,'bytes':output.stat().st_size,'tiles':count,'metadata':metadata,'published':False,'independentPackedArchiveVerificationRequired':True}
+    receipt={'archive':str(output),'sha256':checksum,'vrt_sha256':metadata['vrt_sha256'],'bytes':output.stat().st_size,'tiles':count,'metadata':metadata,'published':False,'independentPackedArchiveVerificationRequired':True}
     atomic_json(work/'archive-receipt.json',receipt)
     return receipt
 
