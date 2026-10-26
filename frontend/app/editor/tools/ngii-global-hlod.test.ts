@@ -1,7 +1,10 @@
 import { expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { gunzipSync, gzipSync } from 'node:zlib'
-import { readRegionalHlodLeaf, buildGlobalHlod, occupiedCells, componentCells, rigidInverse, withAggregateCounts, type RegionInput, type HlodIO } from './ngii-global-hlod'
+import { mkdtemp, readFile, writeFile, stat, rm, mkdir } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { openHlodOutput, readRegionalHlodLeaf, buildGlobalHlod, occupiedCells, componentCells, rigidInverse, withAggregateCounts, type RegionInput, type HlodIO } from './ngii-global-hlod'
 import { bakeMesh, earth, frame, meshFootprintBounds } from '../features/world/lib/prebuilt-mesh'
 import { tileXY, type Footprint } from '../features/world/lib/building-geometry'
 const multiply = (a: number[], b: number[]) => Array.from({ length: 16 }, (_, i) => [0, 1, 2, 3].reduce((s, k) => s + a[k * 4 + i % 4]! * b[Math.floor(i / 4) * 4 + k]!, 0))
@@ -9,6 +12,51 @@ const point = (m: number[], p: number[]) => [0, 1, 2].map(r => m[12 + r]! + p.re
 const decode = (bytes: Uint8Array) => JSON.parse(new TextDecoder().decode(bytes))
 const feature = (lon: number, lat: number, index: number, component = 0): Footprint => ({ key: `ngii:${index.toString(16).padStart(64, '0')}/${component}`, pnu: '', z: 132, h: 18, s: 'm',
   ring: [[lon, lat], [lon + 0.001, lat], [lon + 0.001, lat + 0.001], [lon, lat + 0.001], [lon, lat]] })
+
+test('HLOD resumes a storage interruption without rewriting completed payloads or changing hierarchy bytes', async () => {
+  const folder = await mkdtemp(join(tmpdir(), 'hlod-resume-')), identity = { source: 'a'.repeat(64), terrain: 'b'.repeat(64) }
+  try {
+    let writes = 0
+    const first = await openHlodOutput(folder, identity, async () => { if (++writes === 4) throw Error('needs_storage') })
+    const f = feature(127, 37, 1), regions = [{ owner: '14/13971/6377', uri: '/region/tileset.json', folder: '' }]
+    const leaf = async () => ({ features: [f], error: 30, bounds: meshFootprintBounds(f), low: -13, high: 151 })
+    await expect(buildGlobalHlod(regions, { ...first, leaf })).rejects.toThrow('needs_storage')
+    const completed = join(folder, 'nodes/13-6985-3188.b3dm.gz'), stamp = await stat(completed)
+    await expect(stat(join(folder, 'tileset.json'))).rejects.toThrow()
+    await mkdir(join(folder, 'summaries'), { recursive: true })
+    await writeFile(join(folder, 'summaries/13-6985-3188.json.part'), 'interrupted bytes')
+    const resumed = await openHlodOutput(folder, identity, async () => {})
+    const result = await buildGlobalHlod(regions, { ...resumed, leaf })
+    expect((await stat(completed)).mtimeMs).toBe(stamp.mtimeMs)
+    const baseline = new Map<string, Uint8Array>()
+    const expected = await buildGlobalHlod(regions, { leaf, write: async (p,b) => { baseline.set(p,b) }, read: async p => baseline.get(p)! })
+    expect(result).toEqual(expected)
+    for (const [name, bytes] of baseline) expect(new Uint8Array(await resumed.read(name))).toEqual(bytes)
+    const receipt = new TextEncoder().encode(JSON.stringify(result))
+    await resumed.write('candidate-receipt.json', receipt)
+    const receiptStamp = await stat(join(folder, 'candidate-receipt.json'))
+    await resumed.write('candidate-receipt.json', receipt)
+    expect((await stat(join(folder, 'candidate-receipt.json'))).mtimeMs).toBe(receiptStamp.mtimeMs)
+  } finally { await rm(folder, { recursive: true, force: true }) }
+})
+
+test('HLOD rejects changed pins, corrupted completed files and unbound directories without overwriting', async () => {
+  const folder = await mkdtemp(join(tmpdir(), 'hlod-pin-'))
+  try {
+    const io = await openHlodOutput(folder, { source: 'a' }, async () => {})
+    await io.write('tileset.json', new TextEncoder().encode('original'))
+    await expect(openHlodOutput(folder, { source: 'b' }, async () => {})).rejects.toThrow('mismatch')
+    await expect(io.write('tileset.json', new TextEncoder().encode('different'))).rejects.toThrow('mismatch')
+    expect(await readFile(join(folder, 'tileset.json'), 'utf8')).toBe('original')
+    await expect(io.write('../escape.json', new Uint8Array())).rejects.toThrow('path')
+    const unbound = join(folder, 'unbound'); await mkdir(unbound); await writeFile(join(unbound, 'tileset.json'), 'old')
+    await expect(openHlodOutput(unbound, { source: 'a' }, async () => {})).rejects.toThrow('Unbound')
+    const interrupted = join(folder, 'interrupted'); await mkdir(interrupted)
+    await writeFile(join(interrupted, 'candidate-inputs.json.part'), 'partial')
+    await openHlodOutput(interrupted, { source: 'a' }, async () => {})
+    expect(JSON.parse(await readFile(join(interrupted, 'candidate-inputs.json'), 'utf8'))).toEqual({ source: 'a' })
+  } finally { await rm(folder, { recursive: true, force: true }) }
+})
 
 test('absolute ENU external-root transforms compose once, including real ECEF positions', () => {
   const a = frame(127.02, 37.5).transform, b = frame(129.1, 35.2).transform, c = frame(126.9, 37.4).transform

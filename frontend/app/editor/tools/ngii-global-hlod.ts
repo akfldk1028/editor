@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFile, writeFile, mkdir, statfs } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, statfs, lstat, readdir, rename } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { gzipSync, gunzipSync } from 'node:zlib'
 import { bakeMesh, frame, earth, meshFootprintBounds, BUILDING_MESH_REVISION } from '../features/world/lib/prebuilt-mesh'
@@ -177,6 +177,51 @@ export async function readRegionalHlodLeaf(receipt: any, read: (name: string) =>
   return { features, error: tileset.root.geometricError, bounds: volume.slice(0, 4).map((v: number) => v / rad) as Bounds, low: volume[4], high: volume[5] }
 }
 
+/** A single HLOD writer owns this identity-pinned directory; interrupted .part bytes are never published. */
+export async function openHlodOutput(output: string, identity: unknown, space: () => Promise<void>) {
+  await space()
+  await mkdir(output, { recursive: true })
+  if ((await lstat(output)).isSymbolicLink()) throw Error('Invalid HLOD output directory')
+  const pin = encode(identity), pinName = 'candidate-inputs.json'
+  const matches = async (path: string, bytes: Uint8Array) => {
+    try {
+      const stamp = await lstat(path)
+      if (!stamp.isFile() || stamp.isSymbolicLink() || stamp.size !== bytes.length || digest(await readFile(path)) !== digest(bytes)) throw Error('HLOD existing output mismatch')
+      return true
+    } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false; throw error }
+  }
+  const write = async (name: string, bytes: Uint8Array) => {
+    if (!/^(?:nodes\/|summaries\/)?[a-zA-Z0-9.-]+$/.test(name) || name.includes('..') || name.endsWith('.part')) throw Error('Invalid HLOD output path')
+    const path = join(output, name), part = path + '.part'
+    if (name.includes('/')) {
+      const directory = join(output, name.split('/')[0]!)
+      await mkdir(directory, { recursive: true })
+      if ((await lstat(directory)).isSymbolicLink()) throw Error('Invalid HLOD output directory')
+    }
+    if (await matches(path, bytes)) return
+    await space()
+    try {
+      const stamp = await lstat(part)
+      if (!stamp.isFile() || stamp.isSymbolicLink()) throw Error('Invalid HLOD partial file')
+    } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
+    await writeFile(part, bytes)
+    await matches(part, bytes)
+    for (let attempt = 0; ; attempt++) {
+      if (await matches(path, bytes)) return
+      try { await rename(part, path); break }
+      catch (error) {
+        if (attempt >= 4 || !['EPERM', 'EACCES', 'EBUSY'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error
+        await new Promise(resolve => setTimeout(resolve, 25 * 2 ** attempt))
+      }
+    }
+  }
+  if (!await matches(join(output, pinName), pin)) {
+    if ((await readdir(output)).some(name => name !== pinName + '.part')) throw Error('Unbound HLOD output directory')
+    await write(pinName, pin)
+  }
+  return { write, read: (name: string) => readFile(join(output, name)) }
+}
+
 export async function main(args = process.argv.slice(2)) {
   const option = (key: string) => { const i = args.indexOf(key); if (i < 0 || !args[i + 1]) throw Error(`Missing ${key}`); return args[i + 1]! }
   const input = JSON.parse(await readFile(resolve(option('--input')), 'utf8')) as { regions: RegionInput[]; sourcePlanSHA256: string; terrainSHA256: string }
@@ -192,12 +237,11 @@ export async function main(args = process.argv.slice(2)) {
     sampleOnly: [...receipts.values()].some(r => r.completeRegion !== true), completeRegion: [...receipts.values()].every(r => r.completeRegion === true), publishable: false }
   const dataRoot = resolve(option('--data-root')), output = join(dataRoot, 'world-buildings', 'national', digest(encode(identity)))
   const space = async () => { const s = await statfs(dataRoot); if (s.bavail * s.bsize < 20 * 1024 ** 3) throw Error('HLOD needs_storage: 20GiB reserve') }
-  await space(); await mkdir(join(dataRoot, 'world-buildings', 'national'), { recursive: true }); await mkdir(output)
-  const io: HlodIO = { write: async (name, bytes) => { await space(); await mkdir(join(output, name, '..'), { recursive: true }); await writeFile(join(output, name), bytes, { flag: 'wx' }) },
-    read: name => readFile(join(output, name)), leaf: region => readRegionalHlodLeaf(receipts.get(region.owner), name => readFile(join(region.folder, name))) }
+  const storage = await openHlodOutput(output, identity, space)
+  const io: HlodIO = { ...storage, leaf: region => readRegionalHlodLeaf(receipts.get(region.owner), name => readFile(join(region.folder, name))) }
 
   const result = await buildGlobalHlod(input.regions, io)
-  await writeFile(join(output, 'candidate-receipt.json'), JSON.stringify({ ...result, ...identity }, null, 2), { flag: 'wx' })
+  await storage.write('candidate-receipt.json', new TextEncoder().encode(JSON.stringify({ ...result, ...identity }, null, 2)))
   console.log(JSON.stringify({ output, ...result, files: result.files.length }))
 }
 if (import.meta.main) await main()
