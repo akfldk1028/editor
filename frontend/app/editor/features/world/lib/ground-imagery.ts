@@ -1,14 +1,20 @@
 import { PMTiles, ResolvedValueCache, TileType, type Header, type Source } from 'pmtiles'
 
 export type GroundImageryLayer = { kind: 'landcover' | 'roads'; url: string; sha256: string;
-  bounds: [number, number, number, number]; minLevel: number; maxLevel: number; credit: string }
+  bounds: [number, number, number, number]; minLevel: number; maxLevel: number; credit: string;
+  coverageBounds?: [number, number, number, number][];
+  detail?: { urlTemplate: string; maxLevel: number } }
 type Archive = { getHeader(): Promise<Header>; getZxy(z: number, x: number, y: number, signal?: AbortSignal): Promise<{ data: ArrayBuffer } | undefined> }
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>
 type Bitmap = { width: number; height: number; close(): void }
-type Canvas = { width: number; height: number; getContext(kind: '2d'): { drawImage(image: any, x: number, y: number): void } | null }
+type Canvas = { width: number; height: number; getContext(kind: '2d'): { drawImage(image: any, x: number, y: number): void; getImageData?(x: number, y: number, width: number, height: number): { data: Uint8ClampedArray } } | null }
 type Dependencies = { get?: Fetch; archive?: (source: Source) => Archive; decode?: (data: ArrayBuffer) => Promise<Bitmap>; canvas?: () => Canvas }
 const exactKeys = (value: Record<string, unknown>, keys: string[]) => Object.keys(value).sort().join(',') === [...keys].sort().join(',')
 const abortError = () => new DOMException('Ground imagery cancelled', 'AbortError')
+const validBounds = (bounds: unknown): bounds is [number, number, number, number] => Array.isArray(bounds)
+  && bounds.length === 4 && bounds.every(Number.isFinite)
+  && bounds[0] >= -180 && bounds[2] <= 180 && bounds[1] >= -85.05112878 && bounds[3] <= 85.05112878
+  && bounds[0] < bounds[2] && bounds[1] < bounds[3]
 const safeUrl = (value: unknown, archive = false): value is string => {
   if (typeof value !== 'string' || !/^(https?:\/\/|\/[^/])/.test(value) || value.includes('\\')) return false
   const url = new URL(value, 'https://local.invalid')
@@ -22,13 +28,22 @@ export function validateGroundImagery(value: unknown): GroundImageryLayer[] {
   const kinds = new Set<string>()
   const layers = descriptor.layers.map(item => {
     const layer = item as GroundImageryLayer
-    if (!layer || !exactKeys(layer, ['kind', 'url', 'sha256', 'bounds', 'minLevel', 'maxLevel', 'credit'])
+    if (!layer || !exactKeys(layer, ['kind', 'url', 'sha256', 'bounds', 'minLevel', 'maxLevel', 'credit', ...(Object.hasOwn(layer, 'detail') ? ['detail'] : []), ...(Object.hasOwn(layer, 'coverageBounds') ? ['coverageBounds'] : [])])
       || !['landcover', 'roads'].includes(layer.kind) || kinds.has(layer.kind) || !safeUrl(layer.url, true)
       || !/^[a-f0-9]{64}$/.test(layer.sha256) || !Array.isArray(layer.bounds) || layer.bounds.length !== 4 || !layer.bounds.every(Number.isFinite)
       || layer.bounds[0] < -180 || layer.bounds[2] > 180 || layer.bounds[1] < -85.05112878 || layer.bounds[3] > 85.05112878
       || layer.bounds[0] >= layer.bounds[2] || layer.bounds[1] >= layer.bounds[3]
       || !Number.isInteger(layer.minLevel) || !Number.isInteger(layer.maxLevel) || layer.minLevel < 0 || layer.maxLevel > 12 || layer.minLevel > layer.maxLevel
       || typeof layer.credit !== 'string' || !layer.credit.trim() || layer.credit.length > 500) throw Error('Invalid ground imagery layer')
+    if (Object.hasOwn(layer, 'coverageBounds') && (!Array.isArray(layer.coverageBounds)
+      || layer.coverageBounds.length < 1 || layer.coverageBounds.length > 64 || !Array.from(layer.coverageBounds).every(validBounds))) throw Error('Invalid ground imagery coverage bounds')
+    if (Object.hasOwn(layer, 'detail')) {
+      const detail = layer.detail
+      if (layer.maxLevel !== 12 || !detail || !exactKeys(detail, ['urlTemplate', 'maxLevel'])
+        || !safeUrl(detail.urlTemplate) || !/\/\{z\}\/\{x\}\/\{y\}\.png$/.test(detail.urlTemplate)
+        || /[{}]/.test(detail.urlTemplate.replace('/{z}/{x}/{y}.png', ''))
+        || !Number.isInteger(detail.maxLevel) || detail.maxLevel < 13 || detail.maxLevel > 17) throw Error('Invalid ground detail configuration')
+    }
     kinds.add(layer.kind); return structuredClone(layer)
   })
   return layers.sort((a, b) => Number(a.kind === 'roads') - Number(b.kind === 'roads'))
@@ -78,6 +93,24 @@ export function groundRangeSource(layer: GroundImageryLayer, lifetime: AbortSign
   }
 }
 
+export function roadTextureSource(data: Uint8ClampedArray) {
+  if (data.length !== 256 * 256 * 4) throw Error('Invalid road RGBA length')
+  let reference = 0
+  for (let i = 0; i < data.length; i += 4) if (data[i + 3]! > data[reference + 3]!) reference = i
+  const alpha = data[reference + 3]!
+  if (!alpha) return undefined
+  const color = [data[reference]!, data[reference + 1]!, data[reference + 2]!]
+  for (let i = 0; i < data.length; i += 4) {
+    if (!data[i + 3]) continue
+    // Canvas unpremultiplication quantizes low-alpha colors; do not recolor multicolor imagery.
+    const tolerance = Math.ceil(127.5 / data[i + 3]! + 127.5 / alpha + 1)
+    if (color.some((value, channel) => Math.abs(data[i + channel]! - value) > tolerance)) return undefined
+  }
+  for (let i = 0; i < data.length; i += 4) if (!data[i + 3]) data.set(color, i)
+  // A canvas would erase alpha-zero RGB again. Cesium's Texture accepts this raw source directly.
+  return { width: 256, height: 256, arrayBufferView: new Uint8Array(data.buffer, data.byteOffset, data.byteLength) }
+}
+
 function raced<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) return Promise.reject(abortError())
   return new Promise((resolve, reject) => {
@@ -87,8 +120,9 @@ function raced<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   })
 }
 
-/** Canvas ownership passes to Cesium; decoded bitmaps are closed before returning, never retained in an eviction cache. */
+/** Canvas or raw RGBA ownership passes to Cesium; decoded bitmaps are closed before returning. */
 export async function createGroundImageryProvider(C: any, layer: GroundImageryLayer, signal: AbortSignal, dependencies: Dependencies = {}) {
+  layer = validateGroundImagery({ schema: 'world-ground/imagery-v1', layers: [layer] })[0]!
   const lifetime = new AbortController(), cancel = () => lifetime.abort()
   signal.addEventListener('abort', cancel, { once: true }); if (signal.aborted) cancel()
   const source = groundRangeSource(layer, lifetime.signal, dependencies.get)
@@ -104,21 +138,33 @@ export async function createGroundImageryProvider(C: any, layer: GroundImageryLa
     const transparent = makeCanvas(); transparent.width = transparent.height = 256
     const rectangle = C.Rectangle.fromDegrees(...layer.bounds)
     const provider = {
-      tileWidth: 256, tileHeight: 256, minimumLevel: layer.minLevel, maximumLevel: layer.maxLevel,
+      tileWidth: 256, tileHeight: 256, minimumLevel: layer.minLevel, maximumLevel: layer.detail?.maxLevel ?? layer.maxLevel,
       tilingScheme: new C.WebMercatorTilingScheme(), rectangle, hasAlphaChannel: true,
       credit: new C.Credit(layer.credit.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')), errorEvent: new C.Event(), tileDiscardPolicy: undefined,
       ready: true, readyPromise: Promise.resolve(true), proxy: undefined,
       getTileCredits: () => undefined, pickFeatures: () => undefined,
+      coversPosition: (lon: number, lat: number) => Number.isFinite(lon) && Number.isFinite(lat)
+        && (layer.coverageBounds ?? [layer.bounds]).some(([west, south, east, north]) => lon >= west && lon <= east && lat >= south && lat <= north),
       requestImage(x: number, y: number, level: number, request?: { cancelled?: boolean; cancelFunction?: () => void }) {
         if (lifetime.signal.aborted || request?.cancelled || jobs.size >= 4) return undefined
-        if (![x, y, level].every(Number.isInteger) || level < layer.minLevel || level > layer.maxLevel || x < 0 || y < 0 || x >= 2 ** level || y >= 2 ** level) return Promise.resolve(transparent)
+        if (![x, y, level].every(Number.isInteger) || level < layer.minLevel || level > (layer.detail?.maxLevel ?? layer.maxLevel) || x < 0 || y < 0 || x >= 2 ** level || y >= 2 ** level) return Promise.resolve(transparent)
         const width = 360 / 2 ** level, west = x * width - 180
         const latitude = (row: number) => Math.atan(Math.sinh(Math.PI * (1 - 2 * row / 2 ** level))) * 180 / Math.PI
         if (west >= layer.bounds[2] || west + width <= layer.bounds[0] || latitude(y) <= layer.bounds[1] || latitude(y + 1) >= layer.bounds[3]) return Promise.resolve(transparent)
         const job = new AbortController(); jobs.add(job)
         const combined = AbortSignal.any([lifetime.signal, job.signal]); if (request) request.cancelFunction = () => job.abort()
         const task = (async () => {
-          const tile = await archive.getZxy(level, x, y, combined); combined.throwIfAborted()
+          let tile: { data: ArrayBuffer } | undefined
+          if (layer.detail && level > 12) {
+            const url = layer.detail.urlTemplate.replace('{z}', String(level)).replace('{x}', String(x)).replace('{y}', String(y))
+            const response = await (dependencies.get ?? fetch)(url, { signal: combined })
+            // Failed children must stay failed: a transparent success would replace the ready PMTiles ancestor.
+            if (response.status !== 200 || !/^image\/png(?:;|$)/i.test(response.headers.get('Content-Type') ?? '')) {
+              await response.body?.cancel(); throw Error(`Ground detail unavailable ${response.status}`)
+            }
+            tile = { data: await boundedBody(response, 1024 ** 2) }
+          } else tile = await archive.getZxy(level, x, y, combined)
+          combined.throwIfAborted()
           if (!tile) return transparent
           const data = new DataView(tile.data)
           if (tile.data.byteLength > 1024 ** 2 || tile.data.byteLength < 29 || data.getUint32(0) !== 0x89504e47 || data.getUint32(4) !== 0x0d0a1a0a
@@ -130,7 +176,12 @@ export async function createGroundImageryProvider(C: any, layer: GroundImageryLa
             if (bitmap.width !== 256 || bitmap.height !== 256) throw Error('Ground bitmap dimensions mismatch')
             const canvas = makeCanvas(); canvas.width = canvas.height = 256
             const context = canvas.getContext('2d'); if (!context) throw Error('Ground canvas unavailable')
-            context.drawImage(bitmap, 0, 0); return canvas
+            context.drawImage(bitmap, 0, 0)
+            if (layer.kind === 'roads' && context.getImageData) {
+              const source = roadTextureSource(context.getImageData(0, 0, 256, 256).data)
+              if (source) return source
+            }
+            return canvas
           } finally { bitmap.close() }
         })().finally(() => jobs.delete(job))
         return raced(task, combined)

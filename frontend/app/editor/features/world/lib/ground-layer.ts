@@ -20,6 +20,10 @@ export class GroundLayer {
   private items = new Map<string, any>()
   private cells = new Map<string, Set<string>>()
   private references = new Map<string, Set<string>>()
+  private surfaceIds = new Set<string>()
+  private surfaceMode = false
+  private roadIds = new Set<string>()
+  private roadMode = false
   private visible = true
   private suspended = 0
   private sequence = 0
@@ -30,6 +34,37 @@ export class GroundLayer {
 
   get show() { return this.visible }
   set show(value: boolean) { this.visible = value; for (const source of this.sources) source.show = value }
+
+  /** Imagery owns only background parcel/cover fills, never roads or boundaries. */
+  get surfaceImagery() { return this.surfaceMode }
+  set surfaceImagery(enabled: boolean) {
+    if (enabled === this.surfaceMode) return
+    this.surfaceMode = enabled
+    this.setChannelImagery(this.surfaceIds, enabled)
+  }
+  get roadImagery() { return this.roadMode }
+  set roadImagery(enabled: boolean) {
+    if (enabled === this.roadMode) return
+    this.roadMode = enabled
+    this.setChannelImagery(this.roadIds, enabled)
+  }
+  private setChannelImagery(ids: Set<string>, enabled: boolean) {
+    this.entities.suspendEvents()
+    try {
+      for (const id of ids) {
+        const entity = this.items.get(id)
+        if (!entity) continue
+        if (enabled) {
+          this.owners.get(id)?.entities.removeById(id)
+          this.owners.delete(id)
+        } else {
+          this.items.delete(id)
+          this.add(entity)
+        }
+      }
+    } finally { this.entities.resumeEvents() }
+    this.pruneEmpty()
+  }
 
   /** Register shared geometry even when the renderer skips an already drawn id. */
   forCell(key: string) {
@@ -46,6 +81,8 @@ export class GroundLayer {
     return { entities: {
       getById: (id: string) => claim(this.entities.getById(id)),
       add: (entity: any) => claim(this.entities.add(entity)),
+      addSurface: (entity: any) => claim(this.entities.addSurface(entity)),
+      addRoad: (entity: any) => claim(this.entities.addRoad(entity)),
       suspendEvents: this.entities.suspendEvents,
       resumeEvents: this.entities.resumeEvents,
     } }
@@ -113,12 +150,29 @@ export class GroundLayer {
 
   readonly entities = {
     add: (entity: any) => this.add(entity),
+    addSurface: (entity: any) => {
+      if (this.items.has(entity.id)) throw new Error(`Duplicate ground entity: ${entity.id}`)
+      this.surfaceIds.add(entity.id)
+      if (!this.surfaceMode) return this.add(entity)
+      // Retain geometry and cell ownership without allocating a Cesium primitive.
+      this.items.set(entity.id, entity)
+      return entity
+    },
+    addRoad: (entity: any) => {
+      if (this.items.has(entity.id)) throw new Error(`Duplicate ground entity: ${entity.id}`)
+      this.roadIds.add(entity.id)
+      if (!this.roadMode) return this.add(entity)
+      this.items.set(entity.id, entity)
+      return entity
+    },
     getById: (id: string) => this.items.get(id),
     removeById: (id: string) => {
       if (!this.items.delete(id)) return false
       const source = this.owners.get(id)
       this.owners.delete(id)
-      return source.entities.removeById(id)
+      this.surfaceIds.delete(id)
+      this.roadIds.delete(id)
+      return source ? source.entities.removeById(id) : true
     },
     removeAll: () => {
       for (const source of this.sources) {
@@ -127,6 +181,7 @@ export class GroundLayer {
       }
       this.sources = []; this.owners.clear(); this.items.clear()
       this.cells.clear(); this.references.clear()
+      this.surfaceIds.clear(); this.roadIds.clear()
     },
     suspendEvents: () => { if (this.suspended++ === 0) for (const s of this.sources) s.entities.suspendEvents() },
     resumeEvents: () => { if (--this.suspended === 0) for (const s of this.sources) s.entities.resumeEvents() },

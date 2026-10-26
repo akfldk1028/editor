@@ -196,24 +196,27 @@ export function drawContextGround(targets: GroundTargets, Cesium: any, reply: Co
           : `${cover ? 'cover' : 'parcel'}-${p.id ?? ''}-${cover ? p.cover : p.ground}-${JSON.stringify(poly)}`
         const into = (cover ? targets.cover : targets.blocks).entities
         if (into.getById(id)) return
+        const addRoad = (entity: any) => into.addRoad ? into.addRoad(entity) : into.add(entity)
+        const addSurface = (entity: any) => into.addSurface ? into.addSurface(entity) : into.add(entity)
         const positions = Cesium.Cartesian3.fromDegreesArray(ring)
         const hierarchy = new Cesium.PolygonHierarchy(positions, poly.slice(1)
           .filter(hole => hole.length >= 4 && areaDeg2(hole) > 1e-12)
           .map(hole => new Cesium.PolygonHierarchy(Cesium.Cartesian3.fromDegreesArray(hole.flatMap(c => [c[0]!, c[1]!])))))
         if (carriageway) {
-          into.add({ id, name: `차도 (${p.width_m ?? '?'} m)`, description: `${p.width_status ?? ''} · ${p.source ?? ''}`,
+          addRoad({ id, name: `차도 (${p.width_m ?? '?'} m)`, description: `${p.width_status ?? ''} · ${p.source ?? ''}`,
             polygon: { hierarchy, ...classification, ...(draped ? { zIndex: 2 } : { height: z + BLOCK_HEIGHT_M + 0.06 }),
               material: Cesium.Color.fromCssColorString('#999995') } })
         } else if (cover) {
           const colour = COVER_COLOURS[p.cover]
           if (!colour) return
-          into.add({ id, name: `토지피복 ${p.l3_name ?? p.cover}`, polygon: { hierarchy, ...classification,
+          addSurface({ id, name: `토지피복 ${p.l3_name ?? p.cover}`, polygon: { hierarchy, ...classification,
             ...(draped ? { zIndex: 1 } : { height: z + BLOCK_HEIGHT_M + 0.03 }), material: Cesium.Color.fromCssColorString(colour) } })
         } else if (p.ground === 'road' || p.ground === 'rail') {
-          into.add({ id, name: `도로 (지목 ${p.jimok})`, polygon: { hierarchy, ...classification,
+          const add = p.ground === 'road' ? addRoad : (entity: any) => into.add(entity)
+          add({ id, name: `도로 (지목 ${p.jimok})`, polygon: { hierarchy, ...classification,
             ...(draped ? { zIndex: 0 } : { height: z + ROAD_HEIGHT_M }), material: Cesium.Color.fromCssColorString(ROAD_GREY) } })
         } else {
-          into.add({ id, name: `필지 (지목 ${p.jimok ?? '?'})`,
+          addSurface({ id, name: `필지 (지목 ${p.jimok ?? '?'})`,
             polygon: { hierarchy, ...classification, ...(draped ? { zIndex: 0 } : { height: z + ROAD_HEIGHT_M, extrudedHeight: z + BLOCK_HEIGHT_M }),
               material: Cesium.Color.fromCssColorString(BLOCK_COLOURS[p.ground] ?? '#fbfbfa') } })
         }

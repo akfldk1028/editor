@@ -212,3 +212,86 @@ test('incremental chunks release events before yielding and also after rendering
   await expect(draw()).rejects.toThrow('render failed')
   expect(depth).toBe(0)
 })
+
+function surfaceLayerFixture() {
+  const { C } = fixture()
+  const sources: any[] = []
+  class Source {
+    show=true
+    constructor(public name:string){}
+    entities={values:[] as any[],add(e:any){this.values.push(e);return e},removeById(id:string){const i=this.values.findIndex(e=>e.id===id);if(i<0)return false;this.values.splice(i,1);return true},suspendEvents(){},resumeEvents(){}}
+  }
+  const viewer={dataSources:{add(s:any){sources.push(s);return Promise.resolve(s)},remove(s:any){const i=sources.indexOf(s);if(i>=0)sources.splice(i,1)}}}
+  const cesium={...C,CustomDataSource:Source}
+  const blocks=new GroundLayer(viewer,cesium,'blocks',2),cover=new GroundLayer(viewer,cesium,'cover',2)
+  const reply:any={status:'ok',features:{features:[
+    {properties:{id:'lot',ground:'paved',parcel_boundary_id:'original',parcel_boundary:{type:'LineString',coordinates:outer}},geometry:{type:'Polygon',coordinates:[outer,hole]}},
+    {properties:{id:'cover',layer:'cover',cover:'green'},geometry:{type:'Polygon',coordinates:[outer]}},
+    {properties:{id:'road',ground:'road'},geometry:{type:'Polygon',coordinates:[outer]}},
+    {properties:{id:'carriageway',layer:'carriageway',width_m:6},geometry:{type:'Polygon',coordinates:[outer]}},
+  ]}}
+  const draw=(cell:string)=>drawContextGround({blocks:blocks.forCell(cell),cover:cover.forCell(cell)},cesium,reply,'terrain')
+  const rendered=()=>sources.flatMap(s=>s.entities.values)
+  return {blocks,cover,draw,rendered,reply}
+}
+
+test('surface imagery removes existing background fills but preserves roads, original boundaries and cell ownership',async()=>{
+ const {blocks,cover,draw,rendered}=surfaceLayerFixture()
+ draw('a');draw('b');await Promise.resolve()
+ expect(rendered()).toHaveLength(5)
+ const roadIds=rendered().filter(e=>e.polyline||e.polygon?.zIndex===2||e.polygon?.material==='#b4b4b0').map(e=>e.id).sort()
+ blocks.surfaceImagery=true;cover.surfaceImagery=true;await Promise.resolve()
+ expect(rendered().map(e=>e.id).sort()).toEqual(roadIds)
+ expect(blocks.entities.values.length+cover.entities.values.length).toBe(5)
+ draw('a');expect(rendered()).toHaveLength(3)
+ blocks.retireCell('a');cover.retireCell('a')
+ blocks.surfaceImagery=false;cover.surfaceImagery=false;await Promise.resolve()
+ expect(rendered()).toHaveLength(5)
+ expect(rendered().find(e=>e.id.startsWith('parcel-lot-')).polygon.hierarchy.holes).toHaveLength(1)
+ blocks.retireCell('b');cover.retireCell('b');await Promise.resolve()
+ expect(rendered()).toHaveLength(0)
+ blocks.surfaceImagery=true;blocks.surfaceImagery=false;cover.surfaceImagery=true;cover.surfaceImagery=false
+ expect(rendered()).toHaveLength(0)
+})
+
+test('surface imagery enabled before arrival allocates no fills and preserves ordinary highlight entities',async()=>{
+ const {blocks,cover,draw,rendered}=surfaceLayerFixture()
+ blocks.surfaceImagery=true;cover.surfaceImagery=true
+ blocks.entities.add({id:'selected-highlight',polygon:{zIndex:9}})
+ draw('new');await Promise.resolve()
+ expect(rendered()).toHaveLength(4)
+ expect(rendered().some(e=>e.id==='selected-highlight')).toBe(true)
+ blocks.retireCell('new');cover.retireCell('new')
+ blocks.surfaceImagery=false;cover.surfaceImagery=false;await Promise.resolve()
+ expect(rendered().map(e=>e.id)).toEqual(['selected-highlight'])
+ blocks.entities.removeAll();cover.entities.removeAll()
+ expect(rendered()).toHaveLength(0)
+})
+
+
+test('road imagery is independent of surface fills and retains rail, original boundaries and shared owners',async()=>{
+ const {blocks,cover,draw,rendered,reply}=surfaceLayerFixture()
+ reply.features.features.push({properties:{id:'rail',ground:'rail'},geometry:{type:'Polygon',coordinates:[outer]}})
+ draw('a');draw('b');await Promise.resolve();expect(rendered()).toHaveLength(6)
+ blocks.roadImagery=true;await Promise.resolve()
+ expect(rendered()).toHaveLength(4)
+ expect(rendered().some(e=>e.id.startsWith('parcel-rail-'))).toBe(true)
+ expect(rendered().some(e=>e.polyline)).toBe(true)
+ blocks.surfaceImagery=true;cover.surfaceImagery=true
+ expect(rendered()).toHaveLength(2)
+ draw('a');blocks.retireCell('a');cover.retireCell('a')
+ blocks.roadImagery=false;expect(rendered()).toHaveLength(4)
+ blocks.surfaceImagery=false;cover.surfaceImagery=false;await Promise.resolve();expect(rendered()).toHaveLength(6)
+ blocks.roadImagery=true;blocks.retireCell('b');cover.retireCell('b');blocks.roadImagery=false;await Promise.resolve()
+ expect(rendered()).toHaveLength(0)
+})
+
+test('road imagery enabled before arrival keeps selected highlights and clears hidden road ownership',async()=>{
+ const {blocks,cover,draw,rendered}=surfaceLayerFixture()
+ blocks.roadImagery=true
+ blocks.entities.add({id:'selected-highlight',polygon:{zIndex:9}})
+ draw('new');await Promise.resolve();expect(rendered()).toHaveLength(4)
+ expect(rendered().some(e=>e.id==='selected-highlight')).toBe(true)
+ blocks.retireCell('new');cover.retireCell('new');blocks.roadImagery=false;await Promise.resolve()
+ expect(rendered().map(e=>e.id)).toEqual(['selected-highlight'])
+})

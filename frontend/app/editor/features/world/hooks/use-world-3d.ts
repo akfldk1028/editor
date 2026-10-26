@@ -172,6 +172,20 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
 
   pumpRef.current = pump
 
+  const updateGroundImageOwnership = useCallback((focus: { lon: number; lat: number }) => {
+    const current = layers.current
+    if (!current) return
+    const owns = (kind: 'roads' | 'landcover') => coarseGround.current.some(item => {
+      const provider = item.layer.imageryProvider
+      return item.kind === kind && item.layer.show && provider.maximumLevel > 12
+        && provider.coversPosition(focus.lon, focus.lat)
+    })
+    const surface = owns('landcover')
+    current.ground.surfaceImagery = surface
+    current.cover.surfaceImagery = surface
+    current.ground.roadImagery = owns('roads')
+  }, [])
+
   const loadVisible = useCallback(() => {
     const viewer = viewerRef.current, Cesium = cesiumRef.current
     if (!viewer || !Cesium) return
@@ -188,6 +202,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     }
     const seen = visibleBox(viewer, Cesium)
     if (!seen) { retireGround(); return }
+    updateGroundImageOwnership(seen.focus)
     const camera = viewer.camera.positionCartographic
     tileBuildings.current?.load(seen.box, seen.focus, { lon: Cesium.Math.toDegrees(camera.longitude),
       lat: Cesium.Math.toDegrees(camera.latitude), height: Math.max(1, camera.height - level.current),
@@ -236,7 +251,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
       || rank.get(a.cellKey)! - rank.get(b.cellKey)!)
     setStatus('')
     pump()
-  }, [pump])
+  }, [pump, updateGroundImageOwnership])
 
   /** The site's red dashed outline, draped on the terrain or just above the flat ground. */
   const drawOutline = useCallback(() => {
@@ -556,6 +571,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     if (!viewer || !Cesium) return
     viewer.imageryLayers.removeAll()
     const controller = new AbortController()
+    const groundLayers = layers.current
     let prepared: Awaited<ReturnType<typeof prepareGroundImagery>> | undefined
     const added: { kind: 'roads' | 'landcover'; layer: any }[] = []
     if (base === 'vworld2d') {
@@ -576,6 +592,8 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
           added.push({ kind: item.kind, layer })
         }
         coarseGround.current = added
+        const focus = visibleBox(viewer, Cesium)?.focus
+        if (focus) updateGroundImageOwnership(focus)
         viewer.scene.requestRender()
       }).catch(error => {
         if (!controller.signal.aborted) console.warn('Ground imagery unavailable', error)
@@ -585,9 +603,14 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
       controller.abort()
       prepared?.dispose()
       if (!viewer.isDestroyed()) for (const item of added) viewer.imageryLayers.remove(item.layer, true)
+      if (layers.current === groundLayers && groundLayers && !viewer.isDestroyed()) {
+        groundLayers.ground.surfaceImagery = false
+        groundLayers.cover.surfaceImagery = false
+        groundLayers.ground.roadImagery = false
+      }
       if (coarseGround.current === added) coarseGround.current = []
     }
-  }, [base, ready])
+  }, [base, ready, updateGroundImageOwnership])
 
   useEffect(() => {
     if (!layers.current) return
@@ -596,7 +619,12 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     layers.current.ground.show = show.ground
     layers.current.cover.show = show.cover
     for (const item of coarseGround.current) item.layer.show = item.kind === 'roads' ? show.ground : show.cover
-  }, [show, ready])
+    const viewer = viewerRef.current, Cesium = cesiumRef.current
+    if (viewer && Cesium) {
+      const focus = visibleBox(viewer, Cesium)?.focus
+      if (focus) updateGroundImageOwnership(focus)
+    }
+  }, [show, ready, updateGroundImageOwnership])
 
   return {
     ready, loading: !ready && !error, error, viewerRef, cesiumRef,
