@@ -12,6 +12,71 @@ spec.loader.exec_module(m)
 
 
 class MonitorTests(unittest.TestCase):
+    def test_national_completed_receipts_cached_and_staging_excluded(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder); regions=root/'regions.json'
+            inventory={'schema':'ngii-canonical-regions-v1','sourceComplete':True,'planSHA256':'plan',
+                       'regionCount':2,'buildingCount':5,'regions':[{'region14':'14/1/1','buildings':2},{'region14':'14/1/2','buildings':3}]}
+            regions.write_text(json.dumps(inventory))
+            digest=m.hashlib.sha256(regions.read_bytes()).hexdigest()
+            binding={'sourcePlan':'plan','expectedTerrain':'terrain','inventorySHA256':digest,'assetPacking':'gzip'}
+            (root/'candidate-inputs.json').write_text(json.dumps(binding))
+            part=root/'14-1-1-a';part.mkdir()
+            value={'schema':'ngii-region-candidate-v1','completeRegion':True,'owner':'14/1/1',
+                   'sourcePlanSHA256':'plan','terrainSHA256':'terrain','inventorySHA256':digest,'assetPacking':'gzip',
+                   'buildings':2,'supportedGroundBuildings':1,'unresolvedGroundBuildings':1,'files':[{'bytes':123}]}
+            receipt=part/'candidate-receipt.json';receipt.write_text(json.dumps(value))
+            (root/'.staging'/'14-1-2-a').mkdir(parents=True)
+            (root/'.staging'/'14-1-2-a'/'candidate-receipt.json').write_text(json.dumps(value))
+            (root/'14-1-2-partial').mkdir()
+            monitor=m.NationalBakeMonitor()
+            first=monitor.status(root,regions)
+            self.assertEqual((first['completedRegions'],first['buildings'],first['payloadBytes']), (1,2,123))
+            self.assertEqual((first['stagingCount'],first['partialFolders']), (1,1))
+            self.assertIn('national_bake_work_remaining_worker_missing',first['alerts'])
+            with patch.object(pathlib.Path,'read_bytes',side_effect=AssertionError('unchanged document reread')):
+                self.assertEqual(monitor.status(root,regions)['buildings'],2)
+            (root/'queue-status.json').write_text(json.dumps({'state':'baking','pid':42,'childPID':43}))
+            with patch.object(m.psutil,'Process') as process:
+                process.return_value.cwd.return_value=folder
+                process.return_value.cmdline.return_value=['python','queue_ngii_national_bake.py','--output',str(root)]
+                running=monitor.status(root,regions)
+                self.assertTrue(running['processes'][0]['matchesCandidate'])
+                self.assertFalse(running['processes'][1]['matchesCandidate'])
+                self.assertNotIn('national_bake_work_remaining_worker_missing',running['alerts'])
+                process.return_value.cmdline.return_value=['python','queue_ngii_national_bake.py','--output',str(root/'other')]
+                self.assertIn('national_bake_work_remaining_worker_missing',monitor.status(root,regions)['alerts'])
+            (root/'queue-status.json').unlink()
+            value['terrainSHA256']='wrong';receipt.write_text(json.dumps(value))
+            result=monitor.status(root,regions)
+            self.assertEqual(result['completedRegions'],0)
+            self.assertIn('national_bake_receipt_mismatch',result['alerts'])
+
+    def test_national_inventory_rejects_unbound_or_incomplete_source(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder);regions=root/'regions.json'
+            regions.write_text(json.dumps({'regions':[],'sourceComplete':False}))
+            (root/'candidate-inputs.json').write_text('{}')
+            with self.assertRaises(ValueError):m.NationalBakeMonitor().status(root,regions)
+
+    def test_frozen_base_uses_cumulative_delta_cursors_without_double_count(self):
+        from ngii_canonical_snapshot import initialize
+        from ingest_ngii_buildings import open_db
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder);base=root/'buildings.sqlite'
+            plan={'planSHA256':'test','sources':[{'id':'a','expectedRows':100,'manifest':{}}]}
+            db=open_db(base,plan)
+            with db:db.execute("UPDATE sources SET next_row=40,status='partial'")
+            db.close();initialize(plan,base,root/'delta')
+            db=open_db(root/'delta/buildings.sqlite',plan)
+            with db:db.execute("UPDATE sources SET next_row=70")
+            db.close()
+            result=m.database_status(base)
+            self.assertEqual(result['processedRows'],70)
+            self.assertFalse(result['snapshotComplete'])
+            self.assertTrue(m.worker_matches(['python','ngii_canonical_snapshot.py','run','--output',str(root/'delta')],root/'delta/buildings.sqlite',root))
+            self.assertFalse(m.worker_matches(['python','ngii_canonical_snapshot.py','run','--output',str(root/'other')],root/'delta/buildings.sqlite',root))
+
     def test_obsolete_candidate_does_not_raise_worker_alert(self):
         with tempfile.TemporaryDirectory() as folder:
             old, active = pathlib.Path(folder) / 'old', pathlib.Path(folder) / 'active'

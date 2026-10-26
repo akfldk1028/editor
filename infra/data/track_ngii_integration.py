@@ -29,17 +29,37 @@ def filled_union(results, cohort):
     return {'filledKeysUnion': len(keys), 'rejectedCohortResults': rejected}
 
 
+def canonical_location(path):
+    path=Path(path).resolve()
+    marker=path.parent/'frozen-base.json'
+    if not marker.exists():return path,None,None
+    binding=read(marker);manifest=Path(binding['snapshot']);document=read(manifest)
+    if binding.get('schema')!='ngii-frozen-base-v1' or document.get('schema')!='ngii-canonical-snapshot-v1' \
+       or Path(document['base']['path']).resolve()!=path or document['planSHA256']!=binding['planSHA256']:
+        raise ValueError('Invalid canonical snapshot binding')
+    from ngii_canonical_snapshot import verify_base
+    verify_base(document)
+    return Path(document['delta']['path']),manifest,document
+
+
 def database_status(path):
-    with closing(sqlite3.connect(Path(path).resolve().as_uri() + '?mode=ro', uri=True, timeout=2)) as db:
-        db.execute('PRAGMA query_only=ON')
-        db.execute('BEGIN')
+    database,manifest,document=canonical_location(path)
+    if document:
+        from ngii_canonical_snapshot import open_snapshot
+        connection=open_snapshot(document)
+    else:
+        connection=closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=2))
+    with connection as db:
+        if not document:db.execute('PRAGMA query_only=ON');db.execute('BEGIN')
         expected, processed, complete, sources = db.execute("SELECT sum(expected_rows),sum(next_row),sum(status='complete'),count(*) FROM sources").fetchone()
         issues = db.execute('SELECT count(*) FROM issues').fetchone()[0]
-    return {'expectedRows': expected or 0, 'processedRows': processed or 0, 'completeSources': complete or 0, 'sources': sources, 'issues': issues}
+    return {'expectedRows': expected or 0, 'processedRows': processed or 0, 'completeSources': complete or 0, 'sources': sources, 'issues': issues,
+            'writeDatabase':str(database),'sourceSnapshot':str(manifest) if manifest else None,
+            'snapshotComplete':document.get('complete') if document else None}
 
 
 def worker_matches(args, database, cwd):
-    if not any(Path(a).name == 'ingest_ngii_buildings.py' for a in args) or 'run' not in args or '--output' not in args:
+    if not any(Path(a).name in ('ingest_ngii_buildings.py','ngii_canonical_snapshot.py') for a in args) or 'run' not in args or '--output' not in args:
         return False
     try:
         output = Path(args[args.index('--output') + 1])
@@ -49,6 +69,7 @@ def worker_matches(args, database, cwd):
 
 
 def workers(database):
+    database,_,_=canonical_location(database)
     found = []
     for process in psutil.process_iter(['pid', 'cmdline']):
         try:
@@ -122,6 +143,96 @@ def building_url(url):
     return '/api/map-data/' + url.lstrip('/')
 
 
+class NationalBakeMonitor:
+    def __init__(self):
+        self.cache = {}
+
+    def document(self, path):
+        stamp = path.stat()
+        signature = (stamp.st_mtime_ns, stamp.st_size)
+        cached = self.cache.get(path)
+        if cached is None or cached[0] != signature:
+            raw = path.read_bytes()
+            cached = (signature, json.loads(raw), hashlib.sha256(raw).hexdigest())
+            self.cache[path] = cached
+        return cached
+
+    def status(self, root, regions):
+        root, regions = Path(root).resolve(), Path(regions).resolve()
+        _, inventory, digest = self.document(regions)
+        _, binding, _ = self.document(root / 'candidate-inputs.json')
+        expected = {r['region14']: r for r in inventory['regions']}
+        if inventory.get('sourceComplete') is not True or inventory.get('schema') != 'ngii-canonical-regions-v1' \
+                or inventory.get('planSHA256') != binding['sourcePlan'] or digest != binding['inventorySHA256'] \
+                or len(expected) != inventory['regionCount'] or len(expected) != len(inventory['regions']) \
+                or sum(r['buildings'] for r in expected.values()) != inventory['buildingCount']:
+            raise ValueError('National inventory binding mismatch')
+        result = {'publicationStatus': 'candidate-only not published', 'output': str(root),
+                  'expectedRegions': len(expected), 'expectedBuildings': inventory['buildingCount'],
+                  'completedRegions': 0, 'buildings': 0, 'supportedGroundBuildings': 0,
+                  'unresolvedGroundBuildings': 0, 'payloadBytes': 0, 'latestReceiptMtimeNs': None,
+                  'stagingCount': 0, 'partialFolders': 0, 'errors': [], 'alerts': [],
+                  'freeBytes': shutil.disk_usage(root).free, 'reserveBytes': 20 * 1024**3}
+        seen, retained = set(), {regions, root / 'candidate-inputs.json'}
+        for folder in root.iterdir():
+            if not folder.is_dir() or folder.is_symlink():
+                continue
+            if folder.name == '.staging':
+                result['stagingCount'] = sum(p.is_dir() for p in folder.iterdir())
+                continue
+            if not folder.name.startswith('14-'):
+                continue
+            receipt = folder / 'candidate-receipt.json'
+            if not receipt.is_file():
+                result['partialFolders'] += 1
+                continue
+            try:
+                stamp, value, _ = self.document(receipt); retained.add(receipt)
+                owner = value['owner']; wanted = expected.get(owner)
+                if value.get('completeRegion') is not True:
+                    result['partialFolders'] += 1
+                    continue
+                if value.get('schema') != 'ngii-region-candidate-v1' or wanted is None or owner in seen \
+                        or value.get('sourcePlanSHA256') != binding['sourcePlan'] \
+                        or value.get('terrainSHA256') != binding['expectedTerrain'] \
+                        or value.get('inventorySHA256') != digest \
+                        or value.get('assetPacking') != binding['assetPacking'] \
+                        or value['buildings'] != wanted['buildings'] \
+                        or value['supportedGroundBuildings'] + value['unresolvedGroundBuildings'] != value['buildings']:
+                    raise ValueError('Receipt identity/count mismatch')
+                seen.add(owner); result['completedRegions'] += 1
+                for name in ('buildings', 'supportedGroundBuildings', 'unresolvedGroundBuildings'):
+                    result[name] += value[name]
+                result['payloadBytes'] += sum(f['bytes'] for f in value['files'])
+                result['latestReceiptMtimeNs'] = max(result['latestReceiptMtimeNs'] or 0, stamp[0])
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                result['errors'].append({'receipt': str(receipt), 'error': str(error)})
+        self.cache = {p: v for p, v in self.cache.items() if p in retained}
+        queue_path = root / 'queue-status.json'
+        queue = read(queue_path) if queue_path.exists() else {'state': 'not-started'}
+        result['queue'] = queue
+        result['processes'] = []
+        for field, script in [('pid', 'queue_ngii_national_bake.py'), ('childPID', 'bake-ngii-region.ts')]:
+            pid = queue.get(field)
+            alive = False
+            try:
+                process = psutil.Process(int(pid)); args = process.cmdline()
+                alive = any(Path(a).name == script for a in args) and '--output' in args \
+                    and (Path(process.cwd()) / args[args.index('--output') + 1]).resolve() == root
+            except (psutil.Error, OSError, TypeError, ValueError, IndexError):
+                pass
+            result['processes'].append({'role': field, 'pid': pid, 'matchesCandidate': alive})
+        if queue.get('state') in ('failed', 'needs_storage'):
+            result['alerts'].append('national_bake_' + queue['state'])
+        if len(seen) < len(expected) and not any(p['matchesCandidate'] for p in result['processes']):
+            result['alerts'].append('national_bake_work_remaining_worker_missing')
+        if result['errors']:
+            result['alerts'].append('national_bake_receipt_mismatch')
+        if result['freeBytes'] < result['reserveBytes']:
+            result['alerts'].append('national_bake_storage_below_20GiB')
+        return result
+
+
 def snapshot(args):
     row = {'at': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'pid': os.getpid(), 'intervalSeconds': args.interval, 'alerts': [], 'browserPerformanceMeasured': False, 'automaticAgentWake': False}
     for name, action in [
@@ -139,6 +250,16 @@ def snapshot(args):
     if canonical.get('issues'):
         row['alerts'].append('canonical_issues_present')
     terrain = row.get('terrainCandidates', {})
+    if getattr(args, 'national_bake', None):
+        try:
+            monitor = getattr(args, '_national_monitor', None)
+            if monitor is None:
+                monitor = args._national_monitor = NationalBakeMonitor()
+            row['candidateNationalBake'] = monitor.status(args.national_bake, args.national_regions)
+            row['alerts'].extend(row['candidateNationalBake']['alerts'])
+        except Exception as exc:
+            row['candidateNationalBake'] = {'publicationStatus': 'candidate-only not published', 'error': str(exc)}
+            row['alerts'].append('national_bake_read_failed')
     row['alerts'].extend(terrain.get('alerts', []))
     if terrain.get('errors') or terrain.get('rejectedCohortResults'):
         row['alerts'].append('candidate_evidence_mismatch')
@@ -175,12 +296,16 @@ def main():
     parser.add_argument('--database', type=Path, required=True)
     parser.add_argument('--candidate', action='append', type=Path, required=True)
     parser.add_argument('--active-candidate', type=Path, required=True)
+    parser.add_argument('--national-bake', type=Path)
+    parser.add_argument('--national-regions', type=Path)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--base-url', default='http://127.0.0.1:3003')
     parser.add_argument('--drive', action='append')
     parser.add_argument('--interval', type=float, default=300)
     parser.add_argument('--iterations', type=int, default=0)
     args = parser.parse_args()
+    if bool(args.national_bake) != bool(args.national_regions):
+        parser.error('--national-bake and --national-regions must be supplied together')
     if args.interval <= 0 or args.iterations < 0:
         parser.error('interval must be positive; iterations must be nonnegative')
     if args.active_candidate.resolve() not in [p.resolve() for p in args.candidate]:
@@ -206,6 +331,13 @@ def main():
         while True:
             start = time.monotonic()
             row = snapshot(args)
+            try:
+                previous=read(args.output/'latest.json')
+                old=previous.get('canonical',{});current=row.get('canonical',{})
+                elapsed=(datetime.datetime.fromisoformat(row['at'])-datetime.datetime.fromisoformat(previous['at'])).total_seconds()
+                if elapsed>0 and old.get('sourceSnapshot')==current.get('sourceSnapshot') and current.get('processedRows',0)>=old.get('processedRows',0):
+                    current['recentRowsPerSecond']=(current['processedRows']-old['processedRows'])/elapsed
+            except (OSError,ValueError,KeyError):pass
             raw = json.dumps(row, ensure_ascii=False)
             temp = args.output / 'latest.tmp'
             temp.write_text(raw, encoding='utf-8')
