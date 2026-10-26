@@ -1,9 +1,11 @@
 import hashlib
 import gzip
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from ingest_ngii_buildings import open_db, packed
 from prepare_ngii_national_release import prepare, PROVINCES, MESH, PACKING, CONTRACT, HLOD, public_url
@@ -29,6 +31,11 @@ class NationalPreparationTests(unittest.TestCase):
 
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        # These payload tests use one synthetic tile rather than a national map.
+        lon=1.5/16384*360-180
+        lat=math.degrees(math.atan(math.sinh(math.pi*(1-2*1.5/16384))))
+        probes=patch.dict('prepare_ngii_national_release.GEOGRAPHIC_PROBES',{'fixture':(lon,lat)},clear=True)
+        probes.start();self.addCleanup(probes.stop)
         self.root=Path(self.tmp.name).resolve();r=self.root
         source=r/'source.zip';source.write_bytes(b'official fixture')
         atomic_json(r/'source.zip.receipt.json',{'bytes':source.stat().st_size,'sha256':digest(source)})

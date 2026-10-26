@@ -22,6 +22,32 @@ PACKING = 'gzip6-mesh-and-metadata-v1'
 CONTRACT = 'resolved-ancestor-grid-v1'
 HLOD = 'ngii-global-occupied-quadtree-v1'
 PROVINCES = {'11','26','27','28','29','30','31','36','41','43','44','46','47','48','50','51','52'}
+# Presence checks for known inhabited edge areas. Province labels and an exact
+# received inventory cannot detect these omissions in the source itself.
+# Passing these probes alone does not establish exhaustive geographic coverage.
+GEOGRAPHIC_PROBES = {
+    'Baengnyeong': (124.65, 37.95), 'Daecheong': (124.70, 37.83),
+    'Yeonpyeong': (125.70, 37.66), 'Ulleung': (130.90, 37.48),
+    'Dokdo': (131.87, 37.24), 'Marado': (126.267, 33.117),
+    'Jeju': (126.53, 33.50), 'Goseong': (128.36, 38.51),
+}
+
+
+def geographic_presence(actual):
+    points=[]
+    missing=[]
+    for name,(lon,lat) in GEOGRAPHIC_PROBES.items():
+        x=int((lon+180)/360*16384)
+        y=int((1-math.asinh(math.tan(math.radians(lat)))/math.pi)/2*16384)
+        regions={f'14/{xx}/{yy}':actual.get(f'14/{xx}/{yy}',0)
+                 for xx in range(x-1,x+2) for yy in range(y-1,y+2)}
+        buildings=sum(regions.values())
+        if buildings<=0:missing.append(name)
+        points.append({'name':name,'point':[lon,lat],'buildings':buildings,
+                       'occupiedRegions':{k:v for k,v in regions.items() if v>0}})
+    if missing:raise ValueError('Missing geographic source coverage: '+', '.join(missing))
+    return {'schema':'ngii-geographic-presence-v1','points':points,
+            'scope':'Known inhabited edge-neighborhood presence, not exhaustive land coverage'}
 
 
 def sha(value):
@@ -126,6 +152,9 @@ def prepare(root, database, plan_path, regions_path, hlod_input_path, hlod_folde
        or inventory.get('buildingCount')!=sum(actual.values()) \
        or any(not isinstance(r['components'],int) or r['components']<r['buildings'] for r in rows):
         raise ValueError('Incomplete canonical region inventory')
+    geography=geographic_presence(actual)
+    geography['sourcePlanSHA256']=plan['planSHA256']
+    geography_sha=hashlib.sha256(encoded(geography)).hexdigest()
     terrain=read_json(terrain_pointer);terrain_sha=sha(terrain['sha256']);sha(terrain['vrt_sha256'])
     if terrain.get('heightContract')!=CONTRACT:raise ValueError('Terrain height contract mismatch')
     if not terrain['url'].startswith('/api/map-data/'):raise ValueError('Invalid terrain URL')
@@ -215,14 +244,15 @@ def prepare(root, database, plan_path, regions_path, hlod_input_path, hlod_folde
     coverage={'schema':'ngii-national-coverage-v1','sourcePlanSHA256':plan['planSHA256'],'catalogRevision':revision,
               'regionCount':len(expected),'buildings':sum(actual.values()),'components':components,
               'provinces':sorted(normalized),'unclassifiedProvinceBuildings':unclassified,'supportedGroundBuildings':supported,'unresolvedGroundBuildings':unresolved,
-              'missingRegions':0,'partialRegions':0,'runtimeValidated':False}
+              'missingRegions':0,'partialRegions':0,'runtimeValidated':False,
+              'geographicPresenceSHA256':geography_sha}
     coverage_sha=hashlib.sha256(encoded(coverage)).hexdigest()
     evidence=root/'management/ngii-national-publications'/coverage_sha;evidence.mkdir(parents=True,exist_ok=True)
     descriptor={'schema':'world-buildings/national-v1','url':public_url(root,hlod_folder/'tileset.json'),
                 'sourceSha256':plan['planSHA256'],'terrainVrtSha256':terrain['vrt_sha256'],'catalogRevision':revision,
                 'coverageSha256':coverage_sha,'materialRevision':'neutral-opaque-v1','hierarchy':'replace-coarse-ancestors-v1',
                 'coverage':{'expectedRegions':len(expected),'completeRegions':len(expected),'missingRegions':0,'partialRegions':0}}
-    for name,value in [('coverage.json',coverage),('descriptor.json',descriptor)]:
+    for name,value in [('coverage.json',coverage),('descriptor.json',descriptor),('geographic-presence.json',geography)]:
         path=evidence/name
         if path.exists() and read_json(path)!=value:raise ValueError('Immutable evidence collision')
         if not path.exists():atomic_json(path,value)
