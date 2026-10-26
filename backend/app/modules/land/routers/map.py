@@ -2,12 +2,17 @@ import logging
 import math
 import os
 import json
+import time
 from fastapi import APIRouter, HTTPException, Request, Response
 import asyncio
+from collections import OrderedDict
+from typing import Literal
 
-from backend.app.adapters import scene_agent, site_context
+from backend.app.adapters import scene_agent
+from backend.app.adapters.elevation import ElevationFetchError, ElevationMissingSamples
 from backend.app.modules.platform import host
 from backend.app.modules.land.vworld.map import MapUnavailable, VworldMapClient
+from backend.app.modules.land import building_tiles, map_terrain, map_roads, map_ground
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +20,8 @@ logger = logging.getLogger(__name__)
 def create_land_map_router(client=None, *, prefix='/api/v1/land'):
     provider = client or VworldMapClient(os.environ.get('VWORLD_API_KEY', ''))
     router = APIRouter(prefix=prefix, tags=['land-map'])
+    roads = map_roads.RoadDisplay()
+    ground = map_ground.GroundDisplay(roads)
     if os.environ.get('VWORLD_BROWSER_API_KEY') and os.environ.get('VWORLD_BROWSER_API_KEY') == os.environ.get('VWORLD_API_KEY'):
         # map-config hands this key to every browser; it must not be the server key.
         logger.warning('VWORLD_BROWSER_API_KEY equals VWORLD_API_KEY; issue a separate key restricted to the editor origin')
@@ -59,66 +66,105 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
                   'LAYERS': layers, 'FORMAT': 'image/png', 'TRANSPARENT': 'true'}
         return await image(provider.wms(params), 300)
 
+    lease_task = None
+    leased_at = float('-inf')
+
+    async def lease_scene():
+        nonlocal leased_at
+        try:
+            result = await host.ensure(['scene'])
+            if result.get('failed'):
+                raise host.HostRefused(str(result['failed']))
+            leased_at = time.monotonic()
+        except (host.HostUnavailable, host.HostRefused):
+            logger.warning('scene lease not renewed', exc_info=True)
+
+    def renew_scene(*, force=False):
+        nonlocal lease_task
+        if lease_task is not None and not lease_task.done():
+            return lease_task
+        if force or time.monotonic() - leased_at >= 60:
+            lease_task = asyncio.create_task(lease_scene())
+            return lease_task
+        return None
+
     async def context(ask, lat, lon, radius_m):
         if not (33 <= lat <= 39 and 124 <= lon <= 132) or not 10 <= radius_m <= 1000:
             raise HTTPException(422, 'lat/lon must be in Korea and radius_m 10..1000')
-        # SceneAgent is stopped by the host when idle: the map's call brings it up first (lazy activation, the same
-        # door the law analysis uses) instead of reporting it unreachable. A missing host is not an error here.
-        # Right after a stop the host can still answer "up" from its last tick, so one refused call is asked again.
+        # A live service answers directly. All visible cells share one background
+        # lease renewal; only an unavailable service puts activation on the path.
+        renew_scene()
         for attempt in (1, 2):
-            try:
-                await host.ensure(['scene'])
-            except (host.HostUnavailable, host.HostRefused):
-                pass
             try:
                 return await asyncio.to_thread(ask, lat, lon, radius_m)
             except scene_agent.SceneAgentError as error:
                 if attempt == 2:
                     raise HTTPException(502, str(error)) from None
+                await asyncio.shield(renew_scene(force=True))
+
+    # Shared across browsers, bounded and short-lived so refreshed source DEMs
+    # replace old grids. Failed/partial samples never enter this display cache.
+    terrain_cache = OrderedDict()
+    terrain_pending = {}
+
+    async def sample_grid(key, points, size):
+        try:
+            heights, dataset = await asyncio.to_thread(map_terrain.ground_heights, points)
+            result = {'size': size, 'heights': [round(h, 2) for h in heights], 'dataset': dataset}
+            terrain_cache[key] = (time.monotonic(), result)
+            terrain_cache.move_to_end(key)
+            while len(terrain_cache) > 256:
+                terrain_cache.popitem(last=False)
+            return result
+        finally:
+            terrain_pending.pop(key, None)
+
+    @router.get('/terrain-revision')
+    async def terrain_revision():
+        try:
+            metadata = await asyncio.to_thread(map_terrain.metadata)
+        except ElevationFetchError as error:
+            raise HTTPException(503, str(error)) from None
+        return Response(content=json.dumps(metadata), media_type='application/json',
+                        headers={'Cache-Control': 'no-store'})
 
     @router.get('/terrain-heights')
     async def terrain_heights(west: float, south: float, east: float, north: float, size: int = 17):
-        """A size x size height grid over a box (rows north to south, columns west to east) from SiteContext's
-        NGII DEM - the world view's terrain tiles. All heights or a refusal, never a partial grid."""
+        """Local NGII grid, rows north to south. Missing cells fail the whole grid."""
         if not (124 <= west < east <= 132 and 33 <= south < north <= 39) or east - west > 0.1 or north - south > 0.1                 or not 2 <= size <= 33:
             raise HTTPException(422, 'box must be in Korea, at most 0.1 deg a side; size 2..33')
         points = [(north - r * (north - south) / (size - 1), west + c * (east - west) / (size - 1))
                   for r in range(size) for c in range(size)]
         try:
-            heights, dataset = await asyncio.to_thread(site_context.ground_heights, points)
-        except site_context.SiteHeightsError as error:
+            source = await asyncio.to_thread(map_terrain.identity)
+        except ElevationFetchError as error:
             raise HTTPException(502, str(error)) from None
-        return {'size': size, 'heights': [round(h, 2) for h in heights], 'dataset': dataset}
-
-    tiles = {'manifest': None}
-
-    async def lease_scene():
+        key = (source, west, south, east, north, size)
+        cached = terrain_cache.get(key)
+        if cached and time.monotonic() - cached[0] < 900:
+            terrain_cache.move_to_end(key)
+            return cached[1]
+        if key not in terrain_pending:
+            task = asyncio.create_task(sample_grid(key, points, size))
+            terrain_pending[key] = task
+            # A disconnected browser must not cancel another browser's grid.
+            task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
         try:
-            await host.ensure(['scene'])
-        except (host.HostUnavailable, host.HostRefused):
-            logger.warning('scene lease not renewed', exc_info=True)
+            return await asyncio.shield(terrain_pending[key])
+        except ElevationMissingSamples as error:
+            raise HTTPException(404, str(error)) from None
+        except ElevationFetchError as error:
+            raise HTTPException(502, str(error)) from None
 
     @router.get('/context-tiles')
-    async def context_tiles():
-        """The building tile manifest. Waiting on the host CLI to wake Scene took 1-4 s on every map open even when
-        Scene was up: a live Scene answers at once (the manifest kept from its last answer, re-read when it fails)
-        and its lease is renewed in the background; a Scene that is down is woken first."""
-        try:
-            if tiles['manifest'] is not None:
-                manifest = await asyncio.to_thread(scene_agent.context_tiles, timeout=1.5)
-                tiles['manifest'] = manifest
-                asyncio.get_running_loop().create_task(lease_scene())
-                return manifest
-        except scene_agent.SceneAgentError:
-            tiles['manifest'] = None
-        try:
-            activation = await host.ensure(['scene'])
-            if activation.get('failed'):
-                raise scene_agent.SceneAgentError(str(activation['failed']))
-            tiles['manifest'] = await asyncio.to_thread(scene_agent.context_tiles)
-            return tiles['manifest']
-        except (host.HostUnavailable, host.HostRefused, scene_agent.SceneAgentError) as error:
-            raise HTTPException(502, str(error)) from None
+    async def context_tiles(request: Request):
+        base = request.url.path.removesuffix('/context-tiles')
+        return await asyncio.to_thread(building_tiles.latest, base)
+
+    @router.head('/building-tiles/{version}/buildings.pmtiles', include_in_schema=False)
+    @router.get('/building-tiles/{version}/buildings.pmtiles')
+    async def building_archive(version: str):
+        return building_tiles.response(version)
 
     @router.get('/context-buildings')
     async def context_buildings(lat: float, lon: float, radius_m: float = 300.0):
@@ -126,8 +172,13 @@ def create_land_map_router(client=None, *, prefix='/api/v1/land'):
         return await context(scene_agent.context_buildings, lat, lon, radius_m)
 
     @router.get('/context-ground')
-    async def context_ground(lat: float, lon: float, radius_m: float = 300.0):
-        """The ground around a point: cadastral parcels by 지목 class and carriageways (SceneAgent over SiteContext)."""
-        return await context(scene_agent.context_ground, lat, lon, radius_m)
+    async def context_ground(lat: float, lon: float, radius_m: float = 300.0, detail: Literal['full', 'roads'] = 'full'):
+        """Cadastral ground and land cover from providers, carriageways from installed sources."""
+        if not (33 <= lat <= 39 and 124 <= lon <= 132) or not 10 <= radius_m <= 1000:
+            raise HTTPException(422, 'lat/lon must be in Korea and radius_m 10..1000')
+        try:
+            return await (roads if detail == 'roads' else ground).get(lat, lon, radius_m)
+        except (map_roads.RoadsUnavailable, map_ground.SourceUnavailable) as error:
+            raise HTTPException(503, str(error)) from None
 
     return router

@@ -14,6 +14,10 @@ class ElevationFetchError(RuntimeError):
     pass
 
 
+class ElevationMissingSamples(ElevationFetchError):
+    """The readable installed dataset does not cover the requested samples."""
+
+
 def _number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
@@ -69,8 +73,10 @@ class ElevationClient:
         identity = self._identity()
         missing = [point for point in dict.fromkeys(rounded) if (identity, point) not in self._cache]
         fresh = {}
-        for offset in range(0, len(missing), 100):
-            chunk = missing[offset:offset + 100]
+        # A local grid needs one raster open, not one for each HTTP-sized batch.
+        chunk_size = max(1, len(missing)) if self.provider == 'ngii_local_dem' else 100
+        for offset in range(0, len(missing), chunk_size):
+            chunk = missing[offset:offset + chunk_size]
             if self.provider == 'ngii_local_dem':
                 values = self._local(chunk)
                 sources = [self.provider] * len(chunk)
@@ -154,6 +160,7 @@ class ElevationClient:
     def _local(self, points):
         try:
             import rasterio
+            import numpy as np
             from pyproj import Transformer
             with rasterio.open(self._local_path()) as dataset:
                 if dataset.crs is None or dataset.count < 1:
@@ -163,19 +170,40 @@ class ElevationClient:
                 if not all(math.isfinite(x) and math.isfinite(y)
                            and dataset.bounds.left <= x < dataset.bounds.right
                            and dataset.bounds.bottom < y <= dataset.bounds.top for x, y in coordinates):
-                    raise ValueError('Outside dataset bounds')
+                    raise ElevationMissingSamples('Outside installed elevation coverage')
+                rows, cols = rasterio.transform.rowcol(dataset.transform, *zip(*coordinates))
+                rows, cols = np.asarray(rows, dtype=np.int64), np.asarray(cols, dtype=np.int64)
+                if np.any(rows < 0) or np.any(rows >= dataset.height) or np.any(cols < 0) or np.any(cols >= dataset.width):
+                    raise ElevationMissingSamples('Outside installed elevation coverage')
+                r0, c0 = int(rows.min()), int(cols.min())
+                height, width = int(rows.max()) - r0 + 1, int(cols.max()) - c0 + 1
+                # Fine grids share a small window; distant legal points must not allocate a national raster.
+                if width * height <= 4_000_000:
+                    grid = dataset.read(1, window=rasterio.windows.Window(c0, r0, width, height), masked=True)
+                    selected = grid[rows - r0, cols - c0]
+                    values = np.asarray(np.ma.getdata(selected), dtype=float)
+                    if (np.ma.getmaskarray(selected).any()
+                            or (dataset.nodata is not None and np.any(values == dataset.nodata))):
+                        raise ElevationMissingSamples('Missing installed elevation samples')
+                    if (not np.isfinite(values).all()
+                            or np.any(values < -500) or np.any(values > 9000)):
+                        raise ValueError('Invalid sample')
+                    return values.tolist()
                 values = []
                 for sample in dataset.sample(coordinates, indexes=1, masked=True):
                     if len(sample) != 1 or bool(getattr(sample, 'mask', False)):
-                        raise ValueError('Missing sample')
+                        raise ElevationMissingSamples('Missing installed elevation samples')
                     value = float(sample[0])
-                    if (not math.isfinite(value) or not -500 <= value <= 9000
-                            or (dataset.nodata is not None and value == dataset.nodata)):
+                    if dataset.nodata is not None and value == dataset.nodata:
+                        raise ElevationMissingSamples('Missing installed elevation samples')
+                    if not math.isfinite(value) or not -500 <= value <= 9000:
                         raise ValueError('Invalid sample')
                     values.append(value)
                 if len(values) != len(points):
-                    raise ValueError('Missing samples')
+                    raise ElevationMissingSamples('Missing installed elevation samples')
                 return values
+        except ElevationMissingSamples:
+            raise
         except Exception:
             # Local legal-datum requests must never silently switch to another DEM.
             raise ElevationFetchError('Local elevation dataset unavailable or missing samples') from None

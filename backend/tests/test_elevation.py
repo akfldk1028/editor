@@ -127,6 +127,7 @@ def test_provenance_accumulates_across_fetches_in_one_calculation():
 @pytest.mark.parametrize('mode', ['valid', 'nodata', 'outside', 'no_crs'])
 def test_local_dem_strict_without_optional_dependency(tmp_path, monkeypatch, mode):
     import sys
+    import numpy as np
     from types import SimpleNamespace
     path = tmp_path / 'local.tif'
     path.write_bytes(b'fixture')
@@ -135,15 +136,111 @@ def test_local_dem_strict_without_optional_dependency(tmp_path, monkeypatch, mod
     class Dataset:
         crs = None if mode == 'no_crs' else 'EPSG:4326'
         count = 1
+        width = height = 1
+        transform = None
         nodata = -9999
         bounds = SimpleNamespace(left=126, right=128, bottom=36, top=38)
         def __enter__(self): return self
         def __exit__(self, *args): pass
+        def read(self, *args, **kwargs):
+            return np.ma.array([[-9999 if mode == 'nodata' else 12]])
         def sample(self, coordinates, **kwargs):
             return [Sample([-9999 if mode == 'nodata' else 12]) for _ in coordinates]
-    monkeypatch.setitem(sys.modules, 'rasterio', SimpleNamespace(open=lambda path: Dataset()))
+    monkeypatch.setitem(sys.modules, 'rasterio', SimpleNamespace(open=lambda path: Dataset(),
+        transform=SimpleNamespace(rowcol=lambda _transform, xs, ys: ([0] * len(xs), [0] * len(xs))),
+        windows=SimpleNamespace(Window=lambda *args: args)))
     client = ElevationClient('ngii_local_dem', local_dem_path=path)
     point = (39, 127) if mode == 'outside' else (37, 127)
     if mode == 'valid': assert client.fetch([point]) == [12]
     else:
+        with pytest.raises(ElevationFetchError): client.fetch([point])
+
+
+def test_local_dense_grid_reads_one_window_with_exact_nearest_values(tmp_path, monkeypatch):
+    rasterio = pytest.importorskip('rasterio')
+    import numpy as np
+    from rasterio.transform import from_origin
+    path = tmp_path / 'grid.tif'
+    data = np.arange(1600, dtype='float32').reshape(40, 40) + .25
+    with rasterio.open(path, 'w', driver='GTiff', width=40, height=40, count=1,
+                       dtype='float32', crs=4326, transform=from_origin(127, 38, .00005, .00005)) as dst:
+        dst.write(data, 1)
+    points = [(38 - (r + .4) * .00005, 127 + (c + .6) * .00005) for r in range(33) for c in range(33)]
+    original_open = rasterio.open
+    with original_open(path) as dataset:
+        expected = [float(v[0]) for v in dataset.sample([(lon, lat) for lat, lon in points])]
+    reads = []
+    class CountingDataset:
+        def __init__(self): self.dataset = original_open(path)
+        def __enter__(self): return self
+        def __exit__(self, *args): self.dataset.close()
+        def __getattr__(self, name): return getattr(self.dataset, name)
+        def read(self, *args, **kwargs):
+            reads.append(kwargs.get('window'))
+            return self.dataset.read(*args, **kwargs)
+        def sample(self, *args, **kwargs):
+            raise AssertionError('Dense grid must use a single bounded read')
+    monkeypatch.setattr(rasterio, 'open', lambda *_a, **_kw: CountingDataset())
+    assert ElevationClient('ngii_local_dem', local_dem_path=path).fetch(points) == expected
+    assert len(reads) == 1
+    assert reads[0].width == 33 and reads[0].height == 33
+
+
+@pytest.mark.parametrize('bad', [-9999, -501, 9001, float('nan'), float('inf')])
+def test_local_window_invalid_values_do_not_enter_cache(tmp_path, bad):
+    rasterio = pytest.importorskip('rasterio')
+    import numpy as np
+    from rasterio.transform import from_origin
+    path = tmp_path / 'invalid.tif'
+    with rasterio.open(path, 'w', driver='GTiff', width=2, height=1, count=1,
+                       dtype='float32', crs=4326, nodata=-9999,
+                       transform=from_origin(127, 38, .01, .01)) as dst:
+        dst.write(np.array([[12, bad]], dtype='float32'), 1)
+    client = ElevationClient('ngii_local_dem', local_dem_path=path)
+    with pytest.raises(ElevationFetchError):
+        client.fetch([(37.995, 127.005), (37.995, 127.015)])
+    assert client._cache == {}
+    assert client.provenance['actual_provider'] is None
+
+
+def test_local_scattered_points_keep_bounded_individual_sampling(tmp_path, monkeypatch):
+    rasterio = pytest.importorskip('rasterio')
+    import numpy as np
+    from rasterio.transform import from_origin
+    from rasterio.windows import Window
+    path = tmp_path / 'wide.tif'
+    with rasterio.open(path, 'w', driver='GTiff', width=3000, height=3000, count=1,
+                       dtype='float32', crs=4326, tiled=True,
+                       transform=from_origin(127, 38, .0001, .0001)) as dst:
+        dst.write(np.array([[22]], dtype='float32'), 1, window=Window(0, 0, 1, 1))
+        dst.write(np.array([[44]], dtype='float32'), 1, window=Window(2999, 2999, 1, 1))
+    original_open = rasterio.open
+    samples = []
+    class Dataset:
+        def __init__(self): self.dataset = original_open(path)
+        def __enter__(self): return self
+        def __exit__(self, *args): self.dataset.close()
+        def __getattr__(self, name): return getattr(self.dataset, name)
+        def read(self, *args, **kwargs): raise AssertionError('Scattered points must not allocate the enclosing window')
+        def sample(self, coordinates, **kwargs):
+            samples.extend(coordinates)
+            return self.dataset.sample(coordinates, **kwargs)
+    monkeypatch.setattr(rasterio, 'open', lambda *_a, **_kw: Dataset())
+    points = [(37.99995, 127.00005), (37.70005, 127.29995)]
+    assert ElevationClient('ngii_local_dem', local_dem_path=path).fetch(points) == [22, 44]
+    assert len(samples) == 2
+
+
+def test_local_window_respects_validity_mask_and_strict_edges(tmp_path):
+    rasterio = pytest.importorskip('rasterio')
+    import numpy as np
+    from rasterio.transform import from_origin
+    path = tmp_path / 'mask.tif'
+    with rasterio.open(path, 'w', driver='GTiff', width=2, height=1, count=1,
+                       dtype='float32', crs=4326, transform=from_origin(127, 38, .01, .01)) as dst:
+        dst.write(np.array([[12, 14]], dtype='float32'), 1)
+        dst.write_mask(np.array([[255, 0]], dtype='uint8'))
+    client = ElevationClient('ngii_local_dem', local_dem_path=path)
+    assert client.fetch([(38, 127)]) == [12]
+    for point in [(37.995, 127.015), (37.99, 127.005), (37.995, 127.02)]:
         with pytest.raises(ElevationFetchError): client.fetch([point])
