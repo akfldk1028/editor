@@ -181,11 +181,14 @@ def frontage_shapes_from_registration(reg):
                              (x+tx*reach+nx*reach,y+ty*reach+ny*reach),
                              (x-tx*reach+nx*reach,y-ty*reach+ny*reach)])
         allowed = allowed.intersection(halfplane)
-    access = reg['vehicle_access_prohibited']
+    # A registration read from the cadastre (Law, any parcel) knows no prohibited intervals; only the drawn one for a
+    # specific frontage names a partial edge.
+    access = reg.get('vehicle_access_prohibited') or {}
     lines = [LineString([ring[i],ring[(i+1) % len(ring)]])
-             for i in access['full_edge_indices_0_based']]
-    lines.append(LineString([ring[access['partial_edge_index_0_based']],access['end_local_m']]))
-    return reference, allowed, unary_union(lines)
+             for i in access.get('full_edge_indices_0_based') or []]
+    if access.get('partial_edge_index_0_based') is not None:
+        lines.append(LineString([ring[access['partial_edge_index_0_based']],access['end_local_m']]))
+    return reference, allowed, unary_union(lines) if lines else LineString()
 
 
 def _registered_frontage(site):
