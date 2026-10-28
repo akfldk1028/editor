@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { defaultRunConditions, isValidDate, loadRunConditions, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
+import { isValidDate, saveRunConditions } from '@/lib/orchestrator-runs/conditions'
 import { ConditionsRow } from '@/lib/orchestrator-runs/ui/ConditionsRow'
 import type { ShellApi } from '../../../shell/artifact-types'
 import type { SavedSite } from '../lib/picks'
@@ -20,10 +20,12 @@ interface Props {
  * ("1층은 상가로 열고, 외장은 커튼월로"); its layout then shows in the 3D view over the parcel.
  */
 export function SiteRunPanel({ site, project, shell }: Props) {
-  const [conditions, setConditions] = useState(defaultRunConditions)
-  const [inputs, setInputs] = useState<LayoutInputs>(defaultLayoutInputs)
-  useEffect(() => { setConditions(loadRunConditions()); setInputs(loadLayoutInputs()) }, [])
   const run = useSiteRun(site, project)
+  // One 조건 state: the hook's. A second copy here fed the row while the hook built the request from the value it
+  // loaded at mount, so a 용도 changed on the card never reached the run (업무시설 sent for a 공공청사 brief, 2026-10-28).
+  const { conditions, setConditions } = run
+  const [inputs, setInputs] = useState<LayoutInputs>(defaultLayoutInputs)
+  useEffect(() => { setInputs(loadLayoutInputs()) }, [])
   const first = site.parcels[0]
   const start = () => {
     if (!first || !isValidDate(conditions.assessmentDate)) return
