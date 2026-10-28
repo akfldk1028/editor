@@ -37,7 +37,9 @@ export function SiteRunPanel({ site, project, shell }: Props) {
     })
   }
   const blocker = layoutBlocker(conditions, inputs)
-  const busy = run.phase.kind === 'submitting' || (run.phase.kind === 'submitted' && !run.phase.stale && !['succeeded', 'failed', 'blocked', 'completed', 'rejected'].includes(run.phase.run.status))
+  // A run parked on a question (waiting_input) is not running: starting again from the card, with the conditions
+  // the card now holds, is one way to answer it (a 매스 run waited on a program the branch already had, 2026-10-28).
+  const busy = run.phase.kind === 'submitting' || (run.phase.kind === 'submitted' && !run.phase.stale && !['succeeded', 'failed', 'blocked', 'completed', 'rejected', 'waiting_input'].includes(run.phase.run.status))
   const layout = (goal: 'masterplan' | 'mass' = 'masterplan') => {
     if (!first || blocker || !run.ready) return
     saveRunConditions(conditions)
