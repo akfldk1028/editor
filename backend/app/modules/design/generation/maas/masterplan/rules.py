@@ -15,7 +15,8 @@ from backend.app.modules.design.generation.maas.parking.layout import DEFAULT_AC
 
 SCHEMA_VERSION = "arr.maas.parking_design_rules.v1"
 SNAPSHOT_EFFECTIVE_FROM = date(2026, 7, 27)
-SNAPSHOT_AS_OF = date(2026, 9, 17)  # re-read from 법제처 DRF (lawService target=law, 법령ID 008238) on 2026-09-17
+SNAPSHOT_AS_OF = date(2026, 10, 28)  # re-read from 법제처 DRF (lawService target=law, 법령ID 008238) on 2026-09-17;
+# 2026-10-28: law.go.kr 법령 본문(lsInfoP lsId=008238) still shows 국토교통부령 제1604호, 시행 2026-07-27 — no later edition.
 OFFICIAL_URL = "https://www.law.go.kr/법령/주차장법시행규칙"
 
 # Ramp values have no earlier numeric owner in ARR.  They are defined here and
