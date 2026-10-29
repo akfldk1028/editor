@@ -19,6 +19,7 @@ from backend.app.modules.design.generation.maas.geometry_language.ast import Geo
 from backend.app.modules.design.generation.maas.geometry_language.compiler import CompilationResult, compile_geometry_program
 from backend.app.modules.design.generation.maas.geometry_language.book_adapter import BookProjectionFailure
 from backend.app.modules.design.generation.maas.geometry_language.gate import GeometryGatePolicy, compilation_gate
+from shapely.errors import GEOSException
 
 
 CREATIVE_FLOOR_PORTFOLIO_SCHEMA = (
@@ -491,7 +492,16 @@ def build_creative_floor_portfolio_report(
         else:
             failures = []
             def evaluate(proposal):
-                trial = attempt_pair(e_index, slot_index, proposal.variation_index, proposal.verbs)
+                try:
+                    trial = attempt_pair(e_index, slot_index, proposal.variation_index, proposal.verbs)
+                except GEOSException as exc:
+                    # An authored shape whose boolean fails in GEOS (side location conflict) is a rejected trial,
+                    # not a crashed portfolio: one such pair took the whole generate step down on 684-1
+                    # (round 40e95690f9b8820b, 2026-10-29).
+                    failure = ("fail", book_schedule[slot_index], "book_compile_pass", "invalid_geometry: " + str(exc)[:160],
+                               eligible[e_index][2], None)
+                    failures.append(failure)
+                    return GrammarFeedback(False, None, failure[3], 2, 0.0, str(eligible[e_index][2]), '')
                 if trial[0] != "ok":
                     failures.append(trial)
                     progress = {"book_projection_pass": 0, "book_authority_pass": 1,
@@ -500,7 +510,10 @@ def build_creative_floor_portfolio_report(
                     return GrammarFeedback(False, None, trial[3], progress, 0.0, str(trial[4] or ''), str(trial[5] or ''))
                 candidate = trial[5]
                 candidate["grammar_search_evidence"] = proposal.evidence()
-                decision = delivery_probe(candidate)
+                try:
+                    decision = delivery_probe(candidate)
+                except GEOSException as exc:   # the site-bound section of this shape failed in GEOS: this trial, not the run
+                    decision = {'accepted': False, 'reason': 'invalid_geometry: ' + str(exc)[:160]}
                 candidate["delivery_search_evidence"] = {**decision, "variation_index": proposal.variation_index,
                     "algorithm": ('delivery_guided_grammar_mcts.v1' if delivery_search_algorithm == 'mcts'
                                   else 'delivery_guided_grammar_beam.v1'), "grammar_node_id": proposal.node_id}
@@ -1111,6 +1124,14 @@ def _compile_candidate(
         (0.0, 0.0, height_scale, -float(minimum[2]) * height_scale),
         (0.0, 0.0, 0.0, 1.0),
     )
+    if authored.metadata.get('masterplan_development') is not None:
+        from .masterplan_development import validate_packet
+        validate_packet(authored.metadata['masterplan_development'])
+        if physical_contract is None:
+            raise ValueError('MasterPlan-bound BOOK requires an authored floor schedule')
+        if (abs(float(minimum[2])) > 1e-7 or abs(normalized_height - target_height_m) > 1e-6):
+            raise ValueError('MasterPlan-bound BOOK requires metric authored height')
+        physical_matrix = tuple(tuple(float(i == j) for j in range(4)) for i in range(4))
     physical_envelope = _with_physical_matrix(
         authored,
         matrix=physical_matrix,
