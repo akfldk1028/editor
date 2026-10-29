@@ -9,6 +9,7 @@ from backend.app.core.tracing import EDITOR_ROOT, JsonlTraceRecorder, Span, cont
 from backend.app.schemas.specialist_review import specialist_items
 from .projects import BindingConflict
 from .run_results import parse_run_results, request_pnu
+from . import run_leases
 
 # `latest` fetches at most this many runs whole to find the one for a parcel.
 LATEST_CANDIDATES = 10
@@ -163,6 +164,7 @@ class RunService:
         run = await self.owner.get_run(run_id,binding.owner_project_id,binding.branch_id)
         if not run.get('request_id','').startswith(f'editor:{project_id}:'):
             raise LookupError('run not found in project')
+        await run_leases.keep(run)   # the agents a running run is using stay up while it is polled
         return run
 
     async def resume(self, actor, project_id, run_id, answer):
