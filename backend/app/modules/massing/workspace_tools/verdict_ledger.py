@@ -103,6 +103,9 @@ def main() -> int:
         lines.append(f"- [{round_name}] {verdict}")
 
     out = ROOT / "runs" / "board" / "verdict-ledger.md"
+    # A fresh workspace has no runs/board yet: the first brief of an editor selection failed here
+    # (FileNotFoundError, Mass cycle editor-2adfa67bd8 on 684-1, 2026-10-29).
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{len(scored)} sentences, {len(verdicts)} verdicts -> {out}")
     return 0
