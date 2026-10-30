@@ -221,6 +221,8 @@ export interface RunResults {
   masterplan: RunMasterplan | null
   /** Mass's forms on the layout's zone and the order MasterPlan and Mass took; null when Mass took no part. */
   mass_forms?: MassForms | null
+  /** The Mass form the person chose on this (`mass`) run, as the 3D view stands it on the layout; null until delivered. */
+  mass?: ChosenMass | null
   missing_evidence_all: string[]
   notes: string[]
   raw: { communications: number; keys: Record<string, number> }
@@ -259,11 +261,26 @@ export interface RunMasterplan {
   intent: Record<string, unknown> | null
 }
 
-/** One volume of a Mass form: a WGS84 ring standing from `base_m` to `top_m` above the ground. */
+/** One volume of a Mass form: a WGS84 ring standing from `base_m` to `top_m` above the ground, its courts as holes. */
 export interface MassVolume {
   ring: number[][]
+  holes?: number[][][]
   base_m: number
   top_m: number
+}
+
+/** The Mass form the person chose, cut into storey volumes (backend run_results/agents/chosen_mass.py). */
+export interface ChosenMass {
+  status: string
+  selected_mass_id: string | null
+  selection_mode: string | null
+  label: string | null
+  storeys: number | null
+  height_m: number | null
+  ground_m2: number | null
+  gross_m2: number | null
+  volumes: MassVolume[]
+  glb_href: string | null
 }
 
 /** One form Mass stood on MasterPlan's zone (backend run_results/agents/mass_forms.py). */

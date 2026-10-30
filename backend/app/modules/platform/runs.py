@@ -32,8 +32,9 @@ def _results_dir():
 
 
 def _run_state(run):
+    from backend.app.modules.platform.run_results.parse import CONTRACT_VERSION
     rows = run.get('communications') if isinstance(run, dict) else None
-    return (run.get('run_id'), run.get('status'), run.get('pending_input'),
+    return (CONTRACT_VERSION, run.get('run_id'), run.get('status'), run.get('pending_input'),
             tuple((r.get('id'), r.get('state'), r.get('truncated')) for r in rows if isinstance(r, dict)) if isinstance(rows, list) else None)
 
 

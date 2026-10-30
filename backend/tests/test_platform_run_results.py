@@ -140,7 +140,7 @@ def test_whole_law_answer_reads_capacities_ceilings_articles_sources_and_site_fa
     {'run_id': 'r', 'status': 'running', 'communications': [{'tool': 'law_parcel_limits', 'state': 'running', 'response_text': None}]}])
 def test_parsing_never_raises(run):
     results = parse_run_results(run)
-    assert set(results) == {'run_id', 'status', 'goal', 'pending_input', 'pending_fields', 'pending_note', 'pending_request', 'truncated', 'request', 'steps', 'site', 'law', 'masterplan', 'mass_forms',
+    assert set(results) == {'run_id', 'status', 'goal', 'pending_input', 'pending_fields', 'pending_note', 'pending_request', 'truncated', 'request', 'steps', 'site', 'law', 'masterplan', 'mass_forms', 'mass',
                             'review', 'missing_evidence_all', 'notes', 'raw'}
     assert request_pnu(run) is None
 

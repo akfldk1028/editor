@@ -27,9 +27,11 @@ Contract (every key always present):
   mass_forms: {status, revised, first_verdict, verdict, zone_m2, gfa_target_m2, alternatives[{id, label, gfa_m2,
             storeys, height_m, reaches_target, volumes[], thumbnail_svg}], pattern[{role, owner, state}]} | null
             (Mass's forms on MasterPlan's zone; agents/mass_forms.py)
+  mass:    {status, selected_mass_id, selection_mode, label, storeys, height_m, ground_m2, gross_m2,
+            volumes[{ring, base_m, top_m}], glb_href} | null   (the chosen Mass form on the layout; agents/chosen_mass.py)
   missing_evidence_all: [str]   notes: [str]   raw: {communications, keys: {tool: n}}
 """
-from backend.app.modules.platform.run_results.agents import law, masterplan, review, site, mass_forms
+from backend.app.modules.platform.run_results.agents import law, masterplan, review, site, mass_forms, chosen_mass
 from backend.app.modules.platform.run_results.common import _dict, _str, _strings, _unique, loads_tolerant
 
 SITE_TOOL, LAW_TOOL, REVIEW_TOOL = site.TOOL, law.TOOL, review.TOOL
@@ -38,6 +40,9 @@ law_from_response = law.law_from_response
 # A2A task itself (`whole_rows`) before parsing. Site's facts (the chat's 대지 사실 card) sit past the cut for a real
 # parcel (400 KB for 684-1), so without the whole answer the card said "응답이 잘려 읽지 못함" for half of them.
 WHOLE_TOOLS = {masterplan.TOOL: masterplan.AGENT, site.TOOL: site.AGENT, mass_forms.TOOL: mass_forms.AGENT}
+# Part of the kept-results key (runs._run_state): bumped when the contract gains a key, so a result kept on disk
+# before the change is read again rather than served without it (`mass`, 2026-10-30).
+CONTRACT_VERSION = 2
 
 
 def _communications(run):
@@ -117,6 +122,8 @@ def parse_run_results(run):
         'site': site_result, 'law': law_result, 'review': review_result, 'masterplan': masterplan_result,
         # Mass's forms on MasterPlan's zone, and the order the two took (agents/mass_forms.py); None without Mass.
         'mass_forms': mass_forms.parse(rows, responses),
+        # The Mass form the person chose, cut into storey volumes from the editor's own delivered export (agents/chosen_mass.py).
+        'mass': chosen_mass.parse(run, rows),
         'missing_evidence_all': _unique((site_result or {}).get('facts_missing', []) + law_missing + (review_result or {}).get('missing_evidence', [])),
         'notes': notes,
         'raw': {'communications': len(rows), 'keys': {row.get('tool'): len(responses[id(row)]) for row in rows if _str(row.get('tool'))}},
