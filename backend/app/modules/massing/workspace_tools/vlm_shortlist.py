@@ -41,13 +41,49 @@ ROOT = _mass_paths.workspace_root()
 PASS_CUT = 3.0
 
 
-def rubric_for(track: str, site=None) -> str:
+def bound_domain():
+    """The MasterPlan design domain of a bound round, or None.
+
+    A bound round develops one building of a layout the client has already
+    chosen. The jury was still handed the whole parcel as the field, and marked
+    both masses of round editor-2adfa67bd8 down for "5% coverage" of a parcel
+    whose remainder the layout had given to other buildings (2026-10-30). The
+    packet is the frozen owner contract the author and the importer bind to.
+    """
+    from backend.app.modules.design.generation.maas.masterplan_development import environment_packet
+    packet = environment_packet()
+    if packet is None:
+        return None
+    from shapely.geometry import shape
+    return shape(packet['design_domain']['geometry'])
+
+
+def binding_block(domain) -> str:
+    """What a juror must know about a bound round: the field is the domain, not the parcel."""
+    from shapely.geometry import Polygon
+    holes = [Polygon(ring.coords) for ring in domain.interiors]
+    data = {'design_domain_area_m2': round(domain.area, 1),
+            'design_domain_exterior_site_local_m': [[round(x, 2), round(y, 2)] for x, y in domain.exterior.coords],
+            'design_domain_holes_count': len(holes),
+            'design_domain_holes_m2': round(sum(hole.area for hole in holes), 1)}
+    return ('MASTERPLAN BINDING\n```json\n' + json.dumps(data, ensure_ascii=False, indent=2) + '\n```\n'
+            'This round develops one building of a site layout the client has already chosen. The design domain '
+            'above is the whole field this mass may occupy; every hole in it is open ground the layout keeps. The '
+            "rest of the parcel holds the layout's other buildings and open spaces, which are fixed and are not "
+            'drawn, so the site ring in every tile is the design domain, not the parcel. Judge coverage, scale and '
+            'site response against the design domain: a mass that fills it is full occupation, and the undrawn '
+            'parcel remainder is not under-utilisation. parcel_area_m2, ground_capacity_m2 and far_capacity_m2 '
+            "remain the parcel's legal limits, shared with the other buildings.\n\n")
+
+
+def rubric_for(track: str, site=None, domain=None) -> str:
     """Canonical score contract plus anonymous, whitelisted site input data."""
     filename = 'judge-prompts.json' if track == 'korea' else 'judge-prompts-overseas.json'
     rubric = json.loads((ROOT / 'inputs' / filename).read_text(encoding='utf8'))['rubric']
+    binding = binding_block(domain) if domain is not None else ''
     if site is None:
         return ('SITE INPUT DATA\nSite, legal limits, programme and budget are not supplied. '
-                'Do not substitute a sample parcel or programme.\n\n' + rubric)
+                'Do not substitute a sample parcel or programme.\n\n' + binding + rubric)
     evidence = site.evidence()
     unknown = 'unknown_or_not_established'
     def value(key):
@@ -70,7 +106,7 @@ def rubric_for(track: str, site=None) -> str:
     return ('SITE INPUT DATA\n```json\n' + json.dumps(data, ensure_ascii=False, indent=2) +
             '\n```\nStorey count, floor height and a statutory height cap are different quantities. '
             'Unknown does not mean unrestricted or verified. Building use is supplied input, '
-            'not a verified room schedule.\n\n' + rubric)
+            'not a verified room schedule.\n\n' + binding + rubric)
 
 
 # A tile is now the mass over its own operation sequence, so the rubric has to
@@ -472,7 +508,12 @@ def stage(run: str, count: int) -> int:
     # Every contest tile records the identity of the picture it was judged
     # as, so it can serve as an anchor later only while that picture holds.
     book, site, buildable, axis, base = seat_context()
-    (out / "PROMPT.txt").write_text(BLIND_PREAMBLE + rubric_for(track or "overseas", site=site),
+    # In a MasterPlan-bound round the field the jury sees and measures against
+    # is the selected design domain, with its holes; the parcel stays in the
+    # numbers as the shared legal limit.
+    domain = bound_domain()
+    field = domain if domain is not None else buildable
+    (out / "PROMPT.txt").write_text(BLIND_PREAMBLE + rubric_for(track or "overseas", site=site, domain=domain),
                                     encoding="utf-8")
     stage_contract(out, freeze=True)
     from backend.app.modules.massing.workspace_tools.band_probe import schedule_of
@@ -487,15 +528,17 @@ def stage(run: str, count: int) -> int:
             raise ValueError(f"cannot bind staged tile to source: {row['name']}")
         # Render and stamp the same object. Rebuilding only for the hash would
         # silently certify a different picture produced by judge_tiles.
-        render_masses([(row['tile'], source, {**caption, 'thesis': ''})],
-                      out / f"{row['tile']}.png", site_ring=list(buildable.exterior.coords),
-                      columns=1, tile=(900, 820), style='massing')
         row['shape_id'] = shape_id(source)
         row['certificate'] = seat_certificate(row['name'], source, book, site)
         row['certificate_id'] = row['certificate']['certificate_id']
+        if domain is not None:
+            caption['구역 점유'] = f"{row['certificate']['ground_m2'] / domain.area * 100:.0f}%"
+        render_masses([(row['tile'], source, {**caption, 'thesis': ''})],
+                      out / f"{row['tile']}.png", site_ring=list(field.exterior.coords),
+                      columns=1, tile=(900, 820), style='massing')
         from backend.app.modules.massing.workspace_tools.presentation import append_jury_drawings
         row['jury_drawings'] = append_jury_drawings(out / f"{row['tile']}.png",
-            [(row['name'], source, row['certificate']['storey_m'])], buildable)
+            [(row['name'], source, row['certificate']['storey_m'])], field)
         write_sequence(row['name'], source, book=book, site=site,
                        buildable=buildable, axis=axis, out_dir=ROOT / 'runs' / run,
                        certificate=row['certificate'], anonymous=True)
