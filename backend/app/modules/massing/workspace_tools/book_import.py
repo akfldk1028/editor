@@ -419,6 +419,9 @@ def _compile_record(rec: dict, buildable, site=None):
     payload = art.get("authoredGeometryProgram") or art.get("geometryProgram")
     if not payload:
         return None, "no geometry program"
+    if (payload.get('metadata') or {}).get('masterplan_development') is not None:
+        from backend.app.modules.design.generation.maas.masterplan_development import compile_bound_record
+        return compile_bound_record(rec, buildable, site)
     metrics = ((art.get("hardGates") or {}).get("projectedMetrics") or {})
     storeys = art.get('storeyEvidence') or {}
     floor_count = storeys.get('storey_count') or metrics.get('floor_count')
@@ -802,6 +805,11 @@ def main() -> int:
 
     site = load_legal_site(PNU, building_type=BUILDING_TYPE)
     buildable = site.plan_at(0.0)
+    # A MasterPlan-bound round is judged against its design domain, with its
+    # holes, not the parcel (vlm_shortlist.bound_domain owns the reading).
+    from backend.app.modules.massing.workspace_tools.vlm_shortlist import bound_domain  # noqa: E402
+    domain = bound_domain()
+    field = domain if domain is not None else buildable
 
     out = ROOT / "runs" / f"vlm-{stage_name}"
     out.mkdir(parents=True, exist_ok=True)
@@ -833,13 +841,15 @@ def main() -> int:
         # rounding at the parcel storey cannot reproduce on three fat bands.
         from backend.app.modules.massing.workspace_tools.vlm_shortlist import jury_caption, seat_certificate
         certificate = seat_certificate(name, source, {}, site, book_entry=entry)
-        render_masses([(tile, source, jury_caption(
-                           source, site, gross_m2=certificate['gross_m2']))],
-                      out / f"{tile}.png", site_ring=list(buildable.exterior.coords),
+        caption = jury_caption(source, site, gross_m2=certificate['gross_m2'])
+        if domain is not None:
+            caption['구역 점유'] = f"{certificate['ground_m2'] / domain.area * 100:.0f}%"
+        render_masses([(tile, source, caption)],
+                      out / f"{tile}.png", site_ring=list(field.exterior.coords),
                       columns=1, tile=(900, 820), style="massing")
         from backend.app.modules.massing.workspace_tools.presentation import append_jury_drawings
         drawings = append_jury_drawings(out / f'{tile}.png',
-            [(name, source, certificate['storey_m'])], buildable)
+            [(name, source, certificate['storey_m'])], field)
         import hashlib
         key_rows.append({"tile": tile, "name": name, "height_m": entry["height_m"],
                          "shape_id": shape_id(source), 'certificate': certificate, 'jury_drawings': drawings,
@@ -860,7 +870,8 @@ def main() -> int:
 
     # The overseas rubric, from its owner (vlm_shortlist.rubric_for) - never retyped here.
     from backend.app.modules.massing.workspace_tools.vlm_shortlist import BLIND_PREAMBLE, rubric_for  # noqa: E402
-    (out / "PROMPT.txt").write_text(BLIND_PREAMBLE + rubric_for("overseas", site=site), encoding="utf-8")
+    (out / "PROMPT.txt").write_text(BLIND_PREAMBLE + rubric_for("overseas", site=site, domain=domain),
+                                    encoding="utf-8")
 
     # Three board seats ride as anchors - the same ride, rebuild and caption
     # every massv2 round uses (vlm_shortlist.ride_anchors owns it).
