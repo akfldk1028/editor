@@ -1,0 +1,157 @@
+{
+  "source_files": [
+    {
+      "name": "acquire-gap-reference.py",
+      "original_sha256": "0bbd90d926317d11ec0536579ed47ba0b9e145816ab447eda5517516c0a23115"
+    },
+    {
+      "name": "acquire-national-ground-gaps.py",
+      "original_sha256": "d6abc087fae8c76508af3e3a278575ed73f90dd1f4c046ea7625684d9ddf474b"
+    },
+    {
+      "name": "adopt-verified-dem-20261023.py",
+      "original_sha256": "cdd532f7941cc8fb84c7a67c5b78a8f2b49bed3284bdf270e26f49ab54be5e6b"
+    },
+    {
+      "name": "audit-building-delivery.py",
+      "original_sha256": "52f9b7b84f74560f436761bbccb5e3628fede256e79bba795510e989097dac77"
+    },
+    {
+      "name": "audit-gap-reference.py",
+      "original_sha256": "98e5291978aa4d11de1e5821d871ed5f35c182cb3e95c27669894fdbfaa61e43"
+    },
+    {
+      "name": "audit-ngii-live-gap-sources.py",
+      "original_sha256": "c9d5684eca26f13aa6270ae0bfd3cc53a312238a3572efc8200d12c5939a5c0b"
+    },
+    {
+      "name": "audit-ngii-package-coverage.py",
+      "original_sha256": "e30df7d70815191c513e3e78e6026f7f51dfa1c6e6300a3a20a1cd0e5f6f3cf4"
+    },
+    {
+      "name": "audit-original-gap-coverage.py",
+      "original_sha256": "831bb16a34cb33db1a7580439fe56804e663d0d9988615b419244c99d7a7529b"
+    },
+    {
+      "name": "benchmark-dem-nearest.py",
+      "original_sha256": "b2f9e5af92d3b30f167ff97d191722b100f597386b4def3341ee85bb905dec6f"
+    },
+    {
+      "name": "build-national-spatial-indexes.py",
+      "original_sha256": "a7a6e2b2006975b5e0f7bfcec5918a3e9ed1df6de01110b4472bb120864877c4"
+    },
+    {
+      "name": "build-ngii-sheet-ledger.py",
+      "original_sha256": "5a884b47db8d0fe4e4a660b003da447d78f313984c47f7b8977d6f0c8c9f1619"
+    },
+    {
+      "name": "build-supported-ground-patches.py",
+      "original_sha256": "8289f71f69ce0ab2809838d775cc339a440f21793d53446e64f4058b0d67c484"
+    },
+    {
+      "name": "check-busan-daegu-source.py",
+      "original_sha256": "f3001e07739ebb3fafce129a5e684cf6fd4d62ef2c9d02950c5a5d9aaf16fd93"
+    },
+    {
+      "name": "download-ngii-original-probe.py",
+      "original_sha256": "117d707c0798da3a2f7592f773193226d00bfea8cfd2a21b27dfbdc2b94e1976"
+    },
+    {
+      "name": "download-ngii-packages.py",
+      "original_sha256": "e69dc07198982d084fb34ab75057b990b9b4c75bf53353bce462787906a2748b"
+    },
+    {
+      "name": "finish-ngii-package-batch.py",
+      "original_sha256": "e48afd133fdda71c3774e270da6151c7eb50e2a5ce1da38fa3e7b00552c964d2"
+    },
+    {
+      "name": "install-ngii-package-ground.py",
+      "original_sha256": "a3f32f22c79626c6ca6ccc8ee7832e641478b948501f9e1d5be1807c273595f7"
+    },
+    {
+      "name": "install-supported-ground-patches.py",
+      "original_sha256": "5cfe25aebb73cd6f9ccbf7ffb0f60b66216f37453aaf232a6d3851e874c11250"
+    },
+    {
+      "name": "loop-ngii-repair.py",
+      "original_sha256": "493ac5c2067c2e6f3929ced759939c8638de02f291d5b6ce911d27596b51ac77"
+    },
+    {
+      "name": "national-loop.py",
+      "original_sha256": "ea07fe4addcdb902bd738f3d1152542009132c735ad5961b1239a614f0e5bfb4"
+    },
+    {
+      "name": "national_delivery_probe.py",
+      "original_sha256": "6ddd009c2155d2e1a57f4cd5c193798b53a28e38655f1ced079db02c22968bfc"
+    },
+    {
+      "name": "ngii_index_resolver.py",
+      "original_sha256": "a9316301293eb96c09cbf708d23d6ce78984c398b4f5d9bf5aa464f6fabb6e93"
+    },
+    {
+      "name": "ngii_ngi.py",
+      "original_sha256": "dc5decb5b1dba4d16cbcc69d593874ab339579efdc2cabe6baa40c5da3a78959"
+    },
+    {
+      "name": "ngii_sheet_match.py",
+      "original_sha256": "41dfb75077253d655eff24e6b81380a62f41a63e38a24f164b816d601cd3d46d"
+    },
+    {
+      "name": "ngii_source_schedule.py",
+      "original_sha256": "cb19a2fa42b2afdac4e68229827dbf196830f1723df660842503d5380e58139a"
+    },
+    {
+      "name": "prepare-ngii-live-downloads.py",
+      "original_sha256": "9a70b063bcbbbd7452f00682e8450a9a2c0e843604a765a3547e43f97ff9abb6"
+    },
+    {
+      "name": "probe-national-service.py",
+      "original_sha256": "ef5e575eeaa21fc9c3d610db052cb855e0a835118c2de8d3cc912854b4c80343"
+    },
+    {
+      "name": "recover-ngii-package-manifest.py",
+      "original_sha256": "e1214d3cf374fc7e8e7a40f9263550f85d5d6e67823106d1cbe7de79ec2e57c9"
+    },
+    {
+      "name": "stage-ngii-dxf-ground.py",
+      "original_sha256": "7ba0fb7e9d2747139a5b676a0ba25e5d1789e978f5d3f1b9e9a6bbc76346da5c"
+    },
+    {
+      "name": "test_national_delivery_probe.py",
+      "original_sha256": "80b53ecca10e358d163fae65ec678408c34e215f2da37c1133c005ee405c7a1f"
+    },
+    {
+      "name": "test_national_resolver.py",
+      "original_sha256": "0bf7db35ce2433525da1e15dddbab7332a40a421b2e2db8b616606bdcffd8ce0"
+    },
+    {
+      "name": "test_ngii_ngi.py",
+      "original_sha256": "4f27c372cb17f618804d597dd171fdacaee67a607b1b4d7e67b1a859392664ee"
+    },
+    {
+      "name": "test_ngii_sheet_match.py",
+      "original_sha256": "007d02f7a19e6eafb3d97e75ff45a182f92678f6bb836cd1990dd806c52b7fa9"
+    },
+    {
+      "name": "test_ngii_source_schedule.py",
+      "original_sha256": "439f3e181a66917077577d1aa4edc6831b547be4f5b6390035b80bdf92cb5473"
+    },
+    {
+      "name": "track-national-map.py",
+      "original_sha256": "7542c0ab7576d1d114dbc906ea5abc7a003d8c229058154ccc6027a9209ec5eb"
+    },
+    {
+      "name": "verify-national-downloads-20261023.py",
+      "original_sha256": "518bc937904df8c1e73bd32cc869c7baace20de99ec89c7da9e799a7cb65f2c1"
+    },
+    {
+      "name": "verify-ngii-package-publication.py",
+      "original_sha256": "80203de76148acd2b6c2b4139fe08761793bac372c52416df8ae4d3eb03ba868"
+    }
+  ],
+  "excluded_existing_jobs": [
+    "national-buildings-loop.py",
+    "rebake-ngii-package-regions.py",
+    "rebuild-national-partial-ground.py"
+  ]
+}

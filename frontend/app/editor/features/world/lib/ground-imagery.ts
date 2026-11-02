@@ -1,4 +1,5 @@
 import { PMTiles, ResolvedValueCache, TileType, type Header, type Source } from 'pmtiles'
+import { createGroundVectorProviders, validateGroundVector, VECTOR_MIN_LEVEL } from './ground-vector'
 
 export type GroundImageryLayer = { kind: 'landcover' | 'roads'; url: string; sha256: string;
   bounds: [number, number, number, number]; minLevel: number; maxLevel: number; credit: string;
@@ -23,7 +24,7 @@ const safeUrl = (value: unknown, archive = false): value is string => {
 
 export function validateGroundImagery(value: unknown): GroundImageryLayer[] {
   const descriptor = value as { schema?: string; layers?: unknown[] } | null
-  if (!descriptor || !exactKeys(descriptor, ['schema', 'layers']) || descriptor.schema !== 'world-ground/imagery-v1'
+  if (!descriptor || !exactKeys(descriptor, ['schema', 'layers', ...(Object.hasOwn(descriptor, 'vector') ? ['vector'] : [])]) || descriptor.schema !== 'world-ground/imagery-v1'
     || !Array.isArray(descriptor.layers) || descriptor.layers.length < 1 || descriptor.layers.length > 2) throw Error('Invalid ground imagery descriptor')
   const kinds = new Set<string>()
   const layers = descriptor.layers.map(item => {
@@ -33,7 +34,7 @@ export function validateGroundImagery(value: unknown): GroundImageryLayer[] {
       || !/^[a-f0-9]{64}$/.test(layer.sha256) || !Array.isArray(layer.bounds) || layer.bounds.length !== 4 || !layer.bounds.every(Number.isFinite)
       || layer.bounds[0] < -180 || layer.bounds[2] > 180 || layer.bounds[1] < -85.05112878 || layer.bounds[3] > 85.05112878
       || layer.bounds[0] >= layer.bounds[2] || layer.bounds[1] >= layer.bounds[3]
-      || !Number.isInteger(layer.minLevel) || !Number.isInteger(layer.maxLevel) || layer.minLevel < 0 || layer.maxLevel > 12 || layer.minLevel > layer.maxLevel
+      || !Number.isInteger(layer.minLevel) || !Number.isInteger(layer.maxLevel) || layer.minLevel < 0 || layer.maxLevel > 19 || layer.minLevel > layer.maxLevel
       || typeof layer.credit !== 'string' || !layer.credit.trim() || layer.credit.length > 500) throw Error('Invalid ground imagery layer')
     if (Object.hasOwn(layer, 'coverageBounds') && (!Array.isArray(layer.coverageBounds)
       || layer.coverageBounds.length < 1 || layer.coverageBounds.length > 64 || !Array.from(layer.coverageBounds).every(validBounds))) throw Error('Invalid ground imagery coverage bounds')
@@ -68,14 +69,46 @@ async function boundedBody(response: Response, limit: number): Promise<ArrayBuff
   return result.buffer
 }
 
+// Same workaround as pmtiles' FetchSource: Chromium on Windows intermittently fails
+// cached range requests with ERR_CACHE_OPERATION_NOT_SUPPORTED, leaving holes.
+const userAgent = typeof navigator === 'undefined' ? '' : navigator.userAgent || ''
+const rangeCache: RequestCache | undefined = userAgent.includes('Windows') && /Chrome|Chromium|Edg|OPR|Brave/.test(userAgent) ? 'no-store' : undefined
+
+/** Tiles in flight per layer. A same-origin HTTP/1.1 dev server gives the page six sockets shared with terrain and
+ * buildings, so stay at `local`; a CDN origin multiplexes over HTTP/2 and is bound by round trips instead. */
+export function groundParallel(url: string, local: number) {
+  const here = typeof location === 'undefined' ? undefined : location.origin
+  return !/^https?:\/\//.test(url) || new URL(url).origin === here ? local : 12
+}
+
+/** Ranges requested in the same task are merged when at most this many bytes apart, into reads of at most SPAN. */
+const MERGE_GAP = 64 * 1024, MERGE_SPAN = 2 * 1024 ** 2
+
+/** PMTiles range source. Archives are Hilbert-ordered, so neighbouring tiles sit next to each other in the file:
+ * the reads one camera move asks for together go out as a few merged range requests instead of one per tile
+ * (the same idea as MapLibre's tile read coalescing). That matters most on HTTP/1.1, whose six sockets queue the rest. */
 export function groundRangeSource(layer: GroundImageryLayer, lifetime: AbortSignal, get: Fetch = (url, init) => fetch(url, init)): Source {
   let etag: string | undefined
-  return { getKey: () => `${layer.url}#${layer.sha256}`,
-    async getBytes(offset, length, signal) {
-      if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || offset < 0 || length < 1 || length > 4 * 1024 ** 2) throw Error('Invalid ground archive range')
-      const combined = signal ? AbortSignal.any([lifetime, signal]) : lifetime
-      combined.throwIfAborted()
-      const response = await get(layer.url, { headers: { Range: `bytes=${offset}-${offset + length - 1}` }, signal: combined })
+  type Want = { offset: number; length: number; resolve: (value: { data: ArrayBuffer; etag?: string }) => void; reject: (error: unknown) => void }
+  let queue: Want[] = [], scheduled = false
+  const run = (group: Want[]) => {
+    const start = group[0]!.offset, end = Math.max(...group.map(want => want.offset + want.length))
+    read(start, end - start, lifetime).then(({ data, etag }) => {
+      for (const want of group) want.resolve({ data: data.slice(want.offset - start, want.offset - start + want.length), etag })
+    }, error => { for (const want of group) want.reject(error) })
+  }
+  const flush = () => {
+    const wants = queue.sort((a, b) => a.offset - b.offset); queue = []; scheduled = false
+    let group: Want[] = [], end = 0
+    for (const want of wants) {
+      if (group.length && (want.offset - end > MERGE_GAP || want.offset + want.length - group[0]!.offset > MERGE_SPAN)) { run(group); group = [] }
+      if (!group.length) end = 0
+      group.push(want); end = Math.max(end, want.offset + want.length)
+    }
+    if (group.length) run(group)
+  }
+  const read = async (offset: number, length: number, combined: AbortSignal) => {
+      const response = await get(layer.url, { headers: { Range: `bytes=${offset}-${offset + length - 1}` }, signal: combined, ...(rangeCache ? { cache: rangeCache } : {}) })
       if (response.status !== 206) { await response.body?.cancel(); throw Error(`Ground archive requires HTTP 206, got ${response.status}`) }
       const range = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(response.headers.get('Content-Range') ?? '')
       if (!range || !range.slice(1).every(value => Number.isSafeInteger(Number(value))) || Number(range[3]) <= offset
@@ -89,6 +122,17 @@ export function groundRangeSource(layer: GroundImageryLayer, lifetime: AbortSign
       combined.throwIfAborted()
       if (data.byteLength !== Number(range[2]) - offset + 1) throw Error('Truncated ground archive range')
       return { data, etag: current }
+  }
+  return { getKey: () => `${layer.url}#${layer.sha256}`,
+    async getBytes(offset, length, signal) {
+      if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || offset < 0 || length < 1 || length > 4 * 1024 ** 2) throw Error('Invalid ground archive range')
+      const combined = signal ? AbortSignal.any([lifetime, signal]) : lifetime
+      combined.throwIfAborted()
+      // A caller that gives up stops waiting; the merged read still serves the others.
+      return raced(new Promise((resolve, reject) => {
+        queue.push({ offset, length, resolve, reject })
+        if (!scheduled) { scheduled = true; setTimeout(flush, 0) }
+      }), combined)
     },
   }
 }
@@ -121,7 +165,8 @@ function raced<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
 }
 
 /** Canvas or raw RGBA ownership passes to Cesium; decoded bitmaps are closed before returning. */
-export async function createGroundImageryProvider(C: any, layer: GroundImageryLayer, signal: AbortSignal, dependencies: Dependencies = {}) {
+/** `vectorOwns`: tiles the vector layer drawn on top fully covers at that level are left see-through. */
+export async function createGroundImageryProvider(C: any, layer: GroundImageryLayer, signal: AbortSignal, dependencies: Dependencies = {}, vectorOwns: (level: number, west: number, south: number, east: number, north: number) => boolean = () => false) {
   layer = validateGroundImagery({ schema: 'world-ground/imagery-v1', layers: [layer] })[0]!
   const lifetime = new AbortController(), cancel = () => lifetime.abort()
   signal.addEventListener('abort', cancel, { once: true }); if (signal.aborted) cancel()
@@ -129,7 +174,7 @@ export async function createGroundImageryProvider(C: any, layer: GroundImageryLa
   const archive = dependencies.archive?.(source) ?? new PMTiles(source, new ResolvedValueCache(32))
   const makeCanvas = dependencies.canvas ?? (() => document.createElement('canvas'))
   const decode = dependencies.decode ?? (data => createImageBitmap(new Blob([data], { type: 'image/png' })))
-  const jobs = new Set<AbortController>()
+  const jobs = new Set<AbortController>(), parallel = groundParallel(layer.url, 4)
   const dispose = () => { lifetime.abort(); signal.removeEventListener('abort', cancel); for (const job of jobs) job.abort() }
   try {
     const header = await raced(archive.getHeader(), lifetime.signal)
@@ -146,10 +191,12 @@ export async function createGroundImageryProvider(C: any, layer: GroundImageryLa
       coversPosition: (lon: number, lat: number) => Number.isFinite(lon) && Number.isFinite(lat)
         && (layer.coverageBounds ?? [layer.bounds]).some(([west, south, east, north]) => lon >= west && lon <= east && lat >= south && lat <= north),
       requestImage(x: number, y: number, level: number, request?: { cancelled?: boolean; cancelFunction?: () => void }) {
-        if (lifetime.signal.aborted || request?.cancelled || jobs.size >= 4) return undefined
+        if (lifetime.signal.aborted || request?.cancelled || jobs.size >= parallel) return undefined
         if (![x, y, level].every(Number.isInteger) || level < layer.minLevel || level > (layer.detail?.maxLevel ?? layer.maxLevel) || x < 0 || y < 0 || x >= 2 ** level || y >= 2 ** level) return Promise.resolve(transparent)
         const width = 360 / 2 ** level, west = x * width - 180
         const latitude = (row: number) => Math.atan(Math.sinh(Math.PI * (1 - 2 * row / 2 ** level))) * 180 / Math.PI
+        // Outside the vector archive's rectangle (e.g. roads north of it) the PNG keeps every level.
+        if (vectorOwns(level, west, latitude(y + 1), west + width, latitude(y))) return Promise.resolve(transparent)
         if (west >= layer.bounds[2] || west + width <= layer.bounds[0] || latitude(y) <= layer.bounds[1] || latitude(y + 1) >= layer.bounds[3]) return Promise.resolve(transparent)
         const job = new AbortController(); jobs.add(job)
         const combined = AbortSignal.any([lifetime.signal, job.signal]); if (request) request.cancelFunction = () => job.abort()
@@ -169,7 +216,7 @@ export async function createGroundImageryProvider(C: any, layer: GroundImageryLa
           const data = new DataView(tile.data)
           if (tile.data.byteLength > 1024 ** 2 || tile.data.byteLength < 29 || data.getUint32(0) !== 0x89504e47 || data.getUint32(4) !== 0x0d0a1a0a
             || data.getUint32(8) !== 13 || data.getUint32(12) !== 0x49484452
-            || data.getUint32(16) !== 256 || data.getUint32(20) !== 256 || data.getUint8(24) !== 8 || data.getUint8(25) !== 6) throw Error('Expected 256px RGBA PNG ground tile')
+            || data.getUint32(16) !== 256 || data.getUint32(20) !== 256 || data.getUint8(24) !== 8 || ![3, 6].includes(data.getUint8(25))) throw Error('Expected 256px RGBA or palette PNG ground tile')
           const bitmap = await decode(tile.data)
           try {
             combined.throwIfAborted()
@@ -195,7 +242,7 @@ export async function createGroundImageryProvider(C: any, layer: GroundImageryLa
 export async function prepareGroundImagery(C: any, options: Dependencies & { signal?: AbortSignal; descriptorUrl?: string } = {}) {
   const controller = new AbortController(), cancel = () => controller.abort()
   options.signal?.addEventListener('abort', cancel, { once: true }); if (options.signal?.aborted) cancel()
-  const layers: { kind: GroundImageryLayer['kind']; provider: Awaited<ReturnType<typeof createGroundImageryProvider>> }[] = []
+  const layers: { kind: GroundImageryLayer['kind']; provider: { dispose(): void; maximumLevel: number; coversPosition(lon: number, lat: number): boolean } }[] = []
   const dispose = () => { controller.abort(); options.signal?.removeEventListener('abort', cancel); for (const layer of layers) layer.provider.dispose() }
   try {
     const base = process.env.NEXT_PUBLIC_WORLD_GROUND_BASE_URL
@@ -205,8 +252,30 @@ export async function prepareGroundImagery(C: any, options: Dependencies & { sig
     controller.signal.throwIfAborted()
     if (response.status !== 404) {
       if (!response.ok) throw Error(`Ground imagery descriptor ${response.status}`)
-      const descriptor = validateGroundImagery(JSON.parse(new TextDecoder().decode(await boundedBody(response, 32 * 1024))))
-      for (const layer of descriptor) layers.push({ kind: layer.kind, provider: await createGroundImageryProvider(C, layer, controller.signal, options) })
+      const body = JSON.parse(new TextDecoder().decode(await boundedBody(response, 32 * 1024)))
+      const descriptor = validateGroundImagery(body)
+      // The near vector layer is optional: when it is invalid or fails to open, the PNG layers keep every level.
+      let vector: ReturnType<typeof validateGroundVector> | undefined
+      try { vector = Object.hasOwn(body, 'vector') ? validateGroundVector(body.vector) : undefined } catch (error) { console.warn('Ground vector unavailable', error) }
+      // From the vector layer's first level the PNG layers are see-through; only the far horizon below it stays raster.
+      let vectorOwns = (_level: number, _west: number, _south: number, _east: number, _north: number) => false
+      // All archive headers are independent range reads: fetch them together.
+      const [near, ...made] = await Promise.allSettled([vector ? createGroundVectorProviders(C, vector, controller.signal, { get: options.get }) : Promise.resolve(undefined),
+        ...descriptor.map(layer => createGroundImageryProvider(C, layer, controller.signal, options, (...tile) => vectorOwns(...tile)))])
+      if (near.status === 'rejected') console.warn('Ground vector unavailable', near.reason)
+      else if (near.value && vector) {
+        const [w, s, e, n] = vector.bounds, from = VECTOR_MIN_LEVEL(vector.level)
+        vectorOwns = (level, west, south, east, north) => level >= from && west >= w && east <= e && south >= s && north <= n
+      }
+      // Order matters to Cesium: each kind's vector layer sits right above its PNG layer, roads above landcover.
+      made.forEach((result, i) => {
+        if (result.status !== 'fulfilled') return
+        const kind = descriptor[i]!.kind
+        layers.push({ kind, provider: result.value })
+        if (near.status === 'fulfilled' && near.value) layers.push({ kind, provider: near.value[kind] })
+      })
+      const failed = made.find(result => result.status === 'rejected')
+      if (failed) throw (failed as PromiseRejectedResult).reason
     }
     controller.signal.throwIfAborted()
     return { layers, dispose }

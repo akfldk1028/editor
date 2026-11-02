@@ -98,4 +98,29 @@ class ReleaseTests(unittest.TestCase):
             root=Path(directory);outside=root/'outside';outside.write_bytes(b'secret')
             with self.assertRaises(ValueError):seal(root/'data',{},[outside])
 
+    def test_parallel_seal_reuses_fresh_hashes_only_while_stamps_match_and_receipt_is_identical(self):
+        import os
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory).resolve();folder=root/'world-buildings';folder.mkdir()
+            files=[folder/f'{n:04d}.bin' for n in range(300)]
+            for n,file in enumerate(files):file.write_bytes(bytes([n%251])*(n+1))
+            plain=seal(root,{'schema':'ace-map-release-v1'},files,reuse=False)
+            receipt=(root/'management/releases'/plain['releaseId']/'files.jsonl').read_bytes()
+            self.assertEqual([json.loads(l)['key'] for l in receipt.splitlines()],[f'world-buildings/{n:04d}.bin' for n in range(300)])
+            known={f.resolve():(json.loads(l)['bytes'],json.loads(l)['mtimeNs'],json.loads(l)['sha256']) for f,l in zip(files,receipt.splitlines())}
+            read=[]
+            def counted(path,real=__import__('release_store').digest):
+                if path.parent==folder:read.append(path.name)
+                return real(path)
+            with patch('release_store.digest',side_effect=counted):
+                again=seal(root,{'schema':'ace-map-release-v1'},files,reuse=False,known=known)
+            self.assertEqual(again['filesReceiptSHA256'],plain['filesReceiptSHA256'])
+            self.assertEqual(read,[])  # no payload byte re-read
+            files[7].write_bytes(b'tampered');os.utime(files[7],ns=(1,1))
+            with patch('release_store.digest',side_effect=counted):
+                changed=seal(root,{'schema':'ace-map-release-v1'},files,reuse=False,known=known)
+            self.assertEqual(read,['0007.bin'])
+            self.assertNotEqual(changed['filesReceiptSHA256'],plain['filesReceiptSHA256'])
+
 if __name__=='__main__':unittest.main()

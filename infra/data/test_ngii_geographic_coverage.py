@@ -1,7 +1,7 @@
 import math
 import unittest
 
-from prepare_ngii_national_release import GEOGRAPHIC_PROBES, geographic_presence
+from prepare_ngii_national_release import GEOGRAPHIC_PROBES, KNOWN_SOURCE_GAPS, geographic_presence
 
 
 def owner(point):
@@ -16,8 +16,15 @@ class GeographicCoverageTests(unittest.TestCase):
         self.assertEqual(len(proof['points']), 8)
         self.assertTrue(all(p['buildings'] > 0 for p in proof['points']))
 
-    def test_full_received_inventory_cannot_hide_missing_western_islands(self):
-        for missing in ('Baengnyeong', 'Daecheong', 'Yeonpyeong', 'Goseong'):
+    def test_known_source_gaps_are_recorded_not_hidden(self):
+        # NGII B021 has no buildings at these probes; a release must say so instead of failing or pretending coverage.
+        for missing in sorted(KNOWN_SOURCE_GAPS):
+            with self.subTest(missing=missing):
+                actual = {owner(point): 1 for name, point in GEOGRAPHIC_PROBES.items() if name != missing}
+                self.assertIn(missing, geographic_presence(actual)['sourceCoverageGaps'])
+
+    def test_full_received_inventory_cannot_hide_other_missing_edges(self):
+        for missing in sorted(set(GEOGRAPHIC_PROBES) - KNOWN_SOURCE_GAPS):
             with self.subTest(missing=missing):
                 actual = {owner(point): 1 for name, point in GEOGRAPHIC_PROBES.items() if name != missing}
                 with self.assertRaisesRegex(ValueError, missing):

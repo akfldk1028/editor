@@ -4,8 +4,14 @@ import { mkdtemp, writeFile, rm, readFile, stat, mkdir, rename } from 'node:fs/p
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
-import { selectRegions, verifyExistingCandidate, main, createRegionMeshWriter, NGII_ASSET_PACKING, encodeCandidatePayload, createCandidateStage, renameCandidateAtomically } from './bake-ngii-region'
+import { parseReserveGiB, shardRegions, bindCandidateInputs, selectRegions, verifyExistingCandidate, main, createRegionMeshWriter, NGII_ASSET_PACKING, encodeCandidatePayload, createCandidateStage, renameCandidateAtomically } from './bake-ngii-region'
 import { Database } from 'bun:sqlite'
+
+test('free-space reserve defaults to 20 GiB and accepts a lower explicit reserve', () => {
+  expect(parseReserveGiB()).toBe(20)
+  expect(parseReserveGiB('5.0')).toBe(5)
+  for (const bad of ['0.5', 'abc', '-3', 'Infinity']) expect(() => parseReserveGiB(bad)).toThrow('--reserve-gib')
+})
 
 test('database CLI rejects incomplete sources before opening or hashing terrain', async () => {
   const folder = await mkdtemp(join(tmpdir(), 'ngii-incomplete-'))
@@ -196,4 +202,28 @@ test('atomic rename retries Windows busy errors only within bounded attempts',as
     await expect(renameCandidateAtomically(to,join(output,'never'),async()=>{failures++;throw Object.assign(Error('busy'),{code:'EBUSY'})},async()=>{})).rejects.toThrow('busy')
     expect(failures).toBe(5);expect(await readFile(to,'utf8')).toBe('same bytes')
   } finally {await rm(output,{recursive:true,force:true})}
+})
+
+
+test('two shards partition the same sorted bounded inventory without changing owner order',()=>{
+ const rows=[{region14:'14/3/1'},{region14:'14/1/1'},{region14:'14/2/1'}]
+ const selected=selectRegions(rows),a=shardRegions(selected,0,2),b=shardRegions(selected,1,2)
+ expect(a.map(r=>r.region14)).toEqual(['14/1/1','14/3/1']);expect(b.map(r=>r.region14)).toEqual(['14/2/1'])
+ expect(new Set([...a,...b].map(r=>r.region14)).size).toBe(selected.length)
+ expect(shardRegions(selected)).toEqual(selected)
+ expect(()=>shardRegions(selected,2,2)).toThrow();expect(()=>shardRegions(selected,0,3)).toThrow()
+})
+
+test('parallel children require the single initialized pin and never race to create it',async()=>{
+ const folder=await mkdtemp(join(tmpdir(),'ngii-shard-pin-')),path=join(folder,'candidate-inputs.json'),identity={source:'same',terrain:'same'}
+ try{
+  await expect(bindCandidateInputs(path,identity,true)).rejects.toThrow('initialized by coordinator')
+  await bindCandidateInputs(path,identity)
+  const bytes=await readFile(path)
+  await Promise.all([bindCandidateInputs(path,identity,true),bindCandidateInputs(path,identity,true)])
+  expect(await readFile(path)).toEqual(bytes)
+  await expect(bindCandidateInputs(path,{...identity,terrain:'changed'},true)).rejects.toThrow('identity mismatch')
+  await writeFile(path,JSON.stringify(identity,null,2))
+  await expect(bindCandidateInputs(path,identity,true)).resolves.toBeUndefined()
+ }finally{await rm(folder,{recursive:true,force:true})}
 })

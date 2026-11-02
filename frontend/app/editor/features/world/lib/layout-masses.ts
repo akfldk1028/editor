@@ -94,14 +94,17 @@ export function rampHeights(ring: number[], centreline: number[] | null, profile
 }
 
 /**
- * Lets the basement be seen: the globe turns see-through over the layout's below-ground features only (Cesium's
- * translucency rectangle), and back to opaque when the layout has none. `globe` is the viewer's scene.globe.
+ * Lets the basement be seen when `seeThrough` is asked: the globe turns see-through over the layout's below-ground
+ * features (Cesium's translucency rectangle); otherwise, or when the layout has none, it stays opaque. `globe` is the
+ * viewer's scene.globe.
  */
-export function showUnderground(Cesium: any, globe: any, layout: LayoutView | null): boolean {
+export function showUnderground(Cesium: any, globe: any, layout: LayoutView | null, seeThrough = false): boolean {
   if (!globe?.translucency) return false
   const below = (layout?.features ?? []).filter((f) => f.properties.level < 0)
   const coords = below.flatMap((f) => [...rings(f.geometry), ...lines(f.geometry)])
-  if (!coords.length) {
+  // Off unless asked: Cesium's see-through globe is not local (the underground colour paints every back face in view,
+  // its default black reads as a pit), so by default the basement stays drawn below an opaque ground.
+  if (!seeThrough || !coords.length) {
     globe.translucency.enabled = false
     return false
   }
@@ -110,10 +113,12 @@ export function showUnderground(Cesium: any, globe: any, layout: LayoutView | nu
   const pad = 0.0002
   globe.translucency.enabled = true
   globe.translucency.frontFaceAlpha = 0.35
-  globe.translucency.backFaceAlpha = 0.35
+  // Translucent back faces (and an underground colour) switch every globe tile in view to the see-through path: the
+  // rectangle only scales alpha, so buildings' buried parts and the globe's undersides showed everywhere as pillars and
+  // dark slabs. Opaque back faces keep the see-through local to the rectangle.
+  globe.translucency.backFaceAlpha = 1
   globe.translucency.rectangle = Cesium.Rectangle.fromDegrees(
     Math.min(...lons) - pad, Math.min(...lats) - pad, Math.max(...lons) + pad, Math.max(...lats) + pad)
-  globe.undergroundColor = Cesium.Color.fromCssColorString('#3b3f45').withAlpha(0.6)
   return true
 }
 
@@ -281,6 +286,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
           polyline: {
             positions: onTerrain ? Cesium.Cartesian3.fromDegreesArray(line) : Cesium.Cartesian3.fromDegreesArrayHeights(line.flatMap((v, k) => (k % 2 ? [v, ground + 0.6] : [v]))),
             clampToGround: onTerrain,
+            ...(onTerrain ? { classificationType: Cesium.ClassificationType.TERRAIN } : {}),
             width: 2,
             material: new Cesium.PolylineDashMaterialProperty({ color: buildable, dashLength: 12 }),
           },

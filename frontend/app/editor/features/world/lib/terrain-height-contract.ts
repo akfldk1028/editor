@@ -47,10 +47,17 @@ export function createTerrainHeightContract(
     const result = (async () => {
       const heights = new Float32Array(size * size), sourceLevels = new Int8Array(size * size).fill(-1)
       let unresolved = heights.length
+      // Fine levels are sparse, so a tile usually falls through several of them: request the whole ancestor chain at
+      // once (one round trip instead of one per level) and still consume it finest first.
+      const reads = Array.from({ length: level - policy.minLevel + 1 }, (_, i) => {
+        const scale = 2 ** i, read = raw({ level: level - i, x: Math.floor(x / scale), y: Math.floor(y / scale) })
+        void read.catch(() => {}) // a level never consumed must not surface as an unhandled rejection
+        return read
+      })
       for (let source = level; source >= policy.minLevel && unresolved; source--) {
         const scale = 2 ** (level - source), ax = Math.floor(x / scale), ay = Math.floor(y / scale)
         // An exception must escape: a failed read is never confirmed NoData.
-        const grid = await raw({ level: source, x: ax, y: ay })
+        const grid = await reads[level - source]!
         if (!grid) continue
         if (grid.length !== heights.length) throw new Error('Invalid raw terrain grid size')
         for (let row = 0; row < size; row++) for (let col = 0; col < size; col++) {

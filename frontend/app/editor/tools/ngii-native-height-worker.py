@@ -14,9 +14,15 @@ from incremental_terrain_archive import source_stamps, signature
 
 
 class NativeSampler:
-    def __init__(self, path, expected=None, check_seconds=60):
+    def __init__(self, path, expected=None, check_seconds=60, stamp_seconds=0):
+        if type(stamp_seconds) is not int or stamp_seconds not in (0, 1):
+            raise ValueError('stamp_seconds must be integer 0 or 1')
         self.path = Path(path).resolve()
         self.check_seconds = check_seconds
+        self.stamp_seconds = stamp_seconds
+        self.last_stamp_check = -float('inf')
+        self.verification_policy = dict(stampSeconds=stamp_seconds, heartbeat='force-all-source-stamps',
+                                        fingerprintSeconds=check_seconds, close='full-fingerprint')
         self.direct = source_stamps(self.path)
         self.recursive = source_stamps(self.path, recursive=True)
         self.fingerprint = {
@@ -35,22 +41,27 @@ class NativeSampler:
         self.last_check = time.monotonic()
         self.verify(full=True)
 
-    def verify(self, full=False):
+    def verify(self, full=False, force_stamps=False):
+        now = time.monotonic()
+        fingerprint_due = full or now - self.last_check >= self.check_seconds
+        if not (fingerprint_due or force_stamps) and now - self.last_stamp_check < self.stamp_seconds:
+            return
         for path, size, mtime in self.recursive:
             stamp = Path(path).stat()
             if (stamp.st_size, stamp.st_mtime_ns) != (size, mtime):
                 raise ValueError('DEM source changed: ' + path)
-        if full or time.monotonic() - self.last_check >= self.check_seconds:
+        if fingerprint_due:
             current = {'sourceVrtSHA256': hashlib.sha256(self.path.read_bytes()).hexdigest(),
                        'sourceFilesSHA256': signature(source_stamps(self.path)),
                        'recursiveSourceFilesSHA256': signature(source_stamps(self.path, recursive=True))}
             if current != self.fingerprint:
                 raise ValueError('DEM source fingerprint changed')
             self.last_check = time.monotonic()
+        self.last_stamp_check = time.monotonic()
 
     def sample(self, points):
-        self.verify()
         points = np.asarray(points, dtype=np.float64)
+        self.verify(force_stamps=points.size == 0)
         if points.size == 0:
             return []
         if points.ndim != 2 or points.shape[1] != 2 or not np.isfinite(points).all() \
@@ -106,24 +117,26 @@ def main():
     parser.add_argument('--source-vrt-sha256', required=True)
     parser.add_argument('--source-files-sha256')
     parser.add_argument('--recursive-source-files-sha256')
+    parser.add_argument('--stamp-seconds', type=int, choices=(0, 1), default=0)
     args = parser.parse_args()
     sampler, request = None, {}
     emit = lambda value: print(json.dumps(value, allow_nan=False), flush=True)
     try:
         sampler = NativeSampler(args.vrt, dict(sourceVrtSHA256=args.source_vrt_sha256,
-            sourceFilesSHA256=args.source_files_sha256, recursiveSourceFilesSHA256=args.recursive_source_files_sha256))
-        emit({'type': 'ready', **sampler.fingerprint, 'method': 'bilinear; valid containing cell at NoData edges'})
+            sourceFilesSHA256=args.source_files_sha256, recursiveSourceFilesSHA256=args.recursive_source_files_sha256), stamp_seconds=args.stamp_seconds)
+        policy = dict(sourceFingerprintMethod='vrt-sha256-and-recursive-path-size-mtime-ns', verificationPolicy=sampler.verification_policy)
+        emit({'type': 'ready', **sampler.fingerprint, **policy, 'method': 'bilinear; valid containing cell at NoData edges'})
         for line in sys.stdin:
             request = json.loads(line)
             if request.get('op') == 'close':
                 fingerprint = sampler.fingerprint
                 sampler.close(); sampler = None
-                emit({'id': request.get('id'), 'type': 'closed', **fingerprint})
+                emit({'id': request.get('id'), 'type': 'closed', **fingerprint, **policy})
                 return
             if len(request['points']) > 100000:
                 raise ValueError('Batch exceeds 100000 points')
             heights = sampler.sample(request['points'])
-            emit({'id': request.get('id'), 'heights': heights, **sampler.fingerprint})
+            emit({'id': request.get('id'), 'heights': heights, **sampler.fingerprint, **policy})
         sampler.close(); sampler = None
     except Exception as error:
         emit({'type': 'error', 'id': request.get('id'), 'error': str(error)})

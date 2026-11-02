@@ -4,10 +4,10 @@ import { gunzipSync, gzipSync } from 'node:zlib'
 import { mkdtemp, readFile, writeFile, stat, rm, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { openHlodOutput, readRegionalHlodLeaf, buildGlobalHlod, occupiedCells, componentCells, rigidInverse, withAggregateCounts, type RegionInput, type HlodIO } from './ngii-global-hlod'
+import { openHlodOutput, readRegionalHlodLeaf, buildGlobalHlod, generalizeNode, componentItems, landmarkOrder, bucketOf, nodeWidth, multiply, HLOD_TARGET_GZ, HLOD_CHILD_ERROR_CAP, HLOD_EPS_DIVISOR, HLOD_MIN_COVERAGE, HLOD_CONTENT_MIN_LEVEL, HLOD_EMPTY_ERROR_DIVISOR, LOD_CODE_SHA256, rigidInverse, withAggregateCounts, type RegionInput, type HlodIO } from './ngii-global-hlod'
 import { bakeMesh, earth, frame, meshFootprintBounds } from '../features/world/lib/prebuilt-mesh'
 import { tileXY, type Footprint } from '../features/world/lib/building-geometry'
-const multiply = (a: number[], b: number[]) => Array.from({ length: 16 }, (_, i) => [0, 1, 2, 3].reduce((s, k) => s + a[k * 4 + i % 4]! * b[Math.floor(i / 4) * 4 + k]!, 0))
+const parentOf = (key: string) => { const [z, x, y] = key.split('/').map(Number); return `${z! - 1}/${Math.floor(x! / 2)}/${Math.floor(y! / 2)}` }
 const point = (m: number[], p: number[]) => [0, 1, 2].map(r => m[12 + r]! + p.reduce((s, v, c) => s + v * m[c * 4 + r]!, 0))
 const decode = (bytes: Uint8Array) => JSON.parse(new TextDecoder().decode(bytes))
 const feature = (lon: number, lat: number, index: number, component = 0): Footprint => ({ key: `ngii:${index.toString(16).padStart(64, '0')}/${component}`, pnu: '', z: 132, h: 18, s: 'm',
@@ -65,72 +65,222 @@ test('absolute ENU external-root transforms compose once, including real ECEF po
   expect(() => rigidInverse(a.map((v, i) => i === 0 ? v * 2 : v))).toThrow()
 })
 
-test('occupied cells cap256 while preserving every component and primary building count', () => {
+test('generalized nodes represent every component and primary building exactly once, within the byte target', () => {
   const rows = Array.from({ length: 1000 }, (_, i) => feature(127 + (i % 40) * 0.0001, 37.5 + Math.floor(i / 40) * 0.0001, i + 1))
-  rows.push(feature(127.5, 37.5, 1, 1)) // Full component crossing its owner's bounds must remain enclosed.
-  const cells = occupiedCells(componentCells(rows), '13/6985/3174')
-  expect(cells.length).toBeLessThanOrEqual(256)
-  expect(cells.reduce((s, c) => s + c.components, 0)).toBe(1001)
-  expect(cells.reduce((s, c) => s + c.buildingAnchors, 0)).toBe(1000)
-  expect(Math.max(...cells.map(c => c.bounds[2]))).toBeGreaterThan(127.5)
-  expect(() => componentCells([rows[0]!, rows[0]!])).toThrow('duplicate')
-  expect(() => componentCells([feature(127, 37, 1, 2)])).toThrow('Missing canonical component')
+  rows.push(feature(127.0005, 37.5005, 1, 1))
+  const key = '13/6985/3174', node = generalizeNode(componentItems(rows), key)
+  expect(node.rows.reduce((s, r) => s + r.components, 0)).toBe(1001)
+  expect(node.rows.reduce((s, r) => s + r.buildingAnchors, 0)).toBe(1000)
+  expect(node.rows.length).toBeLessThan(100) // merged into blocks, not 1001 boxes
+  expect(node.mesh.length).toBeLessThanOrEqual(HLOD_TARGET_GZ)
+  expect(node.eps).toBeCloseTo(nodeWidth(key) / HLOD_EPS_DIVISOR, 6)
+  expect(node.eps).toBeGreaterThan(110); expect(node.eps).toBeLessThan(130) // ~2x a regional R0 (64 m), not the same coarseness
+  expect(node.error).toBeGreaterThan(0)
+  for (const r of node.rows) { expect(r.ground).toBe(132); expect(r.roof).toBe(150) }
+  expect(() => componentItems([rows[0]!, rows[0]!])).toThrow('duplicate')
+  expect(() => componentItems([feature(127, 37, 1, 2)])).toThrow('Missing canonical component')
+  expect(() => generalizeNode([...componentItems(rows), ...componentItems([rows[0]!])], key)).toThrow('Duplicate')
+})
+
+test('landmarks are tall, prominent and spatially balanced: at most one per bucket, kept as themselves', () => {
+  const box = (lon: number, lat: number, size: number) => [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]].map(([x, y]) => [lon + x! * size, lat + y! * size])
+  const tower = (i: number, lon: number, h: number) => ({ ...feature(lon, 37.5001, i), h, ring: box(lon, 37.5001, 0.0003) })
+  const houses = Array.from({ length: 60 }, (_, i) => ({ ...feature(0, 0, i + 10), h: 6, ring: box(126.963 + (i % 10) * 0.00012, 37.5006 + Math.floor(i / 10) * 0.00012, 0.00008) }))
+  // z13 bucket ~ 0.0027 deg: towers 1 and 2 share a bucket, tower 3 is in another one
+  const items = componentItems([tower(1, 126.9601, 120), tower(2, 126.9606, 90), tower(3, 126.9801, 100), ...houses]), key = '13/6985/3174'
+  expect(bucketOf(items[0]!.f.ring, key)).toBe(bucketOf(items[1]!.f.ring, key))
+  expect(bucketOf(items[0]!.f.ring, key)).not.toBe(bucketOf(items[2]!.f.ring, key))
+  expect(landmarkOrder(items, key)).toEqual([items[0]!.f.key, items[2]!.f.key])
+  const node = generalizeNode(items, key)
+  expect(node.landmarks).toBe(2)
+  const kept = node.rows.filter(r => r.components === 1 && r.roof - r.ground > 95)
+  expect(kept.map(r => Math.round(r.f.z! + r.f.h))).toEqual([252, 232]) // the 120 m and 100 m towers stand as themselves
+})
+
+test('over the byte target, the least voluminous features are dropped, still counted, and the measured error follows', () => {
+  const rows = Array.from({ length: 400 }, (_, i) => ({ ...feature(127 + (i % 20) * 0.0011, 37.5 + Math.floor(i / 20) * 0.0011, i + 1), h: 3 + (i % 7) * 9 }))
+  const items = componentItems(rows), key = '13/6985/3174', free = generalizeNode(items, key), tight = generalizeNode(items, key, undefined, 4000)
+  expect(free.mesh.length).toBeGreaterThan(4000)
+  expect(free.dropped).toBe(0)
+  expect(tight.mesh.length).toBeLessThanOrEqual(4000)
+  expect(tight.dropped).toBeGreaterThan(0)
+  expect(tight.error).toBeGreaterThan(free.error)
+  expect(tight.error).toBeLessThanOrEqual(Math.max(free.error, HLOD_CHILD_ERROR_CAP * tight.eps) + 1e-9) // a drop costs at most 2 x the level eps
+  expect(tight.rows.reduce((s, r) => s + r.components, 0)).toBe(400)
+  expect(tight.rows.reduce((s, r) => s + r.buildingAnchors, 0)).toBe(400)
+  // the most voluminous features are the ones kept
+  const volume = (r: { f: { h: number }; area: number }) => r.area * r.f.h
+  expect(tight.rows.length).toBeLessThan(free.rows.length)
+  expect(Math.max(...tight.rows.map(volume))).toBeGreaterThanOrEqual(Math.max(...free.rows.map(volume))) // plus folded drops
+})
+
+test('scattered rural buildings never close into a slab; dense blocks are mostly built and keep their height bands', () => {
+  const box = (lon: number, lat: number, size: number) => [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]].map(([x, y]) => [lon + x! * size, lat + y! * size])
+  // 300 houses (~9 x 11 m) 60-90 m apart over ~1.5 km, and a dense town of 400 houses 3-4 m apart with 15 towers.
+  const rural = Array.from({ length: 300 }, (_, i) => ({ ...feature(0, 0, i + 1), h: 6, ring: box(127 + (i % 20) * 0.0008 + (i % 3) * 0.0002, 37.5 + Math.floor(i / 20) * 0.0007, 0.0001) }))
+  const town = Array.from({ length: 400 }, (_, i) => ({ ...feature(0, 0, i + 1001), h: 9, ring: box(127.03 + (i % 20) * 0.00014, 37.5 + Math.floor(i / 20) * 0.00013, 0.0001) }))
+  const towers = Array.from({ length: 15 }, (_, i) => ({ ...feature(0, 0, i + 2001), h: 60, ring: box(127.0302 + (i % 5) * 0.0005, 37.5004 + Math.floor(i / 5) * 0.0008, 0.00015) }))
+  const items = componentItems([...rural, ...town, ...towers]), node = generalizeNode(items, '13/6985/3174', undefined, 1e9)
+  const area = (r: number[][]) => Math.abs(r.reduce((s, p, i) => { const q = r[(i + 1) % r.length]!; return s + p[0]! * q[1]! - q[0]! * p[1]! }, 0)) / 2 * 111320 * 111320 * Math.cos(37.5 * Math.PI / 180)
+  expect(node.rows.reduce((s, r) => s + r.components, 0)).toBe(715)
+  for (const r of node.rows.filter(r => r.components > 1)) expect(r.area).toBeGreaterThanOrEqual(HLOD_MIN_COVERAGE * (area(r.f.ring) - (r.f.holes ?? []).reduce((s, h) => s + area(h), 0)) * 0.99)
+  // no rural block: every feature west of the town stands for at most a handful of houses and is house-sized
+  for (const r of node.rows.filter(r => r.f.ring[0]![0]! < 127.025)) { expect(r.components).toBeLessThanOrEqual(3); expect(area(r.f.ring)).toBeLessThan(2000) }
+  expect(node.rows.filter(r => r.f.ring[0]![0]! > 127.025 && r.components > 1).length).toBeGreaterThan(0) // the town does merge
+  // towers are never averaged with the houses around them
+  expect(node.rows.filter(r => r.roof - r.ground >= 60).every(r => r.f.h >= 56)).toBe(true)
 })
 
 test('aggregate B3DM counts preserve original GLB and neutral material byte-for-byte', () => {
-  const f = feature(127, 37, 1), cells = componentCells([f]), raw = bakeMesh([f], frame(127, 37), false), output = withAggregateCounts(raw, cells)
+  const f = feature(127, 37, 1), cells = componentItems([f]), raw = bakeMesh([f], frame(127, 37), false), output = withAggregateCounts(raw, cells)
   const split = (bytes: Uint8Array) => { const h = new DataView(bytes.buffer); const ft = h.getUint32(12, true), bt = h.getUint32(20, true); return { table: decode(bytes.subarray(28 + ft, 28 + ft + bt)), glb: bytes.subarray(28 + ft + bt) } }
   expect(split(output).table.componentCount).toEqual([1])
   expect(split(output).table.buildingAnchorCount).toEqual([1])
   expect(split(output).glb).toEqual(split(raw).glb)
+  // Site-hiding columns: bbox per feature, lodBlock = 1 only for a block of several components.
+  const b = meshFootprintBounds(f), t = split(output).table
+  expect([t.west[0], t.south[0], t.east[0], t.north[0]]).toEqual([127, 37, 127.001, 37.001])
+  expect(b[0]).toBeLessThanOrEqual(t.west[0])
+  expect(t.lodBlock).toEqual([0])
+  // lodBlock follows geometry, not counts: one building with dropped features' counts folded into it stays 0.
+  expect(split(withAggregateCounts(raw, [{ ...cells[0]!, components: 7 }])).table.lodBlock).toEqual([0])
+  const block = withAggregateCounts(raw, [{ ...cells[0]!, components: 7, block: true }])
+  expect(split(block).table.lodBlock).toEqual([1])
 })
 
-test('external quadtree retains renderable parents, all leaves, bounds, counts, and readback hashes', async () => {
+const square = (lon: number, lat: number, metres: number) => { const dx = metres / (111320 * Math.cos(lat * Math.PI / 180)), dy = metres / 111320
+  return [[lon, lat], [lon + dx, lat], [lon + dx, lat + dy], [lon, lat + dy], [lon, lat]] }
+const batchTable = (packed: Uint8Array) => { const mesh = gunzipSync(packed), h = new DataView(mesh.buffer, mesh.byteOffset), ft = h.getUint32(12, true)
+  return decode(mesh.subarray(28 + ft, 28 + ft + h.getUint32(20, true))) }
+
+test('under the byte target a 70 m tower is kept over small houses (no landmarks in play)', () => {
+  // 16 isolated 15 x 15 m houses (9 m, volume 2,025) 300 m apart and one 10 x 10 m 70 m tower (volume 7,000); 17 items: no landmark.
+  const houses = Array.from({ length: 16 }, (_, i) => ({ ...feature(0, 0, i + 1), h: 9, ring: square(127 + (i % 4) * 0.0034, 37.5 + Math.floor(i / 4) * 0.0027, 15) }))
+  const tower = { ...feature(0, 0, 100), h: 70, ring: square(127.0017, 37.5013, 10) }
+  const items = componentItems([...houses, tower]), key = '13/6985/3174', free = generalizeNode(items, key, undefined, 1e9)
+  expect(free.landmarks).toBe(0); expect(free.dropped).toBe(0)
+  const tight = generalizeNode(items, key, undefined, Math.floor(free.mesh.length * 0.5))
+  expect(tight.dropped).toBeGreaterThan(0)
+  expect(tight.rows.some(r => r.f.h === 70 && !r.block)).toBe(true) // the tower is kept, low houses are dropped first
+  expect(tight.rows.reduce((s, r) => s + r.components, 0)).toBe(17)
+})
+
+test('a dropped tower costs its height above the nearest kept roof, uncapped; the kept single building stays lodBlock 0', () => {
+  // A: one 450 x 450 m, 9 m building (volume 1.8M) is kept; B: 10 x 10 m, 400 m (volume 40,000) 300 m east of it is dropped.
+  const a = { ...feature(0, 0, 1), h: 9, ring: square(127, 37.5, 450) }, b = { ...feature(0, 0, 2), h: 400, ring: square(127.0091, 37.5, 10) }
+  const items = componentItems([a, b]), key = '13/6985/3174', free = generalizeNode(items, key, undefined, 1e9)
+  expect(free.rows.length).toBe(2)
+  const tight = generalizeNode(items, key, undefined, free.mesh.length - 1)
+  expect(tight.dropped).toBe(1); expect(tight.rows.length).toBe(1)
+  expect(tight.rows[0]!.f.h).toBe(9); expect(tight.rows[0]!.components).toBe(2); expect(tight.rows[0]!.roof).toBe(132 + 400)
+  expect(tight.vertical).toBeGreaterThanOrEqual(391 - 1e-6) // 400 m roof above the kept 9 m roof, same ground
+  expect(tight.error).toBeGreaterThanOrEqual(391 - 1e-6)
+  expect(tight.error).toBeGreaterThan(HLOD_CHILD_ERROR_CAP * tight.eps) // the vertical term is not capped like the 2D one
+  expect(tight.horizontal).toBeLessThanOrEqual(Math.max(free.horizontal, HLOD_CHILD_ERROR_CAP * tight.eps) + 1e-9)
+  expect(tight.rows[0]!.block).toBe(false)
+  expect(batchTable(tight.mesh).lodBlock).toEqual([0]); expect(batchTable(tight.mesh).componentCount).toEqual([2])
+})
+
+test('a dropped house on a hill costs its own height, not the slope down to the nearest kept roof', () => {
+  const a = { ...feature(0, 0, 1), h: 60, ring: square(127, 37.5, 40) }, b = { ...feature(0, 0, 2), z: 700, h: 10, ring: square(127.0034, 37.5, 10) } // A outranks B
+  const items = componentItems([a, b]), key = '13/6985/3174', free = generalizeNode(items, key, undefined, 1e9)
+  const tight = generalizeNode(items, key, undefined, free.mesh.length - 1)
+  expect(tight.dropped).toBe(1)
+  expect(tight.vertical).toBeCloseTo(Math.max(free.vertical, 10), 6) // 710 m roof above its 700 m ground, not 710 - 192
+  expect(tight.error).toBeLessThanOrEqual(Math.max(free.error, HLOD_CHILD_ERROR_CAP * tight.eps) + 1e-9)
+})
+
+test('every taken block is dense and stands for several members, including blocks re-generalized after sparse rejects', () => {
+  // Deterministic mixed scene: dense clusters, their fringes and scattered houses, so passes reject sparse blocks and re-run.
+  let seed = 7; const rand = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648
+  const rows: Footprint[] = []
+  for (let c = 0; c < 6; c++) {
+    const cx = 127 + c * 0.004, cy = 37.5 + (c % 2) * 0.004, n = 30 + c * 25, spread = 0.0006 + c * 0.0004
+    for (let i = 0; i < n; i++) rows.push({ ...feature(0, 0, rows.length + 1), h: 6 + Math.floor(rand() * 3) * 3, ring: square(cx + (rand() - 0.5) * spread * (1 + (i % 3)), cy + (rand() - 0.5) * spread * (1 + (i % 3)), 8 + rand() * 14) })
+  }
+  const items = componentItems(rows), node = generalizeNode(items, '13/6985/3174', undefined, 1e9)
+  const area = (r: number[][]) => Math.abs(r.reduce((s, p, i) => { const q = r[(i + 1) % r.length]!; return s + p[0]! * q[1]! - q[0]! * p[1]! }, 0)) / 2 * 111320 * 111320 * Math.cos(37.5 * Math.PI / 180)
+  expect(node.rows.reduce((s, r) => s + r.components, 0)).toBe(rows.length)
+  expect(node.rows.some(r => r.block)).toBe(true)
+  for (const r of node.rows) {
+    expect(r.block).toBe(r.components > 1) // nothing dropped: geometry and counts agree
+    if (r.block) expect(r.area).toBeGreaterThanOrEqual(HLOD_MIN_COVERAGE * (area(r.f.ring) - (r.f.holes ?? []).reduce((s, h) => s + area(h), 0)) * 0.99)
+  }
+})
+
+test('generalized nodes mark their blocks: lodBlock follows componentCount and every bbox holds its outline', () => {
+  const rows = Array.from({ length: 400 }, (_, i) => feature(127 + (i % 20) * 0.0002, 37.5 + Math.floor(i / 20) * 0.0002, i + 1))
+  const node = generalizeNode(componentItems(rows), '13/6985/3174'), mesh = gunzipSync(node.mesh)
+  const h = new DataView(mesh.buffer, mesh.byteOffset), ft = h.getUint32(12, true), t = decode(mesh.subarray(28 + ft, 28 + ft + h.getUint32(20, true)))
+  expect(node.dropped).toBe(0) // nothing folded: lodBlock (geometry) and componentCount agree
+  expect(t.lodBlock).toEqual(t.componentCount.map((c: number) => c > 1 ? 1 : 0))
+  expect(t.lodBlock.some((v: number) => v === 1)).toBe(true)
+  node.rows.forEach((r, i) => { for (const [x, y] of r.f.ring) expect(t.west[i] <= x! && x! <= t.east[i] && t.south[i] <= y! && y! <= t.north[i]).toBe(true) })
+})
+
+test('output identity carries the generalizer and mesh baker source hashes', async () => {
+  for (const name of ['generalize-buildings.ts', 'prebuilt-mesh.ts'])
+    expect(LOD_CODE_SHA256[name]).toBe(createHash('sha256').update(await readFile(join(import.meta.dir, '../features/world/lib', name))).digest('hex'))
+})
+
+/** Computed transform of an inline tile: product of every ancestor's transform (column-major). */
+const enuAt = (m: number[]) => { const up = [m[8]!, m[9]!, m[10]!]; return frame(Math.atan2(up[1]!, up[0]!) * 180 / Math.PI, Math.asin(up[2]!) * 180 / Math.PI).transform }
+
+test('inline hierarchy: z5-z10 in tileset.json, one JSON per z11 subtree, three JSON hops to a region, composed frames and nested bounds', async () => {
   const features = [feature(127.01, 37.5, 1), feature(127.06, 37.5, 2), feature(129.1, 35.2, 3), feature(126.5, 33.5, 4)]
   const regions: RegionInput[] = features.map((f, i) => ({ owner: `14/${tileXY(f.ring[0]![0]!, f.ring[0]![1]!, 14).join('/')}`, uri: `regions/${i}/tileset.json`, folder: String(i) }))
   const files = new Map<string, Uint8Array>()
   const io: HlodIO = { write: async (p, b) => { if (files.has(p)) throw Error('Overwrite'); files.set(p, b) }, read: async p => files.get(p)!, leaf: async r => {
-    const f = features[Number(r.folder)]!; return { features: [f], error: 30, bounds: meshFootprintBounds(f), low: -12, high: 151 }
+    const f = features[Number(r.folder)]!; return { features: [f], error: 30, rootError: 12, bounds: meshFootprintBounds(f), low: -12, high: 151 }
   } }
   const result = await buildGlobalHlod(regions, io)
   expect(result.assetPacking).toBe('gzip6-mesh-and-metadata-v1')
   expect(result.components).toBe(4); expect(result.buildings).toBe(4); expect(result.regions).toBe(4)
-  expect(files.get('tileset.json')!.length).toBeLessThan(1500)
-  const leafURIs: string[] = []
-  for (const [path, bytes] of files) if (path.startsWith('nodes/') && path.endsWith('.json')) {
-    const root = decode(bytes).root
-    expect(root.refine).toBe('REPLACE'); expect(root.children.length).toBeLessThanOrEqual(4)
-    expect(root.extras.occupiedCells).toBeLessThanOrEqual(256)
-    expect(files.has(`nodes/${root.content.uri}`)).toBe(true)
-    expect(root.content.uri.endsWith('.b3dm.gz')).toBe(true)
-    const packed = files.get(`nodes/${root.content.uri}`)!, mesh = gunzipSync(packed)
-    expect(packed).toEqual(new Uint8Array(gzipSync(mesh, { level: 6 })))
-    const header = new DataView(mesh.buffer, mesh.byteOffset, mesh.byteLength)
-    expect(header.getUint32(0, true)).toBe(0x6d643362)
-    expect(header.getUint32(8, true)).toBe(mesh.length)
-    const ft = header.getUint32(12, true), bt = header.getUint32(20, true)
-    const table = decode(mesh.subarray(28 + ft, 28 + ft + bt))
-    expect(table.componentCount.reduce((a: number, b: number) => a + b, 0)).toBe(root.extras.components)
-    expect(table.buildingAnchorCount.reduce((a: number, b: number) => a + b, 0)).toBe(root.extras.buildings)
-    const cells = decode(files.get(path.replace('nodes/', 'summaries/'))!)
-    const bounds = [Math.min(...cells.map((c: any) => c.bounds[0])), Math.min(...cells.map((c: any) => c.bounds[1])),
-      Math.max(...cells.map((c: any) => c.bounds[2])), Math.max(...cells.map((c: any) => c.bounds[3]))]
-    const origin = frame((bounds[0]! + bounds[2]!) / 2, (bounds[1]! + bounds[3]!) / 2)
-    const key = path.slice('nodes/'.length, -'.json'.length).replaceAll('-', '/')
-    const original: Footprint[] = cells.map((c: any, i: number) => ({ key: `${key}:${i}`, pnu: '', s: 'u', z: c.ground, h: c.roof - c.ground,
-      ring: [[c.bounds[0], c.bounds[1]], [c.bounds[2], c.bounds[1]], [c.bounds[2], c.bounds[3]], [c.bounds[0], c.bounds[3]], [c.bounds[0], c.bounds[1]]] }))
-    expect(root.transform).toEqual(origin.transform)
-    expect(new Uint8Array(mesh)).toEqual(new Uint8Array(withAggregateCounts(bakeMesh(original, origin, false), cells)))
-    expect(bytes.length).toBeLessThan(6000)
-    const center = point(root.transform, [0, 0, 0]), radius = root.boundingVolume.sphere[3]
-    for (const child of root.children) {
-      expect(root.geometricError).toBeGreaterThan(child.geometricError)
-      const world = point(multiply(root.transform, child.transform), child.boundingVolume.sphere.slice(0, 3))
-      expect(Math.hypot(...world.map((v, i) => v - center[i]!)) + child.boundingVolume.sphere[3]).toBeLessThanOrEqual(radius + 1e-7)
-      if (child.content.uri.startsWith('../regions/')) leafURIs.push(child.content.uri)
+  const jsons = [...files.keys()].filter(p => p.endsWith('.json')).sort()
+  expect(jsons.filter(p => p !== 'tileset.json').every(p => /^nodes\/11-\d+-\d+\.json$/.test(p))).toBe(true)
+  expect(jsons.length).toBe(1 + 3) // the two Seoul regions share one z11 node
+  const leafURIs: string[] = [], seen = new Set<string>()
+  const visit = (node: any, parentWorld: number[], file: string, hops: number, parentSphere?: number[], parentError = Infinity) => {
+    const world = node.transform ? multiply(parentWorld, node.transform) : parentWorld
+    const center = point(world, node.boundingVolume.sphere.slice(0, 3)), radius = node.boundingVolume.sphere[3]
+    if (parentSphere) expect(Math.hypot(...center.map((v, i) => v - parentSphere[i]!)) + radius).toBeLessThanOrEqual(parentSphere[3]! + 1e-6)
+    expect(node.geometricError).toBeLessThanOrEqual(parentError)
+    if (!node.content) { // z5-z10 carry no content: their error only decides where z11 takes over
+      expect(node.refine).toBe('REPLACE'); expect(node.children.length).toBeLessThanOrEqual(4)
+      for (const child of node.children) visit(child, world, file, hops, [...center, radius], node.geometricError)
+      return
+    }
+    const uri: string = node.content.uri, folder = file.includes('/') ? 'nodes/' : ''
+    if (uri.endsWith('.b3dm.gz')) {
+      expect(node.refine).toBe('REPLACE')
+      expect(node.children.length).toBeLessThanOrEqual(4)
+      enuAt(world).forEach((v, i) => expect(Math.abs(v - world[i]!)).toBeLessThan(i >= 12 ? 1e-3 : 1e-9))
+      const path = folder + uri; expect(files.has(path)).toBe(true); seen.add(path)
+      const packed = files.get(path)!, mesh = gunzipSync(packed)
+      expect(packed).toEqual(new Uint8Array(gzipSync(mesh, { level: 6 })))
+      const header = new DataView(mesh.buffer, mesh.byteOffset, mesh.byteLength), ft = header.getUint32(12, true), bt = header.getUint32(20, true)
+      const table = decode(mesh.subarray(28 + ft, 28 + ft + bt))
+      expect(table.componentCount.reduce((a: number, b: number) => a + b, 0)).toBe(node.extras.components)
+      expect(table.buildingAnchorCount.reduce((a: number, b: number) => a + b, 0)).toBe(node.extras.buildings)
+      for (const child of node.children) visit(child, world, file, hops, [...center, radius], node.geometricError)
+    } else if (uri.endsWith('tileset.json')) {
+      world.forEach((v, i) => expect(Math.abs(v - [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1][i]!)).toBeLessThan(1e-6)) // reset to ECEF for the absolute regional root
+      expect(hops + 1).toBe(3)
+      leafURIs.push(uri)
+    } else {
+      expect(file).toBe('tileset.json'); world.forEach((v, i) => expect(Math.abs(v - [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1][i]!)).toBeLessThan(1e-6))
+      const sub = decode(files.get(uri)!).root
+      enuAt(sub.transform).forEach((v, i) => expect(Math.abs(v - sub.transform[i]!)).toBeLessThan(i >= 12 ? 1e-3 : 1e-9))
+      visit(sub, world, uri, hops + 1, [...center, radius], node.geometricError)
     }
   }
+  const top = decode(files.get('tileset.json')!)
+  expect(top.root.content).toBeUndefined() // z5: no content
+  expect(top.root.geometricError).toBeGreaterThanOrEqual(nodeWidth(`5/${tileXY(127.01, 37.5, 5).join('/')}`) / HLOD_EMPTY_ERROR_DIVISOR)
+  expect([...files.keys()].filter(p => p.endsWith('.b3dm.gz')).every(p => Number(/nodes\/(\d+)-/.exec(p)![1]) >= HLOD_CONTENT_MIN_LEVEL)).toBe(true)
+  visit(top.root, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], 'tileset.json', 1)
   expect(leafURIs.sort()).toEqual(regions.map(r => `../${r.uri}`).sort())
+  expect(seen).toEqual(new Set([...files.keys()].filter(p => p.endsWith('.b3dm.gz'))))
   for (const file of result.files) {
     const bytes = files.get(file.path)!
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(file.sha256)
@@ -142,15 +292,27 @@ test('external quadtree retains renderable parents, all leaves, bounds, counts, 
       expect(file.decodedSHA256).toBe(createHash('sha256').update(decoded).digest('hex'))
     }
   }
-  const sphere = decode(files.get('tileset.json')!).root.boundingVolume.sphere
-  for (const f of features) for (const p of f.ring) for (const h of [-12, f.z! + f.h]) {
-    const world = earth(p[0]!, p[1]!, h)
-    expect(Math.hypot(...world.map((v, i) => v - sphere[i]!))).toBeLessThan(sphere[3])
-  }
+  const sphere = top.root.boundingVolume.sphere, world = point(top.root.transform, sphere.slice(0, 3))
+  for (const f of features) for (const p of f.ring) for (const h of [-12, f.z! + f.h]) expect(Math.hypot(...earth(p[0]!, p[1]!, h).map((v, i) => v - world[i]!))).toBeLessThan(sphere[3])
   const repeated = new Map<string, Uint8Array>()
   const repeat = await buildGlobalHlod(regions, { ...io, write: async (p, b) => { repeated.set(p, b) }, read: async p => repeated.get(p)! })
   expect(repeat.files).toEqual(result.files)
   for (const [name, bytes] of repeated) expect(bytes).toEqual(files.get(name)!)
+})
+
+test('a regional root error enters z13 clamped to the level scale, so one broken region cannot inflate its ancestors', async () => {
+  const f = feature(127, 37.5, 1), owner = `14/${tileXY(127, 37.5, 14).join('/')}`, files = new Map<string, Uint8Array>()
+  const leaf = (rootError: number) => async () => ({ features: [f], error: 3634, rootError, bounds: meshFootprintBounds(f), low: -12, high: 151 })
+  const build = async (rootError: number) => {
+    files.clear()
+    await buildGlobalHlod([{ owner, uri: 'r/tileset.json', folder: '' }], { write: async (p, b) => { files.set(p, b) }, read: async p => files.get(p)!, leaf: leaf(rootError) })
+    return decode(files.get('tileset.json')!).root
+  }
+  const outlier = await build(3634), normal = await build(10), cap = HLOD_CHILD_ERROR_CAP * nodeWidth(parentOf(owner)) / HLOD_EPS_DIVISOR
+  expect(outlier.children[0].geometricError).toBeCloseTo(cap, 6)
+  expect(outlier.geometricError).toBeCloseTo(Math.max(outlier.extras.ownError, cap), 6)
+  expect(normal.children[0].geometricError).toBe(10)
+  expect(normal.geometricError).toBe(Math.max(normal.extras.ownError, 10))
 })
 
 test('failed readback is never published as a successful hierarchy', async () => {
@@ -193,6 +355,16 @@ test('regional gzip metadata restores identical footprints and retains frame and
   expect(leaf.features).toEqual(f.features);expect(leaf.low).toBe(-13);expect(leaf.high).toBe(151)
   f.tileset.root.boundingVolume.region[5]=100;f.put('tileset.json',f.tileset,false)
   await expect(f.load()).rejects.toThrow('bounds omit')
+})
+
+test('regional entry error is the bake top-level half (re-LOD invariant); rootError is the measured root', async () => {
+  const f=packedLeafFixture()
+  expect((await f.load()).error).toBe(30)
+  ;(f.tileset as any).geometricError=60;f.put('tileset.json',f.tileset,false)
+  expect((await f.load()).error).toBe(30)
+  f.tileset.root.geometricError=4;f.put('tileset.json',f.tileset,false)
+  expect((await f.load()).error).toBe(30)
+  expect((await f.load()).rootError).toBe(4) // the measured root the HLOD hands over to
 })
 
 test('regional metadata rejects incompatible packing, corruption, hash and coverage mismatches', async () => {

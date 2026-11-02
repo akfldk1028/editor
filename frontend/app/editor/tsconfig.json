@@ -14,6 +14,6 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "next-env.d.ts", "next.config.js", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx"],
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx", "tools"],
   "references": [{ "path": "../../../resources/lib/core" }, { "path": "../../components/viewer" }]
 }

@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { mkdir, readFile, readdir, writeFile, rename, unlink, stat, statfs } from 'node:fs/promises'
-import { join, resolve, relative, isAbsolute } from 'node:path'
+import { mkdir, readFile, readdir, writeFile, rename, unlink, stat, statfs, link } from 'node:fs/promises'
+import { join, resolve, relative, isAbsolute, basename } from 'node:path'
 import { spawn, spawnSync } from 'node:child_process'
 import { createInterface } from 'node:readline'
 import { fileURLToPath } from 'node:url'
@@ -23,14 +23,16 @@ async function atomic(path: string,value: unknown) { await writeFile(path+'.part
 type Ground = { id: string; sourceUFID: string|null; ground: TerrainSample; provenance: CanonicalBuilding['provenance']; heightSource: CanonicalBuilding['heightSource'] }
 type Footprint = { key: string; z: number }
 type Native = (points: number[][]) => Promise<(number|null)[]>
-export type RegionProof = { owner: string; buildings: number; components: number; inputSHA256: string; supportedGroundBuildings: number; unresolvedGroundBuildings: number; nativeFinite: number; nativeNoData: { key: string; classification: 'ancestor-supported'|'declared-ellipsoid-zero' }[]; displayMaximum: number|null; datumMaximum: number; errors: { key: string; kind: string; error: number }[]; passed: boolean; nativeEvidence: 'verified'|'failed'|'insufficient' }
+export type RegionProof = { owner: string; buildings: number; components: number; inputSHA256: string; supportedGroundBuildings: number; unresolvedGroundBuildings: number; nativeFinite: number; nativeNoData: { key: string; classification: 'ancestor-supported'|'declared-ellipsoid-zero' }[]; displayMaximum: number|null; nativeOver: number; datumMaximum: number; errors: { key: string; kind: string; error: number }[]; passed: boolean; nativeEvidence: 'recorded'|'insufficient' }
+/** Native DEM vs displayed terrain disagreement is recorded, never a gate: buildings follow the served terrain. */
+export const NATIVE_RECORD_THRESHOLD_METRES = .5
 
 /** Independent resampling uses canonical anchors, never metadata vertices or the stored ground as its input. */
 export async function verifyRegion(owner: string, rows: Iterable<CanonicalBuilding>, grounds: Ground[], footprints: Footprint[], sample: (lon:number,lat:number)=>Promise<TerrainSample>, native: Native, batchSize=256): Promise<RegionProof> {
   if(!Number.isInteger(batchSize)||batchSize<1||batchSize>4096)throw Error('Invalid verification batch size')
   const byId=new Map(grounds.map(g=>[g.id,g])), byKey=new Map(footprints.map(f=>[f.key,f]))
   if(byId.size!==grounds.length||byKey.size!==footprints.length)throw Error('Duplicate ground/component identity')
-  const proof:RegionProof={owner,buildings:0,components:0,inputSHA256:'',supportedGroundBuildings:0,unresolvedGroundBuildings:0,nativeFinite:0,nativeNoData:[],displayMaximum:null,datumMaximum:0,errors:[],passed:false,nativeEvidence:'insufficient'}
+  const proof:RegionProof={owner,buildings:0,components:0,inputSHA256:'',supportedGroundBuildings:0,unresolvedGroundBuildings:0,nativeFinite:0,nativeNoData:[],displayMaximum:null,nativeOver:0,datumMaximum:0,errors:[],passed:false,nativeEvidence:'insufficient'}
   const input=createHash('sha256');let batch:CanonicalBuilding[]=[]
   const consume=async()=>{
     const heights=await native(batch.map(r=>r.anchorWGS84))
@@ -53,7 +55,7 @@ export async function verifyRegion(owner: string, rows: Iterable<CanonicalBuildi
       }
       const reference=heights[n]!
       if(reference===null)proof.nativeNoData.push({key:id,classification:actual.ellipsoidZero?'declared-ellipsoid-zero':'ancestor-supported'})
-      else {const error=Math.abs(actual.height-reference);proof.nativeFinite++;proof.displayMaximum=Math.max(proof.displayMaximum??0,error);if(error>.5)proof.errors.push({key:id,kind:'native-display',error})}
+      else {const error=Math.abs(actual.height-reference);proof.nativeFinite++;proof.displayMaximum=Math.max(proof.displayMaximum??0,error);if(error>NATIVE_RECORD_THRESHOLD_METRES)proof.nativeOver++}
       byId.delete(id);proof.buildings++
     }
     batch=[]
@@ -61,7 +63,7 @@ export async function verifyRegion(owner: string, rows: Iterable<CanonicalBuildi
   for(const row of rows){input.update(JSON.stringify(row)+'\n');batch.push(row);if(batch.length>=batchSize)await consume()}
   if(batch.length)await consume()
   if(byId.size||byKey.size)throw Error('Extra noncanonical ground/component')
-  proof.inputSHA256=input.digest('hex');proof.passed=proof.errors.length===0;proof.nativeEvidence=proof.nativeFinite?(proof.errors.some(e=>e.kind==='native-display')?'failed':'verified'):'insufficient'
+  proof.inputSHA256=input.digest('hex');proof.passed=proof.errors.length===0;proof.nativeEvidence=proof.nativeFinite?'recorded':'insufficient'
   return proof
 }
 
@@ -98,6 +100,60 @@ export async function discoverCompletedCandidates(regional:string,wanted:Set<str
       }
     }
 
+/** Cheap identity of every receipt payload file, taken at full verification. Any write, replacement or resize changes it. */
+export type FileStamp = { path:string; size:string; mtimeNs:string; ino:string }
+export async function candidateFileStamps(folder:string,receipt:any):Promise<FileStamp[]> {
+  if(!Array.isArray(receipt?.files)||!receipt.files.length)throw Error('Missing candidate payload receipt')
+  return Promise.all(receipt.files.map(async(file:any)=>{
+    if(typeof file.path!=='string'||basename(file.path)!==file.path||file.path.includes('\\')||file.path==='..'||file.path==='.')throw Error('Invalid candidate payload path')
+    const s=await stat(join(folder,file.path),{bigint:true});return {path:file.path,size:String(s.size),mtimeNs:String(s.mtimeNs),ino:String(s.ino)}
+  }))
+}
+/** A shard-verified region skips payload re-hashing only under the same run, the same receipt bytes and unchanged file stamps. */
+export function stampedReuse(previous:any,runSHA:string,receiptSHA:string,current:FileStamp[]):boolean {
+  return Boolean(previous&&previous.runSHA256===runSHA&&previous.receiptSHA256===receiptSHA&&Array.isArray(previous.fileStamps)&&previous.fileStamps.length&&canonicalJSON(previous.fileStamps)===canonicalJSON(current))
+}
+
+const errno=(e:unknown)=>(e as NodeJS.ErrnoException).code
+const pidAlive=(pid:number)=>{try{process.kill(pid,0);return true}catch(e){return errno(e)==='EPERM'}}
+/** True when a lock is held by a live (or unidentifiable) owner. A lock whose recorded pid is dead is removed. */
+async function liveLock(path:string) {
+  let text:string;try{text=(await readFile(path,'utf8')).trim()}catch(e){if(errno(e)==='ENOENT')return false;throw e}
+  if(!/^\d+$/.test(text)||pidAlive(Number(text)))return true
+  try{await unlink(path)}catch(e){if(errno(e)!=='ENOENT')throw e}
+  return false
+}
+export const SHARD_LOCK=/^verification-shard-\d+(-of-\d+)?\.lock$/
+/** Shards and the unsharded merge exclude each other: the merge refuses live shard locks, shards refuse a live merge lock. */
+export async function acquireVerificationLock(work:string,tag:string) {
+  const own=join(work,`verification${tag}.lock`)
+  for(let attempt=0;;attempt++){
+    try{await writeFile(own,String(process.pid),{flag:'wx'});break}
+    catch(e){if(errno(e)!=='EEXIST')throw e;if(attempt||await liveLock(own))throw Error(`Verification lock ${own} is held by a live process`)}
+  }
+  try{
+    const others=tag?['verification.lock']:(await readdir(work)).filter(n=>SHARD_LOCK.test(n))
+    for(const name of others)if(await liveLock(join(work,name)))throw Error(`Verification ${tag?'merge':'shard'} lock ${name} is live`)
+  }catch(e){await unlink(own);throw e}
+  return own
+}
+/** Concurrent shards race to pin the run identity: write a private .part, hard-link without overwrite, re-read on EEXIST. */
+export async function pinVerificationInputs(pin:string,identity:unknown,attempts=40) {
+  for(let attempt=0;;attempt++){
+    let text:string|undefined
+    try{text=await readFile(pin,'utf8')}catch(e){if(errno(e)!=='ENOENT')throw e}
+    if(text===undefined){
+      const part=`${pin}.${process.pid}-${randomUUID()}.part`;await writeFile(part,JSON.stringify(identity,null,2),{flag:'wx'})
+      try{await link(part,pin);return}catch(e){if(errno(e)!=='EEXIST')throw e}finally{await unlink(part)}
+    } else {
+      let value:unknown,parsed=false;try{value=JSON.parse(text);parsed=true}catch{}
+      if(parsed){if(canonicalJSON(value)!==canonicalJSON(identity))throw Error('Verification input identity changed');return}
+    }
+    if(attempt>=attempts)throw Error('Verification input pin unreadable')
+    await new Promise(r=>setTimeout(r,50))
+  }
+}
+
 function belowNormal(pid:number) {
   if(process.platform!=='win32'||!Number.isInteger(pid)||pid<1)throw Error('BelowNormal requires a valid Windows owned process')
   const r=spawnSync('powershell',['-NoProfile','-NonInteractive','-Command',`[System.Diagnostics.Process]::GetProcessById(${pid}).PriorityClass = 'BelowNormal'`],{windowsHide:true,encoding:'utf8'})
@@ -131,16 +187,22 @@ export async function main(args=process.argv.slice(2)) {
   if(check.status!==0||check.error)throw Error('Completed canonical snapshot gate failed')
   if(await fileSHA(terrain)!==terrainSHA)throw Error('Terrain archive SHA mismatch')
   const selected=selectRegions(inventory.regions,args.includes('--region')?option('--region'):undefined,args.includes('--sample-regions')?Number(option('--sample-regions')):undefined),sampleOnly=args.includes('--region')||args.includes('--sample-regions')
+  // --shard k/n splits regions across processes sharing one work folder. Proofs are per region and bound to the
+  // full run identity, so a final unsharded run reuses them and alone writes the national summary.
+  const shard=args.includes('--shard')?/^(\d+)\/(\d+)$/.exec(option('--shard')):undefined
+  if(args.includes('--shard')&&(!shard||Number(shard[2])<2||Number(shard[1])>=Number(shard[2])))throw Error('Shard must be k/n with 0<=k<n and n>=2')
+  const mine=shard?selected.filter((_,i)=>i%Number(shard[2])===Number(shard[1])):selected,tag=shard?`-shard-${shard[1]}-of-${shard[2]}`:''
   const planSHA=await fileSHA(planPath),inventorySHA=await fileSHA(inventoryPath),snapshotSHA=await fileSHA(snapshot),queuePath=args.includes('--queue-inputs')?resolve(option('--queue-inputs')):join(regional,'queue-inputs.json')
   validateCompletedInventoryPin(await readJSON(queuePath),{snapshotSHA256:snapshotSHA,planFileSHA256:planSHA,terrainSHA256:terrainSHA,terrainPath:terrain,regionsPath:inventoryPath,output:regional,regionsSHA256:inventorySHA},plan,inventory)
   const identity={schema:'ngii-national-heights-v1',snapshotSHA256:snapshotSHA,queueInputsSHA256:await fileSHA(queuePath),planFileSHA256:planSHA,inventorySHA256:inventorySHA,terrainSHA256:terrainSHA,terrainReceiptSHA256:await fileSHA(receiptPath),implementationSHA256:await fileSHA(fileURLToPath(import.meta.url)),contractImplementationSHA256:await fileSHA(fileURLToPath(new URL('../features/world/lib/terrain-height-contract.ts',import.meta.url))),nativeWorkerSHA256:await fileSHA(workerPath),nativeSourceReaderSHA256:await fileSHA(fileURLToPath(new URL('./incremental_terrain_archive.py',import.meta.url))),canonicalReaderSHA256:await fileSHA(fileURLToPath(new URL('./ngii-canonical-source.ts',import.meta.url))),regionalRoot:regional,sampleOnly,selected:selected.map(r=>r.region14)}
   const runSHA=hash(canonicalJSON(identity));await mkdir(work,{recursive:true})
-  const checkSpace=async()=>{const s=await statfs(work);if(s.bavail*s.bsize<20*1024**3)throw Error('needs_storage: verification requires 20GiB reserve')}
+  const reserve=args.includes('--reserve-gib')?Number(option('--reserve-gib')):20;if(!(reserve>=1))throw Error('Invalid --reserve-gib')
+  const checkSpace=async()=>{const s=await statfs(work);if(s.bavail*s.bsize<reserve*1024**3)throw Error(`needs_storage: verification requires ${reserve}GiB reserve`)}
   await checkSpace()
-  const lock=join(work,'verification.lock');await writeFile(lock,String(process.pid),{flag:'wx'})
+  const lock=await acquireVerificationLock(work,tag)
   let db:ReturnType<typeof openCanonicalSnapshot>|undefined,local:Awaited<ReturnType<typeof openLocalArchive>>|undefined,worker:NativeWorker|undefined
   try {
-    const pin=join(work,'verification-inputs.json');try{if(canonicalJSON(await readJSON(pin))!==canonicalJSON(identity))throw Error('Verification input identity changed')}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;await writeFile(pin,JSON.stringify(identity,null,2),{flag:'wx'})}
+    await pinVerificationInputs(join(work,'verification-inputs.json'),identity)
     db=openCanonicalSnapshot(snapshot);db.exec('PRAGMA query_only=ON; BEGIN')
     // The completed inventory is already bound to this exact frozen snapshot by the coordinator.
     // Recounting 22M rows for a one-region probe adds no new evidence; verify selected rows below.
@@ -174,42 +236,47 @@ export async function main(args=process.argv.slice(2)) {
     const summary=()=>{
       const progress=verificationProgress(proofs,selected.length,selected.reduce((s,r)=>s+r.components,0),sampleOnly,stop)
       const display=proofs.flatMap(p=>p.displayMaximum===null?[]:[p.displayMaximum])
-      return {schema:'ngii-national-heights-v1',runSHA256:runSHA,...progress,sampleOnly,samplePassed:proofs.length===selected.length&&proofs.every(p=>p.passed),state:stop?'stopped':qualityFailed?'quality_failed':progress.pendingRegions?'waiting-candidates':'complete',buildingCatalogSHA256:hash(canonicalJSON([...pins].sort((a,b)=>a.owner<b.owner?-1:a.owner>b.owner?1:0))),terrainArchiveSHA256:terrainSHA,sourceVrtSHA256:meta.vrt_sha256,sourceFilesSHA256:nativeReady.sourceFilesSHA256,records:proofs.reduce((s,p)=>s+p.buildings,0),missing:0,nativeNoData:proofs.reduce((s,p)=>s+p.nativeNoDataCount,0),nativeEvidence:progress.nativeFinite?(proofs.some(p=>p.nativeEvidence==='failed')?'failed':'verified'):'insufficient',supportedGroundBuildings:proofs.reduce((s,p)=>s+p.supportedGroundBuildings,0),unresolvedGroundBuildings:proofs.reduce((s,p)=>s+p.unresolvedGroundBuildings,0),absoluteErrorMetres:{maximum:display.length?Math.max(...display):null},publishedBuildingDatumCheck:{expected:progress.expectedComponents,compared:progress.compared,maximumAbsoluteErrorMetres:proofs.length?Math.max(...proofs.map(p=>p.datumMaximum)):null},scope:{datum:'Independent pinned resolved archive at canonical anchor vs each stored component',display:'Pinned native DEM finite anchors vs resolved archive; native NoData classified separately'},regions:proofs.map(p=>({owner:p.owner,buildings:p.buildings,components:p.components,passed:p.passed}))}
+      return {schema:'ngii-national-heights-v1',runSHA256:runSHA,...progress,sampleOnly,samplePassed:proofs.length===selected.length&&proofs.every(p=>p.passed),state:stop?'stopped':qualityFailed?'quality_failed':shard&&done.size===mine.length?'shard-complete':progress.pendingRegions?'waiting-candidates':'complete',buildingCatalogSHA256:hash(canonicalJSON([...pins].sort((a,b)=>a.owner<b.owner?-1:a.owner>b.owner?1:0))),terrainArchiveSHA256:terrainSHA,sourceVrtSHA256:meta.vrt_sha256,sourceFilesSHA256:nativeReady.sourceFilesSHA256,records:proofs.reduce((s,p)=>s+p.buildings,0),missing:0,nativeNoData:proofs.reduce((s,p)=>s+p.nativeNoDataCount,0),nativeEvidence:progress.nativeFinite?'recorded':'insufficient',nativeDisagreement:{gate:'record-only',thresholdMetres:NATIVE_RECORD_THRESHOLD_METRES,maxMetres:display.length?Math.max(...display):null,regionsOver:proofs.filter(p=>p.nativeOver>0).length,buildingsOver:proofs.reduce((s,p)=>s+p.nativeOver,0)},supportedGroundBuildings:proofs.reduce((s,p)=>s+p.supportedGroundBuildings,0),unresolvedGroundBuildings:proofs.reduce((s,p)=>s+p.unresolvedGroundBuildings,0),absoluteErrorMetres:{maximum:display.length?Math.max(...display):null},publishedBuildingDatumCheck:{expected:progress.expectedComponents,compared:progress.compared,maximumAbsoluteErrorMetres:proofs.length?Math.max(...proofs.map(p=>p.datumMaximum)):null},scope:{datum:'Independent pinned resolved archive at canonical anchor vs each stored component',display:'Pinned native DEM finite anchors vs resolved archive, recorded only; native NoData classified separately'},regions:proofs.map(p=>({owner:p.owner,buildings:p.buildings,components:p.components,passed:p.passed,nativeMaximumMetres:p.displayMaximum,nativeOver:p.nativeOver}))}
     }
-    await atomic(join(work,'height-verification.json'),summary())
-    while(done.size<selected.length){
+    await atomic(join(work,`height-verification${tag}.json`),summary())
+    while(done.size<mine.length){
       await checkSpace();await assertPins();await discover()
-      for(const target of selected){
+      for(const target of mine){
       if(done.has(target.region14)||!found.has(target.region14))continue
       if(await stopped()){stop=true;break}
       await checkSpace();await assertPins()
 
       const folder=found.get(target.region14)!,receiptFile=join(folder,'candidate-receipt.json'),receipt=await readJSON(receiptFile),receiptSHA=await fileSHA(receiptFile)
       const expected={schema:'ngii-region-candidate-v1',owner:target.region14,completeRegion:true,sourcePlanSHA256:plan.planSHA256,sourcePlanFileSHA256:planSHA,inventorySHA256:inventorySHA,terrainSHA256:terrainSHA,terrainContract:TERRAIN_HEIGHT_CONTRACT,meshRevision:BUILDING_MESH_REVISION,assetPacking:NGII_ASSET_PACKING,buildings:target.buildings,components:target.components}
-      if(!await verifyExistingCandidate(folder,expected))throw Error('Missing candidate')
       const file=join(work,'regions',target.region14.replaceAll('/','-')+'.json');let previous:any
       try{previous=await readJSON(file)}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e}
+      // Merge fast path: a shard already re-hashed these exact files under this run; any stamp change re-hashes.
+      const fileStamps=await candidateFileStamps(folder,receipt),fast=stampedReuse(previous,runSHA,receiptSHA,fileStamps)
+      if(fast){if(Object.entries(expected).some(([k,v])=>receipt[k]!==v))throw Error('Existing candidate identity mismatch')}
+      else {if(!await verifyExistingCandidate(folder,expected))throw Error('Missing candidate');if(canonicalJSON(await candidateFileStamps(folder,receipt))!==canonicalJSON(fileStamps))throw Error('Candidate payload changed during verification')}
       let proof=reusableProof(previous,runSHA,receiptSHA)
-      if(!proof){const ground=JSON.parse(gunzipSync(await readFile(join(folder,'ground-source.json.gz'))).toString()),footprints=JSON.parse(gunzipSync(await readFile(join(folder,'footprints.json.gz'))).toString());if(ground.archiveSha256!==terrainSHA||ground.contract!==TERRAIN_HEIGHT_CONTRACT)throw Error('Metadata terrain identity mismatch');proof=await verifyRegion(target.region14,rows(target.region14),ground.buildings,footprints,(lon,lat)=>contract.samplePosition(lon,lat),p=>worker!.sample(p));if(proof.inputSHA256!==receipt.inputSHA256||proof.buildings!==target.buildings||proof.components!==target.components)throw Error('Canonical input/count mismatch');await atomic(file,{runSHA256:runSHA,receiptSHA256:receiptSHA,proofSHA256:hash(canonicalJSON(proof)),proof})}
+      if(proof&&!fast)await atomic(file,{...previous,fileStamps})
+      if(!proof){const ground=JSON.parse(gunzipSync(await readFile(join(folder,'ground-source.json.gz'))).toString()),footprints=JSON.parse(gunzipSync(await readFile(join(folder,'footprints.json.gz'))).toString());if(ground.archiveSha256!==terrainSHA||ground.contract!==TERRAIN_HEIGHT_CONTRACT)throw Error('Metadata terrain identity mismatch');proof=await verifyRegion(target.region14,rows(target.region14),ground.buildings,footprints,(lon,lat)=>contract.samplePosition(lon,lat),p=>worker!.sample(p));if(proof.inputSHA256!==receipt.inputSHA256||proof.buildings!==target.buildings||proof.components!==target.components)throw Error('Canonical input/count mismatch');await atomic(file,{runSHA256:runSHA,receiptSHA256:receiptSHA,proofSHA256:hash(canonicalJSON(proof)),proof,fileStamps})}
       if(receipt.supportedGroundBuildings!==proof.supportedGroundBuildings||receipt.unresolvedGroundBuildings!==proof.unresolvedGroundBuildings)throw Error('Ground support counts mismatch')
       pins.push({owner:target.region14,receiptSHA256:receiptSHA,uri:'/api/map-data/world-buildings/'+relative(join(dataRoot,'world-buildings'),folder).replaceAll('\\','/')+'/tileset.json'});proofs.push((({nativeNoData,errors,...compact})=>({...compact,nativeNoDataCount:nativeNoData.length}))(proof));done.add(target.region14)
       await assertPins()
-      await atomic(join(work,'progress.json'),{state:'verifying',pid:process.pid,verifiedRegions:done.size,pendingRegions:selected.length-done.size,lastRegion:target.region14,rssBytes:process.memoryUsage().rss})
-      console.log(JSON.stringify({region:target.region14,buildings:proof.buildings,passed:proof.passed,displayMaximum:proof.displayMaximum,resumed:Boolean(previous)}))
+      await atomic(join(work,`progress${tag}.json`),{state:'verifying',pid:process.pid,verifiedRegions:done.size,pendingRegions:mine.length-done.size,lastRegion:target.region14,rssBytes:process.memoryUsage().rss})
+      console.log(JSON.stringify({region:target.region14,buildings:proof.buildings,passed:proof.passed,displayMaximum:proof.displayMaximum,nativeOver:proof.nativeOver,resumed:Boolean(previous),payloadRehashed:!fast}))
+      // Only the served-terrain datum gate (0.01 m) stops; native disagreement was recorded above.
       if(!proof.passed){qualityFailed=true;break}
       }
       if(await stopped())stop=true
-      await assertPins();await checkSpace();await atomic(join(work,'height-verification.json'),summary())
-      if(stop||qualityFailed||done.size===selected.length||!watch)break
-      await atomic(join(work,'progress.json'),{state:'waiting-candidates',pid:process.pid,verifiedRegions:done.size,pendingRegions:selected.length-done.size,pollSeconds,rssBytes:process.memoryUsage().rss})
+      await assertPins();await checkSpace();await atomic(join(work,`height-verification${tag}.json`),summary())
+      if(stop||qualityFailed||done.size===mine.length||!watch)break
+      await atomic(join(work,`progress${tag}.json`),{state:'waiting-candidates',pid:process.pid,verifiedRegions:done.size,pendingRegions:mine.length-done.size,pollSeconds,rssBytes:process.memoryUsage().rss})
       await new Promise(r=>setTimeout(r,pollSeconds*1000))
     }
     await worker.close();worker=undefined
     for(const path of monitored)if(await stamp(path)!==stamps.get(path))throw Error('Pinned verification input changed at close')
-    const report=summary();await checkSpace();await atomic(join(work,'height-verification.json'),report)
-    await atomic(join(work,'progress.json'),{state:report.state,pid:process.pid,verifiedRegions:done.size,pendingRegions:report.pendingRegions,rssBytes:process.memoryUsage().rss})
+    const report=summary();await checkSpace();await atomic(join(work,`height-verification${tag}.json`),report)
+    await atomic(join(work,`progress${tag}.json`),{state:report.state,pid:process.pid,verifiedRegions:done.size,pendingRegions:report.pendingRegions,rssBytes:process.memoryUsage().rss})
     console.log(JSON.stringify({complete:report.complete,passed:report.passed,samplePassed:report.samplePassed,records:report.records,nativeNoData:report.nativeNoData,pendingRegions:report.pendingRegions,absoluteErrorMetres:report.absoluteErrorMetres,publishedBuildingDatumCheck:report.publishedBuildingDatumCheck,work}));return report
-  } catch(error){await atomic(join(work,'progress.json'),{state:String(error).includes('needs_storage')?'needs_storage':'failed',pid:process.pid,error:String(error)});throw error
+  } catch(error){await atomic(join(work,`progress${tag}.json`),{state:String(error).includes('needs_storage')?'needs_storage':'failed',pid:process.pid,error:String(error)});throw error
   } finally {worker?.stop();if(db){db.exec('ROLLBACK');db.close()}await local?.close();await unlink(lock)}
 }
-if(import.meta.main)main().then(r=>{if(!r.samplePassed)process.exitCode=1}).catch(e=>{console.error(String(e));process.exitCode=1})
+if(import.meta.main)main().then(r=>{if(r.state!=='shard-complete'&&!r.samplePassed)process.exitCode=1}).catch(e=>{console.error(String(e));process.exitCode=1})

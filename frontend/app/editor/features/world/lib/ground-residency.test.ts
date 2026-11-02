@@ -12,3 +12,13 @@ test('recent visits stay resident; eviction protects the current view and revisi
   cells.clear()
   expect(cells.visit(['a', 'b', 'c', 'd'])).toEqual([])
 })
+
+test('size reports resident cells so callers can skip an empty drop', () => {
+  const cells = new GroundResidency(2)
+  expect(cells.size).toBe(0)
+  cells.visit(['a', 'b'])
+  cells.visit(['c'])
+  expect(cells.size).toBe(2)
+  cells.clear()
+  expect(cells.size).toBe(0)
+})

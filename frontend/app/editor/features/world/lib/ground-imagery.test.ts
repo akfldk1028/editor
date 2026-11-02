@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { createGroundImageryProvider, groundRangeSource, prepareGroundImagery, validateGroundImagery, roadTextureSource, type GroundImageryLayer } from './ground-imagery'
+import { createGroundImageryProvider, groundParallel, groundRangeSource, prepareGroundImagery, validateGroundImagery, roadTextureSource, type GroundImageryLayer } from './ground-imagery'
 import { TileType, type Header } from 'pmtiles'
 
 const layer: GroundImageryLayer = { kind: 'roads', url: '/api/map-data/world-ground/roads.pmtiles', sha256: 'a'.repeat(64), bounds: [124, 33, 132, 39], minLevel: 0, maxLevel: 12, credit: 'NGII display only' }
@@ -7,7 +7,7 @@ const header = { tileType: TileType.Png, minZoom: 0, maxZoom: 12, minLon: 124, m
 const C = { Rectangle: { fromDegrees: (...bounds: number[]) => bounds }, WebMercatorTilingScheme: class {}, Credit: class { constructor(public text: string) {} }, Event: class {} }
 const canvas = () => ({ width: 0, height: 0, getContext: () => ({ drawImage() {} }) })
 const deferred = <T>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(r => { resolve = r }); return { promise, resolve } }
-const png = () => { const bytes = new Uint8Array(29), v = new DataView(bytes.buffer); v.setUint32(0, 0x89504e47); v.setUint32(4, 0x0d0a1a0a); v.setUint32(8, 13); v.setUint32(12, 0x49484452); v.setUint32(16, 256); v.setUint32(20, 256); bytes[24] = 8; bytes[25] = 6; return bytes.buffer }
+const png = (colour = 6) => { const bytes = new Uint8Array(29), v = new DataView(bytes.buffer); v.setUint32(0, 0x89504e47); v.setUint32(4, 0x0d0a1a0a); v.setUint32(8, 13); v.setUint32(12, 0x49484452); v.setUint32(16, 256); v.setUint32(20, 256); bytes[24] = 8; bytes[25] = colour; return bytes.buffer }
 const descriptor = (layers = [layer]) => ({ schema: 'world-ground/imagery-v1', layers })
 
 test('raw road texture restores transparent RGB while preserving all visible bytes and alpha', () => {
@@ -66,7 +66,7 @@ test('coverage helper keeps island gaps and leaves archive header bounds unchang
 
 test('descriptor strictly validates road-only layer identities and orders landcover below roads', () => {
   expect(validateGroundImagery(descriptor([layer, { ...layer, kind: 'landcover' }])).map(x => x.kind)).toEqual(['landcover', 'roads'])
-  for (const change of [ { kind: 'buildings' }, { bounds: [132,33,124,39] }, { minLevel: 13 }, { maxLevel: 13 }, { sha256: 'bad' }, { url: 'file:///roads.pmtiles' }, { url: '//other/roads.pmtiles' }, { surprise: true } ]) {
+  for (const change of [ { kind: 'buildings' }, { bounds: [132,33,124,39] }, { minLevel: 13 }, { maxLevel: 20 }, { sha256: 'bad' }, { url: 'file:///roads.pmtiles' }, { url: '//other/roads.pmtiles' }, { surprise: true } ]) {
     expect(() => validateGroundImagery(descriptor([{ ...layer, ...change } as GroundImageryLayer]))).toThrow()
   }
   expect(() => validateGroundImagery(descriptor([layer, layer]))).toThrow()
@@ -77,6 +77,19 @@ test('only missing descriptor404 is optional, with no API fallback', async () =>
   const result = await prepareGroundImagery(C, { get: async url => { urls.push(url); return new Response(null, { status: 404 }) } })
   expect(result.layers).toEqual([]);expect(urls).toEqual(['/api/map-data/world-ground/latest.json']);result.dispose()
   await expect(prepareGroundImagery(C, { get: async () => new Response(null, { status: 503 }) })).rejects.toThrow('503')
+})
+
+test('range source merges nearby reads from one task and slices each caller its bytes', async () => {
+  const file = Uint8Array.from({ length: 300000 }, (_, i) => i % 251), ranges: string[] = []
+  const source = groundRangeSource(layer, new AbortController().signal, async (_url, init) => {
+    const range = (init!.headers as Record<string,string>).Range!; ranges.push(range)
+    const [a, b] = range.slice(6).split('-').map(Number)
+    return new Response(file.slice(a!, b! + 1), { status: 206, headers: { 'Content-Range': `bytes ${a}-${b}/${file.length}` } })
+  })
+  const [x, y, z] = await Promise.all([source.getBytes(100, 50), source.getBytes(1000, 20), source.getBytes(200000, 10)])
+  expect(ranges.sort()).toEqual(['bytes=100-1019', 'bytes=200000-200009'])
+  expect(new Uint8Array(x.data)).toEqual(file.slice(100, 150)); expect(new Uint8Array(y.data)).toEqual(file.slice(1000, 1020))
+  expect(new Uint8Array(z.data)).toEqual(file.slice(200000, 200010))
 })
 
 test('range source requires206/exactContentRange and preserves ETag identity', async () => {
@@ -102,6 +115,17 @@ test('providers validate exact header bounds and return transparent missing/outs
   await expect(createGroundImageryProvider(C,layer,new AbortController().signal,{canvas,archive:()=>({getHeader:async()=>({...header,minLon:123}),getZxy:async()=>undefined})})).rejects.toThrow('header')
 })
 
+test('PNG goes see-through only where the vector layer owns the tile', async () => {
+  let reads=0
+  const owned:number[][]=[]
+  const provider = await createGroundImageryProvider(C,layer,new AbortController().signal,{canvas,archive:()=>({getHeader:async()=>header,getZxy:async()=>{reads++;return undefined}})},
+    (level,west,south,east,north)=>{owned.push([level,west,south,east,north]);return level>=12})
+  await provider.requestImage(3492,1586,12);expect(reads).toBe(0)
+  await provider.requestImage(218,99,8);expect(reads).toBe(1)
+  const [level,west,south,east,north]=owned[0]!
+  expect(level).toBe(12);expect(west).toBeLessThan(east);expect(south).toBeLessThan(north);provider.dispose()
+})
+
 test('decode closes bitmap after canvas copy and does not expose a closed bitmap to Cesium', async () => {
   let closes=0,draws=0
   const provider = await createGroundImageryProvider(C,layer,new AbortController().signal,{canvas:()=>({width:0,height:0,getContext:()=>({drawImage(){draws++}})}),
@@ -124,6 +148,16 @@ test('at most4 tasks run, cancelled late decodes close safely and slots remain b
   expect(closed).toBe(4);expect(draws).toBe(0);expect(provider.requestImage(0,0,0)).toBeUndefined()
 })
 
+test('a CDN origin gets 12 slots; same-origin and relative archives keep the local limit', async () => {
+  expect(groundParallel('/api/map-data/world-ground/roads.pmtiles',4)).toBe(4)
+  expect(groundParallel('https://pub-x.r2.dev/world-ground/roads.pmtiles',4)).toBe(12)
+  const provider = await createGroundImageryProvider(C,{...layer,url:'https://pub-x.r2.dev/world-ground/roads.pmtiles'},new AbortController().signal,{canvas,
+    archive:()=>({getHeader:async()=>header,getZxy:()=>new Promise(()=>{})})})
+  const tasks=Array.from({length:12},()=>provider.requestImage(0,0,0)!)
+  expect(tasks.every(Boolean)).toBe(true);expect(provider.requestImage(0,0,0)).toBeUndefined()
+  provider.dispose();await Promise.all(tasks.map(task=>expect(task).rejects.toThrow()))
+})
+
 test('viewer disposed during descriptor or header preparation never receives late providers', async () => {
   const cancelled = new AbortController(), pending = deferred<Response>()
   const ready=prepareGroundImagery(C,{signal:cancelled.signal,get:()=>pending.promise})
@@ -132,6 +166,13 @@ test('viewer disposed during descriptor or header preparation never receives lat
   const disposed = new AbortController(), late=deferred<Header>()
   const loading=createGroundImageryProvider(C,layer,disposed.signal,{canvas,archive:()=>({getHeader:()=>late.promise,getZxy:async()=>undefined})})
   disposed.abort();await expect(loading).rejects.toThrow();late.resolve(header)
+})
+
+test('prebaked palette PNG tiles decode; other colour types do not', async () => {
+  let decodes=0
+  const open=(colour:number)=>createGroundImageryProvider(C,layer,new AbortController().signal,{canvas,archive:()=>({getHeader:async()=>header,getZxy:async()=>({data:png(colour)})}),decode:async()=>{decodes++;return {width:256,height:256,close(){}}}})
+  const palette=await open(3);expect((await palette.requestImage(0,0,0))!.width).toBe(256);expect(decodes).toBe(1);palette.dispose()
+  const rgb=await open(2);await expect(rgb.requestImage(0,0,0)!).rejects.toThrow('palette');expect(decodes).toBe(1);rgb.dispose()
 })
 
 test('malformed PNG and oversized response do not reach bitmap decoding', async () => {
@@ -143,6 +184,11 @@ test('malformed PNG and oversized response do not reach bitmap decoding', async 
 })
 
 const detailed: GroundImageryLayer = { ...layer, kind: 'landcover', detail: { urlTemplate: '/api/v1/land/ground-imagery/{z}/{x}/{y}.png', maxLevel: 17 } }
+
+test('a prebaked archive carries its detail levels itself (no on-demand detail), up to z19', () => {
+  expect(validateGroundImagery(descriptor([{ ...layer, maxLevel: 18 }]))[0]!.maxLevel).toBe(18)
+  expect(() => validateGroundImagery(descriptor([{ ...layer, maxLevel: 18, detail: { urlTemplate: '/api/v1/land/road-imagery/{z}/{x}/{y}.png', maxLevel: 17 } }]))).toThrow()
+})
 
 test('landcover and roads accept strict zxy detail and archive validation stays at12', async () => {
   expect(validateGroundImagery(descriptor([detailed]))[0]!.detail!.maxLevel).toBe(17)

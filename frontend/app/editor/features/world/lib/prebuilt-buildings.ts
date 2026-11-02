@@ -5,6 +5,7 @@ import type { HeightCounts } from './context-masses'
 import { BuildingCatalog, type BuildingRegion } from './building-catalog'
 import { mapAssetUrl } from './map-asset-url'
 import { buildingColor } from './building-palette'
+import { AMBIENT } from './national-buildings'
 
 type Region = BuildingRegion
 type Loaded = { region: Region; tileset: any; ready: boolean; committed?: boolean; settled?: boolean; failed: boolean; fallbackReady?: boolean; features: Footprint[]; drawnKeys?: Set<string>; committedKeys?: Set<string>; index?: FootprintIndex; controller: AbortController; metadataTimer?: ReturnType<typeof setTimeout>; metadataController?: AbortController; metadataRequested?: boolean }
@@ -93,7 +94,7 @@ export class PrebuiltBuildings {
         if (tileset.imageBasedLighting) {
           tileset.imageBasedLighting.imageBasedLightingFactor = new this.C.Cartesian2(1, 0)
           tileset.imageBasedLighting.sphericalHarmonicCoefficients = Array.from({ length: 9 }, (_, i) =>
-            new this.C.Cartesian3(i === 0 ? 1 : 0, i === 0 ? 1 : 0, i === 0 ? 1 : 0))
+            new this.C.Cartesian3(i === 0 ? AMBIENT : 0, i === 0 ? AMBIENT : 0, i === 0 ? AMBIENT : 0))
         }
         const loaded: Loaded = { region, tileset, ready: false, committed: false, failed: false, features: [], controller: new AbortController() }
         if (region.partialCoverage?.length) loaded.drawnKeys = new Set()

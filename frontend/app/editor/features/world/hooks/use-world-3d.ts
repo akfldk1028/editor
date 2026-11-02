@@ -79,6 +79,8 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
   const clickRef = useRef(onClick)
   clickRef.current = onClick
   const [ready, setReady] = useState(false)
+  // Ground imagery descriptor/headers start with the viewer, not after the opening camera settles.
+  const groundPrefetch = useRef<{ promise: ReturnType<typeof prepareGroundImagery>; controller: AbortController } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState('3D 엔진 불러오는 중…')
   const [base, setBase] = useState<WorldBase>('white')
@@ -172,18 +174,39 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
 
   pumpRef.current = pump
 
+  /** True when the nationwide imagery owns both roads and cover at the focus: no live detail cells are drawn there. */
   const updateGroundImageOwnership = useCallback((focus: { lon: number; lat: number }) => {
     const current = layers.current
-    if (!current) return
+    if (!current) return false
     const owns = (kind: 'roads' | 'landcover') => coarseGround.current.some(item => {
       const provider = item.layer.imageryProvider
-      return item.kind === kind && item.layer.show && provider.maximumLevel > 12
+      // Ownership follows the provider, not visibility: hiding a layer must not bring the live island back.
+      return item.kind === kind && provider.maximumLevel > 12
         && provider.coversPosition(focus.lon, focus.lat)
     })
-    const surface = owns('landcover')
+    const surface = owns('landcover'), roads = owns('roads')
     current.ground.surfaceImagery = surface
     current.cover.surfaceImagery = surface
-    current.ground.roadImagery = owns('roads')
+    current.ground.roadImagery = roads
+    return surface && roads
+  }, [])
+
+  /** Drop every live parcel/road/cover cell: around the focus they would form a sharp-edged island over the uniform imagery. */
+  const dropLiveGround = useCallback(() => {
+    if (!layers.current || (!groundResidency.current.size && !queue.current.length && !groundRequests.current.size)) return
+    generation.current++
+    for (const controller of groundRequests.current.keys()) controller.abort()
+    queue.current = []
+    layers.current.ground.entities.removeAll()
+    layers.current.cover.entities.removeAll()
+    asked.current.clear()
+    roadsReady.current.clear()
+    groundGaps.current.clear()
+    setGroundStatus('')
+    groundStages.current?.clear()
+    groundResidency.current.clear()
+    setPending(running.current)
+    viewerRef.current?.scene.requestRender()
   }, [])
 
   const loadVisible = useCallback(() => {
@@ -202,7 +225,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     }
     const seen = visibleBox(viewer, Cesium)
     if (!seen) { retireGround(); return }
-    updateGroundImageOwnership(seen.focus)
+    const imageryOwned = updateGroundImageOwnership(seen.focus)
     const camera = viewer.camera.positionCartographic
     tileBuildings.current?.load(seen.box, seen.focus, { lon: Cesium.Math.toDegrees(camera.longitude),
       lat: Cesium.Math.toDegrees(camera.latitude), height: Math.max(1, camera.height - level.current),
@@ -217,6 +240,8 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
       supplementStarted.current = true
       void tileBuildings.current?.supplementNear(seen.focus.lon, seen.focus.lat).finally(pump)
     }
+    // The pinned nationwide road/cover imagery is the ground everywhere; the site outline is drawn separately.
+    if (imageryOwned) { dropLiveGround(); return }
     const { lon, lat } = seen.focus
     const local: [number, number, number, number] = [Math.max(seen.box[0], lon - 0.012), Math.max(seen.box[1], lat - 0.012),
       Math.min(seen.box[2], lon + 0.012), Math.min(seen.box[3], lat + 0.012)]
@@ -251,7 +276,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
       || rank.get(a.cellKey)! - rank.get(b.cellKey)!)
     setStatus('')
     pump()
-  }, [pump, updateGroundImageOwnership])
+  }, [pump, updateGroundImageOwnership, dropLiveGround])
 
   /** The site's red dashed outline, draped on the terrain or just above the flat ground. */
   const drawOutline = useCallback(() => {
@@ -261,7 +286,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     if (!ring) return
     viewer.entities.add({ id: 'world-parcel', name: '대지', polyline: {
       ...(terrainOn.current
-        ? { positions: Cesium.Cartesian3.fromDegreesArray(ring.flatMap((c) => [c[0]!, c[1]!])), clampToGround: true }
+        ? { positions: Cesium.Cartesian3.fromDegreesArray(ring.flatMap((c) => [c[0]!, c[1]!])), clampToGround: true, classificationType: Cesium.ClassificationType.TERRAIN }
         : { positions: Cesium.Cartesian3.fromDegreesArrayHeights(ring.flatMap((c) => [c[0]!, c[1]!, level.current + 1.0])) }),
       width: 2, material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.fromCssColorString('#d6336c'), dashLength: 10 }) } })
   }, [])
@@ -311,7 +336,8 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     }
     const z = level.current
     // On terrain the masses' feet go into the ground: the globe must hide what is below it.
-    viewer.scene.globe.depthTestAgainstTerrain = terrainOn.current
+    // National buildings keep their pinned ground heights in flat mode too: the globe must still hide their footings.
+    viewer.scene.globe.depthTestAgainstTerrain = true
     if (terrainOn.current) {
       terrainProvider.current = demTerrain(Cesium, () => level.current,
         () => (viewer.isDestroyed() ? null : visibleBox(viewer, Cesium)?.focus ?? null), setTerrainStatus,
@@ -431,6 +457,10 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
       void addCurrentSetback(Cesium.GeoJsonDataSource.load(geojson, {
         stroke: Cesium.Color.fromCssColorString(colors.stroke), fill: Cesium.Color.fromCssColorString(colors.fill),
         strokeWidth: colors.width, clampToGround: true,
+      }).then((source: any) => {
+        // Clamped geometry classifies 3D Tiles too by default: keep setback colours on the ground, off building walls.
+        for (const entity of source.entities.values) for (const g of [entity.polygon, entity.polyline]) if (g) g.classificationType = Cesium.ClassificationType.TERRAIN
+        return source
       }), viewer, () => request === setbackGeneration.current, SETBACK_DS_NAME)
         .catch((e: unknown) => console.warn(`Setback ${key} 렌더 실패:`, e))
     }
@@ -469,6 +499,16 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
       if (scene.skyAtmosphere) scene.skyAtmosphere.show = false
       if (scene.sun) scene.sun.show = false
       scene.fog.enabled = false
+      // Fixed key light from the south-east, 45° up, like a massing diagram. The clock's sun lights nothing at night,
+      // and under the buildings' uniform ambient term its faces read the same white. The globe is unlit either way.
+      const keyLight = new Cesium.DirectionalLight({ direction: new Cesium.Cartesian3(0, 0, -1), intensity: 3 })
+      const lightFrame = new Cesium.Matrix4(), lightLocal = new Cesium.Cartesian3(-0.5, 0.5, -Math.SQRT1_2)
+      scene.light = keyLight
+      scene.preRender.addEventListener(() => {
+        Cesium.Transforms.eastNorthUpToFixedFrame(viewer.camera.positionWC, undefined, lightFrame)
+        Cesium.Matrix4.multiplyByPointAsVector(lightFrame, lightLocal, keyLight.direction)
+        Cesium.Cartesian3.normalize(keyLight.direction, keyLight.direction)
+      })
       layers.current = { ground: new GroundLayer(viewer, Cesium, 'ground'), cover: new GroundLayer(viewer, Cesium, 'cover'),
         buildings: new Cesium.CustomDataSource('buildings'), layout: new Cesium.CustomDataSource('layout') }
       groundStages.current = createGroundStages({ blocks: layers.current.ground, cover: layers.current.cover }, Cesium,
@@ -482,6 +522,9 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
         orientation: { heading: 0, pitch: Cesium.Math.toRadians(MAP_CONFIG_3D.defaultPitch), roll: 0 },
       })
       viewerRef.current = viewer
+      const prefetch = new AbortController()
+      groundPrefetch.current = { controller: prefetch, promise: prepareGroundImagery(Cesium, { signal: prefetch.signal }) }
+      groundPrefetch.current.promise.catch(() => {})
       applyGround()
       // Resolve the actual site's camera before the globe starts requesting the
       // broad default view. Its terrain samples then have uncontended connections.
@@ -548,6 +591,9 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
       groundGaps.current.clear()
       tileBuildings.current?.dispose()
       tileBuildings.current = null
+      groundPrefetch.current?.promise.then(result => result.dispose(), () => {})
+      groundPrefetch.current?.controller.abort()
+      groundPrefetch.current = null
       supplementStarted.current = false
       terrainProvider.current?.dispose?.()
       terrainProvider.current = null
@@ -574,13 +620,22 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     const groundLayers = layers.current
     let prepared: Awaited<ReturnType<typeof prepareGroundImagery>> | undefined
     const added: { kind: 'roads' | 'landcover'; layer: any }[] = []
+    const early = groundPrefetch.current
+    groundPrefetch.current = null
+    if (base === 'vworld2d' && early) {
+      early.promise.then(result => result.dispose(), () => {})
+      early.controller.abort()
+    }
     if (base === 'vworld2d') {
       viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
         url: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/tiles/{z}/{y}/{x}.png`,
         maximumLevel: 19, credit: 'VWorld',
       }))
+      // Live ground cells dropped under the national layer must come back without waiting for a camera move.
+      loadVisible()
     } else {
-      void prepareGroundImagery(Cesium, { signal: controller.signal }).then(result => {
+      if (early) controller.signal.addEventListener('abort', () => early.controller.abort(), { once: true })
+      void (early?.promise ?? prepareGroundImagery(Cesium, { signal: controller.signal })).then(result => {
         if (controller.signal.aborted || viewerRef.current !== viewer || viewer.isDestroyed()) {
           result.dispose()
           return
@@ -592,8 +647,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
           added.push({ kind: item.kind, layer })
         }
         coarseGround.current = added
-        const focus = visibleBox(viewer, Cesium)?.focus
-        if (focus) updateGroundImageOwnership(focus)
+        loadVisible()
         viewer.scene.requestRender()
       }).catch(error => {
         if (!controller.signal.aborted) console.warn('Ground imagery unavailable', error)
@@ -610,7 +664,7 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
       }
       if (coarseGround.current === added) coarseGround.current = []
     }
-  }, [base, ready, updateGroundImageOwnership])
+  }, [base, ready, loadVisible])
 
   useEffect(() => {
     if (!layers.current) return
@@ -619,12 +673,8 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     layers.current.ground.show = show.ground
     layers.current.cover.show = show.cover
     for (const item of coarseGround.current) item.layer.show = item.kind === 'roads' ? show.ground : show.cover
-    const viewer = viewerRef.current, Cesium = cesiumRef.current
-    if (viewer && Cesium) {
-      const focus = visibleBox(viewer, Cesium)?.focus
-      if (focus) updateGroundImageOwnership(focus)
-    }
-  }, [show, ready, updateGroundImageOwnership])
+    loadVisible()
+  }, [show, ready, loadVisible])
 
   return {
     ready, loading: !ready && !error, error, viewerRef, cesiumRef,

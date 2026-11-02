@@ -1,5 +1,8 @@
+import {gzipSync} from 'node:zlib'
+import {createHash} from 'node:crypto'
+import {zxyToTileId} from 'pmtiles'
 import {describe,test,expect} from 'bun:test'
-import {refineAnchors,assertPassedResumeReceipt,type Anchor} from './refine-ngii-national-terrain'
+import {refineAnchors,assertPassedResumeReceipt,validateSeedIdentity,verifySeedTile,type Anchor} from './refine-ngii-national-terrain'
 describe('adaptive native detail',()=>{
  test('rechecks neighbours and refines only failed anchors without replacing tiles',async()=>{
   const a:Anchor[]=[{id:'failed',point:[127,37],native:10},{id:'neighbour',point:[127.00001,37],native:10},{id:'nodata',point:[128,38],native:null}]
@@ -27,4 +30,21 @@ test('confirmed empty ancestors still permit native finite detail recovery',asyn
 test('resume never skips committed failed or malformed region receipts',()=>{
  expect(assertPassedResumeReceipt(JSON.stringify({passed:true})).passed).toBe(true)
  for(const passed of [false,undefined,null,"true",1])expect(()=>assertPassedResumeReceipt(JSON.stringify({passed}))).toThrow('Previous refinement failed')
+})
+
+
+test('seed accepts matching source pins but not old code receipts as proof',()=>{
+ const current={sourcePins:{terrainSHA256:'a',planFileSHA256:'b'},baseReceiptSHA256:'c',contract:'resolved',sourcePlanSHA256:'d'}
+ expect(()=>validateSeedIdentity({...current,codeSHA256:'old'},current)).not.toThrow()
+ for(const key of Object.keys(current))expect(()=>validateSeedIdentity({...current,[key]:'changed'},current)).toThrow('Seed source pin mismatch')
+})
+
+test('seed requires exact regenerated decoded grid bytes and preserves original compression',()=>{
+ const raw=Buffer.alloc(8+1089*4);raw.write('HTM1');raw.writeUInt16LE(33,4);raw.writeFloatLE(123.125,8)
+ const row={id:zxyToTileId(17,1,1),level:16,x:1,y:1,data:gzipSync(raw,{level:9}),decoded_sha256:createHash('sha256').update(raw).digest('hex')}
+ expect(verifySeedTile(row,raw)).toBe(row.data)
+ const changed=Buffer.from(raw);changed.writeFloatLE(123.126,8)
+ expect(()=>verifySeedTile(row,changed)).toThrow('Seed native decoded bytes mismatch')
+ expect(()=>verifySeedTile({...row,decoded_sha256:'bad'},raw)).toThrow()
+ expect(()=>verifySeedTile({...row,id:row.id+1},raw)).toThrow('Invalid seed tile key')
 })

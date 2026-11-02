@@ -2,6 +2,7 @@
 export class GroundResidency {
   private cells = new Set<string>()
   constructor(private capacity: number) {}
+  get size() { return this.cells.size }
   clear() { this.cells.clear() }
   visit(keys: Iterable<string>): string[] {
     const wanted = new Set(keys)

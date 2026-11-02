@@ -123,8 +123,12 @@ describe('basement in the 3D layout', () => {
 
   test('the ground turns see-through over the basement only, and back when there is none', () => {
     const globe: any = { translucency: { enabled: false } }
-    expect(showUnderground(Cesium, globe, view([feature('basement_boundary', -1, square(LON, LAT, 0.0003))]))).toBe(true)
+    expect(showUnderground(Cesium, globe, view([feature('basement_boundary', -1, square(LON, LAT, 0.0003))]))).toBe(false)
+    expect(globe.translucency.enabled).toBe(false)
+    expect(showUnderground(Cesium, globe, view([feature('basement_boundary', -1, square(LON, LAT, 0.0003))]), true)).toBe(true)
     expect(globe.translucency.enabled).toBe(true)
+    // Translucent back faces would turn the whole globe in view see-through.
+    expect(globe.translucency.backFaceAlpha).toBe(1)
     const [w, s, east, n] = globe.translucency.rectangle
     expect(w).toBeLessThan(LON)
     expect(east).toBeGreaterThan(LON + 0.0003)

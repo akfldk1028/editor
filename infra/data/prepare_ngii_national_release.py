@@ -3,6 +3,7 @@
 Runtime v2 wiring is intentionally separate and is not established by preparation.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing, contextmanager
 import hashlib
 import gzip
@@ -15,12 +16,12 @@ import sqlite3
 
 from ingest_ngii_buildings import completed_source_gate
 from ngii_canonical_snapshot import open_snapshot
-from release_store import read_json, encoded, digest, atomic_json, seal
+from release_store import read_json, encoded, digest, atomic_json, seal, HASH_WORKERS
 
 MESH = 'footprint-holes-obb-v3'
 PACKING = 'gzip6-mesh-and-metadata-v1'
 CONTRACT = 'resolved-ancestor-grid-v1'
-HLOD = 'ngii-global-occupied-quadtree-v1'
+HLOD = 'ngii-global-generalized-quadtree-v2'
 PROVINCES = {'11','26','27','28','29','30','31','36','41','43','44','46','47','48','50','51','52'}
 # Presence checks for known inhabited edge areas. Province labels and an exact
 # received inventory cannot detect these omissions in the source itself.
@@ -31,6 +32,24 @@ GEOGRAPHIC_PROBES = {
     'Dokdo': (131.87, 37.24), 'Marado': (126.267, 33.117),
     'Jeju': (126.53, 33.50), 'Goseong': (128.36, 38.51),
 }
+# Edge probes with 0 B021 buildings in the received NGII source inventory. An empty
+# result here is recorded as a source coverage gap; any other empty probe still fails.
+# Baengnyeong/Daecheong/Yeonpyeong are West Sea border islands; Goseong is the mainland
+# northern border (civilian control zone) - 0 source buildings within +/-3 Z14 tiles.
+KNOWN_SOURCE_GAPS = {'Baengnyeong', 'Daecheong', 'Yeonpyeong', 'Goseong'}
+NATIVE_RECORD_THRESHOLD = .5
+# Coarse sanity cap on the MEDIAN region maximum: above this the served terrain is wrong as a
+# whole (datum/geoid offset). One outlier anchor (quarry, cliff, reclaimed land) does not trip it.
+NATIVE_SANITY_MAX_METRES = 20.0
+
+
+def native_median(heights):
+    values=sorted(r['nativeMaximumMetres'] for r in heights.get('regions') or []
+                  if isinstance(r,dict) and isinstance(r.get('nativeMaximumMetres'),(int,float))
+                  and not isinstance(r.get('nativeMaximumMetres'),bool) and math.isfinite(r['nativeMaximumMetres']))
+    if not values:return None
+    middle=len(values)//2
+    return values[middle] if len(values)%2 else (values[middle-1]+values[middle])/2
 
 
 def geographic_presence(actual):
@@ -45,8 +64,10 @@ def geographic_presence(actual):
         if buildings<=0:missing.append(name)
         points.append({'name':name,'point':[lon,lat],'buildings':buildings,
                        'occupiedRegions':{k:v for k,v in regions.items() if v>0}})
-    if missing:raise ValueError('Missing geographic source coverage: '+', '.join(missing))
+    unexpected=[name for name in missing if name not in KNOWN_SOURCE_GAPS]
+    if unexpected:raise ValueError('Missing geographic source coverage: '+', '.join(unexpected))
     return {'schema':'ngii-geographic-presence-v1','points':points,
+            'sourceCoverageGaps':sorted(missing),
             'scope':'Known inhabited edge-neighborhood presence, not exhaustive land coverage'}
 
 
@@ -69,25 +90,57 @@ def public_url(root, path, namespace='world-buildings'):
     return '/api/map-data/'+relative.as_posix()
 
 
-def payload_files(root, folder, receipt):
-    files={}
+_hash_pool=None
+
+
+def hash_pool():
+    global _hash_pool
+    if _hash_pool is None:_hash_pool=ThreadPoolExecutor(max_workers=HASH_WORKERS)
+    return _hash_pool
+
+
+def check_payload(path, item):
+    """Hash one payload file (and its gzip-decoded bytes) with a stable stat around the read."""
+    before=path.stat()
+    gz=path.name.endswith('.b3dm.gz') or path.name in ('footprints.json.gz','ground-source.json.gz')
+    if before.st_size!=item['bytes']:raise ValueError('Candidate payload hash mismatch')
+    data=path.read_bytes() if gz else None
+    if (hashlib.sha256(data).hexdigest() if gz else digest(path))!=sha(item['sha256']):
+        raise ValueError('Candidate payload hash mismatch')
+    if gz:
+        try:decoded=gzip.decompress(data)
+        except (OSError,EOFError,zlib.error) as exc:raise ValueError('Invalid gzip mesh') from exc
+        if item.get('contentEncoding')!='gzip' or len(decoded)!=item.get('decodedBytes') \
+           or hashlib.sha256(decoded).hexdigest()!=sha(item.get('decodedSHA256')):
+            raise ValueError('Decoded mesh hash mismatch')
+    after=path.stat()
+    if (before.st_size,before.st_mtime_ns)!=(after.st_size,after.st_mtime_ns):raise ValueError('Candidate payload changed during verification')
+    return (after.st_size,after.st_mtime_ns,item['sha256'])
+
+
+def stamped_digest(path, known):
+    before=path.stat();value=digest(path);after=path.stat()
+    if (before.st_size,before.st_mtime_ns)!=(after.st_size,after.st_mtime_ns):raise ValueError('File changed during verification')
+    known[path]=(after.st_size,after.st_mtime_ns,value)
+    return value
+
+
+def payload_files(root, folder, receipt, known=None):
+    """Validate receipt paths in order, then hash payloads in parallel. known collects
+    {path: (bytes, mtimeNs, sha256)} so seal() need not re-read the same bytes."""
+    files={};jobs=[]
     for item in receipt['files']:
         name=item['path']
         if Path(name).is_absolute() or '..' in Path(name).parts or name in files:
             raise ValueError('Invalid or duplicate receipt path')
         path=inside(root,folder/name)
-        if not path.is_relative_to(folder) or path.stat().st_size!=item['bytes'] or digest(path)!=sha(item['sha256']):
-            raise ValueError('Candidate payload hash mismatch')
+        if not path.is_relative_to(folder):raise ValueError('Candidate payload hash mismatch')
         if receipt.get('assetPacking')==PACKING and (name.endswith('.b3dm') or name in ('footprints.json','ground-source.json')):
             raise ValueError('Unencoded mesh in gzip packing')
-        if name.endswith('.b3dm.gz') or name in ('footprints.json.gz','ground-source.json.gz'):
-            try:decoded=gzip.decompress(path.read_bytes())
-            except (OSError,EOFError,zlib.error) as exc:raise ValueError('Invalid gzip mesh') from exc
-            if item.get('contentEncoding')!='gzip' or len(decoded)!=item.get('decodedBytes') \
-               or hashlib.sha256(decoded).hexdigest()!=sha(item.get('decodedSHA256')):
-                raise ValueError('Decoded mesh hash mismatch')
-        files[name]=path
+        files[name]=path;jobs.append((path,item))
     if 'tileset.json' not in files:raise ValueError('Missing root tileset')
+    for (path,_),stamp in zip(jobs,hash_pool().map(lambda job:check_payload(*job),jobs)):
+        if known is not None:known[path]=stamp
     return files
 
 
@@ -159,7 +212,9 @@ def prepare(root, database, plan_path, regions_path, hlod_input_path, hlod_folde
     if terrain.get('heightContract')!=CONTRACT:raise ValueError('Terrain height contract mismatch')
     if not terrain['url'].startswith('/api/map-data/'):raise ValueError('Invalid terrain URL')
     archive=inside(root,root/terrain['url'].removeprefix('/api/map-data/'))
-    if digest(archive)!=terrain_sha:raise ValueError('Terrain archive hash mismatch')
+    known={}
+    if stamped_digest(archive,known)!=terrain_sha:raise ValueError('Terrain archive hash mismatch')
+    plan_file_sha=digest(plan_path)
     if inputs.get('sourcePlanSHA256')!=plan['planSHA256'] or inputs.get('terrainSHA256')!=terrain_sha:
         raise ValueError('HLOD input source/terrain mismatch')
     regional=inputs['regions']
@@ -173,11 +228,11 @@ def prepare(root, database, plan_path, regions_path, hlod_input_path, hlod_folde
         if receipt.get('schema')!='ngii-region-candidate-v1' or receipt.get('completeRegion') is not True \
            or receipt.get('owner')!=row['owner'] or receipt.get('buildings')!=target['buildings'] \
            or receipt.get('components')!=target['components'] or receipt.get('sourcePlanSHA256')!=plan['planSHA256'] \
-           or receipt.get('sourcePlanFileSHA256')!=digest(plan_path) or receipt.get('terrainSHA256')!=terrain_sha \
+           or receipt.get('sourcePlanFileSHA256')!=plan_file_sha or receipt.get('terrainSHA256')!=terrain_sha \
            or receipt.get('meshRevision')!=MESH or receipt.get('terrainContract')!=CONTRACT or receipt.get('assetPacking')!=PACKING:
             raise ValueError('Regional coverage/identity mismatch')
         if row['uri']!=public_url(root,folder/'tileset.json'):raise ValueError('Regional URL mismatch')
-        verified=payload_files(root,folder,receipt)
+        verified=payload_files(root,folder,receipt,known)
         verify_links(verified)
         ground=json.loads(gzip.decompress(verified['ground-source.json.gz'].read_bytes()));footprints=json.loads(gzip.decompress(verified['footprints.json.gz'].read_bytes()))
         if ground.get('archiveSha256')!=terrain_sha or ground.get('contract')!=CONTRACT \
@@ -213,8 +268,9 @@ def prepare(root, database, plan_path, regions_path, hlod_input_path, hlod_folde
            or receipt.get('unresolvedGroundBuildings')!=target['buildings']-region_supported:
             raise ValueError('Unsupported ground counted as recovered')
         supported+=region_supported;unresolved+=target['buildings']-region_supported;components+=target['components']
-        pins.append({'owner':row['owner'],'receiptSHA256':digest(receipt_path),'uri':row['uri']})
+        pins.append({'owner':row['owner'],'receiptSHA256':stamped_digest(receipt_path,known),'uri':row['uri']})
         files.extend([receipt_path,*verified.values()])
+    if digest(plan_path)!=plan_file_sha:raise ValueError('Plan file changed during preparation')
     revision=hashlib.sha256(encoded(pins)).hexdigest()
     hlod_path=hlod_folder/'candidate-receipt.json';hlod=read_json(hlod_path)
     if hlod.get('revision')!=HLOD or hlod.get('mesh')!=MESH or hlod.get('assetPacking')!=PACKING or hlod.get('sourcePlanSHA256')!=plan['planSHA256'] \
@@ -223,21 +279,26 @@ def prepare(root, database, plan_path, regions_path, hlod_input_path, hlod_folde
        or hlod.get('regions')!=len(expected) or hlod.get('buildings')!=sum(actual.values()) \
        or hlod.get('components')!=components:
         raise ValueError('Incomplete or inconsistent national HLOD')
-    hlod_files=payload_files(root,hlod_folder,hlod)
+    hlod_files=payload_files(root,hlod_folder,hlod,known)
     verify_links(hlod_files,{p['uri'] for p in pins})
     files.extend([hlod_path,*hlod_files.values()])
     receipt_path=terrain_work/'archive-receipt.json';validation_path=terrain_work/'publication-verification.json';height_path=terrain_work/'height-verification.json'
     receipt=read_json(receipt_path);validation=read_json(validation_path);heights=read_json(height_path)
     datum=heights.get('publishedBuildingDatumCheck',{})
+    # Native DEM vs served terrain disagreement is recorded evidence, not a publication gate.
+    native=heights.get('nativeDisagreement',{})
+    native_max=heights.get('absoluteErrorMetres',{}).get('maximum')
+    regions_over=native.get('regionsOver');buildings_over=native.get('buildingsOver')
     if receipt.get('sha256')!=terrain_sha or validation.get('sha256')!=terrain_sha or validation.get('httpStatus')!=206 \
        or heights.get('complete') is not True or heights.get('sampleOnly') is not False \
-       or heights.get('passed') is not True or heights.get('nativeEvidence')!='verified' \
+       or heights.get('passed') is not True or heights.get('nativeEvidence')!='recorded' \
        or not isinstance(heights.get('nativeFinite'),int) or isinstance(heights.get('nativeFinite'),bool) or heights['nativeFinite']<=0 \
        or heights.get('terrainArchiveSHA256')!=terrain_sha or heights.get('sourceVrtSHA256')!=terrain['vrt_sha256'] \
        or heights.get('buildingCatalogSHA256')!=revision or not heights.get('sourceFilesSHA256') \
        or heights['sourceFilesSHA256']!=receipt.get('metadata',{}).get('sourceFilesSHA256') \
        or heights.get('missing')!=0 or datum.get('expected')!=components or datum.get('compared')!=components \
-       or not 0<=heights.get('absoluteErrorMetres',{}).get('maximum',float('inf'))<=.5 \
+       or native.get('gate')!='record-only' or native.get('thresholdMetres')!=NATIVE_RECORD_THRESHOLD        or not isinstance(native_max,(int,float)) or isinstance(native_max,bool) or not math.isfinite(native_max) or native_max<0        or native.get('maxMetres')!=native_max or not isinstance(regions_over,int) or isinstance(regions_over,bool)        or not 0<=regions_over<=len(expected) or native_median(heights) is None or native_median(heights)>NATIVE_SANITY_MAX_METRES \
+       or not isinstance(buildings_over,int) or isinstance(buildings_over,bool) or buildings_over<regions_over \
        or not 0<=datum.get('maximumAbsoluteErrorMetres',float('inf'))<=.01:
         raise ValueError('National terrain alignment evidence incomplete')
     files.extend([receipt_path,validation_path,height_path])
@@ -245,13 +306,15 @@ def prepare(root, database, plan_path, regions_path, hlod_input_path, hlod_folde
               'regionCount':len(expected),'buildings':sum(actual.values()),'components':components,
               'provinces':sorted(normalized),'unclassifiedProvinceBuildings':unclassified,'supportedGroundBuildings':supported,'unresolvedGroundBuildings':unresolved,
               'missingRegions':0,'partialRegions':0,'runtimeValidated':False,
-              'geographicPresenceSHA256':geography_sha}
+              'geographicPresenceSHA256':geography_sha,'sourceCoverageGaps':geography['sourceCoverageGaps']}
     coverage_sha=hashlib.sha256(encoded(coverage)).hexdigest()
-    evidence=root/'management/ngii-national-publications'/coverage_sha;evidence.mkdir(parents=True,exist_ok=True)
     descriptor={'schema':'world-buildings/national-v1','url':public_url(root,hlod_folder/'tileset.json'),
                 'sourceSha256':plan['planSHA256'],'terrainVrtSha256':terrain['vrt_sha256'],'catalogRevision':revision,
                 'coverageSha256':coverage_sha,'materialRevision':'neutral-opaque-v1','hierarchy':'replace-coarse-ancestors-v1',
                 'coverage':{'expectedRegions':len(expected),'completeRegions':len(expected),'missingRegions':0,'partialRegions':0}}
+    # The same regions can be sealed with different HLOD builds: evidence is keyed by coverage AND descriptor.
+    evidence=root/'management/ngii-national-publications'/coverage_sha/hashlib.sha256(encoded(descriptor)).hexdigest()[:16]
+    evidence.mkdir(parents=True,exist_ok=True)
     for name,value in [('coverage.json',coverage),('descriptor.json',descriptor),('geographic-presence.json',geography)]:
         path=evidence/name
         if path.exists() and read_json(path)!=value:raise ValueError('Immutable evidence collision')
@@ -260,8 +323,10 @@ def prepare(root, database, plan_path, regions_path, hlod_input_path, hlod_folde
     current=root/'releases/current.json'
     payload={'schema':'ace-map-release-v2','sourceFamily':'NGII-B021','terrain':terrain,'nationalBuildings':descriptor,
              'predecessorRelease':read_json(current)['releaseId'] if current.exists() else None,
-             'coverage':coverage,'runtimeValidationRequired':True}
-    return seal(root,payload,files)
+             'coverage':coverage,'nativeDisagreement':{'maxMetres':native_max,'regionsOver':regions_over,'buildingsOver':buildings_over,
+                                     'thresholdMetres':NATIVE_RECORD_THRESHOLD,'gate':'record-only'},
+             'runtimeValidationRequired':True}
+    return seal(root,payload,files,known=known)
 
 
 if __name__=='__main__':

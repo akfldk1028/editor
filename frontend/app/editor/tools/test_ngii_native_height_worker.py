@@ -24,6 +24,69 @@ legacy = load('legacy_sampler', 'sample-building-dem.py')
 
 
 class NativeTests(unittest.TestCase):
+    def test_stamp_policy_is_opt_in_and_heartbeat_bypasses_interval(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path,_=self.raster(Path(folder));sampler=worker.NativeSampler(path,stamp_seconds=1)
+            try:
+                sampler.last_check=sampler.last_stamp_check=0
+                clock=[.25];calls=[];original=Path.stat
+                def counted(p,*a,**kw):calls.append(str(p));return original(p,*a,**kw)
+                with patch.object(worker.time,'monotonic',lambda:clock[0]),patch.object(Path,'stat',counted),patch.object(worker,'source_stamps',wraps=worker.source_stamps) as fingerprints:
+                    sampler.sample([[0,0]]);self.assertEqual(calls,[])
+                    sampler.sample([]);self.assertEqual(len(calls),len(sampler.recursive));self.assertEqual(fingerprints.call_count,0)
+                    calls.clear();clock[0]=1.5;sampler.sample([[0,0]])
+                    self.assertEqual(len(calls),len(sampler.recursive))
+                    calls.clear();clock[0]=61;sampler.sample([[0,0]])
+                    self.assertEqual(fingerprints.call_count,2)
+                self.assertEqual(worker.NativeSampler.__init__.__defaults__[-1],0)
+            finally:sampler.close()
+
+    def test_forced_heartbeat_and_close_detect_change_inside_throttle_window(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as folder:
+            path,_=self.raster(Path(folder));sampler=worker.NativeSampler(path,stamp_seconds=1)
+            original=Path.stat
+            def changed(p,*a,**kw):
+                stamp=original(p,*a,**kw)
+                return SimpleNamespace(st_size=stamp.st_size+1,st_mtime_ns=stamp.st_mtime_ns) if str(p)==sampler.recursive[0][0] else stamp
+            try:
+                with patch.object(Path,'stat',changed):
+                    sampler.sample([[0,0]])
+                    with self.assertRaisesRegex(ValueError,'source changed'):sampler.sample([])
+                    with self.assertRaisesRegex(ValueError,'source changed'):sampler.verify(full=True)
+            finally:sampler.close()
+
+    def test_cli_stamp_policy_rejects_float_bool_negative_and_outside_interval(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path,_=self.raster(Path(folder));digest=worker.hashlib.sha256(path.read_bytes()).hexdigest()
+            command=[sys.executable,str(Path(__file__).with_name('ngii-native-height-worker.py')),'--vrt',str(path),'--source-vrt-sha256',digest,'--stamp-seconds']
+            for value in ['0.5','1.0','true','-1','2']:
+                result=subprocess.run(command+[value],input='',text=True,capture_output=True)
+                self.assertEqual(result.returncode,2,value)
+            for value in [True,False,.5,1.,-1,2]:
+                with self.assertRaises(ValueError):worker.NativeSampler(path,stamp_seconds=value)
+            result=subprocess.run(command+['1'],input='{"id":1,"op":"close"}\n',text=True,capture_output=True)
+            self.assertEqual(result.returncode,0,result.stderr)
+            ready,closed=[json.loads(line) for line in result.stdout.splitlines()]
+            self.assertEqual(ready['verificationPolicy']['stampSeconds'],1)
+            self.assertEqual(ready['verificationPolicy'],closed['verificationPolicy'])
+            self.assertEqual(ready['sourceFingerprintMethod'],'vrt-sha256-and-recursive-path-size-mtime-ns')
+
+    def test_stamp_optimization_preserves_exact_256_and_1089_sample_bytes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path,transform=self.raster(Path(folder));rng=np.random.default_rng(711)
+            anchors=[list(transform*tuple(p)) for p in rng.uniform(0,520,(256,2))]
+            grid=[list(transform*(x*16,y*16)) for y in range(33) for x in range(33)]
+            samplers=[worker.NativeSampler(path,stamp_seconds=value) for value in (0,1)]
+            try:
+                for points in [anchors,grid]:
+                    baseline=json.dumps([samplers[0].sample(points) for _ in range(10)],allow_nan=False,separators=(',',':'))
+                    optimized=json.dumps([samplers[1].sample(points) for _ in range(10)],allow_nan=False,separators=(',',':'))
+                    self.assertEqual(optimized.encode(),baseline.encode())
+                self.assertEqual(samplers[0].fingerprint,samplers[1].fingerprint)
+            finally:
+                for sampler in samplers:sampler.close()
+
     def test_fake_raster_groups_reads_and_preserves_containing_nodata(self):
         from types import SimpleNamespace
         from affine import Affine

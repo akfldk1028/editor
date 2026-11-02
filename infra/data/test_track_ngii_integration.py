@@ -12,6 +12,20 @@ spec.loader.exec_module(m)
 
 
 class MonitorTests(unittest.TestCase):
+    def test_refinement_progress_requires_matching_script_and_work(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=pathlib.Path(folder).resolve()
+            (root/'progress.json').write_text(json.dumps({'state':'refining','verifiedRegions':42}))
+            (root/'refinement.lock').write_text('123')
+            with patch.object(m.psutil, 'Process') as process:
+                process.return_value.cmdline.return_value=['bun','refine-ngii-national-terrain.ts','--work',str(root)]
+                process.return_value.cwd.return_value=str(root)
+                result=m.progress_status(root,'refine-ngii-national-terrain.ts','refinement.lock')
+                self.assertTrue(result['workerMatchesCandidate'])
+                self.assertEqual(result['verifiedRegions'],42)
+                process.return_value.cmdline.return_value=['python','unrelated.py','--work',str(root)]
+                self.assertFalse(m.progress_status(root,'refine-ngii-national-terrain.ts','refinement.lock')['workerMatchesCandidate'])
+
     def test_v2_delivery_probes_national_root_without_legacy_catalog(self):
         url='/api/map-data/world-buildings/national/version/tileset.json'
         with patch.object(m, 'read', side_effect=AssertionError('Legacy catalog must not be read')):

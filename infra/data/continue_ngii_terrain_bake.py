@@ -22,7 +22,7 @@ def sha(path):
     with Path(path).open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()
 def canonical(value):return json.dumps(value,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
 def validate_config(c):
-    if set(c)!=FIELDS or c['schema']!='ngii-terrain-bake-continuation-v1':raise ValueError('Unsupported continuation config')
+    if set(c)-{'verificationMode'}!=FIELDS or c['schema']!='ngii-terrain-bake-continuation-v1' or c.get('verificationMode','fresh-native') not in ('fresh-native','pack-equivalence'):raise ValueError('Unsupported continuation config')
     root=Path(c['dataRoot']).resolve()
     for key in FIELDS-{'schema','editorRoot','python','bun','dataRoot'}:
         p=Path(c[key]).resolve()
@@ -36,12 +36,16 @@ def validate_config(c):
         if any(Path(c[key]).resolve().is_relative_to(d) for d in directories[1:]):raise ValueError('Output aliases protected input')
     return c
 
-def commands(c,count,terrain_sha):
+def commands(c,count,terrain_sha,proof_sha='pending',inputs_sha='pending'):
     tools=Path(c['editorRoot'])/'frontend/app/editor/tools';pack=Path(c['refinerWork'])/'terrain.packing.pmtiles'
-    return {
+    result={
       'pack':[c['python'],str(tools/'adaptive_terrain_refinement.py'),'--base',c['base'],'--work',c['refinerWork'],'--output',str(pack)],
       'verify':[c['bun'],str(tools/'verify-ngii-terrain-only.ts'),'--data-root',c['dataRoot'],'--work',c['verifyWork'],'--snapshot',c['snapshot'],'--plan',c['plan'],'--regions',c['regions'],'--queue-inputs',c['queueInputs'],'--terrain',str(pack),'--terrain-receipt',str(Path(c['refinerWork'])/'archive-receipt.json'),'--dem',c['dem'],'--python',c['python'],'--below-normal'],
       'bake':[c['python'],str(Path(c['editorRoot'])/'infra/data/queue_ngii_national_bake.py'),'--snapshot',c['snapshot'],'--plan',c['plan'],'--terrain',str(pack),'--terrain-sha',terrain_sha,'--output',c['bakeOutput'],'--regions',c['regions'],'--bun',c['bun'],'--python',c['python'],'--reuse-regions-pin',c['queueInputs'],'--limit',str(count),'--workers','2']}
+    if c.get('verificationMode')=='pack-equivalence':
+        work=Path(c['refinerWork']);verify=Path(c['verifyWork'])
+        result['verify']=[c['python'],str(tools/'verify_terrain_pack_equivalence.py'),'--base',c['base'],'--overlay',str(work/'refinement-spool.sqlite'),'--packed',str(pack),'--inputs',str(work/'inputs.json'),'--proof',str(work/'refinement-verification.json'),'--inputs-file-sha',inputs_sha,'--proof-file-sha',proof_sha,'--regions',c['regions'],'--snapshot',c['snapshot'],'--plan',c['plan'],'--queue-inputs',c['queueInputs'],'--output',str(verify/'pack-equivalence-verification.json'),'--stop-file',str(verify/'STOP')]
+    return result
 
 def finite_max(p,key):return isinstance(p.get(key),(int,float)) and not isinstance(p[key],bool) and math.isfinite(p[key]) and 0<=p[key]<=.5
 def fingerprint_gate(proof,receipt):
@@ -57,6 +61,17 @@ def height_gate(p,count,receipt):
        or not p.get('nativeFinite',0)>0 or not finite_max(p,'maximumAbsoluteErrorMetres') or p.get('terrainArchiveSHA256')!=receipt['sha256']:
         raise ValueError('Independent full terrain proof failed/incomplete')
     fingerprint_gate(p,receipt)
+
+def equivalence_gate(p,inventory,receipt,identity,proof_file_sha,inputs_file_sha,regions_sha,queue_sha):
+    if p.get('schema')!='ngii-packed-exact-equivalence-proof-v1' or p.get('method')!='final-native-proof-transferred-by-exact-payload-equivalence' \
+       or any(p.get(k) is not True for k in ('complete','passed','allTileKeysAndEncodedBytesEqual','allOverlayDecodedHashesChecked','metadataEqual')) \
+       or p.get('sampleOnly') is not False or p.get('nativeFresh') is not False or p.get('archiveSHA256')!=receipt['sha256'] \
+       or p.get('sourceIdentitySHA256')!=identity or p.get('sourceProofFileSHA256')!=proof_file_sha or p.get('sourceInputsFileSHA256')!=inputs_file_sha \
+       or p.get('regionsSHA256')!=regions_sha or p.get('queueInputsSHA256')!=queue_sha or p.get('regions')!=inventory['regionCount'] \
+       or type(p.get('nativeFinite')) is not int or type(p.get('nativeNoData')) is not int or p['nativeFinite']<=0 or p['nativeNoData']<0 \
+       or p['nativeFinite']+p['nativeNoData']!=inventory['buildingCount'] or p.get('compared')!=inventory['buildingCount'] or not finite_max(p,'maximumAbsoluteErrorMetres'):
+        raise ValueError('Independent full pack equivalence failed/incomplete')
+    fingerprint_gate(p.get('sourceFingerprint',{}),receipt)
 def bake_gate(folder,inventory,plan_sha,terrain_sha):
     expected={r['region14']:r for r in inventory['regions']};found={}
     for entry in Path(folder).iterdir():
@@ -183,13 +198,23 @@ def run(config_path,*,resume_after_review=False,poll_seconds=30):
                 if stage in done and done[stage]!=current:raise ValueError('Completed stage evidence changed: '+stage)
                 done[stage]=current;atomic(stages_path,done);record('stage-complete',stage=stage,proofs=current)
             completed('pack',[receipt_path,archive]);check_hashes(proof_pin)
-            hp=Path(c['verifyWork'])/'terrain-only-verification.json'
+            fast=c.get('verificationMode')=='pack-equivalence'
+            hp=Path(c['verifyWork'])/('pack-equivalence-verification.json' if fast else 'terrain-only-verification.json')
             if 'verify' not in done:
-                if not execute('verify',commands(c,count,receipt['sha256'])['verify']):return state
-            height_gate(read(hp),inventory['buildingCount'],receipt)
-            vp=read(Path(c['verifyWork'])/'inputs.json')
-            if vp['terrainSHA256']!=receipt['sha256'] or vp['sourceBindings']['snapshotSHA256']!=binding['snapshotSHA256'] or vp['sourceBindings']['planFileSHA256']!=binding['planFileSHA256'] or vp['sourceBindings']['regionsSHA256']!=sha(c['regions']):raise ValueError('Terrain verifier source binding mismatch')
-            completed('verify',[hp,Path(c['verifyWork'])/'inputs.json']);check_hashes(proof_pin)
+                if not execute('verify',commands(c,count,receipt['sha256'],proof_pin[str(proof_path)],pins[str(refinement/'inputs.json')])['verify']):return state
+            if fast:
+                ep=read(hp)
+                equivalence_gate(ep,inventory,receipt,proof['identitySHA256'],proof_pin[str(proof_path)],pins[str(refinement/'inputs.json')],sha(c['regions']),sha(c['queueInputs']))
+                with sqlite3.connect((refinement/'refinement-spool.sqlite').as_uri()+'?mode=ro',uri=True) as db:
+                    raw_proof=db.execute("SELECT value FROM metadata WHERE key='verification'").fetchone()[0]
+                if ep.get('sourceProofSHA256')!=hashlib.sha256(raw_proof.encode()).hexdigest() or ep.get('sourcePins')!=original['sourcePins'] or ep.get('baseSHA256')!=base_receipt['sha256'] or ep.get('overlaySHA256')!=sha(refinement/'refinement-spool.sqlite'):raise ValueError('Pack equivalence source evidence changed')
+                completed('verify',[hp,proof_path,refinement/'inputs.json',refinement/'refinement-spool.sqlite'])
+            else:
+                height_gate(read(hp),inventory['buildingCount'],receipt)
+                vp=read(Path(c['verifyWork'])/'inputs.json')
+                if vp['terrainSHA256']!=receipt['sha256'] or vp['sourceBindings']['snapshotSHA256']!=binding['snapshotSHA256'] or vp['sourceBindings']['planFileSHA256']!=binding['planFileSHA256'] or vp['sourceBindings']['regionsSHA256']!=sha(c['regions']):raise ValueError('Terrain verifier source binding mismatch')
+                completed('verify',[hp,Path(c['verifyWork'])/'inputs.json'])
+            check_hashes(proof_pin)
             if 'bake' not in done:
                 if not execute('bake',commands(c,count,receipt['sha256'])['bake']):return state
             out=Path(c['bakeOutput']);status=read(out/'queue-status.json')

@@ -35,7 +35,7 @@ test('missing/invalid coordinates and metadata failures cannot block viewer star
   expect(reads).toBe(0)
 })
 
-test('provider sampling reuses the prewarmed payload without a second request', async () => {
+test('contract sampling reuses the prewarmed raw ancestor chain without a second request', async () => {
   let requests = 0
   const bytes = new ArrayBuffer(4364), view = new DataView(bytes)
   view.setUint32(0, 0x314d5448, true); view.setUint16(4, 33, true)
@@ -47,7 +47,8 @@ test('provider sampling reuses the prewarmed payload without a second request', 
   }))
   const location = [127.108438, 37.730604] as const, width = 180 / 2 ** 20
   await prewarmTerrainAt(location, () => true, read)
-  const sample = await read(`20/${Math.floor((location[0] + 180) / width)}/${Math.floor((90 - location[1]) / width)}`)
-  expect(sample?.heights[0]).toBe(123)
-  expect(requests).toBe(1)
+  expect(requests).toBe(10) // levels 20..11, requested together
+  const x = Math.floor((location[0] + 180) / width), y = Math.floor((90 - location[1]) / width)
+  for (let i = 0; i <= 9; i++) expect((await read.raw(`${20 - i}/${Math.floor(x / 2 ** i)}/${Math.floor(y / 2 ** i)}`))?.heights[0]).toBe(123)
+  expect(requests).toBe(10)
 })

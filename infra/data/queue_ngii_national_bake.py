@@ -3,7 +3,9 @@
 Default --limit 16 is a capacity measurement batch, not nationwide completion.
 --watch waits 60 seconds between source/storage polls. STOP in output prevents the
 next subprocess; an in-progress bounded child is allowed to finish so immutable
-assets are not interrupted halfway through writing. A failed partial candidate
+assets are not interrupted halfway through writing. With --workers 2, independent
+persistent children own disjoint regions; STOP is honored between regions.
+A failed partial candidate
 needs operator review; this coordinator never deletes/replaces its files.
 """
 import argparse
@@ -16,7 +18,7 @@ import shutil
 import subprocess
 import time
 
-RESERVE = 20 * 1024**3
+RESERVE = 20 * 1024**3  # default free-space reserve; --reserve-gib overrides
 RETRY_GROWTH = 256 * 1024**2
 
 
@@ -74,19 +76,62 @@ def execute(command,cwd,log,on_started):
         return process.wait()
 
 
-def coordinate(args, *, runner=execute, free=lambda path:shutil.disk_usage(path).free, sleep=time.sleep):
+def execute_parallel(commands,cwd,output,on_status,*,python,free,sleep=time.sleep,popen=subprocess.Popen,reserve=RESERVE):
+    """One coordinator owns all persistent children; siblings stop at region boundaries."""
+    children=[];streams=[];reason=None;codes={}
+    threshold=reserve+len(commands)*RETRY_GROWTH
+    def stop(reason_text):
+        marker=output/'STOP'
+        try:
+            with marker.open('x',encoding='utf-8') as stream:stream.write(reason_text)
+        except FileExistsError:pass
+    flags=(subprocess.CREATE_NO_WINDOW|subprocess.BELOW_NORMAL_PRIORITY_CLASS) if os.name=='nt' else 0
+    try:
+        if free(output)<threshold:return {'reason':'needs_storage','exitCodes':{},'childPIDs':[]}
+        for index,command in enumerate(commands):
+            if (output/'STOP').exists():reason='stopped';break
+            stream=(output/f'baking-worker-{index}.log').open('wb');streams.append(stream)
+            child=popen(command,cwd=cwd,stdout=stream,stderr=subprocess.STDOUT,env={**os.environ,'NGII_PYTHON':python},creationflags=flags)
+            children.append(child);on_status([p.pid for p in children],reason)
+        while any(p.poll() is None for p in children):
+            for p in children:
+                code=p.poll()
+                if code is not None:codes[str(p.pid)]=code
+                if code and reason is None:reason='failed';stop('Sibling worker failed; finish current region and stop')
+            if reason is None and free(output)<threshold:reason='needs_storage';stop('Parallel worker storage headroom reached')
+            if reason is None and (output/'STOP').exists():reason='stopped'
+            on_status([p.pid for p in children if p.poll() is None],reason)
+            sleep(1)
+        for p in children:codes[str(p.pid)]=p.wait()
+        if any(codes.values()):reason='failed' if reason not in ('needs_storage',) else reason
+        return {'reason':reason or 'complete','exitCodes':codes,'childPIDs':[p.pid for p in children]}
+    except BaseException:
+        stop('Coordinator interrupted; finish current region and stop')
+        for p in children:p.wait()
+        raise
+    finally:
+        for stream in streams:stream.close()
+
+
+def coordinate(args, *, runner=execute, free=lambda path:shutil.disk_usage(path).free, sleep=time.sleep, parallel_runner=execute_parallel):
     output=Path(args.output).resolve();output.mkdir(parents=True,exist_ok=True)
     status_path=output/'queue-status.json';pin_path=output/'queue-inputs.json'
     editor=Path(args.editor_root).resolve();script=editor/'infra/data/ngii_canonical_snapshot.py'
     frontend=editor/'frontend/app/editor';snapshot=Path(args.snapshot).resolve();plan=Path(args.plan).resolve()
     regions=Path(args.regions).resolve();terrain=Path(args.terrain).resolve()
     if args.limit<1:raise ValueError('Positive bounded --limit required')
+    workers=getattr(args,'workers',1)
+    if workers not in (1,2):raise ValueError('--workers must be 1 or 2')
+    reserve_gib=getattr(args,'reserve_gib',None)
+    reserve=RESERVE if reserve_gib is None else int(reserve_gib*1024**3)
+    if reserve<1024**3:raise ValueError('--reserve-gib must be at least 1')
+    required_reserve=reserve+(workers*RETRY_GROWTH if workers>1 else 0)
     if len(args.terrain_sha)!=64 or any(x not in '0123456789abcdef' for x in args.terrain_sha):raise ValueError('Invalid terrain SHA256')
     state={}
     def record(kind,**details):
         nonlocal state
         state={'schema':'ngii-national-bake-queue-v1','state':kind,'pid':os.getpid(),'childPID':None,
-               'at':time.time(),'limit':args.limit,'candidateOnly':True,'activeNationalComplete':False,**details}
+               'at':time.time(),'limit':args.limit,'workers':workers,'candidateOnly':True,'activeNationalComplete':False,**details}
         atomic(status_path,state);return state
     def stopped():return (output/'STOP').exists()
     def invoke(command,phase):
@@ -103,13 +148,15 @@ def coordinate(args, *, runner=execute, free=lambda path:shutil.disk_usage(path)
             blocked=None
             if status_path.exists():
                 previous=read(status_path)
-                if previous.get('state')=='needs_storage':blocked=previous.get('blockedFreeBytes',previous.get('freeBytes',0))
+                # A block recorded under a larger reserve does not hold a restart with a lowered --reserve-gib.
+                if previous.get('state')=='needs_storage' and previous.get('reserveBytes',RESERVE)<=required_reserve:
+                    blocked=previous.get('blockedFreeBytes',previous.get('freeBytes',0))
             while True:
                 if stopped():return record('stopped',note='No activation. Running bounded children finish before STOP is honored.')
                 available=free(output)
-                threshold=max(RESERVE,blocked+RETRY_GROWTH) if blocked is not None else RESERVE
+                threshold=max(required_reserve,blocked+RETRY_GROWTH) if blocked is not None else required_reserve
                 if available<threshold:
-                    record('needs_storage',freeBytes=available,blockedFreeBytes=blocked if blocked is not None else available,reserveBytes=RESERVE,retryAtFreeBytes=threshold)
+                    record('needs_storage',freeBytes=available,blockedFreeBytes=blocked if blocked is not None else available,reserveBytes=required_reserve,retryAtFreeBytes=threshold)
                     if not args.watch:return state
                     sleep(60);continue
                 document=read(snapshot)
@@ -143,15 +190,23 @@ def coordinate(args, *, runner=execute, free=lambda path:shutil.disk_usage(path)
                 if stopped():return record('stopped')
                 command=[args.bun,str(frontend/'tools/bake-ngii-region.ts'),'--snapshot',str(snapshot),'--regions',str(regions),
                          '--source-plan',str(plan),'--terrain',str(terrain),'--terrain-sha256',args.terrain_sha,
-                         '--output',str(output),'--limit',str(args.limit)]
+                         '--output',str(output),'--limit',str(args.limit),'--reserve-gib',str(reserve/1024**3)]
+                if workers==2:
+                    initialized=invoke([*command,'--initialize-only','--shard-count','2','--shard-index','0'],'initializing-candidate')
+                    if initialized is None or stopped():return record('stopped')
+                    if initialized:return record('failed',phase='initializing-candidate',exitCode=initialized)
+                    commands=[[*command,'--shard-count',str(workers),'--shard-index',str(i)] for i in range(workers)]
+                    result=parallel_runner(commands,str(frontend),output,lambda pids,reason:record('baking',childPIDs=pids,stoppingReason=reason),python=args.python,free=free,sleep=sleep,reserve=reserve)
+                    if result['reason']!='complete':return record(result['reason'],phase='baking',**{k:v for k,v in result.items() if k!='reason'})
+                    return record('bounded-complete',childPIDs=result['childPIDs'],exitCodes=result['exitCodes'],freeBytes=free(output),regionsSHA256=pin['regionsSHA256'],note='Disjoint bounded owner shards completed; no nationwide publication claim.')
                 result=invoke(command,'baking')
                 if result is None:return record('stopped')
                 if result:
                     log=output/'baking.log'
                     with log.open('rb') as stream:stream.seek(max(0,log.stat().st_size-65536));tail=stream.read().decode('utf-8',errors='replace')
                     if '20GiB' in tail or 'free-space reserve' in tail:
-                        blocked=free(output);record('needs_storage',freeBytes=blocked,blockedFreeBytes=blocked,reserveBytes=RESERVE,
-                                                   retryAtFreeBytes=max(RESERVE,blocked+RETRY_GROWTH),exitCode=result,error='See baking.log; incomplete immutable folders require review')
+                        blocked=free(output);record('needs_storage',freeBytes=blocked,blockedFreeBytes=blocked,reserveBytes=reserve,
+                                                   retryAtFreeBytes=max(reserve,blocked+RETRY_GROWTH),exitCode=result,error='See baking.log; incomplete immutable folders require review')
                         if args.watch:sleep(60);continue
                         return state
                     return record('failed',phase='baking',exitCode=result,error='See baking.log; no automatic retry')
@@ -167,6 +222,8 @@ def main():
     parser.add_argument('--editor-root',default=str(Path(__file__).resolve().parents[2]))
     parser.add_argument('--reuse-regions-pin',help='Prior coordinator queue-inputs.json binding the completed inventory')
     parser.add_argument('--watch',action='store_true');parser.add_argument('--limit',type=int,default=16)
+    parser.add_argument('--workers',type=int,choices=(1,2),default=1)
+    parser.add_argument('--reserve-gib',type=float,default=RESERVE/1024**3,help='Free-space reserve on the output volume (default 20)')
     args=parser.parse_args()
     try:result=coordinate(args)
     except Exception as error:

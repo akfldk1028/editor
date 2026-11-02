@@ -46,6 +46,24 @@ export function selectRegions<T extends { region14: string }>(regions: T[], owne
   return limit === undefined ? selected : selected.slice(0, limit)
 }
 
+/** Free-space reserve on the output volume; default 20 GiB, never below 1 GiB. */
+export function parseReserveGiB(value?: string): number {
+  if (value === undefined) return 20
+  const gib = Number(value)
+  if (!Number.isFinite(gib) || gib < 1) throw Error('Invalid --reserve-gib')
+  return gib
+}
+
+export function shardRegions<T>(selected:T[],index=0,count=1):T[]{
+  if(![1,2].includes(count)||!Number.isInteger(index)||index<0||index>=count)throw Error('Invalid shard ownership')
+  return selected.filter((_,i)=>i%count===index)
+}
+export async function bindCandidateInputs(path:string,identity:unknown,requireExisting=false){
+  const encoded=JSON.stringify(identity)
+  try{if(JSON.stringify(JSON.parse(await readFile(path,'utf8')))!==encoded)throw Error('Candidate output source/terrain identity mismatch')}
+  catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;if(requireExisting)throw Error('Parallel candidate pin must be initialized by coordinator');await writeFile(path,encoded,{flag:'wx'})}
+}
+
 const fileSHA = async (path: string) => {
   const hash = createHash('sha256')
   for await (const bytes of createReadStream(path)) hash.update(bytes)
@@ -160,6 +178,9 @@ export async function main(args = process.argv.slice(2)) {
   const database = args.includes('--database') ? resolve(option('--database')) : undefined
   const snapshot = args.includes('--snapshot') ? resolve(option('--snapshot')) : undefined
   if ([input, database, snapshot].filter(Boolean).length !== 1) throw Error('Specify exactly one of --input, --database or --snapshot')
+  const shardCount=args.includes('--shard-count')?Number(option('--shard-count')):1,shardIndex=args.includes('--shard-index')?Number(option('--shard-index')):0
+  shardRegions([],shardIndex,shardCount)
+  if(shardCount>1&&!snapshot&&!database)throw Error('Sharded bake requires full canonical inventory')
   const output = resolve(option('--output')), terrainPath = resolve(option('--terrain'))
   const expectedTerrain = option('--terrain-sha256'), planPath = resolve(option('--source-plan'))
   const planBytes = await readFile(planPath), plan = JSON.parse(planBytes.toString('utf8')) as CanonicalPlan
@@ -171,10 +192,11 @@ export async function main(args = process.argv.slice(2)) {
     p.layer, p.edition, p.sourceManifestSHA256, p.productReceiptSHA256, p.file])
   const allowedSources = new Set(plan.sources.map(source => sourceIdentity(source.manifest)))
   await mkdir(output, { recursive: true })
-  const reserve = 20 * 1024 ** 3
+  const reserveGiB = parseReserveGiB(args.includes('--reserve-gib') ? option('--reserve-gib') : undefined)
+  const reserve = reserveGiB * 1024 ** 3 + (shardCount>1?shardCount*256*1024**2:0)
   const checkSpace = async () => {
     const disk = await statfs(output)
-    if (disk.bavail * disk.bsize < reserve) throw Error('Candidate output crossed 20GiB free-space reserve')
+    if (disk.bavail * disk.bsize < reserve) throw Error(`Candidate output crossed ${reserveGiB}GiB free-space reserve`)
   }
   await checkSpace()
   if (snapshot) {
@@ -189,20 +211,14 @@ export async function main(args = process.argv.slice(2)) {
     const inventoryBytes = db ? await readFile(resolve(option('--regions'))) : undefined
     const inventory = inventoryBytes ? JSON.parse(inventoryBytes.toString('utf8')) as CanonicalRegionInventory : undefined
     if (db && inventory) source = canonicalRegions(db, plan, inventory)
-    const selected = source ? selectRegions(source.regions, args.includes('--region') ? option('--region') : undefined,
-      args.includes('--limit') ? Number(option('--limit')) : undefined) : [{ region14: '' }]
+    const selected = shardRegions<{region14:string}>(source ? selectRegions(source.regions, args.includes('--region') ? option('--region') : undefined,
+      args.includes('--limit') ? Number(option('--limit')) : undefined) : [{ region14: '' }],shardIndex,shardCount)
     const inventorySHA256 = inventoryBytes ? createHash('sha256').update(inventoryBytes).digest('hex') : null
     const runIdentity = { sourcePlan, sourcePlanFileSHA256, expectedTerrain, inventorySHA256,
       mode: db ? 'completed-canonical-database' : 'sample-ndjson', mesh: BUILDING_MESH_REVISION, assetPacking: NGII_ASSET_PACKING, contract: TERRAIN_HEIGHT_CONTRACT }
     const pinPath = join(output, 'candidate-inputs.json')
-    try {
-      const pin = JSON.parse(await readFile(pinPath, 'utf8'))
-      if (JSON.stringify(pin) !== JSON.stringify(runIdentity)) throw Error('Candidate output source/terrain identity mismatch')
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-      await checkSpace()
-      await writeFile(pinPath, JSON.stringify(runIdentity), { flag: 'wx' })
-    }
+    await checkSpace()
+    await bindCandidateInputs(pinPath,runIdentity,shardCount>1&&!args.includes('--initialize-only'))
     const terrainStamp = await stat(terrainPath)
     if (await fileSHA(terrainPath) !== expectedTerrain) throw Error('Terrain archive SHA256 mismatch')
     const assertPinned = async () => {
@@ -221,7 +237,9 @@ export async function main(args = process.argv.slice(2)) {
       const tile = await archive.getZxy(level + 1, x, y)
       return tile ? decodeHeightTile(tile.data) : null
     }, { archiveSha256: expectedTerrain, minLevel: metadata.minLevel, maxLevel: metadata.maxLevel, keep: 128 })
+    if(args.includes('--initialize-only')){console.log(JSON.stringify({initialized:true,candidateOnly:true}));return}
     for (const selectedRegion of selected) {
+      try{await stat(join(output,'STOP'));console.log(JSON.stringify({stopped:true,shardIndex,shardCount,candidateOnly:true}));return}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error}
       await assertPinned()
       const ownerHint = selectedRegion.region14
       const rowSource = () => source ? source.rows(ownerHint) : inputRows(input!)

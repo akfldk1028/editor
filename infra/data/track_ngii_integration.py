@@ -211,6 +211,8 @@ class NationalBakeMonitor:
         queue_path = root / 'queue-status.json'
         queue = read(queue_path) if queue_path.exists() else {'state': 'not-started'}
         result['queue'] = queue
+        if (root / 'STOP').exists():
+            result['holdReason'] = (root / 'STOP').read_text(encoding='utf-8-sig')[:1024].strip()
         result['processes'] = []
         for field, script in [('pid', 'queue_ngii_national_bake.py'), ('childPID', 'bake-ngii-region.ts')]:
             pid = queue.get(field)
@@ -248,8 +250,26 @@ def height_verification_status(path):
     result = read(path)
     return {key: result.get(key) for key in (
         'state', 'complete', 'passed', 'sampleOnly', 'pendingRegions', 'compared',
-        'nativeFinite', 'nativeNoData', 'nativeEvidence', 'absoluteErrorMetres',
+        'nativeFinite', 'nativeNoData', 'nativeEvidence', 'absoluteErrorMetres', 'nativeDisagreement',
         'publishedBuildingDatumCheck', 'terrainArchiveSHA256', 'buildingCatalogSHA256')}
+
+
+def progress_status(work, script, lock=None):
+    work = Path(work).resolve()
+    path = work / 'progress.json'
+    value = read(path)
+    pid = value.get('pid')
+    if lock and (work / lock).exists():
+        pid = int((work / lock).read_text())
+    matched = False
+    try:
+        process = psutil.Process(int(pid)); command = process.cmdline()
+        matched = any(Path(a).name == script for a in command) and '--work' in command \
+            and (Path(process.cwd()) / command[command.index('--work') + 1]).resolve() == work
+    except (psutil.Error, OSError, TypeError, ValueError, IndexError):
+        pass
+    return {**value, 'observedFileMtimeNs': path.stat().st_mtime_ns,
+            'workerPID': pid, 'workerMatchesCandidate': matched, 'publicationStatus': 'candidate-only not published'}
 
 
 def snapshot(args):
@@ -264,6 +284,26 @@ def snapshot(args):
             row[name] = {'error': str(exc)}
             row['alerts'].append(name + '_read_failed')
     canonical = row.get('canonical', {})
+    for name, option, script, lock in [
+        ('terrainRefinement', 'terrain_refinement', 'refine-ngii-national-terrain.ts', 'refinement.lock'),
+        ('landcoverTiles', 'landcover_work', 'bake_landcover_archive.py', None),
+    ]:
+        if getattr(args, option, None):
+            try:
+                row[name] = progress_status(getattr(args, option), script, lock)
+                if row[name].get('state') in ('failed', 'needs_storage'):
+                    row['alerts'].append(name + '_' + row[name]['state'])
+            except (OSError, ValueError) as exc:
+                row[name] = {'error': str(exc)}
+                row['alerts'].append(name + '_read_failed')
+    if getattr(args, 'roads_receipt', None):
+        try:
+            receipt = read(args.roads_receipt)
+            row['roadArchive'] = {key: receipt.get(key) for key in ('completeCoverage', 'activated', 'sourceCount',
+                'completedSources', 'acceptedFeatures', 'repairedFeatures', 'rejectedFeatures', 'tiles', 'bytes', 'sha256')}
+        except (OSError, ValueError) as exc:
+            row['roadArchive'] = {'error': str(exc)}
+            row['alerts'].append('road_archive_read_failed')
     if canonical.get('processedRows', 0) < canonical.get('expectedRows', 0) and not canonical.get('workers'):
         row['alerts'].append('canonical_worker_missing')
     if canonical.get('issues'):
@@ -323,6 +363,9 @@ def main():
     parser.add_argument('--national-bake', type=Path)
     parser.add_argument('--national-regions', type=Path)
     parser.add_argument('--height-verification', type=Path)
+    parser.add_argument('--terrain-refinement', type=Path)
+    parser.add_argument('--landcover-work', type=Path)
+    parser.add_argument('--roads-receipt', type=Path)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--base-url', default='http://127.0.0.1:3003')
     parser.add_argument('--drive', action='append')

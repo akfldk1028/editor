@@ -14,9 +14,14 @@ test('independent canonical-anchor sampling checks every multipart component and
 test('native NoData remains explicitly classified rather than zero or a native accuracy pass',async()=>{
  for(const zero of [false,true]){const f=await fixture(zero),p=await verifyRegion('14/1/2',[row],f.grounds,f.footprints,f.sample,async()=>[null]);expect(p.nativeFinite).toBe(0);expect(p.displayMaximum).toBeNull();expect(p.nativeEvidence).toBe('insufficient');expect(p.nativeNoData).toEqual([{key:id,classification:zero?'declared-ellipsoid-zero':'ancestor-supported'}]);expect(p.unresolvedGroundBuildings).toBe(zero?1:0)}
 })
-test('threshold failures are evidence, never silently accepted or relaxed',async()=>{
+test('served-terrain datum failures block; native disagreement is recorded only',async()=>{
  const f=await fixture();f.footprints[1]!.z+=.011
- const p=await verifyRegion('14/1/2',[row],f.grounds,f.footprints,f.sample,async()=>[60.501]);expect(p.passed).toBe(false);expect(p.errors.map(e=>e.kind)).toEqual(['component-datum','native-display'])
+ const p=await verifyRegion('14/1/2',[row],f.grounds,f.footprints,f.sample,async()=>[60.501]);expect(p.passed).toBe(false);expect(p.errors.map(e=>e.kind)).toEqual(['component-datum']);expect(p.nativeOver).toBe(1)
+})
+test('native DEM disagreement above 0.5 m is recorded per region without failing the region',async()=>{
+ const f=await fixture(),p=await verifyRegion('14/1/2',[row],f.grounds,f.footprints,f.sample,async()=>[62.37])
+ expect(p.passed).toBe(true);expect(p.errors).toEqual([]);expect(p.nativeEvidence).toBe('recorded');expect(p.nativeOver).toBe(1);expect(p.displayMaximum).toBeCloseTo(2.37)
+ const q=await verifyRegion('14/1/2',[row],f.grounds,f.footprints,f.sample,async()=>[60.4]);expect(q.nativeOver).toBe(0);expect(q.nativeEvidence).toBe('recorded')
 })
 test('missing, duplicate, extra, provenance mismatch and non-finite worker values fail closed',async()=>{
  const f=await fixture()
@@ -76,5 +81,67 @@ test('watch discovers only atomically complete regions and refuses invalid or du
   await expect(discoverCompletedCandidates(root,wanted,found)).rejects.toThrow('Duplicate')
   await rm(duplicate,{recursive:true});await writeFile(join(found.get('14/1/2')!,'candidate-receipt.json'),JSON.stringify({owner:'14/1/2',completeRegion:false}))
   await expect(discoverCompletedCandidates(root,wanted,new Map())).rejects.toThrow('Invalid completed')
+ }finally{await rm(root,{recursive:true,force:true})}
+})
+
+test('merge reuses a shard-verified region only while receipt payload stamps are unchanged',async()=>{
+ const {candidateFileStamps,stampedReuse}=await import('./verify-ngii-national-heights')
+ const {mkdtemp,writeFile,utimes,rm,rename}=await import('node:fs/promises'),{tmpdir}=await import('node:os'),{join}=await import('node:path')
+ const root=await mkdtemp(join(tmpdir(),'height-stamp-')),receipt={files:[{path:'a.b3dm.gz'},{path:'footprints.json.gz'}]}
+ try{
+  await writeFile(join(root,'a.b3dm.gz'),'aaaa');await writeFile(join(root,'footprints.json.gz'),'ffff')
+  const old=new Date('2026-01-01T00:00:00Z');for(const f of receipt.files)await utimes(join(root,f.path),old,old)
+  const stamps=await candidateFileStamps(root,receipt),previous={runSHA256:'run',receiptSHA256:'receipt',fileStamps:stamps}
+  expect(stampedReuse(previous,'run','receipt',await candidateFileStamps(root,receipt))).toBe(true)
+  expect(stampedReuse(previous,'other','receipt',stamps)).toBe(false)
+  expect(stampedReuse(previous,'run','other',stamps)).toBe(false)
+  expect(stampedReuse({runSHA256:'run',receiptSHA256:'receipt'},'run','receipt',stamps)).toBe(false)
+  expect(stampedReuse({...previous,fileStamps:[]},'run','receipt',[])).toBe(false)
+  // same size, modified bytes: mtime changes, full re-hash required
+  await writeFile(join(root,'a.b3dm.gz'),'bbbb');expect(stampedReuse(previous,'run','receipt',await candidateFileStamps(root,receipt))).toBe(false)
+  // restoring the old mtime still fails if the file was replaced (inode) or resized
+  await writeFile(join(root,'x'),'cccc');await rename(join(root,'x'),join(root,'a.b3dm.gz'));await utimes(join(root,'a.b3dm.gz'),old,old)
+  const replaced=await candidateFileStamps(root,receipt);expect(replaced[0]!.mtimeNs).toBe(stamps[0]!.mtimeNs);expect(stampedReuse(previous,'run','receipt',replaced)).toBe(false)
+  await writeFile(join(root,'footprints.json.gz'),'fffff');await utimes(join(root,'footprints.json.gz'),old,old)
+  expect(stampedReuse({...previous,fileStamps:replaced},'run','receipt',await candidateFileStamps(root,receipt))).toBe(false)
+  await expect(candidateFileStamps(root,{files:[{path:'../x'}]})).rejects.toThrow('path')
+  await expect(candidateFileStamps(root,{files:[]})).rejects.toThrow('receipt')
+ }finally{await rm(root,{recursive:true,force:true})}
+})
+
+test('shards and merge exclude each other; stale dead-pid locks are removed',async()=>{
+ const {acquireVerificationLock,SHARD_LOCK}=await import('./verify-ngii-national-heights')
+ const {mkdtemp,writeFile,rm,unlink,stat}=await import('node:fs/promises'),{tmpdir}=await import('node:os'),{join}=await import('node:path'),{spawnSync}=await import('node:child_process')
+ const root=await mkdtemp(join(tmpdir(),'height-lock-')),dead=spawnSync(process.execPath,['-e','0']).pid!
+ try{
+  expect(SHARD_LOCK.test('verification-shard-1.lock')).toBe(true);expect(SHARD_LOCK.test('verification-shard-1-of-5.lock')).toBe(true);expect(SHARD_LOCK.test('verification.lock')).toBe(false)
+  const shard=await acquireVerificationLock(root,'-shard-1-of-5')
+  await expect(acquireVerificationLock(root,'-shard-1-of-5')).rejects.toThrow('live')
+  await expect(acquireVerificationLock(root,'')).rejects.toThrow('shard lock')
+  await expect(stat(join(root,'verification.lock'))).rejects.toThrow()
+  const other=await acquireVerificationLock(root,'-shard-2-of-5');await unlink(other);await unlink(shard)
+  await writeFile(join(root,'verification-shard-3.lock'),String(process.pid))
+  await expect(acquireVerificationLock(root,'')).rejects.toThrow('shard lock');await unlink(join(root,'verification-shard-3.lock'))
+  const merge=await acquireVerificationLock(root,'')
+  await expect(acquireVerificationLock(root,'-shard-0-of-5')).rejects.toThrow('merge lock');await unlink(merge)
+  await writeFile(join(root,'verification.lock'),String(dead));expect(await acquireVerificationLock(root,'')).toBe(join(root,'verification.lock'));await unlink(join(root,'verification.lock'))
+  await writeFile(join(root,'verification-shard-4-of-5.lock'),String(dead));await acquireVerificationLock(root,'');await expect(stat(join(root,'verification-shard-4-of-5.lock'))).rejects.toThrow()
+  await unlink(join(root,'verification.lock'));await writeFile(join(root,'verification.lock'),'')
+  await expect(acquireVerificationLock(root,'')).rejects.toThrow('live')
+ }finally{await rm(root,{recursive:true,force:true})}
+})
+
+test('verification input pin is written atomically once and readers retry partial JSON',async()=>{
+ const {pinVerificationInputs}=await import('./verify-ngii-national-heights')
+ const {mkdtemp,writeFile,readFile,readdir,rm}=await import('node:fs/promises'),{tmpdir}=await import('node:os'),{join}=await import('node:path')
+ const root=await mkdtemp(join(tmpdir(),'height-pin-')),pin=join(root,'verification-inputs.json'),identity={schema:'s',b:1,a:[1,2]}
+ try{
+  await Promise.all(Array.from({length:8},()=>pinVerificationInputs(pin,identity)))
+  expect(JSON.parse(await readFile(pin,'utf8'))).toEqual(identity);expect(await readdir(root)).toEqual(['verification-inputs.json'])
+  await pinVerificationInputs(pin,{a:[1,2],b:1,schema:'s'})
+  await expect(pinVerificationInputs(pin,{...identity,b:2})).rejects.toThrow('identity changed')
+  await writeFile(pin,'{"schema":');setTimeout(()=>writeFile(pin,JSON.stringify(identity)),120)
+  await pinVerificationInputs(pin,identity)
+  await writeFile(pin,'{"schema":');await expect(pinVerificationInputs(pin,identity,2)).rejects.toThrow('unreadable')
  }finally{await rm(root,{recursive:true,force:true})}
 })

@@ -78,9 +78,11 @@ class NationalPreparationTests(unittest.TestCase):
         atomic_json(self.work/'archive-receipt.json',{'sha256':self.terrain_sha,'metadata':{'sourceFilesSHA256':'b'*64}})
         atomic_json(self.work/'publication-verification.json',{'sha256':self.terrain_sha,'httpStatus':206})
         atomic_json(self.work/'height-verification.json',{'terrainArchiveSHA256':self.terrain_sha,'sourceVrtSHA256':'a'*64,
-            'complete':True,'sampleOnly':False,'passed':True,'nativeFinite':16,'nativeNoData':1,'nativeEvidence':'verified',
+            'complete':True,'sampleOnly':False,'passed':True,'nativeFinite':16,'nativeNoData':1,'nativeEvidence':'recorded',
             'buildingCatalogSHA256':self.revision,'sourceFilesSHA256':'b'*64,'missing':0,'absoluteErrorMetres':{'maximum':.1},
-            'publishedBuildingDatumCheck':{'expected':17,'compared':17,'maximumAbsoluteErrorMetres':0}})
+            'nativeDisagreement':{'gate':'record-only','thresholdMetres':.5,'maxMetres':.1,'regionsOver':0,'buildingsOver':0},
+            'publishedBuildingDatumCheck':{'expected':17,'compared':17,'maximumAbsoluteErrorMetres':0},
+            'regions':[{'owner':'14/1/1','buildings':17,'components':17,'passed':True,'nativeMaximumMetres':.1,'nativeOver':0}]})
 
     def files(self,folder,values):
         rows=[]
@@ -108,6 +110,19 @@ class NationalPreparationTests(unittest.TestCase):
         self.assertEqual(result['coverage']['unresolvedGroundBuildings'],1)
         self.assertTrue(result['runtimeValidationRequired'])
         self.assertFalse((self.root/'releases/current.json').exists())
+        self.assertEqual(verify(self.root,result['releaseId'],deep=True),result)
+
+    def test_seal_reuses_payload_hashes_from_verification_without_rereading(self):
+        import release_store
+        from prepare_ngii_national_release import payload_files
+        known={};payload_files(self.root,self.region,self.regional,known)
+        self.assertEqual({p.name:v[2] for p,v in known.items()},{f['path']:f['sha256'] for f in self.regional['files']})
+        reread=[];real=release_store.digest
+        def counted(path):
+            if path.resolve().is_relative_to(self.region) or path.resolve().is_relative_to(self.hlod):reread.append(path.resolve())
+            return real(path)
+        with patch('release_store.digest',side_effect=counted):result=self.run_prepare()
+        self.assertEqual(reread,[(self.hlod/'candidate-receipt.json').resolve()])  # one small HLOD receipt only
         self.assertEqual(verify(self.root,result['releaseId'],deep=True),result)
 
     def test_old_asset_packing_cannot_enter_new_national_release(self):
@@ -191,6 +206,51 @@ class NationalPreparationTests(unittest.TestCase):
             atomic_json(path,{**original,key:value})
             with self.subTest(key=key,value=value):
                 with self.assertRaisesRegex(ValueError,'alignment'):self.run_prepare()
+
+    def test_wholesale_terrain_offset_beyond_sanity_cap_cannot_publish(self):
+        path=self.work/'height-verification.json';v=read_json(path)
+        v['absoluteErrorMetres']={'maximum':25.0};v['nativeDisagreement'].update(maxMetres=25.0,regionsOver=1,buildingsOver=1)
+        v['regions']=[{**v['regions'][0],'nativeMaximumMetres':25.0,'nativeOver':1}]
+        atomic_json(path,v)
+        with self.assertRaisesRegex(ValueError,'alignment'):self.run_prepare()
+        atomic_json(path,{**v,'regions':[]})
+        with self.assertRaisesRegex(ValueError,'alignment'):self.run_prepare()
+
+    def test_single_outlier_region_beyond_cap_is_recorded_not_blocking(self):
+        path=self.work/'height-verification.json';v=read_json(path)
+        v['absoluteErrorMetres']={'maximum':31.0};v['nativeDisagreement'].update(maxMetres=31.0,regionsOver=1,buildingsOver=1)
+        v['regions']=[{**v['regions'][0],'nativeMaximumMetres':31.0,'nativeOver':1}]+[{**v['regions'][0],'owner':f'14/2/{i}','nativeMaximumMetres':.2} for i in range(2)]
+        atomic_json(path,v)
+        self.assertEqual(self.run_prepare()['nativeDisagreement']['maxMetres'],31.0)
+
+    def test_native_dem_disagreement_is_recorded_not_a_gate(self):
+        path=self.work/'height-verification.json';v=read_json(path)
+        v['absoluteErrorMetres']={'maximum':2.37};v['nativeDisagreement'].update(maxMetres=2.37,regionsOver=1,buildingsOver=3)
+        atomic_json(path,v)
+        result=self.run_prepare()
+        self.assertEqual(result['nativeDisagreement'],{'maxMetres':2.37,'regionsOver':1,'buildingsOver':3,'thresholdMetres':.5,'gate':'record-only'})
+        for broken in [{},{**v['nativeDisagreement'],'gate':'blocking'},{**v['nativeDisagreement'],'maxMetres':1.0},
+                       {**v['nativeDisagreement'],'regionsOver':2},{**v['nativeDisagreement'],'regionsOver':True},
+                       {**v['nativeDisagreement'],'buildingsOver':0},{**v['nativeDisagreement'],'buildingsOver':None}]:
+            atomic_json(path,{**v,'nativeDisagreement':broken})
+            with self.subTest(broken=broken):
+                with self.assertRaisesRegex(ValueError,'alignment'):self.run_prepare()
+        atomic_json(path,{**v,'nativeEvidence':'verified'})
+        with self.assertRaisesRegex(ValueError,'alignment'):self.run_prepare()
+
+    def test_datum_gate_still_blocks_publication(self):
+        path=self.work/'height-verification.json';v=read_json(path)
+        atomic_json(path,{**v,'publishedBuildingDatumCheck':{**v['publishedBuildingDatumCheck'],'maximumAbsoluteErrorMetres':.011}})
+        with self.assertRaisesRegex(ValueError,'alignment'):self.run_prepare()
+
+    def test_known_island_source_gaps_are_recorded_but_other_empty_probes_fail(self):
+        from prepare_ngii_national_release import GEOGRAPHIC_PROBES
+        probes=dict(GEOGRAPHIC_PROBES,Baengnyeong=(124.65,37.95),Goseong=(128.36,38.51))
+        with patch.dict('prepare_ngii_national_release.GEOGRAPHIC_PROBES',probes,clear=True):
+            result=self.run_prepare()
+        self.assertEqual(result['coverage']['sourceCoverageGaps'],['Baengnyeong','Goseong'])
+        with patch.dict('prepare_ngii_national_release.GEOGRAPHIC_PROBES',dict(probes,Seoul=(126.98,37.57)),clear=True):
+            with self.assertRaisesRegex(ValueError,'Missing geographic source coverage: Seoul'):self.run_prepare()
 
     def test_terrain_requires_same_sampling_contract(self):
         path=self.root/'terrain.json';pointer=read_json(path);pointer.pop('heightContract');atomic_json(path,pointer)
