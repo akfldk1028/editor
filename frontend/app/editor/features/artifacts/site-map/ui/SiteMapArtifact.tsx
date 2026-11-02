@@ -70,6 +70,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   const [status, setStatus] = useState<Status>({ kind: 'busy', text: '지도를 불러오는 중' })
   const [view, setView] = useState<View>(() => initialView3d(params))
   const [opened3d, setOpened3d] = useState(view === '3d')
+  const [photo, setPhoto] = useState(false)
   const { setTitle } = shell
   // A saved site reaches the conversation feed (which site, is the Orchestrator reachable) and becomes the map's site.
   const onSaved = useCallback((saved: SavedSite) => {
@@ -233,7 +234,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       {/* Providers restyle their target (Naver makes it position: relative), so they get an inner element. */}
       <div aria-label="대지 지도 — 클릭으로 필지 선택" className="site-map-canvas" role="application"><div ref={mapRef} /></div>
 
-      {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} overlay={overlay} />}
+      {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} overlay={overlay} photo={photo} />}
       {view === '3d' && (choice.alternatives || choice.massRun) && (
         <LayoutPortfolio alternatives={choice.alternatives} choosing={choice.choosing} error={choice.error}
           massBusy={choice.massBusy} massCandidates={choice.massCandidates}
@@ -245,6 +246,8 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
         {(['2d', '3d'] as const).map((option) => (
           <button aria-pressed={view === option} key={option} onClick={() => switchView(option)} type="button">{option.toUpperCase()}</button>
         ))}
+        {/* VWorld's textured buildings in our 3D view (internal review only; see vworld-photo-buildings.ts). */}
+        {view === '3d' && <button aria-pressed={photo} onClick={() => setPhoto(on => !on)} title="브이월드 실사 건물 (내부 확인용)" type="button">실사</button>}
       </div>
 
       <form className="site-map-search" onSubmit={submit} role="search">

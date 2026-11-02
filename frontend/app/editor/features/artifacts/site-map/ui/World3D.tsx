@@ -35,7 +35,7 @@ export interface LayoutOverlay {
   runId?: string
 }
 
-export default function World3D({ active, drawn, onPick, overlay = null }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay?: LayoutOverlay | null }) {
+export default function World3D({ active, drawn, onPick, overlay = null, photo = false }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay?: LayoutOverlay | null; photo?: boolean }) {
   const [mode, setMode] = useState<'mass' | 'photo' | 'lod1' | 'textured'>('mass')
   const viewer = useRef<any>(null)
   const camera = useRef<SceneCamera | null>(null)
@@ -46,6 +46,8 @@ export default function World3D({ active, drawn, onPick, overlay = null }: { act
     camera.current = readSceneCamera(viewer.current)
     setMode(next)
   }, [])
+  // The map's 실사 button switches between our masses and VWorld's textured buildings.
+  useEffect(() => { setMode(current => photo ? 'photo' : current === 'photo' ? 'mass' : current) }, [photo])
   const controls = <label className="flex items-center gap-2">건물 표시
     <select aria-label="건물 표시 방식" value={mode} onChange={e => void chooseMode(e.target.value as typeof mode)}>
       <option value="mass">흰 매스</option>
