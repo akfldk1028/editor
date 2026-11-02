@@ -11,7 +11,7 @@ export const VWORLD_PHOTO_TILESET = 'https://cdn.vworld.kr/TDServer/services/map
 
 /** Adds the textured buildings and hides ours; the returned function restores the scene. */
 export function showVworldPhotoBuildings(viewer: any, C: any, failed: (message: string) => void) {
-  let tileset: any, disposed = false
+  let tileset: any, disposed = false, oursHidden = true
   const ours = viewer.buildingTiles
   ours?.setShow?.(false)
   void C.Cesium3DTileset.fromUrl(VWORLD_PHOTO_TILESET, {
@@ -22,7 +22,15 @@ export function showVworldPhotoBuildings(viewer: any, C: any, failed: (message: 
     tileset = made
     viewer.scene.primitives.add(tileset)
     // Same requestRenderMode handling as our buildings: keep frames coming until the visible tiles have loaded.
-    const remove = viewer.scene.postRender.addEventListener(() => { if (tileset && !tileset.isDestroyed() && !tileset.tilesLoaded) viewer.scene.requestRender() })
+    // VWorld has no models in some districts (e.g. 의정부 산곡동): where the settled view draws none, ours stay.
+    const remove = viewer.scene.postRender.addEventListener(() => {
+      if (!tileset || tileset.isDestroyed()) return
+      if (!tileset.tilesLoaded) { viewer.scene.requestRender(); return }
+      const covered = tileset._selectedTiles?.some((tile: any) => tile.content?.featuresLength > 0) ?? true
+      // Only on change: setShow requests a render, which would otherwise loop through this listener.
+      if (covered === oursHidden) return
+      oursHidden = covered; ours?.setShow?.(!covered)
+    })
     tileset.__remove = remove
     viewer.scene.requestRender()
   }).catch((error: unknown) => { if (!disposed) failed(`실사 건물: ${error instanceof Error ? error.message : String(error)}`) })
