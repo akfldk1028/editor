@@ -8,6 +8,7 @@ import { prepareCesium } from '../../../world/lib/cesium-loader'
 import { prepareWorldBuildingRenderer } from '../../../world/lib/world-building-renderer'
 import { defaultMapReleaseReader } from '../../../world/lib/map-release'
 import { placeSiteCamera } from '../../../world/lib/site-camera'
+import { showVworldPhotoBuildings } from '../../../world/lib/vworld-photo-buildings'
 import type { IntentView, LayoutView } from '../../../world/lib/layout-masses'
 import type { LngLat, ParcelSet } from '../lib/engine'
 import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
@@ -35,7 +36,7 @@ export interface LayoutOverlay {
 }
 
 export default function World3D({ active, drawn, onPick, overlay = null }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay?: LayoutOverlay | null }) {
-  const [mode, setMode] = useState<'mass' | 'lod1' | 'textured'>('mass')
+  const [mode, setMode] = useState<'mass' | 'photo' | 'lod1' | 'textured'>('mass')
   const viewer = useRef<any>(null)
   const camera = useRef<SceneCamera | null>(null)
   const onViewer = useCallback((value: any) => { viewer.current = value }, [])
@@ -48,12 +49,13 @@ export default function World3D({ active, drawn, onPick, overlay = null }: { act
   const controls = <label className="flex items-center gap-2">건물 표시
     <select aria-label="건물 표시 방식" value={mode} onChange={e => void chooseMode(e.target.value as typeof mode)}>
       <option value="mass">흰 매스</option>
+      <option value="photo">실사 (내부 확인용)</option>
       <option value="lod1">브이월드 LoD1</option>
       <option value="textured">브이월드 텍스처 모델</option>
     </select>
   </label>
   useEffect(() => {
-    if (!active || mode !== 'mass') return
+    if (!active || (mode !== 'mass' && mode !== 'photo')) return
     // Fetch the engine and archive while the parcel is located; the viewer still waits for its actual site.
     void prepareCesium().catch(() => {})
     void prepareWorldBuildingRenderer(defaultMapReleaseReader).catch(() => {})
@@ -68,17 +70,17 @@ export default function World3D({ active, drawn, onPick, overlay = null }: { act
   return (
     <div className="site-map-3d" data-active={active}>
       {known
-        ? mode === 'mass'
-          ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} controls={controls} camera={camera.current} onViewer={onViewer} />
+        ? mode === 'mass' || mode === 'photo'
+          ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} controls={controls} camera={camera.current} onViewer={onViewer} photo={mode === 'photo'} />
           : <VworldSiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} mode={mode} controls={controls} camera={camera.current} onViewer={onViewer} />
         : <span className="site-map-3d-status">대지 불러오는 중</span>}
     </div>
   )
 }
 
-function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, onViewer }: {
+function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, onViewer, photo }: {
   active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay: LayoutOverlay | null; shape: object | null
-  controls: ReactNode; camera: SceneCamera | null; onViewer(viewer: any): void
+  controls: ReactNode; camera: SceneCamera | null; onViewer(viewer: any): void; photo: boolean
 }) {
   const target = useRef<HTMLDivElement>(null)
   const onClick = useCallback((lng: number, lat: number) => onPick([lng, lat]), [onPick])
@@ -100,6 +102,14 @@ function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, on
     } })
   const { ready, error, viewerRef, highlightParcel, clearHighlight, frameSite, drawLayout } = world
   useEffect(() => { if (ready) onViewer(viewerRef.current) }, [ready, onViewer, viewerRef])
+
+  // 실사: VWorld's textured buildings replace ours in this same viewer; site, terrain and planned masses stay.
+  const { setStatus } = world
+  useEffect(() => {
+    const viewer = viewerRef.current, C = world.cesiumRef.current
+    if (!ready || !photo || !viewer || !C) return
+    return showVworldPhotoBuildings(viewer, C, setStatus)
+  }, [ready, photo, viewerRef, world.cesiumRef, setStatus])
 
   // The planned building (the newest 배치 설계 of this site) stands on the parcel; it follows the ground setting.
   useEffect(() => {
