@@ -69,7 +69,7 @@ export default function VworldSiteWorld({ active, drawn, onPick, overlay, shape,
   useEffect(() => {
     if (!ready) return
     const viewer = viewerRef.current, C = getCesium()
-    showUnderground(C, viewer.scene.globe, planned ? overlay?.layout ?? null : null)
+    showUnderground(C, viewer.scene.globe, planned ? overlay?.layout ?? null : null, true)   // a basement layout is seen, not buried
     if (overlay && planned) drawLayout(viewer.entities, C, overlay.layout, overlay.intent, 'terrain')
     else clearLayout(viewer.entities)
     viewer.scene.requestRender()

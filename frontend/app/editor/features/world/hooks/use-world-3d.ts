@@ -420,7 +420,9 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     if (!Cesium || !layers.current) return 0
     lastLayout.current = layout ? { layout, intent } : null
     // The ground over a basement turns see-through, else the terrain hides the basement drawn below it.
-    showUnderground(Cesium, viewerRef.current?.scene?.globe, layout)
+    // seeThrough was never passed, so a basement car park (684-1: 30 stalls, aisle and ramp at -3 m) stayed under
+    // opaque ground and the chosen layout showed only its boundary line (2026-11-03).
+    showUnderground(Cesium, viewerRef.current?.scene?.globe, layout, true)
     if (!layout) {
       clearLayoutEntities(layers.current.layout.entities)
       return 0
