@@ -244,7 +244,8 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
   const stallEdge = Cesium.Color.fromCssColorString('#6b7280')
   const aisle = Cesium.Color.fromCssColorString('#cfd4da').withAlpha(0.6)
   const access = Cesium.Color.fromCssColorString('#f59e0b').withAlpha(0.6)
-  const buildable = Cesium.Color.fromCssColorString('#d14343')
+  const buildable = Cesium.Color.fromCssColorString('#16a34a')
+  const buildableArea = Cesium.Color.fromCssColorString('#22c55e').withAlpha(0.14)
   const plate = Cesium.Color.fromCssColorString('#64748b').withAlpha(0.35)
   const plateEdge = Cesium.Color.fromCssColorString('#334155')
   const pitWall = Cesium.Color.fromCssColorString('#a8a29e').withAlpha(0.95)
@@ -430,9 +431,19 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
             positions: onTerrain ? Cesium.Cartesian3.fromDegreesArray(line) : Cesium.Cartesian3.fromDegreesArrayHeights(line.flatMap((v, k) => (k % 2 ? [v, ground + 0.6] : [v]))),
             clampToGround: onTerrain,
             ...(onTerrain ? { classificationType: Cesium.ClassificationType.TERRAIN } : {}),
-            width: 2,
-            material: new Cesium.PolylineDashMaterialProperty({ color: buildable, dashLength: 12 }),
+            width: 2.5,
+            // Solid green: the parcel's own outline is a red dashed line, and the two read as one where they meet.
+            material: buildable,
           },
+        })
+        n++
+      })
+      rings(f.geometry).forEach((ring, i) => {
+        entities.add({
+          id: `${PREFIX}buildable-area-${index}-${i}`,
+          name: '건축 가능 범위',
+          polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), material: buildableArea,
+            ...(onTerrain ? { classificationType: Cesium.ClassificationType.TERRAIN } : { height: ground + 0.05 }) },
         })
         n++
       })
