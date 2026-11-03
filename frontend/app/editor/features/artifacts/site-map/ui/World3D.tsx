@@ -39,6 +39,7 @@ export default function World3D({ active, drawn, onPick, overlay = null, photo =
   const [mode, setMode] = useState<'mass' | 'diagram' | 'photo' | 'lod1' | 'textured'>('mass')
   // 지하 보기: on by default - the basement in its excavation under a translucent ground-floor plate.
   const [cutaway, setCutaway] = useState(true)
+  const [section, setSection] = useState(false)
   const viewer = useRef<any>(null)
   const camera = useRef<SceneCamera | null>(null)
   const onViewer = useCallback((value: any) => { viewer.current = value }, [])
@@ -60,6 +61,8 @@ export default function World3D({ active, drawn, onPick, overlay = null, photo =
     </select>
     <span className="flex items-center gap-1"><input type="checkbox" aria-label="지하 보기" checked={cutaway}
       onChange={e => setCutaway(e.target.checked)} />지하 보기</span>
+    <span className="flex items-center gap-1"><input type="checkbox" aria-label="단면" checked={section}
+      onChange={e => setSection(e.target.checked)} />단면</span>
   </label>
   useEffect(() => {
     if (!active || (mode !== 'mass' && mode !== 'photo' && mode !== 'diagram')) return
@@ -78,16 +81,16 @@ export default function World3D({ active, drawn, onPick, overlay = null, photo =
     <div className="site-map-3d" data-active={active}>
       {known
         ? mode === 'mass' || mode === 'photo' || mode === 'diagram'
-          ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} controls={controls} camera={camera.current} onViewer={onViewer} photo={mode === 'photo'} diagram={mode === 'diagram'} cutaway={cutaway} />
+          ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} controls={controls} camera={camera.current} onViewer={onViewer} photo={mode === 'photo'} diagram={mode === 'diagram'} cutaway={cutaway} section={section} />
           : <VworldSiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} mode={mode} controls={controls} camera={camera.current} onViewer={onViewer} />
         : <span className="site-map-3d-status">대지 불러오는 중</span>}
     </div>
   )
 }
 
-function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, onViewer, photo, diagram = false, cutaway = false }: {
+function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, onViewer, photo, diagram = false, cutaway = false, section = false }: {
   active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay: LayoutOverlay | null; shape: object | null
-  controls: ReactNode; camera: SceneCamera | null; onViewer(viewer: any): void; photo: boolean; diagram?: boolean; cutaway?: boolean
+  controls: ReactNode; camera: SceneCamera | null; onViewer(viewer: any): void; photo: boolean; diagram?: boolean; cutaway?: boolean; section?: boolean
 }) {
   const target = useRef<HTMLDivElement>(null)
   const onClick = useCallback((lng: number, lat: number) => onPick([lng, lat]), [onPick])
@@ -121,8 +124,8 @@ function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, on
   // The planned building (the newest 배치 설계 of this site) stands on the parcel; it follows the ground setting.
   useEffect(() => {
     if (!ready) return
-    drawLayout(overlay ? { ...overlay.layout, style: diagram ? 'diagram' : null, cutaway } : null, overlay?.intent ?? null)
-  }, [ready, overlay, drawLayout, world.terrain, diagram, cutaway])
+    drawLayout(overlay ? { ...overlay.layout, style: diagram ? 'diagram' : null, cutaway, section } : null, overlay?.intent ?? null)
+  }, [ready, overlay, drawLayout, world.terrain, diagram, cutaway, section])
   // 다이어그램: the base map goes, the ground turns one plain tone and the view becomes a parallel (axonometric)
   // projection, as an architectural site diagram; everything returns as it was when the mode is left.
   useEffect(() => {

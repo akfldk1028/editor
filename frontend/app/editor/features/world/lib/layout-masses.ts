@@ -32,6 +32,8 @@ export interface LayoutView {
   /** 지하 보기 (on by default): the ground is cut along the basement outline under a translucent ground-floor plate,
    *  so the ground floor reads on the plate and the car park shows through it. */
   cutaway?: boolean
+  /** 단면: a vertical east-west section plane through the building; the near (south) half is cut away. */
+  section?: boolean
   storey_height_m: number
   height_m: number | null
   height_basis: string | null
@@ -154,6 +156,39 @@ export function excavate(Cesium: any, globe: any, layout: LayoutView | null): bo
   return true
 }
 
+/** The section's centre: the building footprint's centroid, else the basement's (WGS84 degrees). */
+export function sectionCentre(layout: LayoutView | null): [number, number] | null {
+  const f = layout?.features.find((g) => g.properties.layer === 'building_footprint')
+    ?? layout?.features.find((g) => g.properties.layer === 'basement_boundary')
+  const ring = f ? rings(f.geometry)[0] : undefined
+  if (!ring || ring.length < 2) return null
+  const lons = ring.filter((_, k) => k % 2 === 0), lats = ring.filter((_, k) => k % 2 === 1)
+  return [lons.reduce((a, b) => a + b, 0) / lons.length, lats.reduce((a, b) => a + b, 0) / lats.length]
+}
+
+/** One vertical east-west plane through the section centre keeping the north side, in the frame `toLocal` maps to. */
+function sectionPlanes(Cesium: any, layout: LayoutView, toLocal: any): any {
+  const centre = sectionCentre(layout)
+  if (!centre) return undefined
+  const enu = Cesium.Transforms.eastNorthUpToFixedFrame(Cesium.Cartesian3.fromDegrees(centre[0], centre[1], 0))
+  return new Cesium.ClippingPlaneCollection({
+    modelMatrix: Cesium.Matrix4.multiply(toLocal, enu, new Cesium.Matrix4()),
+    planes: [new Cesium.ClippingPlane(new Cesium.Cartesian3(0, 1, 0), 0)],
+    edgeWidth: 2, edgeColor: Cesium.Color.fromCssColorString('#111111'),
+  })
+}
+
+/** 단면: cuts the ground (and so the basement's earth) along the same plane as the building; clears it when off. */
+export function sectionGround(Cesium: any, globe: any, layout: LayoutView | null): boolean {
+  if (!globe || !Cesium?.ClippingPlaneCollection) return false
+  if (!layout?.section || !sectionCentre(layout)) {
+    globe.clippingPlanes = undefined
+    return false
+  }
+  globe.clippingPlanes = sectionPlanes(Cesium, layout, Cesium.Matrix4.IDENTITY)
+  return true
+}
+
 /** Does the intent read as a glazed facade? Any intent text (parti, material attitude, massing) is searched. */
 export function glazedFacade(intent: IntentView | null | undefined): boolean {
   if (!intent) return false
@@ -273,12 +308,13 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       // A further 90 degrees clockwise puts the frame's east on east.
       const model = layout.mass.model
       const position = Cesium.Cartesian3.fromDegrees(model.origin[0], model.origin[1], onTerrain ? 0 : ground)
+      const orientation = Cesium.Transforms.headingPitchRollQuaternion(
+        position, new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(model.heading_deg + GLTF_FORWARD_DEG), 0, 0))
       entities.add({
         id: `${PREFIX}building-mass-model`,
         name: `계획 건물 · ${layout.mass.label ?? 'Mass 안'}`,
         position,
-        orientation: Cesium.Transforms.headingPitchRollQuaternion(
-          position, new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(model.heading_deg + GLTF_FORWARD_DEG), 0, 0)),
+        orientation,
         model: {
           uri: modelUrl(model.href),
           // The delivered glTF carries positions only: unlit it is one flat colour, the same cream as the parcel
@@ -289,6 +325,9 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
           }),
           silhouetteColor: wallEdge,
           silhouetteSize: 1,
+          ...(layout.section ? { clippingPlanes: sectionPlanes(Cesium, layout,
+            Cesium.Matrix4.inverse(Cesium.Matrix4.fromRotationTranslation(Cesium.Matrix3.fromQuaternion(orientation), position),
+              new Cesium.Matrix4())) } : {}),
           ...(onTerrain ? { heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND } : {}),
         },
       })
