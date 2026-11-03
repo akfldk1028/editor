@@ -64,8 +64,15 @@ def validate_packet(packet):
         (f['geometry'] for f in features if (f.get('properties') or {}).get('layer') == 'buildable_boundary'), None)
     if buildable is None:
         raise ValueError('MasterPlan selected layout carries no buildable domain')
-    if (not parts or not unary_union(parts).equals(domain)
-            or not shape(buildable).buffer(1e-6).covers(domain)):
+    zone = unary_union(parts) if parts else None
+    # MasterPlan hands Mass the legal buildable area with the layout's own footprint as `preferred_zone` (684-1,
+    # 2026-11-03: a 750 m2 zone carried 1,073 of 3,000 m2). The zone must still be the selected layout's, and the
+    # domain must hold it and stay within the buildable area. A packet without preferred_zone keeps the old rule.
+    preferred = packet.get('preferred_zone')
+    held = (zone is not None and shape(preferred['geometry']).equals(zone) and domain.buffer(1e-6).covers(zone)
+            if isinstance(preferred, dict) and isinstance(preferred.get('geometry'), dict)
+            else zone is not None and zone.equals(domain))
+    if not held or not shape(buildable).buffer(1e-6).covers(domain):
         raise ValueError('MasterPlan design domain differs from selected layout')
     for key in ('law', 'program'):
         snapshot = packet[key]

@@ -254,3 +254,22 @@ def test_only_programs_transport_projection_skips_its_hash(key, marker, ok):
     else:
         with pytest.raises(ValueError, match='snapshot'):
             validate_packet(value)
+
+
+@pytest.mark.parametrize('zone,domain,ok', [
+    (box(10, 10, 30, 30), box(0, 0, 60, 60), True),      # legal room around the layout's own footprint
+    (box(10, 10, 31, 30), box(0, 0, 60, 60), False),     # preferred zone is not the selected footprint
+    (box(10, 10, 30, 30), box(20, 0, 60, 60), False),    # the domain does not hold the zone
+    (box(10, 10, 30, 30), box(0, 0, 120, 120), False),   # the domain leaves the buildable area
+])
+def test_a_legal_domain_carries_the_selected_footprint_as_preferred_zone(zone, domain, ok):
+    from backend.app.modules.design.generation.maas.masterplan_development import validate_packet
+    value = packet()
+    value['design_domain']['geometry'] = mapping(domain)
+    value['preferred_zone'] = {'geometry': mapping(zone), 'coordinate_frame': value['design_domain']['coordinate_frame']}
+    _rehash(value)
+    if ok:
+        validate_packet(value)
+    else:
+        with pytest.raises(ValueError, match='domain'):
+            validate_packet(value)
