@@ -1,4 +1,5 @@
-import { AlertTriangle, Check, Plus, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
+import { useState } from 'react'
 
 import type { ShellApi } from '../../../shell/artifact-types'
 import { lotLabel } from '../lib/layers/parcelOutline'
@@ -45,6 +46,10 @@ function Ready({ state, adding, onAddingChange, onRemove, onSelect, project, she
   const { site, save } = state
   const count = site.parcels.length
   const editable = save !== 'saved' && save !== 'saving'
+  // The conversation drives the design; the card's own inputs (연면적, 의도, 배치·매스 설계) stay folded until asked
+  // for, so a chosen site is one quiet summary over the map. Folded is hidden, not unmounted: a run it started is
+  // still followed.
+  const [open, setOpen] = useState(false)
   return (
     <>
       <header>
@@ -79,8 +84,13 @@ function Ready({ state, adding, onAddingChange, onRemove, onSelect, project, she
       )}
       {state.save === 'saved' ? (
         <>
-          <p className="site-card-saved"><Check aria-hidden="true" size={14} />선택됨</p>
-          <SiteRunPanel key={state.site.selection_id} project={project} shell={shell} site={state.site} />
+          <button aria-expanded={open} className="site-card-saved site-card-fold" onClick={() => setOpen(!open)} type="button">
+            <Check aria-hidden="true" size={14} />선택됨 · 조건 입력
+            {open ? <ChevronUp aria-hidden="true" size={14} /> : <ChevronDown aria-hidden="true" size={14} />}
+          </button>
+          <div hidden={!open}>
+            <SiteRunPanel key={state.site.selection_id} project={project} shell={shell} site={state.site} />
+          </div>
         </>
       ) : (
         <button className="artifact-primary site-card-select" disabled={save === 'saving'} onClick={onSelect} type="button">

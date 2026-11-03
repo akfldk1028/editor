@@ -59,6 +59,9 @@ def create_app(
     application.include_router(create_design_runtime_router(public_origin=platform_public_origin))
     application.include_router(create_workspace_router(public_origin=platform_public_origin))
     application.state.planm_runs = service
+    from backend.app.core.loopback_origin import LoopbackOrigin
+    application.add_middleware(LoopbackOrigin, public=platform_public_origin
+                               or os.environ.get('EDITOR_PUBLIC_URL', 'http://127.0.0.1:5173'))
     return application
 
 
