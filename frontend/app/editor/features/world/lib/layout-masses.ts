@@ -27,6 +27,10 @@ export interface LayoutView {
     model?: { href: string; origin: [number, number]; heading_deg: number } | null
   } | null
   storeys: number | null
+  /** 'diagram': the OMA-style site diagram (accent mass, short labels); the map draws everything else plain. */
+  style?: 'diagram' | null
+  /** 지하 보기: the ground is cut along the basement outline. Off by default: the site shows its ground floor. */
+  cutaway?: boolean
   storey_height_m: number
   height_m: number | null
   height_basis: string | null
@@ -128,14 +132,14 @@ export function showUnderground(Cesium: any, globe: any, layout: LayoutView | nu
 }
 
 /**
- * Cuts the ground open along the layout's basement outline, so the car park below is seen in its own excavation and
- * nowhere else (CesiumJS 1.117+ `Globe.clippingPolygons`, concave outlines included). A see-through globe works only
+ * When 지하 보기 is on (`layout.cutaway`), cuts the ground open along the basement outline, so the car park below is
+ * seen in its own excavation and nowhere else (CesiumJS 1.117+ `Globe.clippingPolygons`, concave outlines included). A see-through globe works only
  * on a rectangle and showed it as a square hole with a black underside (684-1, 2026-11-03). Clears the cut when the
  * layout has no basement. `globe` is the viewer's scene.globe.
  */
 export function excavate(Cesium: any, globe: any, layout: LayoutView | null): boolean {
   if (!globe || !Cesium?.ClippingPolygonCollection) return false
-  const outlines = (layout?.features ?? [])
+  const outlines = (layout?.cutaway ? layout.features : [])
     .filter((f) => f.properties.layer === 'basement_boundary' && f.properties.level < 0)
     .flatMap((f) => rings(f.geometry))
     .filter((ring) => ring.length >= 6)
@@ -173,6 +177,37 @@ export function clearLayout(entities: any): void {
 }
 
 /** Draws the layout; returns how many entities were added. `base` is the ground the context masses stand on. */
+/** The diagram's one accent: the planned building against white context (OMA-style site diagrams). */
+const DIAGRAM_ACCENT: [number, number, number] = [0.96, 0.36, 0.16]
+
+/** Short diagram labels: the planned building (storeys) and the car park below (stall count), always on top. */
+function drawDiagramLabels(entities: any, Cesium: any, layout: LayoutView, base: number): number {
+  const label = (id: string, text: string, ring: number[] | undefined, height: number, colour: string) => {
+    if (!ring || ring.length < 2) return 0
+    const lons = ring.filter((_, k) => k % 2 === 0), lats = ring.filter((_, k) => k % 2 === 1)
+    entities.add({
+      id: `${PREFIX}label-${id}`,
+      position: Cesium.Cartesian3.fromDegrees(lons.reduce((a, b) => a + b, 0) / lons.length,
+        lats.reduce((a, b) => a + b, 0) / lats.length, base + height),
+      label: {
+        text, font: '600 13px Pretendard, "Noto Sans KR", sans-serif',
+        fillColor: Cesium.Color.fromCssColorString(colour), showBackground: true,
+        backgroundColor: Cesium.Color.WHITE.withAlpha(0.92),
+        ...(base === 0 ? { heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND } : {}),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+    })
+    return 1
+  }
+  const footprint = layout.features.find((f) => f.properties.layer === 'building_footprint')
+  const basement = layout.features.find((f) => f.properties.layer === 'basement_boundary' && f.properties.level < 0)
+  const below = layout.features.filter((f) => f.properties.layer === 'parking_stall' && f.properties.level < 0).length
+  const top = (layout.height_m ?? (layout.storeys ?? 1) * layout.storey_height_m) + 3
+  return label('building', `계획 건물${layout.storeys ? ` · ${layout.storeys}F` : ''}`, footprint && rings(footprint.geometry)[0], top, '#111111')
+    + (below ? label('parking', `B${-(basement?.properties.level ?? -1)} 주차 ${below}대`,
+      basement && rings(basement.geometry)[0], 1, '#1d4ed8') : 0)
+}
+
 /** A fragment shader lighting each flat face by its screen-space normal (for glTF without normals). */
 export function facetShader(rgb: [number, number, number]): string {
   const [r, g, b] = rgb.map((c) => c.toFixed(3))
@@ -248,7 +283,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
           // plate under it. Each face is shaded by its own normal, taken from the screen-space derivatives.
           customShader: new Cesium.CustomShader({
             lightingModel: Cesium.LightingModel.UNLIT,
-            fragmentShaderText: facetShader(glazed ? [0.56, 0.76, 0.91] : [0.93, 0.87, 0.78]),
+            fragmentShaderText: facetShader(layout.style === 'diagram' ? DIAGRAM_ACCENT : glazed ? [0.56, 0.76, 0.91] : [0.93, 0.87, 0.78]),
           }),
           silhouetteColor: wallEdge,
           silhouetteSize: 1,
@@ -330,6 +365,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
           polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), ...flat(depth), material: plate, outline: true, outlineColor: plateEdge },
         })
         n++
+        if (!layout.cutaway) return
         // The ground floor over the excavation: a translucent plate at grade, so the site's ground-level layout
         // (entrances, paths, landscape) still reads on it while the car park shows through below.
         entities.add({
@@ -401,6 +437,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       })
     }
   })
+  if (layout.style === 'diagram') n += drawDiagramLabels(entities, Cesium, layout, onTerrain ? 0 : ground)
   entities.resumeEvents()
   drawnLayouts.set(entities, { signature, count: n,
     entities: entities.values.filter((e: any) => String(e.id).startsWith(PREFIX)) })

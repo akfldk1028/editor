@@ -168,7 +168,9 @@ test('the ground is cut open along the basement outline only, and closed again w
     ClippingPolygonCollection: class { constructor(public options: any) {} },
     ClippingPolygon: class { constructor(public options: any) {} } }
   const globe: any = {}
-  expect(excavate(C, globe, view([feature('basement_boundary', -1, square(LON, LAT, 0.0003))]))).toBe(true)
+  // Off by default: the ground floor stays whole.
+  expect(excavate(C, globe, view([feature('basement_boundary', -1, square(LON, LAT, 0.0003))]))).toBe(false)
+  expect(excavate(C, globe, { ...view([feature('basement_boundary', -1, square(LON, LAT, 0.0003))]), cutaway: true })).toBe(true)
   expect(globe.clippingPolygons.options.polygons).toHaveLength(1)
   expect(excavate(C, globe, view([feature('parking_stall', 0, square(LON, LAT))]))).toBe(false)
   expect(globe.clippingPolygons).toBeUndefined()

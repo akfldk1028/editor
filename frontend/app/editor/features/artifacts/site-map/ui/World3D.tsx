@@ -36,7 +36,9 @@ export interface LayoutOverlay {
 }
 
 export default function World3D({ active, drawn, onPick, overlay = null, photo = false }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay?: LayoutOverlay | null; photo?: boolean }) {
-  const [mode, setMode] = useState<'mass' | 'photo' | 'lod1' | 'textured'>('mass')
+  const [mode, setMode] = useState<'mass' | 'diagram' | 'photo' | 'lod1' | 'textured'>('mass')
+  // 지하 보기: off by default, so the ground floor (building, entrances, landscape) is what the site shows.
+  const [cutaway, setCutaway] = useState(false)
   const viewer = useRef<any>(null)
   const camera = useRef<SceneCamera | null>(null)
   const onViewer = useCallback((value: any) => { viewer.current = value }, [])
@@ -51,13 +53,16 @@ export default function World3D({ active, drawn, onPick, overlay = null, photo =
   const controls = <label className="flex items-center gap-2">건물 표시
     <select aria-label="건물 표시 방식" value={mode} onChange={e => void chooseMode(e.target.value as typeof mode)}>
       <option value="mass">흰 매스</option>
+      <option value="diagram">다이어그램</option>
       <option value="photo">실사 (내부 확인용)</option>
       <option value="lod1">브이월드 LoD1</option>
       <option value="textured">브이월드 텍스처 모델</option>
     </select>
+    <span className="flex items-center gap-1"><input type="checkbox" aria-label="지하 보기" checked={cutaway}
+      onChange={e => setCutaway(e.target.checked)} />지하 보기</span>
   </label>
   useEffect(() => {
-    if (!active || (mode !== 'mass' && mode !== 'photo')) return
+    if (!active || (mode !== 'mass' && mode !== 'photo' && mode !== 'diagram')) return
     // Fetch the engine and archive while the parcel is located; the viewer still waits for its actual site.
     void prepareCesium().catch(() => {})
     void prepareWorldBuildingRenderer(defaultMapReleaseReader).catch(() => {})
@@ -72,17 +77,17 @@ export default function World3D({ active, drawn, onPick, overlay = null, photo =
   return (
     <div className="site-map-3d" data-active={active}>
       {known
-        ? mode === 'mass' || mode === 'photo'
-          ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} controls={controls} camera={camera.current} onViewer={onViewer} photo={mode === 'photo'} />
+        ? mode === 'mass' || mode === 'photo' || mode === 'diagram'
+          ? <SiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} controls={controls} camera={camera.current} onViewer={onViewer} photo={mode === 'photo'} diagram={mode === 'diagram'} cutaway={cutaway} />
           : <VworldSiteWorld active={active} drawn={drawn} onPick={onPick} overlay={overlay} shape={shape} mode={mode} controls={controls} camera={camera.current} onViewer={onViewer} />
         : <span className="site-map-3d-status">대지 불러오는 중</span>}
     </div>
   )
 }
 
-function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, onViewer, photo }: {
+function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, onViewer, photo, diagram = false, cutaway = false }: {
   active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay: LayoutOverlay | null; shape: object | null
-  controls: ReactNode; camera: SceneCamera | null; onViewer(viewer: any): void; photo: boolean
+  controls: ReactNode; camera: SceneCamera | null; onViewer(viewer: any): void; photo: boolean; diagram?: boolean; cutaway?: boolean
 }) {
   const target = useRef<HTMLDivElement>(null)
   const onClick = useCallback((lng: number, lat: number) => onPick([lng, lat]), [onPick])
@@ -116,8 +121,15 @@ function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, on
   // The planned building (the newest 배치 설계 of this site) stands on the parcel; it follows the ground setting.
   useEffect(() => {
     if (!ready) return
-    drawLayout(overlay?.layout ?? null, overlay?.intent ?? null)
-  }, [ready, overlay, drawLayout, world.terrain])
+    drawLayout(overlay ? { ...overlay.layout, style: diagram ? 'diagram' : null, cutaway } : null, overlay?.intent ?? null)
+  }, [ready, overlay, drawLayout, world.terrain, diagram, cutaway])
+  // 다이어그램: the base map goes, the ground turns one plain tone and the view becomes a parallel (axonometric)
+  // projection, as an architectural site diagram; everything returns as it was when the mode is left.
+  useEffect(() => {
+    const viewer = viewerRef.current, C = world.cesiumRef.current
+    if (!ready || !diagram || !viewer || !C) return
+    return applyDiagramLook(viewer, C)
+  }, [ready, diagram, viewerRef, world.cesiumRef])
   /** The last framed site survives hiding the view so returning preserves a user's pose. */
   const placed = useRef<string | null>(null)
 
@@ -168,4 +180,31 @@ function SiteWorld({ active, drawn, onPick, overlay, shape, controls, camera, on
       {!ready && <span className="site-map-3d-status">{error ?? '3D 불러오는 중'}</span>}
     </>
   )
+}
+
+/** The OMA-style diagram look on a viewer; returns the undo. */
+export function applyDiagramLook(viewer: any, C: any): () => void {
+  const scene = viewer.scene
+  const layers = Array.from({ length: viewer.imageryLayers.length }, (_, i) => viewer.imageryLayers.get(i))
+  const before = { layers: layers.map((l: any) => l.show), base: scene.globe.baseColor, background: scene.backgroundColor,
+    atmosphere: scene.skyAtmosphere?.show, sky: scene.skyBox?.show, fog: scene.fog.enabled }
+  layers.forEach((l: any) => { l.show = false })
+  scene.globe.baseColor = C.Color.fromCssColorString('#ecebe7')
+  scene.backgroundColor = C.Color.fromCssColorString('#f7f7f5')
+  if (scene.skyAtmosphere) scene.skyAtmosphere.show = false
+  if (scene.skyBox) scene.skyBox.show = false
+  scene.fog.enabled = false
+  viewer.camera.switchToOrthographicFrustum()
+  scene.requestRender()
+  return () => {
+    if (viewer.isDestroyed?.()) return
+    layers.forEach((l: any, i: number) => { l.show = before.layers[i] })
+    scene.globe.baseColor = before.base
+    scene.backgroundColor = before.background
+    if (scene.skyAtmosphere) scene.skyAtmosphere.show = before.atmosphere
+    if (scene.skyBox) scene.skyBox.show = before.sky
+    scene.fog.enabled = before.fog
+    viewer.camera.switchToPerspectiveFrustum()
+    scene.requestRender()
+  }
 }
