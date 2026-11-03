@@ -17,8 +17,9 @@ from pathlib import Path
 from r2_release import load_settings
 
 BUCKET = 'latent-archive'
-# Same spirit as r2_release.safe_key: management/ also holds private settings, which never leave the machine.
-PRIVATE = re.compile(r'(^|[\\/._-])(env|secret|secrets|credential|credentials|token|tokens|apikey|api-key|password)([\\/._-]|$)|\.env', re.I)
+# Same spirit as r2_release.safe_key: management/ also holds private settings and NGII order responses with the
+# orderer's personal data (*.private.json/html), which never leave the machine.
+PRIVATE = re.compile(r'(^|[\\/._-])(env|secret|secrets|credential|credentials|token|tokens|apikey|api-key|password|private)([\\/._-]|$)|\.env', re.I)
 
 
 def sha256(path):
