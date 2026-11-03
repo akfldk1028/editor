@@ -44,6 +44,55 @@
 }
 .site-map-search:focus-within { border-color: var(--accent); }
 
+/* Search candidates (SiteSearch): under the box, as wide as it, above the status line and the card. */
+.site-map-results {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: 52px;
+  inset-inline-start: 12px;
+  inline-size: min(360px, calc(100% - 24px));
+  max-block-size: min(360px, calc(100% - 72px));
+  overflow-y: auto;
+  padding: 4px;
+  color: var(--ink);
+  background: var(--panel-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow);
+  font-size: var(--fs-2);
+}
+.site-map-results-note { margin: 0; padding: 6px 8px; color: var(--muted); font-size: var(--fs-1); }
+.site-map-results-note[data-kind="error"] { color: var(--warning); }
+.site-map-results ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 1px; }
+.site-map-results li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+.site-map-results li[aria-selected="true"] { background: var(--hover); }
+/* Rows of the previous text while the next search waits: visible, not choosable. */
+.site-map-results ul[data-stale="true"] { opacity: .5; }
+.site-map-results ul[data-stale="true"] li { cursor: progress; }
+.site-map-results li[data-substituted="true"] .site-map-results-text b { color: var(--muted); font-weight: 500; }
+.site-map-results-badge {
+  flex: 0 0 auto;
+  margin-block-start: 1px;
+  padding: 1px 6px;
+  color: var(--muted);
+  background: var(--subtle);
+  border-radius: var(--radius-s);
+  font-size: var(--fs-1);
+  line-height: 1.5;
+}
+.site-map-results-badge[data-kind="lot"], .site-map-results-badge[data-kind="road"] { color: var(--ink); background: var(--accent-soft); }
+.site-map-results-text { min-inline-size: 0; flex: 1; display: grid; gap: 1px; }
+.site-map-results-text b { font-weight: 600; overflow-wrap: anywhere; }
+.site-map-results-text small { color: var(--muted); font-size: var(--fs-1); overflow-wrap: anywhere; }
+.site-map-results-exact { flex: 0 0 auto; margin-block-start: 2px; color: var(--muted); font-size: var(--fs-1); }
+
 .site-map-controls {
   position: absolute;
   z-index: 2;

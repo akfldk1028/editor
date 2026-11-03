@@ -1,5 +1,8 @@
 import os
 import sqlite3
+import time
+from collections import OrderedDict
+from copy import deepcopy
 from typing import Annotated, Literal
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
@@ -57,6 +60,23 @@ class ResolutionRequest(BaseModel):
         return self
 
 
+class SearchRequest(BaseModel):
+    model_config=ConfigDict(strict=True, extra='forbid', allow_inf_nan=False)
+    query: str=Field(min_length=1, max_length=200)
+    # The map's view as [west, south, east, north] (EPSG:4326): ranks by distance and narrows place search.
+    bbox: list[float] | None=Field(default=None, min_length=4, max_length=4)
+
+    @model_validator(mode='after')
+    def check_query(self):
+        self.query=self.query.strip()
+        if not self.query: raise ValueError('query is required')
+        if self.bbox is not None:
+            west, south, east, north = self.bbox
+            if not (-180 <= west < east <= 180 and -90 <= south < north <= 90):
+                raise ValueError('bbox must be west,south,east,north')
+        return self
+
+
 class ReverseRequest(BaseModel):
     model_config=ConfigDict(strict=True, extra='forbid', allow_inf_nan=False)
     x: float=Field(ge=124, le=133)
@@ -95,15 +115,35 @@ def create_land_router(*, public_origin=None, address_client=None, repository=No
             return {'valid':True, 'parsed':parse_pnu(body.input)}
         return await addresses.resolve_address(body.input)
 
+    @router.post('/search')
+    async def search(body: SearchRequest, request: Request):
+        # Candidates for the map's search box and the conversation; see modules/land/vworld/search.py.
+        check_origin(request)
+        return await addresses.search(body.query, body.bbox)
+
     @router.post('/reverse')
     async def reverse(body: ReverseRequest, request: Request):
         check_origin(request)
         return await addresses.reverse_geocode(body.x, body.y)
 
+    # This is only the browser's map-outline door. Analysis continues to request
+    # its own evidence directly through LandServices, without this display cache.
+    parcel_outlines = OrderedDict()
+
     @router.post('/parcel-geometry')
     async def geometry(body: ParcelRequest, request: Request):
         check_origin(request)
-        return await addresses.fetch_parcel_geometry(body.pnu)
+        saved = parcel_outlines.get(body.pnu)
+        if saved and time.monotonic() - saved[0] < 60:
+            parcel_outlines.move_to_end(body.pnu)
+            return deepcopy(saved[1])
+        reply = await addresses.fetch_parcel_geometry(body.pnu)
+        if reply.get('success') and reply.get('geometry'):
+            parcel_outlines[body.pnu] = (time.monotonic(), deepcopy(reply))
+            parcel_outlines.move_to_end(body.pnu)
+            while len(parcel_outlines) > 128:
+                parcel_outlines.popitem(last=False)
+        return reply
 
     @router.get('/zones')
     def zones():

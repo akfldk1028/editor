@@ -417,3 +417,11 @@ test('a run waiting for the district lot asks in the conversation, not in a pane
   expect(prompt.text).toContain('어느 획지인지')
   expect(prompt.actions.map((action) => action.label)).toEqual(['나중에'])
 })
+
+test('an address that matched several parcels opens the map search to choose, without picking', () => {
+  const several = { kind: 'site' as const, query: '신촌동 1', pnu: null, address: null, coordinates: null, error: '여러 곳', ambiguous: true }
+  expect(siteLocateParams(several)).toEqual({ address: '신촌동 1' })
+  const line = siteLocatedLine(several)
+  expect(line.text).toContain('지도에서 골라 주세요')
+  expect('actions' in line && line.actions?.[0]?.params).toEqual({ address: '신촌동 1' })
+})

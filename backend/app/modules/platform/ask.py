@@ -51,7 +51,9 @@ async def locate_site(query: str, *, addresses=None) -> dict:
         return {**body, 'pnu': query}
     found = await (addresses or _addresses()).resolve_address(query)
     if not isinstance(found, dict) or found.get('success') is not True:
-        return {**body, 'error': _str((found or {}).get('error') if isinstance(found, dict) else None) or '주소에 해당하는 필지를 찾지 못했어요'}
+        # Several parcels fit (or only a substitute does): the map's search lists them for the user to choose.
+        ambiguous = {'ambiguous': True} if isinstance(found, dict) and found.get('status') == 'ambiguous' else {}
+        return {**body, **ambiguous, 'error': _str((found or {}).get('error') if isinstance(found, dict) else None) or '주소에 해당하는 필지를 찾지 못했어요'}
     point = found.get('coordinates') if isinstance(found.get('coordinates'), dict) else None
     return {**body, 'pnu': _str(found.get('pnu')), 'address': _str(found.get('geocoded_address')) or query,
             'coordinates': {'x': point['x'], 'y': point['y']} if point and isinstance(point.get('x'), (int, float)) and isinstance(point.get('y'), (int, float)) else None}

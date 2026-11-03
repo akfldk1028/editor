@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+from starlette.concurrency import run_in_threadpool
 
 from backend.app.adapters.orchestrator import OwnerContractError, OwnerUnavailable
 from backend.app.adapters.orchestrator_conversation import ConversationRejected, OrchestratorConversation
@@ -12,12 +13,13 @@ from backend.app.modules.platform.routing.site_mention import site_named
 from backend.app.schemas.conversation import ConversationSnapshot, ConversationSubmit
 
 
-def settle_turns(ledger, snapshot) -> None:
+def settle_turns(ledger, snapshot, *, turns=None) -> None:
     """A person's message stays a running call in the 협업 장부 until the reply to it is in the conversation: then the
     call ends with that reply (everything the Orchestrator said before the person's next message), or as failed."""
     if ledger is None:
         return
-    turns = ledger.open_calls(conversation_id=snapshot.conversation_id, tool='conversation')
+    if turns is None:
+        turns = ledger.open_calls(conversation_id=snapshot.conversation_id, tool='conversation')
     if not turns:
         return
     messages = snapshot.messages
@@ -64,7 +66,10 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
             snapshot = await remote.exchange(binding.owner_project_id, binding.branch_id, conversation_id, body)
             if body is not None or (binding.conversation_id is None and snapshot.messages):
                 projects_service().repository.touch_conversation('local', project_id, conversation_id)
-            settle_turns(ledger, snapshot)
+            if ledger is not None:
+                turns = await run_in_threadpool(ledger.open_calls, conversation_id=snapshot.conversation_id, tool='conversation')
+                # Finishing a turn notifies asyncio queues and must remain on this event loop.
+                settle_turns(ledger, snapshot, turns=turns)
             return snapshot
         except ConversationRejected as exc:
             raise HTTPException(exc.status_code, {'message': 'Conversation request rejected by owner', 'code': exc.code}) from None
@@ -115,7 +120,8 @@ def create_conversation_router(projects_service, owner, allowed_origin, activati
         current = {'pnu': body.context.pnu, 'address': body.context.address}
         named = await site_named(body.text, current=current) if body.confirmation is None and any(ch.isdigit() for ch in body.text) else None
         located = await locate_site(named) if named else None
-        if located is not None and not (located['pnu'] or located['coordinates']):
+        # Several parcels fit (`ambiguous`): the answer still carries it, so the map opens its list to choose from.
+        if located is not None and not (located['pnu'] or located['coordinates'] or located.get('ambiguous')):
             located = None
         if located is not None:
             context = payload.setdefault('context', {})

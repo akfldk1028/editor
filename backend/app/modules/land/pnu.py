@@ -2,7 +2,7 @@ import re
 
 
 def normalize_pnu(value: str) -> str:
-    value = value.strip().replace('-', '')
+    value = re.sub(r'[\s-]', '', value)
     if not re.fullmatch(r'[0-9]{19}', value):
         raise ValueError('PNU requires 19 digits')
     return value

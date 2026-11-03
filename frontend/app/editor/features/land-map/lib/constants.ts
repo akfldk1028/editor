@@ -124,4 +124,15 @@ export function hexA(hex: string, alpha: number): string {
 
 /** 19자리 PNU 판별 */
 export const PNU_REGEX = /^\d{19}$/;
-export const isPnu = (s: string) => PNU_REGEX.test(s.trim());
+/** The 19 digits of a typed PNU (hyphens and spaces allowed: 41150-11300-1-0684-0001), else null. */
+export function pnuDigits(s: string): string | null {
+  const value = s.trim();
+  if (!/^[\d\s-]+$/.test(value)) return null;
+  const digits = value.replace(/[\s-]/g, '');
+  return PNU_REGEX.test(digits) ? digits : null;
+}
+/** A PNU: 19 digits once hyphens go, the 11th (산 구분) 1 (대지) or 2 (임야). */
+export const isPnu = (s: string) => {
+  const digits = pnuDigits(s);
+  return digits !== null && (digits[10] === '1' || digits[10] === '2');
+};

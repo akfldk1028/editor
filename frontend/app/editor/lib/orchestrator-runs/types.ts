@@ -281,6 +281,15 @@ export interface ChosenMass {
   gross_m2: number | null
   volumes: MassVolume[]
   glb_href: string | null
+  /** The delivered mesh as drawn (backend chosen_mass.model_of): glTF in site-local metres at the frame origin. */
+  model?: MassModel | null
+}
+
+/** A delivered glTF placed at its frame origin (WGS84) and turned by the frame's grid-north bearing. */
+export interface MassModel {
+  href: string
+  origin: [number, number]
+  heading_deg: number
 }
 
 /** One form Mass stood on MasterPlan's zone (backend run_results/agents/mass_forms.py). */
@@ -414,6 +423,8 @@ export interface SiteLocateBody {
   address: string | null
   coordinates: { x: number; y: number } | null
   error: string | null
+  /** Several parcels fit, or only a substitute does: the map lists them for the user to choose. */
+  ambiguous?: boolean
 }
 
 /** `POST /platform/ask` — one of three shapes by `route.kind`, every key always present. */

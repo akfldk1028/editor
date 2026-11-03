@@ -48,4 +48,13 @@ export function nextPicks(current: readonly Pick[], clicked: Pick, adding: boole
   return selected && current.length === 1 ? [] : [clicked]
 }
 
-export const savedPicks = (site: SiteBundle): Pick[] => site.parcels.map(({ pnu, lng, lat }) => ({ pnu, at: [lng, lat] as const }))
+/**
+ * A parcel chosen by name (a search row, the conversation): in add mode it joins the bundle (kept if already
+ * there — choosing never removes), otherwise it is picked alone (choosing never deselects).
+ */
+export function chosenPicks(current: readonly Pick[], chosen: Pick, adding: boolean): Pick[] {
+  if (!adding) return [chosen]
+  return current.some((pick) => pick.pnu === chosen.pnu) ? [...current] : [...current, chosen]
+}
+
+export const savedPicks =(site: SiteBundle): Pick[] => site.parcels.map(({ pnu, lng, lat }) => ({ pnu, at: [lng, lat] as const }))

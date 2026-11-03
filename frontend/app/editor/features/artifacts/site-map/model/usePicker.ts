@@ -4,9 +4,10 @@ import { type RefObject, useCallback, useEffect, useRef, useState } from 'react'
 import { NoParcelError, parcelAt, previewSite, saveSite, siteOutlines } from '../api/selection'
 import type { LngLat, MapEngine, MapPointer, ParcelSet } from '../lib/engine'
 import { boundsCenter, lotLabel, type ParcelLook, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
-import { nextPicks, type Pick, type SavedSite, type SiteBundle, savedPicks } from '../lib/picks'
+import { chosenPicks, type KnownParcel, nextPicks, type Pick, type SavedSite, type SiteBundle, savedPicks } from '../lib/picks'
 import type { CardState } from '../ui/SiteCard'
 import { ParcelCache } from './parcelCache'
+import { readStartupDrawing, writeStartupDrawing } from './startup-drawing'
 
 /** A second plain click this soon is the tail of a double click and is ignored (double-click zoom is off); Shift-clicks always count. */
 const DOUBLE_CLICK_MS = 300
@@ -46,7 +47,7 @@ function escapeIsElsewhere(event: KeyboardEvent): boolean {
  * describes the bundle, and 이 대지로 선택 saves it under `scope`. Also the
  * hover preview and cursor states.
  */
-export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site: SavedSite) => void, scope: string) {
+export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site: SavedSite) => void, scope: string, startupKey = scope) {
   const cache = useRef(new ParcelCache(20))
   const state = useRef({ busy: false, lastClick: -Infinity, hoverTimer: undefined as number | undefined,
     hoverBusy: false, hoverAt: null as LngLat | null, adding: false, generation: 0 })
@@ -58,7 +59,7 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
   const [notice, setNotice] = useState<string | null>(null)
   const [live, setLive] = useState('')
   /** What is drawn now, for views that mirror the 2D map (the 3D view). */
-  const [drawn, setDrawn] = useState<ParcelSet>(empty.parcels)
+  const [drawn, setDrawn] = useState<ParcelSet & { pnu?: string }>(() => readStartupDrawing(startupKey) ?? empty.parcels)
   const noticeTimer = useRef<number | undefined>(undefined)
   /** The describe request in flight; the next describe, close and unmount abort it. */
   const describing = useRef<AbortController | null>(null)
@@ -67,10 +68,12 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
 
   const draw = useCallback((drawing: Drawing, fit = false) => {
     current.current = drawing
-    setDrawn(drawing.parcels)
+    const snapshot = { ...drawing.parcels, pnu: drawing.picks[0]?.pnu }
+    setDrawn(snapshot)
+    writeStartupDrawing(startupKey, snapshot)
     engineRef.current?.showParcels(drawing.parcels, fit)
     engineRef.current?.setLabels(drawing.labels)
-  }, [engineRef])
+  }, [engineRef, startupKey])
 
   const busy = useCallback((value: boolean) => {
     state.current.busy = value
@@ -130,6 +133,18 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
       busy(false)
     }
   }, [busy, describe, engineRef, say])
+
+  /**
+   * A parcel known by its PNU (a search row, the conversation's located address): picked alone, as a plain
+   * click picks one — or added to the bundle in add mode, as a Shift-click adds — with no lookup at a point.
+   * `at` is where it is recorded (its outline's centre).
+   */
+  const pickParcel = useCallback((parcel: KnownParcel, at: LngLat) => {
+    cache.current.add(parcel)
+    engineRef.current?.setHover(null)
+    engineRef.current?.setMarker(null)
+    void describe(chosenPicks(current.current.picks, { pnu: parcel.pnu, at }, state.current.adding))
+  }, [describe, engineRef])
 
   /** A click picks at once; ignored mid-lookup and right after another click. */
   const handleClick = useCallback((event: MapPointer) => {
@@ -257,5 +272,5 @@ export function usePicker(engineRef: RefObject<MapEngine | null>, onSaved: (site
     restoring.current?.abort()
   }, [])
 
-  return { card, adding, setAdding, notice, live, drawn, handleClick, handleHover, remove, select, close, showSearched, restore }
+  return { card, adding, setAdding, notice, live, drawn, handleClick, handleHover, pickParcel, remove, select, close, showSearched, restore }
 }

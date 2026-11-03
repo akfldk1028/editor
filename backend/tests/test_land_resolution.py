@@ -19,29 +19,45 @@ def test_pnu_resolution_works_without_legacy_url(monkeypatch):
     assert client.post('/api/v1/land/resolve',json={'input':'x','input_type':'address'},headers={'Origin':'https://other.example'}).status_code == 403
 
 
-def test_address_fallback_preserves_coordinate_only_result():
-    from backend.app.modules.land.vworld import VworldClient
-    sent=[]
+def _search_items(handle_items):
     def handle(request):
-        sent.append(request.url.params['type'])
-        if len(sent)==1:return httpx.Response(200,json={'response':{'status':'NOT_FOUND'}})
-        return httpx.Response(200,json={'response':{'status':'OK','result':{'point':{'x':'127','y':'37'}},'refined':{'text':'resolved','structure':{'level4LC':'short'}}}})
-    result=asyncio.run(VworldClient('test-key',transport=httpx.MockTransport(handle)).resolve_address('input'))
-    assert sent==['PARCEL','ROAD']
-    assert result=={'success':True,'address':'input','pnu':None,'coordinates':{'x':127.0,'y':37.0},'geocoded_address':'resolved'}
+        params=request.url.params
+        if request.url.path.endswith('/search') and params.get('type')=='address':
+            items=handle_items(params)
+            return httpx.Response(200,json={'response':{'status':'OK','record':{'total':str(len(items))},'result':{'items':items}}})
+        return httpx.Response(200,json={'response':{'status':'NOT_FOUND'}})
+    return handle
+
+
+def test_address_resolution_gives_a_pnu_only_for_one_exact_parcel():
+    from backend.app.modules.land.vworld import VworldClient
+    one=lambda params:[{'id':'1168011200101280003','address':{'parcel':'서울특별시 강남구 대치동 128-3','road':''},'point':{'x':'127','y':'37'}}]
+    result=asyncio.run(VworldClient('test-key',transport=httpx.MockTransport(_search_items(one))).resolve_address('대치동 128-3'))
+    assert result['success'] is True and result['pnu']=='1168011200101280003'
+    assert result['coordinates']=={'x':127.0,'y':37.0} and result['geocoded_address']=='서울특별시 강남구 대치동 128-3'
+    # The provider's nearest lot (128-4 for 128-3) is never taken as the answer.
+    near=lambda params:[{'id':'1168011200101280004','address':{'parcel':'서울특별시 강남구 대치동 128-4','road':''},'point':{'x':'127','y':'37'}}]
+    missed=asyncio.run(VworldClient('test-key',transport=httpx.MockTransport(_search_items(near))).resolve_address('대치동 128-3'))
+    assert missed['success'] is False and missed['pnu'] is None and missed['status']=='ambiguous'
+    assert missed['candidates'][0]['substituted'] is True
 
 
 def test_address_route_uses_provider_directly_and_preserves_pnu():
     from backend.app.modules.land.vworld import VworldClient
-    def handle(request):
-        assert request.url.host=='api.vworld.kr'
-        assert request.url.params['type']=='PARCEL'
-        return httpx.Response(200,json={'response':{'status':'OK','result':{'point':{'x':'127','y':'37'}},'refined':{'structure':{'level4LC':'1168011200101280003'}}}})
-    app=FastAPI();app.include_router(create_land_router(address_client=VworldClient('test-key',transport=httpx.MockTransport(handle))))
-    result=TestClient(app).post('/api/v1/land/resolve',json={'input':'address','input_type':'address'})
+    def items(params):
+        assert params['category']=='parcel'
+        return [{'id':'1168011200101280003','address':{'parcel':'서울특별시 강남구 대치동 128-3'},'point':{'x':'127','y':'37'}}]
+    app=FastAPI();app.include_router(create_land_router(address_client=VworldClient('test-key',transport=httpx.MockTransport(_search_items(items)))))
+    client=TestClient(app)
+    result=client.post('/api/v1/land/resolve',json={'input':'대치동 128-3','input_type':'address'})
     assert result.status_code==200
     assert result.json()['pnu']=='1168011200101280003'
     assert result.json()['success'] is True
+    searched=client.post('/api/v1/land/search',json={'query':'대치동 128-3','bbox':[126.9,37.4,127.1,37.6]})
+    assert searched.status_code==200 and searched.json()['status']=='unique'
+    assert searched.json()['candidates'][0]['pnu']=='1168011200101280003'
+    assert client.post('/api/v1/land/search',json={'query':'x','bbox':[127,37,126,38]}).status_code==422
+    assert client.post('/api/v1/land/search',json={'query':'x'},headers={'Origin':'https://other.example'}).status_code==403
 
 
 @pytest.mark.parametrize('kind',['missing-key','http-error','malformed','invalid-point'])

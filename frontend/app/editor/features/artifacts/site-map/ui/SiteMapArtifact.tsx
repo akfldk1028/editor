@@ -1,20 +1,24 @@
 'use client'
 
-import { Layers, Minus, Plus, Search } from 'lucide-react'
+import { Layers, Minus, Plus } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { announceSiteSelected } from '@/lib/orchestrator-runs/connection'
 
-import { locateParcel } from '../../../land-map/lib/land-api-client'
+import { isPnu, pnuDigits } from '../../../land-map/lib/constants'
+import { parcelGeometry, type SearchCandidate, searchParcels } from '../../../land-map/lib/land-api-client'
 import type { ArtifactProps } from '../../../shell/artifact-types'
 import { latestSite } from '../api/selection'
+import { prefetchSavedSite } from '../lib/saved-site-prefetch'
 import { chooseEngine, createMapEngine, type LngLat, type MapEngine, type MapEngineKind } from '../lib/engine'
 import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
 import { type SavedSite, selectionScope } from '../lib/picks'
 import { defaultSite, type Site, siteFromSelection, siteParam } from '../lib/site'
+import { searchBox } from '../lib/site-search'
 import { usePicker } from '../model/usePicker'
 import { SiteCard } from './SiteCard'
+import { type SearchShown, SiteSearch } from './SiteSearch'
 import { useLatestLayout } from '../model/useLatestLayout'
 import LayoutPortfolio from './LayoutPortfolio'
 import './site-map.css'
@@ -41,6 +45,13 @@ const engineLabels: Record<MapEngineKind, string> = { naver: 'NAVER 지도', ope
 
 type Status = { kind: 'idle' } | { kind: 'busy'; text: string } | { kind: 'error'; text: string }
 
+/** The zoom that shows an area's box (one tile is 360° at zoom 0); a point alone opens close in. */
+function zoomFor(candidate: SearchCandidate): number {
+  const box = candidate.bbox
+  if (!box) return 18
+  return Math.max(7, Math.min(18, Math.round(Math.log2(360 / Math.max(box[2] - box[0], 1e-4)))))
+}
+
 /** One phrase for the 매스안 heading while Mass has not yet offered its forms. */
 function massStatusLabel(status: string): string {
   if (status === 'succeeded' || status === 'completed') return '골랐어요'
@@ -65,7 +76,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
   const [engineKind, setEngineKind] = useState<MapEngineKind | null>(null)
   const [cadastral, setCadastral] = useState(true)
   const cadastralRef = useRef(cadastral)
-  const [query, setQuery] = useState('')
+  const [searchShown, setSearchShown] = useState<SearchShown | null>(null)
   const [site, setSite] = useState<Site>(() => requestedSite ?? { query: '', label: '' })
   const [status, setStatus] = useState<Status>({ kind: 'busy', text: '지도를 불러오는 중' })
   const [view, setView] = useState<View>(() => initialView3d(params))
@@ -77,9 +88,9 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     setSite(siteFromSelection({ pnu: saved.parcels[0]!.pnu, address: saved.label }))
     void announceSiteSelected(saved)
   }, [])
-  const picker = usePicker(engineRef, onSaved, scope)
+  const picker = usePicker(engineRef, onSaved, scope, `${scope}/${siteParam(params)?.query ?? 'saved'}`)
   // The newest 배치 설계 of the site's first parcel (its candidates, the pick) and 매스 설계, drawn by the 3D view over the parcel.
-  const choice = useLatestLayout(params.project, picker.card?.kind === 'ready' ? picker.card.site.parcels[0]?.pnu ?? null : (/^\d{19}$/.test(site.query) ? site.query : null), view === '3d')
+  const choice = useLatestLayout(params.project, picker.card?.kind === 'ready' ? picker.card.site.parcels[0]?.pnu ?? null : (/^\d{19}$/.test(site.query) ? site.query : picker.drawn.pnu ?? null), view === '3d')
   const overlay = choice.overlay
   const { showSearched } = picker
   // The engine is built once per mount; it reaches the latest handlers through this ref, so
@@ -92,40 +103,77 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     setTitle('대지 지도', site.label || undefined)
   }, [setTitle, site.label])
 
-  /** Shows the site's parcel (searched look, fitted) and answers where it is; null when it was not found. */
-  const locate = useCallback(async (target: Site, withMarker: boolean): Promise<LngLat | null> => {
+  /**
+   * Opens one search candidate. A parcel (its PNU known) is drawn from its own outline, fitted, and with `pick`
+   * picked by that PNU — never by a click at a point, which near a boundary lands on the neighbour. `save` also
+   * saves it as the site (the conversation located it). An area only moves the map; a place whose lot the
+   * provider did not name is shown with a marker for the user to click.
+   */
+  const openCandidate = useCallback(async (candidate: SearchCandidate, { pick, save = false, label }: { pick: boolean; save?: boolean; label?: string }) => {
     const engine = engineRef.current
-    if (!engine) return null
+    if (!engine) return
     searchAbort.current?.abort()
+    if (!candidate.pnu) {
+      engine.setCenter(candidate.point, zoomFor(candidate))
+      engine.setMarker(candidate.kind === 'area' ? null : candidate.point)
+      setStatus(candidate.kind === 'area' ? { kind: 'idle' } : { kind: 'error', text: '이 장소의 필지 번호를 알 수 없어요 — 표시된 위치의 필지를 눌러 고르세요' })
+      return
+    }
+    const pnu = candidate.pnu
     const controller = new AbortController()
     searchAbort.current = controller
     setStatus({ kind: 'busy', text: '필지를 찾는 중' })
     try {
-      const parcel = await locateParcel(target.query, controller.signal)
-      if (controller.signal.aborted || engineRef.current !== engine) return null
+      const parcel = await parcelGeometry(pnu, controller.signal)
+      if (controller.signal.aborted || engineRef.current !== engine) return
       showSearched(parcel.geometry)
       const bounds = parcelBounds(parcelRings(parcel.geometry))
-      const position: LngLat | null = parcel.coordinates
-        ? [parcel.coordinates.x, parcel.coordinates.y]
-        : bounds ? boundsCenter(bounds) : null
-      engine.setMarker(withMarker ? position : null)
-      setSite(target)
+      const at: LngLat = bounds ? boundsCenter(bounds) : candidate.point
+      engine.setMarker(pick ? null : at)
+      setSite({ query: pnu, label: label ?? (parcel.address || candidate.label) })
       setStatus({ kind: 'idle' })
-      return position
+      if (!pick) return
+      autoSelect.current = save
+      latest.current.picker.pickParcel({ pnu, address: parcel.address || candidate.jibun || candidate.label, geometry: parcel.geometry }, at)
     } catch (error) {
-      if (controller.signal.aborted) return null
+      if (controller.signal.aborted) return
       setStatus({ kind: 'error', text: error instanceof Error ? error.message : '필지를 찾지 못했습니다.' })
-      return null
     }
   }, [showSearched])
 
-  /** A site named from outside (`?pnu=`/`?address=`, the conversation's located address): shown, and with `pick` picked and saved. */
+  /**
+   * A site named from outside (`?pnu=`/`?address=`, the conversation's located address, the default): a PNU opens
+   * directly; an address opens directly only when the search finds exactly one parcel, otherwise its candidates
+   * are listed under the search box. `pick` picks it and saves it as the site.
+   */
   const open = useCallback(async (target: Site, pick: boolean) => {
-    const position = await locate(target, !pick)
-    if (!pick || !position || !engineRef.current) return
-    autoSelect.current = true
-    picker.handleClick({ at: position, pixel: [0, 0], shift: false })
-  }, [locate, picker])
+    const label = target.label !== target.query ? target.label : undefined
+    const pnu = isPnu(target.query) ? pnuDigits(target.query) : null
+    if (pnu) {
+      return openCandidate({ pnu, kind: 'lot', jibun: null, road: null, label: target.label, point: initialView.center, exact: true }, { pick, save: pick, label })
+    }
+    const controller = new AbortController()
+    searchAbort.current?.abort()
+    searchAbort.current = controller
+    setStatus({ kind: 'busy', text: '주소를 찾는 중' })
+    try {
+      const found = await searchParcels(target.query, null, controller.signal)
+      if (controller.signal.aborted) return
+      const [top] = found.candidates
+      if (found.status === 'unique' && top?.pnu) return openCandidate(top, { pick, save: pick, label })
+      setStatus(found.candidates.length ? { kind: 'idle' } : { kind: 'error', text: found.error ?? '주소를 찾지 못했어요.' })
+      if (found.candidates.length) setSearchShown({ query: target.query, result: found })
+    } catch (error) {
+      if (controller.signal.aborted) return
+      setStatus({ kind: 'error', text: error instanceof Error ? error.message : '주소를 찾지 못했어요.' })
+    }
+  }, [openCandidate])
+
+  /** Search rows rank near the site drawn now. */
+  const drawnBox = useRef<[number, number, number, number] | null>(null)
+  useEffect(() => { drawnBox.current = parcelBounds(picker.drawn.geometries.flatMap((geometry) => parcelRings(geometry))) }, [picker.drawn])
+  const searchArea = useCallback(() => searchBox(drawnBox.current), [])
+  const chooseRow = useCallback((candidate: SearchCandidate) => void openCandidate(candidate, { pick: candidate.kind !== 'area' }), [openCandidate])
   useEffect(() => { latest.current = { picker, open } })
 
   useEffect(() => {
@@ -149,6 +197,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     if (!element) return
     let disposed = false
     let engine: MapEngine | null = null
+    const savedSite = requestedSite ? null : prefetchSavedSite(signal => latestSite(scope, signal))
 
     async function start(kind: MapEngineKind) {
       engine = await createMapEngine(kind, naverKeyId)
@@ -178,7 +227,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     /** The last saved site, when there is one; false opens the default instead. */
     async function openSaved(): Promise<boolean> {
       try {
-        const saved = await latestSite(scope)
+        const saved = await savedSite?.read()
         if (!saved || disposed) return false
         setStatus({ kind: 'busy', text: '선택한 대지를 불러오는 중' })
         await latest.current.picker.restore(saved)
@@ -197,6 +246,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     })
     return () => {
       disposed = true
+      savedSite?.abort()
       searchAbort.current?.abort()
       engine?.destroy()
       engineRef.current = null
@@ -223,12 +273,6 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
     engineRef.current?.setLayers({ cadastral: next })
   }
 
-  function submit(event: FormEvent) {
-    event.preventDefault()
-    const value = query.trim()
-    if (value) void locate({ query: value, label: value }, true)
-  }
-
   return (
     <div className="site-map" data-engine={engineKind ?? undefined} data-view={view}>
       {/* Providers restyle their target (Naver makes it position: relative), so they get an inner element. */}
@@ -236,9 +280,9 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
 
       {opened3d && <World3D active={view === '3d'} drawn={picker.drawn} onPick={pick3d} overlay={overlay} photo={photo} />}
       {view === '3d' && (choice.alternatives || choice.massRun) && (
-        <LayoutPortfolio alternatives={choice.alternatives} choosing={choice.choosing} error={choice.error}
+        <LayoutPortfolio alternatives={choice.alternatives} choosing={choice.choosing} error={null}
           massBusy={choice.massBusy} massCandidates={choice.massCandidates}
-          massStatus={choice.massRun && !choice.massCandidates.length ? massStatusLabel(choice.massRun.status) : null}
+          massStatus={choice.massRun && !choice.massCandidates.length ? (choice.massChosen ? '골랐어요' : massStatusLabel(choice.massRun.status)) : null}
           onChoose={(id) => void choice.choose(id)} onChooseMass={(id) => void choice.chooseMass(id)} onPreview={choice.setPreview} preview={choice.preview} />
       )}
 
@@ -250,16 +294,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
         {view === '3d' && <button aria-pressed={photo} onClick={() => setPhoto(on => !on)} title="브이월드 실사 건물 (내부 확인용)" type="button">실사</button>}
       </div>
 
-      <form className="site-map-search" onSubmit={submit} role="search">
-        <Search aria-hidden="true" size={14} />
-        <input
-          aria-label="주소 또는 PNU 검색"
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="주소 또는 PNU"
-          type="search"
-          value={query}
-        />
-      </form>
+      <SiteSearch bbox={searchArea} onChoose={chooseRow} shown={searchShown} />
 
       <div aria-label="지도 조작" className="site-map-controls" role="group">
         <button aria-label="확대" className="site-map-button" onClick={() => engineRef.current?.zoomBy(1)} title="확대" type="button"><Plus size={16} /></button>
@@ -270,6 +305,7 @@ export default function SiteMapArtifact({ params, shell }: ArtifactProps) {
       <div className="site-map-status" role="status">
         {status.kind !== 'idle' && <span data-kind={status.kind}>{status.text}</span>}
         {picker.notice && <span data-kind="error">{picker.notice}</span>}
+        {view === '3d' && choice.error && <span data-kind="error">{choice.error}</span>}
         {engineKind && <small>{engineLabels[engineKind]}</small>}
       </div>
 

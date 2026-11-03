@@ -5,16 +5,23 @@ import type { RunResults, SiteLocateBody } from '@/lib/orchestrator-runs/types'
 
 const SITE = 'site_context'
 
-/** The site-map params that open the located parcel and select it (`pick`); null when nothing was found. */
+/**
+ * The site-map params that open the located parcel and select it by its PNU (`pick`); an address that matched several
+ * parcels opens the map's search on it, listed for the user to choose (no pick); null when nothing was found.
+ */
 export function siteLocateParams(body: SiteLocateBody): Record<string, string> | null {
   if (body.pnu) return { pnu: body.pnu, pick: '1' }
+  if (body.ambiguous) return { address: body.query }
   if (body.coordinates) return { address: body.query, pick: '1' }
   return null
 }
 
-/** A message that was an address: found → the map opens on that parcel (the action repeats it); not found → pick on the map. */
+/** A message that was an address: found → the map opens on that parcel (the action repeats it); several → choose on the map; not found → pick on the map. */
 export function siteLocatedLine(body: SiteLocateBody): FeedInput {
   const params = siteLocateParams(body)
+  if (params && !body.pnu && body.ambiguous) {
+    return { kind: 'progress', agent: SITE, tone: 'warn', text: `'${body.query}'에 해당하는 필지가 여러 곳이거나 그대로는 없어요 — 지도에서 골라 주세요`, actions: [{ label: '지도에서 고르기', artifact: 'site-map', params }] }
+  }
   if (!params) {
     return { kind: 'progress', agent: SITE, tone: 'warn', text: `'${body.query}' 주소를 찾지 못했어요 — 지도에서 필지를 직접 찍어 주세요`, actions: [{ label: '지도 열기', artifact: 'site-map' }] }
   }

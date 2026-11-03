@@ -508,6 +508,11 @@
   {
    "method": "GET",
    "owner": "fastapi",
+   "path": "/api/v1/land/building-tiles/{version}/buildings.pmtiles"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
    "path": "/api/v1/land/context-buildings"
   },
   {
@@ -539,6 +544,11 @@
    "method": "POST",
    "owner": "fastapi",
    "path": "/api/v1/land/reverse"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
+   "path": "/api/v1/land/search"
   },
   {
    "method": "GET",
@@ -574,6 +584,11 @@
    "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/land/terrain-heights"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/land/terrain-revision"
   },
   {
    "method": "GET",
@@ -938,12 +953,27 @@
   {
    "method": "POST",
    "owner": "fastapi",
+   "path": "/api/v1/platform/projects/{project_id}/runs/{run_id}/select"
+  },
+  {
+   "method": "POST",
+   "owner": "fastapi",
    "path": "/api/v1/platform/projects/{project_id}/scene-revision"
   },
   {
    "method": "GET",
    "owner": "fastapi",
    "path": "/api/v1/platform/runs/{run_id}"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/runs/{run_id}/alternatives"
+  },
+  {
+   "method": "GET",
+   "owner": "fastapi",
+   "path": "/api/v1/platform/runs/{run_id}/layout"
   },
   {
    "method": "GET",

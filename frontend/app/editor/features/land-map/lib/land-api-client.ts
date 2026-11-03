@@ -9,7 +9,7 @@ import type {
   PnuResolveResult,
   ReverseGeocodeResult,
 } from './types';
-import { isPnu } from './constants';
+import { isPnu, pnuDigits } from './constants';
 
 /** POST /land/analyze/ — 토지 규제 분석 */
 export async function analyze(
@@ -68,11 +68,61 @@ export async function reverse(x: number, y: number, signal?: AbortSignal): Promi
   return res.json();
 }
 
+/** One candidate of `POST /land/search`: a parcel (지번·도로명, `pnu` known), a place, or an area to zoom to. */
+export interface SearchCandidate {
+  pnu?: string | null;
+  kind: 'lot' | 'road' | 'place' | 'area';
+  jibun: string | null;
+  road: string | null;
+  label: string;
+  point: readonly [number, number];
+  bbox?: readonly [number, number, number, number];
+  /** The typed 동·번지 (or 로·번호) exactly, in the typed regions. */
+  exact: boolean;
+  /** Offered instead of what was typed (that lot does not exist, or another region). */
+  substituted?: boolean;
+}
+
+export interface SearchResult {
+  status: 'unique' | 'ambiguous' | 'none' | 'unavailable';
+  normalized: string;
+  kind: 'pnu' | 'lot' | 'road' | 'place' | 'area';
+  candidates: SearchCandidate[];
+  error?: string;
+}
+
+/** POST /land/search — 주소·지번·도로명·장소·PNU → 후보 목록 (backend/app/modules/land/vworld/search.py) */
+export async function searchParcels(
+  query: string,
+  bbox?: readonly [number, number, number, number] | null,
+  signal?: AbortSignal,
+): Promise<SearchResult> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bbox ? { query, bbox } : { query }),
+    signal,
+  });
+  if (!res.ok) throw new Error(res.status >= 500 ? '주소 검색 서버가 응답하지 않습니다.' : `주소 검색 실패: ${res.status}`);
+  return res.json();
+}
+
+/** POST /land/parcel-geometry — PNU → 필지 경계와 지번 주소 */
+export async function parcelGeometry(pnu: string, signal?: AbortSignal): Promise<{ geometry: object; address?: string }> {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/parcel-geometry`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pnu }), signal,
+  });
+  if (!response.ok) throw new Error(`필지 경계 조회 실패: ${response.status}`);
+  const parcel = await response.json();
+  if (!parcel.success || !parcel.geometry || typeof parcel.geometry !== 'object') throw new Error(parcel.error || '필지 경계를 찾지 못했습니다.');
+  return { geometry: parcel.geometry, address: typeof parcel.address === 'string' ? parcel.address : undefined };
+}
+
 export async function locateParcel(input: string, signal?: AbortSignal): Promise<{
   geometry: object; coordinates?: { x: number; y: number };
 }> {
   const value = input.trim();
-  let pnu: string | undefined = isPnu(value) ? value : undefined;
+  let pnu: string | undefined = isPnu(value) ? pnuDigits(value) ?? undefined : undefined;
   let coordinates: { x: number; y: number } | undefined;
   if (!pnu) {
     const location = await resolve(value, 'address', signal);
@@ -86,14 +136,8 @@ export async function locateParcel(input: string, signal?: AbortSignal): Promise
     }
   }
   if (!pnu) throw new Error('필지 번호를 찾지 못했습니다.');
-  const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/api/v1/land/parcel-geometry`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pnu }), signal,
-  });
-  if (!response.ok) throw new Error(`필지 경계 조회 실패: ${response.status}`);
-  const parcel = await response.json();
-  if (!parcel.success || !parcel.geometry || typeof parcel.geometry !== 'object') throw new Error(parcel.error || '필지 경계를 찾지 못했습니다.');
-  return { geometry: parcel.geometry, coordinates };
+  const { geometry } = await parcelGeometry(pnu, signal);
+  return { geometry, coordinates };
 }
-
 
 export type { LandAnalysisResult, PnuResolveResult, ReverseGeocodeResult };

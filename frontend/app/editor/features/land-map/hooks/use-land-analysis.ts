@@ -4,7 +4,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { reverse, analyze } from '../lib/land-api-client';
-import { isPnu } from '../lib/constants';
+import { isPnu, pnuDigits } from '../lib/constants';
 import type { LandAnalysisResult, ReverseGeocodeResult } from '../lib/types';
 
 interface AnalysisState {
@@ -78,7 +78,9 @@ export function useLandAnalysis() {
 
     try {
       const inputType = isPnu(input) ? 'pnu' : 'address';
-      const result = await analyze(input.trim(), inputType, undefined, undefined, signal);
+      // A PNU goes as its 19 digits: the typed form may carry hyphens or spaces (41150 11300 1 0684 0001).
+      const value = inputType === 'pnu' ? pnuDigits(input)! : input.trim();
+      const result = await analyze(value, inputType, undefined, undefined, signal);
       if (signal.aborted) return null;
       setState(prev => ({
         ...prev,

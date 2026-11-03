@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MAP_CONFIG_3D } from '../lib/constants';
+import { selectBuildingLayer, setBuildingLayersVisible, type VworldBuildingMode } from '../lib/vworld-buildings';
 import { canCreateWebGLContext, getCesium, getVw, getWs3d, loadVworldScript, sdkStyles } from '../lib/vworld-3d-loader';
 import {
   addCadastralWmsLayer,
@@ -44,6 +45,8 @@ interface UseVworld3DOptions {
   onClick?: (lng: number, lat: number) => void;
   /** 마우스 이동 시 좌표 콜백 (호출 빈도 높음 — 소비자가 디바운스 필요) */
   onHover?: (lng: number, lat: number) => void;
+  initialLocation?: readonly [number, number];
+  imagery?: 'diagram' | 'satellite';
 }
 
 interface UseVworld3DReturn {
@@ -59,6 +62,7 @@ interface UseVworld3DReturn {
   flyTo: (lng: number, lat: number, zoom?: number) => void;
   /** Vworld 3D 건물 레이어 표시/숨김 (커스텀 매스 렌더링 시 기존 건물 가림 방지) */
   setBuildingsVisible: (visible: boolean) => void;
+  setBuildingMode: (mode: VworldBuildingMode) => boolean;
   /** 규제선 GeoJSON 3D 렌더링 (ground clamped) */
   drawSetbackLines: (lines: Record<string, unknown>) => void;
   clearSetbackLines: () => void;
@@ -81,6 +85,8 @@ export function useVworld3D({
   target,
   onClick,
   onHover,
+  initialLocation,
+  imagery = 'diagram',
 }: UseVworld3DOptions): UseVworld3DReturn {
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -94,6 +100,8 @@ export function useVworld3D({
   onHoverRef.current = onHover;
   const initRef = useRef(false);
   const apiKeyRef = useRef('');
+  const openingLocation = useRef(initialLocation);
+  const buildingMode = useRef<VworldBuildingMode>('textured');
 
   useEffect(() => {
     if (!target.current || initRef.current) return;
@@ -174,8 +182,8 @@ export function useVworld3D({
           mapId: container.id,
           initPosition: new vw.CameraPosition(
             new vw.CoordZ(
-              MAP_CONFIG_3D.center[0],
-              MAP_CONFIG_3D.center[1],
+              openingLocation.current?.[0] ?? MAP_CONFIG_3D.center[0],
+              openingLocation.current?.[1] ?? MAP_CONFIG_3D.center[1],
               MAP_CONFIG_3D.defaultAltitude,
             ),
             new vw.Direction(0, MAP_CONFIG_3D.defaultPitch, 0),
@@ -270,6 +278,21 @@ export function useVworld3D({
       initRef.current = false;
     };
   }, [target]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const C = getCesium();
+    if (!ready || !viewer || !C) return;
+    viewer.imageryLayers.removeAll();
+    const layer = viewer.imageryLayers.addImageryProvider(new C.UrlTemplateImageryProvider({
+      url: imagery === 'satellite'
+        ? `https://api.vworld.kr/req/wmts/1.0.0/${apiKeyRef.current}/Satellite/{z}/{y}/{x}.jpeg`
+        : `https://api.vworld.kr/req/wmts/1.0.0/${apiKeyRef.current}/Base/{z}/{y}/{x}.png`,
+      maximumLevel: 19, credit: new C.Credit('Vworld'),
+    }));
+    if (imagery === 'diagram') applyDiagramImageryStyle(layer);
+    viewer.scene.requestRender();
+  }, [ready, imagery]);
 
   // ---------------------------------------------------------------------------
   // 필지 하이라이트
@@ -418,27 +441,15 @@ export function useVworld3D({
   // ---------------------------------------------------------------------------
 
   const setBuildingsVisible = useCallback((visible: boolean) => {
-    // Approach 1: Vworld SDK layer API
-    const map = mapInstanceRef.current;
-    try {
-      const layer = map?.getLayerElement?.('facility_build');
-      if (layer) {
-        if (visible) layer.show();
-        else layer.hide();
-      }
-    } catch { /* fallback to Cesium */ }
+    setBuildingLayersVisible(mapInstanceRef.current, visible, buildingMode.current);
+    viewerRef.current?.scene.requestRender();
+  }, []);
 
-    // Approach 2: Cesium 3D Tileset iteration
-    const viewer = viewerRef.current;
-    const Cesium = getCesium();
-    if (!viewer || !Cesium) return;
-    const primitives = viewer.scene.primitives;
-    for (let i = 0; i < primitives.length; i++) {
-      const p = primitives.get(i);
-      if (p instanceof Cesium.Cesium3DTileset) {
-        p.show = visible;
-      }
-    }
+  const setBuildingMode = useCallback((mode: VworldBuildingMode) => {
+    const result = selectBuildingLayer(mapInstanceRef.current, mode);
+    if (result.available) buildingMode.current = mode;
+    viewerRef.current?.scene.requestRender();
+    return result.available;
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -488,5 +499,5 @@ export function useVworld3D({
     for (const ds of toRemove) viewer.dataSources.remove(ds, true);
   }, []);
 
-  return { ready, loading, error, highlightParcel, highlightHover, clearHighlight, clearHoverHighlight, flyTo, setBuildingsVisible, drawSetbackLines, clearSetbackLines, viewerRef };
+  return { ready, loading, error, highlightParcel, highlightHover, clearHighlight, clearHoverHighlight, flyTo, setBuildingsVisible, setBuildingMode, drawSetbackLines, clearSetbackLines, viewerRef };
 }

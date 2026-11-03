@@ -1,4 +1,4 @@
-import { isPnu } from '../../../land-map/lib/constants'
+import { isPnu, pnuDigits } from '../../../land-map/lib/constants'
 
 /** 고산 공공1 — the reference site until a project supplies its own. */
 export const defaultSite = { query: '4115011300106840001', label: '고산 공공1 · 경기도 의정부시 산곡동 684-1' } as const
@@ -9,10 +9,13 @@ export interface Site {
   label: string
 }
 
-/** The site the shell's `pnu` (19 digits) or `address` parameter names, else null. */
+/** The site the shell's `pnu` (19 digits, hyphens allowed) or `address` parameter names, else null. */
 export function siteParam(params: Readonly<Record<string, string>>): Site | null {
   const pnu = params.pnu?.trim()
-  if (pnu && isPnu(pnu)) return { query: pnu, label: pnu }
+  if (pnu && isPnu(pnu)) {
+    const digits = pnuDigits(pnu)!
+    return { query: digits, label: digits }
+  }
   const address = params.address?.trim()
   if (address) return { query: address, label: address }
   return null
