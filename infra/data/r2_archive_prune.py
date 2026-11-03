@@ -1,54 +1,54 @@
-"""Delete local copies that the private archive already holds byte-for-byte in size, keeping private files.
+"""Delete local copies that the private archive already holds (same key and size), keeping what must stay local.
 
-Dry run by default; --delete removes. Files missing from R2, with a different size, or matching r2_archive.PRIVATE
-stay, and so do small top-level metadata files and files listed in a sealed release receipt. Empty directories are removed afterwards, and a MOVED-TO-R2.md note is left in each folder.
+Dry run by default; --delete removes. Same `--map PREFIX=LOCAL_DIR` pairs as r2_archive.py. Kept: files missing
+from R2 or with a different size, private files (r2_archive.PRIVATE), each folder's small top-level metadata
+(catalogues, manifests, status, scripts) that the acquisition tools read, and any file listed in a sealed release
+receipt under --data-root (verify() needs those local). Empty directories are removed afterwards, and a
+MOVED-TO-R2.md note is left in each folder.
 """
 import argparse
 import json
 import os
 from pathlib import Path
 
-from r2_archive import BUCKET, PRIVATE, existing
-from r2_release import load_settings
+from r2_archive import BUCKET, PRIVATE, client_for, existing, mapping
 
 KEEP_TOP = {'.json', '.jsonl', '.js', '.cjs', '.md', '.csv', '.txt', '.html'}
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--data-root', type=Path, required=True); p.add_argument('--folder', action='append', required=True)
-    p.add_argument('--env-file', type=Path); p.add_argument('--delete', action='store_true')
+    p.add_argument('--map', type=mapping, action='append', required=True); p.add_argument('--env-file', type=Path)
+    p.add_argument('--data-root', type=Path, default=Path('C:/Data/25_ACE')); p.add_argument('--delete', action='store_true')
     args = p.parse_args()
-    import boto3
-    s = load_settings(args.env_file)
-    client = boto3.client('s3', endpoint_url=f"https://{s['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com", region_name='auto',
-        aws_access_key_id=s['R2_ACCESS_KEY_ID'], aws_secret_access_key=s['R2_SECRET_ACCESS_KEY'])
+    client = client_for(args.env_file)
     root = args.data_root.resolve()
     # Sealed releases list some source files (e.g. ngii-canonical plans) in their receipts; verify() needs them local.
     sealed = set()
     for receipt in (root / 'management/releases').glob('*/files.jsonl'):
-        with open(receipt, encoding='utf-8') as lines: sealed.update(json.loads(line)['key'] for line in lines)
-    for folder in args.folder:
-        have = existing(client, folder.rstrip('/') + '/')
-        report = {'folder': folder, 'delete': 0, 'deleteBytes': 0, 'keepPrivate': 0, 'keepRelease': 0, 'keepTopLevel': 0, 'keepMissing': 0, 'keepSizeDiff': 0}
-        for base, _, names in os.walk(root / folder):
+        with open(receipt, encoding='utf-8') as lines: sealed.update((root / json.loads(line)['key']).resolve() for line in lines)
+    for prefix, local in args.map:
+        have = existing(client, prefix + '/')
+        report = {'prefix': prefix, 'local': local.as_posix(), 'delete': 0, 'deleteBytes': 0, 'keepPrivate': 0,
+                  'keepRelease': 0, 'keepTopLevel': 0, 'keepMissing': 0, 'keepSizeDiff': 0}
+        for base, _, names in os.walk(local):
             for name in names:
-                path = Path(base) / name; key = path.relative_to(root).as_posix(); size = path.stat().st_size
-                if PRIVATE.search(key): report['keepPrivate'] += 1; continue
-                if key in sealed: report['keepRelease'] += 1; continue
-                # Each folder's own catalogues, manifests, status and order scripts: the acquisition tools read them.
-                if Path(base) == root / folder and path.suffix.lower() in KEEP_TOP: report['keepTopLevel'] += 1; continue
+                path = Path(base) / name; rel = path.relative_to(local).as_posix(); size = path.stat().st_size
+                if PRIVATE.search(rel): report['keepPrivate'] += 1; continue
+                if path.resolve() in sealed: report['keepRelease'] += 1; continue
+                if Path(base) == local and path.suffix.lower() in KEEP_TOP: report['keepTopLevel'] += 1; continue
+                key = f'{prefix}/{rel}'
                 if key not in have: report['keepMissing'] += 1; continue
                 if have[key] != size: report['keepSizeDiff'] += 1; continue
                 report['delete'] += 1; report['deleteBytes'] += size
                 if args.delete: path.unlink()
         if args.delete:
-            for base, dirs, names in os.walk(root / folder, topdown=False):
-                if Path(base) != root / folder and not os.listdir(base): os.rmdir(base)
-            (root / folder / 'MOVED-TO-R2.md').write_text(
-                f'# {folder}\n\nThe files of this folder live in the private R2 bucket `{BUCKET}` under the same relative path\n'
-                f'(`{folder}/...`), listed in `_index/{folder.replace("/", "__")}.json`. Restore with infra/data/r2_archive.py\'s\n'
-                'layout: download each key below C:/Data/25_ACE. Private files (*.private.*) were never uploaded and stay here.\n', encoding='utf-8')
+            for base, _, _ in os.walk(local, topdown=False):
+                if Path(base) != local and not os.listdir(base): os.rmdir(base)
+            (local / 'MOVED-TO-R2.md').write_text(
+                f'# {local.name}\n\nThe files of this folder live in the private R2 bucket `{BUCKET}` under `{prefix}/` (same relative\n'
+                f"paths), listed in `_index/{prefix.replace('/', '__')}.json`. Restore: download `{prefix}/<rel>` to this folder\n"
+                'with infra/data/r2_archive.py credentials. Private files (*.private.*) were never uploaded and stay here.\n', encoding='utf-8')
         print(json.dumps({**report, 'deleteGB': round(report['deleteBytes'] / 2**30, 2), 'applied': args.delete}), flush=True)
 
 
