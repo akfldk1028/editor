@@ -212,6 +212,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
   const plate = Cesium.Color.fromCssColorString('#64748b').withAlpha(0.35)
   const plateEdge = Cesium.Color.fromCssColorString('#334155')
   const pitWall = Cesium.Color.fromCssColorString('#a8a29e').withAlpha(0.95)
+  const groundLid = Cesium.Color.fromCssColorString('#f5f3ee').withAlpha(0.45)
   const lowStall = Cesium.Color.fromCssColorString('#93c5fd').withAlpha(0.7)
   const lowAisle = Cesium.Color.fromCssColorString('#fde68a').withAlpha(0.7)
   const rampColour = Cesium.Color.fromCssColorString('#ef4444').withAlpha(0.7)
@@ -327,6 +328,15 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
           name: `지하 ${-level}층 바닥`,
           description: f.properties.area_m2 != null ? `${Math.round(f.properties.area_m2)}㎡` : undefined,
           polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), ...flat(depth), material: plate, outline: true, outlineColor: plateEdge },
+        })
+        n++
+        // The ground floor over the excavation: a translucent plate at grade, so the site's ground-level layout
+        // (entrances, paths, landscape) still reads on it while the car park shows through below.
+        entities.add({
+          id: `${PREFIX}basement-lid-${index}-${i}`,
+          name: '지상 1층 바닥 (지하 투시)',
+          polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), ...flat(0.02), material: groundLid,
+            outline: true, outlineColor: plateEdge },
         })
         n++
         // The excavation's sides (`excavate` cuts the ground to this outline): open top and bottom, ground to floor.
