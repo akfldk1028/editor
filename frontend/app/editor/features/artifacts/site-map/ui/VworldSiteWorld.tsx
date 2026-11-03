@@ -70,8 +70,9 @@ export default function VworldSiteWorld({ active, drawn, onPick, overlay, shape,
     if (!ready) return
     const viewer = viewerRef.current, C = getCesium()
     showUnderground(C, viewer.scene.globe, planned ? overlay?.layout ?? null : null)
-    excavate(C, viewer.scene.globe, planned ? overlay?.layout ?? null : null)
-    if (overlay && planned) drawLayout(viewer.entities, C, overlay.layout, overlay.intent, 'terrain')
+    const layout = planned && overlay ? { ...overlay.layout, cutaway: true } : null
+    excavate(C, viewer.scene.globe, layout)
+    if (overlay && layout) drawLayout(viewer.entities, C, layout, overlay.intent, 'terrain')
     else clearLayout(viewer.entities)
     viewer.scene.requestRender()
     return () => { if (!viewer.isDestroyed()) clearLayout(viewer.entities) }

@@ -37,8 +37,8 @@ export interface LayoutOverlay {
 
 export default function World3D({ active, drawn, onPick, overlay = null, photo = false }: { active: boolean; drawn: ParcelSet; onPick(at: LngLat): void; overlay?: LayoutOverlay | null; photo?: boolean }) {
   const [mode, setMode] = useState<'mass' | 'diagram' | 'photo' | 'lod1' | 'textured'>('mass')
-  // 지하 보기: off by default, so the ground floor (building, entrances, landscape) is what the site shows.
-  const [cutaway, setCutaway] = useState(false)
+  // 지하 보기: on by default - the basement in its excavation under a translucent ground-floor plate.
+  const [cutaway, setCutaway] = useState(true)
   const viewer = useRef<any>(null)
   const camera = useRef<SceneCamera | null>(null)
   const onViewer = useCallback((value: any) => { viewer.current = value }, [])

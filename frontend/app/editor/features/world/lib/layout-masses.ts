@@ -29,7 +29,8 @@ export interface LayoutView {
   storeys: number | null
   /** 'diagram': the OMA-style site diagram (accent mass, short labels); the map draws everything else plain. */
   style?: 'diagram' | null
-  /** 지하 보기: the ground is cut along the basement outline. Off by default: the site shows its ground floor. */
+  /** 지하 보기 (on by default): the ground is cut along the basement outline under a translucent ground-floor plate,
+   *  so the ground floor reads on the plate and the car park shows through it. */
   cutaway?: boolean
   storey_height_m: number
   height_m: number | null
@@ -177,45 +178,6 @@ export function clearLayout(entities: any): void {
 }
 
 /** Draws the layout; returns how many entities were added. `base` is the ground the context masses stand on. */
-/** Below-ground layers drawn as hidden lines on the ground, with their colours and line widths. */
-const HIDDEN_LINES: Record<string, { colour: string; width: number }> = {
-  basement_boundary: { colour: '#334155', width: 2.5 },
-  parking_stall: { colour: '#2563eb', width: 1.2 },
-  parking_aisle: { colour: '#d97706', width: 1.5 },
-  ramp: { colour: '#dc2626', width: 2 },
-}
-
-/**
- * The basement as a plan's hidden lines: dashed outlines laid on the ground over where it lies (the drawing
- * convention for what is below or behind). The ground and the ground floor stay whole and visible; 지하 보기 shows
- * the basement itself in an excavation instead.
- */
-function drawHiddenBasement(entities: any, Cesium: any, layout: LayoutView, onTerrain: boolean, ground: number): number {
-  let n = 0
-  layout.features.forEach((f, index) => {
-    const style = HIDDEN_LINES[f.properties.layer]
-    if (f.properties.level >= 0 || !style) return
-    rings(f.geometry).forEach((ring, i) => {
-      const closed = ring   // GeoJSON rings are closed
-      entities.add({
-        id: `${PREFIX}hidden-${f.properties.layer}-${index}-${i}`,
-        name: `지하 ${-f.properties.level}층 (숨은선)`,
-        polyline: {
-          positions: onTerrain
-            ? Cesium.Cartesian3.fromDegreesArray(closed)
-            : Cesium.Cartesian3.fromDegreesArrayHeights(closed.flatMap((v, k) => (k % 2 ? [v, ground + 0.1] : [v]))),
-          clampToGround: onTerrain,
-          width: style.width,
-          material: new Cesium.PolylineDashMaterialProperty({
-            color: Cesium.Color.fromCssColorString(style.colour), dashLength: 8 }),
-        },
-      })
-      n++
-    })
-  })
-  return n
-}
-
 /** The diagram's one accent: the planned building against white context (OMA-style site diagrams). */
 const DIAGRAM_ACCENT: [number, number, number] = [0.96, 0.36, 0.16]
 
@@ -286,7 +248,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
   const plate = Cesium.Color.fromCssColorString('#64748b').withAlpha(0.35)
   const plateEdge = Cesium.Color.fromCssColorString('#334155')
   const pitWall = Cesium.Color.fromCssColorString('#a8a29e').withAlpha(0.95)
-  const groundLid = Cesium.Color.fromCssColorString('#f5f3ee').withAlpha(0.45)
+  const groundLid = Cesium.Color.fromCssColorString('#ece7dc').withAlpha(0.55)
   const lowStall = Cesium.Color.fromCssColorString('#93c5fd').withAlpha(0.7)
   const lowAisle = Cesium.Color.fromCssColorString('#fde68a').withAlpha(0.7)
   const rampColour = Cesium.Color.fromCssColorString('#ef4444').withAlpha(0.7)
@@ -476,7 +438,6 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       })
     }
   })
-  if (!layout.cutaway) n += drawHiddenBasement(entities, Cesium, layout, onTerrain, ground)
   if (layout.style === 'diagram') n += drawDiagramLabels(entities, Cesium, layout, onTerrain ? 0 : ground)
   entities.resumeEvents()
   drawnLayouts.set(entities, { signature, count: n,

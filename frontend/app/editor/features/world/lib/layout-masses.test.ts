@@ -176,15 +176,3 @@ test('the ground is cut open along the basement outline only, and closed again w
   expect(globe.clippingPolygons).toBeUndefined()
 })
 
-test('without 지하 보기 the basement is drawn as dashed hidden lines on whole ground', () => {
-  const C = { ...Cesium, PolylineDashMaterialProperty: class { constructor(public options: any) {} } }
-  const basement = [feature('basement_boundary', -1, square(LON, LAT, 0.0003)), feature('parking_stall', -1, square(LON, LAT))]
-  const e = entities()
-  drawLayout(e, C, view(basement), null, 'terrain')
-  const hidden = e.added.filter((x) => String(x.id).includes('hidden-'))
-  expect(hidden).toHaveLength(2)
-  expect(hidden.every((x) => x.polyline.clampToGround && x.polyline.material.options.dashLength)).toBe(true)
-  const cut = entities()
-  drawLayout(cut, C, { ...view(basement), cutaway: true }, null, 'terrain')
-  expect(cut.added.some((x) => String(x.id).includes('hidden-'))).toBe(false)
-})
