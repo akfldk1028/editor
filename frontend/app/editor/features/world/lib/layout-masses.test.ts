@@ -89,7 +89,7 @@ describe('basement in the 3D layout', () => {
       feature('parking_stall', -1, square(LON, LAT)),
       feature('basement_boundary', -1, square(LON, LAT, 0.0003)),
     ]), null, 50)
-    const heights = Object.fromEntries(e.added.map((x) => [x.name, x.polygon.height]))
+    const heights = Object.fromEntries(e.added.filter((x) => x.polygon).map((x) => [x.name, x.polygon.height]))
     expect(heights['주차 구획']).toBeCloseTo(50.25)
     expect(heights['지하 1층 주차 구획']).toBeCloseTo(50 - 3.3 + 0.25)
     expect(heights['지하 1층 바닥']).toBeCloseTo(50 - 3.3)
@@ -174,4 +174,17 @@ test('the ground is cut open along the basement outline only, and closed again w
   expect(globe.clippingPolygons.options.polygons).toHaveLength(1)
   expect(excavate(C, globe, view([feature('parking_stall', 0, square(LON, LAT))]))).toBe(false)
   expect(globe.clippingPolygons).toBeUndefined()
+})
+
+test('without 지하 보기 the basement is drawn as dashed hidden lines on whole ground', () => {
+  const C = { ...Cesium, PolylineDashMaterialProperty: class { constructor(public options: any) {} } }
+  const basement = [feature('basement_boundary', -1, square(LON, LAT, 0.0003)), feature('parking_stall', -1, square(LON, LAT))]
+  const e = entities()
+  drawLayout(e, C, view(basement), null, 'terrain')
+  const hidden = e.added.filter((x) => String(x.id).includes('hidden-'))
+  expect(hidden).toHaveLength(2)
+  expect(hidden.every((x) => x.polyline.clampToGround && x.polyline.material.options.dashLength)).toBe(true)
+  const cut = entities()
+  drawLayout(cut, C, { ...view(basement), cutaway: true }, null, 'terrain')
+  expect(cut.added.some((x) => String(x.id).includes('hidden-'))).toBe(false)
 })

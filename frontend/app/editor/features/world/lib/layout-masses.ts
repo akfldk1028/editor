@@ -177,6 +177,45 @@ export function clearLayout(entities: any): void {
 }
 
 /** Draws the layout; returns how many entities were added. `base` is the ground the context masses stand on. */
+/** Below-ground layers drawn as hidden lines on the ground, with their colours and line widths. */
+const HIDDEN_LINES: Record<string, { colour: string; width: number }> = {
+  basement_boundary: { colour: '#334155', width: 2.5 },
+  parking_stall: { colour: '#2563eb', width: 1.2 },
+  parking_aisle: { colour: '#d97706', width: 1.5 },
+  ramp: { colour: '#dc2626', width: 2 },
+}
+
+/**
+ * The basement as a plan's hidden lines: dashed outlines laid on the ground over where it lies (the drawing
+ * convention for what is below or behind). The ground and the ground floor stay whole and visible; 지하 보기 shows
+ * the basement itself in an excavation instead.
+ */
+function drawHiddenBasement(entities: any, Cesium: any, layout: LayoutView, onTerrain: boolean, ground: number): number {
+  let n = 0
+  layout.features.forEach((f, index) => {
+    const style = HIDDEN_LINES[f.properties.layer]
+    if (f.properties.level >= 0 || !style) return
+    rings(f.geometry).forEach((ring, i) => {
+      const closed = ring   // GeoJSON rings are closed
+      entities.add({
+        id: `${PREFIX}hidden-${f.properties.layer}-${index}-${i}`,
+        name: `지하 ${-f.properties.level}층 (숨은선)`,
+        polyline: {
+          positions: onTerrain
+            ? Cesium.Cartesian3.fromDegreesArray(closed)
+            : Cesium.Cartesian3.fromDegreesArrayHeights(closed.flatMap((v, k) => (k % 2 ? [v, ground + 0.1] : [v]))),
+          clampToGround: onTerrain,
+          width: style.width,
+          material: new Cesium.PolylineDashMaterialProperty({
+            color: Cesium.Color.fromCssColorString(style.colour), dashLength: 8 }),
+        },
+      })
+      n++
+    })
+  })
+  return n
+}
+
 /** The diagram's one accent: the planned building against white context (OMA-style site diagrams). */
 const DIAGRAM_ACCENT: [number, number, number] = [0.96, 0.36, 0.16]
 
@@ -437,6 +476,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       })
     }
   })
+  if (!layout.cutaway) n += drawHiddenBasement(entities, Cesium, layout, onTerrain, ground)
   if (layout.style === 'diagram') n += drawDiagramLabels(entities, Cesium, layout, onTerrain ? 0 : ground)
   entities.resumeEvents()
   drawnLayouts.set(entities, { signature, count: n,
