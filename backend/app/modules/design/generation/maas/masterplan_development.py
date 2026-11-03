@@ -49,7 +49,9 @@ def validate_packet(packet):
             or handoff.get('metric_geometry_hash') != binding['metric_geometry_hash']
             or handoff.get('pnu') != metric['pnu'] or handoff.get('evaluated') is not True
             or (layout.get('validation') or {}).get('geometry_status') != 'passed'
-            or layout.get('status') in ('failed', 'needs_revision')):
+            # needs_revision is a confirmed card with reviews still open, not a failed geometry; MasterPlan hands it on
+            # with those reviews (684-1 2026-11-03, the 4-storey card that passed every geometry check).
+            or layout.get('status') == 'failed'):
         raise ValueError('MasterPlan source layout binding mismatch')
     parts = [shape(f['geometry']) for f in features
              if (f.get('properties') or {}).get('layer') == 'building_footprint'
@@ -69,8 +71,10 @@ def validate_packet(packet):
         if (snapshot.get('pnu', metric['pnu']) != metric['pnu']
                 or snapshot.get('source_identity', packet['source_identity']) != packet['source_identity']
                 or snapshot.get('source_versions', packet['source_versions']) != packet['source_versions']
-                or ('snapshot_hash' in snapshot and snapshot['snapshot_hash'] !=
-                    _digest({k: v for k, v in snapshot.items() if k != 'snapshot_hash'}))):
+                # A Program transport projection's snapshot_hash names the stored original (ProgramAgent
+                # `transport_projection`), so it cannot be recomputed from the projection.
+                or ('snapshot_hash' in snapshot and 'transport_projection' not in snapshot
+                    and snapshot['snapshot_hash'] != _digest({k: v for k, v in snapshot.items() if k != 'snapshot_hash'}))):
             raise ValueError('MasterPlan ' + key + ' snapshot binding mismatch')
     return packet
 
