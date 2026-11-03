@@ -97,6 +97,42 @@ def volumes_of(candidate):
     return volumes
 
 
+def glb_href(result, request):
+    """The selected glTF's API-relative link. mass_export adds `selected_glb_href` only to the reply it returns
+    (`with_links`); receipt.json keeps absolute paths, so the link is formed here the same way."""
+    href = _str(request.get('selected_glb_href'))
+    if href:
+        return href
+    glb, root, request_hash = _str(request.get('selected_glb')), _str(request.get('dataset_root')), _str(result.get('request_hash'))
+    if not (glb and root and request_hash):
+        return None
+    try:
+        relative = Path(glb).relative_to(Path(root).parent).as_posix()
+    except ValueError:
+        return None
+    return f'design/maas/delivered-mass-export/{request_hash}/files/{relative}'
+
+
+def model_of(candidate, href):
+    """The delivered mesh itself for the 3D view: its glTF (site-local metres, y up, origin at `origin_utm`), the
+    WGS84 point of that origin, and the bearing of the frame's grid north (UTM grid north is not true north; on
+    684-1, zone 52 at 127.1 E, about 1.2 degrees). Storey volumes cut at mid-height lose sloped roofs and notches;
+    the person's chosen form is drawn as delivered."""
+    import math
+    from pyproj import Transformer
+    frame = _dict(candidate.get('coordinate_frame'))
+    origin = frame.get('origin_utm')
+    if not href or not isinstance(origin, list) or len(origin) != 2 or not _str(frame.get('crs')):
+        return None
+    to_wgs84 = Transformer.from_crs(frame['crs'], 'EPSG:4326', always_xy=True)
+    lng, lat = to_wgs84.transform(origin[0], origin[1])
+    lng_n, lat_n = to_wgs84.transform(origin[0], origin[1] + 100.0)
+    east = math.radians(lng_n - lng) * math.cos(math.radians(lat))
+    north = math.radians(lat_n - lat)
+    return {'href': href, 'origin': [round(lng, 8), round(lat, 8)],
+            'heading_deg': round(math.degrees(math.atan2(east, north)), 4)}
+
+
 def parse(run, rows, root=None):
     """None until the run's export succeeded; then the chosen form as the 3D view stands it on the layout."""
     if not any(row.get('tool') == TOOL and _str(row.get('state')) == 'succeeded' for row in rows):
@@ -125,4 +161,5 @@ def parse(run, rows, root=None):
             'storeys': _num(_dict(candidate.get('storey_evidence')).get('storey_count')),
             'height_m': _num(certificate.get('height_m')), 'ground_m2': _num(certificate.get('ground_m2')),
             'gross_m2': _num(certificate.get('gross_m2')), 'volumes': volumes_of(candidate),
-            'glb_href': _str(request.get('selected_glb_href'))}
+            'glb_href': glb_href(result, request),
+            'model': model_of(candidate, glb_href(result, request))}

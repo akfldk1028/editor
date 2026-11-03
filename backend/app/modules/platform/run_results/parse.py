@@ -28,7 +28,7 @@ Contract (every key always present):
             storeys, height_m, reaches_target, volumes[], thumbnail_svg}], pattern[{role, owner, state}]} | null
             (Mass's forms on MasterPlan's zone; agents/mass_forms.py)
   mass:    {status, selected_mass_id, selection_mode, label, storeys, height_m, ground_m2, gross_m2,
-            volumes[{ring, base_m, top_m}], glb_href} | null   (the chosen Mass form on the layout; agents/chosen_mass.py)
+            volumes[{ring, base_m, top_m}], glb_href, model{href, origin, heading_deg}} | null   (the chosen Mass form on the layout; agents/chosen_mass.py)
   missing_evidence_all: [str]   notes: [str]   raw: {communications, keys: {tool: n}}
 """
 from backend.app.modules.platform.run_results.agents import law, masterplan, review, site, mass_forms, chosen_mass
@@ -42,7 +42,7 @@ law_from_response = law.law_from_response
 WHOLE_TOOLS = {masterplan.TOOL: masterplan.AGENT, site.TOOL: site.AGENT, mass_forms.TOOL: mass_forms.AGENT}
 # Part of the kept-results key (runs._run_state): bumped when the contract gains a key, so a result kept on disk
 # before the change is read again rather than served without it (`mass`, 2026-10-30).
-CONTRACT_VERSION = 2
+CONTRACT_VERSION = 3   # 3: mass.model (the delivered glTF) and a glb_href formed from the receipt
 
 
 def _communications(run):

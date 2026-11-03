@@ -20,7 +20,12 @@ export interface LayoutFeature {
 export interface LayoutView {
   features: LayoutFeature[]
   /** The Mass form chosen to stand on the zone (volumes from base to top); the footprint box is drawn without one. */
-  mass?: { label: string | null; volumes: { ring: number[][]; holes?: number[][][]; base_m: number; top_m: number }[] } | null
+  mass?: {
+    label: string | null
+    volumes: { ring: number[][]; holes?: number[][][]; base_m: number; top_m: number }[]
+    /** The delivered glTF at its frame origin; drawn instead of the storey volumes when present. */
+    model?: { href: string; origin: [number, number]; heading_deg: number } | null
+  } | null
   storeys: number | null
   storey_height_m: number
   height_m: number | null
@@ -146,6 +151,26 @@ export function clearLayout(entities: any): void {
 }
 
 /** Draws the layout; returns how many entities were added. `base` is the ground the context masses stand on. */
+/** A fragment shader lighting each flat face by its screen-space normal (for glTF without normals). */
+export function facetShader(rgb: [number, number, number]): string {
+  const [r, g, b] = rgb.map((c) => c.toFixed(3))
+  return `void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {
+  vec3 p = fsInput.attributes.positionEC;
+  vec3 n = normalize(cross(dFdx(p), dFdy(p)));
+  float light = 0.45 + 0.55 * abs(dot(n, normalize(vec3(0.35, 0.6, 0.7))));
+  material.diffuse = vec3(${r}, ${g}, ${b}) * light;
+}`
+}
+
+/** Heading that turns Cesium's +X-forward glTF frame onto the site frame's east (see drawLayout). */
+export const GLTF_FORWARD_DEG = 90
+
+/** The editor's design proxy URL of a delivered artifact href (`design/maas/delivered-mass-export/...`). */
+export function modelUrl(href: string): string {
+  const base = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_BASE_PATH) || ''
+  return `${base}/api/v1/${href.replace(/^\/+/, '')}`
+}
+
 export function drawLayout(entities: any, Cesium: any, layout: LayoutView, intent: IntentView | null | undefined, base: Ground = 0): number {
   const signature = JSON.stringify([layout, intent ?? null, base])
   const previous = drawnLayouts.get(entities)
@@ -178,6 +203,37 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
   entities.suspendEvents()
   layout.features.forEach((f, index) => {
     const layer = f.properties.layer
+    if (layer === 'building_footprint' && layout.mass?.model) {
+      if (index !== layout.features.findIndex((g) => g.properties.layer === 'building_footprint')) return
+      // The chosen form as Mass delivered it (sloped roofs, notches): storey volumes cut at mid-height lose them.
+      // glTF is y-up in site-local metres from the frame origin; the heading turns grid north onto true north.
+      // Cesium stands a glTF with its +X forward, so heading 0 lays the frame's east along north: measured on 684-1,
+      // the model's centre landed 37 m west and 51 m north of where its +52 m east / +36 m north mesh belongs.
+      // A further 90 degrees clockwise puts the frame's east on east.
+      const model = layout.mass.model
+      const position = Cesium.Cartesian3.fromDegrees(model.origin[0], model.origin[1], onTerrain ? 0 : ground)
+      entities.add({
+        id: `${PREFIX}building-mass-model`,
+        name: `계획 건물 · ${layout.mass.label ?? 'Mass 안'}`,
+        position,
+        orientation: Cesium.Transforms.headingPitchRollQuaternion(
+          position, new Cesium.HeadingPitchRoll(Cesium.Math.toRadians(model.heading_deg + GLTF_FORWARD_DEG), 0, 0)),
+        model: {
+          uri: modelUrl(model.href),
+          // The delivered glTF carries positions only: unlit it is one flat colour, the same cream as the parcel
+          // plate under it. Each face is shaded by its own normal, taken from the screen-space derivatives.
+          customShader: new Cesium.CustomShader({
+            lightingModel: Cesium.LightingModel.UNLIT,
+            fragmentShaderText: facetShader(glazed ? [0.56, 0.76, 0.91] : [0.93, 0.87, 0.78]),
+          }),
+          silhouetteColor: wallEdge,
+          silhouetteSize: 1,
+          ...(onTerrain ? { heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND } : {}),
+        },
+      })
+      n++
+      return
+    }
     if (layer === 'building_footprint' && layout.mass?.volumes.length) {
       if (index !== layout.features.findIndex((g) => g.properties.layer === 'building_footprint')) return
       layout.mass.volumes.forEach((v, i) => {

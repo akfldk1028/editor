@@ -139,3 +139,26 @@ describe('basement in the 3D layout', () => {
     expect(showUnderground(Cesium, globe, null)).toBe(false)
   })
 })
+
+test('a chosen Mass form with a delivered model is drawn as that model, not as storey boxes', () => {
+  const C = {
+    ...Cesium,
+    Cartesian3: { ...Cesium.Cartesian3, fromDegrees: (lng: number, lat: number, h: number) => ({ lng, lat, h }) },
+    Transforms: { headingPitchRollQuaternion: (_p: any, hpr: any) => ({ heading: hpr.heading }) },
+    HeadingPitchRoll: class { constructor(public heading: number) {} },
+    Math: { toRadians: (d: number) => (d * Math.PI) / 180 },
+    CustomShader: class { constructor(public options: any) {} },
+    LightingModel: { UNLIT: 'unlit' },
+  }
+  const e = entities()
+  drawLayout(e, C, { ...view([feature('building_footprint', 0, square(LON, LAT))]),
+    mass: { label: 'm', volumes: [{ ring: square(LON, LAT).coordinates[0]!, base_m: 0, top_m: 3 }],
+      model: { href: 'design/maas/delivered-mass-export/h/files/selected.glb', origin: [LON, LAT], heading_deg: -1.15 } } },
+    null, 'terrain')
+  const masses = e.added.filter((x) => String(x.id).includes('building-mass'))
+  expect(masses).toHaveLength(1)
+  expect(masses[0].model.uri).toBe('/api/v1/design/maas/delivered-mass-export/h/files/selected.glb')
+  expect(masses[0].model.heightReference).toBe('rel')
+  expect(masses[0].model.customShader.options.fragmentShaderText).toContain('dFdx')
+  expect(masses[0].orientation.heading).toBeCloseTo(((-1.15 + 90) * Math.PI) / 180)
+})
