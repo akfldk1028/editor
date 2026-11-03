@@ -327,6 +327,17 @@ def main() -> int:
         if ghosts:
             print(f"unbakeable on the last bake, left out: {sorted(ghosts)}")
             passers = [item for item in passers if item["name"] not in ghosts]
+    if not passers:
+        # Nothing reached the cut: the round does not end empty (the person's rule, 2026-11-03 "멈추면 안되지"; 684-1
+        # judged 2.25 and 2.05). The best judged forms are seated as below-cut alternatives, the score and the cut
+        # travel with them as notes, and the person picks; the jury's verdict is not changed.
+        eligible = [item for item in ledger.values()
+                    if (not book_only or str(item["name"]).startswith("book:"))
+                    and item["name"] not in (ghosts if ghosts_path.exists() else set())]
+        passers = [{**item, "below_cut": True, "cut": KOREA_FINAL_PASS}
+                   for item in sorted(eligible, key=lambda i: i["score"], reverse=True)[:3]]
+        if passers:
+            print(f"no form reached the cut {KOREA_FINAL_PASS}; seating the best {len(passers)} as below-cut alternatives")
 
     def key_of(item):
         family = item["name"].split("~")[0].split("^")[0]
