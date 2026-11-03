@@ -221,10 +221,36 @@ def test_exact_development_inherits_bound_parent_frame_and_floor_schedule():
     assert child_entry['masterplan_development']['package_hash'] == packet()['package_hash']
 
 
-def test_a_needs_revision_card_and_a_program_projection_bind():
-    """684-1 (2026-11-03): the confirmed 4-storey card (needs_revision, every geometry check passed) and Program's
-    transport projection (snapshot_hash of the stored original) are a valid development source."""
-    import inspect
-    from backend.app.modules.design.generation.maas import masterplan_development as module
-    text = inspect.getsource(module.validate_packet)
-    assert "layout.get('status') == 'failed'" in text and "'transport_projection' not in snapshot" in text
+def _rehash(value):
+    value['package_hash'] = hashlib.sha256(json.dumps({k: v for k, v in value.items() if k != 'package_hash'},
+        sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+    return value
+
+
+@pytest.mark.parametrize('status,ok', [('needs_revision', True), ('failed', False)])
+def test_a_confirmed_needs_revision_card_binds_and_a_failed_one_does_not(status, ok):
+    """684-1 (2026-11-03): the confirmed 4-storey card was needs_revision with every geometry check passed."""
+    from backend.app.modules.design.generation.maas.masterplan_development import validate_packet
+    value = packet()
+    value['layout']['status'] = status
+    _rehash(value)
+    if ok:
+        validate_packet(value)
+    else:
+        with pytest.raises(ValueError, match='binding'):
+            validate_packet(value)
+
+
+@pytest.mark.parametrize('key,marker,ok', [
+    ('program', 'large_review_sections_are_receipts; snapshot_hash_identifies_stored_original', True),
+    ('program', True, False), ('law', 'large_review_sections_are_receipts; snapshot_hash_identifies_stored_original', False)])
+def test_only_programs_transport_projection_skips_its_hash(key, marker, ok):
+    from backend.app.modules.design.generation.maas.masterplan_development import validate_packet
+    value = packet()
+    value[key] = {'owner': key, 'transport_projection': marker, 'snapshot_hash': 'of-the-stored-original'}
+    _rehash(value)
+    if ok:
+        validate_packet(value)
+    else:
+        with pytest.raises(ValueError, match='snapshot'):
+            validate_packet(value)

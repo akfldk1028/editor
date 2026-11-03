@@ -10,6 +10,7 @@ from pathlib import Path
 from shapely.geometry import shape
 
 KEY = 'masterplan_development'
+PROGRAM_PROJECTION = 'large_review_sections_are_receipts; snapshot_hash_identifies_stored_original'
 
 def _digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
@@ -71,9 +72,9 @@ def validate_packet(packet):
         if (snapshot.get('pnu', metric['pnu']) != metric['pnu']
                 or snapshot.get('source_identity', packet['source_identity']) != packet['source_identity']
                 or snapshot.get('source_versions', packet['source_versions']) != packet['source_versions']
-                # A Program transport projection's snapshot_hash names the stored original (ProgramAgent
-                # `transport_projection`), so it cannot be recomputed from the projection.
-                or ('snapshot_hash' in snapshot and 'transport_projection' not in snapshot
+                # Program's transport projection (ProgramAgent service.py) names the stored original by its
+                # snapshot_hash, so that hash cannot be recomputed from the projection; only Program's, only that marker.
+                or ('snapshot_hash' in snapshot and not (key == 'program' and snapshot.get('transport_projection') == PROGRAM_PROJECTION)
                     and snapshot['snapshot_hash'] != _digest({k: v for k, v in snapshot.items() if k != 'snapshot_hash'}))):
             raise ValueError('MasterPlan ' + key + ' snapshot binding mismatch')
     return packet

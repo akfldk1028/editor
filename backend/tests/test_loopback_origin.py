@@ -30,3 +30,16 @@ def test_other_origins_are_still_refused():
     for origin in ('http://localhost:3005', 'https://localhost:3003', 'http://evil.example:3003'):
         assert client.post('/w', headers={'Origin': origin}).status_code == 403
     assert not alias_of('http://localhost', 'http://127.0.0.1')
+
+
+def test_several_origin_headers_are_not_rewritten():
+    import asyncio
+    seen = {}
+
+    async def inner(scope, receive, send):
+        seen['headers'] = scope['headers']
+    middleware = LoopbackOrigin(inner, public=PUBLIC)
+    headers = [(b'origin', b'http://localhost:3003'), (b'origin', b'http://evil.example')]
+    asyncio.run(middleware({'type': 'http', 'headers': headers}, None, None))
+    assert seen['headers'] == headers
+

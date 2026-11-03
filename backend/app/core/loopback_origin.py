@@ -29,7 +29,8 @@ class LoopbackOrigin:
     async def __call__(self, scope, receive, send):
         if scope['type'] == 'http':
             headers = scope.get('headers') or []
-            origin = next((v.decode('latin-1') for k, v in headers if k == b'origin'), None)
+            origins = [v.decode('latin-1') for k, v in headers if k == b'origin']
+            origin = origins[0] if len(origins) == 1 else None   # several Origin headers are left for the routes to refuse
             if origin and origin != self.public and alias_of(origin, self.public):
                 scope = {**scope, 'headers': [(k, self.public.encode('latin-1') if k == b'origin' else v)
                                               for k, v in headers]}

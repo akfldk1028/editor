@@ -322,6 +322,7 @@ def main() -> int:
     # writes the list). They were judged on an engine that no longer makes
     # that variant; they do not get a seat until they rebuild again.
     ghosts_path = ROOT / "runs" / "board" / "unbakeable.json"
+    ghosts = set()
     if ghosts_path.exists():
         ghosts = set(json.loads(ghosts_path.read_text(encoding="utf-8")))
         if ghosts:
@@ -333,7 +334,7 @@ def main() -> int:
         # travel with them as notes, and the person picks; the jury's verdict is not changed.
         eligible = [item for item in ledger.values()
                     if (not book_only or str(item["name"]).startswith("book:"))
-                    and item["name"] not in (ghosts if ghosts_path.exists() else set())]
+                    and item["name"] not in ghosts and (item.get("score") or 0) > 0]
         passers = [{**item, "below_cut": True, "cut": KOREA_FINAL_PASS}
                    for item in sorted(eligible, key=lambda i: i["score"], reverse=True)[:3]]
         if passers:
@@ -525,7 +526,9 @@ def main() -> int:
                           **({"exact_geometry_aliases": item["exact_geometry_aliases"]}
                              if item.get("exact_geometry_aliases") else {}),
                           **{key: item[key] for key in ('presentation_group', 'presentation_comparison',
-                                                       'solid_form_aliases') if key in item}})
+                                                       'solid_form_aliases') if key in item},
+                          # A below-cut seat says so on the board (the person picks knowing the jury's verdict).
+                          **({'below_cut': True, 'cut': item['cut']} if item.get('below_cut') else {})})
     # The canon is not a contestant. Section 11 promises the standard
     # repertoire is ALWAYS present, and for a season it wasn't: the canon
     # round was authored, closed-looped and never juried, so the wide slab,

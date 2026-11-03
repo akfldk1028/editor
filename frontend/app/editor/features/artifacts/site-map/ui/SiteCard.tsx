@@ -84,11 +84,11 @@ function Ready({ state, adding, onAddingChange, onRemove, onSelect, project, she
       )}
       {state.save === 'saved' ? (
         <>
-          <button aria-expanded={open} className="site-card-saved site-card-fold" onClick={() => setOpen(!open)} type="button">
+          <button aria-controls={`site-run-${state.site.selection_id}`} aria-expanded={open} className="site-card-saved site-card-fold" onClick={() => setOpen(!open)} type="button">
             <Check aria-hidden="true" size={14} />선택됨 · 조건 입력
             {open ? <ChevronUp aria-hidden="true" size={14} /> : <ChevronDown aria-hidden="true" size={14} />}
           </button>
-          <div hidden={!open}>
+          <div hidden={!open} id={`site-run-${state.site.selection_id}`}>
             <SiteRunPanel key={state.site.selection_id} project={project} shell={shell} site={state.site} />
           </div>
         </>
