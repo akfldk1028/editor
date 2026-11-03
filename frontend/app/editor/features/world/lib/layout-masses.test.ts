@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { BASEMENT_STOREY_M, clearLayout, drawLayout, levelDepth, rampHeights, showUnderground, type LayoutFeature, type LayoutView } from './layout-masses'
+import { BASEMENT_STOREY_M, clearLayout, drawLayout, excavate, levelDepth, rampHeights, showUnderground, type LayoutFeature, type LayoutView } from './layout-masses'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const colour = { withAlpha: () => colour }
@@ -161,4 +161,15 @@ test('a chosen Mass form with a delivered model is drawn as that model, not as s
   expect(masses[0].model.heightReference).toBe('rel')
   expect(masses[0].model.customShader.options.fragmentShaderText).toContain('dFdx')
   expect(masses[0].orientation.heading).toBeCloseTo(((-1.15 + 90) * Math.PI) / 180)
+})
+
+test('the ground is cut open along the basement outline only, and closed again without one', () => {
+  const C = { ...Cesium,
+    ClippingPolygonCollection: class { constructor(public options: any) {} },
+    ClippingPolygon: class { constructor(public options: any) {} } }
+  const globe: any = {}
+  expect(excavate(C, globe, view([feature('basement_boundary', -1, square(LON, LAT, 0.0003))]))).toBe(true)
+  expect(globe.clippingPolygons.options.polygons).toHaveLength(1)
+  expect(excavate(C, globe, view([feature('parking_stall', 0, square(LON, LAT))]))).toBe(false)
+  expect(globe.clippingPolygons).toBeUndefined()
 })

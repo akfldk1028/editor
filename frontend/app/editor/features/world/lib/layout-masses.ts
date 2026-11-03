@@ -127,6 +127,28 @@ export function showUnderground(Cesium: any, globe: any, layout: LayoutView | nu
   return true
 }
 
+/**
+ * Cuts the ground open along the layout's basement outline, so the car park below is seen in its own excavation and
+ * nowhere else (CesiumJS 1.117+ `Globe.clippingPolygons`, concave outlines included). A see-through globe works only
+ * on a rectangle and showed it as a square hole with a black underside (684-1, 2026-11-03). Clears the cut when the
+ * layout has no basement. `globe` is the viewer's scene.globe.
+ */
+export function excavate(Cesium: any, globe: any, layout: LayoutView | null): boolean {
+  if (!globe || !Cesium?.ClippingPolygonCollection) return false
+  const outlines = (layout?.features ?? [])
+    .filter((f) => f.properties.layer === 'basement_boundary' && f.properties.level < 0)
+    .flatMap((f) => rings(f.geometry))
+    .filter((ring) => ring.length >= 6)
+  if (!outlines.length) {
+    globe.clippingPolygons = undefined
+    return false
+  }
+  globe.clippingPolygons = new Cesium.ClippingPolygonCollection({
+    polygons: outlines.map((ring) => new Cesium.ClippingPolygon({ positions: Cesium.Cartesian3.fromDegreesArray(ring) })),
+  })
+  return true
+}
+
 /** Does the intent read as a glazed facade? Any intent text (parti, material attitude, massing) is searched. */
 export function glazedFacade(intent: IntentView | null | undefined): boolean {
   if (!intent) return false
@@ -189,6 +211,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
   const buildable = Cesium.Color.fromCssColorString('#d14343')
   const plate = Cesium.Color.fromCssColorString('#64748b').withAlpha(0.35)
   const plateEdge = Cesium.Color.fromCssColorString('#334155')
+  const pitWall = Cesium.Color.fromCssColorString('#a8a29e').withAlpha(0.95)
   const lowStall = Cesium.Color.fromCssColorString('#93c5fd').withAlpha(0.7)
   const lowAisle = Cesium.Color.fromCssColorString('#fde68a').withAlpha(0.7)
   const rampColour = Cesium.Color.fromCssColorString('#ef4444').withAlpha(0.7)
@@ -304,6 +327,23 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
           name: `지하 ${-level}층 바닥`,
           description: f.properties.area_m2 != null ? `${Math.round(f.properties.area_m2)}㎡` : undefined,
           polygon: { hierarchy: Cesium.Cartesian3.fromDegreesArray(ring), ...flat(depth), material: plate, outline: true, outlineColor: plateEdge },
+        })
+        n++
+        // The excavation's sides (`excavate` cuts the ground to this outline): open top and bottom, ground to floor.
+        entities.add({
+          id: `${PREFIX}basement-wall-${index}-${i}`,
+          name: `지하 ${-level}층 굴착 벽`,
+          polygon: {
+            hierarchy: Cesium.Cartesian3.fromDegreesArray(ring),
+            ...(onTerrain
+              ? { height: depth, extrudedHeight: 0, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, extrudedHeightReference: Cesium.HeightReference.RELATIVE_TO_GROUND }
+              : { height: ground + depth, extrudedHeight: ground }),
+            closeTop: false,
+            closeBottom: false,
+            material: pitWall,
+            outline: true,
+            outlineColor: plateEdge,
+          },
         })
         n++
       })

@@ -4,7 +4,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { useVworld3D } from '../../../land-map/hooks/use-vworld-3d'
 import { getCesium } from '../../../land-map/lib/vworld-3d-loader'
 import type { VworldBuildingMode } from '../../../land-map/lib/vworld-buildings'
-import { clearLayout, drawLayout, showUnderground } from '../../../world/lib/layout-masses'
+import { clearLayout, drawLayout, excavate, showUnderground } from '../../../world/lib/layout-masses'
 import type { LngLat, ParcelSet } from '../lib/engine'
 import { boundsCenter, parcelBounds, parcelRings } from '../lib/layers/parcelOutline'
 import { restoreSceneCamera, type SceneCamera } from '../lib/scene-camera'
@@ -69,7 +69,8 @@ export default function VworldSiteWorld({ active, drawn, onPick, overlay, shape,
   useEffect(() => {
     if (!ready) return
     const viewer = viewerRef.current, C = getCesium()
-    showUnderground(C, viewer.scene.globe, planned ? overlay?.layout ?? null : null, true)   // a basement layout is seen, not buried
+    showUnderground(C, viewer.scene.globe, planned ? overlay?.layout ?? null : null)
+    excavate(C, viewer.scene.globe, planned ? overlay?.layout ?? null : null)
     if (overlay && planned) drawLayout(viewer.entities, C, overlay.layout, overlay.intent, 'terrain')
     else clearLayout(viewer.entities)
     viewer.scene.requestRender()

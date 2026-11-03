@@ -17,7 +17,7 @@ import { CELL_RADIUS_M, MAX_ALTITUDE_M, MAX_CELLS, cellsIn, visibleBox } from '.
 import { type Ground, type HeightCounts, createGroundStages, drawGroundIncrementally } from '../lib/context-masses'
 import { cachedGround, refreshGroundBoundaries, type GroundDetail } from '../lib/ground-cache'
 import { type GroundStages, nextGroundRequest } from '../lib/ground-stages'
-import { clearLayout as clearLayoutEntities, drawLayout as drawLayoutEntities, showUnderground, type IntentView, type LayoutView } from '../lib/layout-masses'
+import { clearLayout as clearLayoutEntities, drawLayout as drawLayoutEntities, excavate, showUnderground, type IntentView, type LayoutView } from '../lib/layout-masses'
 import { demTerrain } from '../lib/terrain'
 import { prepareWorldBuildingRenderer, type WorldBuildingRenderer } from '../lib/world-building-renderer'
 import { defaultMapReleaseReader } from '../lib/map-release'
@@ -420,9 +420,8 @@ export function useWorld3D({ target, onClick, initialLocation, initializeCamera 
     if (!Cesium || !layers.current) return 0
     lastLayout.current = layout ? { layout, intent } : null
     // The ground over a basement turns see-through, else the terrain hides the basement drawn below it.
-    // seeThrough was never passed, so a basement car park (684-1: 30 stalls, aisle and ramp at -3 m) stayed under
-    // opaque ground and the chosen layout showed only its boundary line (2026-11-03).
-    showUnderground(Cesium, viewerRef.current?.scene?.globe, layout, true)
+    showUnderground(Cesium, viewerRef.current?.scene?.globe, layout)
+    excavate(Cesium, viewerRef.current?.scene?.globe, layout)
     if (!layout) {
       clearLayoutEntities(layers.current.layout.entities)
       return 0
