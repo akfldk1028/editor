@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { BASEMENT_STOREY_M, clearLayout, drawLayout, excavate, levelDepth, rampHeights, showUnderground, type LayoutFeature, type LayoutView } from './layout-masses'
+import { BASEMENT_STOREY_M, clearLayout, clipNorth, drawLayout, excavate, levelDepth, rampHeights, showUnderground, type LayoutFeature, type LayoutView } from './layout-masses'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const colour = { withAlpha: () => colour }
@@ -176,3 +176,21 @@ test('the ground is cut open along the basement outline only, and closed again w
   expect(globe.clippingPolygons).toBeUndefined()
 })
 
+
+test('clipNorth keeps the north side of a ring and closes it', () => {
+  const ring = [0, 0, 2, 0, 2, 2, 0, 2, 0, 0]
+  const north = clipNorth(ring, 1)
+  const lats = north.filter((_, k) => k % 2 === 1)
+  expect(Math.min(...lats)).toBe(1)
+  expect(north.slice(0, 2)).toEqual(north.slice(-2))
+  expect(clipNorth(ring, 3)).toEqual([])
+})
+
+test('an older Cesium without CustomShader draws the storey volumes instead of the model', () => {
+  const e = entities()
+  drawLayout(e, Cesium, { ...view([feature('building_footprint', 0, square(LON, LAT))]),
+    mass: { label: 'm', volumes: [{ ring: square(LON, LAT).coordinates[0]!, base_m: 0, top_m: 3 }],
+      model: { href: 'x.glb', origin: [LON, LAT], heading_deg: 0 } } }, null, 10)
+  expect(e.added.some((x) => x.model)).toBe(false)
+  expect(e.added.some((x) => String(x.id).includes('building-mass-0'))).toBe(true)
+})

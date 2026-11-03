@@ -69,9 +69,9 @@ export default function VworldSiteWorld({ active, drawn, onPick, overlay, shape,
   useEffect(() => {
     if (!ready) return
     const viewer = viewerRef.current, C = getCesium()
-    showUnderground(C, viewer.scene.globe, planned ? overlay?.layout ?? null : null)
     const layout = planned && overlay ? { ...overlay.layout, cutaway: true } : null
-    excavate(C, viewer.scene.globe, layout)
+    // The VWorld SDK's Cesium may predate clipping polygons (1.117): then the ground turns see-through instead.
+    showUnderground(C, viewer.scene.globe, layout, !excavate(C, viewer.scene.globe, layout))
     if (overlay && layout) drawLayout(viewer.entities, C, layout, overlay.intent, 'terrain')
     else clearLayout(viewer.entities)
     viewer.scene.requestRender()

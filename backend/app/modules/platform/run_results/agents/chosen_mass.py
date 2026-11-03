@@ -124,9 +124,14 @@ def model_of(candidate, href):
     origin = frame.get('origin_utm')
     if not href or not isinstance(origin, list) or len(origin) != 2 or not _str(frame.get('crs')):
         return None
-    to_wgs84 = Transformer.from_crs(frame['crs'], 'EPSG:4326', always_xy=True)
-    lng, lat = to_wgs84.transform(origin[0], origin[1])
-    lng_n, lat_n = to_wgs84.transform(origin[0], origin[1] + 100.0)
+    try:   # a frame this host cannot read leaves the model out, never the whole run's results
+        to_wgs84 = Transformer.from_crs(frame['crs'], 'EPSG:4326', always_xy=True)
+        lng, lat = to_wgs84.transform(origin[0], origin[1])
+        lng_n, lat_n = to_wgs84.transform(origin[0], origin[1] + 100.0)
+    except Exception:  # noqa: BLE001 - pyproj raises CRSError / ProjError / TypeError
+        return None
+    if not all(math.isfinite(v) for v in (lng, lat, lng_n, lat_n)):
+        return None
     east = math.radians(lng_n - lng) * math.cos(math.radians(lat))
     north = math.radians(lat_n - lat)
     return {'href': href, 'origin': [round(lng, 8), round(lat, 8)],

@@ -166,6 +166,30 @@ export function sectionCentre(layout: LayoutView | null): [number, number] | nul
   return [lons.reduce((a, b) => a + b, 0) / lons.length, lats.reduce((a, b) => a + b, 0) / lats.length]
 }
 
+/** The part of a [lng, lat, ...] ring north of `lat0` (Sutherland-Hodgman against one half-plane), closed. */
+export function clipNorth(ring: number[], lat0: number): number[] {
+  const points: [number, number][] = []
+  for (let k = 0; k + 1 < ring.length; k += 2) points.push([ring[k]!, ring[k + 1]!])
+  if (points.length && points[0]![0] === points[points.length - 1]![0] && points[0]![1] === points[points.length - 1]![1]) points.pop()
+  const out: [number, number][] = []
+  points.forEach((current, i) => {
+    const previous = points[(i + points.length - 1) % points.length]!
+    const inside = (p: [number, number]) => p[1] >= lat0
+    const cross = (): [number, number] => {
+      const t = (lat0 - previous[1]) / (current[1] - previous[1])
+      return [previous[0] + t * (current[0] - previous[0]), lat0]
+    }
+    if (inside(current)) {
+      if (!inside(previous)) out.push(cross())
+      out.push(current)
+    } else if (inside(previous)) {
+      out.push(cross())
+    }
+  })
+  if (out.length < 3) return []
+  return [...out, out[0]!].flat()
+}
+
 /** One vertical east-west plane through the section centre keeping the north side, in the frame `toLocal` maps to. */
 function sectionPlanes(Cesium: any, layout: LayoutView, toLocal: any): any {
   const centre = sectionCentre(layout)
@@ -296,10 +320,16 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
     ? { height: z, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND }
     : { height: ground + z }
   let n = 0
+  // 단면 without a model: the polygons themselves keep only their north side of the section line.
+  const centre = layout.section ? sectionCentre(layout) : null
+  const keep = (ring: number[]): number[] => centre ? clipNorth(ring, centre[1]) : ring
+  const ringsOf = (geometry: any): number[][] => rings(geometry).map(keep).filter((r) => r.length >= 6)
   entities.suspendEvents()
+  try {
   layout.features.forEach((f, index) => {
     const layer = f.properties.layer
-    if (layer === 'building_footprint' && layout.mass?.model) {
+    // CustomShader is Cesium 1.97+; the VWorld SDK's bundled Cesium may be older: the storey volumes stand there.
+    if (layer === 'building_footprint' && layout.mass?.model && Cesium.CustomShader) {
       if (index !== layout.features.findIndex((g) => g.properties.layer === 'building_footprint')) return
       // The chosen form as Mass delivered it (sloped roofs, notches): storey volumes cut at mid-height lose them.
       // glTF is y-up in site-local metres from the frame origin; the heading turns grid north onto true north.
@@ -336,7 +366,13 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
     }
     if (layer === 'building_footprint' && layout.mass?.volumes.length) {
       if (index !== layout.features.findIndex((g) => g.properties.layer === 'building_footprint')) return
-      layout.mass.volumes.forEach((v, i) => {
+      layout.mass.volumes.forEach((volume, i) => {
+        const pairs = (ring: number[][]) => {
+          const flat = keep(ring.flatMap((c) => [c[0]!, c[1]!]))
+          return Array.from({ length: flat.length / 2 }, (_, k) => [flat[2 * k]!, flat[2 * k + 1]!])
+        }
+        const v = { ...volume, ring: pairs(volume.ring), holes: centre ? [] : volume.holes }
+        if (v.ring.length < 3) return
         const degrees = (ring: number[][]) => Cesium.Cartesian3.fromDegreesArray(ring.flatMap((c) => [c[0]!, c[1]!]))
         // A courtyard form is one ring with the court as a hole, so the court stays open ground.
         const hierarchy = v.holes?.length
@@ -362,7 +398,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
     }
     if (layer === 'building_footprint') {
       const height = layout.height_m ?? UNKNOWN_STOREY_M
-      rings(f.geometry).forEach((ring, i) => {
+      ringsOf(f.geometry).forEach((ring, i) => {
         entities.add({
           id: `${PREFIX}building-${index}-${i}`,
           name: '계획 건물',
@@ -387,7 +423,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       const below = level < 0
       const material = layer === 'parking_stall' ? (below ? lowStall : stall) : layer === 'parking_aisle' ? (below ? lowAisle : aisle) : access
       const where = below ? `지하 ${-level}층 ` : ''
-      rings(f.geometry).forEach((ring, i) => {
+      ringsOf(f.geometry).forEach((ring, i) => {
         entities.add({
           id: `${PREFIX}${layer}-${index}-${i}`,
           name: where + (layer === 'parking_stall' ? '주차 구획' : layer === 'parking_aisle' ? '차로' : '차량 진입'),
@@ -398,7 +434,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       return
     }
     if (layer === 'basement_boundary') {
-      rings(f.geometry).forEach((ring, i) => {
+      ringsOf(f.geometry).forEach((ring, i) => {
         entities.add({
           id: `${PREFIX}basement-${index}-${i}`,
           name: `지하 ${-level}층 바닥`,
@@ -440,7 +476,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       const profile: Profile = f.properties.profile && f.properties.profile.length >= 2
         ? f.properties.profile
         : [{ distance_m: 0, z_m: 0 }, { distance_m: 1, z_m: depth }]
-      rings(f.geometry).forEach((ring, i) => {
+      ringsOf(f.geometry).forEach((ring, i) => {
         const heights = rampHeights(ring, centrelineCoords, profile)
         // Flat ground: each vertex at its own height (a sloped surface). On terrain a polygon cannot follow both the
         // terrain and its own slope, so the ramp is drawn level at its mean depth there.
@@ -461,7 +497,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
       return
     }
     if (layer === 'buildable_boundary') {
-      const strokes = [...rings(f.geometry), ...lines(f.geometry)]
+      const strokes = [...ringsOf(f.geometry), ...lines(f.geometry)]
       strokes.forEach((line, i) => {
         entities.add({
           id: `${PREFIX}buildable-${index}-${i}`,
@@ -477,7 +513,7 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
         })
         n++
       })
-      rings(f.geometry).forEach((ring, i) => {
+      ringsOf(f.geometry).forEach((ring, i) => {
         entities.add({
           id: `${PREFIX}buildable-area-${index}-${i}`,
           name: '건축 가능 범위',
@@ -489,7 +525,9 @@ export function drawLayout(entities: any, Cesium: any, layout: LayoutView, inten
     }
   })
   if (layout.style === 'diagram') n += drawDiagramLabels(entities, Cesium, layout, onTerrain ? 0 : ground)
-  entities.resumeEvents()
+  } finally {
+    entities.resumeEvents()
+  }
   drawnLayouts.set(entities, { signature, count: n,
     entities: entities.values.filter((e: any) => String(e.id).startsWith(PREFIX)) })
   return n

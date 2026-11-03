@@ -99,3 +99,8 @@ def test_the_chosen_form_is_also_drawn_as_its_delivered_mesh_at_its_frame_origin
     assert abs(model['origin'][0] - 127.108) < 0.001 and abs(model['origin'][1] - 37.7297) < 0.001
     assert -1.3 < model['heading_deg'] < -1.0   # UTM zone 52 grid north, west of the central meridian
     assert model_of(candidate, '') is None and model_of({}, 'x.glb') is None
+
+
+def test_an_unreadable_frame_leaves_the_model_out():
+    from backend.app.modules.platform.run_results.agents.chosen_mass import model_of
+    assert model_of({'coordinate_frame': {'crs': 'EPSG:not-a-crs', 'origin_utm': [1.0, 2.0]}}, 'x.glb') is None
