@@ -23,10 +23,11 @@ def main():
     args = p.parse_args()
     client = client_for(args.env_file)
     root = args.data_root.resolve()
+    # String paths, not resolve(): ten receipts hold ~4.5 M keys, and a filesystem call per key took minutes.
     # Sealed releases list some source files (e.g. ngii-canonical plans) in their receipts; verify() needs them local.
     sealed = set()
     for receipt in (root / 'management/releases').glob('*/files.jsonl'):
-        with open(receipt, encoding='utf-8') as lines: sealed.update((root / json.loads(line)['key']).resolve() for line in lines)
+        with open(receipt, encoding='utf-8') as lines: sealed.update(os.path.normcase(os.path.join(root, json.loads(line)['key'])) for line in lines)
     for prefix, local in args.map:
         have = existing(client, prefix + '/')
         report = {'prefix': prefix, 'local': local.as_posix(), 'delete': 0, 'deleteBytes': 0, 'keepPrivate': 0,
@@ -35,7 +36,7 @@ def main():
             for name in names:
                 path = Path(base) / name; rel = path.relative_to(local).as_posix(); size = path.stat().st_size
                 if PRIVATE.search(rel): report['keepPrivate'] += 1; continue
-                if path.resolve() in sealed: report['keepRelease'] += 1; continue
+                if os.path.normcase(str(path)) in sealed: report['keepRelease'] += 1; continue
                 if Path(base) == local and path.suffix.lower() in KEEP_TOP: report['keepTopLevel'] += 1; continue
                 key = f'{prefix}/{rel}'
                 if key not in have: report['keepMissing'] += 1; continue
